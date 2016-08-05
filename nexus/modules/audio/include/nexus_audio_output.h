@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -45,6 +45,12 @@
 extern "C" {
 #endif
 
+#define NEXUS_MAX_AUDIO_DUMMY_OUTPUTS 8
+#define NEXUS_MAX_AUDIO_SPDIF_OUTPUTS 2
+#define NEXUS_MAX_AUDIO_DAC_OUTPUTS 3
+#define NEXUS_MAX_AUDIO_I2S_OUTPUTS 2
+#define NEXUS_MAX_AUDIO_HDMI_OUTPUTS 2
+
 /*=************************************
 Interface: AudioOutput
 
@@ -66,7 +72,7 @@ typedef struct NEXUS_AudioOutputSettings
                                    using the nco clock below.  If using a PLL, autoConfigureVcxo determines
                                    if the upstream VCXO-PLL is set to this timebase as well. */
 
-	NEXUS_AudioChannelMode channelMode;
+    NEXUS_AudioChannelMode channelMode;
 
     NEXUS_AudioVolumeType volumeType; /* specifies the units for leftVolume and rightVolume. */
     int32_t leftVolume; /* the units depend on the value of volumeType. See docs for NEXUS_AudioVolumeType. */
@@ -75,7 +81,7 @@ typedef struct NEXUS_AudioOutputSettings
     bool muted;
     
     unsigned additionalDelay; /* Delay to add to this path. If you are using SyncChannel, this additionalDelay will 
-    							 be added to whatever delay SyncChannel assigns. In milliseconds. */
+                                 be added to whatever delay SyncChannel assigns. In milliseconds. */
 
     NEXUS_AudioOutputPll pll; /* PLL Selection.  May not apply to all outputs, see NEXUS_AudioOutputPll for details. */
     bool autoConfigureVcxo;   /* If true (default), the timebase above will be automatically programmed to the VCXO-PLL 
@@ -133,25 +139,12 @@ Outputs that require unique timebases
 ***************************************************************************/
 typedef struct NEXUS_AudioOutputEnabledOutputs
 {
-#if defined(NEXUS_NUM_AUDIO_DUMMY_OUTPUTS) && NEXUS_NUM_AUDIO_DUMMY_OUTPUTS
-    unsigned audioDummy[NEXUS_NUM_AUDIO_DUMMY_OUTPUTS];
-#endif
-#if defined(NEXUS_NUM_SPDIF_OUTPUTS) && NEXUS_NUM_SPDIF_OUTPUTS
-    unsigned spdif[NEXUS_NUM_SPDIF_OUTPUTS];
-#endif
-#if defined(NEXUS_NUM_DAC_OUTPUTS) && NEXUS_NUM_DAC_OUTPUTS
-    unsigned dac[NEXUS_NUM_DAC_OUTPUTS];
-#endif
-#if defined(NEXUS_NUM_I2S_OUTPUTS) && NEXUS_NUM_I2S_OUTPUTS
-    unsigned i2s[NEXUS_NUM_I2S_OUTPUTS];
-#endif
-#if defined(NEXUS_NUM_I2S_MULTI_OUTPUTS) && NEXUS_NUM_I2S_MULTI_OUTPUTS
-    unsigned i2sMulti[NEXUS_NUM_I2S_MULTI_OUTPUTS];
-#endif
-#if defined(NEXUS_NUM_HDMI_OUTPUTS) && NEXUS_NUM_HDMI_OUTPUTS
-    unsigned hdmi[NEXUS_NUM_HDMI_OUTPUTS];
-#endif
-    int unused; /*prevents compiler warnings*/
+    unsigned audioDummy[NEXUS_MAX_AUDIO_DUMMY_OUTPUTS];
+    unsigned spdif[NEXUS_MAX_AUDIO_SPDIF_OUTPUTS];
+    unsigned dac[NEXUS_MAX_AUDIO_DAC_OUTPUTS];
+    unsigned i2s[NEXUS_MAX_AUDIO_I2S_OUTPUTS];
+    unsigned i2sMulti[NEXUS_MAX_AUDIO_I2S_OUTPUTS];
+    unsigned hdmi[NEXUS_MAX_AUDIO_HDMI_OUTPUTS];
 } NEXUS_AudioOutputEnabledOutputs;
 
 
@@ -171,22 +164,11 @@ Recommmend setting of pll and nco for each output
 ***************************************************************************/
 typedef struct NEXUS_AudioOutputClockConfig
 {
-#if defined(NEXUS_NUM_AUDIO_DUMMY_OUTPUTS) && NEXUS_NUM_AUDIO_DUMMY_OUTPUTS
-    NEXUS_AudioOutputClockSource audioDummy[NEXUS_NUM_AUDIO_DUMMY_OUTPUTS];
-#endif
-#if defined(NEXUS_NUM_SPDIF_OUTPUTS) && NEXUS_NUM_SPDIF_OUTPUTS
-    NEXUS_AudioOutputClockSource spdif[NEXUS_NUM_SPDIF_OUTPUTS];
-#endif
-#if defined(NEXUS_NUM_I2S_OUTPUTS) && NEXUS_NUM_I2S_OUTPUTS
-    NEXUS_AudioOutputClockSource i2s[NEXUS_NUM_I2S_OUTPUTS];
-#endif
-#if defined(NEXUS_NUM_I2S_MULTI_OUTPUTS) && NEXUS_NUM_I2S_MULTI_OUTPUTS
-    NEXUS_AudioOutputClockSource i2sMulti[NEXUS_NUM_I2S_MULTI_OUTPUTS];
-#endif
-#if defined(NEXUS_NUM_HDMI_OUTPUTS) && NEXUS_NUM_HDMI_OUTPUTS
-    NEXUS_AudioOutputClockSource hdmi[NEXUS_NUM_HDMI_OUTPUTS];
-#endif
-    int unused; /*prevents compiler warnings*/
+    NEXUS_AudioOutputClockSource audioDummy[NEXUS_MAX_AUDIO_DUMMY_OUTPUTS];
+    NEXUS_AudioOutputClockSource spdif[NEXUS_MAX_AUDIO_SPDIF_OUTPUTS];
+    NEXUS_AudioOutputClockSource i2s[NEXUS_MAX_AUDIO_I2S_OUTPUTS];
+    NEXUS_AudioOutputClockSource i2sMulti[NEXUS_MAX_AUDIO_I2S_OUTPUTS];
+    NEXUS_AudioOutputClockSource hdmi[NEXUS_MAX_AUDIO_HDMI_OUTPUTS];
 } NEXUS_AudioOutputClockConfig;
 
 
@@ -228,7 +210,7 @@ Add an input to this output
 ***************************************************************************/
 NEXUS_Error NEXUS_AudioOutput_AddInput(
     NEXUS_AudioOutputHandle output,
-    NEXUS_AudioInput input
+    NEXUS_AudioInputHandle input
     );
 
 /***************************************************************************
@@ -237,7 +219,7 @@ Add an input to this output
 ***************************************************************************/
 NEXUS_Error NEXUS_AudioOutput_RemoveInput(
     NEXUS_AudioOutputHandle output,
-    NEXUS_AudioInput input
+    NEXUS_AudioInputHandle input
     );
 
 /***************************************************************************
@@ -265,4 +247,3 @@ void NEXUS_AudioOutput_Shutdown(
 #endif
 
 #endif /* #ifndef NEXUS_AUDIO_OUTPUT_H__ */
-

@@ -372,6 +372,10 @@ BERR_Code BDSP_AudioStage_GetDatasyncSettings(
     BDSP_StageHandle stage,
     BDSP_AudioTaskDatasyncSettings *pDatasyncSettings         /* [out] */
     );
+BERR_Code BDSP_AudioStage_GetDatasyncSettings_isr(
+    BDSP_StageHandle stage,
+    BDSP_AudioTaskDatasyncSettings *pDatasyncSettings         /* [out] */
+    );
 
 /***************************************************************************
 Summary:

@@ -57,6 +57,10 @@ typedef struct piff_parse_frag_info {
 
 } piff_parse_frag_info;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 piff_parser_handle_t piff_parser_create(bfile_io_read_t fd);
 void piff_parser_destroy(piff_parser_handle_t handle);
 bool piff_parser_scan_movie_info(piff_parser_handle_t handle);
@@ -68,4 +72,7 @@ uint8_t* piff_parser_get_pssh(piff_parser_handle_t handle, size_t *len);
 uint32_t piff_parser_get_track_type(piff_parser_handle_t handle, uint32_t trackId);
 void* piff_parser_get_dec_data(piff_parser_handle_t handle, size_t *len, uint32_t trackId);
 
+#ifdef __cplusplus
+}
+#endif
 #endif /* PIFF_PARSER_H */

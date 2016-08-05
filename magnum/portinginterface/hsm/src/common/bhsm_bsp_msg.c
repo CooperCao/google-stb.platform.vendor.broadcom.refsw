@@ -39,7 +39,7 @@
 *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
 ******************************************************************************/
 
-
+#include "bstd.h"
 #include "bhsm.h"
 #include "bchp_bsp_cmdbuf.h"
 #include "bsp_s_hw.h"
@@ -63,7 +63,6 @@ BDBG_MODULE(BHSMa);
 
 #define MAX(a,b) (((a)>(b))?(a):(b))
 #define MIN(a,b) (((a)<(b))?(a):(b))
-#define BHSM_P_BSP_MSG_HANDLE_MAGIC_NUMBER (0x12435687)
 
 #define MAILBOX_IREADY                            BCHP_BSP_GLB_CONTROL_GLB_IRDY
 #if BHSM_BUILD_HSM_FOR_SAGE
@@ -94,6 +93,9 @@ BDBG_MODULE(BHSMa);
 static void mailboxInterruptHandler_isr( void* pHsm, int unused );
 static char* cropStr( char* pStr );
 
+BDBG_OBJECT_ID(BHSM_P_BspMsg);
+
+BDBG_OBJECT_ID_DECLARE( BHSM_P_Handle );
 
 /* BSP Message Module data. */
 typedef struct BHSM_P_BspMsg_Module_s
@@ -114,9 +116,10 @@ typedef struct BHSM_P_BspMsg_Module_s
 }BHSM_P_BspMsg_Module_t;
 
 
-typedef struct BHSM_P_BspMsg_s
+typedef struct BHSM_P_BspMsg
 {
-    unsigned       magic;                               /* used to validate the handle in function calls */
+    BDBG_OBJECT( BHSM_P_BspMsg )
+
     BHSM_Handle    hHsm;
     BREG_Handle    hRegister;
     unsigned       cmdLength;                           /* The command length                            */
@@ -132,7 +135,7 @@ typedef struct BHSM_P_BspMsg_s
     #if BHSM_DEBUG_INDIVIDUAL_COMMAND
     BDBG_Level     level;                               /* store debug level */
     #endif
-}BHSM_P_BspMsg_t;
+}BHSM_P_BspMsg;
 
 
 /* macros to read and write to the mailbox.  */
@@ -147,7 +150,9 @@ BERR_Code BHSM_BspMsg_Init( BHSM_Handle hHsm, BHSM_BspMsgConfigure_t *pConfig )
 
     BDBG_ENTER( BHSM_BspMsg_Init );
 
-    if( !hHsm || hHsm->ulMagicNumber != BHSM_P_HANDLE_MAGIC_NUMBER || !pConfig || !hHsm->regHandle )
+    /* hHsm is valid, as its object is set after this call. */
+
+    if( !pConfig || !hHsm->regHandle )
     {
          return BERR_TRACE( BERR_INVALID_PARAMETER );
     }
@@ -243,28 +248,29 @@ BERR_Code BHSM_BspMsg_Create( BHSM_Handle hHsm,  BHSM_BspMsg_h *phMsg )
 {
     BHSM_BspMsg_h hMsg;
 
-    BDBG_ENTER( BHSM_BspMsg_Create );
+    BDBG_ENTER ( BHSM_BspMsg_Create );
 
-    if( !hHsm || hHsm->ulMagicNumber != BHSM_P_HANDLE_MAGIC_NUMBER || !hHsm->pBspMessageModule || !phMsg  )
+    if( !hHsm || !hHsm->pBspMessageModule || !phMsg  )
     {
          return BERR_TRACE( BERR_INVALID_PARAMETER );
     }
 
     *phMsg = NULL;
 
-    hMsg = (BHSM_BspMsg_h) BKNI_Malloc( sizeof(BHSM_P_BspMsg_t) );
+    hMsg = (BHSM_BspMsg_h) BKNI_Malloc( sizeof(BHSM_P_BspMsg) );
     if( hMsg == NULL)
     {
-        BDBG_ERR(( "Failed to allocate mem for Mail [%d]", (unsigned)sizeof(BHSM_P_BspMsg_t) ));
+        BDBG_ERR(( "Failed to allocate mem for Mail [%d]", (unsigned)sizeof(BHSM_P_BspMsg) ));
         return BERR_OUT_OF_SYSTEM_MEMORY;
     }
 
-    BKNI_Memset( hMsg, 0, sizeof(BHSM_P_BspMsg_t) );
+    BKNI_Memset( hMsg, 0, sizeof(BHSM_P_BspMsg) );
 
-    hMsg->magic = BHSM_P_BSP_MSG_HANDLE_MAGIC_NUMBER;
     hMsg->isRaw = true;
     hMsg->hHsm = hHsm;
     hMsg->pMod = (BHSM_P_BspMsg_Module_t*)hHsm->pBspMessageModule;
+
+    BDBG_OBJECT_SET( hMsg, BHSM_P_BspMsg );
     *phMsg = hMsg;
 
     if( hMsg->pMod->bspInterfaceBusy )
@@ -286,11 +292,7 @@ BERR_Code BHSM_BspMsg_Destroy ( BHSM_BspMsg_h hMsg )
 {
     BDBG_ENTER( BHSM_BspMsg_Destroy );
 
-    if( !hMsg || hMsg->magic != BHSM_P_BSP_MSG_HANDLE_MAGIC_NUMBER )
-    {
-        /* invalid parameter. */
-        return  BERR_TRACE( BHSM_STATUS_INPUT_PARM_ERR );
-    }
+    BDBG_OBJECT_ASSERT( hMsg, BHSM_P_BspMsg );
 
     #if BHSM_DEBUG_INDIVIDUAL_COMMAND
     BDBG_SetModuleLevel( "BHSMa", hMsg->level );
@@ -298,7 +300,7 @@ BERR_Code BHSM_BspMsg_Destroy ( BHSM_BspMsg_h hMsg )
 
     hMsg->pMod->bspInterfaceBusy = false;
 
-    hMsg->magic = 0;  /* kill the magic */
+    BDBG_OBJECT_DESTROY( hMsg, BHSM_P_BspMsg );
     BKNI_Free( hMsg );
 
     BDBG_LEAVE( BHSM_BspMsg_Destroy );
@@ -313,10 +315,7 @@ BERR_Code BHSM_BspMsg_Pack8_impl( BHSM_BspMsg_h hMsg, unsigned int offset, uint8
 
     BDBG_ENTER( BHSM_BspMsg_Pack8 );
 
-    if( !hMsg || hMsg->magic != BHSM_P_BSP_MSG_HANDLE_MAGIC_NUMBER )
-    {
-         return BERR_TRACE( BERR_INVALID_PARAMETER );
-    }
+    BDBG_OBJECT_ASSERT( hMsg, BHSM_P_BspMsg );
 
     if( offset >= BHSM_P_BSP_MSG_SIZE )
     {
@@ -354,10 +353,7 @@ BERR_Code BHSM_BspMsg_Pack16_impl( BHSM_BspMsg_h hMsg, unsigned int offset, uint
 
     BDBG_ENTER( BHSM_BspMsg_Pack16 );
 
-    if( !hMsg || hMsg->magic != BHSM_P_BSP_MSG_HANDLE_MAGIC_NUMBER )
-    {
-         return BERR_TRACE( BERR_INVALID_PARAMETER );
-    }
+    BDBG_OBJECT_ASSERT( hMsg, BHSM_P_BspMsg );
 
     if( offset >= BHSM_P_BSP_MSG_SIZE )
     {
@@ -402,10 +398,7 @@ BERR_Code BHSM_BspMsg_Pack24_impl( BHSM_BspMsg_h hMsg, unsigned int offset, uint
 
     BDBG_ENTER( BHSM_BspMsg_Pack24 );
 
-    if( !hMsg || hMsg->magic != BHSM_P_BSP_MSG_HANDLE_MAGIC_NUMBER )
-    {
-         return BERR_TRACE( BERR_INVALID_PARAMETER );
-    }
+    BDBG_OBJECT_ASSERT( hMsg, BHSM_P_BspMsg );
 
     if( offset >= BHSM_P_BSP_MSG_SIZE )
     {
@@ -450,10 +443,7 @@ BERR_Code BHSM_BspMsg_Pack32_impl( BHSM_BspMsg_h hMsg, unsigned int offset, uint
     signed wordOffset;
     BDBG_ENTER( BHSM_BspMsg_Pack32 );
 
-    if( !hMsg || hMsg->magic != BHSM_P_BSP_MSG_HANDLE_MAGIC_NUMBER )
-    {
-         return BERR_TRACE( BERR_INVALID_PARAMETER );
-    }
+    BDBG_OBJECT_ASSERT( hMsg, BHSM_P_BspMsg );
 
     if( offset >= BHSM_P_BSP_MSG_SIZE )
     {
@@ -495,10 +485,8 @@ BERR_Code BHSM_BspMsg_PackArray_impl( BHSM_BspMsg_h hMsg, unsigned offset, uint8
 
     BDBG_ENTER( BHSM_BspMsg_PackArray );
 
-    if( !hMsg  || hMsg->magic != BHSM_P_BSP_MSG_HANDLE_MAGIC_NUMBER || !pData  )
-    {
-         return BERR_TRACE( BERR_INVALID_PARAMETER );
-    }
+    BDBG_OBJECT_ASSERT( hMsg, BHSM_P_BspMsg );
+    if( !pData ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
 
     if( (offset + length) > BHSM_P_BSP_MSG_SIZE )
     {
@@ -540,10 +528,8 @@ BERR_Code BHSM_BspMsg_Get8_impl( BHSM_BspMsg_h hMsg, unsigned int offset, uint8_
 {
     BDBG_ENTER( BHSM_BspMsg_Get8 );
 
-    if( !hMsg  || hMsg->magic != BHSM_P_BSP_MSG_HANDLE_MAGIC_NUMBER || !pData  )
-    {
-         return BERR_TRACE( BERR_INVALID_PARAMETER );
-    }
+    BDBG_OBJECT_ASSERT( hMsg, BHSM_P_BspMsg );
+    if( !pData ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
 
     if( (offset >= BHSM_P_BSP_MSG_SIZE) || (pData == NULL) )
     {
@@ -568,10 +554,8 @@ BERR_Code BHSM_BspMsg_Get16_impl( BHSM_BspMsg_h hMsg, unsigned int offset, uint1
 {
     BDBG_ENTER( BHSM_BspMsg_Get16 );
 
-    if( !hMsg  || hMsg->magic != BHSM_P_BSP_MSG_HANDLE_MAGIC_NUMBER || !pData  )
-    {
-         return BERR_TRACE( BERR_INVALID_PARAMETER );
-    }
+    BDBG_OBJECT_ASSERT( hMsg, BHSM_P_BspMsg );
+    if( !pData ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
 
     if( (offset+1 >= BHSM_P_BSP_MSG_SIZE) || (pData == NULL) ) /*1 byte after offset read */
     {
@@ -595,10 +579,8 @@ BERR_Code BHSM_BspMsg_Get24_impl( BHSM_BspMsg_h hMsg, unsigned int offset, uint3
 {
     BDBG_ENTER( BHSM_BspMsg_Get24 );
 
-    if( !hMsg || hMsg->magic != BHSM_P_BSP_MSG_HANDLE_MAGIC_NUMBER || !pData  )
-    {
-         return BERR_TRACE( BERR_INVALID_PARAMETER );
-    }
+    BDBG_OBJECT_ASSERT( hMsg, BHSM_P_BspMsg );
+    if( !pData ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
 
     if( (offset+2 >= BHSM_P_BSP_MSG_SIZE) || (pData == NULL) ) /* 2 bytes after offset read */
     {
@@ -622,10 +604,8 @@ BERR_Code BHSM_BspMsg_Get32_impl( BHSM_BspMsg_h hMsg, unsigned int offset, uint3
 {
     BDBG_ENTER( BHSM_BspMsg_Get32 );
 
-    if( !hMsg || hMsg->magic != BHSM_P_BSP_MSG_HANDLE_MAGIC_NUMBER || !pData  )
-    {
-         return BERR_TRACE( BERR_INVALID_PARAMETER );
-    }
+    BDBG_OBJECT_ASSERT( hMsg, BHSM_P_BspMsg );
+    if( !pData ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
 
     if( (offset+3 >= BHSM_P_BSP_MSG_SIZE) || (pData == NULL) ) /* 3 bytes after offset read */
     {
@@ -651,10 +631,8 @@ BERR_Code BHSM_BspMsg_GetArray_impl( BHSM_BspMsg_h hMsg, unsigned int offset, ui
 
     BDBG_ENTER( BHSM_BspMsg_GetArray );
 
-    if( !hMsg || hMsg->magic != BHSM_P_BSP_MSG_HANDLE_MAGIC_NUMBER || !pData  )
-    {
-         return BERR_TRACE( BERR_INVALID_PARAMETER );
-    }
+    BDBG_OBJECT_ASSERT( hMsg, BHSM_P_BspMsg );
+    if( !pData ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
 
     if( (offset+length >= BHSM_P_BSP_MSG_SIZE) || (pData == NULL) )
     {
@@ -711,10 +689,8 @@ BERR_Code BHSM_BspMsg_Header_impl( BHSM_BspMsg_h hMsg, BCMD_cmdType_e bspCommand
     uint32_t    iReady = 0;
     BDBG_ENTER( BHSM_BspMsg_Header );
 
-    if( !hMsg || hMsg->magic != BHSM_P_BSP_MSG_HANDLE_MAGIC_NUMBER || !pHeader  )
-    {
-         return BERR_TRACE( BERR_INVALID_PARAMETER );
-    }
+    BDBG_OBJECT_ASSERT( hMsg, BHSM_P_BspMsg );
+    if( !pHeader  ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
 
     hMsg->hRegister = hMsg->hHsm->regHandle;
 
@@ -820,10 +796,7 @@ BERR_Code BHSM_BspMsg_SubmitCommand( BHSM_BspMsg_h hMsg )
 
     BDBG_ENTER( BHSM_BspMsg_SubmitCommand );
 
-    if( !hMsg || hMsg->magic != BHSM_P_BSP_MSG_HANDLE_MAGIC_NUMBER  )
-    {
-         return BERR_TRACE( BERR_INVALID_PARAMETER );
-    }
+    BDBG_OBJECT_ASSERT( hMsg, BHSM_P_BspMsg );
 
     hRegister = hMsg->hRegister;
     hHsm = hMsg->hHsm;

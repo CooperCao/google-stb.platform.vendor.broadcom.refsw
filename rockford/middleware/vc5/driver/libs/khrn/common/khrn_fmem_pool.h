@@ -31,9 +31,9 @@ associated data that will be generated each frame as HW input.
 #define KHRN_FMEM_MAX_BLOCKS 128
 
 /* The maximum alignment of anything allocated from an fmem buffer */
-#define KHRN_FMEM_ALIGN_MAX V3D_QUERY_COUNTER_FIRST_CORE_CACHE_LINE_ALIGN
+#define KHRN_FMEM_ALIGN_MAX V3D_OCCLUSION_QUERY_COUNTER_FIRST_CORE_CACHE_LINE_ALIGN
 #define KHRN_FMEM_BUFFER_SIZE (64 * 1024)
-#define KHRN_FMEM_USABLE_BUFFER_SIZE (KHRN_FMEM_BUFFER_SIZE - KHRN_CLE_BRANCH_SIZE - GFX_MAX(V3D_MAX_CLE_READAHEAD, V3D_MAX_QPU_UNIFS_READAHEAD) - 1)
+#define KHRN_FMEM_USABLE_BUFFER_SIZE (KHRN_FMEM_BUFFER_SIZE - V3D_CL_BRANCH_SIZE - GFX_MAX(V3D_MAX_CLE_READAHEAD, V3D_MAX_QPU_UNIFS_READAHEAD) - 1)
 
 /* when the number of free fmems and number of submitted buffers in the client
  * pool goes below this threshold, start flushing other render states except the

@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2011-2014 Broadcom Corporation
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  *****************************************************************************/
 #include "nxserverlib_impl.h"
@@ -76,6 +68,9 @@ NEXUS_Error stc_pool_init(nxserver_t server)
 #endif
     NEXUS_GetVideoDecoderCapabilities(&videoCaps);
     NEXUS_GetTransportCapabilities(&xptCaps);
+
+    /* nxclient assumes timebase0 is reserved for display and audio. */
+    nxserver_p_reserve_timebase(NEXUS_Timebase_e0);
 
     for (i = 0; i < xptCaps.numStcs; i++)
     {
@@ -365,3 +360,10 @@ void stc_index_release(struct b_connect *connect, int stcIndex)
 NEXUS_Error stc_pool_init(nxserver_t server) { return 0; }
 void stc_pool_uninit(nxserver_t server) { }
 #endif
+
+void nxserver_p_reserve_timebase(NEXUS_Timebase timebase)
+{
+    NEXUS_TimebaseSettings timebaseSettings;
+    NEXUS_Timebase_GetSettings(timebase, &timebaseSettings);
+    NEXUS_Timebase_SetSettings(timebase, &timebaseSettings);
+}

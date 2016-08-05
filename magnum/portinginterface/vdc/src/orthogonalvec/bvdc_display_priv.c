@@ -105,6 +105,10 @@ BERR_Code BVDC_P_Display_Create
 
     BDBG_ENTER(BVDC_P_Display_Create);
 
+    /* Ascertain that VDC display ID enum and count correctly mirrors BOX's. */
+    BDBG_CASSERT(BBOX_VDC_DISPLAY_COUNT == BVDC_P_MAX_DISPLAY_COUNT);
+    BDBG_CASSERT(BBOX_Vdc_Display_eDisplay6 == (BBOX_Vdc_DisplayId)BVDC_DisplayId_eDisplay6);
+
     /* (1) Allocate display context */
     pDisplay = (BVDC_P_DisplayContext*)
         (BKNI_Malloc(sizeof(BVDC_P_DisplayContext)));
@@ -377,6 +381,9 @@ void BVDC_P_Display_Init
     hDisplay->ulStgRegOffset             = 0;
 
 #if BVDC_P_SUPPORT_STG
+    /* Ascertain that STG display count complies to BOX's */
+    BDBG_CASSERT(BBOX_VDC_STG_DISPLAY_COUNT >= BVDC_P_SUPPORT_STG);
+
     hDisplay->eStgRampFmt = BFMT_VideoFmt_eMaxCount;
     hDisplay->stNewInfo.bEnableStg = hDisplay->stStgChan.bEnable;
 #if (BVDC_P_SUPPORT_STG > 1)
@@ -542,19 +549,6 @@ void BVDC_P_Display_Destroy
 void BVDC_P_ResetVec
     ( BVDC_P_Context                  *pVdc )
 {
-#if 0
-    uint32_t ulVbiPrimReg;
-#if BVDC_P_SUPPORT_SEC_VEC
-    uint32_t ulVbiSecReg;
-#endif
-#if BVDC_P_SUPPORT_TER_VEC
-    uint32_t ulVbiTerReg;
-#endif
-#if (BVDC_P_SUPPORT_VBI_ENC_656)
-    uint32_t ulVbiAncilReg;
-#endif
-#endif
-
 #ifdef BCHP_VCXO_0_RM_REG_START
     uint32_t i;
     uint32_t ulVcxoRm0[BVDC_P_VCXO_RM_REG_COUNT];
@@ -570,23 +564,6 @@ void BVDC_P_ResetVec
 
     /* prepare for software reset */
     BKNI_EnterCriticalSection();
-
-
-#if 0 /* ToDo: Add 7420 VBI reset handling */
-    /* before reset, get regsiters partially owned by VBI module */
-    ulVbiPrimReg  = BREG_Read32(pVdc->hRegister, BCHP_VBI_ENC_PRIM_Control);
-#if (BVDC_P_SUPPORT_VBI_ENC_656)
-    ulVbiAncilReg = BREG_Read32(pVdc->hRegister, BCHP_VBI_ENC_656_Ancil_Control);
-#endif
-
-#if BVDC_P_SUPPORT_SEC_VEC
-    ulVbiSecReg   = BREG_Read32(pVdc->hRegister, BCHP_VBI_ENC_SEC_Control);
-#endif
-
-#if BVDC_P_SUPPORT_TER_VEC
-    ulVbiTerReg   = BREG_Read32(pVdc->hRegister, BCHP_VBI_ENC_TERT_Control);
-#endif
-#endif
 
     /* Save VCXO_RM settings before reset VEC core */
 #ifdef BCHP_VCXO_0_RM_REG_START
@@ -634,35 +611,6 @@ void BVDC_P_ResetVec
           BCHP_FIELD_DATA( SUN_TOP_CTRL_SW_INIT_1_SET, vip_sw_init, 1 ));
     BREG_Write32(pVdc->hRegister, BCHP_SUN_TOP_CTRL_SW_INIT_1_CLEAR,
           BCHP_FIELD_DATA( SUN_TOP_CTRL_SW_INIT_1_CLEAR, vip_sw_init, 1 ));
-#endif
-
-#if 0 /* ToDo: Add 7420 VBI reset handling */
-
-    /* PR 9338:
-       The VBI module owns most of the fields from these registers.
-        All fields owned by VBI should be restored and the pass_through field
-        of PRIM/SEC vbi encoders are set, while 656 vbi encoder's pass_through
-        count is cleared. */
-    ulVbiPrimReg  |= BCHP_VBI_ENC_PRIM_Control_ENABLE_PASS_THROUGH_MASK;
-    BREG_Write32(pVdc->hRegister, BCHP_VBI_ENC_PRIM_Control, ulVbiPrimReg);
-    BREG_Write32(pVdc->hRegister, BAVC_VBI_ENC_0_CTRL_SCRATCH, ulVbiPrimReg);
-#if (BVDC_P_SUPPORT_VBI_ENC_656)
-    ulVbiAncilReg &= ~BCHP_VBI_ENC_656_Ancil_Control_PASS_THROUGH_COUNT_MASK;
-    BREG_Write32(pVdc->hRegister, BCHP_VBI_ENC_656_Ancil_Control, ulVbiAncilReg);
-    BREG_Write32(pVdc->hRegister, BAVC_VBI_ENC_BP_CTRL_SCRATCH, ulVbiAncilReg);
-#endif
-
-#if (BVDC_P_SUPPORT_TER_VEC)
-    ulVbiTerReg |= BCHP_VBI_ENC_PRIM_Control_ENABLE_PASS_THROUGH_MASK;
-    BREG_Write32(pVdc->hRegister, BCHP_VBI_ENC_TERT_Control, ulVbiTerReg);
-    BREG_Write32(pVdc->hRegister, BAVC_VBI_ENC_2_CTRL_SCRATCH, ulVbiTerReg);
-#endif
-
-#if (BVDC_P_SUPPORT_SEC_VEC)
-    ulVbiSecReg   |= BCHP_VBI_ENC_PRIM_Control_ENABLE_PASS_THROUGH_MASK;
-    BREG_Write32(pVdc->hRegister, BCHP_VBI_ENC_SEC_Control, ulVbiSecReg);
-    BREG_Write32(pVdc->hRegister, BAVC_VBI_ENC_1_CTRL_SCRATCH, ulVbiSecReg);
-#endif
 #endif
 
     /* Restore VCXO_RM settings */
@@ -1519,14 +1467,14 @@ static BERR_Code BVDC_P_Display_ValidateDacSettings
                 else
                     hDisplay->stNewInfo.stDirty.stBits.bChan1 = BVDC_P_DIRTY;
                 /* Consistency check for VF filter sum of taps */
-                if ((err = BVDC_P_GetVfFilterSumOfTapsBits (
+                if ((err = BVDC_P_GetVfFilterSumOfTapsBits_isr (
                     &hDisplay->stNewInfo, BVDC_DisplayOutput_eComponent,
                     NULL, NULL)) != BERR_SUCCESS)
                 {
                     BDBG_LEAVE(BVDC_P_Display_ValidateDacSettings);
                     return BERR_TRACE(err);
                 }
-                if ((err = BVDC_P_GetVfFilterSumOfTapsBits (
+                if ((err = BVDC_P_GetVfFilterSumOfTapsBits_isr (
                     &hDisplay->stNewInfo, BVDC_DisplayOutput_eComposite,
                     NULL, NULL)) != BERR_SUCCESS)
                 {
@@ -1553,7 +1501,7 @@ static BERR_Code BVDC_P_Display_ValidateDacSettings
                     if(aulNewAnalogChan[i] != 0 && aulCurAnalogChan[i] == 0)
                     {
                         BDBG_MSG(("Display %d Acquire new Dac resource for AnlgChan_%d", hDisplay->eId, (i & 0x1)));
-                        err = BVDC_P_AllocDacResources(hVdc->hResource, hDisplay, pstChan, aulNewAnalogChan[i]);
+                        err = BVDC_P_AllocDacResources(hVdc->hResource, pstChan, aulNewAnalogChan[i]);
                         if(err)
                         {
                             BKNI_LeaveCriticalSection();
@@ -2475,44 +2423,43 @@ void BVDC_P_Vec_BuildRul_isr
     if (BVDC_P_IS_DIRTY(&(hDisplay->stCurInfo.stDirty)))
     {
         BVDC_P_VEC_MSG(("Display%d: CurDirty = 0x%x", hDisplay->eId, hDisplay->stCurInfo.stDirty));
-        BVDC_P_VEC_MSG(("\t bChan0            = %d", hDisplay->stCurInfo.stDirty.stBits.bChan0));
-        BVDC_P_VEC_MSG(("\t bChan1            = %d", hDisplay->stCurInfo.stDirty.stBits.bChan1));
-        BVDC_P_VEC_MSG(("\t bTiming           = %d", hDisplay->stCurInfo.stDirty.stBits.bTiming));
-        BVDC_P_VEC_MSG(("\t bAcp              = %d", hDisplay->stCurInfo.stDirty.stBits.bAcp));
-        BVDC_P_VEC_MSG(("\t b3DSetting        = %d", hDisplay->stCurInfo.stDirty.stBits.b3DSetting));
-        BVDC_P_VEC_MSG(("\t bDacSetting       = %d", hDisplay->stCurInfo.stDirty.stBits.bDacSetting));
-        BVDC_P_VEC_MSG(("\t bTimeBase         = %d", hDisplay->stCurInfo.stDirty.stBits.bTimeBase));
-        BVDC_P_VEC_MSG(("\t bCallback         = %d", hDisplay->stCurInfo.stDirty.stBits.bCallback));
-        BVDC_P_VEC_MSG(("\t bCallbackFunc     = %d", hDisplay->stCurInfo.stDirty.stBits.bCallbackFunc));
-        BVDC_P_VEC_MSG(("\t bWidthTrim        = %d", hDisplay->stCurInfo.stDirty.stBits.bWidthTrim));
-        BVDC_P_VEC_MSG(("\t bInputCS          = %d", hDisplay->stCurInfo.stDirty.stBits.bInputCS));
-        BVDC_P_VEC_MSG(("\t bSrcFrameRate     = %d", hDisplay->stCurInfo.stDirty.stBits.bSrcFrameRate));
-        BVDC_P_VEC_MSG(("\t bDropFrame        = %d", hDisplay->stCurInfo.stDirty.stBits.bDropFrame));
+        BVDC_P_VEC_MSG(("     bChan0            = %d", hDisplay->stCurInfo.stDirty.stBits.bChan0));
+        BVDC_P_VEC_MSG(("     bChan1            = %d", hDisplay->stCurInfo.stDirty.stBits.bChan1));
+        BVDC_P_VEC_MSG(("     bTiming           = %d", hDisplay->stCurInfo.stDirty.stBits.bTiming));
+        BVDC_P_VEC_MSG(("     bAcp              = %d", hDisplay->stCurInfo.stDirty.stBits.bAcp));
+        BVDC_P_VEC_MSG(("     b3DSetting        = %d", hDisplay->stCurInfo.stDirty.stBits.b3DSetting));
+        BVDC_P_VEC_MSG(("     bDacSetting       = %d", hDisplay->stCurInfo.stDirty.stBits.bDacSetting));
+        BVDC_P_VEC_MSG(("     bTimeBase         = %d", hDisplay->stCurInfo.stDirty.stBits.bTimeBase));
+        BVDC_P_VEC_MSG(("     bCallback         = %d", hDisplay->stCurInfo.stDirty.stBits.bCallback));
+        BVDC_P_VEC_MSG(("     bCallbackFunc     = %d", hDisplay->stCurInfo.stDirty.stBits.bCallbackFunc));
+        BVDC_P_VEC_MSG(("     bWidthTrim        = %d", hDisplay->stCurInfo.stDirty.stBits.bWidthTrim));
+        BVDC_P_VEC_MSG(("     bInputCS          = %d", hDisplay->stCurInfo.stDirty.stBits.bInputCS));
+        BVDC_P_VEC_MSG(("     bSrcFrameRate     = %d", hDisplay->stCurInfo.stDirty.stBits.bSrcFrameRate));
 #if (BVDC_P_SUPPORT_RFM_OUTPUT != 0)
-        BVDC_P_VEC_MSG(("\t bRfm              = %d", hDisplay->stCurInfo.stDirty.stBits.bRfm));
+        BVDC_P_VEC_MSG(("     bRfm              = %d", hDisplay->stCurInfo.stDirty.stBits.bRfm));
 #endif
-        BVDC_P_VEC_MSG(("\t bHdmiEnable       = %d", hDisplay->stCurInfo.stDirty.stBits.bHdmiEnable));
-        BVDC_P_VEC_MSG(("\t bHdmiCsc          = %d", hDisplay->stCurInfo.stDirty.stBits.bHdmiCsc));
+        BVDC_P_VEC_MSG(("     bHdmiEnable       = %d", hDisplay->stCurInfo.stDirty.stBits.bHdmiEnable));
+        BVDC_P_VEC_MSG(("     bHdmiCsc          = %d", hDisplay->stCurInfo.stDirty.stBits.bHdmiCsc));
 #if (BVDC_P_SUPPORT_ITU656_OUT != 0)
-        BVDC_P_VEC_MSG(("\t b656Enable        = %d", hDisplay->stCurInfo.stDirty.stBits.b656Enable));
+        BVDC_P_VEC_MSG(("     b656Enable        = %d", hDisplay->stCurInfo.stDirty.stBits.b656Enable));
 #endif
-        BVDC_P_VEC_MSG(("\t bMpaaComp         = %d", hDisplay->stCurInfo.stDirty.stBits.bMpaaComp));
-        BVDC_P_VEC_MSG(("\t bMpaaHdmi         = %d", hDisplay->stCurInfo.stDirty.stBits.bMpaaHdmi));
+        BVDC_P_VEC_MSG(("     bMpaaComp         = %d", hDisplay->stCurInfo.stDirty.stBits.bMpaaComp));
+        BVDC_P_VEC_MSG(("     bMpaaHdmi         = %d", hDisplay->stCurInfo.stDirty.stBits.bMpaaHdmi));
 
-        BVDC_P_VEC_MSG(("\t bTimeStamp        = %d", hDisplay->stCurInfo.stDirty.stBits.bTimeStamp));
-        BVDC_P_VEC_MSG(("\t bAlignment        = %d", hDisplay->stCurInfo.stDirty.stBits.bAlignment));
-        BVDC_P_VEC_MSG(("\t bHdmiDroplines    = %d", hDisplay->stCurInfo.stDirty.stBits.bHdmiDroplines));
-        BVDC_P_VEC_MSG(("\t bHdmiXvYcc        = %d", hDisplay->stCurInfo.stDirty.stBits.bHdmiXvYcc));
-        BVDC_P_VEC_MSG(("\t bHdmiSyncOnly     = %d", hDisplay->stCurInfo.stDirty.stBits.bHdmiSyncOnly));
-        BVDC_P_VEC_MSG(("\t bHdmiSettings     = %d", hDisplay->stCurInfo.stDirty.stBits.bHdmiSettings));
-        BVDC_P_VEC_MSG(("\t bAspRatio         = %d", hDisplay->stCurInfo.stDirty.stBits.bAspRatio));
+        BVDC_P_VEC_MSG(("     bTimeStamp        = %d", hDisplay->stCurInfo.stDirty.stBits.bTimeStamp));
+        BVDC_P_VEC_MSG(("     bAlignment        = %d", hDisplay->stCurInfo.stDirty.stBits.bAlignment));
+        BVDC_P_VEC_MSG(("     bHdmiXvYcc        = %d", hDisplay->stCurInfo.stDirty.stBits.bHdmiXvYcc));
+        BVDC_P_VEC_MSG(("     bHdmiSyncOnly     = %d", hDisplay->stCurInfo.stDirty.stBits.bHdmiSyncOnly));
+        BVDC_P_VEC_MSG(("     bHdmiSettings     = %d", hDisplay->stCurInfo.stDirty.stBits.bHdmiSettings));
+        BVDC_P_VEC_MSG(("     bHdmiRmSettings   = %d", hDisplay->stCurInfo.stDirty.stBits.bHdmiRmSettings));
+        BVDC_P_VEC_MSG(("     bAspRatio         = %d", hDisplay->stCurInfo.stDirty.stBits.bAspRatio));
 
 #if (BVDC_P_SUPPORT_STG != 0)
-        BVDC_P_VEC_MSG(("\t bStg              = %d", hDisplay->stCurInfo.stDirty.stBits.bStgEnable));
+        BVDC_P_VEC_MSG(("     bStg              = %d", hDisplay->stCurInfo.stDirty.stBits.bStgEnable));
 #endif
-        BVDC_P_VEC_MSG(("\t bVfFilters        = %d", hDisplay->stCurInfo.stDirty.stBits.bVfFilter));
-        BVDC_P_VEC_MSG(("\t bOutputMute       = %d", hDisplay->stCurInfo.stDirty.stBits.bOutputMute));
-        BVDC_P_VEC_MSG(("\t bMiscCtrl         = %d", hDisplay->stCurInfo.stDirty.stBits.bMiscCtrl));
+        BVDC_P_VEC_MSG(("     bVfFilters        = %d", hDisplay->stCurInfo.stDirty.stBits.bVfFilter));
+        BVDC_P_VEC_MSG(("     bOutputMute       = %d", hDisplay->stCurInfo.stDirty.stBits.bOutputMute));
+        BVDC_P_VEC_MSG(("     bMiscCtrl         = %d", hDisplay->stCurInfo.stDirty.stBits.bMiscCtrl));
 
         /* Store a copy of current dirty bits */
         hDisplay->stPrevDirty = hDisplay->stCurInfo.stDirty;
@@ -2584,6 +2531,12 @@ void  BVDC_P_Display_SetSourceInfo_isr
             hDisplay->stCurInfo.stDirty.stBits.bWidthTrim = BVDC_P_DIRTY;
             hDisplay->stCurInfo.stDirty.stBits.bTimeBase = BVDC_P_DIRTY;
         }
+    }
+
+    if (hDisplay->bCmpBypassDviCsc != pSrcInfo->bBypassDviCsc)
+    {
+        hDisplay->bCmpBypassDviCsc = pSrcInfo->bBypassDviCsc;
+        hDisplay->stCurInfo.stDirty.stBits.bHdmiCsc = BVDC_P_DIRTY;
     }
 
     if (hDisplay->stCurInfo.eCmpMatrixCoeffs != pSrcInfo->eCmpMatrixCoeffs)
@@ -2744,7 +2697,7 @@ BERR_Code BVDC_P_Display_GetFieldPolarity_isr
  * {secret}
  * Checks for consistent SUM_OF_TAPS value and returns it.
  */
-BERR_Code BVDC_P_GetVfFilterSumOfTapsBits
+BERR_Code BVDC_P_GetVfFilterSumOfTapsBits_isr
     ( const BVDC_P_DisplayInfo        *pDispInfo,
       BVDC_DisplayOutput               eDisplayOutput,
       uint32_t                        *pulSumOfTapsBits,
@@ -2758,7 +2711,7 @@ BERR_Code BVDC_P_GetVfFilterSumOfTapsBits
     uint32_t ulSumOfTaps2 = 0;
     bool bOverride = false;
 
-    BDBG_ENTER(BVDC_P_GetVfFilterSumOfTapsBits);
+    BDBG_ENTER(BVDC_P_GetVfFilterSumOfTapsBits_isr);
 
     if((eDisplayOutput != BVDC_DisplayOutput_eComponent) &&
        (eDisplayOutput != BVDC_DisplayOutput_eComposite) &&
@@ -2801,7 +2754,7 @@ BERR_Code BVDC_P_GetVfFilterSumOfTapsBits
             {
                 ulSumOfTaps2 =
                     BVDC_P_GetVfMisc_isr (pDispInfo, eOutputColorSpaceCo);
-                ulSumOfTaps2 = BVDC_P_ExtractSumOfTaps (ulSumOfTaps2);
+                ulSumOfTaps2 = BVDC_P_ExtractSumOfTaps_isr (ulSumOfTaps2);
             }
         }
         else
@@ -2816,7 +2769,7 @@ BERR_Code BVDC_P_GetVfFilterSumOfTapsBits
             {
                 ulSumOfTaps2 =
                     BVDC_P_GetVfMisc_isr (pDispInfo, eOutputColorSpaceCvbs);
-                ulSumOfTaps2 = BVDC_P_ExtractSumOfTaps (ulSumOfTaps2);
+                ulSumOfTaps2 = BVDC_P_ExtractSumOfTaps_isr (ulSumOfTaps2);
             }
         }
         if (ulSumOfTaps == 0)
@@ -2832,6 +2785,6 @@ BERR_Code BVDC_P_GetVfFilterSumOfTapsBits
 
     if (pulSumOfTapsBits) *pulSumOfTapsBits = ulSumOfTaps;
     if (pbOverride)       *pbOverride       = bOverride;
-    BDBG_LEAVE(BVDC_P_GetVfFilterSumOfTapsBits);
+    BDBG_LEAVE(BVDC_P_GetVfFilterSumOfTapsBits_isr);
     return BERR_SUCCESS;
 }

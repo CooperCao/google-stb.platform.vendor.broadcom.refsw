@@ -47,7 +47,7 @@ endif
 #  Define the OpenSSL's Makefile directory... probably the same dir that this file is in.
 B_OPENSSL_BUILD_DIR := $(abspath $(NEXUS_TOP)/../BSEAV/lib/openssl)
 
-B_OPENSSL_VER?=1.0.1t
+B_OPENSSL_VER?=1.0.2h
 B_OPENSSL_NAME?=openssl-${B_OPENSSL_VER}
 
 B_OPENSSL_SOURCE_DEST:=$(abspath $(B_REFSW_OBJ_ROOT)/BSEAV/lib/openssl/$(B_REFSW_ARCH).$(DEBUG_SUFFIX))

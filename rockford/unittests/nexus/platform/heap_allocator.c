@@ -45,6 +45,7 @@
 BDBG_MODULE(heap_allocator);
 
 #include "base/include/public/nexus_base_types.h"
+#include "modules/core/include/nexus_types.h"
 
 typedef struct brcmstb_range {
     BMMA_DeviceOffset addr;
@@ -261,6 +262,10 @@ HEAP_CONFIG_BEGIN(97439_SAGE_n)
 #include "heap_configs/heap_config_97439_SAGE_n.txt"
 HEAP_CONFIG_END(97439_SAGE_n)
 
+HEAP_CONFIG_BEGIN(97271_SAGE_n)
+#include "heap_configs/heap_config_97271_SAGE_n.txt"
+HEAP_CONFIG_END(97271_SAGE_n)
+
 #undef BOX_MODE_BEGIN
 #undef NEXUS_HEAP_BEGIN
 #undef NEXUS_HEAP_FIELD
@@ -316,6 +321,9 @@ HEAP_BYNAME_BEGIN(97439_SAGE_n)
 #include "heap_configs/heap_config_97439_SAGE_n.txt"
 HEAP_BYNAME_END(97439_SAGE_n)
 
+HEAP_BYNAME_BEGIN(97271_SAGE_n)
+#include "heap_configs/heap_config_97271_SAGE_n.txt"
+HEAP_BYNAME_END(97271_SAGE_n)
 
 
 #undef NEXUS_HEAP_BEGIN
@@ -367,6 +375,10 @@ BOXMODES_END(97439_SAGE_y)
 BOXMODES_BEGIN(97439_SAGE_n)
 #include "heap_configs/heap_config_97439_SAGE_n.txt"
 BOXMODES_END(97439_SAGE_n)
+
+BOXMODES_BEGIN(97271_SAGE_n)
+#include "heap_configs/heap_config_97271_SAGE_n.txt"
+BOXMODES_END(97271_SAGE_n)
 
 static const struct heap_config _97445_SAGE_y = {
     "97445_SAGE_y",
@@ -436,6 +448,13 @@ static const struct heap_config _97439_SAGE_y = {
     heap_config_97439_SAGE_y,
     heap_byName_97439_SAGE_y,
     boxModes_97439_SAGE_y
+};
+
+static const struct heap_config _97271_SAGE_n = {
+    "97271_SAGE_n",
+    heap_config_97271_SAGE_n,
+    heap_byName_97271_SAGE_n,
+    boxModes_97271_SAGE_n
 };
 
 static const struct memc_memory_range bcm97445_3GB_memc[] = {
@@ -626,12 +645,43 @@ static const struct platform _97439 = {
     pictures_7439
 };
 
+static const struct memc_memory_range bcm97271_2GB_memc[] = {
+    {0,  0x001000000, 0x5400000},
+    {0,  0x006410000, 0x79bf0000}
+};
+
+static const struct board bcm97271_2GB = {
+    "BCM97271 2GB", bcm97271_2GB_memc, sizeof(bcm97271_2GB_memc)/sizeof(bcm97271_2GB_memc[0])
+};
+
+static const struct heap_size_entry medium_7271[] = {
+    {"NEXUS_MEMC0_PICTURE_BUFFER_HEAP", 0x14e22000},
+    {NULL,0}
+};
+
+static const struct picture_buffers pictures_7271[] = {
+    {"medium",medium_7271},
+    {NULL,NULL}
+};
+
+static const struct heap_config const *_97271_configs[] = {
+    &_97271_SAGE_n,
+    NULL
+};
+
+static const struct platform _97271 = {
+    &bcm97271_2GB,
+    _97271_configs,
+    pictures_7271
+};
+
 static const struct platform  const *platforms[] = {
     &_97445,
     &_97250,
     &_97364,
     &_97366,
     &_97439,
+    &_97271,
     NULL
 };
 
@@ -686,6 +736,51 @@ static void test_97250_1GB_custom_2(NEXUS_PlatformHeapSettings *heap)
     heap[2].size = 0x400000;
     return;
 }
+
+static void test_97271_2GB_custom_1(NEXUS_PlatformHeapSettings *heap)
+{
+    /*
+     --- 00:00:00.334 nexus_platform_cma: MEMC0 Placed HEAP[2] 112MBytes(0x7000000 Bytes) with alignment 0x1000000 SAGE at 0x079000000 (1936 MByte)
+     --- 00:00:00.335 nexus_platform_cma: MEMC0 Placed HEAP[0] 160MBytes(0xa000000 Bytes) with alignment 0x1000000 SAGE at 0x06f000000 (1776 MByte)
+     --- 00:00:00.335 nexus_platform_cma: MEMC0 Placed HEAP[3] 315MBytes(0x13b32000 Bytes) with alignment 0 at 0x05b4ce000 (1460 MByte)
+     --- 00:00:00.335 nexus_platform_cma: MEMC0 Placed HEAP[1] 512MBytes(0x20000000 Bytes) with alignment 0 at 0x03b4ce000 (948 MByte)
+     --- 00:00:00.335 nexus_platform_cma: MEMC0 Placed HEAP[4] 32MBytes(0x2000000 Bytes) with alignment 0x1000000 SAGE at 0x039000000 (912 MByte)
+    */
+    heap[2].size = 0x7000000; heap[2].alignment = 0x1000000; heap[2].placement.sage = true;
+    heap[0].size = 0xa000000; heap[0].alignment = 0x1000000; heap[0].placement.sage = true;
+    heap[3].size = 0x13b32000;
+    heap[1].size = 0x20000000;
+    heap[4].size = 0x2000000; heap[4].alignment = 0x1000000; heap[4].placement.sage = true; heap[4].placement.first = true;
+    return;
+}
+
+static const struct memc_memory_range bcm97268_2GB_memc[] = {
+    {0,  0x001000000, 0x5400000},
+    {0,  0x006410000, 0x79bf0000}
+};
+
+static const struct board bcm97268_2GB = {
+    "BCM97268 2GB", bcm97268_2GB_memc, sizeof(bcm97268_2GB_memc)/sizeof(bcm97268_2GB_memc[0])
+};
+
+
+static void test_97268_2GB_custom_1(NEXUS_PlatformHeapSettings *heap)
+{
+   /*
+ --- 00:00:01.409 nexus_platform_cma: MEMC0 Placed HEAP[2] 108MBytes(0x6c00000 Bytes) with alignment 0x100000 SAGE at 0x079400000 (1940 MByte)
+ --- 00:00:01.423 nexus_platform_cma: MEMC0 Placed HEAP[0] 148MBytes(0x9400000 Bytes) with alignment 0x100000 SAGE at 0x070000000 (1792 MByte)
+ --- 00:00:01.437 nexus_platform_cma: MEMC0 Placed HEAP[5] 346MBytes(0x15aee000 Bytes) with alignment 0x0 at 0x05a512000 (1445 MByte)
+ --- 00:00:01.450 nexus_platform_cma: MEMC0 Placed HEAP[1] 512MBytes(0x20000000 Bytes) with alignment 0x0 at 0x03a512000 (933 MByte)
+ --- 00:00:01.463 nexus_platform_cma: MEMC0 Placed HEAP[4] 32MBytes(0x2000000 Bytes) with alignment 0x100000 SAGE at 0x038500000 (901 MByte)
+    */
+    heap[2].size = 0x6c00000; heap[2].alignment = 0x1000000; heap[2].placement.sage = true;
+    heap[0].size = 0x9400000; heap[0].alignment = 0x1000000; heap[0].placement.sage = true;
+    heap[5].size = 0x15aee000;
+    heap[1].size = 0x20000000;
+    heap[4].size = 0x2000000; heap[4].alignment = 0x1000000; heap[4].placement.sage = true; heap[4].placement.first = true;
+    return;
+}
+
 struct custom_test {
     const char *name;
     const struct board *board;
@@ -694,8 +789,10 @@ struct custom_test {
 
 
 static const struct custom_test custom_tests[] = {
-    {"Test 1", &bcm97250_1GB, test_97250_1GB_custom_1},
-    {"Test 2", &bcm97250_1GB, test_97250_1GB_custom_2}
+    {"97268 2GB", &bcm97268_2GB, test_97268_2GB_custom_1},
+    {"97271 2GB", &bcm97271_2GB, test_97271_2GB_custom_1},
+    {"97250 1GB Test[1]", &bcm97250_1GB, test_97250_1GB_custom_1},
+    {"97250 1GB Test[2]", &bcm97250_1GB, test_97250_1GB_custom_2}
 };
 
 static NEXUS_Error test_one(const char *name, const struct board *board, NEXUS_PlatformHeapSettings *heaps)
@@ -727,6 +824,10 @@ static NEXUS_Error test_one(const char *name, const struct board *board, NEXUS_P
     }
     rc = NEXUS_Platform_P_SetCoreCmaSettings_Verify(&state.bmem_hint.info, heaps, &coreSettings, &memory);
     if(rc!=NEXUS_SUCCESS) { return BERR_TRACE(rc);}
+
+    rc = NEXUS_Platform_P_SetCoreCmaSettings_Adjust(heaps, &coreSettings);
+    if(rc!=NEXUS_SUCCESS) {return BERR_TRACE(rc);}
+
     return NEXUS_SUCCESS;
 }
 
@@ -796,7 +897,7 @@ int main(int argc, const char *argv[])
                     char test[128];
                     NEXUS_PlatformHeapSettings heaps[NEXUS_MAX_HEAPS];
 
-                    BDBG_MSG(("Using box MODE %u (%u/%u)", boxMode, i, nBoxModes));
+                    BDBG_LOG(("Using box MODE %u (%u/%u)", boxMode, i, nBoxModes));
                     BKNI_Memset(heaps,0,sizeof(heaps));
                     for(heapNo=0;heapNo<NEXUS_MAX_HEAPS;heapNo++) {
                         rc = config->heap_config(boxMode, heapNo, &heaps[heapNo]);

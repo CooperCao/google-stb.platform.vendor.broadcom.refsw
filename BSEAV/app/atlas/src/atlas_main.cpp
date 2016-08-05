@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -153,6 +153,25 @@ CDisplay * CAtlas::displayInitialize(
     {
         BDBG_WRN(("Invalid video format given"));
         goto error;
+    }
+
+    /* check if max graphics size override is necessary */
+    {
+        NEXUS_DisplayCapabilities capsDisplay;
+        NEXUS_GetDisplayCapabilities(&capsDisplay);
+
+        {
+            int width = capsDisplay.display[pDisplay->getNumber()].graphics.width;
+            int height = capsDisplay.display[pDisplay->getNumber()].graphics.height;
+            BDBG_WRN(("Init display - max graphics width:%d height:%d", width, height));
+        }
+
+        if (capsDisplay.display[pDisplay->getNumber()].graphics.width < framebufferWidth)
+        {
+            /* use nexus reported max graphics size instead of given size */
+            framebufferWidth  = capsDisplay.display[pDisplay->getNumber()].graphics.width;
+            framebufferHeight = capsDisplay.display[pDisplay->getNumber()].graphics.height;
+        }
     }
 
     pDisplay->setDefaultFormat(videoFormat);

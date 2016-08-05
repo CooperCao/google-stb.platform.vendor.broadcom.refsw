@@ -545,11 +545,8 @@ NEXUS_FrontendDeviceHandle NEXUS_FrontendDevice_Open7552(unsigned index, const N
 
     if ( NULL == pDevice)
     {
-        pFrontendDevice = BKNI_Malloc(sizeof(*pFrontendDevice));
+        pFrontendDevice = NEXUS_FrontendDevice_P_Create();
         if (NULL == pFrontendDevice) {rc = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY); goto err_open_device;}
-
-        /* Memsetting the whole structure should cover initializing the child list. */
-        BKNI_Memset(pFrontendDevice, 0, sizeof(*pFrontendDevice));
 
         pDevice = (NEXUS_7552 *) BKNI_Malloc(sizeof(*pDevice));
         if (NULL == pDevice) {rc = BERR_TRACE(NEXUS_OUT_OF_DEVICE_MEMORY); goto err_open_device;}

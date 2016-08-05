@@ -1,21 +1,41 @@
 /***************************************************************************
- *     Copyright (c) 2003-2012, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * [File Description:]
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  ***************************************************************************/
 
@@ -29,7 +49,8 @@
 #include "bxdm_pp_qm.h"
 #include "bxdm_pp_dbg.h"
 
-BDBG_MODULE(BXDM_PPCB);		/* Register software module with debug interface */
+BDBG_MODULE(BXDM_PPCB);     /* Register software module with debug interface */
+BDBG_FILE_MODULE(BXDM_PPCB);
 
 /*******************************************************************************
  *
@@ -111,10 +132,10 @@ static void BXDM_PPCB_S_FirstPtsReady_isr(
       /* PR52901: update with the STC for this vsync. */
       hXdmPP->stDMState.stDecode.stFirstCodedPts.uiSTCSnapShot = pLocalState->uiAdjustedStc;
 
-      BXVD_DBG_MSG(hXdmPP, ("%x:[%02x.xxx] BXDM_PictureProvider_Callback_eFirstPtsReady(%08x)",
+      BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_eCB, "%x:[%02x.xxx] BXDM_PictureProvider_Callback_eFirstPtsReady(%08x)",
                                  hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                  BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
-                                 hXdmPP->stDMState.stDecode.stFirstCodedPts.ui32RunningPTS ));
+                                 hXdmPP->stDMState.stDecode.stFirstCodedPts.ui32RunningPTS );
 
 
       /* Snapshot the start time. */
@@ -167,10 +188,10 @@ static void BXDM_PPCB_S_FirstCodedPtsReady_isr(
       /* PR52901: update with the STC for this vsync. */
       hXdmPP->stDMState.stDecode.stFirstCodedPts.uiSTCSnapShot = pLocalState->uiAdjustedStc;
 
-      BXVD_DBG_MSG(hXdmPP, ("%x:[%02x.xxx] BXDM_PictureProvider_Callback_eFirstCodedPtsReady(%08x)",
+      BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_eCB, "%x:[%02x.xxx] BXDM_PictureProvider_Callback_eFirstCodedPtsReady(%08x)",
                                  hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                  BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
-                                 hXdmPP->stDMState.stDecode.stFirstCodedPts.ui32RunningPTS ));
+                                 hXdmPP->stDMState.stDecode.stFirstCodedPts.ui32RunningPTS );
 
 
       /* Snapshot the start time. */
@@ -226,10 +247,10 @@ static void BXDM_PPCB_S_FirstPtsPassed_isr(
 
       /* TODO: is "stCurrentPTSInfo" the correct value to return? */
 
-      BXVD_DBG_MSG(hXdmPP, ("%x:[%02x.xxx] BXDM_PictureProvider_Callback_eFirstPtsPassed(%08x)",
+      BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_eCB, "%x:[%02x.xxx] BXDM_PictureProvider_Callback_eFirstPtsPassed(%08x)",
                                  hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                  BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
-                                 hXdmPP->stDMStatus.stCurrentPTS.ui32RunningPTS ));
+                                 hXdmPP->stDMStatus.stCurrentPTS.ui32RunningPTS );
 
       /* Snapshot the start time. */
       BXDM_PPTMR_P_SnapshotCallbackStartTime_isr( hXdmPP, BXDM_PictureProvider_Callback_eFirstPTSPassed );
@@ -283,9 +304,9 @@ static void BXDM_PPCB_S_PtsError_isr(
       /* When we are forced to send a PTS Error, we always use the PTS
        * of the currently selected picture */
 
-      BXVD_DBG_MSG(hXdmPP, ("%x:[%02x.xxx] Force PTS Error",
+      BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_eCB, "%x:[%02x.xxx] Force PTS Error",
                                  hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
-                                 BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ) ));
+                                 BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ) );
 
       /* Get PTS for current element */
       BXDM_PPQM_P_GetPts_isr(
@@ -304,10 +325,10 @@ static void BXDM_PPCB_S_PtsError_isr(
    {
       pLocalState->uiCallbackTriggered |= BXDM_PPDBG_Callback_PtsError;
 
-      BXVD_DBG_MSG(hXdmPP, ("%x:[%02x.xxx] BXDM_PictureProvider_Callback_ePtsError(%08x)",
+      BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_eCB, "%x:[%02x.xxx] BXDM_PictureProvider_Callback_ePtsError(%08x)",
                                  hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                  BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
-                                 hXdmPP->stDMState.stDecode.stErrorPts.ui32RunningPTS ));
+                                 hXdmPP->stDMState.stDecode.stErrorPts.ui32RunningPTS );
 
       hXdmPP->stDMState.stDecode.stErrorPts.uiSTCSnapShot = pLocalState->uiAdjustedStc;
       hXdmPP->stDMState.stDecode.stErrorPts.uiPicturesDecodedCount = hXdmPP->stDMStatus.stCounters.uiPicturesDecodedCount;
@@ -364,10 +385,10 @@ static void BXDM_PPCB_S_PtsStcOffset_isr(
 
       pLocalState->uiCallbackTriggered |= BXDM_PPDBG_Callback_PtsStcOffset;
 
-      BXVD_DBG_MSG(hXdmPP, ("%x:[%02x.xxx] BXDM_PictureProvider_Callback_eStcPtsOffset(%08x)",
+      BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_eCB, "%x:[%02x.xxx] BXDM_PictureProvider_Callback_eStcPtsOffset(%08x)",
                 hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                 BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
-                hXdmPP->stDMState.stDecode.uiStcPtsDeltaSentToApp ));
+                hXdmPP->stDMState.stDecode.uiStcPtsDeltaSentToApp );
 
       /* Snapshot the start time. */
       BXDM_PPTMR_P_SnapshotCallbackStartTime_isr( hXdmPP, BXDM_PictureProvider_Callback_eStcPtsOffset );
@@ -421,10 +442,10 @@ static void BXDM_PPCB_S_IFrame_isr(
        */
       hXdmPP->stCallbacks[BXDM_PictureProvider_Callback_eIFrame].bEnable = false;
 
-      BXVD_DBG_MSG(hXdmPP, ("%x:[%02x.xxx] BXDM_PictureProvider_Callback_eIFrame(%d)",
+      BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_eCB, "%x:[%02x.xxx] BXDM_PictureProvider_Callback_eIFrame(%d)",
                 hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                 BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
-                hXdmPP->stDMStatus.bIPictureFound ));
+                hXdmPP->stDMStatus.bIPictureFound );
 
       /* Snapshot the start time. */
       BXDM_PPTMR_P_SnapshotCallbackStartTime_isr( hXdmPP, BXDM_PictureProvider_Callback_eIFrame );
@@ -652,10 +673,10 @@ static void BXDM_PPCB_S_RequestSTC_isr(
 
       hXdmPP->stCallbacks[BXDM_PictureProvider_Callback_eRequestSTC].bEnable = false;
 
-      BXVD_DBG_MSG(hXdmPP, ("%x:[%02x.xxx] BXDM_PictureProvider_Callback_eRequestSTC(%08x)",
+      BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_eCB, "%x:[%02x.xxx] BXDM_PictureProvider_Callback_eRequestSTC(%08x)",
                 hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                 BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
-                stPTSInfo.ui32RunningPTS ));
+                stPTSInfo.ui32RunningPTS );
 
       /* Snapshot the start time. */
       BXDM_PPTMR_P_SnapshotCallbackStartTime_isr( hXdmPP, BXDM_PictureProvider_Callback_eRequestSTC );
@@ -700,10 +721,10 @@ static void BXDM_PPCB_S_ClipStart_isr(
    {
       pLocalState->uiCallbackTriggered |= BXDM_PPDBG_Callback_ClipStart;
 
-      BXVD_DBG_MSG(hXdmPP, ("%x:[%02x.xxx] BXDM_PictureProvider_Callback_eClipStart(0x%lu)",
+      BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_eCB, "%x:[%02x.xxx] BXDM_PictureProvider_Callback_eClipStart(0x%lu)",
                                  hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                  BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
-                                 (unsigned long)&pLocalState->stCallbackInfo.stClipStart.stClipEventInfo ));
+                                 (unsigned long)&pLocalState->stCallbackInfo.stClipStart.stClipEventInfo );
 
       /* Snapshot the start time. */
       BXDM_PPTMR_P_SnapshotCallbackStartTime_isr( hXdmPP, BXDM_PictureProvider_Callback_eClipStart );
@@ -748,10 +769,10 @@ static void BXDM_PPCB_S_ClipStop_isr(
    {
       pLocalState->uiCallbackTriggered |= BXDM_PPDBG_Callback_ClipStop;
 
-      BXVD_DBG_MSG(hXdmPP, ("%x:[%02x.xxx] BXDM_PictureProvider_Callback_eClipStop(0x%lu)",
+      BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_eCB, "%x:[%02x.xxx] BXDM_PictureProvider_Callback_eClipStop(0x%lu)",
                                  hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                  BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
-                                 (unsigned long)&pLocalState->stCallbackInfo.stClipStop.stClipEventInfo ));
+                                 (unsigned long)&pLocalState->stCallbackInfo.stClipStop.stClipEventInfo );
 
       /* Snapshot the start time. */
       BXDM_PPTMR_P_SnapshotCallbackStartTime_isr( hXdmPP, BXDM_PictureProvider_Callback_eClipStop );
@@ -796,10 +817,10 @@ static void BXDM_PPCB_S_PictureMarker_isr(
    {
       pLocalState->uiCallbackTriggered |= BXDM_PPDBG_Callback_PictureMarker;
 
-      BXVD_DBG_MSG(hXdmPP, ("%x:[%02x.xxx] BXDM_PictureProvider_Callback_ePictureMarker(0x%lu)",
+      BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_eCB, "%x:[%02x.xxx] BXDM_PictureProvider_Callback_ePictureMarker(0x%lu)",
                                  hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                  BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
-                                 (unsigned long)&pLocalState->stCallbackInfo.stPictureMarker.stClipEventInfo));
+                                 (unsigned long)&pLocalState->stCallbackInfo.stPictureMarker.stClipEventInfo );
 
       /* Snapshot the start time. */
       BXDM_PPTMR_P_SnapshotCallbackStartTime_isr( hXdmPP, BXDM_PictureProvider_Callback_ePictureMarker );
@@ -851,10 +872,10 @@ static void BXDM_PPCB_S_DecodeError_isr(
 
       pLocalState->uiCallbackTriggered |= BXDM_PPDBG_Callback_DecodeError;
 
-      BXVD_DBG_MSG(hXdmPP, ("%x:[%02x.xxx] BXDM_PPCB_S_DecodeError_isr(%d)",
+      BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_eCB, "%x:[%02x.xxx] BXDM_PPCB_S_DecodeError_isr(%d)",
                 hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                 BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
-                hXdmPP->stDMStatus.stCounters.uiDecodeErrorCount ));
+                hXdmPP->stDMStatus.stCounters.uiDecodeErrorCount );
 
       /* Snapshot the start time. */
       BXDM_PPTMR_P_SnapshotCallbackStartTime_isr( hXdmPP, BXDM_PictureProvider_Callback_eDecodeError );
@@ -952,18 +973,16 @@ static void BXDM_PPCB_S_PrintExtensionData_isr(
          case BXDM_Picture_ExtensionType_eBluRay3DGraphicsOffset:
             if ( pstExtensionInfo->astExtensionData[i].data.stBluRay3DGraphicsOffset.uiCount )
             {
-               BXVD_DBG_MSG(hXdmPP, ("MVC graphics offset:: uiCount %d puiOffsetData 0x%lu *puiOffsetData %d",
+               BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_eCB, "MVC graphics offset:: uiCount %d puiOffsetData 0x%lu *puiOffsetData %d",
                      pstExtensionInfo->astExtensionData[i].data.stBluRay3DGraphicsOffset.uiCount,
                                      (unsigned long)pstExtensionInfo->astExtensionData[i].data.stBluRay3DGraphicsOffset.puiOffsetData,
-                     *pstExtensionInfo->astExtensionData[i].data.stBluRay3DGraphicsOffset.puiOffsetData
-                     ));
+                     *pstExtensionInfo->astExtensionData[i].data.stBluRay3DGraphicsOffset.puiOffsetData );
             }
             else
             {
-               BXVD_DBG_MSG(hXdmPP, ("MVC graphics offset:: uiCount %d puiOffsetData 0x%lu",
+               BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_eCB, "MVC graphics offset:: uiCount %d puiOffsetData 0x%lu",
                      pstExtensionInfo->astExtensionData[i].data.stBluRay3DGraphicsOffset.uiCount,
-                     (unsigned long)pstExtensionInfo->astExtensionData[i].data.stBluRay3DGraphicsOffset.puiOffsetData
-                     ));
+                     (unsigned long)pstExtensionInfo->astExtensionData[i].data.stBluRay3DGraphicsOffset.puiOffsetData );
             }
             break;
 
@@ -975,7 +994,7 @@ static void BXDM_PPCB_S_PrintExtensionData_isr(
             BXDM_Picture_Extension_SEIFramePacking * pstSEIFramePacking;
             pstSEIFramePacking = pstExtensionInfo->astExtensionData[i].data.stSEIFramePacking.pstSeiData;
 
-            BXVD_DBG_MSG(hXdmPP, ("SEIFramePacking flag:0x%x msgFlag:0x%x msgData: %d %d %d %d %d %d %d %d %d",
+            BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_eCB, "SEIFramePacking flag:0x%x msgFlag:0x%x msgData: %d %d %d %d %d %d %d %d %d",
                      pstExtensionInfo->astExtensionData[i].data.stSEIFramePacking.uiFlags,
                      pstSEIFramePacking->uiFlags,
                      pstSEIFramePacking->uiFramePackingArrangementId,
@@ -987,7 +1006,7 @@ static void BXDM_PPCB_S_PrintExtensionData_isr(
                      pstSEIFramePacking->uiFrame1GridPositionY,
                      pstSEIFramePacking->uiFramePackingArrangementReservedByte,
                      pstSEIFramePacking->uiFramePackingArrangementRepetitionPeriod
-                     ));
+                     );
 #else
             BDBG_NOP();
 #endif
@@ -996,7 +1015,7 @@ static void BXDM_PPCB_S_PrintExtensionData_isr(
 
          case BXDM_Picture_ExtensionType_eSEIFramePacking:  /* DEPRECATED: SW7405-4560: use BXDM_Picture_ExtensionType_eSEIMsg_FramePacking */
          default:
-            BXVD_DBG_MSG(hXdmPP, ("\t eType %d", pstExtensionInfo->astExtensionData[i].eType ));
+            BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_eCB, "    eType %d", pstExtensionInfo->astExtensionData[i].eType );
             break;
 
       }     /* end of switch( eType )*/
@@ -1056,12 +1075,11 @@ static void BXDM_PPCB_S_PictureExtensionData_isr(
                && 0 != pstPicture->pstUnifiedPicture->stExtensionInfo.pNext->uiCount )
          )
       {
-         BXVD_DBG_MSG(hXdmPP, ("%x:[%02x.%03x] BXDM_PPCB_S_PictureExtensionData_isr uiCount %d",
+         BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_eCB, "%x:[%02x.%03x] BXDM_PPCB_S_PictureExtensionData_isr uiCount %d",
                                     hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                     BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                                     pstPicture->stPicParms.uiPPBIndex & 0xFFF,
-                                    pstPicture->pstUnifiedPicture->stExtensionInfo.uiCount
-                                    ));
+                                    pstPicture->pstUnifiedPicture->stExtensionInfo.uiCount );
 
          BXDM_PPCB_S_PrintExtensionData_isr( hXdmPP, (BXDM_Picture_ExtensionInfo *)&(pstPicture->pstUnifiedPicture->stExtensionInfo) );
       }
@@ -1123,10 +1141,10 @@ static void BXDM_PPCB_S_ChunkDone_isr(
       /* A one shot, re-enable explicitly or by calling BXVD_StartDecode. */
       hXdmPP->stCallbacks[BXDM_PictureProvider_Callback_eChunkDone].bEnable = false;
 
-      BXVD_DBG_MSG(hXdmPP, ("%x:[%02x.xxx] BXDM_PPCB_S_ChunkDone_isr:: uiChunkId:%08x",
+      BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_eCB, "%x:[%02x.xxx] BXDM_PPCB_S_ChunkDone_isr:: uiChunkId:%08x",
                 hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                 BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
-                hXdmPP->stDMState.stDecode.stNonRealTime.uiChunkId ));
+                hXdmPP->stDMState.stDecode.stNonRealTime.uiChunkId );
 
       /* Snapshot the start time. */
       BXDM_PPTMR_P_SnapshotCallbackStartTime_isr( hXdmPP, BXDM_PictureProvider_Callback_eChunkDone );
@@ -1483,6 +1501,3 @@ void BXDM_PPCB_P_ExecuteCallbacks_isr(
    return;
 
 }  /* end of BXDM_PPCB_P_ExecuteCallbacks_isr() */
-
-
-

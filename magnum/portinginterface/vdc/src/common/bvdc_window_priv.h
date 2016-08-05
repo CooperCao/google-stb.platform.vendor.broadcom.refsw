@@ -234,6 +234,8 @@ minimum picture size for VMXVM is 72 pixels
 
 #define BVDC_P_USE_BMTH_FIX                      (0)
 
+/* Mad delay buffer count, >3  and 2 power*/
+#define BVDC_MADDELAY_BUF_COUNT                  (4)
 typedef enum
 {
     BVDC_P_BufHeapType_eCapture = 0,
@@ -582,7 +584,6 @@ typedef struct
     /* Luma Rect setting */
     bool                          bHistEnable;
     bool                          bHistAtSrc;
-    bool                          bLumaRectUserSet;
     BVDC_LumaSettings             stLumaRect;
 
     /* MosaicMode: sub-rectangles placement and size; */
@@ -671,27 +672,10 @@ Summary:
 typedef struct
 {
     BVDC_P_Rect                   stSrcOut;
-    BVDC_P_Rect                   stSclCut;
-    BVDC_P_Rect                   stSclOut;
-
-    BVDC_P_Rect                   stCapOut;
-    BVDC_P_Rect                   stVfdOut;
-
-    BVDC_P_Rect                   stWinIn;
-    BVDC_P_Rect                   stWinOut;
-
-    uint32_t                      ulNrmHrzSrcStep; /* normalized hrz scl factor in fixed point format */
-    uint32_t                      ulNrmVrtSrcStep; /* normalized vrt scl factor in fixed point format */
-    uint32_t                      ulNonlinearSrcWidth;/* in pxl unit */
-    uint32_t                      ulNonlinearSclOutWidth;/* in pxl unit */
-    uint32_t                      ulCentralRegionSclOutWidth;/* in pxl unit */
-
     BVDC_LumaStatus               stHistData;
     uint32_t                      ulHistSize;
     uint32_t                      ulOrigPTS;
 
-    BFMT_VideoInfo                stCustomFormatInfo;
-    BFMT_VideoInfo                *pStgFmtInfo;          /* STG fmt setting, possibly buffer delay */
     bool                          bIgnorePicture;
     bool                          bChannelChange;
     bool                          bLast;
@@ -936,9 +920,9 @@ typedef struct BVDC_P_WindowContext
 
     /* for SclCut setting delay according to MAD pixel output vsync delay */
     bool                          bResetMadDelaySwPipe;
-    uint32_t                      ulDeferIdxWr; /* writer index to stMadDelayed */
-    uint32_t                      ulDeferIdxRd; /* reader index to stMadDelayed */
-    BVDC_P_Window_MadDelayed      stMadDelayed[4]; /* circle buf for mad-delayed rects and scl stuff */
+    uint32_t                      ulDeferIdxWr[BAVC_MOSAIC_MAX]; /* writer index to stMadDelayed */
+    uint32_t                      ulDeferIdxRd[BAVC_MOSAIC_MAX]; /* reader index to stMadDelayed */
+    BVDC_P_Window_MadDelayed      stMadDelayed[BAVC_MOSAIC_MAX][BVDC_MADDELAY_BUF_COUNT]; /* circle buf for mad-delayed rects and scl stuff */
 
     /* to overide pic bRepeatField to false when clipping before MAD changed */
     int32_t                       lPrevSrcOutLeft;  /* srcOut.lLeft last vsync */
@@ -1346,8 +1330,8 @@ BERR_Code BVDC_P_Window_SetMcvp_DeinterlaceConfiguration
 
 BERR_Code BVDC_P_Window_SetMad_DeinterlaceConfiguration
     (BVDC_Window_Handle               hWindow,
-    bool                             bDeinterlace,
-    const BVDC_Deinterlace_Settings *pMadSettings);
+    bool                              bDeinterlace,
+    const BVDC_Deinterlace_Settings  *pMadSettings);
 
 const BVDC_P_ResourceFeature* BVDC_P_Window_GetResourceFeature_isrsafe
     ( BVDC_P_WindowId                  eWindowId );

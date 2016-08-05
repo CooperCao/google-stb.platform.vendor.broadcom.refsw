@@ -13,11 +13,11 @@ FILE DESCRIPTION
 #include "glsl_backend.h"
 #include "glsl_backend_uniforms.h"
 
-static bool is_alu_type(ALU_TYPE_T type) {
+#include "libs/util/gfx_util/gfx_util.h"
+
+static bool is_alu_type(SchedNodeType type) {
    switch (type) {
       case ALU_A:
-      case ALU_A_SWAP0:
-      case ALU_A_SWAP1:
       case ALU_M:
          return true;
       case ALU_MOV:
@@ -29,26 +29,27 @@ static bool is_alu_type(ALU_TYPE_T type) {
       case SIG:
          return false;
    }
-   UNREACHABLE();
+   unreachable();
 }
 
-static bool alu_admits_unpack(Backflow *node) {
-   if (node->type == ALU_A || node->type == ALU_A_SWAP0 || node->type == ALU_A_SWAP1) {
-      /* XXX: Could trivially add more things that unpack here */
-      /* META XXX: Implement the actual table from the spec so this is all automatic */
-      if (node->op == ( 0 | 1<<2 | 1) ||              /* fadd */
-          node->op == (64 | 1<<2 | 1) ||              /* fsub */
-          node->op == (128| 1<<2 | 1) ||              /* fmin/fmax */
-          node->op == (192| 1<<2 | 1) ||              /* fcmp */
-          node->op == 53               ) return true; /* vfpack */   /* TODO: abs not allowed */
-      return false;
-   }
+static bool unpack_abs_invalid(BackflowFlavour f) {
+   switch(f) {
+      case BACKFLOW_VFPACK:
+      case BACKFLOW_ROUND:
+      case BACKFLOW_TRUNC:
+      case BACKFLOW_FLOOR:
+      case BACKFLOW_CEIL:
+      case BACKFLOW_FDX:
+      case BACKFLOW_FDY:
+      case BACKFLOW_FTOIN:
+      case BACKFLOW_FTOIZ:
+      case BACKFLOW_FTOUZ:
+      case BACKFLOW_FTOC:
+         return true;
 
-   if (node->type == ALU_M) {
-      if (node->op == (16 | 1<<2 | 1)) return true;   /* fmul */
-      return false;
+      default:
+         return false;
    }
-   UNREACHABLE();
 }
 
 void dpostv_node_combine(Backflow *node, void *data) {
@@ -64,22 +65,21 @@ void dpostv_node_combine(Backflow *node, void *data) {
       if (operand->io_dependencies.count != 0) return;
 
       /* Can't combine ldvpm with moves to register targets */
-      if (operand->type == ALU_A && operand->op == 188) return;
+      if (operand->type == ALU_A && glsl_sched_node_requires_regfile(operand->u.alu.op)) return;
 
       node->type = operand->type;
       for (int i=0; i<BACKFLOW_DEP_COUNT; i++) {
          node->dependencies[i] = operand->dependencies[i];
       }
-      node->op = operand->op;
-      node->op1 = operand->op1;
-      node->op2 = operand->op2;
+      node->u.alu.op  = operand->u.alu.op;
+      node->u.alu.unpack[0] = operand->u.alu.unpack[0];
+      node->u.alu.unpack[1] = operand->u.alu.unpack[1];
       node->age = operand->age;
 
       BackflowChainNode *n;
-      LIST_FOR_EACH(n, &node->io_dependencies, l) node->age = MAX(node->age, n->ptr->age);
+      LIST_FOR_EACH(n, &node->io_dependencies, l) node->age = gfx_umax(node->age, n->ptr->age);
 
       /* Validity checking: These would be invalid nodes, and would break this */
-      assert(node->sigbits == 0 && operand->sigbits == 0);
       assert(operand->unif == BACKEND_UNIFORM_UNASSIGNED);
 
       /* Fix the data_dependents chains in the modified nodes */
@@ -91,28 +91,27 @@ void dpostv_node_combine(Backflow *node, void *data) {
    }
 
    if (is_alu_type(node->type)) {
-      if (alu_admits_unpack(node)) {
-         /* XXX: We cheat here by assuming that because unpack is admitted the node's a binop */
+      if (glsl_sched_node_admits_unpack(node->u.alu.op)) {
          /* Loop over left and right dependencies. 1 = Left, 2 = Right */
          for (int i=1; i<=2; i++) {
             Backflow *operand = node->dependencies[i];
-            int pack_shift[3] = { /* Not valid: */-1, 2, 0 };
+            if (!operand) continue;
 
             if (operand->any_io_dependents) continue;
             /* XXX: We don't need to bail in this case, if we remember to transfer the iodendency */
             if (operand->io_dependencies.count != 0) continue;
 
             /* Bail if the unpack slot is already in use */
-            /* XXX This is already dealt with by admits_unpack, but will be needed when that becomes more general */
-            if ((node->op & (3 << pack_shift[i])) != (1 << pack_shift[i])) continue;
+            if (node->u.alu.unpack[i-1] != UNPACK_NONE) continue;
 
-            /* XXX: Cheat here as well by assuming that FMOV means unpack */
             if (operand->type == ALU_FMOV) {
                /* Merge up with node */
-               uint32_t pack_code = operand->op2;
-               if (pack_code == 0 && node->op == 53) continue; /* no vfpack.abs */
-               node->op &= ~(3 << pack_shift[i]);
-               node->op |= (pack_code << pack_shift[i]);
+               SchedNodeUnpack pack_code = operand->u.alu.unpack[0];
+
+               /* Some instructions don't support the '.abs' unpack */
+               if (pack_code == UNPACK_ABS && unpack_abs_invalid(node->u.alu.op)) continue;
+
+               node->u.alu.unpack[i-1] = pack_code;
                node->dependencies[i] = operand->dependencies[1];
 
                glsl_backflow_chain_remove(&operand->data_dependents, node);

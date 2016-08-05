@@ -50,6 +50,7 @@ def parse_source(lines, need_body=True):
     want_rhs         = False
     saw_struct       = False
     want_struct      = False
+    require_semicolon = False
 
     for line in lines:
         active_string = line
@@ -123,12 +124,19 @@ def parse_source(lines, need_body=True):
                 active_string = ""
                 continue
             # Parsing a symbol declaration
-            tokens = active_string.split()
+            # Tokenise the string, ensuring that ';' gets its own token
+            tokens = active_string.replace(';', ' ; ').split()
             active_string = ""
             for tok_idx in range(len(tokens)):
                 token = tokens[tok_idx].rstrip()
                 if token == "struct":
                     saw_struct = True
+                    continue
+                if require_semicolon:
+                    if token != ';':
+                        sys.stderr.write("Expected ';' in line %s" % line)
+                        sys.exit(1)
+                    require_semicolon = False
                     continue
                 if fn_name == None:
                     if token.count("=") > 0 and not want_struct:
@@ -152,21 +160,18 @@ def parse_source(lines, need_body=True):
                         parts          = token.split("{")
                         active_string += "{".join(parts[1:])
                         break
-                    elif want_struct and token.count("};") > 0:
+                    elif want_struct and token.count("}") > 0:
                         structs.append((struct_name,struct_body))
                         saw_struct     = False
                         want_struct    = False
                         struct_body    = []
                         struct_name    = None
-                        parts          = token.split("};")
-                        active_string += "};".join(parts[1:])
+                        require_semicolon = True
+                        parts          = token.split("}")
+                        active_string += "}".join(parts[1:])
                         break
                     elif token.count(";") > 0:
-                        parts = token.split(";")
-                        if len(parts[0]) > 0:
-                            fn_name = parts[0]
-                        else:
-                            fn_name = active_return.pop()
+                        fn_name = active_return.pop()
                         if want_struct:
                             struct_body.append((fn_name, active_return, None))
                         elif saw_struct and not need_body:
@@ -182,11 +187,7 @@ def parse_source(lines, need_body=True):
                         fn_name         = None
                         active_return   = []
                         active_rhs = []
-                        tail          = " ".join(parts[1:])
-                        if len(tail) > 0:
-                            token = tail
-                        else:
-                            continue
+                        continue
                     elif token.count("(") == 0:
                         active_return.append(token)
                         continue
@@ -236,15 +237,11 @@ def parse_source(lines, need_body=True):
                         active_rhs.append(token)
                         continue
                     else:
-                        parts = token.split(";")
-                        if len(parts[0]) > 0:
-                            active_rhs.append(parts[0])
                         variables.append((fn_name, active_return, active_rhs))
                         want_rhs   = False
                         fn_name         = None
                         active_return   = []
                         active_rhs = []
-                        active_string += parts[1]
                         break
                 if not seen_close_paren:
                     # parsing the argument list, which is comma separated

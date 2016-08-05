@@ -465,7 +465,8 @@ static void DumpLists(
 	if(totalListCount==0)
 	{
 		BDBG_ERR(("***************************************************************************"));
-		BDBG_ERR(("Error ... Error ... Error ! " "\n" "RUL Dump is empty !!! "));
+		BDBG_ERR(("Error ... Error ... Error ! "));
+		BDBG_ERR(("RUL Dump is empty !!! "));
 		BDBG_ERR(("Looks like your chip uses a new RDC trigger"));
 		BDBG_ERR(("   add them into isTrigger() and GetArrayIndex()"));
 		BDBG_ERR(("or you have not chosen the right version of RDC"));
@@ -809,8 +810,9 @@ static void DumpRegs(FILE* fp)
 
 	if(g_RegDataCount == 0)
 	{
-		BDBG_ERR(("\n" "***************************************************************************"));
-		BDBG_ERR(("Error ... Error ... Error ! " "\n" "Register Dump is empty !!! " ));
+		BDBG_ERR(("***************************************************************************"));
+		BDBG_ERR(("Error ... Error ... Error ! "));
+		BDBG_ERR(("Register Dump is empty !!! " ));
 		BDBG_ERR(("Looks like you have not chosen the instrumented version of breg_mem.c"));
 		BDBG_ERR(("Please pickup the instrumented version from the SPLASH_Devel branch"));
 		BDBG_ERR(("***************************************************************************"));

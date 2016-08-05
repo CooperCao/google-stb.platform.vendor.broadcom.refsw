@@ -1,7 +1,7 @@
 #############################################################################
-#    (c)2012-2015 Broadcom Corporation
+# Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
-# This program is the proprietary software of Broadcom Corporation and/or its licensors,
+# This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
 # conditions of a separate, written license agreement executed between you and Broadcom
 # (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
 # LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 # ANY LIMITED REMEDY.
 #
-# $brcm_Workfile: $
-# $brcm_Revision: $
-# $brcm_Date: $
-#
 # Module Description:
-#
-# Revision History:
-#
-# $brcm_Log: $
 #
 #############################################################################
 #Module descriptioin: DTCP-IP Makefile for nexus build
@@ -73,7 +65,7 @@ include dtcp_ip_lib.inc
 .PHONY: all
 all:  install
 
-.PHONY: prep_bcrypt
+.PHONY: prep_bcrypt prep_drmrootfs
 prep_bcrypt:
     ifeq (${B_DTCP_IP_BUILD_MODE},stubs)
 		@echo [Skipping... bcrypt]
@@ -83,8 +75,15 @@ prep_bcrypt:
 		$(Q_)$(MAKE) -C $(B_LIB_TOP)/../../BSEAV/lib/security/bcrypt copy
     endif
 
+prep_drmrootfs:
+	@echo [..... prep_drmrootfs target];
+	@if [ ! -f "${B_REFSW_OBJ_ROOT}/BSEAV/lib/drmrootfs/${DRMROOTFS_LIBDIR}/libdrmrootfs.so" ]; then \
+		echo [ building drmrootfs .... ]; \
+		$(MAKE) -C $(B_LIB_TOP)/../../BSEAV/lib/drmrootfs install > /dev/null; \
+	fi
+
 .PHONY: install
-install: prep_bcrypt
+install: prep_bcrypt prep_drmrootfs
 	@echo [Building... dtcp_ip_lib \(from $(B_DTCP_IP_BUILD_MODE)\)]
 	$(Q_)$(MAKE) -f Makefile.dtcp_ip_lib  B_DTCP_IP_LIB_SOURCES="$(B_DTCP_IP_LIB_SOURCES)" install
     ifeq (${B_DTCP_IP_BUILD_MODE},stubs)

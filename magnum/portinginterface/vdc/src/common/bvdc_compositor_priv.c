@@ -82,7 +82,7 @@
 BDBG_MODULE(BVDC_CMP);
 BDBG_FILE_MODULE(BVDC_CMP_SIZE);
 BDBG_FILE_MODULE(BVDC_CMP_CSC);
-BDBG_FILE_MODULE(repeatpolarity);
+BDBG_FILE_MODULE(BVDC_REPEATPOLARITY);
 BDBG_FILE_MODULE(BVDC_NLCSC);
 BDBG_OBJECT_ID(BVDC_CMP);
 
@@ -156,6 +156,17 @@ BERR_Code BVDC_P_Compositor_Create
     BDBG_ENTER(BVDC_P_Compositor_Create);
     BDBG_ASSERT(phCompositor);
     BDBG_OBJECT_ASSERT(hVdc, BVDC_VDC);
+
+    /* Ascertain that video window count per display correctly mirrors BOX's */
+    BDBG_CASSERT(BBOX_VDC_VIDEO_WINDOW_COUNT_PER_DISPLAY == BVDC_P_MAX_VIDEO_WINS_PER_CMP);
+    /* Ascertain that VDC window count complies to BOX's */
+    BDBG_CASSERT(BBOX_VDC_WINDOW_COUNT_PER_DISPLAY >= BVDC_P_CMP_0_MAX_WINDOW_COUNT);
+    BDBG_CASSERT(BBOX_VDC_WINDOW_COUNT_PER_DISPLAY >= BVDC_P_CMP_1_MAX_WINDOW_COUNT);
+    BDBG_CASSERT(BBOX_VDC_WINDOW_COUNT_PER_DISPLAY >= BVDC_P_CMP_2_MAX_WINDOW_COUNT);
+    BDBG_CASSERT(BBOX_VDC_WINDOW_COUNT_PER_DISPLAY >= BVDC_P_CMP_3_MAX_WINDOW_COUNT);
+    BDBG_CASSERT(BBOX_VDC_WINDOW_COUNT_PER_DISPLAY >= BVDC_P_CMP_4_MAX_WINDOW_COUNT);
+    BDBG_CASSERT(BBOX_VDC_WINDOW_COUNT_PER_DISPLAY >= BVDC_P_CMP_5_MAX_WINDOW_COUNT);
+    BDBG_CASSERT(BBOX_VDC_WINDOW_COUNT_PER_DISPLAY >= BVDC_P_CMP_6_MAX_WINDOW_COUNT);
 
     /* (1) Alloc the context. */
     pCompositor = (BVDC_P_CompositorContext*)
@@ -253,16 +264,17 @@ BERR_Code BVDC_P_Compositor_Create
     }
 
     /* (3) Create RDC Slot */
+    eStatus = BRDC_Slots_Create(hVdc->hRdc, pCompositor->ahSlot, BVDC_P_CMP_MAX_SLOT_COUNT);
+    if(BERR_SUCCESS != eStatus)
+    {
+        goto BVDC_P_Compositor_Create_Done;
+    }
+
     for(i = 0; i < BVDC_P_CMP_MAX_SLOT_COUNT; i++)
     {
         BRDC_SlotId eSlotId;
         BRDC_Slot_Settings  stSlotSettings;
 
-        eStatus = BRDC_Slot_Create(hVdc->hRdc, &pCompositor->ahSlot[i]);
-        if(BERR_SUCCESS != eStatus)
-        {
-            goto BVDC_P_Compositor_Create_Done;
-        }
         BRDC_Slot_UpdateLastRulStatus_isr(pCompositor->ahSlot[i], pCompositor->ahList[i], true);
         eStatus = BRDC_Slot_GetId(pCompositor->ahSlot[i], &eSlotId);
         if(BERR_SUCCESS != eStatus)
@@ -273,6 +285,7 @@ BERR_Code BVDC_P_Compositor_Create
         /* Enable RDC priority */
         if(pCompositor->eId == BVDC_CompositorId_eCompositor0)
         {
+            BRDC_Slot_GetConfiguration(pCompositor->ahSlot[i], &stSlotSettings);
             stSlotSettings.bHighPriority = true;
             eStatus = BRDC_Slot_SetConfiguration(pCompositor->ahSlot[i], &stSlotSettings);
             if(BERR_SUCCESS != eStatus)
@@ -280,6 +293,7 @@ BERR_Code BVDC_P_Compositor_Create
                 goto BVDC_P_Compositor_Create_Done;
             }
         }
+
         BDBG_MSG(("Compositor[%d] uses slot[%d]", pCompositor->eId, eSlotId));
     }
 
@@ -448,10 +462,7 @@ void BVDC_P_Compositor_Destroy
     }
 
     /* [3] Destroy RDC Slot */
-    for(i = 0; i < BVDC_P_CMP_MAX_SLOT_COUNT; i++)
-    {
-        BRDC_Slot_Destroy(hCompositor->ahSlot[i]);
-    }
+    BRDC_Slots_Destroy(hCompositor->ahSlot, BVDC_P_CMP_MAX_SLOT_COUNT);
 
     /* [2] Destroy RDC List */
     for(i = 0; i < BVDC_P_CMP_MAX_LIST_COUNT; i++)
@@ -517,9 +528,8 @@ void BVDC_P_Compositor_Init
     {
         /* Initialized rul indexing. */
         hCompositor->aulRulIdx[i] = 0;
-        BRDC_Slot_SetList_isr(hCompositor->ahSlot[i],
-            hCompositor->ahList[i * BVDC_P_MAX_MULTI_RUL_BUFFER_COUNT]);
     }
+    BRDC_Slots_SetList_isr(hCompositor->ahSlot, hCompositor->ahList[0], BVDC_P_CMP_MAX_SLOT_COUNT);
 
     /* Compositor's output framerate from selected master window */
     hCompositor->eSrcFRateCode = hCompositor->hVdc->stSettings.eDisplayFrameRate;
@@ -642,12 +652,6 @@ void BVDC_P_Compositor_Init
         hCompositor->hVdc->stSettings.eVideoFormat);
 
     pNewInfo->ulBgColorYCrCb = BVDC_P_YCRCB_BLACK;
-
-    pNewInfo->stLumaRect.stRegion.ulLeft   = 0;
-    pNewInfo->stLumaRect.stRegion.ulRight  = 0;
-    pNewInfo->stLumaRect.stRegion.ulTop    = 0;
-    pNewInfo->stLumaRect.stRegion.ulBottom = 0;
-    pNewInfo->bLumaRectUserSet             = false;
 
     pNewInfo->stColorClipSettings.ulCrYSlopeA = 0;
     pNewInfo->stColorClipSettings.ulCrYSlopeB = 0;
@@ -866,8 +870,6 @@ void BVDC_P_Compositor_ApplyChanges_isr
     BVDC_P_Compositor_Info *pCurInfo;
     BVDC_P_Compositor_DirtyBits *pNewDirty;
     BVDC_P_Compositor_DirtyBits *pCurDirty;
-    BVDC_ClipRect *pNewRec;
-    BVDC_ClipRect *pCurRec;
     int i;
 
     BDBG_ENTER(BVDC_P_Compositor_ApplyChanges_isr);
@@ -943,18 +945,11 @@ void BVDC_P_Compositor_ApplyChanges_isr
     /* set bgcolor */
     BVDC_P_CMP_SET_REG_DATA(CMP_0_BG_COLOR, pNewInfo->ulBgColorYCrCb);
 
-    pNewRec = &pNewInfo->stLumaRect.stRegion;
-    pCurRec = &pCurInfo->stLumaRect.stRegion;
-
     /* Any changes in compositor property. */
     if((BVDC_P_IS_DIRTY(pNewDirty)) ||
        (pCurInfo->pFmtInfo != pNewInfo->pFmtInfo) ||
        (pCurInfo->eOrientation != pNewInfo->eOrientation) ||
-       (pCurInfo->ulBgColorYCrCb != pNewInfo->ulBgColorYCrCb) ||
-       (pCurRec->ulLeft   != pNewRec->ulLeft) ||
-       (pCurRec->ulRight  != pNewRec->ulRight) ||
-       (pCurRec->ulTop    != pNewRec->ulTop) ||
-       (pCurRec->ulBottom != pNewRec->ulBottom))
+       (pCurInfo->ulBgColorYCrCb != pNewInfo->ulBgColorYCrCb))
     {
         /* Must be careful here not to globble current dirty bits set by compositor,
          * but rather OR them together. */
@@ -1115,8 +1110,8 @@ static void BVDC_P_Window_BuildCscRul_isr
 
 #if BVDC_P_SUPPORT_CMP_NON_LINEAR_CSC
 
-#if (BVDC_P_CMP_NON_LINEAR_CSC_VER >= BVDC_P_NL_CSC_VER_2)
-/* 7271 A and up */
+#if (BVDC_P_CMP_NON_LINEAR_CSC_VER == BVDC_P_NL_CSC_VER_2)
+/* 7271 A */
     if (hCompositor->bSupportEotfConv[eWinInCmp])
     {
         const BVDC_P_CscAbCoeffs *pCscAbCoeffs;
@@ -1130,12 +1125,12 @@ static void BVDC_P_Window_BuildCscRul_isr
         jj = ulRectIdx - ii * 2;
         ulNLCfg = (bBypassCmpCsc)?
             BCHP_FIELD_ENUM(HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi, RECT0_SEL_L2NL,       BYPASS) |
-            BCHP_FIELD_ENUM(HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi, RECT0_SEL_LRANGE_ADJ, DISABLE)|
+             BCHP_FIELD_ENUM(HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi, RECT0_SEL_LRANGE_ADJ, DISABLE)|
             BCHP_FIELD_ENUM(HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi, RECT0_SEL_MB_COEF,    DISABLE)|
             BCHP_FIELD_ENUM(HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi, RECT0_SEL_NL2L,       BYPASS) |
             BCHP_FIELD_ENUM(HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi, RECT0_NL_CSC_EN,      BYPASS)
             :
-            BCHP_FIELD_DATA(HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi, RECT0_SEL_L2NL,       pEotfConvCfg->ucL2NL)     |
+             BCHP_FIELD_DATA(HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi, RECT0_SEL_L2NL,       pEotfConvCfg->ucL2NL)     |
             BCHP_FIELD_DATA(HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi, RECT0_SEL_LRANGE_ADJ, pEotfConvCfg->ucSlotIdx)  |
             BCHP_FIELD_DATA(HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi, RECT0_SEL_MB_COEF,    pCscCfg->ucSlotIdx)       |
             BCHP_FIELD_DATA(HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi, RECT0_SEL_NL2L,       pEotfConvCfg->ucNL2L)     |
@@ -1174,7 +1169,6 @@ static void BVDC_P_Window_BuildCscRul_isr
             *pList->pulCurrent++ =
                 BCHP_FIELD_DATA(HDR_CMP_0_V0_R1_NL_CSC_CTRL, SEL_CL_IN, pCscCfg->ucInputCL) ||
                 BCHP_FIELD_DATA(HDR_CMP_0_V0_R1_NL_CSC_CTRL, SEL_XVYCC, pCscCfg->ucXvYcc);
-
             BDBG_MODULE_MSG(BVDC_CMP_CSC,("cmp[%d]win[%d]LRangeAdjSlot[%d] LRangeAdj (xy, slope_m_e)[8]:", hCompositor->eId, eWinInCmp, pEotfConvCfg->ucSlotIdx));
             for (ii=0; ii<BVDC_P_CMP_LR_ADJ_PTS; ii++)
             {
@@ -1770,13 +1764,6 @@ static void BVDC_P_Compositor_BuildRul_isr
     BVDC_P_CMP_WRITE_TO_RUL(CMP_0_CMP_CTRL, pList->pulCurrent);
 #endif
 
-    /* TODO:  Optimize with dirty bits */
-#if (BVDC_P_SUPPORT_CMP_LUMA_AVG_VER > 0)
-    BVDC_P_CMP_WRITE_TO_RUL(CMP_0_LUMA_AVG_CTRL,           pList->pulCurrent);
-    BVDC_P_CMP_WRITE_TO_RUL(CMP_0_CMP_LUMA_AVG_WIN_OFFSET, pList->pulCurrent);
-    BVDC_P_CMP_WRITE_TO_RUL(CMP_0_CMP_LUMA_AVG_WIN_SIZE,   pList->pulCurrent);
-#endif
-
 #if BVDC_P_SUPPORT_CMP_DEMO_MODE
     BVDC_P_CMP_WRITE_TO_RUL(CMP_0_CSC_DEMO_SETTING, pList->pulCurrent);
 #endif
@@ -1922,7 +1909,7 @@ void BVDC_P_Compositor_BuildSyncLockRul_isr
                     BDBG_MSG(("Cmp[%u] to toggle pol cadence = %u [%u]", hCompositor->eId, hSource->bToggleCadence, bToggleSrcPolarity));
 #endif
                     *pList->pulCurrent++ = BRDC_OP_REG_TO_VAR(BRDC_Variable_0);
-                    BDBG_MODULE_MSG(repeatpolarity,("use src[%d] ignore flag", hSource->eId));
+                    BDBG_MODULE_MSG(BVDC_REPEATPOLARITY,("use src[%d] ignore flag", hSource->eId));
                     *pList->pulCurrent++ = BRDC_REGISTER(hSource->ulScratchPolReg);
                     *pList->pulCurrent++ = BRDC_OP_VAR_XOR_IMM_TO_VAR(BRDC_Variable_0, BRDC_Variable_1);
 
@@ -2149,7 +2136,7 @@ void BVDC_P_Compositor_WindowsReader_isr
             eOutAvcMatrixCoeffs = BAVC_GetDefaultMatrixCoefficients_isrsafe(eDspFmt, bOutputXvYcc);
         }
 
-        hCompositor->eOutMatrixCoeffs = BVDC_P_MatrixCoeffs_BAVC_to_BVDC_P(eOutAvcMatrixCoeffs, bOutputXvYcc);
+        hCompositor->eOutMatrixCoeffs = BVDC_P_MatrixCoeffs_BAVC_to_BVDC_P_isr(eOutAvcMatrixCoeffs, bOutputXvYcc);
     }
     else
     {
@@ -2162,7 +2149,7 @@ void BVDC_P_Compositor_WindowsReader_isr
 
             if(BVDC_P_WIN_IS_VIDEO_WINDOW(hWindow->eId))
             {
-                hCompositor->eOutMatrixCoeffs = BVDC_P_MatrixCoeffs_BAVC_to_BVDC_P(
+                hCompositor->eOutMatrixCoeffs = BVDC_P_MatrixCoeffs_BAVC_to_BVDC_P_isr(
                     hWindow->hBuffer->pCurReaderBuf->eMatrixCoefficients, false);
                 break;
             }
@@ -2232,6 +2219,7 @@ void BVDC_P_Compositor_WindowsReader_isr
         (VIDEO_FORMAT_IS_SD(hCompositor->stCurInfo.pFmtInfo->eVideoFmt)));
     bBgCsc = (hCompositor->hDisplay->stCurInfo.eCmpMatrixCoeffs != hCompositor->eOutMatrixCoeffs);
     stSrcInfo.bWidthTrimmed = bWidthTrim;
+    stSrcInfo.bBypassDviCsc = hCompositor->bBypassDviCsc;
     stSrcInfo.eCmpMatrixCoeffs = hCompositor->eOutMatrixCoeffs;
 
     if(hCompositor->hDisplay->stCurInfo.eDropFrame == BVDC_Mode_eOff)
@@ -2330,31 +2318,6 @@ void BVDC_P_Compositor_WindowsReader_isr
         BVDC_P_CMP_GET_REG_DATA(CMP_0_CMP_CTRL) = (
             BCHP_FIELD_DATA(CMP_0_CMP_CTRL, BVB_VIDEO, eOrientation));
     }
-#endif
-
-    /* Luma Average for this compositor. */
-#if (BVDC_P_SUPPORT_CMP_LUMA_AVG_VER > 0)
-    {
-        BVDC_P_Rect stRect;
-
-        BVDC_P_CalculateRect_isr(&hCompositor->stCurInfo.stLumaRect.stRegion,
-            ulHSize,
-            (bDTg? pFmtInfo->ulDigitalHeight:
-            pFmtInfo->ulHeight),
-            pFmtInfo->bInterlaced,
-            &stRect);
-
-    BVDC_P_CMP_GET_REG_DATA(CMP_0_LUMA_AVG_CTRL) = (
-        BCHP_FIELD_DATA(CMP_0_LUMA_AVG_CTRL, V0_LUMA_AVG_CTRL,      1) |
-        BCHP_FIELD_DATA(CMP_0_LUMA_AVG_CTRL, CMP_OUT_LUMA_AVG_CTRL, 1));
-
-    BVDC_P_CMP_GET_REG_DATA(CMP_0_CMP_LUMA_AVG_WIN_OFFSET) = (
-        BCHP_FIELD_DATA(CMP_0_CMP_LUMA_AVG_WIN_OFFSET, X_OFFSET, stRect.lLeft) |
-        BCHP_FIELD_DATA(CMP_0_CMP_LUMA_AVG_WIN_OFFSET, Y_OFFSET, stRect.lTop));
-    BVDC_P_CMP_GET_REG_DATA(CMP_0_CMP_LUMA_AVG_WIN_SIZE) = (
-        BCHP_FIELD_DATA(CMP_0_CMP_LUMA_AVG_WIN_SIZE, HSIZE, stRect.ulWidth) |
-        BCHP_FIELD_DATA(CMP_0_CMP_LUMA_AVG_WIN_SIZE, VSIZE, stRect.ulHeight));
-}
 #endif
 
     BDBG_LEAVE(BVDC_P_Compositor_WindowsReader_isr);

@@ -1,7 +1,7 @@
 #!/usr/bin/perl
-#     (c)2011-2012 Broadcom Corporation
+#  Broadcom Proprietary and Confidential. (c)2011-2016 Broadcom. All rights reserved.
 #
-#  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+#  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
 #  conditions of a separate, written license agreement executed between you and Broadcom
 #  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -75,7 +75,7 @@ sub parse_func
 
     # comment out the attr hint int the actual prototype
     my $actual_prototype = $prototype;
-    $actual_prototype =~ s/(attr{.+?})/\/* $1 *\//sg;
+    $actual_prototype =~ s/(attr\{.+?})/\/* $1 *\//sg;
     $func{PROTOTYPE} = $actual_prototype;
 #    print "'$actual_prototype'\n";
 
@@ -88,7 +88,7 @@ sub parse_func
     ($func{FUNCNAME}) = $prototype =~ /(\w+)\s*\(/;
 
     # get the params into a raw list
-    $prototype =~ /\(\s*(attr{(.+?)})?(.*?)\)$/s;
+    $prototype =~ /\(\s*(attr\{(.+?)})?(.*?)\)$/s;
     my $params=$3;
     if(defined $2) {
         $func{ATTR} = parse_attr $2;
@@ -104,7 +104,7 @@ sub parse_func
 
         # See if we have a attr hint and grab it now
         # This also removes that hint from the variable
-        if ($p =~ s/attr{(.+?)}//) {
+        if ($p =~ s/attr\{(.+?)}//) {
 #            print "$func{FUNCNAME} attr = $1\n";
             $paramhash{ATTR} = parse_attr $1;
         }

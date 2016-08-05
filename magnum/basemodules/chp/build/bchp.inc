@@ -75,7 +75,7 @@ BCHP_SOURCES += $(MAGNUM)/basemodules/chp/src/common/bchp_avs_40nm.c
 endif
 
 # 28nm
-ifeq ($(filter $(BCHP_CHIP), 7145 7445 7366 7439 74371 7364 7250 7586 11360 7271 7268), $(BCHP_CHIP))
+ifeq ($(filter $(BCHP_CHIP), 7445 7366 7439 74371 7364 7250 7586 11360 7271 7268 7260), $(BCHP_CHIP))
 # BCHP_AVS code.  (even) More extensive AVS solution is being included in the newer 28nm parts.
 BCHP_SOURCES += $(MAGNUM)/basemodules/chp/src/common/bchp_avs_28nm.c
 # For 28nm and beyond, we have a unified BCHP implementation for the SoC

@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2007-2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -37,7 +37,7 @@
  *****************************************************************/
 #include "nexus_transport_module.h"
 #include "bchp_xpt_fe.h"
-#if NEXUS_HAS_TSMF
+#if NEXUS_TRANSPORT_EXTENSION_TSMF
 #include "priv/nexus_tsmf_priv.h"
 #endif
 #include "priv/nexus_transport_priv.h"
@@ -225,7 +225,7 @@ NEXUS_Error NEXUS_ParserBand_P_SetSettings(NEXUS_ParserBandHandle parserBand, co
 
     switch (pSettings->sourceType) {
     case NEXUS_ParserBandSourceType_eInputBand:
-#if NEXUS_HAS_TSMF
+#if NEXUS_TRANSPORT_EXTENSION_TSMF
     case NEXUS_ParserBandSourceType_eTsmf: /* TSMF source requires inputband to be configured properly */
 #endif
         BDBG_MODULE_MSG(nexus_flow_parser_band, ("connect PB%d to IB%lu", bandHwIndex, pSettings->sourceTypeSettings.inputBand));
@@ -286,7 +286,7 @@ NEXUS_Error NEXUS_ParserBand_P_SetSettings(NEXUS_ParserBandHandle parserBand, co
     prevMaxDataRate = parserBand->settings.maxDataRate;
     parserBand->settings = *pSettings;
 
-#if NEXUS_HAS_TSMF
+#if NEXUS_TRANSPORT_EXTENSION_TSMF
     if (pSettings->sourceType==NEXUS_ParserBandSourceType_eTsmf)
     {
         /* now that we know which PB, complete the IB -> TSMF -> PB chain */
@@ -359,9 +359,6 @@ void NEXUS_ParserBand_P_SetEnable(NEXUS_ParserBandHandle parserBand)
         enabled = true;
     }
 
-    if(enabled && !parserBand->enabled) {
-        NEXUS_Transport_P_IncPowerDown(true);
-    }
 #if NEXUS_PARSER_BAND_CC_CHECK
     if (NEXUS_GetEnv("cont_count_ignore")) {
         unsigned bandHwIndex = parserBand->hwIndex;
@@ -379,10 +376,6 @@ void NEXUS_ParserBand_P_SetEnable(NEXUS_ParserBandHandle parserBand)
     BDBG_ASSERT(parserBand->refcnt >= 0);
     rc = BXPT_SetParserEnable(pTransport->xpt, parserBand->hwIndex, enabled);
     if (rc) {rc=BERR_TRACE(rc);}
-
-    if(!enabled && parserBand->enabled) {
-        NEXUS_Transport_P_IncPowerDown(false);
-    }
 
     parserBand->enabled = enabled;
 
@@ -408,14 +401,8 @@ void NEXUS_ParserBand_P_SetEnable(NEXUS_ParserBandHandle parserBand)
             }
         }
         enabled = refcnt?true:false;
-        if(enabled && !pTransport->inputBand[inputBand].enabled) {
-            NEXUS_Transport_P_IncPowerDown(true);
-        }
         rc = BXPT_EnableOutputBufferBand(pTransport->xpt, inputBand, enabled);
         if (rc) {BERR_TRACE(rc);}
-        if(!enabled && pTransport->inputBand[inputBand].enabled) {
-            NEXUS_Transport_P_IncPowerDown(false);
-        }
         pTransport->inputBand[inputBand].enabled = enabled;
     }
 #endif
@@ -552,6 +539,24 @@ static NEXUS_Error NEXUS_ParserBand_P_Init(unsigned index)
 
 static void NEXUS_ParserBand_P_Uninit(NEXUS_ParserBandHandle parserBand)
 {
+    if(parserBand->teiErrorInt)
+    {
+        BINT_DisableCallback(parserBand->teiErrorInt);
+        BINT_DestroyCallback(parserBand->teiErrorInt);
+        parserBand->teiErrorInt = NULL;
+    }
+    if(parserBand->ccErrorInt)
+    {
+        BINT_DisableCallback(parserBand->ccErrorInt);
+        BINT_DestroyCallback(parserBand->ccErrorInt);
+        parserBand->ccErrorInt = NULL;
+    }
+    if(parserBand->lengthErrorInt)
+    {
+        BINT_DisableCallback(parserBand->lengthErrorInt);
+        BINT_DestroyCallback(parserBand->lengthErrorInt);
+        parserBand->lengthErrorInt = NULL;
+    }
     NEXUS_IsrCallback_Destroy(parserBand->teiErrorCallback);
     NEXUS_IsrCallback_Destroy(parserBand->ccErrorCallback);
     NEXUS_IsrCallback_Destroy(parserBand->lengthErrorCallback);
@@ -694,7 +699,7 @@ NEXUS_Error NEXUS_ParserBand_GetAllPassPidChannelIndex(
     return 0;
 }
 
-static bool is_mtsif(unsigned i, NEXUS_FrontendConnectorHandle connector, NEXUS_TsmfHandle *tsmf)
+static bool is_mtsif(unsigned i, NEXUS_FrontendConnectorHandle connector, void **tsmf)
 {
     const NEXUS_ParserBandSettings *ps;
 
@@ -708,7 +713,7 @@ static bool is_mtsif(unsigned i, NEXUS_FrontendConnectorHandle connector, NEXUS_
     if (ps->sourceType == NEXUS_ParserBandSourceType_eMtsif && (ps->sourceTypeSettings.mtsif == connector || !connector)) {
         return true;
     }
-#if NEXUS_HAS_TSMF
+#if NEXUS_TRANSPORT_EXTENSION_TSMF
     if (ps->sourceType == NEXUS_ParserBandSourceType_eTsmf && ps->sourceTypeSettings.tsmf) {
         NEXUS_TsmfSettings settings;
         NEXUS_Tsmf_GetSettings(ps->sourceTypeSettings.tsmf, &settings);
@@ -726,12 +731,12 @@ void NEXUS_ParserBand_GetMtsifConnections_priv( NEXUS_FrontendConnectorHandle co
     unsigned i, total = 0;
     NEXUS_ASSERT_MODULE();
     for (i=0;i < NEXUS_NUM_PARSER_BANDS && total < numEntries;i++) {
-        NEXUS_TsmfHandle tsmf;
+        void *tsmf = NULL;
         if (is_mtsif(i, connector, &tsmf)) {
             BKNI_Memset(&pSettings[total], 0, sizeof(pSettings[total]));
             pSettings[total].index = i;
             pSettings[total].settings = pTransport->parserBand[i]->settings;
-#if NEXUS_HAS_TSMF
+#if NEXUS_TRANSPORT_EXTENSION_TSMF
             if (tsmf) {
                 NEXUS_Tsmf_ReadSettings_priv(tsmf, &pSettings[total]);
             }
@@ -747,7 +752,7 @@ void NEXUS_ParserBand_P_MtsifErrorStatus_priv(unsigned lengthError, unsigned tra
     unsigned i;
     NEXUS_ASSERT_MODULE();
     for (i=0;(lengthError || transportError) && i<NEXUS_NUM_PARSER_BANDS;i++) {
-        NEXUS_TsmfHandle tsmf;
+        void *tsmf;
         if (!is_mtsif(i, NULL, &tsmf)) continue;
         if ((lengthError & 1) || (transportError & 1)) {
             BKNI_EnterCriticalSection();

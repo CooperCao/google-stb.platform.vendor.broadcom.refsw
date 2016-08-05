@@ -612,12 +612,21 @@ extern "C" {
     (BVDC_P_SCL_FIR_TAP_COUNT_MAX * BVDC_P_SCL_FIR_PHASE_COUNT_MAX)
 
 #if BVDC_P_SCL_V_STEP_SIZE_WORKAROUND
-#define BVDC_P_CAL_BLK_VRT_SRC_STEP(InH, OutH, blk) \
-    BVDC_P_DIV_ROUND_UP(((InH + blk) << BVDC_P_SCL_V_RATIO_F_BITS)/(blk+1), BVDC_P_MAX(OutH - 2, 1))
+#define BVDC_P_CAL_VRT_SRC_STEP_BASE(InH, OutH, blk, f_bits) \
+    BVDC_P_DIV_ROUND_UP(((InH + blk)/(blk+1) << f_bits), \
+        BVDC_P_MAX((OutH) - ((InH) != (OutH) ? 2 : 0), 1))
 #else
-#define BVDC_P_CAL_BLK_VRT_SRC_STEP(InH, OutH, blk) \
-    BVDC_P_DIV_ROUND_UP(((InH + blk) << BVDC_P_SCL_V_RATIO_F_BITS)/(blk+1), BVDC_P_MAX(OutH, 1))
+#define BVDC_P_CAL_VRT_SRC_STEP_BASE(InH, OutH, blk, f_bits) \
+    BVDC_P_DIV_ROUND_UP(((InH + blk)/(blk+1) << f_bits), \
+        BVDC_P_MAX(OutH, 1))
 #endif
+
+#define BVDC_P_CAL_BLK_VRT_SRC_STEP(InH, OutH, blk) \
+    BVDC_P_CAL_VRT_SRC_STEP_BASE(InH, OutH, blk, BVDC_P_SCL_V_RATIO_F_BITS)
+
+/* Rounding down OutH to even number when OutH is odd and output format is interlaced to avoid vstep accuracy loss */
+#define BVDC_P_CAL_VRT_SRC_STEP(InH, OutH, bInterlaced) \
+    BVDC_P_CAL_VRT_SRC_STEP_BASE(InH, (OutH -((bInterlaced) && (OutH &1))), 0, BVDC_P_NRM_SRC_STEP_F_BITS)
 
 #define BVDC_P_SCL_LAST UINT32_C(-1)
 

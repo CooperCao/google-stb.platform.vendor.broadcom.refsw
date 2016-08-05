@@ -56,17 +56,16 @@ BDBG_MODULE(BVDC_MEMCONFIG);
 /* Table indicates if display is stg */
 static const bool abStg[BVDC_MAX_DISPLAYS] =
 {
-#if (BCHP_CHIP==7125)  || (BCHP_CHIP==7231)  || \
+#if (BCHP_CHIP==7231)  || \
     (BCHP_CHIP==7344)  || (BCHP_CHIP==7346)  || \
     (BCHP_CHIP==7358)  || (BCHP_CHIP==7360)  || (BCHP_CHIP==7362)  || \
-    (BCHP_CHIP==7408)  || \
-    (BCHP_CHIP==7420)  || (BCHP_CHIP==7422)  || (BCHP_CHIP==7429)  || \
-    (BCHP_CHIP==7468)  || (BCHP_CHIP==7543)  || (BCHP_CHIP==7550)  || \
+    (BCHP_CHIP==7422)  || (BCHP_CHIP==7429)  || \
+    (BCHP_CHIP==7543)  || \
     (BCHP_CHIP==7552)  || (BCHP_CHIP==7563)  || (BCHP_CHIP==7584)  || \
     (BCHP_CHIP==7228)  || (BCHP_CHIP==75635) || (BCHP_CHIP==73625) || \
     (BCHP_CHIP==75845) || (BCHP_CHIP==74295) || (BCHP_CHIP==11360) || \
     (BCHP_CHIP==7271)  || (BCHP_CHIP==73465) || (BCHP_CHIP==75525) || \
-    (BCHP_CHIP==7268)
+    (BCHP_CHIP==7268)  || (BCHP_CHIP==7260)
     /* stg not supported */
     /*  Disp0    Disp1    Disp2    Disp3    disp4   disp5   disp6 */
             0,       0,       0,       0,       0,      0,       0
@@ -154,15 +153,6 @@ static const uint32_t aaulMemcIndex[BVDC_MAX_DISPLAYS][BVDC_MAX_VIDEO_WINDOWS] =
     { BBOX_MemcIndex_Invalid, BBOX_MemcIndex_Invalid },
     { BBOX_MemcIndex_Invalid, BBOX_MemcIndex_Invalid }
 
-#elif (BCHP_CHIP==7420)
-    { BBOX_MemcIndex_1,       BBOX_MemcIndex_0 },
-    { BBOX_MemcIndex_1,       BBOX_MemcIndex_0 },
-    { BBOX_MemcIndex_0,       BBOX_MemcIndex_0 },
-    { BBOX_MemcIndex_Invalid, BBOX_MemcIndex_Invalid },
-    { BBOX_MemcIndex_Invalid, BBOX_MemcIndex_Invalid },
-    { BBOX_MemcIndex_Invalid, BBOX_MemcIndex_Invalid },
-    { BBOX_MemcIndex_Invalid, BBOX_MemcIndex_Invalid }
-
 #elif (BCHP_CHIP==7422)
     { BBOX_MemcIndex_1,       BBOX_MemcIndex_0 },
     { BBOX_MemcIndex_1,       BBOX_MemcIndex_1 },
@@ -229,17 +219,15 @@ static const uint32_t aaulMemcIndex[BVDC_MAX_DISPLAYS][BVDC_MAX_VIDEO_WINDOWS] =
     { BBOX_MemcIndex_Invalid, BBOX_MemcIndex_Invalid },
     { BBOX_MemcIndex_Invalid, BBOX_MemcIndex_Invalid },
 
-#elif ((BCHP_CHIP==7401)  || (BCHP_CHIP==7403)  || (BCHP_CHIP==7408)  || \
-       (BCHP_CHIP==7410)  || (BCHP_CHIP==7125)  || (BCHP_CHIP==7468)  || \
-       (BCHP_CHIP==7550)  || (BCHP_CHIP==7552)  || (BCHP_CHIP==7358)  || \
-       (BCHP_CHIP==7360)  ||  \
+#elif ((BCHP_CHIP==7552)  || (BCHP_CHIP==7358)  || (BCHP_CHIP==7360)  || \
        (BCHP_CHIP==7346)  || (BCHP_CHIP==7344)  || (BCHP_CHIP==7231)  || \
        (BCHP_CHIP==7428)  || (BCHP_CHIP==7429)  || (BCHP_CHIP==7584)  || \
        (BCHP_CHIP==7563)  || (BCHP_CHIP==7543)  || (BCHP_CHIP==7362)  || \
        (BCHP_CHIP==7364)  || (BCHP_CHIP==7228)  || (BCHP_CHIP==7250)  || \
        (BCHP_CHIP==75635) || (BCHP_CHIP==7586)  || (BCHP_CHIP==73625) || \
        (BCHP_CHIP==75845) || (BCHP_CHIP==74295) || (BCHP_CHIP==7271)  || \
-       (BCHP_CHIP==73465) || (BCHP_CHIP==75525) || (BCHP_CHIP==7268))
+       (BCHP_CHIP==73465) || (BCHP_CHIP==75525) || (BCHP_CHIP==7268)  || \
+       (BCHP_CHIP==7260))
     { BBOX_MemcIndex_0,       BBOX_MemcIndex_0 },
     { BBOX_MemcIndex_0,       BBOX_MemcIndex_0 },
     { BBOX_MemcIndex_Invalid, BBOX_MemcIndex_Invalid },
@@ -1086,8 +1074,8 @@ BERR_Code BVDC_P_MemConfig_GetRulSize
 
             if(BVDC_P_SRC_IS_MPEG(i) && (i < BRDC_MAX_COMBO_TRIGGER_COUNT))
             {
-                /* Only need top/bottom slave slots and lists */
-                for(j = 0; j < 2 * BVDC_P_MAX_MULTI_RUL_BUFFER_COUNT; j++)
+                /* Only need 3 slave lists for one slave slot */
+                for(j = 0; j < BVDC_P_MAX_MULTI_SLAVE_RUL_BUFFER_COUNT; j++)
                 {
                     ulTotalRulSize += ulSlaveRulSize;
                 }

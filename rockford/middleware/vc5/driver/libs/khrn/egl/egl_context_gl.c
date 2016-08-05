@@ -124,14 +124,7 @@ static EGLint extract_attribs(const EGLint *attrib_list, const CLIENT_API_T **ap
       bool *robustness, bool *reset_notification, bool *want_debug, bool *secure)
 {
    static const CLIENT_API_T es1x_api = {OPENGL_ES_11, gl11_server_state_init};
-   static const CLIENT_API_T es3x_api =
-#if KHRN_GLES_32_DRIVER
-      {OPENGL_ES_32, gl20_server_state_init};
-#elif KHRN_GLES31_DRIVER
-      {OPENGL_ES_31, gl20_server_state_init};
-#else
-      {OPENGL_ES_30, gl20_server_state_init};
-#endif
+   static const CLIENT_API_T es3x_api = {OPENGL_ES_3X, gl20_server_state_init};
 
    const EGLint supported_flags = EGL_CONTEXT_OPENGL_DEBUG_BIT_KHR |
                                   EGL_CONTEXT_OPENGL_ROBUST_ACCESS_BIT_KHR;
@@ -299,93 +292,26 @@ end:
    return error;
 }
 
-static v3d_scheduler_deps* flush_rendering(EGL_CONTEXT_T *context,
-      EGL_SURFACE_T *surface)
-{
-   v3d_scheduler_deps *deps = NULL;
-
-   assert(surface->context == context);
-
-   if (egl_context_gl_lock())
-   {
-      KHRN_IMAGE_T *image = egl_surface_get_back_buffer(surface);
-      if (image)
-      {
-         KHRN_RES_INTERLOCK_T *res_i = khrn_image_get_res_interlock(image);
-
-         if (surface->context && (surface->context == egl_thread_get_context()) &&
-            surface->context->draw == surface)
-         {
-            /* if this is the current draw surface, then default fb is using the
-             * surface's back buffer, record that aux buffers become invalid after
-             * this op, so we can save allocating/storing these */
-            GLXX_SERVER_STATE_T *gl_state;
-            gl_state = egl_context_gl_server_state((EGL_GL_CONTEXT_T*)surface->context);
-            assert(gl_state);
-            glxx_invalidate_default_draw_framebuffer(gl_state, false /* color*/,
-               true /* multisample */, true /* depth */, true /* stencil */,
-               NULL);
-         }
-
-         if (khrn_interlock_is_valid(&res_i->interlock))
-            khrn_interlock_flush(&res_i->interlock);
-         deps = khrn_interlock_get_sync(&res_i->interlock, false);
-      }
-
-      egl_context_gl_unlock();
-   }
-   return deps;
-}
-
-bool copy_surface(EGL_CONTEXT_T *context, EGL_SURFACE_T *surface, KHRN_IMAGE_T *dst)
+bool copy_image(EGL_CONTEXT_T *context, KHRN_IMAGE_T *dst, KHRN_IMAGE_T *src)
 {
    if (egl_context_gl_lock())
    {
-      assert(surface->context == context);
-      KHRN_IMAGE_T *src = egl_surface_get_back_buffer(surface);
-
-      /* this is called from glCopyBuffer; the spec (egl1.4 and 1.5) says
-       * that the surface must be bound to the calling thread's current context
-       * and we report an error if this is not the case;
-       * we need a context here so we record  the khrn_image copy operation on
-       * the correct context */
-      assert(surface->context && (surface->context == egl_thread_get_context()));
-      GLXX_SERVER_STATE_T *gl_state;
-      gl_state = egl_context_gl_server_state((EGL_GL_CONTEXT_T*)surface->context);
-      assert(gl_state);
-
-      if (surface->context->draw == surface)
-      {
-         /* copybuffers causes resolution of the ms color buffer to color buffer,
-         * invalidate ms so we do not allocate/store multisample */
-         glxx_invalidate_default_draw_framebuffer(gl_state, false /* color*/,
-            true /* multisample */, false /* depth */, false /* stencil */,
-            NULL);
-      }
-      bool ok = khrn_image_copy(dst, src, &gl_state->fences, context->secure);
+      GLXX_SERVER_STATE_T *state = &((EGL_GL_CONTEXT_T *)context)->server;
+      bool ok = khrn_image_copy(dst, src, &state->fences, context->secure);
       egl_context_gl_unlock();
-
       return ok;
    }
    else
       return false;
 }
 
-static void add_fence(EGL_CONTEXT_T *context,
-      const EGL_SURFACE_T *surface, int fence)
+void invalidate_draw(EGL_CONTEXT_T *context,
+   bool color, bool color_ms, bool other_aux)
 {
-   KHRN_IMAGE_T *image;
-   KHRN_RES_INTERLOCK_T *res_i = NULL;
-   uint64_t job_id = v3d_scheduler_submit_wait_fence(fence);
-
-   assert(surface->context == context);
-
    if (egl_context_gl_lock())
    {
-      image = egl_surface_get_back_buffer(surface);
-      res_i = khrn_image_get_res_interlock(image);
-      khrn_interlock_job_add(&res_i->interlock, job_id, true);
-
+      GLXX_SERVER_STATE_T *state = &((EGL_GL_CONTEXT_T *)context)->server;
+      glxx_hw_invalidate_default_draw_framebuffer(state, color, color_ms, other_aux, other_aux);
       egl_context_gl_unlock();
    }
 }
@@ -490,9 +416,7 @@ static int client_version(const EGL_CONTEXT_T *context)
    {
    case OPENGL_ES_11:
       return 1;
-   case OPENGL_ES_30:
-   case OPENGL_ES_31:
-   case OPENGL_ES_32:
+   case OPENGL_ES_3X:
       return 3;
    default:
       break;
@@ -523,9 +447,8 @@ static void invalidate(EGL_CONTEXT_T *context)
 static EGL_CONTEXT_METHODS_T fns =
 {
    flush,
-   flush_rendering,
-   copy_surface,
-   add_fence,
+   copy_image,
+   invalidate_draw,
    attach,
    detach,
    client_version,

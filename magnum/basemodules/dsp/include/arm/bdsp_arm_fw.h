@@ -78,6 +78,7 @@ See Also:
 typedef enum BDSP_Arm_SystemImgId
 {
     BDSP_ARM_SystemImgId_eSystemCode,
+	BDSP_ARM_SystemImgId_eHbcMonitorCode,
 #if 0
     /*BDSP_ARM_SystemImgId_eSystemRdbvars,        */
     BDSP_ARM_SystemImgId_eSyslibCode,

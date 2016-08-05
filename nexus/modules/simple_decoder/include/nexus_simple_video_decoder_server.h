@@ -42,6 +42,11 @@
 #include "nexus_simple_video_decoder.h"
 #include "nexus_stc_channel.h"
 #include "nexus_display.h"
+#if NEXUS_HAS_ASTM
+#include "nexus_astm.h"
+#else
+typedef unsigned NEXUS_AstmSettings;
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -67,6 +72,7 @@ typedef struct NEXUS_SimpleVideoDecoderServerSettings
     NEXUS_VideoWindowHandle window[NEXUS_MAX_DISPLAYS]; /* by giving the VideoWindow handle, the caller gives up the ability to call 
         NEXUS_VideoWindow_AddInput, RemoveInput and RemoveAllInputs. the caller can still use other VideoWindow API's. for instance, 
         it can call NEXUS_VideoWindow_SetSettings to move the video window. */
+    bool mainWindow;
     int stcIndex; /* used for allocating stc channel once connected to simple stc channel */
     NEXUS_DisplayHandle display[NEXUS_MAX_DISPLAYS]; /* used for closedCaptionRouting */
     bool mosaic;
@@ -173,6 +179,10 @@ NEXUS_Error NEXUS_SimpleVideoDecoder_SwapWindows(
     NEXUS_SimpleVideoDecoderServerHandle server,
     NEXUS_SimpleVideoDecoderHandle decoder1,
     NEXUS_SimpleVideoDecoderHandle decoder2
+    );
+
+void NEXUS_SimpleStcChannel_SetDefaultAstmSettings_priv(
+    const NEXUS_AstmSettings *pSettings
     );
 
 #ifdef __cplusplus

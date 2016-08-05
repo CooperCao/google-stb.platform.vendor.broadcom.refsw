@@ -12,6 +12,8 @@ FILE DESCRIPTION
 #include "glsl_ir_shader.h"
 #include "glsl_safemem.h"
 
+#include <string.h>
+
 typedef struct {
    int n;
    int *id;

@@ -85,7 +85,7 @@ APPS ?= $(APP)
 
 vpath %.c ${NEXUS_TOP}/../BSEAV/tools/brbviewer
 
-ifeq ($(findstring $(BCHP_CHIP),7429 7425 7231 7346),$(BCHP_CHIP))
+ifeq ($(findstring $(BCHP_CHIP),7429 7425 7231 7346 7435 7584),$(BCHP_CHIP))
 all:
 	@echo [The brbviewer tool is not designed to work on the $(BCHP_CHIP) chip ]
 else

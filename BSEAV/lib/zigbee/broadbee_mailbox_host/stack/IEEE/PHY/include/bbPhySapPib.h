@@ -55,8 +55,8 @@
 
 
 /************************* INCLUDES *****************************************************/
-#include "bbPhyBasics.h"
-
+#include "bbPhySapTypesChannel.h"
+#include "bbPhySapTypesEnergy.h"
 
 /************************* DEFINITIONS **************************************************/
 /**//**

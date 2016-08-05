@@ -96,7 +96,6 @@ static bool force_exit  = false ;
 static bool compliance_test  = false ;
 
 static struct timespec currentTime;
-static pthread_condattr_t condAttr;
 static pthread_t threadId;
 static pthread_cond_t cond1 = PTHREAD_COND_INITIALIZER;
 static pthread_cond_t cond2 = PTHREAD_COND_INITIALIZER;
@@ -105,8 +104,6 @@ static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 void *threadfunc(void *param)
 {
     int rc = 0;
-    NEXUS_HdmiInputHdcpStatus hdmiInputHdcpStatus;
-    NEXUS_HdmiOutputHdcpStatus hdmiOutputHdcpStatus;
 
 
     /* loop forever until the program terminates, we could also code it was 'pthread_mutext_lock();for(;;)' too. */
@@ -164,6 +161,12 @@ static NEXUS_Error initializeHdmiOutputHdcpSettings(void) ;
 /* INSERT PRODUCTION KeySet HERE */
 /*****************************/
 
+/* INSERT HDCP 1.x Tx Production KeySet here */
+
+
+/* INSERT HDCP 1.x Rx Production Keyset here */
+
+
 #else
 
 
@@ -176,7 +179,7 @@ static NEXUS_Error initializeHdmiOutputHdcpSettings(void) ;
 /* production devices                 */
 /**************************************/
 
-
+/* HDCP 1.x Tx Test key  */
 static NEXUS_HdmiOutputHdcpKsv hdcpTxAksv =
 {   {0x14, 0xF7, 0x61, 0x03, 0xB7} };
 
@@ -224,7 +227,66 @@ static NEXUS_HdmiOutputHdcpKey encryptedTxKeySet[NEXUS_HDMI_OUTPUT_HDCP_NUM_KEYS
     { 0, 0, 0, 0, 0, 0, 0, 0, 0x412056b4, 0xbb732500}
 } ;
 
- #endif
+/* HDCP 1.x Rx Test Key */
+
+uint8_t encryptedRxKeySetAlg     = 0x01 ;
+uint8_t encryptedRxKeySetKeyVar1 = 0x02 ;
+uint8_t encryptedRxKeySetKeyVar2 = 0x03 ;
+uint8_t encryptedRxKeySetCusKey  = 0x04 ;
+
+
+static const NEXUS_HdmiHdcpKsv hdcpRxBksv =
+{
+   {0xCD, 0x1A, 0xF2, 0x1E, 0x51}
+} ;
+
+
+static const
+    NEXUS_HdmiInputHdcpKey encryptedRxKeySet[NEXUS_HDMI_HDCP_NUM_KEYS] =
+{
+    { 0, 0, 0, 0, 0xFDF05BC7, 0xE013BC00},  /* 00 */
+    { 0, 0, 0, 0, 0x3B44767F, 0x2C0DAE00},  /* 01 */
+    { 0, 0, 0, 0, 0x606CA385, 0x21BF2400},  /* 02 */
+    { 0, 0, 0, 0, 0x2FA3D7BC, 0x6CBCF400},  /* 03 */
+    { 0, 0, 0, 0, 0x8863EBC5, 0x692EA700},  /* 04 */
+    { 0, 0, 0, 0, 0xF8D9377A, 0xD2A27F00},  /* 05 */
+    { 0, 0, 0, 0, 0xD1A3DE29, 0x35FD3200},  /* 06 */
+    { 0, 0, 0, 0, 0xAE9BCC40, 0xC25F4800},  /* 07 */
+    { 0, 0, 0, 0, 0x03517D79, 0x57983B00},  /* 08 */
+    { 0, 0, 0, 0, 0x505261BE, 0x70D10D00},  /* 09 */
+    { 0, 0, 0, 0, 0xB16B86E4, 0x8B741A00},  /* 10 */
+    { 0, 0, 0, 0, 0xCA8C347C, 0x6A60F900},  /* 11 */
+    { 0, 0, 0, 0, 0xA1EE9978, 0x03BB4B00},  /* 12 */
+    { 0, 0, 0, 0, 0xA995C09C, 0xCF0E1900},  /* 13 */
+    { 0, 0, 0, 0, 0x7F449768, 0xC421A800},  /* 14 */
+    { 0, 0, 0, 0, 0x418A29C4, 0x0B8A1A00},  /* 15 */
+    { 0, 0, 0, 0, 0x8220E653, 0x08FCAE00},  /* 16 */
+    { 0, 0, 0, 0, 0xA47B490C, 0x4A5DF700},  /* 17 */
+    { 0, 0, 0, 0, 0xD8068AFC, 0x9564AD00},  /* 18 */
+    { 0, 0, 0, 0, 0x022E2B0C, 0x02C26700},  /* 19 */
+    { 0, 0, 0, 0, 0x8DAEF418, 0x6B118F00},  /* 20 */
+    { 0, 0, 0, 0, 0x69FAE9A3, 0x3F05E300},  /* 21 */
+    { 0, 0, 0, 0, 0xD1C78128, 0x00D83700},  /* 22 */
+    { 0, 0, 0, 0, 0x9C66151C, 0xFDA5C300},  /* 23 */
+    { 0, 0, 0, 0, 0xF711081E, 0xD4939E00},  /* 24 */
+    { 0, 0, 0, 0, 0x6CEC9E50, 0x74402C00},  /* 25 */
+    { 0, 0, 0, 0, 0x619B2719, 0xD87F8B00},  /* 26 */
+    { 0, 0, 0, 0, 0xE96CA0A0, 0xADCAD700},  /* 27 */
+    { 0, 0, 0, 0, 0xDBC1F8A1, 0xDC979200},  /* 28 */
+    { 0, 0, 0, 0, 0x89A4DE99, 0xAA1A5D00},  /* 29 */
+    { 0, 0, 0, 0, 0xD9A1BADD, 0x56CB6000},  /* 30 */
+    { 0, 0, 0, 0, 0xE0F25F5E, 0xADD48500},  /* 31 */
+    { 0, 0, 0, 0, 0x6DDF2112, 0x16801200},  /* 32 */
+    { 0, 0, 0, 0, 0x896540F2, 0xA531CA00},  /* 33 */
+    { 0, 0, 0, 0, 0x6F8E19CB, 0xE8301D00},  /* 34 */
+    { 0, 0, 0, 0, 0xFAD307ED, 0x8BC1D100},  /* 35 */
+    { 0, 0, 0, 0, 0x435B2409, 0xECC7CE00},  /* 36 */
+    { 0, 0, 0, 0, 0x83D5EDEF, 0x2981B000},  /* 37 */
+    { 0, 0, 0, 0, 0xE586E24C, 0xCF342100},  /* 38 */
+    { 0, 0, 0, 0, 0x8CB799D0, 0xF9EEED00}
+} ;
+
+#endif
 
 
 /*
@@ -268,6 +330,21 @@ static uint8_t SampleEDID[] =
     0x00,0x00,0x1A,0x66,0x21,0x56,0xAA,0x51,0x00,0x1E,0x30,0x46,0x8F,0x33,0x00,0xBA,
     0x88,0x21,0x00,0x00,0x1E,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x6E
 };
+
+
+static void displayKeyLoadStatus(uint8_t success)
+{
+
+    BDBG_LOG(("*************************")) ;
+    BDBG_LOG(("HDCP Key Loading: %s", success ? "SUCCESS" : " FAILED")) ;
+    BDBG_LOG(("*************************")) ;
+}
+
+typedef struct hotplugCallbackParameters
+{
+    NEXUS_HdmiOutputHandle hdmiOutput  ;
+    NEXUS_DisplayHandle display ;
+} hotplugCallbackParameters ;
 
 
 void source_changed(void *context, int param)
@@ -403,7 +480,7 @@ end:
 
     if (rc)
     {
-        BDBG_ERR(("%s: error #%d, fileSize=%u, seekPos=%d", __FUNCTION__,  rc, fileSize, seekPos));
+        BDBG_ERR(("%s: error #%d, fileSize=%u, seekPos=%llu", __FUNCTION__,  rc, fileSize, seekPos));
         BDBG_ASSERT(false);
     }
 
@@ -514,6 +591,7 @@ static void hdmiOutputHdcpStateChanged(void *pContext, int param)
     NEXUS_HdmiOutputHandle handle = pContext;
 
     NEXUS_HdmiOutputHdcpStatus hdmiOutputHdcpStatus;
+    NEXUS_HdmiOutputHdcpSettings hdmiOutputHdcpSettings;
     NEXUS_HdmiHdcpDownStreamInfo downStream  ;
     NEXUS_HdmiHdcpKsv *pKsvs ;
     NEXUS_Error rc ;
@@ -563,13 +641,17 @@ static void hdmiOutputHdcpStateChanged(void *pContext, int param)
 
 /* Load Rx KSV FIFO for upstream device */
 uploadDownstreamInfo:
+    NEXUS_HdmiOutput_GetHdcpSettings(handle, &hdmiOutputHdcpSettings);
 
-    if (hdmiOutputHdcpStatus.hdcp2_2Features)
+    /* If HDCP 2.2 version was selected or AUTO mode was selected AND the Rx support HDCP 2.2 */
+    if (hdmiOutputHdcpStatus.hdcp2_2Features
+    &&  ((hdmiOutputHdcpSettings.hdcp_version == NEXUS_HdmiOutputHdcpVersion_e2_2)
+        || (hdmiOutputHdcpSettings.hdcp_version == NEXUS_HdmiOutputHdcpVersion_eAuto)))
     {
         BSTD_UNUSED(pKsvs);
         BSTD_UNUSED(downStream);
 
-        BDBG_LOG(("%s: Uploading downstream Info", __FUNCTION__));
+        BDBG_LOG(("Authenticated HDCP 2.x with downstream device. Upload downstream info"));
         rc = NEXUS_HdmiOutput_SetRepeaterInput(handle, hdmiInput);
         if (rc != NEXUS_SUCCESS)
         {
@@ -578,6 +660,7 @@ uploadDownstreamInfo:
 
     }
     else {  /* for HDCP 1.x */
+        BDBG_LOG(("Authenticated HDCP1.x with downstream device. Upload downstream info"));
         NEXUS_HdmiOuput_HdcpGetDownstreamInfo(handle, &downStream) ;
 
         /* allocate space to hold ksvs for the downstream devices */
@@ -591,7 +674,7 @@ uploadDownstreamInfo:
             downStream.depth, downStream.devices)) ;
 
         /* display the downstream device KSVs */
-        for (i = 0 ; i <= downStream.devices; i++)
+        for (i = 0 ; i < downStream.devices; i++)
        {
             BDBG_MSG(("%s: Device %02d BKsv: %02X %02X %02X %02X %02X", __FUNCTION__,
                 i + 1,
@@ -658,11 +741,12 @@ static void enable_audio(NEXUS_HdmiOutputHandle hdmiOutput)
 static void hotplug_callback(void *pParam, int iParam)
 {
     NEXUS_HdmiOutputStatus status;
-    NEXUS_HdmiOutputHandle hdmiOutput = pParam;
-    NEXUS_DisplayHandle display = (NEXUS_DisplayHandle)iParam;
+    NEXUS_HdmiOutputHandle hdmiOutput ;
+    NEXUS_DisplayHandle display ;
+    hotplugCallbackParameters *hotPlugCbParams = pParam ;
     NEXUS_HdmiOutputBasicEdidData hdmiOutputBasicEdidData;
     NEXUS_HdmiOutputEdidBlock edidBlock;
-    uint8_t *attachedRxEdid;
+    uint8_t *attachedRxEdid = NULL ;
     uint16_t attachedRxEdidSize ;
     uint8_t i, j;
     bool useSampleEdid = false ;
@@ -671,6 +755,9 @@ static void hotplug_callback(void *pParam, int iParam)
 
     BDBG_LOG(("%s: Toggle Rx HOT PLUG to force upstream re-authentication...", __FUNCTION__)) ;
     NEXUS_HdmiInput_ToggleHotPlug(hdmiInput) ;
+
+    hdmiOutput = hotPlugCbParams->hdmiOutput ;
+    display = hotPlugCbParams->display ;
 
     NEXUS_HdmiOutput_GetStatus(hdmiOutput, &status);
     BDBG_LOG(("%s: HDMI hotplug event: %s\n", __FUNCTION__,
@@ -904,7 +991,7 @@ end:
 
     if (rc)
     {
-        BDBG_ERR(("%s: error #%d, fileSize=%u, seekPos=%d", __FUNCTION__,  rc, fileSize, seekPos));
+        BDBG_ERR(("%s: error #%d, fileSize=%u, seekPos=%llu", __FUNCTION__,  rc, fileSize, seekPos));
         BDBG_ASSERT(false);
     }
 
@@ -922,6 +1009,7 @@ int main(int argc, char **argv)
     NEXUS_HdmiInputSettings hdmiInputSettings;
     NEXUS_HdmiOutputSettings hdmiOutputSettings;
     NEXUS_HdmiOutputStatus hdmiOutputStatus;
+    hotplugCallbackParameters hotPlugCbParams ;
 
     NEXUS_TimebaseSettings timebaseSettings;
     NEXUS_PlatformSettings platformSettings ;
@@ -1069,6 +1157,46 @@ open_with_edid:
         hdmiInputSettings.sourceChanged.context = hdmiInput ;
     NEXUS_HdmiInput_SetSettings(hdmiInput, &hdmiInputSettings) ;
 
+    /* load hdcp 1.x Rx key */
+    {
+       NEXUS_HdmiInputHdcpKeyset hdmiInputKeyset ;
+       NEXUS_HdmiInputHdcpStatus hdmiInputHdcpStatus;
+
+       NEXUS_HdmiInput_HdcpGetDefaultKeyset(hdmiInput, &hdmiInputKeyset) ;
+
+           /* Intialize/Load HDCP Key Set  */
+           hdmiInputKeyset.alg = encryptedRxKeySetAlg ;
+           hdmiInputKeyset.custKeyVarL = encryptedRxKeySetKeyVar1  ;
+           hdmiInputKeyset.custKeyVarH = encryptedRxKeySetKeyVar2  ;
+           hdmiInputKeyset.custKeySel =  encryptedRxKeySetCusKey   ;
+
+           BKNI_Memcpy(&hdmiInputKeyset.rxBksv, &hdcpRxBksv,
+               NEXUS_HDMI_HDCP_KSV_LENGTH) ;
+
+           BKNI_Memcpy(&hdmiInputKeyset.privateKey, &encryptedRxKeySet,
+                sizeof(NEXUS_HdmiInputHdcpKey) * NEXUS_HDMI_HDCP_NUM_KEYS) ;
+
+
+       rc = NEXUS_HdmiInput_HdcpSetKeyset(hdmiInput, &hdmiInputKeyset ) ;
+       if (rc)
+       {
+           /* display message informing of result of HDCP Key Load */
+           displayKeyLoadStatus(0) ;
+       }
+       else
+       {
+           NEXUS_HdmiInput_HdcpGetStatus(hdmiInput, &hdmiInputHdcpStatus) ;
+
+           /* display message informing of result of HDCP Key Load */
+        /* NOTE: use of otpState is overloaded... refers to status of key load */
+           if (hdmiInputHdcpStatus.eOtpState != NEXUS_HdmiInputHdcpKeySetOtpState_eCrcMatch)
+               displayKeyLoadStatus(0) ;
+           else
+               displayKeyLoadStatus(1) ;
+        }
+    }
+
+
     {
         NEXUS_HdmiInputHdcpSettings hdmiInputHdcpSettings ;
 
@@ -1095,9 +1223,10 @@ open_with_edid:
 
     /* Install hotplug callback -- video only for now */
     NEXUS_HdmiOutput_GetSettings(hdmiOutput, &hdmiOutputSettings);
-    hdmiOutputSettings.hotplugCallback.callback = hotplug_callback;
-    hdmiOutputSettings.hotplugCallback.context = hdmiOutput;
-    hdmiOutputSettings.hotplugCallback.param = (int)display;
+        hdmiOutputSettings.hotplugCallback.callback = hotplug_callback;
+            hotPlugCbParams.hdmiOutput = hdmiOutput ;
+            hotPlugCbParams.display = display ;
+        hdmiOutputSettings.hotplugCallback.context = &hotPlugCbParams ;
     NEXUS_HdmiOutput_SetSettings(hdmiOutput, &hdmiOutputSettings);
 
     /* Initialize HDCP settings / keys */
@@ -1172,7 +1301,7 @@ open_with_edid:
             BDBG_SetModuleLevel("repeater_passthrough",  BDBG_eMsg) ;
 
                 BDBG_MSG(("Current format is %d", tmp)) ;
-                BDBG_MSG(("Enter new format (0=1080p 1=1080i 2=720p 3=480p 4=NTSC): ", tmp)) ;
+                BDBG_MSG(("Enter new format (0=1080p 1=1080i 2=720p 3=480p 4=NTSC):")) ;
 
             BDBG_SetModuleLevel("repeater_passthrough", debugLevel) ;
 

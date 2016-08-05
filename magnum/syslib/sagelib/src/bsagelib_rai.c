@@ -254,7 +254,7 @@ BSAGElib_Rai_Platform_Install(
 
     if (rc != BERR_SUCCESS) {
         /* If message to Load failed then SAGE might be reset so clean up System Platform Handles */
-        BDBG_ERR(("%s BSAGElib_Rai_Module_ProcessCommand failure %d \n",__FUNCTION__,rc));
+        BDBG_ERR(("%s BSAGElib_Rai_Module_ProcessCommand failure %d",__FUNCTION__,rc));
         hSAGElibClient->system_platform = NULL;
         hSAGElibClient->system_module = NULL;
         rc = BERR_TRACE(rc);
@@ -267,7 +267,7 @@ BSAGElib_Rai_Platform_Install(
         rc = BERR_TRACE(rc);
         goto err;
     }
-    BDBG_MSG(("%s Output Status %x \n",__FUNCTION__,container->basicOut[0]));
+    BDBG_MSG(("%s Output Status %x",__FUNCTION__,container->basicOut[0]));
 
     if((rc == BERR_SUCCESS) || (container->basicOut[0] == BSAGE_ERR_SDL_ALREADY_LOADED)){
         rc = BERR_SUCCESS;
@@ -314,7 +314,7 @@ BSAGElib_Rai_Platform_UnInstall(BSAGElib_ClientHandle hSAGElibClient,
 
     if (rc != BERR_SUCCESS) {
         /* If message to Unload failed then SAGE might be reset so clean up System Platform Handles */
-        BDBG_ERR(("%s BSAGElib_Rai_Module_ProcessCommand failure %d \n",__FUNCTION__,rc));
+        BDBG_ERR(("%s BSAGElib_Rai_Module_ProcessCommand failure %d",__FUNCTION__,rc));
         hSAGElibClient->system_platform = NULL;
         hSAGElibClient->system_module = NULL;
         goto err;
@@ -326,7 +326,7 @@ BSAGElib_Rai_Platform_UnInstall(BSAGElib_ClientHandle hSAGElibClient,
         goto err;
     }
 
-    BDBG_MSG(("%s Output Status %d \n",__FUNCTION__,container->basicOut[0]));
+    BDBG_MSG(("%s Output Status %d",__FUNCTION__,container->basicOut[0]));
 
     if (hSAGElibClient->system_module != NULL) {
         BSAGElib_Rai_Module_Uninit(hSAGElibClient->system_module,&async_id);

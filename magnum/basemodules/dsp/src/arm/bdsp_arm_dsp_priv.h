@@ -62,6 +62,22 @@ BERR_Code BDSP_Arm_P_ArmDspClose(
             BDSP_Arm *pArm
             );
 
+/***********************************************************************
+ Name        :   BDSP_Arm_P_ArmHbcClose
+
+ Type        :   BDSP Internal
+
+ Input       :   pDeviceHandle -Device Handle which needs to be opened/created
+
+ Return      :   Error Code to return SUCCESS or FAILURE
+
+ Functionality   :
+
+***********************************************************************/
+
+BERR_Code BDSP_Arm_P_ArmHbcClose(
+            BDSP_Arm *pArm
+            );
 
 /***********************************************************************
  Name        :   BDSP_Arm_P_ArmDspOpen
@@ -78,35 +94,6 @@ BERR_Code BDSP_Arm_P_ArmDspClose(
 BERR_Code BDSP_Arm_P_ArmDspOpen(
      void *pDeviceHandle
      );
-
-typedef enum BDSP_ArmDspMsg
-{
-    BDSP_ARM_DSP_MSG_INIT_PARAMS = 1,           /* ArmDsp intialization parameters */
-    BDSP_ARM_DSP_MSG_CLOSE_APP = 2,
-    BDSP_ARM_DSP_MSG_LAST
-}BDSP_ArmDspMsg;
-
-typedef struct BDSP_ArmDspSystemInitParams
-{
-    uint32_t QueueHandleArryPhyAddr;
-    uint32_t ui32NumQueueHandle;
-    uint32_t cmdQueueHandlePhyAddr;
-    uint32_t genRspQueueHandlePhyAddr;
-}BDSP_ArmDspSystemInitParams;
-
-typedef struct BDSP_ArmDspSystemInitParamsResp
-{
-   uint32_t checksum;
-}BDSP_ArmDspSystemInitParamsResp;
-
-typedef struct BDSP_ArmDspSystemCmd
-{
-	BDSP_ArmDspMsg eArmSysMsg;
-	union{
-		BDSP_ArmDspSystemInitParams sInitParams;
-	}uCommand;
-}BDSP_ArmDspSystemCmd;
-
 
 
 /* ====================================================================  *

@@ -41,6 +41,8 @@
 #include "nexus_stream_mux_module.h"
 #include "priv/nexus_playpump_priv.h"
 #include "nexus_video_encoder_output.h"
+#include "priv/nexus_video_encoder_priv.h"
+#include "priv/nexus_audio_mux_output_priv.h"
 #include "priv/nexus_pid_channel_priv.h"
 
 BDBG_MODULE(nexus_stream_mux);
@@ -220,6 +222,7 @@ NEXUS_StreamMux_GetDefaultStartSettings(NEXUS_StreamMuxStartSettings *pSettings)
     pSettings->muxDelay = muxStartSettings->uiA2PDelay;
     pSettings->supportTts = muxStartSettings->bSupportTTS;
     pSettings->interleaveMode = muxStartSettings->eInterleaveMode;
+    pSettings->insertPtsOnlyOnFirstKeyFrameOfSegment = muxStartSettings->bInsertPtsOnlyOnFirstKeyFrameOfSegment;
     BDBG_ASSERT(g_NEXUS_StreamMux_P_State.functionData.NEXUS_StreamMux_GetDefaultStartSettings.cookie == NEXUS_StreamMux_GetDefaultStartSettings);
     return;
 }
@@ -308,7 +311,7 @@ NEXUS_StreamMux_P_GetVideoBufferStatus( void *context, BMUXlib_CompressedBufferS
 
     NEXUS_ASSERT_MODULE();
     BDBG_ASSERT(status);
-    NEXUS_VideoEncoder_GetStatus(state->videoEncoder, &encoderStatus);
+    NEXUS_VideoEncoder_GetBufferStatus_priv(state->videoEncoder, &encoderStatus);
     BKNI_Memset(status,0,sizeof(*status));
     status->hFrameBufferBlock = NEXUS_MemoryBlock_GetBlock_priv(encoderStatus.bufferBlock);
     status->hMetadataBufferBlock = NEXUS_MemoryBlock_GetBlock_priv(encoderStatus.metadataBufferBlock);
@@ -360,7 +363,7 @@ NEXUS_StreamMux_P_GetAudioBufferStatus(
 
     NEXUS_ASSERT_MODULE();
     BDBG_ASSERT(status);
-    NEXUS_AudioMuxOutput_GetStatus(state->audioMuxOutput, &encoderStatus);
+    NEXUS_AudioMuxOutput_GetBufferStatus_priv(state->audioMuxOutput, &encoderStatus);
     BKNI_Memset(status,0,sizeof(*status));
     status->hFrameBufferBlock = NEXUS_MemoryBlock_GetBlock_priv(encoderStatus.bufferBlock);
     status->hMetadataBufferBlock = NEXUS_MemoryBlock_GetBlock_priv(encoderStatus.metadataBufferBlock);
@@ -696,6 +699,7 @@ NEXUS_StreamMux_Start( NEXUS_StreamMuxHandle mux, const NEXUS_StreamMuxStartSett
     mux->muxStartSettings.uiA2PDelay = pSettings->muxDelay;
     mux->muxStartSettings.bSupportTTS = pSettings->supportTts;
     mux->muxStartSettings.eInterleaveMode = pSettings->interleaveMode;
+    mux->muxStartSettings.bInsertPtsOnlyOnFirstKeyFrameOfSegment = pSettings->insertPtsOnlyOnFirstKeyFrameOfSegment;
 
     channel=0;
     mux->muxStartSettings.uiNumValidVideoPIDs = 0;
@@ -790,6 +794,7 @@ NEXUS_StreamMux_Start( NEXUS_StreamMuxHandle mux, const NEXUS_StreamMuxStartSett
 
                mux->muxStartSettings.audio[i].uiPIDChannelIndex = status.pidChannelIndex;
             }
+            mux->muxStartSettings.audio[i].bEnablePESPacking = audio->pesPacking;
             mux->muxStartSettings.uiNumValidAudioPIDs=i+1;
         }
     }
@@ -1033,11 +1038,35 @@ error:
 NEXUS_Error
 NEXUS_StreamMux_GetStatus( NEXUS_StreamMuxHandle mux, NEXUS_StreamMuxStatus *pStatus )
 {
+    BMUXlib_TS_Status status;
+    unsigned i;
+
     BDBG_OBJECT_ASSERT(mux, NEXUS_StreamMux);
     BDBG_ASSERT(pStatus);
 
     BKNI_Memset(pStatus, 0, sizeof(*pStatus));
     pStatus->duration = mux->completedDuration;
+
+    BMUXlib_TS_GetStatus(mux->mux, &status);
+    for ( i = 0; (i < BMUXLIB_TS_MAX_VIDEO_PIDS) && (i < NEXUS_MAX_MUX_PIDS); i++ )
+    {
+       pStatus->video.pid[i].currentTimestamp = status.stVideo[i].uiCurrentTimestamp/2;
+    }
+    for ( i = 0; (i < BMUXLIB_TS_MAX_AUDIO_PIDS) && (i < NEXUS_MAX_MUX_PIDS); i++ )
+    {
+       pStatus->audio.pid[i].currentTimestamp = status.stAudio[i].uiCurrentTimestamp/2;
+    }
+    pStatus->systemdata.pid[0].currentTimestamp = status.stSystem.uiCurrentTimestamp/2;
+    for ( i = 0; (i < BMUXLIB_TS_MAX_USERDATA_PIDS) && (i < NEXUS_MAX_MUX_PIDS); i++ )
+    {
+       pStatus->userdata.pid[i].currentTimestamp = status.stUserData[i].uiCurrentTimestamp/2;
+    }
+    pStatus->video.averageBitrate = status.stAverageBitrate.uiVideo;
+    pStatus->audio.averageBitrate = status.stAverageBitrate.uiAudio;
+    pStatus->systemdata.averageBitrate = status.stAverageBitrate.uiSystemData;
+    pStatus->userdata.averageBitrate = status.stAverageBitrate.uiUserData;
+    pStatus->efficiency = status.uiEfficiency;
+    pStatus->totalBytes = status.uiTotalBytes;
 
     return NEXUS_SUCCESS;
 }

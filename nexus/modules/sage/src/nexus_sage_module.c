@@ -499,7 +499,17 @@ static NEXUS_Error NEXUS_SageModule_P_GetHeapBoundaries(int heapid, NEXUS_Addr *
 #endif
     }
     else {
-        BDBG_WRN(("%s - heap[%d].nexus NOT available", __FUNCTION__, heapid));
+        /* Only warn about manditory heaps */
+        switch(heapid)
+        {
+            case NEXUS_SAGE_SECURE_HEAP:
+            case NEXUS_VIDEO_SECURE_HEAP:
+            case SAGE_FULL_HEAP:
+                BDBG_WRN(("%s - heap[%d].nexus NOT available", __FUNCTION__, heapid));
+                break;
+            default:
+                break;
+        }
         rc = NEXUS_NOT_AVAILABLE;
     }
 
@@ -610,7 +620,7 @@ static NEXUS_Error NEXUS_SageModule_P_ConfigureSecureRegions(void)
         }
     }
     else {
-        BDBG_WRN(("%s: No Export heap available", __FUNCTION__));
+        BDBG_MSG(("%s: No Export heap available", __FUNCTION__));
         rc = BERR_SUCCESS; /* this is not fatal */
     }
 
@@ -967,7 +977,7 @@ NEXUS_Error NEXUS_SageModule_P_Load(
             if (holder->id == SAGE_IMAGE_FirmwareID_eBootLoader) {
                 if (alloc_size < SAGE_BL_LENGTH) {
                     alloc_size = SAGE_BL_LENGTH;
-                    BDBG_MSG(("%s - adjusting BL size to %d bytes\n", __FUNCTION__, SAGE_BL_LENGTH));
+                    BDBG_MSG(("%s - adjusting BL size to %d bytes", __FUNCTION__, SAGE_BL_LENGTH));
                 }
             }
 
@@ -1045,7 +1055,7 @@ NEXUS_Sage_P_MonitorBoot(void)
     int overheadUs;
     uint32_t timer;
     uint32_t lastStatus=0x42;
-    BSAGElib_BootState bootState;
+    BSAGElib_BootState bootState = {BSAGElibBootStatus_eNotStarted, 0};
 
     g_NEXUS_sageModule.booted = 0;
 

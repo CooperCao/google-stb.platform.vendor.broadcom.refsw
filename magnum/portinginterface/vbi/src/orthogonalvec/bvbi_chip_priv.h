@@ -44,11 +44,8 @@
 
 /*
  * Explanation of VEC/VDEC counts and capabilities:
- * BVBI_P_HAS_WSE_PARITY    VEC(s) have WSS parity bit generation capability.
  * BVBI_P_HAS_SCTEE_CO      SCTE encoder has component only registers.
  * BVBI_P_HAS_XSER_TT:      TTX core has serial output capability.
- * BVBI_P_HAS_CROSSBAR_VEC: VEC has crossbar architecture, first appearing in
- *                          7420-A0.
  * BVBI_P_TTXADR_WAROUND:   TTX core has the PR22720 bug in accessing DRAM. A
  *                          software fix is provided.
  * BVBI_P_CGMSAE_VER2:      CGMSAE core is version first appearing in 3548-A0.
@@ -82,29 +79,9 @@
  *                          software. Two are reserved for use by BVDC.
  */
 
-#if (BCHP_CHIP==7420)
-    #define BVBI_P_HAS_WSE_PARITY 1
+#if (BCHP_CHIP==7422) ||(BCHP_CHIP==7425) || (BCHP_CHIP==7435)
     #define BVBI_P_HAS_EXT_656 1
     #define BVBI_P_HAS_XSER_TT 1
-    #define BVBI_P_HAS_CROSSBAR_VEC 1
-    #define BVBI_P_ENC_NUM_CROSSBAR_REG 6
-    #define BVBI_P_ENC_NUM_CROSSBAR_REG_656 5
-    #if (BCHP_VER >= BCHP_VER_B0)
-        #define BVBI_P_CGMSAE_VER5 1
-        #define BVBI_P_WSE_VER5 1
-    #else
-        #define BVBI_P_CGMSAE_VER4 1
-        #define BVBI_P_WSE_VER3 1
-    #endif
-    #if (BCHP_VER >= BCHP_VER_C0)
-        #define BVBI_P_GSE_VER2 1
-    #endif
-
-#elif (BCHP_CHIP==7422) ||(BCHP_CHIP==7425) || (BCHP_CHIP==7435)
-    #define BVBI_P_HAS_WSE_PARITY 1
-    #define BVBI_P_HAS_EXT_656 1
-    #define BVBI_P_HAS_XSER_TT 1
-    #define BVBI_P_HAS_CROSSBAR_VEC 1
     #define BVBI_P_ENC_NUM_CROSSBAR_REG 6
     #define BVBI_P_ENC_NUM_CROSSBAR_REG_656 5
     #define BVBI_P_CGMSAE_VER5 1
@@ -113,10 +90,8 @@
     #define BVBI_P_CCE_VER2 1
 
 #elif (BCHP_CHIP==7145)
-    #define BVBI_P_HAS_WSE_PARITY 1
     #define BVBI_P_HAS_EXT_656 1
     #define BVBI_P_HAS_XSER_TT 1
-    #define BVBI_P_HAS_CROSSBAR_VEC 1
     #define BVBI_P_ENC_NUM_CROSSBAR_REG 6
     #define BVBI_P_ENC_NUM_CROSSBAR_REG_656 5
     #define BVBI_P_CGMSAE_VER5 1
@@ -125,10 +100,8 @@
     #define BVBI_P_CCE_VER2 1
 
 #elif (BCHP_CHIP==7445) || (BCHP_CHIP==11360)
-    #define BVBI_P_HAS_WSE_PARITY 1
     #define BVBI_P_HAS_EXT_656 1
     #define BVBI_P_HAS_XSER_TT 1
-    #define BVBI_P_HAS_CROSSBAR_VEC 1
     #define BVBI_P_ENC_NUM_CROSSBAR_REG 6
     #define BVBI_P_ENC_NUM_CROSSBAR_REG_656 5
     #define BVBI_P_CGMSAE_VER5 1
@@ -138,10 +111,8 @@
 
 #elif (BCHP_CHIP==7439)
     #if (BCHP_VER == BCHP_VER_A0)
-        #define BVBI_P_HAS_WSE_PARITY 1
         #define BVBI_P_HAS_EXT_656 1
         #define BVBI_P_HAS_XSER_TT 1
-        #define BVBI_P_HAS_CROSSBAR_VEC 1
         #define BVBI_P_ENC_NUM_CROSSBAR_REG 6
         #define BVBI_P_ENC_NUM_CROSSBAR_REG_656 5
         #define BVBI_P_CGMSAE_VER5 1
@@ -149,10 +120,8 @@
         #define BVBI_P_GSE_VER2 1
         #define BVBI_P_CCE_VER2 1
     #else
-        #define BVBI_P_HAS_WSE_PARITY 1
         #define BVBI_P_HAS_EXT_656 1
         #define BVBI_P_HAS_XSER_TT 1
-        #define BVBI_P_HAS_CROSSBAR_VEC 1
         #define BVBI_P_ENC_NUM_CROSSBAR_REG 6
         #define BVBI_P_ENC_NUM_CROSSBAR_REG_656 5
         #define BVBI_P_CGMSAE_VER5 1
@@ -161,11 +130,19 @@
         #define BVBI_P_CCE_VER2 1
     #endif
 
-#elif (BCHP_CHIP==7271) || (BCHP_CHIP==7268)
-    #define BVBI_P_HAS_WSE_PARITY 1
+#elif (BCHP_CHIP==7271) || (BCHP_CHIP==7268) || (BCHP_CHIP==7260)
     #define BVBI_P_HAS_EXT_656 1
     #define BVBI_P_HAS_XSER_TT 1
-    #define BVBI_P_HAS_CROSSBAR_VEC 1
+    #define BVBI_P_ENC_NUM_CROSSBAR_REG 6
+    #define BVBI_P_ENC_NUM_CROSSBAR_REG_656 5
+    #define BVBI_P_CGMSAE_VER5 1
+    #define BVBI_P_WSE_VER5 1
+    #define BVBI_P_GSE_VER2 1
+    #define BVBI_P_CCE_VER2 1
+
+#elif (BCHP_CHIP==7278)
+    #define BVBI_P_HAS_EXT_656 1
+    #define BVBI_P_HAS_XSER_TT 1
     #define BVBI_P_ENC_NUM_CROSSBAR_REG 6
     #define BVBI_P_ENC_NUM_CROSSBAR_REG_656 5
     #define BVBI_P_CGMSAE_VER5 1
@@ -175,10 +152,8 @@
 
 #elif (BCHP_CHIP== 74371) || (BCHP_CHIP==7366) || (BCHP_CHIP==7364) || \
       (BCHP_CHIP == 7586) ||(BCHP_CHIP==7250)
-    #define BVBI_P_HAS_WSE_PARITY 1
     #define BVBI_P_HAS_EXT_656 1
     #define BVBI_P_HAS_XSER_TT 1
-    #define BVBI_P_HAS_CROSSBAR_VEC 1
     #define BVBI_P_ENC_NUM_CROSSBAR_REG 6
     #define BVBI_P_ENC_NUM_CROSSBAR_REG_656 5
     #define BVBI_P_CGMSAE_VER5 1
@@ -187,10 +162,8 @@
     #define BVBI_P_CCE_VER2 1
 
 #elif (BCHP_CHIP==7543)
-    #define BVBI_P_HAS_WSE_PARITY 1
     #define BVBI_P_HAS_EXT_656 1
     #define BVBI_P_HAS_XSER_TT 0
-    #define BVBI_P_HAS_CROSSBAR_VEC 1
     #define BVBI_P_ENC_NUM_CROSSBAR_REG 6
     #define BVBI_P_ENC_NUM_CROSSBAR_REG_656 0
     #define BVBI_P_CGMSAE_VER5 1
@@ -201,10 +174,8 @@
 #elif (BCHP_CHIP==7344)  || (BCHP_CHIP==7346)  || (BCHP_CHIP==7231)  || \
       (BCHP_CHIP==7429)  || (BCHP_CHIP==7584)  || (BCHP_CHIP==75845) || \
       (BCHP_CHIP==74295) || (BCHP_CHIP==73465)
-    #define BVBI_P_HAS_WSE_PARITY 1
     #define BVBI_P_HAS_EXT_656 1
     #define BVBI_P_HAS_XSER_TT 1
-    #define BVBI_P_HAS_CROSSBAR_VEC 1
     #define BVBI_P_ENC_NUM_CROSSBAR_REG 6
     #define BVBI_P_ENC_NUM_CROSSBAR_REG_656 5
     #define BVBI_P_CGMSAE_VER5 1
@@ -215,10 +186,8 @@
 #elif (BCHP_CHIP==7358) || (BCHP_CHIP==7552) || \
       (BCHP_CHIP==7360) || (BCHP_CHIP == 7362) || (BCHP_CHIP == 7228) || \
       (BCHP_CHIP==73625)
-    #define BVBI_P_HAS_WSE_PARITY 1
     #define BVBI_P_HAS_EXT_656 0
     #define BVBI_P_HAS_XSER_TT 0
-    #define BVBI_P_HAS_CROSSBAR_VEC 1
     #define BVBI_P_ENC_NUM_CROSSBAR_REG 6
     #define BVBI_P_ENC_NUM_CROSSBAR_REG_656 0
     #define BVBI_P_CGMSAE_VER5 1
@@ -227,72 +196,14 @@
     #define BVBI_P_CCE_VER2 1
 
 #elif ((BCHP_CHIP==7563) || (BCHP_CHIP==75635) || (BCHP_CHIP==75525))
-    #define BVBI_P_HAS_WSE_PARITY 1
     #define BVBI_P_HAS_EXT_656 0
     #define BVBI_P_HAS_XSER_TT 0
-    #define BVBI_P_HAS_CROSSBAR_VEC 1
     #define BVBI_P_ENC_NUM_CROSSBAR_REG 6
     #define BVBI_P_ENC_NUM_CROSSBAR_REG_656 0
     #define BVBI_P_CGMSAE_VER5 1
     #define BVBI_P_WSE_VER5 1
     #define BVBI_P_GSE_VER2 1
     #define BVBI_P_CCE_VER2 1
-
-#elif (BCHP_CHIP==7550)
-    #define BVBI_P_HAS_WSE_PARITY 1
-    #define BVBI_P_HAS_EXT_656 0
-    #define BVBI_P_HAS_XSER_TT 0
-    #define BVBI_P_HAS_CROSSBAR_VEC 1
-    #define BVBI_P_ENC_NUM_CROSSBAR_REG 6
-    #define BVBI_P_ENC_NUM_CROSSBAR_REG_656 5
-    #define BVBI_P_CGMSAE_VER5 1
-    #define BVBI_P_WSE_VER3 1
-
-#elif (BCHP_CHIP==7125)
-    #define BVBI_P_HAS_WSE_PARITY 1
-    #define BVBI_P_HAS_EXT_656 1
-    #define BVBI_P_HAS_XSER_TT 0
-    #define BVBI_P_HAS_CROSSBAR_VEC 1
-    #define BVBI_P_ENC_NUM_CROSSBAR_REG 3
-    #define BVBI_P_ENC_NUM_CROSSBAR_REG_656 0
-    #define BVBI_P_CGMSAE_VER5 1
-    #define BVBI_P_WSE_VER5 1
-    #if (BCHP_VER >= BCHP_VER_C0)
-        #define BVBI_P_GSE_VER2 1
-    #endif
-
-#elif (BCHP_CHIP==7408)
-    #define BVBI_P_HAS_WSE_PARITY 1
-    #define BVBI_P_HAS_EXT_656 0
-    #define BVBI_P_HAS_XSER_TT 0
-    #define BVBI_P_HAS_CROSSBAR_VEC 1
-    #define BVBI_P_ENC_NUM_CROSSBAR_REG 6
-    #define BVBI_P_ENC_NUM_CROSSBAR_REG_656 0
-    #define BVBI_P_CGMSAE_VER5 1
-    #define BVBI_P_WSE_VER5 1
-
-#elif (BCHP_CHIP==7468)
-    #define BVBI_P_HAS_WSE_PARITY 1
-    #define BVBI_P_HAS_EXT_656 0
-    #define BVBI_P_HAS_XSER_TT 0
-    #define BVBI_P_HAS_CROSSBAR_VEC 1
-    #define BVBI_P_ENC_NUM_CROSSBAR_REG 6
-    #define BVBI_P_ENC_NUM_CROSSBAR_REG_656 0
-    #define BVBI_P_CGMSAE_VER5 1
-    #define BVBI_P_WSE_VER5 1
-    #define BVBI_P_GSE_VER2 1
-
-#elif (BCHP_CHIP == 7640)
-    #define BVBI_P_HAS_CROSSBAR_VEC 1
-    #define BVBI_P_ENC_NUM_CROSSBAR_REG 5
-    #define BVBI_P_ENC_NUM_CROSSBAR_REG_656 0
-    #define BVBI_P_NEWER_SOFT_RESET 1
-    #define BVBI_P_CGMSAE_VER5 1
-    #define BVBI_P_WSE_VER5 1
-    #define BVBI_P_GSE_VER2 1
-    #define BVBI_P_CCE_VER2 1
-    #define BVBI_P_HAS_FE_BE 1
-    #define BVBI_P_HAS_XSER_TT 0
 
 #else
     #error Unknown video chip name

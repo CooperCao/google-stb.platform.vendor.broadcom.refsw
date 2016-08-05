@@ -299,7 +299,7 @@ BERR_Code BHDCPlib_Open(BHDCPlib_Handle *hHDCPlib, const BHDCPlib_Dependencies *
 	if (hHandle == NULL)
 	{
 		rc = BERR_OUT_OF_SYSTEM_MEMORY;
-		BDBG_ERR(("BHDCPlib_Open: BKNI_malloc() failed\n"));
+		BDBG_ERR(("BHDCPlib_Open: BKNI_malloc() failed"));
 		goto done;
 	}
 	BKNI_Memset(hHandle, 0, sizeof(BHDCPlib_P_Handle));
@@ -939,9 +939,10 @@ bool BHDCPlib_LinkReadyForEncryption(BHDCPlib_Handle hHDCPlib)
 	BDBG_ENTER(BHDCPlib_LinkReadyForEncryption);
 	BDBG_OBJECT_ASSERT(hHDCPlib, HDCPLIB);
 
-	if (hHDCPlib->stHdcpStatus.eAuthenticationState == BHDCPlib_State_eLinkAuthenticated)
+	/* link is ready for encryption if it is authenticated or already encrypting */
+	if ((hHDCPlib->stHdcpStatus.eAuthenticationState == BHDCPlib_State_eLinkAuthenticated)
+	|| (hHDCPlib->stHdcpStatus.eAuthenticationState == BHDCPlib_State_eEncryptionEnabled))
 		brc = true;
-
 
 	BDBG_LEAVE(BHDCPlib_LinkReadyForEncryption);
 	return brc;

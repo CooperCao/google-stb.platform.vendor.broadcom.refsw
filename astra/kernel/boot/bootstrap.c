@@ -197,13 +197,13 @@ __bootstrap static inline void * prepare_bootstrap_page_table(ptrdiff_t load_lin
 
     uint64_t *pg_table = NULL;
     uint8_t *bootstrap_start = (uint8_t *)&_bootstrap_img_start + load_link_offset;
-    uint8_t *bootstrap_end = (uint8_t *)&_bootstrap_img_end + load_link_offset;
+    uint8_t *bootstrap_end = (uint8_t *)&_bootstrap_img_end - 1 + load_link_offset;
 
     bootstrap_map_mem_range(&pg_table, bootstrap_start, bootstrap_end,
         MAIR_MEMORY, bootstrap_start, load_link_offset);
 
     uint8_t *kernel_img_start = (uint8_t *)&_kernel_img_start;
-    uint8_t *kernel_img_end = (uint8_t *)&_kernel_img_end;
+    uint8_t *kernel_img_end = (uint8_t *)&_kernel_img_end - 1;
     uint8_t *translated_img_start = (uint8_t *)&_kernel_img_start + load_link_offset;
 
     bootstrap_map_mem_range(&pg_table, kernel_img_start, kernel_img_end,

@@ -85,7 +85,9 @@ typedef enum _MacLeTrxModeCmd_t
 
     MAC_TRX_MODE_CMD_TIMED_REQ   = 2,       /*!< Timed command from the MLME-RX-ENABLE.request. */
 
+#if defined(_MAC_CONTEXT_ZBPRO_)
     MAC_TRX_MODE_CMD_TIMED_FSM   = 3,       /*!< Timed command from the MAC-LE Real-Time Dispatcher FSM. */
+#endif
 
 } MacLeTrxModeCmd_t;
 

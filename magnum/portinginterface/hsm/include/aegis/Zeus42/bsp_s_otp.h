@@ -273,7 +273,19 @@ typedef enum BCMD_Otp_OutCmdOtpProgPatternSequence_e
 }BCMD_Otp_OutCmdOtpProgPatternSequence_e;
 
 
+typedef enum BCMD_Otp_InCmdCounterOp_e
+{
+    BCMD_Otp_InCmdCounterOp_ePartition = (5 << 2) + 3,
+    BCMD_Otp_InCmdCounterOp_eOperation = (6 << 2) + 3,
+    BCMD_Otp_InCmdCounterOp_eFlag = (7 << 2) + 3,
+    BCMD_Otp_InCmdCounterOp_eMax
+}BCMD_Otp_InCmdCounterOp_e;
 
+typedef enum BCMD_Otp_OutCmdCounterOp_e
+{
+    BCMD_Otp_OutCmdCounterOp_eCounterValue = (6 << 2) + 0,
+    BCMD_Otp_OutCmdCounterOp_eMax
+}BCMD_Otp_OutCmdCounterOp_e;
 
 
 
@@ -373,6 +385,28 @@ typedef enum BPI_Otp_KeyType_e
     BPI_Otp_KeyType_eSize
 } BPI_Otp_KeyType_e ;
 
+typedef enum BPI_Otp_RolloverCounterPartition_e
+{
+    BPI_Otp_RolloverCounterPartition_e0 = 0,
+    BPI_Otp_RolloverCounterPartition_e1 = 1,
+    BPI_Otp_RolloverCounterPartition_e2 = 2,
+    BPI_Otp_RolloverCounterPartition_eMax
+} BPI_Otp_RolloverCounterPartition_e;
+
+typedef enum BPI_Otp_RolloverCounterOp_e
+{
+    BPI_Otp_RolloverCounterOp_eRead = 0,
+    BPI_Otp_RolloverCounterOp_eIncrement = 1,
+    BPI_Otp_RolloverCounterOp_eMax
+} BPI_Otp_RolloverCounterOp_e;
+
+typedef enum BPI_Otp_RolloverCounterFlag_e
+{
+    BPI_Otp_RolloverCounterFlag_eHost = 0,
+
+    BPI_Otp_RolloverCounterFlag_eReserved1 = 1,
+    BPI_Otp_RolloverCounterFlag_eMax
+} BPI_Otp_RolloverCounterFlag_e;
 
 
 typedef enum BPI_Otp_MspGroupType_e

@@ -173,9 +173,32 @@ extern bool glxx_fb_is_valid_draw_buf(const GLXX_FRAMEBUFFER_T *fb,
  * return true if such attachment is found; if attachment is found,
  * i will be changed to position where we found attachment + 1
  * and att_index will contain the index for that attachment (GLXX_COLORx_ATT) */
-extern bool
-glxx_fb_iterate_valid_draw_bufs(const GLXX_FRAMEBUFFER_T *fb, unsigned *i,
-      glxx_att_index_t *att_index);
+static inline bool glxx_fb_iterate_valid_draw_bufs(const GLXX_FRAMEBUFFER_T *fb, unsigned *i,
+      glxx_att_index_t *att_index)
+{
+   for ( ; *i < GLXX_MAX_RENDER_TARGETS; (*i)++)
+   {
+      if (glxx_fb_is_valid_draw_buf(fb, GLXX_COLOR0_ATT + *i))
+      {
+         *att_index = GLXX_COLOR0_ATT + *i;
+         (*i)++;
+         return true;
+      }
+   }
+   return false;
+}
+
+static inline uint32_t glxx_fb_get_valid_draw_buf_mask(const GLXX_FRAMEBUFFER_T *fb)
+{
+   uint32_t mask = 0;
+
+   glxx_att_index_t att_index;
+   unsigned i = 0;
+   while (glxx_fb_iterate_valid_draw_bufs(fb, &i, &att_index))
+      mask |= 1u << (att_index - GLXX_COLOR0_ATT);
+
+   return mask;
+}
 
 extern bool glxx_attachment_equal(const GLXX_ATTACHMENT_T *att1,
       const GLXX_ATTACHMENT_T *att2);

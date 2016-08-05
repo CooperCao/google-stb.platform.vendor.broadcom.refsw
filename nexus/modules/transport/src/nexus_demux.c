@@ -314,8 +314,8 @@ NEXUS_P_HwPidChannel *NEXUS_P_HwPidChannel_Open(NEXUS_ParserBandHandle parserBan
     }
 
     /* user specifies the HW pid channel */
-    if (pSettings->pidChannelIndex >= 0) {
-        index = (unsigned)pSettings->pidChannelIndex;
+    if ((int)pSettings->pidChannelIndex >= 0) {
+        index = pSettings->pidChannelIndex;
         if (index >= NEXUS_NUM_PID_CHANNELS) {
             BDBG_ERR(("Invalid pid channel index %d", index));
             return NULL;

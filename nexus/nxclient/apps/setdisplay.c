@@ -93,7 +93,7 @@ static void print_usage(void)
         formatlist
         );
     printf(
-        "  -component {on|off}\n"
+        "  -component {on|off|sd}\n"
         "  -composite {on|off}\n"
         "  -rfm {3|4}\n"
         "  -hdmi {on|off}\n"
@@ -113,6 +113,7 @@ static void print_usage(void)
         "  -colorDepth {0|8|10}      0 is auto\n"
         "  -alpha X                  GFD alpha\n"
         "  -secure {on|off}\n"
+        "  -sdgraphic {on|off}\n"
         );
     print_list_option("macrovision",g_macrovisionStrs);
     print_list_option("eotf",g_videoEotfStrs);
@@ -297,6 +298,53 @@ void nxclient_callback(void *context, int param)
     }
 }
 
+static void polling_checkpoint(NEXUS_Graphics2DHandle gfx)
+{
+    while (1) {
+        int rc = NEXUS_Graphics2D_Checkpoint(gfx, NULL);
+        if (rc != NEXUS_GRAPHICS2D_BUSY) {
+            BERR_TRACE(rc);
+            break;
+        }
+        BKNI_Sleep(1);
+    }
+}
+
+static int set_sd_graphic(void)
+{
+    NEXUS_Graphics2DHandle gfx;
+    NEXUS_Graphics2DFillSettings fillSettings;
+    NEXUS_Graphics2DSettings gfxSettings;
+    NEXUS_SurfaceHandle surface;
+    NEXUS_SurfaceCreateSettings createSettings;
+    NEXUS_Error rc;
+
+    NEXUS_Surface_GetDefaultCreateSettings(&createSettings);
+    createSettings.width = 720;
+    createSettings.height = 480;
+    surface = NEXUS_Surface_Create(&createSettings);
+
+    gfx = NEXUS_Graphics2D_Open(NEXUS_ANY_ID, NULL);
+    NEXUS_Graphics2D_GetSettings(gfx, &gfxSettings);
+    gfxSettings.pollingCheckpoint = true;
+    rc = NEXUS_Graphics2D_SetSettings(gfx, &gfxSettings);
+    BDBG_ASSERT(!rc);
+
+    NEXUS_Graphics2D_GetDefaultFillSettings(&fillSettings);
+    fillSettings.surface = surface;
+    fillSettings.color = 0xFFFF0000;
+    rc = NEXUS_Graphics2D_Fill(gfx, &fillSettings);
+    BDBG_ASSERT(!rc);
+    polling_checkpoint(gfx);
+
+    rc = NxClient_SetSlaveDisplayGraphics(0, surface);
+    if (rc) BERR_TRACE(rc); /* fall through */
+
+    NEXUS_Graphics2D_Close(gfx);
+    NEXUS_Surface_Destroy(surface);
+    return rc;
+}
+
 int main(int argc, char **argv)  {
     NxClient_JoinSettings joinSettings;
     NxClient_DisplaySettings displaySettings;
@@ -352,7 +400,9 @@ int main(int argc, char **argv)  {
         }
         else if (!strcmp(argv[curarg], "-component") && argc>curarg+1) {
             change = true;
-            displaySettings.componentPreferences.enabled = parse_boolean(argv[++curarg]);
+            curarg++;
+            displaySettings.componentPreferences.enabled = strcmp(argv[curarg],"off");
+            displaySettings.componentPreferences.sdDisplay = !strcmp(argv[curarg],"sd");
         }
         else if (!strcmp(argv[curarg], "-composite") && argc>curarg+1) {
             change = true;
@@ -494,6 +544,10 @@ int main(int argc, char **argv)  {
             change = true;
             displaySettings.secure = parse_boolean(argv[++curarg]);
         }
+        else if (!strcmp(argv[curarg], "-sdgraphic") && argc>curarg+1) {
+            change = true;
+            displaySettings.slaveDisplay[0].mode = parse_boolean(argv[++curarg])?NxClient_SlaveDisplayMode_eGraphics:NxClient_SlaveDisplayMode_eReplicated;
+        }
         else {
             print_usage();
             return -1;
@@ -524,6 +578,10 @@ int main(int argc, char **argv)  {
         rc = NxClient_SetPictureQualitySettings(&pqSettings);
         if (rc) BERR_TRACE(rc);
         print_settings("new", &displaySettings, &pqSettings);
+
+        if (displaySettings.slaveDisplay[0].mode == NxClient_SlaveDisplayMode_eGraphics) {
+            set_sd_graphic();
+        }
     }
     else {
         print_settings("current", &displaySettings, &pqSettings);

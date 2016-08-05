@@ -116,7 +116,7 @@ static GL20_SHADER_T *get_shader(GLXX_SERVER_STATE_T *state, GLuint s)
 */
 GL_APICALL void GL_APIENTRY glAttachShader(GLuint p, GLuint s)
 {
-   GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE_UNCHANGED();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state_unchanged(OPENGL_ES_3X);
    if (!state) return;
 
    GL20_PROGRAM_T *program = gl20_get_program(state, p);
@@ -132,12 +132,12 @@ GL_APICALL void GL_APIENTRY glAttachShader(GLuint p, GLuint s)
    }
 
 end:
-   GL20_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_APICALL void GL_APIENTRY glBindAttribLocation(GLuint p, GLuint index, const char *name)
 {
-   GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE_UNCHANGED();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state_unchanged(OPENGL_ES_3X);
    if (!state) return;
 
    if (!name) goto end;
@@ -160,7 +160,7 @@ GL_APICALL void GL_APIENTRY glBindAttribLocation(GLuint p, GLuint index, const c
    }
 
 end:
-   GL20_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 
@@ -176,17 +176,17 @@ end:
 
 GL_APICALL void GL_APIENTRY glBlendColor(GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha) // S
 {
-   GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
    if (!state) return;
 
-   state->blend_color[0] = clampf(red, 0.0f, 1.0f);
-   state->blend_color[1] = clampf(green, 0.0f, 1.0f);
-   state->blend_color[2] = clampf(blue, 0.0f, 1.0f);
-   state->blend_color[3] = clampf(alpha, 0.0f, 1.0f);
+   state->blend_color[0] = gfx_fclamp(red, 0.0f, 1.0f);
+   state->blend_color[1] = gfx_fclamp(green, 0.0f, 1.0f);
+   state->blend_color[2] = gfx_fclamp(blue, 0.0f, 1.0f);
+   state->blend_color[3] = gfx_fclamp(alpha, 0.0f, 1.0f);
 
    state->dirty.blend_color = KHRN_RENDER_STATE_SET_ALL;
 
-   GL20_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 /*
@@ -199,9 +199,34 @@ GL_APICALL void GL_APIENTRY glBlendColor(GLclampf red, GLclampf green, GLclampf 
    Error Checks: Done
 */
 
+static void set_blend_eqn(GLXX_SERVER_STATE_T *state, glxx_blend_cfg *cfg,
+   v3d_blend_eqn_t ec, v3d_blend_eqn_t ea)
+{
+   if (cfg->color_eqn != ec)
+   {
+      cfg->color_eqn = ec;
+      state->dirty.blend_cfg = KHRN_RENDER_STATE_SET_ALL;
+   }
+   if (cfg->alpha_eqn != ea)
+   {
+      cfg->alpha_eqn = ea;
+      state->dirty.blend_cfg = KHRN_RENDER_STATE_SET_ALL;
+   }
+}
+
+static void set_all_blend_eqns(GLXX_SERVER_STATE_T *state, v3d_blend_eqn_t ec, v3d_blend_eqn_t ea)
+{
+#if V3D_HAS_PER_RT_BLEND
+   for (unsigned i = 0; i != GLXX_MAX_RENDER_TARGETS; ++i)
+      set_blend_eqn(state, &state->blend.rt_cfgs[i], ec, ea);
+#else
+   set_blend_eqn(state, &state->blend.cfg, ec, ea);
+#endif
+}
+
 GL_APICALL void GL_APIENTRY glBlendEquationSeparate(GLenum modeRGB, GLenum modeAlpha) // S
 {
-   GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
    if (!state)
       return;
 
@@ -209,25 +234,16 @@ GL_APICALL void GL_APIENTRY glBlendEquationSeparate(GLenum modeRGB, GLenum modeA
    v3d_blend_eqn_t ea = translate_blend_equation(modeAlpha);
 
    if (ec != V3D_BLEND_EQN_INVALID && ea != V3D_BLEND_EQN_INVALID)
-   {
-      if (state->blend.color_eqn != ec) {
-         state->blend.color_eqn = ec;
-         state->dirty.blend_mode = KHRN_RENDER_STATE_SET_ALL;
-      }
-      if (state->blend.alpha_eqn != ea) {
-         state->blend.alpha_eqn = ea;
-         state->dirty.blend_mode = KHRN_RENDER_STATE_SET_ALL;
-      }
-   }
+      set_all_blend_eqns(state, ec, ea);
    else
       glxx_server_state_set_error(state, GL_INVALID_ENUM);
 
-   GL20_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_APICALL void GL_APIENTRY glBlendEquation(GLenum mode) // S
 {
-   GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
    if (!state)
       return;
 
@@ -236,19 +252,95 @@ GL_APICALL void GL_APIENTRY glBlendEquation(GLenum mode) // S
    if (eq == V3D_BLEND_EQN_INVALID)
       glxx_server_state_set_error(state, GL_INVALID_ENUM);
    else
+      set_all_blend_eqns(state, eq, eq);
+
+   glxx_unlock_server_state();
+}
+
+#if V3D_HAS_PER_RT_BLEND
+
+static void blend_equation_separate_i(GLuint buf, GLenum modeRGB, GLenum modeAlpha)
+{
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
+   if (!state)
+      return;
+
+   if (buf >= GLXX_MAX_RENDER_TARGETS)
+      glxx_server_state_set_error(state, GL_INVALID_VALUE);
+   else
    {
-      if (state->blend.color_eqn != eq) {
-         state->blend.color_eqn = eq;
-         state->dirty.blend_mode = KHRN_RENDER_STATE_SET_ALL;
-      }
-      if (state->blend.alpha_eqn != eq) {
-         state->blend.alpha_eqn = eq;
-         state->dirty.blend_mode = KHRN_RENDER_STATE_SET_ALL;
-      }
+      v3d_blend_eqn_t ec = translate_blend_equation(modeRGB);
+      v3d_blend_eqn_t ea = translate_blend_equation(modeAlpha);
+
+      if (ec != V3D_BLEND_EQN_INVALID && ea != V3D_BLEND_EQN_INVALID)
+         set_blend_eqn(state, &state->blend.rt_cfgs[buf], ec, ea);
+      else
+         glxx_server_state_set_error(state, GL_INVALID_ENUM);
    }
 
-   GL20_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
+
+static void blend_equation_i(GLuint buf, GLenum mode)
+{
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
+   if (!state)
+      return;
+
+   if (buf >= GLXX_MAX_RENDER_TARGETS)
+      glxx_server_state_set_error(state, GL_INVALID_VALUE);
+   else
+   {
+      v3d_blend_eqn_t eq = translate_blend_equation(mode);
+
+      if (eq == V3D_BLEND_EQN_INVALID)
+         glxx_server_state_set_error(state, GL_INVALID_ENUM);
+      else
+         set_blend_eqn(state, &state->blend.rt_cfgs[buf], eq, eq);
+   }
+
+   glxx_unlock_server_state();
+}
+
+GL_APICALL void GL_APIENTRY glBlendEquationSeparateiEXT(GLuint buf, GLenum modeRGB, GLenum modeAlpha)
+{
+   blend_equation_separate_i(buf, modeRGB, modeAlpha);
+}
+
+GL_APICALL void GL_APIENTRY glBlendEquationiEXT(GLuint buf, GLenum mode)
+{
+   blend_equation_i(buf, mode);
+}
+
+GL_APICALL void GL_APIENTRY glBlendEquationSeparateiOES(GLuint buf, GLenum modeRGB, GLenum modeAlpha)
+{
+   blend_equation_separate_i(buf, modeRGB, modeAlpha);
+}
+
+GL_APICALL void GL_APIENTRY glBlendEquationiOES(GLuint buf, GLenum mode)
+{
+   blend_equation_i(buf, mode);
+}
+
+#endif
+
+#if KHRN_GLES32_DRIVER
+
+GL_APICALL void GL_APIENTRY glBlendEquationSeparatei(GLuint buf, GLenum modeRGB, GLenum modeAlpha)
+{
+#if V3D_HAS_PER_RT_BLEND
+   blend_equation_separate_i(buf, modeRGB, modeAlpha);
+#endif
+}
+
+GL_APICALL void GL_APIENTRY glBlendEquationi(GLuint buf, GLenum mode)
+{
+#if V3D_HAS_PER_RT_BLEND
+   blend_equation_i(buf, mode);
+#endif
+}
+
+#endif
 
 /*
    glCreateProgram()
@@ -261,7 +353,7 @@ GL_APICALL void GL_APIENTRY glBlendEquation(GLenum mode) // S
 
 GL_APICALL GLuint GL_APIENTRY glCreateProgram(void)
 {
-   GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE_UNCHANGED();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state_unchanged(OPENGL_ES_3X);
    if (!state) return 0;
 
    GLuint result = glxx_shared_create_program(state->shared);
@@ -272,7 +364,7 @@ GL_APICALL GLuint GL_APIENTRY glCreateProgram(void)
       glxx_server_state_set_error(state, GL_OUT_OF_MEMORY);
    }
 
-   GL20_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 
    return result;
 }
@@ -286,7 +378,7 @@ GL_APICALL GLuint GL_APIENTRY glCreateProgram(void)
 
 GL_APICALL GLuint GL_APIENTRY glCreateShader(GLenum type)
 {
-   GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE_UNCHANGED();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state_unchanged(OPENGL_ES_3X);
    GLuint result = 0;
    if (!state) return 0;
 
@@ -301,7 +393,7 @@ GL_APICALL GLuint GL_APIENTRY glCreateShader(GLenum type)
       glxx_server_state_set_error(state, GL_OUT_OF_MEMORY);
 
 end:
-   GL20_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
    return result;
 }
 
@@ -368,7 +460,7 @@ static void release_program(GLXX_SHARED_T *shared, KHRN_MEM_HANDLE_T handle)
 
 GL_APICALL void GL_APIENTRY glDeleteProgram(GLuint p)
 {
-   GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
    if (!state)
       return;
 
@@ -394,7 +486,7 @@ GL_APICALL void GL_APIENTRY glDeleteProgram(GLuint p)
    khrn_mem_release(h_program);
 
 end:
-   GL20_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 /*
@@ -407,7 +499,7 @@ end:
 */
 GL_APICALL void GL_APIENTRY glDeleteShader(GLuint s)
 {
-   GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
    if (!state) return;
 
    if (s) {
@@ -433,7 +525,7 @@ GL_APICALL void GL_APIENTRY glDeleteShader(GLuint s)
          glxx_server_state_set_error(state, GL_INVALID_VALUE);
    }
 
-   GL20_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 /*
@@ -447,7 +539,7 @@ GL_APICALL void GL_APIENTRY glDeleteShader(GLuint s)
 */
 GL_APICALL void GL_APIENTRY glDetachShader(GLuint p, GLuint s)
 {
-   GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
    if (!state) return;
 
    GL20_PROGRAM_T *program = gl20_get_program(state, p);
@@ -464,7 +556,7 @@ GL_APICALL void GL_APIENTRY glDetachShader(GLuint p, GLuint s)
    gl20_server_try_delete_shader(state->shared, shader);
 
 end:
-   GL20_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 
@@ -497,7 +589,7 @@ static size_t strzncpy(char *dst, const char *src, size_t len)
 */
 GL_APICALL void GL_APIENTRY glGetActiveAttrib(GLuint p, GLuint index, GLsizei buf_len, GLsizei *length, GLint *size, GLenum *type, char *buf_ptr)
 {
-   GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE_UNCHANGED();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state_unchanged(OPENGL_ES_3X);
    if (!state) return;
 
    GL20_PROGRAM_T *program = gl20_get_program(state, p);
@@ -526,7 +618,7 @@ GL_APICALL void GL_APIENTRY glGetActiveAttrib(GLuint p, GLuint index, GLsizei bu
    if (type) *type = attr->type;
 
 end:
-   GL20_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GLSL_BLOCK_T *gl20_get_ubo_from_index(GLSL_PROGRAM_T *p, unsigned int index)
@@ -567,7 +659,7 @@ GLSL_BLOCK_T *gl20_get_ssbo_from_index(GLSL_PROGRAM_T *p, unsigned int index)
 */
 GL_APICALL void GL_APIENTRY glGetActiveUniform(GLuint p, GLuint index, GLsizei bufSize, GLsizei *length, GLint *size, GLenum *type, GLchar *name)
 {
-   GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE_UNCHANGED();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state_unchanged(OPENGL_ES_3X);
    if (!state)
       return;
 
@@ -579,7 +671,7 @@ GL_APICALL void GL_APIENTRY glGetActiveUniform(GLuint p, GLuint index, GLsizei b
    if (type != NULL)
       glxx_get_program_resourceiv(state, p, GL_UNIFORM, index, 1,  &props[1], 1, NULL, (int*)type);
 
-   GL20_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 /*
@@ -594,7 +686,7 @@ GL_APICALL void GL_APIENTRY glGetAttachedShaders(GLuint p, GLsizei maxcount, GLs
 {
    GL20_PROGRAM_T *program;
    int32_t count = 0;
-   GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE_UNCHANGED();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state_unchanged(OPENGL_ES_3X);
    if (!state) return;
 
    program = gl20_get_program(state, p);
@@ -626,12 +718,12 @@ GL_APICALL void GL_APIENTRY glGetAttachedShaders(GLuint p, GLsizei maxcount, GLs
       *pcount = count;
 
 end:
-   GL20_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_APICALL GLint GL_APIENTRY glGetAttribLocation(GLuint p, const char *name)
 {
-   GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE_UNCHANGED();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state_unchanged(OPENGL_ES_3X);
    GL20_PROGRAM_T *program = NULL;
    int result = -1;
    if (!state) return 0;
@@ -650,7 +742,7 @@ GL_APICALL GLint GL_APIENTRY glGetAttribLocation(GLuint p, const char *name)
    result = glxx_get_program_resource_location(state, p, GL_PROGRAM_INPUT, name);
 
 end:
-   GL20_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
    return result;
 }
 
@@ -659,7 +751,7 @@ GL_APICALL GLint GL_APIENTRY glGetFragDataLocation(GLuint p, const char *name) {
    GL20_PROGRAM_T *program = NULL;
    int result = -1;
 
-   state = GL20_LOCK_SERVER_STATE_UNCHANGED();
+   state = glxx_lock_server_state_unchanged(OPENGL_ES_3X);
    if (!state) return result;
 
    program = gl20_get_program(state, p);
@@ -679,13 +771,13 @@ GL_APICALL GLint GL_APIENTRY glGetFragDataLocation(GLuint p, const char *name) {
       result = glxx_get_program_resource_location(state, p, GL_PROGRAM_OUTPUT, name);
 
 end:
-   GL20_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
    return result;
 }
 
 GL_APICALL void GL_APIENTRY glGetProgramiv(GLuint p, GLenum pname, GLint *params)
 {
-   GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE_UNCHANGED();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state_unchanged(OPENGL_ES_3X);
    if (!state) return;
 
    GL20_PROGRAM_T *program = gl20_get_program(state, p);
@@ -836,14 +928,51 @@ GL_APICALL void GL_APIENTRY glGetProgramiv(GLuint p, GLenum pname, GLint *params
       params[0] = program->common.separable ? GL_TRUE : GL_FALSE;
       break;
    case GL_COMPUTE_WORK_GROUP_SIZE:
-      if (linked_program && glsl_program_has_stage(linked_program, SHADER_COMPUTE))
+      if (!linked_program || !glsl_program_has_stage(linked_program, SHADER_COMPUTE))
+         goto invalid_op;
+      params[0] = linked_program->wg_size[0];
+      params[1] = linked_program->wg_size[1];
+      params[2] = linked_program->wg_size[2];
+      break;
+#endif
+
+#if GLXX_HAS_TNG
+   case GL_TESS_CONTROL_OUTPUT_VERTICES:
+      if (!linked_program || glsl_program_has_stage(linked_program, SHADER_TESS_CONTROL))
+         goto invalid_op;
+      params[0] = linked_program->ir->tess_vertices;
+      break;
+   case GL_TESS_GEN_MODE:
+      if (!linked_program || glsl_program_has_stage(linked_program, SHADER_TESS_CONTROL))
+         goto invalid_op;
+      switch (linked_program->ir->tess_mode)
       {
-         params[0] = linked_program->wg_size[0];
-         params[1] = linked_program->wg_size[1];
-         params[2] = linked_program->wg_size[2];
-         break;
+      case TESS_ISOLINES:  params[0] = GL_ISOLINES; break;
+      case TESS_TRIANGLES: params[0] = GL_TRIANGLES; break;
+      case TESS_QUADS:     params[0] = GL_QUADS; break;
+      default: unreachable();
       }
-      glxx_server_state_set_error(state, GL_INVALID_OPERATION);
+      break;
+   case GL_TESS_GEN_SPACING:
+      if (!linked_program || glsl_program_has_stage(linked_program, SHADER_TESS_CONTROL))
+         goto invalid_op;
+      switch (linked_program->ir->tess_spacing)
+      {
+      case TESS_SPACING_EQUAL:      params[0] = GL_EQUAL; break;
+      case TESS_SPACING_FRACT_EVEN: params[0] = GL_FRACTIONAL_EVEN; break;
+      case TESS_SPACING_FRACT_ODD:  params[0] = GL_FRACTIONAL_ODD; break;
+      default: unreachable();
+      }
+      break;
+   case GL_TESS_GEN_VERTEX_ORDER:
+      if (!linked_program || glsl_program_has_stage(linked_program, SHADER_TESS_CONTROL))
+         goto invalid_op;
+      params[0] = linked_program->ir->tess_cw ? GL_CW : GL_CCW;
+      break;
+   case GL_TESS_GEN_POINT_MODE:
+      if (!linked_program || glsl_program_has_stage(linked_program, SHADER_TESS_CONTROL))
+         goto invalid_op;
+      params[0] = linked_program->ir->tess_point_mode;
       break;
 #endif
 
@@ -851,14 +980,19 @@ GL_APICALL void GL_APIENTRY glGetProgramiv(GLuint p, GLenum pname, GLint *params
       glxx_server_state_set_error(state, GL_INVALID_ENUM);
       break;
    }
+   goto end;
 
+#if KHRN_GLES31_DRIVER
+invalid_op:
+   glxx_server_state_set_error(state, GL_INVALID_OPERATION);
+#endif
 end:
-   GL20_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_APICALL void GL_APIENTRY glGetProgramInfoLog(GLuint p, GLsizei bufsize, GLsizei *length, char *infolog)
 {
-   GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE_UNCHANGED();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state_unchanged(OPENGL_ES_3X);
    GL20_PROGRAM_T *program;
    if (!state) return;
 
@@ -875,11 +1009,11 @@ GL_APICALL void GL_APIENTRY glGetProgramInfoLog(GLuint p, GLsizei bufsize, GLsiz
       khrn_mem_unlock(program->mh_info);
 
       if (length)
-         *length = MAX(0, (GLsizei)chars);
+         *length = gfx_smax(0, (GLsizei)chars);
    }
 
 end:
-   GL20_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_APICALL void GL_APIENTRY glGetUniformfv(GLuint p, GLint location, GLfloat *params)
@@ -909,7 +1043,7 @@ GL_APICALL void GL_APIENTRY glGetUniformuiv(GLuint p, GLint location, GLuint *pa
 
 GL_APICALL GLint GL_APIENTRY glGetUniformLocation(GLuint p, const char *name)
 {
-   GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE_UNCHANGED();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state_unchanged(OPENGL_ES_3X);
    GLint               loc = -1;
    if (!state)
       return loc;
@@ -917,7 +1051,7 @@ GL_APICALL GLint GL_APIENTRY glGetUniformLocation(GLuint p, const char *name)
    // Section 7.6 of the spec says this is equivalent to:
    loc = glxx_get_program_resource_location(state, p, GL_UNIFORM, name);
 
-   GL20_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 
    return loc;
 }
@@ -936,7 +1070,7 @@ GL_APICALL GLint GL_APIENTRY glGetUniformLocation(GLuint p, const char *name)
 GL_APICALL GLboolean GL_APIENTRY glIsProgram(GLuint p)
 {
    GLboolean result;
-   GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE_UNCHANGED();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state_unchanged(OPENGL_ES_3X);
    KHRN_MEM_HANDLE_T handle;
    if (!state) return 0;
 
@@ -949,7 +1083,7 @@ GL_APICALL GLboolean GL_APIENTRY glIsProgram(GLuint p)
       khrn_mem_unlock(handle);
    }
 
-   GL20_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 
    return result;
 }
@@ -968,7 +1102,7 @@ GL_APICALL GLboolean GL_APIENTRY glIsProgram(GLuint p)
 GL_APICALL GLboolean GL_APIENTRY glIsShader(GLuint s)
 {
    GLboolean result;
-   GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE_UNCHANGED();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state_unchanged(OPENGL_ES_3X);
    KHRN_MEM_HANDLE_T handle;
    if (!state) return 0;
 
@@ -981,7 +1115,7 @@ GL_APICALL GLboolean GL_APIENTRY glIsShader(GLuint s)
       khrn_mem_unlock(handle);
    }
 
-   GL20_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 
    return result;
 }
@@ -991,7 +1125,7 @@ GL_APICALL GLboolean GL_APIENTRY glIsShader(GLuint s)
 
 GL_APICALL void GL_APIENTRY glLinkProgram(GLuint p)
 {
-   GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE_UNCHANGED();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state_unchanged(OPENGL_ES_3X);
    GL20_PROGRAM_T *program;
 
    if (!state) return;
@@ -1009,7 +1143,7 @@ GL_APICALL void GL_APIENTRY glLinkProgram(GLuint p)
    }
 
 end:
-   GL20_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 static bool is_bool_type(GLenum type)
@@ -1115,6 +1249,7 @@ uint32_t glxx_get_element_count(GLenum type)
    case GL_BOOL:
    case GL_SAMPLER_2D:
    case GL_SAMPLER_CUBE:
+   case GL_SAMPLER_CUBE_MAP_ARRAY:
    case GL_SAMPLER_2D_MULTISAMPLE:
    case GL_SAMPLER_2D_MULTISAMPLE_ARRAY:
    case GL_SAMPLER_EXTERNAL_OES:
@@ -1124,12 +1259,14 @@ uint32_t glxx_get_element_count(GLenum type)
    case GL_SAMPLER_1D_ARRAY_BRCM:
    case GL_SAMPLER_2D_SHADOW:
    case GL_SAMPLER_CUBE_SHADOW:
+   case GL_SAMPLER_CUBE_MAP_ARRAY_SHADOW:
    case GL_SAMPLER_2D_ARRAY_SHADOW:
    case GL_INT_SAMPLER_1D_BRCM:
    case GL_INT_SAMPLER_1D_ARRAY_BRCM:
    case GL_INT_SAMPLER_2D:
    case GL_INT_SAMPLER_3D:
    case GL_INT_SAMPLER_CUBE:
+   case GL_INT_SAMPLER_CUBE_MAP_ARRAY:
    case GL_INT_SAMPLER_2D_MULTISAMPLE:
    case GL_INT_SAMPLER_2D_MULTISAMPLE_ARRAY:
    case GL_INT_SAMPLER_2D_ARRAY:
@@ -1138,6 +1275,7 @@ uint32_t glxx_get_element_count(GLenum type)
    case GL_UNSIGNED_INT_SAMPLER_2D:
    case GL_UNSIGNED_INT_SAMPLER_3D:
    case GL_UNSIGNED_INT_SAMPLER_CUBE:
+   case GL_UNSIGNED_INT_SAMPLER_CUBE_MAP_ARRAY:
    case GL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE:
    case GL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE_ARRAY:
    case GL_UNSIGNED_INT_SAMPLER_2D_ARRAY:
@@ -1186,7 +1324,7 @@ uint32_t glxx_get_element_count(GLenum type)
    case GL_UNSIGNED_INT_ATOMIC_COUNTER:
       return 0;
    default:
-      UNREACHABLE();
+      unreachable();
    }
    return 0;
 }
@@ -1207,7 +1345,7 @@ static int get_column_height(GLenum type)
       case GL_FLOAT_MAT4:
          return 4;
       default:
-         UNREACHABLE();
+         unreachable();
          return 0;
    }
 }
@@ -1380,14 +1518,14 @@ static void program_uniformv(GLXX_SERVER_STATE_T *state, GL20_PROGRAM_T *program
          glxx_server_state_set_error(state, GL_INVALID_OPERATION);
          return;
       default:
-         UNREACHABLE();
+         unreachable();
       }
    }
 }
 
 static void uniformv_internal(GLint location, GLsizei num, const void *v, GLenum from_type)
 {
-   GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
    GL20_PROGRAM_T      *active_program;
    if (!state) return;
 
@@ -1402,37 +1540,12 @@ static void uniformv_internal(GLint location, GLsizei num, const void *v, GLenum
    program_uniformv(state, active_program, location, num, v, from_type);
 
 end:
-   GL20_UNLOCK_SERVER_STATE();
-}
-
-static void program_uniformv_internal(GLuint p, GLint location,
-                                      GLsizei num, const void *v,
-                                      GLenum from_type)
-{
-   GLXX_SERVER_STATE_T *state;
-   GL20_PROGRAM_T *program;
-
-   state = GL31_LOCK_SERVER_STATE();
-   if (!state) return;
-
-   /* This sets its own errors */
-   program = gl20_get_program(state, p);
-   if (!program) goto end;
-
-   if (!program->common.linked_glsl_program) {
-      glxx_server_state_set_error(state, GL_INVALID_OPERATION);
-      goto end;
-   }
-
-   program_uniformv(state, program, location, num, v, from_type);
-
-end:
-   GL31_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 static void get_uniform_internal(GLuint p, GLint location, GLsizei buf_size, void *v, GLenum to_type)
 {
-   GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
    if (!state) return;
 
    GL20_PROGRAM_T *program = gl20_get_program(state, p);
@@ -1503,26 +1616,13 @@ static void get_uniform_internal(GLuint p, GLint location, GLsizei buf_size, voi
             dataout[j] = (GLint) *(float*)&data[j];
             break;
          default:
-            UNREACHABLE();
+            unreachable();
          }
       }
    }
 
 end:
-   GL20_UNLOCK_SERVER_STATE();
-}
-
-static void program_uniformv_transpose(GLuint p, GLint location,
-                                       GLsizei num, const GLfloat *v, GLenum type)
-{
-   GLfloat *v_t = malloc(16 * num * sizeof(float));
-   int el_count = glxx_get_element_count(type);
-   int i;
-   for (i=0; i<num; i++) {
-      transpose(v_t + i*el_count, v + i*el_count, type);
-   }
-   program_uniformv_internal(p, location, num, v_t, type);
-   free(v_t);
+   glxx_unlock_server_state();
 }
 
 static void uniformv_transpose(GLint location, GLsizei num, const GLfloat *v, GLenum type) {
@@ -1746,7 +1846,48 @@ GL_APICALL void GL_APIENTRY glUniformMatrix4fv(GLint location, GLsizei num, GLbo
    }
 }
 
+#if KHRN_GLES31_DRIVER
+
 /* ES3.1 Program Pipeline uniform setting commands: */
+
+static void program_uniformv_internal(GLuint p, GLint location,
+                                      GLsizei num, const void *v,
+                                      GLenum from_type)
+{
+   GLXX_SERVER_STATE_T *state;
+   GL20_PROGRAM_T *program;
+
+   state = glxx_lock_server_state(OPENGL_ES_3X);
+   if (!state) return;
+
+   /* This sets its own errors */
+   program = gl20_get_program(state, p);
+   if (!program) goto end;
+
+   if (!program->common.linked_glsl_program) {
+      glxx_server_state_set_error(state, GL_INVALID_OPERATION);
+      goto end;
+   }
+
+   program_uniformv(state, program, location, num, v, from_type);
+
+end:
+   glxx_unlock_server_state();
+}
+
+static void program_uniformv_transpose(GLuint p, GLint location,
+                                       GLsizei num, const GLfloat *v, GLenum type)
+{
+   GLfloat *v_t = malloc(16 * num * sizeof(float));
+   int el_count = glxx_get_element_count(type);
+   int i;
+   for (i=0; i<num; i++) {
+      transpose(v_t + i*el_count, v + i*el_count, type);
+   }
+   program_uniformv_internal(p, location, num, v_t, type);
+   free(v_t);
+}
+
 GL_APICALL void GL_APIENTRY glProgramUniform1i (GLuint program, GLint location, GLint v0)
 {
    program_uniformv_internal(program, location, 1, &v0, GL_INT);
@@ -1762,7 +1903,6 @@ GL_APICALL void GL_APIENTRY glProgramUniform3i (GLuint program, GLint location, 
 {
    GLint v[3] = { v0, v1, v2 };
    program_uniformv_internal(program, location, 1, v, GL_INT_VEC3);
-
 }
 
 GL_APICALL void GL_APIENTRY glProgramUniform4i (GLuint program, GLint location, GLint v0, GLint v1, GLint v2, GLint v3)
@@ -1958,10 +2098,12 @@ GL_APICALL void GL_APIENTRY glProgramUniformMatrix4x3fv (GLuint program, GLint l
    }
 }
 
+#endif
+
 GL_APICALL void GL_APIENTRY glUseProgram(GLuint p) // S
 {
    GL20_PROGRAM_T *program;
-   GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
    if (!state) return;
 
    //  The error INVALID_OPERATION is generated by UseProgram
@@ -1991,12 +2133,12 @@ GL_APICALL void GL_APIENTRY glUseProgram(GLuint p) // S
    state->current_program = program;
 
 unlock_out:
-   GL20_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_APICALL void GL_APIENTRY glValidateProgram(GLuint p)
 {
-   GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
    GL20_PROGRAM_T *program;
    if (!state) return;
 
@@ -2008,13 +2150,13 @@ GL_APICALL void GL_APIENTRY glValidateProgram(GLuint p)
       KHRN_MEM_ASSIGN(program->mh_info, KHRN_MEM_HANDLE_EMPTY_STRING);
    }
 
-   GL20_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_APICALL void GL_APIENTRY glCompileShader(GLuint s)
 {
    GL20_SHADER_T *shader;
-   GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
    if (!state) return;
 
    shader = get_shader(state, s);
@@ -2023,7 +2165,7 @@ GL_APICALL void GL_APIENTRY glCompileShader(GLuint s)
       gl20_shader_compile(shader);
    }
 
-   GL20_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 /*
@@ -2042,7 +2184,7 @@ GL_APICALL void GL_APIENTRY glCompileShader(GLuint s)
 */
 GL_APICALL void GL_APIENTRY glGetShaderiv(GLuint s, GLenum pname, GLint *params)
 {
-   GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
    GL20_SHADER_T *shader;
    if (!state) return;
 
@@ -2086,12 +2228,12 @@ GL_APICALL void GL_APIENTRY glGetShaderiv(GLuint s, GLenum pname, GLint *params)
    }
 
 end:
-   GL20_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_APICALL void GL_APIENTRY glGetShaderInfoLog(GLuint s, GLsizei bufsize, GLsizei *length, char *infolog)
 {
-   GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
    GL20_SHADER_T *shader;
    if (!state) return;
 
@@ -2108,15 +2250,15 @@ GL_APICALL void GL_APIENTRY glGetShaderInfoLog(GLuint s, GLsizei bufsize, GLsize
       chars = strzncpy(infolog, shader->info_log, bufsize);
 
    if (length)
-      *length = MAX(0, (GLsizei)chars);
+      *length = gfx_smax(0, (GLsizei)chars);
 
 end:
-   GL20_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_APICALL void GL_APIENTRY glGetShaderSource(GLuint s, GLsizei bufsize, GLsizei *length, GLchar *source)
 {
-   GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
    GL20_SHADER_T *shader;
    uint32_t charswritten = 0;
    if (!state) return;
@@ -2160,12 +2302,12 @@ GL_APICALL void GL_APIENTRY glGetShaderSource(GLuint s, GLsizei bufsize, GLsizei
       source[charswritten] = 0;
    }
 end:
-   GL20_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_APICALL void GL_APIENTRY glShaderSource(GLuint s, GLsizei count, const GLchar *const *string, const GLint *length)
 {
-   GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
    if (!state) return;
 
    if (count < 0) {
@@ -2182,12 +2324,12 @@ GL_APICALL void GL_APIENTRY glShaderSource(GLuint s, GLsizei count, const GLchar
       glxx_server_state_set_error(state, GL_OUT_OF_MEMORY);
 
 end:
-   GL20_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_APICALL void GL_APIENTRY glVertexAttribDivisor(GLuint index, GLuint divisor)
 {
-   GLXX_SERVER_STATE_T *state = GL30_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
    if (!state) return;
 
    GLXX_VAO_T *vao = state->vao.bound;
@@ -2201,7 +2343,7 @@ GL_APICALL void GL_APIENTRY glVertexAttribDivisor(GLuint index, GLuint divisor)
    else
       glxx_server_state_set_error(state, GL_INVALID_VALUE);
 
-   GL30_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_APICALL void GL_APIENTRY glGetActiveUniformsiv(
@@ -2211,7 +2353,7 @@ GL_APICALL void GL_APIENTRY glGetActiveUniformsiv(
    GLenum         pname,
    GLint*         params)
 {
-   GLXX_SERVER_STATE_T  *state = GL30_LOCK_SERVER_STATE_UNCHANGED();
+   GLXX_SERVER_STATE_T  *state = glxx_lock_server_state_unchanged(OPENGL_ES_3X);
    GLenum               prop;
    GLenum               error = GL_NO_ERROR;
 
@@ -2256,7 +2398,7 @@ end:
    if (error != GL_NO_ERROR)
       glxx_server_state_set_error(state, error);
 
-   GL30_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_APICALL void GL_APIENTRY glGetActiveUniformBlockName(
@@ -2266,7 +2408,7 @@ GL_APICALL void GL_APIENTRY glGetActiveUniformBlockName(
    GLsizei  *length,
    GLchar   *uniformBlockName)
 {
-   GLXX_SERVER_STATE_T *state = GL30_LOCK_SERVER_STATE_UNCHANGED();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state_unchanged(OPENGL_ES_3X);
    if (!state)
       return;
 
@@ -2274,12 +2416,12 @@ GL_APICALL void GL_APIENTRY glGetActiveUniformBlockName(
    glxx_get_program_resource_name(state, p, GL_UNIFORM_BLOCK, uniformBlockIndex,
                                   bufSize, length, uniformBlockName);
 
-   GL30_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_APICALL GLuint GL_APIENTRY glGetUniformBlockIndex(GLuint p, const GLchar* uniformBlockName)
 {
-   GLXX_SERVER_STATE_T *state = GL30_LOCK_SERVER_STATE_UNCHANGED();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state_unchanged(OPENGL_ES_3X);
    GLuint               ret = GL_INVALID_INDEX;
    if (!state)
       return ret;
@@ -2287,7 +2429,7 @@ GL_APICALL GLuint GL_APIENTRY glGetUniformBlockIndex(GLuint p, const GLchar* uni
    // Section 7.6 of the spec says this is equivalent to :
    ret = glxx_get_program_resource_index(state, p, GL_UNIFORM_BLOCK, uniformBlockName);
 
-   GL30_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 
    return ret;
 }
@@ -2298,7 +2440,7 @@ GL_APICALL void GL_APIENTRY glGetUniformIndices(
    const GLchar* const  *uniformNames,
    GLuint               *uniformIndices)
 {
-   GLXX_SERVER_STATE_T  *state = GL30_LOCK_SERVER_STATE_UNCHANGED();
+   GLXX_SERVER_STATE_T  *state = glxx_lock_server_state_unchanged(OPENGL_ES_3X);
    GLenum               error = GL_NO_ERROR;
 
    if (uniformCount < 0)
@@ -2315,7 +2457,7 @@ end:
    if (error != GL_NO_ERROR)
       glxx_server_state_set_error(state, error);
 
-   GL30_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_APICALL void GL_APIENTRY glUniformBlockBinding(
@@ -2324,7 +2466,7 @@ GL_APICALL void GL_APIENTRY glUniformBlockBinding(
    GLuint uniformBlockBinding
 )
 {
-   GLXX_SERVER_STATE_T *state = GL30_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
    if (!state) return;
 
    if (uniformBlockBinding >= GLXX_CONFIG_MAX_UNIFORM_BUFFER_BINDINGS) {
@@ -2349,7 +2491,7 @@ GL_APICALL void GL_APIENTRY glUniformBlockBinding(
    }
 
 end:
-   GL30_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_APICALL void GL_APIENTRY glGetActiveUniformBlockiv(
@@ -2359,7 +2501,7 @@ GL_APICALL void GL_APIENTRY glGetActiveUniformBlockiv(
    GLint    *params
 )
 {
-   GLXX_SERVER_STATE_T  *state = GL30_LOCK_SERVER_STATE_UNCHANGED();
+   GLXX_SERVER_STATE_T  *state = glxx_lock_server_state_unchanged(OPENGL_ES_3X);
 
    GLenum  prop;
    GLsizei bufSize = 1;
@@ -2389,12 +2531,12 @@ GL_APICALL void GL_APIENTRY glGetActiveUniformBlockiv(
    glxx_get_program_resourceiv(state, p, GL_UNIFORM_BLOCK, uniformBlockIndex, 1, &prop, bufSize, NULL, params);
 
 end:
-   GL30_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_API void GL_APIENTRY glGetProgramBinary(GLuint p, GLsizei bufSize, GLsizei* length, GLenum* binaryFormat, GLvoid* binary)
 {
-   GLXX_SERVER_STATE_T *state = GL30_LOCK_SERVER_STATE_UNCHANGED();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state_unchanged(OPENGL_ES_3X);
    GL20_PROGRAM_T      *program;
    if (!state) return;
 
@@ -2409,23 +2551,23 @@ GL_API void GL_APIENTRY glGetProgramBinary(GLuint p, GLsizei bufSize, GLsizei* l
    glxx_server_state_set_error(state, GL_INVALID_ENUM);
 
 end:
-   GL30_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_API void GL_APIENTRY glProgramBinary(GLuint p, GLenum binaryFormat, const GLvoid* binary, GLsizei length)
 {
-   GLXX_SERVER_STATE_T *state = GL30_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
    if (!state) return;
 
    // No supported binary formats
    glxx_server_state_set_error(state, GL_INVALID_OPERATION);
 
-   GL30_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_API void GL_APIENTRY glProgramParameteri(GLuint p, GLenum pname, GLint value)
 {
-   GLXX_SERVER_STATE_T *state = GL30_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
    if (!state) return;
 
    GL20_PROGRAM_T *program = gl20_get_program(state, p);  // takes care of setting correct error
@@ -2456,15 +2598,17 @@ GL_API void GL_APIENTRY glProgramParameteri(GLuint p, GLenum pname, GLint value)
    }
 
 end:
-   GL30_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
+
+#if KHRN_GLES31_DRIVER
 
 // TODO: Check this function for error behaviour.  It should not disturb the state.
 GL_APICALL GLuint GL_APIENTRY glCreateShaderProgramv(GLenum type, GLsizei count, const GLchar *const*strings)
 {
    GLenum               error   = GL_NO_ERROR;
    GLuint               program = 0;
-   GLXX_SERVER_STATE_T *state   = GL31_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state   = glxx_lock_server_state(OPENGL_ES_3X);
    GL20_SHADER_T       *shader_object = NULL;
 
    if (state == NULL)
@@ -2565,7 +2709,9 @@ end:
       gl20_server_try_delete_shader(state->shared, shader_object);
    }
 
-   GL31_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 
    return program;
 }
+
+#endif

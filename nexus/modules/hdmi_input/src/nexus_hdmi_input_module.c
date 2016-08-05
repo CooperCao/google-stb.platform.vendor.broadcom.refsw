@@ -289,10 +289,6 @@ NEXUS_Error NEXUS_HdmiInput_P_OpenHdmiFe(NEXUS_HdmiInputHandle hdmiInput, const 
         NEXUS_HdmiInput_P_HotPlug_isr, hdmiInput, 0);
     if (rc) {rc = BERR_TRACE(rc); goto error;}
 
-#if (HDMI_RX_GEN == 35230)
-    NEXUS_HdmiInputTvm_P_HotPlugEnable();
- #endif
-
     return NEXUS_SUCCESS ;
 
 
@@ -579,10 +575,6 @@ static void NEXUS_HdmiInput_P_Finalizer(NEXUS_HdmiInputHandle hdmiInput)
         BHDR_FE_CloseChannel(hdmiInput->frontend);
         hdmiInput->frontend = NULL;
     }
-
-#if (HDMI_RX_GEN == 35230)
-    NEXUS_HdmiInputTvm_P_HotPlugDisable();
-#endif
 
     /* now clean up the nexus callbacks */
     if (hdmiInput->frameRateHandler) {

@@ -105,5 +105,14 @@ INLINE uint16_t SYS_Crc16(uint16_t startValue, const uint8_t *const data, uint8_
     return crc;
 }
 
+/*
+ * Repeat pragma GCC optimize because function definitions (including inlined) turn these pragrmas off automatically
+ * when compiled by G++ but not GCC.
+ */
+#if (defined(__arm__) || defined(__i386__)) && !defined(__clang__)
+# pragma GCC optimize "short-enums"     /* Implement short enums. */
+# pragma GCC diagnostic ignored "-Wattributes"
+#endif
+
 #endif /* _SYS_CRC_H */
 /* eof bbSysCrc.h */

@@ -53,38 +53,34 @@
 #ifndef _BB_MAC_PIB_DEFS_H
 #define _BB_MAC_PIB_DEFS_H
 
+/************************* INCLUDES ***********************************************************************************/
+#include "bbMacSapPib.h"
+#if defined(_MAC_CONTEXT_ZBPRO_)
+# include "private/bbMacSecurityDefs.h"
+#endif
 
-/************************* INCLUDES *****************************************************/
-#include "bbMacSapPib.h"            /* MAC-PIB for MAC-SAP definitions. */
-
-
-/************************* DEFINITIONS **************************************************/
+/************************* DEFINITIONS ********************************************************************************/
 /**//**
  * \brief   Structure for storing permanent MAC-PIB attributes.
- * \details These nonstandard MAC-PIB attributes are implemented by each MAC Context;
- *  their values are preserved during the MLME-RESET.request.
+ * \details These nonstandard MAC-PIB attributes are implemented by each MAC Context; their values are preserved during
+ *  the MLME-RESET.request.
  */
-typedef struct _MacPibPermanent_t
-{
+typedef struct _MacPibPermanent_t {
     /* 64-bit data. */
-    MAC_ExtendedAddress_t  macExtendedAddress;      /*!< Value of macExtendedAddress. */
-
+    MAC_ExtendedAddress_t   macExtendedAddress;     /*!< Value of macExtendedAddress. */
     /* 1-bit data. */
-    MAC_ContextEnabled_t   macContextEnabled;       /*!< Value of macContextEnabled. */
-
+    MAC_ContextEnabled_t    macContextEnabled;      /*!< Value of macContextEnabled. */
 } MacPibPermanent_t;
 
-
+/*--------------------------------------------------------------------------------------------------------------------*/
 /**//**
  * \brief   Structure for storing essential MAC-PIB attributes.
  * \details These MAC-PIB attributes are implemented by each MAC Context.
  */
-typedef struct _MacPibEssential_t
-{
+typedef struct _MacPibEssential_t {
     /* 16-bit data. */
-    MAC_PanId_t            macPANId;                    /*!< Value of macPANId. */
-
-    MAC_ShortAddress_t     macShortAddress;             /*!< Value of macShortAddress. */
+    MAC_PanId_t             macPANId;                   /*!< Value of macPANId. */
+    MAC_ShortAddress_t      macShortAddress;            /*!< Value of macShortAddress. */
 
     /* 8-bit data. */
     PHY_PageChannel_t      macCurrentChannelOnPage;     /*!< Values of macCurrentPage and macCurrentChannel. */
@@ -100,45 +96,40 @@ typedef struct _MacPibEssential_t
     MAC_MaxFrameRetries_t  macMaxFrameRetries;          /*!< Value of macMaxFrameRetries. */
 
     /* 1-bit data. */
-    MAC_RxOnWhenIdle_t     macRxOnWhenIdle;             /*!< Value of macRxOnWhenIdle. */
-
+    MAC_RxOnWhenIdle_t      macRxOnWhenIdle;            /*!< Value of macRxOnWhenIdle. */
 } MacPibEssential_t;
 
-
+/*--------------------------------------------------------------------------------------------------------------------*/
+#if !defined(_MAC_CONTEXT_RF4CE_CONTROLLER_)
 /**//**
  * \brief   Structure for storing MAC-PIB attributes for Beacons support.
- * \details These MAC-PIB attributes are implemented by each MAC Context except the
- *  single-context MAC configuration for RF4CE-Controller.
+ * \details These MAC-PIB attributes are implemented by each MAC Context except the single-context MAC configuration for
+ *  RF4CE-Controller.
  * \note    The macBeaconPayload attribute is stored outside this structure.
  */
-typedef struct _MacPibBeaconing_t
-{
+typedef struct _MacPibBeaconing_t {
     /* 8-bit data. */
-    MAC_BeaconPayloadLength_t  macBeaconPayloadLength;      /*!< Value of macBeaconPayloadLength. */
-
-    MAC_Bsn_t                  macBSN;                      /*!< Value of macBSN. */
+    MAC_BeaconPayloadLength_t   macBeaconPayloadLength;     /*!< Value of macBeaconPayloadLength. */
+    MAC_Bsn_t                   macBSN;                     /*!< Value of macBSN. */
 
     /* 1-bit data. */
-    MAC_AutoRequest_t          macAutoRequest;              /*!< Value of macAutoRequest. */
-
+    MAC_AutoRequest_t           macAutoRequest;             /*!< Value of macAutoRequest. */
 } MacPibBeaconing_t;
+#endif /* ! _MAC_CONTEXT_RF4CE_CONTROLLER_ */
 
-
+/*--------------------------------------------------------------------------------------------------------------------*/
+#if defined(_MAC_CONTEXT_ZBPRO_)
 /**//**
  * \brief   Structure for storing ZigBee PRO specific MAC-PIB attributes.
- * \details These MAC-PIB attributes are implemented only by MAC context for ZigBee PRO
- *  stack.
- * \note    The MAC Context for RF4CE does not use retransmissions, CSMA-CA back-offs and
- *  auto-request.
+ * \details These MAC-PIB attributes are implemented only by MAC context for ZigBee PRO stack.
+ * \note    The MAC Context for RF4CE does not use retransmissions, CSMA-CA back-offs and auto-request.
  */
-typedef struct _MacPibZBPRO_t
-{
+typedef struct _MacPibZBPRO_t {
     /* 64-bit data. */
-    MAC_CoordExtendedAddress_t        macCoordExtendedAddress;          /*!< Value of macCoordExtendedAddress. */
+    MAC_CoordExtendedAddress_t          macCoordExtendedAddress;        /*!< Value of macCoordExtendedAddress. */
 
     /* 16-bit data. */
-    MAC_CoordShortAddress_t           macCoordShortAddress;             /*!< Value of macCoordShortAddress. */
-
+    MAC_CoordShortAddress_t             macCoordShortAddress;           /*!< Value of macCoordShortAddress. */
     MAC_TransactionPersistenceTime_t  macTransactionPersistenceTime;    /*!< Value of macTransactionPersistenceTime. */
 
     MAC_MaxFrameTotalWaitTime_t       macMaxFrameTotalWaitTime;         /*!< Value of macMaxFrameTotalWaitTime. */
@@ -147,25 +138,53 @@ typedef struct _MacPibZBPRO_t
     MAC_ResponseWaitTime_t            macResponseWaitTime;              /*!< Value of macResponseWaitTime. */
 
     /* 1-bit data. */
-    MAC_PanCoordinator_t              macPanCoordinator;                /*!< Value of macPanCoordinator. */
-
-    MAC_AssociationPermit_t           macAssociationPermit;             /*!< Value of macAssociationPermit. */
-
-    MAC_SecurityEnabled_t             macSecurityEnabled;               /*!< Value of macSecurityEnabled. */
-
-    MAC_ThreadMode_t                  macThreadMode;                    /*!< Thread-mode if TRUE; ZbPRO if FALSE. */        // TODO: Move to separate structure with other MAC Security attributes.
-
+    MAC_PanCoordinator_t                macPanCoordinator;              /*!< Value of macPanCoordinator. */
+    MAC_AssociationPermit_t             macAssociationPermit;           /*!< Value of macAssociationPermit. */
+    MAC_SecurityEnabled_t               macSecurityEnabled;             /*!< Value of macSecurityEnabled. */
 } MacPibZBPRO_t;
+#endif /* _MAC_CONTEXT_ZBPRO_ */
 
-
-// TODO: Provide separate structure for MAC Security attributes.
-
-
-
-
-/*
- * MAC-PIB attributes default values.
+/*--------------------------------------------------------------------------------------------------------------------*/
+#if defined(_MAC_CONTEXT_ZBPRO_)
+/**//**
+ * \brief   Structure for the MAC Security attributes.
+ * \details These MAC-PIB attributes are implemented only by MAC context for ZigBee PRO stack.
  */
+typedef struct _MacPibSecurity_t {
+    /* 64-bit data. */
+    MAC_KeySource_t                     macAutoRequestKeySource;        /*!< Value of macAutoRequestKeySource. */
+    MAC_KeySource_t                     macDefaultKeySource;            /*!< Value of macDefaultKeySource. */
+    MAC_ExtendedAddress_t               macPANCoordExtendedAddress;     /*!< Value of macPANCoordExtendedAddress. */
+
+    /* 32-bit data. */
+    MAC_FrameCounter_t                  macFrameCounter;                /*!< Value of macFrameCounter. */
+
+    /* 16-bit data. */
+    MM_ChunkId_t                        macKeyTableLink;                /*!< Link to macKeyTable. */
+    MM_ChunkId_t                        macDeviceTableLink;             /*!< Link to macDeviceTable. */
+    MM_ChunkId_t                        macSecurityLevelTableLink;      /*!< Link to macSecurityLevelTable. */
+    MAC_ShortAddress_t                  macPANCoordShortAddress;        /*!< Value of macPANCoordShortAddress. */
+
+    /* 16- or 8-bit data. */
+    MAC_KeyTableEntries_t               macKeyTableEntries;             /*!< Value of macKeyTableEntries. */
+    MAC_DeviceTableEntries_t            macDeviceTableEntries;          /*!< Value of macDeviceTableEntries. */
+
+    /* 8-bit data. */
+    MAC_SecurityLevelTableEntries_t     macSecurityLevelTableEntries;   /*!< Value of macSecurityLevelTableEntries. */
+    MAC_SecurityLevel_t                 macAutoRequestSecurityLevel;    /*!< Value of macAutoRequestSecurityLevel. */
+    MAC_KeyIdMode_t                     macAutoRequestIdMode;           /*!< Value of macAutoRequestIdMode. */
+    MAC_KeyIndex_t                      macAutoRequestKeyIndex;         /*!< Value of macAutoRequestKeyIndex. */
+
+    /* 1-bit data. */
+    MAC_ThreadMode_t                    macThreadMode;                  /*!< Value of macThreadMode. */
+} MacPibSecurity_t;
+#endif /* _MAC_CONTEXT_ZBPRO_ */
+
+/*--------------------------------------------------------------------------------------------------------------------*/
+/**//**
+ * \name    MAC-PIB attributes default values.
+ */
+/**@{*/
 #define MAC_ATTR_DEFAULT_VALUE_CONTEXT_ENABLED                  FALSE
 #define MAC_ATTR_DEFAULT_VALUE_PAN_COORDINATOR                  FALSE
 #define MAC_ATTR_DEFAULT_VALUE_EXTENDED_ADDRESS                 MAC_UNASSIGNED_EXTENDED_ADDRESS
@@ -199,10 +218,15 @@ typedef struct _MacPibZBPRO_t
 #define MAC_ATTR_DEFAULT_VALUE_SECURITY_ENABLED                 FALSE
 #define MAC_ATTR_DEFAULT_VALUE_MIN_LIFS_PERIOD                  40
 #define MAC_ATTR_DEFAULT_VALUE_MIN_SIFS_PERIOD                  12
-#define MAC_ATTR_DEFAULT_VALUE_THREAD_MODE                      FALSE
 
+#define MAC_ATTR_DEFAULT_VALUE_MAX_FRAME_TYPE                   3
+#define MAC_ATTR_DEFAULT_VALUE_MIN_COMMAND_FRAME_IDENTIFIER     1
+#define MAC_ATTR_DEFAULT_VALUE_MAX_COMMAND_FRAME_IDENTIFIER     9
+#define MAC_ATTR_DEFAULT_VALUE_MAX_SECURITY_MINIMUM             7
+/**@}*/
 
-/* TODO: Implement as a macro-formula from other default values.
+/*--------------------------------------------------------------------------------------------------------------------*/
+/* IDEA: Implement as a macro-formula from other default values.
  *
  * Probably better to implement a common function for the def-macro and for macPibApiGetDefaultMaxFrameTotalWaitTime()
  *

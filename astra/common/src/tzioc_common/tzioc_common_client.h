@@ -84,6 +84,9 @@ extern "C" {
 struct tzioc_client *__tzioc_client_find_by_id(uint8_t id);
 struct tzioc_client *__tzioc_client_find_by_name(const char *pName);
 struct tzioc_client *__tzioc_client_find_by_task(uint32_t task);
+struct tzioc_client *__tzioc_client_find_by_name_and_task(
+    const char *pName,
+    uint32_t task);
 
 int __tzioc_kernel_client_open(
     struct tzioc_client *pClient,

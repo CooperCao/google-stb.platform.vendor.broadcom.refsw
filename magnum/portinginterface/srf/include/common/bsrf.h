@@ -213,6 +213,23 @@ typedef enum BSRF_TestportSelect
 
 /******************************************************************************
 Summary:
+   Structure containing IQ imbalance equalizer parameters
+Description:
+   This structure contains IQ imbalance equalizer parameters.
+See Also:
+   BSRF_SetIqEqSettings()
+******************************************************************************/
+typedef struct
+{
+   bool              bBypass;    /* bypass phase and amplitude correction */
+   bool              bFreeze;    /* freeze phase and amplitude correction */
+   uint8_t           bandwidth;  /* phase and amplitude bandwidth */
+   uint8_t           delay;      /* IQ imbalance equ delay in main path */
+} BSRF_IqEqSettings;
+
+
+/******************************************************************************
+Summary:
    Structure for API function table
 Description:
    This structure contains pointers to all public BSRF functions.
@@ -239,7 +256,7 @@ typedef struct BSRF_ApiFunctTable
    BERR_Code (*ReadRfAgc)(BSRF_ChannelHandle, uint32_t*);
    BERR_Code (*WriteRfGain)(BSRF_ChannelHandle, uint8_t);
    BERR_Code (*ReadRfGain)(BSRF_ChannelHandle, uint8_t*);
-   BERR_Code (*GetInputPower)(BSRF_ChannelHandle, uint32_t*);
+   BERR_Code (*GetInputPower)(BSRF_ChannelHandle, int32_t*);
    BERR_Code (*SetRfAgcSettings)(BSRF_ChannelHandle, BSRF_RfAgcSettings);
    BERR_Code (*GetRfAgcSettings)(BSRF_ChannelHandle, BSRF_RfAgcSettings*);
    BERR_Code (*EnableFastDecayMode)(BSRF_ChannelHandle, bool);
@@ -250,6 +267,8 @@ typedef struct BSRF_ApiFunctTable
    BERR_Code (*SetAntennaDetectThreshold)(BSRF_ChannelHandle, uint8_t);
    BERR_Code (*GetAntennaDetectThreshold)(BSRF_ChannelHandle, uint8_t*);
    BERR_Code (*GetAntennaStatus)(BSRF_ChannelHandle, BSRF_AntennaStatus*);
+   BERR_Code (*PowerUpAntennaSense)(BSRF_ChannelHandle);
+   BERR_Code (*PowerDownAntennaSense)(BSRF_ChannelHandle);
    BERR_Code (*Tune)(BSRF_ChannelHandle, uint32_t);
    BERR_Code (*GetTunerStatus)(BSRF_ChannelHandle, BSRF_TunerStatus*);
    BERR_Code (*ResetClipCount)(BSRF_ChannelHandle);
@@ -263,6 +282,8 @@ typedef struct BSRF_ApiFunctTable
    BERR_Code (*RunDataCapture)(BSRF_Handle);
    BERR_Code (*DeleteAgcLutCodes)(BSRF_Handle, uint32_t*, uint32_t);
    BERR_Code (*ConfigOutputClockPhase)(BSRF_Handle, uint8_t, bool);
+   BERR_Code (*SetIqEqCoeff)(BSRF_ChannelHandle, int16_t*, int16_t*);
+   BERR_Code (*SetIqEqSettings)(BSRF_ChannelHandle h, BSRF_IqEqSettings);
 } BSRF_ApiFunctTable;
 
 
@@ -507,7 +528,7 @@ Description:
 Returns:
    BERR_Code
 ******************************************************************************/
-BERR_Code BSRF_GetInputPower(BSRF_ChannelHandle h, uint32_t *pPower);
+BERR_Code BSRF_GetInputPower(BSRF_ChannelHandle h, int32_t *pPower);
 
 
 /******************************************************************************
@@ -621,6 +642,28 @@ Returns:
    BERR_Code
 ******************************************************************************/
 BERR_Code BSRF_GetAntennaStatus(BSRF_ChannelHandle h, BSRF_AntennaStatus *pStatus);
+
+
+/******************************************************************************
+Summary:
+   Powers up the antenna sense.
+Description:
+   This function enables the antenna sense block.
+Returns:
+   BERR_Code
+******************************************************************************/
+BERR_Code BSRF_PowerUpAntennaSense(BSRF_ChannelHandle h);
+
+
+/******************************************************************************
+Summary:
+   Power down the antenna sense.
+Description:
+   This function disables the antenna sense block.
+Returns:
+   BERR_Code
+******************************************************************************/
+BERR_Code BSRF_PowerDownAntennaSense(BSRF_ChannelHandle h);
 
 
 /******************************************************************************
@@ -766,6 +809,28 @@ Returns:
    BERR_Code
 ******************************************************************************/
 BERR_Code BSRF_ConfigOutputClockPhase(BSRF_Handle h, uint8_t phase, bool bDisableOutput);
+
+
+/******************************************************************************
+Summary:
+   Sets IQ imbalance equalization taps
+Description:
+   The function will program the IQ imbalance equalization coefficients.
+Returns:
+   BERR_Code
+******************************************************************************/
+BERR_Code BSRF_SetIqEqCoeff(BSRF_ChannelHandle h, int16_t *iTaps, int16_t *qTaps);
+
+
+/******************************************************************************
+Summary:
+   Sets IQ imbalance equalization settings
+Description:
+   The function will program the IQ imbalance equalization parameters.
+Returns:
+   BERR_Code
+******************************************************************************/
+BERR_Code BSRF_SetIqEqSettings(BSRF_ChannelHandle h, BSRF_IqEqSettings settings);
 
 
 #ifdef __cplusplus

@@ -252,7 +252,6 @@ MString CPlaylistGenerator::generateAtlasPlaylist(CServerPlaylist * pPlayListSer
 
     pModel        = pPlayListServer->getModel();
     pPlaybackList = pModel->getPlaybackList();
-
     {
         uint32_t nIndex = 0;
         while (NULL != (pVideo = pPlaybackList->getVideo(nIndex++)))
@@ -262,7 +261,6 @@ MString CPlaylistGenerator::generateAtlasPlaylist(CServerPlaylist * pPlayListSer
             pCh->setProgram(program);
 
             BDBG_MSG((" Name of FILE %s,", temp.s()));
-
             pCh->setUrl(MString("http"+ MString("://")+ pPlayListServer->getHost()+ ":" +  pPlayListServer->getHttpServerListeningPort()+ "/" + temp.s()+ "?program=" + MString(program)));
 
             BDBG_MSG(("URL= %s", pCh->getUrl().s()));
@@ -310,6 +308,9 @@ MString CPlaylistGenerator::generateiOSPlaylist(CServerPlaylist * pPlayListServe
     CModel *        pModel        = NULL;
     CPlaybackList * pPlaybackList = NULL;
 
+    CChannelMgr * pChannelMgr = NULL;
+    CChannel *    pChannel    = NULL;
+
     MString playList;
 
     pModel        = pPlayListServer->getModel();
@@ -317,6 +318,20 @@ MString CPlaylistGenerator::generateiOSPlaylist(CServerPlaylist * pPlayListServe
 
     const char * atlasName = GET_STR(_pCfg, ATLAS_NAME);
     const char * boardName = GET_STR(_pCfg, BOARD_NAME);
+
+    uint32_t nIndex = 0;
+    uint16_t program;
+    bool     isHevc;
+    bool     is4k;
+    bool playListItem;
+
+    MString temp;
+    int           i;
+    std::ifstream nfoFile;
+    MString       streamNfoName;
+    std::string   nfoStr;
+    std::string   restrictStr1("videotype=\"h265\"");
+    std::string   restrictStr2("width=\"3840\"");
 
     pCh = new CChannelBip(_pCfg);
     CHECK_PTR_ERROR_GOTO("Error allocating HTTP IP channel", pCh, ret, eRet_OutOfMemory, error);
@@ -404,31 +419,20 @@ MString CPlaylistGenerator::generateiOSPlaylist(CServerPlaylist * pPlayListServe
     playList += boardName;
     playList += "');";
 
-    {
-        uint32_t nIndex = 0;
+        nIndex = 0;
         while (NULL != (pVideo = pPlaybackList->getVideo(nIndex++)))
         {
-            uint16_t program;
-            bool     isHevc = false;
-            bool     is4k   = false;
-#if NEXUS_HAS_VIDEO_ENCODER
-            bool playListItem = false;
-#endif
+            isHevc = false;
+            is4k   = false;
+            playListItem = false;
             /*
              * CChannelIp  *pCh1 = new CChannelIp(_pCfg);
              * Now reset params as per the CVideo object.
              */
-            MString temp = pVideo->getVideoName();
+            temp = pVideo->getVideoName();
             program = pVideo->getProgram();
             pCh->setProgram(program);
             BDBG_MSG((" Name of FILE %s,", temp.s()));
-
-            int           i;
-            std::ifstream nfoFile;
-            MString       streamNfoName;
-            std::string   nfoStr;
-            std::string   restrictStr1("videotype=\"h265\"");
-            std::string   restrictStr2("width=\"3840\"");
 
             streamNfoName = temp;
 
@@ -506,10 +510,24 @@ MString CPlaylistGenerator::generateiOSPlaylist(CServerPlaylist * pPlayListServe
             }
 #endif /* if NEXUS_HAS_VIDEO_ENCODER */
         }
-    }
+
+       /* Now add iOS playlist for QAM uner input */
+        BDBG_ASSERT(NULL != pModel);
+        pChannelMgr = pModel->getChannelMgr();
+        BDBG_ASSERT(NULL != pChannelMgr);
+        pChannel = pChannelMgr->getFirstChannel();
+       /* if pChannel is NULL that means channelMgr is empty.*/
+        while (pChannel != NULL)
+        {
+            MString channelName = pChannel->getChannelNum();
+            pCh->setUrl(MString("http" + MString("://") + pPlayListServer->getHost() + ":" +  pPlayListServer->getHttpServerListeningPort() + "/channel?" + channelName + ".m3u8"));
+#if NEXUS_HAS_VIDEO_ENCODER
+            playList += "add('"+ MString(pCh->getUrl().s()) +"'"+","+"'"+ "/channel?" + channelName + "');";
+#endif /* if NEXUS_HAS_VIDEO_ENCODER */
+            pChannel = pChannelMgr->getNextChannel(pChannel, false);
+        }
     playList += "</script>";
     playList += "</html>";
-
 error:
     return(playList);
 } /* generateiOSPlaylist */

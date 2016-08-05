@@ -108,6 +108,7 @@ endif
 
 
 # turn on BVN error debug messages
+BVDC_SUPPORT_BVN_DEBUG ?= y
 ifeq ($(BVDC_SUPPORT_BVN_DEBUG),y)
 NEXUS_DISPLAY_DEFINES += BVDC_SUPPORT_BVN_DEBUG=1
 endif

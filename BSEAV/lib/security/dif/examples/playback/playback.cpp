@@ -1,50 +1,41 @@
 /******************************************************************************
- *    (c)2015-2016 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Example to playback DRM encrypted content using DRM Integration Framework
- *
- *****************************************************************************/
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
 
+ ******************************************************************************/
 #include "nexus_platform.h"
 #include "nexus_video_decoder.h"
 #include "nexus_stc_channel.h"
@@ -86,7 +77,7 @@ BDBG_MODULE(playback_dif);
 
 #define ZORDER_TOP 10
 
-#define MAX_MOSAICS 5 // FIXME: Fails to get key slots when >5
+#define MAX_MOSAICS 8
 
 #define REPACK_VIDEO_PES_ID 0xE0
 #define REPACK_AUDIO_PES_ID 0xC0
@@ -122,6 +113,7 @@ public:
     bool use_default_url[MAX_MOSAICS];
     IStreamer* videoStreamer[MAX_MOSAICS];
     IStreamer* audioStreamer[MAX_MOSAICS];
+    int video_decode_hdr[MAX_MOSAICS];
 
     uint8_t *pAvccHdr;
     uint8_t *pPayload;
@@ -133,6 +125,7 @@ public:
     DrmType drmType[MAX_MOSAICS];
     NEXUS_SimpleVideoDecoderHandle videoDecoder[MAX_MOSAICS];
     NEXUS_SimpleAudioDecoderHandle audioDecoder[MAX_MOSAICS];
+    NEXUS_SimpleStcChannelHandle stcChannel[MAX_MOSAICS];
     NEXUS_PlaypumpHandle videoPlaypump[MAX_MOSAICS];
     NEXUS_PlaypumpHandle audioPlaypump[MAX_MOSAICS];
     NEXUS_PidChannelHandle videoPidChannel[MAX_MOSAICS];
@@ -142,7 +135,7 @@ public:
     uint64_t last_video_fragment_time;
     uint64_t last_audio_fragment_time;
 
-    unsigned connectId[MAX_MOSAICS];
+    unsigned connectId;
     NxClient_AllocResults s_allocResults;
 
     bgui_t gui;
@@ -174,11 +167,13 @@ AppContext::AppContext()
         fp_mp4[i] = NULL;
         videoStreamer[i] = NULL;
         audioStreamer[i] = NULL;
+        video_decode_hdr[i] = 0;
         videoDecoder[i] = NULL;
         audioDecoder[i] = NULL;
+        stcChannel[i] = NULL;
         videoPidChannel[i] = NULL;
         audioPidChannel[i] = NULL;
-        connectId[i] = 0xFFFF;
+        connectId = 0xFFFF;
         mosaic[i].zorder = ZORDER_TOP;
         mosaic[i].done = false;
     }
@@ -236,9 +231,12 @@ AppContext::~AppContext()
             NEXUS_SimpleAudioDecoder_Release(audioDecoder[i]);
         }
 
-        if (connectId[i] != 0xFFFF) {
-            NxClient_Disconnect(connectId[i]);
+        if (stcChannel[i] != NULL) {
+            NEXUS_SimpleStcChannel_Destroy(stcChannel[i]);
         }
+    }
+    if (connectId != 0xFFFF) {
+        NxClient_Disconnect(connectId);
     }
 
     if (event != NULL) {
@@ -283,8 +281,6 @@ const std::string kGpClientOfflineRenewalQueryParameters =
     "&offline=true&renewal=true";
 const std::string kGpClientOfflineReleaseQueryParameters =
     "&offline=true&release=true";
-
-static int video_decode_hdr=0;
 
 static AppContext s_app;
 
@@ -383,7 +379,7 @@ static int process_fragment(mp4_parse_frag_info *frag_info,
             pes_info.pts_valid = true;
             pes_info.pts = (uint32_t)CALCULATE_PTS(frag_duration);
 
-            if (video_decode_hdr == 0) {
+            if (s_app.video_decode_hdr[index] == 0) {
                 pes_header_len = bmedia_pes_header_init(s_app.pVideoHeaderBuf,
                     (sampleSize + avcc_hdr_size - nalu_len + sizeof(bmp4_nal)), &pes_info);
             } else {
@@ -399,13 +395,13 @@ static int process_fragment(mp4_parse_frag_info *frag_info,
                 bytes_processed += pes_header_len;
             }
 
-            if (video_decode_hdr == 0) {
+            if (s_app.video_decode_hdr[index] == 0) {
                 IBuffer* output =
                     streamer->GetBuffer(avcc_hdr_size);
                 output->Copy(0, s_app.pAvccHdr, avcc_hdr_size);
                 BufferFactory::DestroyBuffer(output);
                 bytes_processed += avcc_hdr_size;
-                video_decode_hdr = 1;
+                s_app.video_decode_hdr[index] = 1;
             }
 
             IBuffer* input = BufferFactory::CreateBuffer(sampleSize, (uint8_t*)frag_info->cursor.cursor);
@@ -689,11 +685,13 @@ static void setup_gui()
 
     NxClient_GetDefaultAllocSettings(&allocSettings);
     allocSettings.simpleVideoDecoder = s_app.num_mosaics;
+    allocSettings.simpleAudioDecoder = 1;
     rc = NxClient_Alloc(&allocSettings, &s_app.s_allocResults);
     if (rc)
         exit(EXIT_FAILURE);
 
-    for (int i = 0; i < s_app.num_mosaics; i++) {
+    for (int i = 0; i < s_app.num_mosaics; i++)
+    {
         if (s_app.s_allocResults.simpleVideoDecoder[i].id) {
             LOGD(("@@@ to acquire video decoder %d for %d", s_app.s_allocResults.simpleVideoDecoder[i].id, i));
             s_app.videoDecoder[i] = NEXUS_SimpleVideoDecoder_Acquire(s_app.s_allocResults.simpleVideoDecoder[i].id);
@@ -703,46 +701,43 @@ static void setup_gui()
             exit(EXIT_FAILURE);
         }
 
-        NxClient_AllocResults audioAllocResults;
+        {
+            /* TEMP disable CC for mosaics */
+            NEXUS_SimpleVideoDecoderClientSettings settings;
+            NEXUS_SimpleVideoDecoder_GetClientSettings(s_app.videoDecoder[i], &settings);
+            settings.closedCaptionRouting = false;
+            NEXUS_SimpleVideoDecoder_SetClientSettings(s_app.videoDecoder[i], &settings);
+        }
+
         if (i == 0) {
-            NxClient_AllocSettings audioAllocSettings;
-            NxClient_GetDefaultAllocSettings(&audioAllocSettings);
-            audioAllocSettings.simpleAudioDecoder = 1;
-            rc = NxClient_Alloc(&audioAllocSettings, &audioAllocResults);
-            if (audioAllocResults.simpleAudioDecoder.id) {
-                LOGD(("@ to acquire audio decoder %d", audioAllocResults.simpleAudioDecoder.id));
-                s_app.audioDecoder[i] = NEXUS_SimpleAudioDecoder_Acquire(audioAllocResults.simpleAudioDecoder.id);
-            } else if (i == 0) {
-                if (s_app.s_allocResults.simpleAudioDecoder.id) {
-                    LOGD(("@@ to acquire audio decoder %d", s_app.s_allocResults.simpleAudioDecoder.id));
-                    s_app.audioDecoder[i] = NEXUS_SimpleAudioDecoder_Acquire(s_app.s_allocResults.simpleAudioDecoder.id);
-                }
+            if (s_app.s_allocResults.simpleAudioDecoder.id) {
+                LOGD(("@ to acquire audio decoder %d", s_app.s_allocResults.simpleAudioDecoder.id));
+                s_app.audioDecoder[i] = NEXUS_SimpleAudioDecoder_Acquire(s_app.s_allocResults.simpleAudioDecoder.id);
             }
             if (s_app.audioDecoder[i] == NULL) {
                 LOGE(("audio decoder not available %d", i));
                 exit(EXIT_FAILURE);
             }
         }
-
-        NxClient_ConnectSettings connectSettings;
-        NxClient_GetDefaultConnectSettings(&connectSettings);
-        for (int j = 0; j < s_app.num_mosaics; j++) {
-            connectSettings.simpleVideoDecoder[j].id = s_app.s_allocResults.simpleVideoDecoder[j].id;
-            connectSettings.simpleVideoDecoder[j].surfaceClientId = bgui_surface_client_id(s_app.gui);
-            connectSettings.simpleVideoDecoder[j].windowId = j;
-            connectSettings.simpleVideoDecoder[j].decoderCapabilities.maxWidth = s_app.mosaic[j].rect.width;
-            connectSettings.simpleVideoDecoder[j].decoderCapabilities.maxHeight = s_app.mosaic[j].rect.height;
-            if (secure_video)
-            {
-                connectSettings.simpleVideoDecoder[j].decoderCapabilities.secureVideo = true;
-            }
-        }
-        if (i == 0)
-            connectSettings.simpleAudioDecoder.id = audioAllocResults.simpleAudioDecoder.id;
-        rc = NxClient_Connect(&connectSettings, &s_app.connectId[i]);
-        if (rc)
-            exit(EXIT_FAILURE);
     }
+
+    NxClient_ConnectSettings connectSettings;
+    NxClient_GetDefaultConnectSettings(&connectSettings);
+    for (int j = 0; j < s_app.num_mosaics; j++) {
+        connectSettings.simpleVideoDecoder[j].id = s_app.s_allocResults.simpleVideoDecoder[j].id;
+        connectSettings.simpleVideoDecoder[j].surfaceClientId = bgui_surface_client_id(s_app.gui);
+        connectSettings.simpleVideoDecoder[j].windowId = j;
+        connectSettings.simpleVideoDecoder[j].decoderCapabilities.maxWidth = s_app.mosaic[j].rect.width;
+        connectSettings.simpleVideoDecoder[j].decoderCapabilities.maxHeight = s_app.mosaic[j].rect.height;
+        if (secure_video)
+        {
+            connectSettings.simpleVideoDecoder[j].decoderCapabilities.secureVideo = true;
+        }
+    }
+    connectSettings.simpleAudioDecoder.id = s_app.s_allocResults.simpleAudioDecoder.id;
+    rc = NxClient_Connect(&connectSettings, &s_app.connectId);
+    if (rc)
+        exit(EXIT_FAILURE);
 
     NEXUS_Graphics2DHandle gfx = bgui_blitter(s_app.gui);
     NEXUS_Graphics2DFillSettings fillSettings;
@@ -761,7 +756,6 @@ static void setup_streamers()
 {
     NEXUS_ClientConfiguration clientConfig;
     NEXUS_MemoryAllocationSettings memSettings;
-    NEXUS_SimpleStcChannelHandle stcChannel;
     NEXUS_SimpleVideoDecoderStartSettings videoProgram;
     NEXUS_SimpleAudioDecoderStartSettings audioProgram;
     NEXUS_SimpleStcChannelSettings stcSettings;
@@ -822,10 +816,10 @@ static void setup_streamers()
 
     // Set up Playpumps and Decoders
     for (int i = 0; i < s_app.num_mosaics; i++) {
-        stcChannel = NEXUS_SimpleStcChannel_Create(NULL);
-        NEXUS_SimpleStcChannel_GetSettings(stcChannel, &stcSettings);
+        s_app.stcChannel[i] = NEXUS_SimpleStcChannel_Create(NULL);
+        NEXUS_SimpleStcChannel_GetSettings(s_app.stcChannel[i], &stcSettings);
         stcSettings.mode = NEXUS_StcChannelMode_eAuto;
-        rc = NEXUS_SimpleStcChannel_SetSettings(stcChannel, &stcSettings);
+        rc = NEXUS_SimpleStcChannel_SetSettings(s_app.stcChannel[i], &stcSettings);
         if (rc) {
            LOGW(("@@@ Stc Set FAILED ---------------"));
         }
@@ -889,32 +883,37 @@ static void setup_streamers()
 
         if (videoProgram.settings.pidChannel) {
             LOGW(("@@@ set stc channel video"));
-            NEXUS_SimpleVideoDecoder_SetStcChannel(s_app.videoDecoder[i], stcChannel);
+            NEXUS_SimpleVideoDecoder_SetStcChannel(s_app.videoDecoder[i], s_app.stcChannel[i]);
         }
 
         if (s_app.audioStreamer[i]) {
             if (audioProgram.primary.pidChannel) {
                 LOGW(("@@@ set stc channel audio"));
-                NEXUS_SimpleAudioDecoder_SetStcChannel(s_app.audioDecoder[i], stcChannel);
+                NEXUS_SimpleAudioDecoder_SetStcChannel(s_app.audioDecoder[i], s_app.stcChannel[i]);
             }
         }
     }
 
 }
 
-static void setup_parsers()
+static void setup_files()
 {
-    // Set up Parsers
     for (int index = 0; index < s_app.num_mosaics; index++) {
         LOGW(("MP4 file: %s\n", s_app.file[index]));
         fflush(stdout);
-
         s_app.fp_mp4[index] = fopen(s_app.file[index], "rb");
         if (s_app.fp_mp4[index] == NULL) {
             LOGE(("failed to open %s", s_app.file[index]));
             exit(EXIT_FAILURE);
         }
+    }
+}
 
+static void setup_parsers()
+{
+    // Set up Parsers
+    for (int index = 0; index < s_app.num_mosaics; index++) {
+        fflush(stdout);
         s_app.parser[index] = new PiffParser(s_app.fp_mp4[index]);
         if (s_app.parser[index] ==  NULL) {
             LOGE(("failed to new a PiffParser instance"));
@@ -939,22 +938,22 @@ static void setup_parsers()
                 exit(EXIT_FAILURE);
             }
 
-            if(s_app.drmType[index] != drm_type_eUnknown){
+            if (s_app.drmType[index] != drm_type_eUnknown){
                 bool drmMatch = false;
                 DrmType drmTypes[BMP4_MAX_DRM_SCHEMES];
                 uint8_t numOfDrmSchemes = s_app.parser[index]->GetNumOfDrmSchemes(drmTypes, BMP4_MAX_DRM_SCHEMES);
-                for(int j = 0; j < numOfDrmSchemes; j++){
-                    if(drmTypes[j] == s_app.drmType[index]){
+                for (int j = 0; j < numOfDrmSchemes; j++){
+                    if (drmTypes[j] == s_app.drmType[index]){
                         drmMatch = true;
-                        s_app.parser[index]-> SetDrmSchemes(j);
+                        s_app.parser[index]->SetDrmSchemes(j);
                     }
                 }
-                if(!drmMatch){
+                if (!drmMatch){
                     LOGE(("DRM Type: %d was not found in the stream.", s_app.drmType[index] ));
                     LOGE(("Do you want to play it with its default DRM type: %d? [y/n]", drmTypes[0]));
                     char resp;
                     scanf("%c", &resp);
-                    if(resp != 'y')
+                    if (resp != 'y')
                         exit(EXIT_FAILURE);
                 }
             }
@@ -975,10 +974,13 @@ static void setup_decryptors()
     for (int i = 0; i < s_app.num_mosaics; i++) {
         // New API - creating Decryptor
         drmType = s_app.parser[i]->GetDrmType();
-        if (drmType == drm_type_eWidevine) {
+        if (s_app.drmType[i] == drm_type_ePlayready30){
+            drmType = drm_type_ePlayready30;
+            LOGW(("Playready 3.0 for %s", s_app.file[i]));
+        } else if (drmType == drm_type_eWidevine) {
             LOGW(("Widevine for %s", s_app.file[i]));
         } else if (drmType == drm_type_ePlayready) {
-            LOGW(("Playready for %s", s_app.file[i]));
+            LOGW(("Playready 2.5 for %s", s_app.file[i]));
         } else {
             LOGW(("Unknown DRM type for %s", s_app.file[i]));
             continue;
@@ -1083,6 +1085,7 @@ static void print_usage(char* command)
 {
     LOGE(("Usage : %s <files> [OPTIONS]", command));
     LOGE(("        -pr <file> Set DRM type as playready"));
+    LOGE(("        -pr30 <file> Set DRM type as playready 3.0"));
     LOGE(("        -wv <file> Set DRM type as widevine"));
     LOGE(("        -loop N    Set # of playback loops"));
     LOGE(("        -secure    Use secure video picture buffers (URR)"));
@@ -1115,7 +1118,17 @@ int main(int argc, char* argv[])
     }
 
     for (int i = 1; i < argc; i++){
-        if (strcmp(argv[i], "-pr") == 0) {
+        if (strcmp(argv[i], "-pr30") == 0) {
+            if (i >= argc - 1) {
+                print_usage(argv[0]);
+                exit(EXIT_FAILURE);
+            }
+            s_app.drmType[num_files] = drm_type_ePlayready30;
+            s_app.file[num_files] = argv[++i];
+            LOGW(("File[%d] PR3.0: %s", num_files, s_app.file[num_files]));
+            num_files++;
+        }
+        else if (strcmp(argv[i], "-pr") == 0) {
             if (i >= argc - 1) {
                 print_usage(argv[0]);
                 exit(EXIT_FAILURE);
@@ -1194,6 +1207,8 @@ int main(int argc, char* argv[])
     setup_gui();
 
     setup_streamers();
+
+    setup_files();
 
     setup_parsers();
 

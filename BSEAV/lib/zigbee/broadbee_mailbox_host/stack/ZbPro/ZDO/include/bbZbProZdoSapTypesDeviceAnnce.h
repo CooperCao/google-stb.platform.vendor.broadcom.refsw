@@ -131,6 +131,11 @@ struct _ZBPRO_ZDO_DeviceAnnceReqDescr_t
     ZBPRO_ZDO_DeviceAnnceReqParams_t     params;        /*!< ZDO Request parameters structure. */
 };
 
+/**//**
+ * \brief   Data type for parameters of ZDO Indication for received ZDP Device_Annce command.
+ * \par     Documentation
+ */
+typedef ZBPRO_ZDO_DeviceAnnceReqParams_t ZBPRO_ZDO_DeviceAnnceIndParams_t;
 
 /************************* PROTOTYPES ***************************************************/
 /**//**
@@ -140,5 +145,12 @@ struct _ZBPRO_ZDO_DeviceAnnceReqDescr_t
 void ZBPRO_ZDO_DeviceAnnceReq(
                 ZBPRO_ZDO_DeviceAnnceReqDescr_t *const  reqDescr);
 
+/**//**
+ * \brief   ZDO Indication for received Device_Annce command
+ * \param[in]   indParams       Pointer to ZDO Indication parameters.
+ * \note
+ *  This function must be provided by the application.
+ */
+void ZBPRO_ZDO_DeviceAnnceInd(ZBPRO_ZDO_DeviceAnnceIndParams_t *const indParams);
 
 #endif /* _BB_ZBPRO_ZDO_SAP_TYPES_DEVICE_ANNCE_H */

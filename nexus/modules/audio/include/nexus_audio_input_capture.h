@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2012 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *  
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,18 +35,10 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF 
 *  ANY LIMITED REMEDY.
 * 
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * API Description:
 *   API name: AudioInputCapture
 *    Object used to capture data from an external input into the audio subsystem
 *
-* Revision History:
-*
-* $brcm_Log: $
-* 
 ***************************************************************************/
 #ifndef NEXUS_AUDIO_INPUT_CAPTURE_H_
 #define NEXUS_AUDIO_INPUT_CAPTURE_H_
@@ -128,7 +120,7 @@ Start-time settings for AudioInputCapture
 ***************************************************************************/
 typedef struct NEXUS_AudioInputCaptureStartSettings
 {
-    NEXUS_AudioInput input;
+    NEXUS_AudioInputHandle input;
 } NEXUS_AudioInputCaptureStartSettings;
 
 /***************************************************************************
@@ -225,7 +217,7 @@ NEXUS_Error NEXUS_AudioInputCapture_GetStatus(
 Summary:
 Get audio connector to connect InputCapture to other objects
 ***************************************************************************/
-NEXUS_AudioInput NEXUS_AudioInputCapture_GetConnector(
+NEXUS_AudioInputHandle NEXUS_AudioInputCapture_GetConnector(
     NEXUS_AudioInputCaptureHandle handle
     );
 

@@ -12,6 +12,8 @@ FILE DESCRIPTION
 
 #include "libs/util/gfx_util/gfx_util.h"
 
+#include "../glxx/glxx_int_config.h"
+
 #include "glsl_program.h"
 #include "glsl_ir_program.h"
 
@@ -37,7 +39,7 @@ GLSL_PROGRAM_T *glsl_program_create() {
    ret->buffer_blocks     = malloc(GLXX_CONFIG_MAX_COMBINED_STORAGE_BLOCKS * sizeof(GLSL_BLOCK_T));
    ret->num_buffer_blocks = 0;
 
-   static const int max_ins_outs = GFX_MAX(SLANG_MAX_NUM_ATTRIBUTES, GLXX_CONFIG_MAX_VARYING_SCALARS);
+   static const int max_ins_outs = GFX_MAX(GLXX_CONFIG_MAX_VERTEX_ATTRIBS*4, GLXX_CONFIG_MAX_VARYING_SCALARS);
 
    ret->num_inputs           = 0;
    ret->inputs               = malloc(sizeof(GLSL_INOUT_T) * max_ins_outs);

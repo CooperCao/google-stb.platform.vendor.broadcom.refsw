@@ -376,12 +376,7 @@ static void BVBI_P_IN656_Dec_Init (BREG_Handle hReg, uint32_t ulCoreOffset)
 
     /* Reset the core */
     ulReg = 0;
-#if (BCHP_CHIP == 7125)
-    /* TODO: hit the reset register when it gets into RDB. */
-#else
-    /* TODO: apply new reset scheme if necessary. */
     BREG_Write32 (hReg, BCHP_IN656_0_RESET + ulCoreOffset, ulReg);
-#endif
 
     /* Disable the action of the core */
     /* TODO: use enums when RDB and headers are fixed. */

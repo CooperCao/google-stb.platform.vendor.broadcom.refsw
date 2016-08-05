@@ -331,6 +331,9 @@ static uint64_t MemGetInfo(void *context, BEGL_MemInfoType type)
            NEXUS_Heap_Dump(data->heapMapSecure.heap);
         return 0;
      }
+
+  default:
+     break;
   }
 
   return 0;

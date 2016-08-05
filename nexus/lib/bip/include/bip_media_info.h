@@ -1,42 +1,39 @@
 /******************************************************************************
  * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *****************************************************************************/
 
 #ifndef BIP_MEDIA_INFO_NEW_H
@@ -184,6 +181,60 @@ typedef enum BIP_MediaInfoTrackType
 } BIP_MediaInfoTrackType;
 
 
+typedef enum BIP_MediaInfoCaptionType
+{
+    BIP_MediaInfoCaptionType_e608,
+    BIP_MediaInfoCaptionType_e708,
+    BIP_MediaInfoCaptionType_eOther,
+    BIP_MediaInfoCaptionType_eMax
+}BIP_MediaInfoCaptionType;
+
+/**
+Summary:
+This structure defines 608 specific caption information.
+**/
+typedef struct BIP_MediaInfo608Descriptor
+{
+    unsigned    line21Field;
+}BIP_MediaInfo608Descriptor;
+
+/**
+Summary:
+This structure defines 708 specific caption information.
+**/
+typedef struct BIP_MediaInfo708Descriptor
+{
+     char       *pLanguage;                 /*!< This points to a string containing 3-byte language code defining language */
+                                            /*!< of the service in ISO 639-2/B code. */
+     unsigned   captionServiceNumber;       /*!< Caption service number. */
+     bool       easyReader;                 /*!< 0 indicates the closed caption service is the EASY Reader type, This is only meaningful in caption type 708.*/
+     bool       wideAspectRatio;            /*!< 0 indicates 4:3 and 1 indicates 16:9. This is only meaningful in caption type 708.*/
+}BIP_MediaInfo708Descriptor;
+
+typedef struct BIP_MediaInfoCaptionServiceDescriptor    BIP_MediaInfoCaptionServiceDescriptor;
+/**
+Summary:
+This structure defines Caption Service Descriptor.Check ATSC
+A/65 2013, Table 6.26 for more details.
+**/
+struct BIP_MediaInfoCaptionServiceDescriptor
+{
+    BIP_MediaInfoCaptionType        captionType;
+
+    union
+    {
+        BIP_MediaInfo608Descriptor  descriptor608;
+        BIP_MediaInfo708Descriptor  descriptor708;
+    }descriptor;
+    BIP_MediaInfoCaptionServiceDescriptor   *pNextServiceDescriptor; /*!< Pointer to the Next BIP_MediaInfoCaptionServiceDescriptor in the descriptor list.*/
+};
+
+typedef struct BIP_MediaInfoCaptionService
+{
+    unsigned                                     numberOfServices;           /*!< Specifies number of available caption services.*/
+    BIP_MediaInfoCaptionServiceDescriptor   *pFirstServiceDescriptor;   /*!< Pointer to the first BIP_MediaInfoCaptionServiceDescriptor in the descriptor list.*/
+}BIP_MediaInfoCaptionService;
+
 /**
 Summary:
 This structure defines common properties of video track.
@@ -196,6 +247,7 @@ typedef struct BIP_MediaInfoVideoTrack
     unsigned         bitrate;                   /*!< Video bitrate in bps, or 0 if unknown */
     unsigned         frameRate;                 /*!< Video frame rate in 1000fps, or 0 if unknown */
     unsigned         colorDepth;                /*!< For H265/HEVC video code, color depth: 8 --> 8 bits, 10 --> 10 bits, 0 for other Video Codecs. */
+    BIP_MediaInfoCaptionService captionService; /*!< This contains the caption services details.*/
 } BIP_MediaInfoVideoTrack;
 
 /**

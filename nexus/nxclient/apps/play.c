@@ -666,10 +666,11 @@ int main(int argc, const char **argv)  {
 
     starttime = b_get_time();
     while (!client->stopped) {
+        bool displayed = false;
         if (gui == gui_on) {
             NEXUS_PlaybackStatus status;
             media_player_get_playback_status(client->player, &status);
-            gui_set_pos(client, status.position, status.first, status.last);
+            displayed = !gui_set_pos(client, status.position, status.first, status.last);
         }
         if (pig_inc.x) {
             b_pig_move(video_sc, &pig_inc);
@@ -685,7 +686,7 @@ int main(int argc, const char **argv)  {
             }
         }
         /* don't wait until after other NxClient calls that may results in SurfaceCompositor work. This avoids an extra vsync of delay. */
-        if (gui == gui_on) {
+        if (displayed) {
             rc = BKNI_WaitForEvent(client->displayedEvent, 5000);
             if (rc) BERR_TRACE(rc);
         }
@@ -876,7 +877,7 @@ static int gui_set_pos(struct client_state *client, unsigned position, unsigned 
     position -= first;
     last -= first;
     if (position >= last) position = last;
-    if (!last) return 0;
+    if (!last) return -1;
 
     if (client->start_settings.loopMode == NEXUS_PlaybackLoopMode_ePlay) {
         /* have to redraw each time because time updates */

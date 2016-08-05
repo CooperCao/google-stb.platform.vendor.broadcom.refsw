@@ -17,8 +17,9 @@ Contains per-process state and per-thread state
 #include "khrn_mem.h"
 #include "khrn_process_debug.h"
 #include "khrn_fmem_debug_info.h"
+#include "../gl11/gl11_exts.h"
+#include "../gl20/gl20_exts.h"
 #include "../glxx/glxx_server.h"
-#include "../glxx/glxx_extensions.h"
 #include "../glxx/glxx_texture.h"
 #include "libs/platform/gmem.h"
 #include "libs/core/v3d/v3d_ident.h"
@@ -39,7 +40,10 @@ static struct statics {
 #if !V3D_HAS_NEW_TMU_CFG
    V3D_MISCCFG_T misccfg;
 #endif
-   char *extensions;
+   char gl11_exts_str[GL11_EXTS_STR_MAX_SIZE];
+   char gl3x_exts_str[GL20_EXTS_STR_MAX_SIZE];
+   unsigned num_gl3x_exts;
+   const char *gl3x_exts[GL20_MAX_EXTS];
    gfx_lfmt_translate_gl_ext_t lfmt_translate_exts;
    GLXX_TEXTURE_SAMPLER_STATE_T image_unit_default_sampler;
 } statics;
@@ -65,7 +69,7 @@ static bool init_v3d_client(void)
    v3d_check_ident(v3d_scheduler_get_identity(), 0);
 
 #if !V3D_HAS_NEW_TMU_CFG
-   statics.misccfg.ovrtmuout = khrn_get_v3d_version() >= V3D_MAKE_VER(3,3,0,0);
+   statics.misccfg.ovrtmuout = V3D_VER_AT_LEAST(3,3,0,0);
 #endif
 
    ok = true;
@@ -95,9 +99,25 @@ gmem_handle_t khrn_get_gfxh_1320_buffer(void)
    return statics.gfxh_1320_buffer;
 }
 
-char *khrn_get_extensions(void)
+const char *khrn_get_gl11_exts_str(void)
 {
-   return statics.extensions;
+   return statics.gl11_exts_str;
+}
+
+const char *khrn_get_gl3x_exts_str(void)
+{
+   return statics.gl3x_exts_str;
+}
+
+unsigned khrn_get_num_gl3x_exts(void)
+{
+   return statics.num_gl3x_exts;
+}
+
+const char *khrn_get_gl3x_ext(unsigned i)
+{
+   assert(i < statics.num_gl3x_exts);
+   return statics.gl3x_exts[i];
 }
 
 gfx_lfmt_translate_gl_ext_t khrn_get_lfmt_translate_exts(void)
@@ -116,17 +136,15 @@ static void khrn_statics_shutdown(struct statics *s)
 {
    gmem_free(s->dummy_texture_handle);
    gmem_free(s->gfxh_1320_buffer);
-   free (s->extensions);
    s->dummy_texture_handle = 0;
    s->gfxh_1320_buffer = 0;
-   s->extensions = NULL;
 }
 
 static void init_image_unit_default_sampler(GLXX_TEXTURE_SAMPLER_STATE_T *sampler)
 {
    /* the important values are clamp to border, border_color[1-4]=0, min_lod = max_lod = 0;*/
    sampler->filter.min = sampler->filter.mag = GL_NEAREST;
-   sampler->wrap.s = sampler->wrap.t = sampler->wrap.r = GL_CLAMP_TO_BORDER_BRCM;
+   sampler->wrap.s = sampler->wrap.t = sampler->wrap.r = GL_CLAMP_TO_BORDER;
    sampler->anisotropy = 1.0f;
    sampler->min_lod = sampler->max_lod = 0.0f;
    sampler->compare_mode = GL_NONE;
@@ -140,8 +158,6 @@ static bool khrn_statics_init(struct statics *s)
 {
    unsigned int *p;
    unsigned int i;
-   unsigned int num_extensions;
-   unsigned int extensions_size;
    /* TODO - this size is assumed by glxx_calculate_and_hide() */
    const unsigned int texture_size = 64
       * 6;/* Alloc more space for cube map textures. */
@@ -163,45 +179,25 @@ static bool khrn_statics_init(struct statics *s)
 
    gmem_end_cpu_access_and_unmap(s->dummy_texture_handle, GMEM_SYNC_CPU_WRITE);
 
-   /* Create a dummy occlusion query buffer sized for each way in the cache. */
-   if (khrn_get_v3d_version() < V3D_MAKE_VER(3,3,0,0)) // GFXH-1320
-   {
-      s->gfxh_1320_buffer = gmem_alloc(
-         V3D_QUERY_COUNTER_FIRST_CORE_CACHE_LINE_ALIGN * 8,
-         V3D_QUERY_COUNTER_FIRST_CORE_CACHE_LINE_ALIGN,
-         GMEM_USAGE_V3D,
-         "khrn dummy occlusion query buffer"
-         );
-      if (s->gfxh_1320_buffer == GMEM_HANDLE_INVALID)
-         goto error;
-   }
-
-   /* create the supported extensions string */
-   num_extensions = glxx_get_num_extensions();
-
-   /* first calculate the space required to hold all names */
-   extensions_size = 0;
-   for (i = 0; i < num_extensions; i++)
-   {
-      extensions_size += strlen(glxx_get_extension(i));
-   }
-
-   s->extensions = calloc(1, extensions_size +
-                           num_extensions +  /* each extension has a space delimitor */
-                           1                 /* NULL terminator */);
-   if (s->extensions == NULL)
+#if !V3D_VER_AT_LEAST(3,3,0,0)
+   /* GFXH-1320 workaround: create a dummy occlusion query buffer sized for each way in the cache. */
+   s->gfxh_1320_buffer = gmem_alloc(
+      V3D_OCCLUSION_QUERY_COUNTER_FIRST_CORE_CACHE_LINE_ALIGN * 8,
+      V3D_OCCLUSION_QUERY_COUNTER_FIRST_CORE_CACHE_LINE_ALIGN,
+      GMEM_USAGE_V3D,
+      "khrn dummy occlusion query buffer"
+      );
+   if (s->gfxh_1320_buffer == GMEM_HANDLE_INVALID)
       goto error;
+#endif
 
-   for (i = 0; i < num_extensions; i++)
-   {
-      strcat(s->extensions, glxx_get_extension(i));
-      strcat(s->extensions, " ");
-   }
-   assert(strlen(s->extensions) == extensions_size + num_extensions);
+   verif((gl11_exts_str(statics.gl11_exts_str) - statics.gl11_exts_str) < sizeof(statics.gl11_exts_str));
+   verif((gl20_exts_str(statics.gl3x_exts_str) - statics.gl3x_exts_str) < sizeof(statics.gl3x_exts_str));
+   statics.num_gl3x_exts = gl20_exts(statics.gl3x_exts);
+   verif(statics.num_gl3x_exts <= countof(statics.gl3x_exts));
 
    s->lfmt_translate_exts =
-      (khrn_get_has_astc() ? GFX_LFMT_TRANSLATE_GL_EXT_ASTC : 0) |
-      ((v3d_scheduler_get_v3d_ver() >= V3D_MAKE_VER(3,3,0,0)) ? GFX_LFMT_TRANSLATE_GL_EXT_SR8_SRG8 : 0);
+      (khrn_get_has_astc() ? GFX_LFMT_TRANSLATE_GL_EXT_ASTC : 0);
 
    init_image_unit_default_sampler(&s->image_unit_default_sampler);
    return true;

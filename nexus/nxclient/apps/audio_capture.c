@@ -97,6 +97,8 @@ static void capture_callback(void *pParam, int param)
     FILE *pFile;
     NEXUS_Error errCode;
 
+    BSTD_UNUSED(param);
+
     BDBG_ASSERT(capHandles);
     capture = capHandles->capture;
     BDBG_ASSERT(capture);
@@ -161,13 +163,11 @@ int main(int argc, char **argv)
     NEXUS_PlaypumpOpenSettings playpumpOpenSettings;
     BKNI_EventHandle event;
     NEXUS_SimpleStcChannelHandle stcChannel;
-    NEXUS_PidChannelHandle audioPidChannel, audioPidChannel2;
-    NEXUS_SimpleAudioDecoderHandle audioDecoder, audioDecoder2;
-    NEXUS_SimpleAudioDecoderStartSettings audioProgram, audioProgram2;
-    NEXUS_SimpleAudioDecoderSettings audioSettings, audioSettings2;
+    NEXUS_PidChannelHandle audioPidChannel;
+    NEXUS_SimpleAudioDecoderHandle audioDecoder;
+    NEXUS_SimpleAudioDecoderStartSettings audioProgram;
     NEXUS_MemoryAllocationSettings memSettings;
     NEXUS_ClientConfiguration clientConfig;
-    NEXUS_AudioDecoderStatus audioStatus;
     NEXUS_Error rc;
 
     const char *fname = FILE_NAME;
@@ -176,7 +176,6 @@ int main(int argc, char **argv)
     size_t buf_size = 128*1024;
     unsigned cur_buf;
     unsigned i;
-    uint32_t lastPts;
 
     NEXUS_AudioCaptureOpenSettings openSettings;
     NEXUS_AudioCaptureStartSettings startSettings;

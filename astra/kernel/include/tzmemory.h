@@ -43,6 +43,17 @@
 #include "arm/arm.h"
 #include "arm/spinlock.h"
 #include "kernel.h"
+#include "lib_printf.h"
+
+#define ENABLE_PAGE_TRACE 0
+
+#if ENABLE_PAGE_TRACE
+#define allocPage(pid) _allocPageTrace(__PRETTY_FUNCTION__, pid)
+#define freePage(page) _freePageTrace(__PRETTY_FUNCTION__, page)
+#else
+#define allocPage(pid) _allocPage(pid)
+#define freePage(pid)  _freePage(pid)
+#endif
 
 class TzMem {
 public:
@@ -57,16 +68,27 @@ public:
     static void init(void *devTree);
     static void freeInitRamFS();
 
-    static PhysAddr allocPage(int pid);
-    static void freePage(PhysAddr page);
+    static PhysAddr _allocPage(int pid);
+    static int _freePage(PhysAddr page);
+
+#if ENABLE_PAGE_TRACE
+    static PhysAddr _allocPageTrace(const char *caller, int pid) {
+        PhysAddr page = _allocPage(pid);
+        printf("allocPage: %d %s: %p\n", pid, caller, page);
+        return page;
+    }
+
+    static void _freePageTrace(const char *caller, PhysAddr page) {
+        int pid = _freePage(page);
+        printf("freePage: %d %s: %p\n", pid, caller, page);
+    }
+#endif
 
     static PhysAddr allocContiguousPages(int numPages, int pid);
     static void freeContiguousPages(PhysAddr firstPage, int numPages);
 
     inline static int numFreePages() { return (freePagesEnd - freePagesStart); }
     inline static int numAllocatedPages() { return freePagesStart; }
-
-    static int numKernelImgPages();
 
     inline static void * virtToPhys(const void *virtAddr) {
         return (void *)((unsigned long)virtAddr + virt_to_phys_offset);

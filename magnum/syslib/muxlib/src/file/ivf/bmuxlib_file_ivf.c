@@ -49,6 +49,8 @@ BDBG_MODULE(BMUXLIB_FILE_IVF);
 BDBG_FILE_MODULE(BMUX_IVF_FINISH);
 BDBG_FILE_MODULE(BMUX_IVF_MEMORY);
 
+BDBG_OBJECT_ID(BMUXlib_File_IVF_P_Context);
+
 #ifdef BMUXLIB_IVF_P_TEST_MODE
 #include <stdio.h>
 #endif
@@ -134,9 +136,8 @@ BERR_Code BMUXlib_File_IVF_Create(BMUXlib_File_IVF_Handle *phIVFMux, const BMUXl
    if (NULL != hMux)
    {
       BKNI_Memset( hMux, 0, sizeof(struct BMUXlib_File_IVF_P_Context) );
+      BDBG_OBJECT_SET(hMux, BMUXlib_File_IVF_P_Context);
 
-      /* fill in the signature in the context */
-      hMux->uiSignature = BMUXLIB_FILE_IVF_P_SIGNATURE_CONTEXT;
       *phIVFMux = hMux;
       rc = BERR_SUCCESS;
    } /* hMux != NULL */
@@ -167,16 +168,15 @@ void BMUXlib_File_IVF_Destroy(BMUXlib_File_IVF_Handle hIVFMux)
 {
    BDBG_ENTER(BMUXlib_File_IVF_Destroy);
 
-   BDBG_ASSERT(hIVFMux != NULL);
-
    BDBG_MSG(("====Destroying IVF Mux===="));
 
    /* the following signifies an attempt to free up something that was either
       a) not created by Create()
       b) has already been destroyed
    */
-   BDBG_ASSERT(BMUXLIB_FILE_IVF_P_SIGNATURE_CONTEXT == hIVFMux->uiSignature);
+   BDBG_OBJECT_ASSERT(hIVFMux, BMUXlib_File_IVF_P_Context);
 
+   BDBG_OBJECT_DESTROY(hIVFMux, BMUXlib_File_IVF_P_Context);
    /* free the context ... */
    BKNI_Free(hIVFMux);
 
@@ -245,8 +245,7 @@ BERR_Code BMUXlib_File_IVF_Start(BMUXlib_File_IVF_Handle hIVFMux, const BMUXlib_
 
    BDBG_ENTER(BMUXlib_File_IVF_Start);
 
-   BDBG_ASSERT(hIVFMux != NULL);
-   BDBG_ASSERT(BMUXLIB_FILE_IVF_P_SIGNATURE_CONTEXT == hIVFMux->uiSignature);
+   BDBG_OBJECT_ASSERT(hIVFMux, BMUXlib_File_IVF_P_Context);
    BDBG_ASSERT(pStartSettings != NULL);
    BDBG_ASSERT(BMUXLIB_FILE_IVF_P_SIGNATURE_STARTSETTINGS == pStartSettings->uiSignature);
 
@@ -345,8 +344,7 @@ BERR_Code BMUXlib_File_IVF_Finish(BMUXlib_File_IVF_Handle hIVFMux, const BMUXlib
 
    BDBG_ENTER(BMUXlib_File_IVF_Finish);
 
-   BDBG_ASSERT(hIVFMux != NULL);
-   BDBG_ASSERT(BMUXLIB_FILE_IVF_P_SIGNATURE_CONTEXT == hIVFMux->uiSignature);
+   BDBG_OBJECT_ASSERT(hIVFMux, BMUXlib_File_IVF_P_Context);
    BDBG_ASSERT(pFinishSettings != NULL);
    BDBG_ASSERT(BMUXLIB_FILE_IVF_P_SIGNATURE_FINISHSETTINGS == pFinishSettings->uiSignature);
 
@@ -417,8 +415,7 @@ BERR_Code BMUXlib_File_IVF_Stop(BMUXlib_File_IVF_Handle hIVFMux)
    BERR_Code rc = BERR_SUCCESS;
    BDBG_ENTER(BMUXlib_File_IVF_Stop);
 
-   BDBG_ASSERT(hIVFMux != NULL);
-   BDBG_ASSERT(BMUXLIB_FILE_IVF_P_SIGNATURE_CONTEXT == hIVFMux->uiSignature);
+   BDBG_OBJECT_ASSERT(hIVFMux, BMUXlib_File_IVF_P_Context);
 
    BDBG_MSG(("====Stopping IVF Mux===="));
 
@@ -480,9 +477,8 @@ BERR_Code BMUXlib_File_IVF_DoMux(BMUXlib_File_IVF_Handle hIVFMux, BMUXlib_DoMux_
 
    BDBG_ENTER(BMUXlib_File_IVF_DoMux);
 
-   BDBG_ASSERT(hIVFMux != NULL);
    BDBG_ASSERT(pStatus != NULL);
-   BDBG_ASSERT(BMUXLIB_FILE_IVF_P_SIGNATURE_CONTEXT == hIVFMux->uiSignature);
+   BDBG_OBJECT_ASSERT(hIVFMux, BMUXlib_File_IVF_P_Context);
 
    switch (BMUXLIB_FILE_IVF_P_GET_MUX_STATE(hIVFMux))
    {

@@ -93,10 +93,17 @@ extern "C" {
 #define BVDC_P_CSC_CMP_LR_SLP_E_I_BITS       (4)
 #define BVDC_P_CSC_CMP_LR_SLP_E_F_BITS       (0)
 
+#if (BVDC_P_CMP_NON_LINEAR_CSC_VER == BVDC_P_NL_CSC_VER_2)
 #define BVDC_P_CSC_CMP_LR_X_SHIFT           BCHP_HDR_CMP_0_V0_R0_NL_LR_XY_0i_LRA_X_SHIFT
 #define BVDC_P_CSC_CMP_LR_Y_SHIFT           BCHP_HDR_CMP_0_V0_R0_NL_LR_XY_0i_LRA_Y_SHIFT
 #define BVDC_P_CSC_CMP_LR_SLP_M_SHIFT       BCHP_HDR_CMP_0_V0_R0_NL_LR_SLOPEi_SLOPE_M_SHIFT
 #define BVDC_P_CSC_CMP_LR_SLP_E_SHIFT       BCHP_HDR_CMP_0_V0_R0_NL_LR_SLOPEi_SLOPE_E_SHIFT
+#else /* TODO: add support */
+#define BVDC_P_CSC_CMP_LR_X_SHIFT           0
+#define BVDC_P_CSC_CMP_LR_Y_SHIFT           0
+#define BVDC_P_CSC_CMP_LR_SLP_M_SHIFT       0
+#define BVDC_P_CSC_CMP_LR_SLP_E_SHIFT       0
+#endif
 
 #define BVDC_P_CSC_VDEC_CX_I_BITS            (2)
 #define BVDC_P_CSC_VDEC_CX_F_BITS           (13)
@@ -801,7 +808,7 @@ void BVDC_P_Csc_ApplyYCbCrColor_isr
 void BVDC_P_Csc_Print_isr
     ( const BVDC_P_CscCoeffs          *pCsc );
 
-BVDC_P_MatrixCoeffs BVDC_P_MatrixCoeffs_BAVC_to_BVDC_P
+BVDC_P_MatrixCoeffs BVDC_P_MatrixCoeffs_BAVC_to_BVDC_P_isr
     ( BAVC_MatrixCoefficients          eMatrixCoeffs,
       bool                             bXvYcc);
 

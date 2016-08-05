@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2011 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *  
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,18 +35,10 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF 
 *  ANY LIMITED REMEDY.
 * 
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * API Description:
 *   API name: SpdifInput
 *    Specific APIs related to SPDIF audio inputs.
 *
-* Revision History:
-*
-* $brcm_Log: $
-* 
 ***************************************************************************/
 
 #ifndef NEXUS_SPDIF_INPUT_H__
@@ -136,7 +128,7 @@ Get an audio connector for use with downstream components
 Description:
 Currently, SPDIF Input devices must always connect to a NEXUS_AudioDecoder downstream.
 ***************************************************************************/
-NEXUS_AudioInput NEXUS_SpdifInput_GetConnector( 
+NEXUS_AudioInputHandle NEXUS_SpdifInput_GetConnector(
     NEXUS_SpdifInputHandle handle
     );
 
@@ -145,4 +137,3 @@ NEXUS_AudioInput NEXUS_SpdifInput_GetConnector(
 #endif
 
 #endif /* #ifndef NEXUS_SPDIF_INPUT_H__ */
-

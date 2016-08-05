@@ -87,6 +87,7 @@ public:
     void stopAndDestroyBipStreamer();
 
     void setProgram(const char * str);
+    void setTranscodeOption(const char * str);
 
     void setStreamerStreamInfo(void);
     eRet addAllTracks(void);
@@ -120,8 +121,9 @@ protected:
     void *                 _pAtlasId;                  /* model will provide this */
     bool                   _enableHls;
     bool                   _enableXcode;
+    bool                   _enableLuaXcode;
     bool                   _enableDtcpIp;
-    const char *           _xcodeProfile;
+    MString                _xcodeProfile;
     CConfig *              _pConfig;
 };
 

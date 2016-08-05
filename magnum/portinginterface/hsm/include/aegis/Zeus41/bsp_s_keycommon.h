@@ -516,6 +516,7 @@ typedef enum BCMD_GenKey_InCmd_e
     BCMD_GenKey_InCmd_eCtrlWord4                = (35 << 2),
     BCMD_GenKey_InCmd_eCtrlWord5                = (36 << 2),
     BCMD_GenKey_InCmd_eSTBOwnerIDSel            = (37 << 2) + 3,
+    BCMD_GenKey_InCmd_eCAVendorIDExtension      = (38 << 2) + 1,
     BCMD_GenKey_InCmd_eCAVendorID               = (38 << 2) + 2,
     BCMD_GenKey_InCmd_eTestKeySel               = (39 << 2) + 2,
     BCMD_GenKey_InCmd_eModuleID                 = (39 << 2) + 3,
@@ -527,6 +528,7 @@ typedef enum BCMD_GenKey_InCmd_e
     BCMD_GenKey_InCmd_eReserved_46_3  =  (46<<2)+3,
     BCMD_GenKey_InCmd_eReserved_47_3  =  (47<<2)+3,
     BCMD_GenKey_InCmd_eReserved_48_2  =  (48<<2)+2,
+    BCMD_GenKey_InCmd_eReservedDataForDSK       = (49 << 2),
     BCMD_GenKey_InCmd_eMax
 }BCMD_GenKey_InCmd_e;
 

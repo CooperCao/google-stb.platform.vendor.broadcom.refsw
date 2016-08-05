@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2014 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile:  $
-* $brcm_Revision:  $
-* $brcm_Date:  $
-*
 * Module Description: BSAGE Crypto type definitions.
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 
@@ -351,6 +343,26 @@ typedef enum BSAGElib_Crypto_Region_e
 
 }   BSAGElib_Crypto_Region_e;
 
+typedef enum BSAGElib_Crypto_KeySlotPermission_e
+{
+    BSAGElib_Crypto_KeySlotPermission_eNone    = 0x0,
+
+    /* Allow DMA transfers: */
+    BSAGElib_Crypto_KeySlotPermission_eAllowGG = 0x1, /* from global to global memory regions         */
+    BSAGElib_Crypto_KeySlotPermission_eAllowGR = 0x2, /* from global to restricted memory regions     */
+    BSAGElib_Crypto_KeySlotPermission_eAllowRG = 0x4, /* from restricted to global memory regions     */
+    BSAGElib_Crypto_KeySlotPermission_eAllowRR = 0x8, /* from restricted to restricted memory regions */
+
+    /* Only allow DMA transfers into restricted memory regions.                                   */
+    BSAGElib_Crypto_KeySlotPermission_eRestricted = (BSAGElib_Crypto_KeySlotPermission_eAllowGR |
+                                                 BSAGElib_Crypto_KeySlotPermission_eAllowRR),
+
+    /* Allow DMA transfers from/to global and restricted memory regions.                          */
+    BSAGElib_Crypto_KeySlotPermission_eFull = (BSAGElib_Crypto_KeySlotPermission_eAllowGG |
+                                           BSAGElib_Crypto_KeySlotPermission_eAllowGR |
+                                           BSAGElib_Crypto_KeySlotPermission_eAllowRG |
+                                           BSAGElib_Crypto_KeySlotPermission_eAllowRR)
+}   BSAGElib_Crypto_KeySlotPermission_e;
 
 /**
 Summary:

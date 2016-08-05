@@ -4034,7 +4034,7 @@ const uint32_t BDSP_IMG_mac_decode_array1[] = {
 	0x461ffe27,
 	0x461ffe37,
 	0x94087fcb,
-	0xa7278dd7,
+	0xa72809d7,
 	0x001ff768,
 	0x07bffe03,
 	0xa7058dd7,

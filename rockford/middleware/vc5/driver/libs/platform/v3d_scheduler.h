@@ -116,8 +116,8 @@ void v3d_scheduler_submit_bin_render_job(
 /* Submits a user mode job.
  * The user function will be called when jobs specified in deps complete
  */
-void v3d_scheduler_submit_usermode_job(
-   v3d_scheduler_deps *deps,
+uint64_t v3d_scheduler_submit_usermode_job(
+   const v3d_scheduler_deps *deps,
    v3d_sched_user_fn user_fn, void *data);
 
 /* Creates a fence that will be signaled when all the jobs specified in deps
@@ -202,7 +202,6 @@ static inline void v3d_scheduler_copy_deps(v3d_scheduler_deps *dst, const v3d_sc
 
 const V3D_HUB_IDENT_T* v3d_scheduler_get_hub_identity(void);
 const V3D_IDENT_T* v3d_scheduler_get_identity(void);
-int v3d_scheduler_get_v3d_ver(void);
 
 /* helper functions/ structs */
 typedef struct v3d_lock_sync

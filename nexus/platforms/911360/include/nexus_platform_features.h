@@ -96,7 +96,6 @@ upon the chip usage. See below */
 
 #define NEXUS_NUM_I2C_CHANNELS 0
 #define NEXUS_MAX_I2C_CHANNELS 0
-#define NEXUS_HDMI_OUTPUT_I2C_CHANNEL 0
 
 /* Memory features */
 #define NEXUS_NUM_MEMC 1

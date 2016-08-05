@@ -44,7 +44,6 @@
 #include "nexus_platform_features.h"
 #include "nexus_platform_priv.h"
 #include "nexus_base.h"
-#include "nexus_input_band.h"
 #include "bchp_gio.h"
 #if NEXUS_HAS_FRONTEND
 #include "nexus_frontend.h"

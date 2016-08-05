@@ -1,56 +1,49 @@
 /******************************************************************************
-*    (c)2011-2013 Broadcom Corporation
-*
-* This program is the proprietary software of Broadcom Corporation and/or its licensors,
-* and may only be used, duplicated, modified or distributed pursuant to the terms and
-* conditions of a separate, written license agreement executed between you and Broadcom
-* (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
-* no license (express or implied), right to use, or waiver of any kind with respect to the
-* Software, and Broadcom expressly reserves all rights in and to the Software and all
-* intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-* Except as expressly set forth in the Authorized License,
-*
-* 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
-* secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
-* and to use this information only in connection with your use of Broadcom integrated circuit products.
-*
-* 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-* AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-* WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
-* THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
-* OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
-* LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
-* OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
-* USE OR PERFORMANCE OF THE SOFTWARE.
-*
-* 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-* LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
-* EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
-* USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
-* THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
-* ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
-* LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
-* ANY LIMITED REMEDY.
-*
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* Module Description:
-*
-* Revision History:
-*
-* $brcm_Log: $
-*
-*****************************************************************************/
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
+ *
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************/
 #include "bstd.h"
 #include "bmth.h"
 #include "bsat.h"
 #include "bsat_priv.h"
 #include "bsat_g1_priv.h"
+
 
 #ifndef BSAT_EXCLUDE_TFEC
 
@@ -68,6 +61,9 @@ BERR_Code BSAT_g1_P_TfecSetOpll_isr(BSAT_ChannelHandle h);
 BERR_Code BSAT_g1_P_TfecConfig_isr(BSAT_ChannelHandle h);
 BERR_Code BSAT_g1_P_TfecRun_isr(BSAT_ChannelHandle h);
 BERR_Code BSAT_g1_P_TfecUpdateBlockCount_isrsafe(BSAT_ChannelHandle h);
+#ifndef BSAT_HAS_DUAL_TFEC
+BERR_Code BSAT_g1_P_TfecAcquire2_isr(BSAT_ChannelHandle h);
+#endif
 #ifdef BSAT_HAS_DUAL_TFEC
 BSAT_ChannelHandle BSAT_g1_P_TfecGetOtherChannelHandle_isrsafe(BSAT_ChannelHandle h);
 #endif
@@ -239,10 +235,19 @@ BERR_Code BSAT_g1_P_TfecOnHpLock_isr(BSAT_ChannelHandle h)
    }
    BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_CL_CLDAFECTL, val);
 
-   BSAT_g1_P_AndRegister_isrsafe(h, BCHP_SDS_EQ_EQMISCCTL, 0xFFFFFBFF);           /* disable CMA */
-   BSAT_g1_P_ReadModifyWriteRegister_isrsafe(h, BCHP_SDS_EQ_EQFFECTL, 0xFFFF00FF, 0x0200); /* unfreze other taps */
-   BSAT_g1_P_AndRegister_isrsafe(h, BCHP_SDS_CL_CLCTL1, 0xFFFFFFEF);              /* disable front carrier loop */
-   BSAT_g1_P_OrRegister_isrsafe(h, BCHP_SDS_CL_CLCTL2, 0x00000004);               /* freeze front carrier loop */
+   BSAT_g1_P_AndRegister_isrsafe(h, BCHP_SDS_EQ_EQMISCCTL, ~BCHP_SDS_EQ_0_EQMISCCTL_cma_en_MASK);           /* disable CMA */
+
+   val = BSAT_g1_P_ReadRegister_isrsafe(h, BCHP_SDS_EQ_EQFFECTL);
+   BCHP_SET_FIELD_DATA(val, SDS_EQ_0_EQFFECTL, ffe_main_mu, 6);
+   BCHP_SET_FIELD_DATA(val, SDS_EQ_0_EQFFECTL, ffe_mu, 6);
+   BCHP_SET_FIELD_DATA(val, SDS_EQ_0_EQFFECTL, ffe_mu_delta_en, 0);
+   BCHP_SET_FIELD_DATA(val, SDS_EQ_0_EQFFECTL, ffe_frz, 0);
+   BCHP_SET_FIELD_DATA(val, SDS_EQ_0_EQFFECTL, ffe_mainq_frz, 1);
+   BCHP_SET_FIELD_DATA(val, SDS_EQ_0_EQFFECTL, ffe_maini_frz, 0);
+   BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_EQ_EQFFECTL, val);
+
+   BSAT_g1_P_AndRegister_isrsafe(h, BCHP_SDS_CL_CLCTL1, ~BCHP_SDS_CL_0_CLCTL1_clen_MASK); /* disable front carrier loop */
+   BSAT_g1_P_OrRegister_isrsafe(h, BCHP_SDS_CL_CLCTL2, BCHP_SDS_CL_0_CLCTL2_fclfrz_MASK); /* freeze front carrier loop */
 
    if (BSAT_MODE_IS_TURBO_8PSK(hChn->actualMode))
       val = 0x99;
@@ -258,6 +263,12 @@ BERR_Code BSAT_g1_P_TfecOnHpLock_isr(BSAT_ChannelHandle h)
    BSAT_CHK_RETCODE(BSAT_g1_P_TfecSetOpll_isr(h));
    BSAT_CHK_RETCODE(BSAT_g1_P_ConfigOif_isr(h));
    BSAT_CHK_RETCODE(BSAT_g1_P_SetAgcTrackingBw_isr(h));
+
+   /* clear the TFEC interrupts */
+   BSAT_CHK_RETCODE(BSAT_g1_P_TfecEnableSyncInterrupt_isr(h, false));
+   BINT_ClearCallback_isr(hChn->hTfecSyncCb);
+   BINT_ClearCallback_isr(hChn->hTfecLockCb);
+   BINT_ClearCallback_isr(hChn->hTfecNotLockCb);
 
    /* set up the TFEC */
    BSAT_CHK_RETCODE(BSAT_g1_P_TfecConfig_isr(h));
@@ -287,15 +298,39 @@ BERR_Code BSAT_g1_P_TfecOnHpLock_isr(BSAT_ChannelHandle h)
    if (hChn->bPlcTracking == false)
       BSAT_g1_P_ConfigPlc_isr(h, false); /* set tracking PLC */
 
+#ifdef BSAT_HAS_DUAL_TFEC
+   BSAT_CHK_RETCODE(BSAT_g1_P_TfecEnableSyncInterrupt_isr(h, true));
+   retCode = BSAT_g1_P_TfecRun_isr(h);
+#else
+   if (hChn->actualMode == BSAT_Mode_eTurbo_Qpsk_1_2)
+      val = 400000;
+   else
+      val = 300000;
+   retCode = BSAT_g1_P_EnableTimer_isr(h, BSAT_TimerSelect_eBaud, val, BSAT_g1_P_TfecAcquire2_isr);
+#endif
+
+   done:
+   return retCode;
+}
+
+
+#ifndef BSAT_HAS_DUAL_TFEC
+/******************************************************************************
+ BSAT_g1_P_TfecAcquire2_isr()
+******************************************************************************/
+BERR_Code BSAT_g1_P_TfecAcquire2_isr(BSAT_ChannelHandle h)
+{
+   BERR_Code retCode;
+
    /* wait for sync with timeout */
    BSAT_CHK_RETCODE(BSAT_g1_P_TfecEnableSyncInterrupt_isr(h, true));
 
-   /* need a delay here for some reason... */
    retCode = BSAT_g1_P_TfecRun_isr(h);
 
    done:
    return retCode;
 }
+#endif
 
 
 /******************************************************************************
@@ -333,9 +368,20 @@ bool BSAT_g1_P_TfecIsValidMode_isr(BSAT_ChannelHandle h)
 ******************************************************************************/
 BERR_Code BSAT_g1_P_TfecOnLock_isr(BSAT_ChannelHandle h)
 {
+   uint32_t hpoverride;
    BSTD_UNUSED(h);
 
    BSAT_DEBUG_TFEC(BDBG_WRN(("TFEC locked")));
+
+   hpoverride = BSAT_g1_P_ReadRegister_isrsafe(h, BCHP_SDS_HP_HPOVERRIDE);
+   BCHP_SET_FIELD_DATA(hpoverride, SDS_HP_0_HPOVERRIDE, CLFFRZOV, 1);
+   BCHP_SET_FIELD_DATA(hpoverride, SDS_HP_0_HPOVERRIDE, CLFENOV, 1);
+   BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_HP_HPOVERRIDE, hpoverride);
+
+   BSAT_g1_P_OrRegister_isrsafe(h, BCHP_SDS_CL_CLCTL1, BCHP_SDS_CL_0_CLCTL1_clen_MASK); /* enable front carrier loop */
+   BSAT_g1_P_AndRegister_isrsafe(h, BCHP_SDS_CL_CLCTL1, ~BCHP_SDS_CL_0_CLCTL1_flfsel_MASK); /* use front phase detector */
+   BSAT_g1_P_OrRegister_isrsafe(h, BCHP_SDS_CL_CLCTL2, BCHP_SDS_CL_0_CLCTL2_fclfrz_MASK); /* freeze front carrier loop */
+
    return BERR_SUCCESS;
 }
 
@@ -663,7 +709,8 @@ BERR_Code BSAT_g1_P_TfecConfigCl_isr(BSAT_ChannelHandle h)
    uint32_t val;
 
    val = BSAT_g1_P_ReadRegister_isrsafe(h, BCHP_SDS_CL_CLCTL1);
-   val &= ~0x00000A00;
+   BCHP_SET_FIELD_DATA(val, SDS_CL_0_CLCTL1, front_in_sel, 0);
+   BCHP_SET_FIELD_DATA(val, SDS_CL_0_CLCTL1, updqamff, 0);
    BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_CL_CLCTL1, val);
 
    val = BSAT_g1_P_ReadRegister_isrsafe(h, BCHP_SDS_CL_CLCTL2);
@@ -673,11 +720,17 @@ BERR_Code BSAT_g1_P_TfecConfigCl_isr(BSAT_ChannelHandle h)
    BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_CL_CLCTL2, val);
 
    if (BSAT_MODE_IS_TURBO_8PSK(hChn->actualMode))
-      BSAT_g1_P_AndRegister_isrsafe(h, BCHP_SDS_CL_CLFFCTL, ~0x00000002);
+      BSAT_g1_P_AndRegister_isrsafe(h, BCHP_SDS_CL_CLFFCTL, ~BCHP_SDS_CL_0_CLFFCTL_fine_mix_byp_MASK);
    else
-      BSAT_g1_P_OrRegister_isrsafe(h, BCHP_SDS_CL_CLFFCTL, 0x00000002);
+      BSAT_g1_P_OrRegister_isrsafe(h, BCHP_SDS_CL_CLFFCTL, BCHP_SDS_CL_0_CLFFCTL_fine_mix_byp_MASK);
 
-   BSAT_g1_P_AndRegister_isrsafe(h, BCHP_SDS_CL_CLFBCTL, ~0x000000F8);
+   val = BSAT_g1_P_ReadRegister_isrsafe(h, BCHP_SDS_CL_CLFBCTL);
+   BCHP_SET_FIELD_DATA(val, SDS_CL_0_CLFBCTL, fb_err_mode, 0);
+   BCHP_SET_FIELD_DATA(val, SDS_CL_0_CLFBCTL, fw_rst_mode, 0);
+   BCHP_SET_FIELD_DATA(val, SDS_CL_0_CLFBCTL, bw_rst_mode, 0);
+   BCHP_SET_FIELD_DATA(val, SDS_CL_0_CLFBCTL, fb_mode, 0);
+   BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_CL_CLFBCTL, val);
+
    return BERR_SUCCESS;
 }
 
@@ -688,69 +741,97 @@ BERR_Code BSAT_g1_P_TfecConfigCl_isr(BSAT_ChannelHandle h)
 BERR_Code BSAT_g1_P_TfecConfigEq_isr(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
-   uint32_t val, i;
+   uint32_t val, i, main_tap_idx = 12;
 
    val = BSAT_g1_P_ReadRegister_isrsafe(h, BCHP_SDS_EQ_EQMISCCTL);
-   val &= ~0x0038401F;
-   val |= 0x00140000;
+   BCHP_SET_FIELD_DATA(val, SDS_EQ_0_EQMISCCTL, ffe_mu_delta, 2);
+   BCHP_SET_FIELD_DATA(val, SDS_EQ_0_EQMISCCTL, dvbs2_8psk_mapping, 0);
 
    if (BSAT_MODE_IS_TURBO_8PSK(hChn->actualMode))
-      val |= 0x0000400A; /* err_mode=2, sym_mode=2, set ext_en */
+   {
+      BCHP_SET_FIELD_DATA(val, SDS_EQ_0_EQMISCCTL, err_mode, 2);
+      BCHP_SET_FIELD_DATA(val, SDS_EQ_0_EQMISCCTL, sym_mode, 2);
+      BCHP_SET_FIELD_DATA(val, SDS_EQ_0_EQMISCCTL, ext_en, 1);
+   }
+   else
+   {
+      BCHP_SET_FIELD_DATA(val, SDS_EQ_0_EQMISCCTL, err_mode, 0);
+      BCHP_SET_FIELD_DATA(val, SDS_EQ_0_EQMISCCTL, sym_mode, 0);
+      BCHP_SET_FIELD_DATA(val, SDS_EQ_0_EQMISCCTL, ext_en, 0);
+   }
    BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_EQ_EQMISCCTL, val);
 
    val = BSAT_g1_P_ReadRegister_isrsafe(h, BCHP_SDS_EQ_EQFFECTL);
-   val &= 0x0000FF06;
-   val |= 0x660C0720;
+   BCHP_SET_FIELD_DATA(val, SDS_EQ_0_EQFFECTL, ffe_main_tap, main_tap_idx);
+   BCHP_SET_FIELD_DATA(val, SDS_EQ_0_EQFFECTL, ffe_update_rate, 1);
+   BCHP_SET_FIELD_DATA(val, SDS_EQ_0_EQFFECTL, ffe_reset, 0);
    if (BSAT_MODE_IS_TURBO_8PSK(hChn->actualMode))
-      val |= 0x08;
+   {
+      BCHP_SET_FIELD_DATA(val, SDS_EQ_0_EQFFECTL, ffe_main_mu, 6);
+      BCHP_SET_FIELD_DATA(val, SDS_EQ_0_EQFFECTL, ffe_mu, 6);
+      BCHP_SET_FIELD_DATA(val, SDS_EQ_0_EQFFECTL, ffe_update_mode, 1);
+   }
    else
-      val |= 0x10;
+   {
+      /* Turbo QPSK */
+      BCHP_SET_FIELD_DATA(val, SDS_EQ_0_EQFFECTL, ffe_main_mu, 3);
+      BCHP_SET_FIELD_DATA(val, SDS_EQ_0_EQFFECTL, ffe_mu, 3);
+      BCHP_SET_FIELD_DATA(val, SDS_EQ_0_EQFFECTL, ffe_update_mode, 2);
+   }
+   BCHP_SET_FIELD_DATA(val, SDS_EQ_0_EQFFECTL, ffe_frz, 0);
+   BCHP_SET_FIELD_DATA(val, SDS_EQ_0_EQFFECTL, ffe_maini_frz, 0);
+   BCHP_SET_FIELD_DATA(val, SDS_EQ_0_EQFFECTL, ffe_mainq_frz, 1);
    BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_EQ_EQFFECTL, val);
 
    for (i = 0; i < 24; i++)
    {
       val = BSAT_g1_P_ReadRegister_isrsafe(h, BCHP_SDS_EQ_EQCFAD);
-      val &= ~0x1F;
-      val |= (0x40 | i);
+      BCHP_SET_FIELD_DATA(val, SDS_EQ_0_EQCFAD, coeff_addr, i);
+      BCHP_SET_FIELD_DATA(val, SDS_EQ_0_EQCFAD, coeff_rw_en, 1);
       BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_EQ_EQCFAD, val);
 
       val = 0;
-      if (i == 0x0C) /* TBD: should get main tap location from EQFFECTL [20:16] instead */
+      if (i == main_tap_idx)
       {
          if (BSAT_MODE_IS_TURBO_8PSK(hChn->actualMode))
          {
 #ifdef BSAT_HAS_WFE
-            val = 0x38000000;
+            BCHP_SET_FIELD_DATA(val, SDS_EQ_0_F0B, coeff_i, 0x3800); /* val = 0x38000000 */
 #else
-            val = 0x39000000;
+            BCHP_SET_FIELD_DATA(val, SDS_EQ_0_F0B, coeff_i, 0x3900); /* val = 0x39000000 */
 #endif
          }
          else
          {
 #ifdef BSAT_HAS_WFE
-            val = 0x25000000;
+            BCHP_SET_FIELD_DATA(val, SDS_EQ_0_F0B, coeff_i, 0x2500); /* val = 0x25000000 */
 #else
-            val = 0x28600000;
+            BCHP_SET_FIELD_DATA(val, SDS_EQ_0_F0B, coeff_i, 0x2860); /* val = 0x28600000 */
 #endif
          }
       }
       BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_EQ_F0B, val);
    }
 
+   BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_EQ_EQCFAD, 0);
+
+   val = BCHP_FIELD_DATA(SDS_EQ_0_PLDCTL, pl_des_byp, 1);
+   BCHP_SET_FIELD_DATA(val, SDS_EQ_0_PLDCTL, pl_res_byp, 1);
    if (BSAT_MODE_IS_TURBO_8PSK(hChn->actualMode))
    {
 #ifdef BSAT_HAS_WFE
-      val = 0x570A; /* 70% */
+      BCHP_SET_FIELD_DATA(val, SDS_EQ_0_PLDCTL, hp_in_scale, 0x35); /* threshold=0x4B */
 #else
-      val = 0x670A; /* 0x67 = backoff 15% from 0x79 */
+      BCHP_SET_FIELD_DATA(val, SDS_EQ_0_PLDCTL, hp_in_scale, 0x67); /* val = 0x670A */
 #endif
    }
    else
    {
+      /* Turbo QPSK */
 #ifdef BSAT_HAS_WFE
-      val = 0x7A0A; /* 70% */
+      BCHP_SET_FIELD_DATA(val, SDS_EQ_0_PLDCTL, hp_in_scale, 0x3E); /* threshold=0x58 */
 #else
-      val = 0x750A;
+      BCHP_SET_FIELD_DATA(val, SDS_EQ_0_PLDCTL, hp_in_scale, 0x75); /* val = 0x750A */
 #endif
    }
    BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_EQ_PLDCTL, val);
@@ -1054,15 +1135,10 @@ BERR_Code BSAT_g1_P_TfecConfig_isr(BSAT_ChannelHandle h)
       val = hChn->turboSettings.tzsyOverride;
    else
    {
-      if (hChn->acqSettings.mode == BSAT_Mode_eTurbo_scan)
-      {
-         if (BSAT_MODE_IS_TURBO_8PSK(hChn->actualMode))
-            val = 0x00140810;
-         else
-            val = 0x00080810;
-      }
+      if (hChn->actualMode == BSAT_Mode_eTurbo_Qpsk_1_2)
+         val = 0x00080810;
       else
-        val = 0x00180810; /* 0/24 acquire lock, 8/16 retain lock, orig=0x0420040F */
+         val = 0x000C0810;
    }
    BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_TFEC_TZSY, val); /* orig: 0x00020E0F */
 
@@ -1088,6 +1164,10 @@ BERR_Code BSAT_g1_P_TfecOnSyncTimeout_isr(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
    BERR_Code retCode;
+#ifdef BSAT_DEBUG_ACQ_TIME
+   uint32_t status;
+   status = BSAT_g1_P_ReadRegister_isrsafe(h, BCHP_TFEC_INTR2_CPU_STATUS);
+#endif
 
    BSAT_CHK_RETCODE(BSAT_g1_P_TfecEnableSyncInterrupt_isr(h, false));
 
@@ -1098,7 +1178,7 @@ BERR_Code BSAT_g1_P_TfecOnSyncTimeout_isr(BSAT_ChannelHandle h)
 
 #ifdef BSAT_DEBUG_ACQ_TIME
 BSAT_g1_P_GetAcquisitionTimerValue_isr(h, &t1);
-BDBG_ERR(("TfecOnSyncTimeout: t=%d, actualMode=0x%X", t1-t0, hChn->actualMode));
+BDBG_ERR(("TfecOnSyncTimeout: t=%d, actualMode=0x%X, status=0x%X", t1-t0, hChn->actualMode, status));
 #endif
 
    if (BSAT_g1_P_IsHpLocked_isr(h))
@@ -1131,27 +1211,14 @@ BDBG_ERR(("TfecOnSyncTimeout: t=%d, actualMode=0x%X", t1-t0, hChn->actualMode));
 ******************************************************************************/
 BERR_Code BSAT_g1_P_TfecRun_isr(BSAT_ChannelHandle h)
 {
-   static const uint16_t non_scan_timeout[10] =
+   static const uint16_t rs_timeout[10] =
    {
-      1400, 1350, 1300, 1250, 1200, 1150, 1150, 1150, 1150, 1150
-   };
-
-   static const uint16_t scan_timeout[5][10] =
-   {
-      {990, 743, 715, 688, 660, 770, 759, 715, 688, 660}, /* Fb >= 30Msps */
-      {990, 743, 715, 688, 660, 770, 759, 715, 688, 660}, /* Fb >= 21.5Msps */
-      {770, 743, 715, 688, 660, 880, 759, 798, 688, 660}, /* Fb >= 15Msps */
-      {770, 743, 715, 688, 660, 880, 759, 715, 688, 660}, /* Fb >= 10Msps */
-      {770, 743, 715, 688, 660, 770, 759, 715, 688, 660}  /* Fb < 10Msps */
+      /* 1359, 1226, 1097, 989, 989, 946, 946, 817, 710, 710 */
+      859,  912,  870,  786, 834, 765, 892, 901, 646, 655
    };
 
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
-   uint32_t timeout, Fb, mode_idx, Fb_idx;
-
-   /* clear turbo interrupts */
-   BINT_ClearCallback_isr(hChn->hTfecSyncCb);
-   BINT_ClearCallback_isr(hChn->hTfecLockCb);
-   BINT_ClearCallback_isr(hChn->hTfecNotLockCb);
+   uint32_t timeout, mode_idx;
 
 #ifndef BSAT_HAS_DUAL_TFEC
    BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_TFEC_TFECTL, 0x63); /* reset error counters */
@@ -1162,28 +1229,8 @@ BERR_Code BSAT_g1_P_TfecRun_isr(BSAT_ChannelHandle h)
 BSAT_g1_P_GetAcquisitionTimerValue_isr(h, &t0);
 #endif
 
-   Fb = hChn->acqSettings.symbolRate;
    mode_idx = hChn->actualMode - BSAT_Mode_eTurbo_Qpsk_1_2;
-
-   if (hChn->acqSettings.mode == BSAT_Mode_eTurbo_scan)
-   {
-      /* set timeout based on (mode, Fb) */
-      if (Fb >= 30000000)
-         Fb_idx = 0;
-      else if (Fb >= 21500000)
-         Fb_idx = 1;
-      else if (Fb >= 15000000)
-         Fb_idx = 2;
-      else if (Fb >= 10000000)
-         Fb_idx = 3;
-      else
-         Fb_idx = 4;
-      timeout = (uint32_t)scan_timeout[Fb_idx][mode_idx];
-   }
-   else
-      timeout = (uint32_t)non_scan_timeout[mode_idx];
-
-   timeout *= 1000;
+   timeout = ((uint32_t)rs_timeout[mode_idx]) * 1000;
    return BSAT_g1_P_EnableTimer_isr(h, BSAT_TimerSelect_eBaud, timeout, BSAT_g1_P_TfecOnSyncTimeout_isr);
 }
 
@@ -1236,7 +1283,7 @@ BERR_Code BSAT_g1_P_TfecReacquire_isr(BSAT_ChannelHandle h)
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
    BSAT_g1_P_Handle *hDevImpl = (BSAT_g1_P_Handle*)(h->pDevice->pImpl);
 
-   /* BDBG_MSG(("BSAT_g1_P_TfecReacquire_isr(%d)", h->channel)); */
+   BDBG_ERR(("BSAT_g1_P_TfecReacquire_isr(%d)", h->channel));
 
    if ((hChn->acqSettings.options & BSAT_ACQ_DISABLE_REACQ) && hChn->miscSettings.bPreserveState)
       goto reacquire;

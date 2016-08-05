@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2012 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *  
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,18 +35,10 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF 
 *  ANY LIMITED REMEDY.
 * 
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * API Description:
 *   API name: 3dSurround
 *    Specific APIs related to Broadcom 3D Surround Processing
 *
-* Revision History:
-*
-* $brcm_Log: $
-* 
 ***************************************************************************/
 
 #ifndef NEXUS_3D_SURROUND_H__
@@ -155,7 +147,7 @@ NEXUS_Error NEXUS_3dSurround_SetSettings(
 Summary:
     Get the audio connector for a 3D Surround stage
 ***************************************************************************/
-NEXUS_AudioInput NEXUS_3dSurround_GetConnector(
+NEXUS_AudioInputHandle NEXUS_3dSurround_GetConnector(
     NEXUS_3dSurroundHandle handle
     );
 
@@ -165,7 +157,7 @@ Add an input to this processing stage
 ***************************************************************************/
 NEXUS_Error NEXUS_3dSurround_AddInput(
     NEXUS_3dSurroundHandle handle,
-    NEXUS_AudioInput input
+    NEXUS_AudioInputHandle input
     );
 
 /***************************************************************************
@@ -174,7 +166,7 @@ Remove an input from this processing stage
 ***************************************************************************/
 NEXUS_Error NEXUS_3dSurround_RemoveInput(
     NEXUS_3dSurroundHandle handle,
-    NEXUS_AudioInput input
+    NEXUS_AudioInputHandle input
     );
 
 /***************************************************************************
@@ -190,5 +182,3 @@ NEXUS_Error NEXUS_3dSurround_RemoveAllInputs(
 #endif
 
 #endif /* #ifndef NEXUS_3D_SURROUND_H__ */
-
-

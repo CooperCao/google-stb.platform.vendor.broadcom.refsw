@@ -1,23 +1,45 @@
-/***************************************************************************
- *     Copyright (c) 2013-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
  *
- * Module Description:
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
  *
- * Revision History:
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
- * 
- ***************************************************************************/
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************/
+
+
 
 
 #include "bdcm_device.h"
@@ -52,14 +74,14 @@ BERR_Code BDCM_Aob_GetChannelDefaultSettings(
     BKNI_Memset(pSettings,0,sizeof(*pSettings));
     pSettings->xtalFreq = BDCM_AOB_XTALFREQ;
     pSettings->ifFreq = BDCM_AOB_IFFREQ;
-    pSettings->spectrum = BDCM_AobSpectrumMode_eNoInverted; 
+    pSettings->spectrum = BDCM_AobSpectrumMode_eNoInverted;
     pSettings->enableFEC = false;
     BDBG_LEAVE(BDCM_Aob_GetChannelDefaultSettings);
     return retCode;
 }
 
 BDCM_AobChannelHandle BDCM_Aob_OpenChannel(
-    void *handle,				
+    void *handle,
     const BDCM_AobSettings *pSettings
     )
 {
@@ -69,12 +91,12 @@ BDCM_AobChannelHandle BDCM_Aob_OpenChannel(
     BRPC_Param_AOB_Open	Param;
     BERR_Code retVal;
     BDBG_ASSERT(hDevice);
-    
+
     BDBG_ENTER(BDCM_Aob_OpenChannel);
-    
-    if(hDevice->hAob) 
+
+    if(hDevice->hAob)
     {
-       BDBG_WRN(("%s: OOB channel already opened %ul",__FUNCTION__,hDevice->hAob));
+       BDBG_WRN(("%s: OOB channel already opened %ul",__FUNCTION__,(unsigned int)hDevice->hAob));
        return NULL;
     }
     /* Alloc memory from the system heap */
@@ -86,7 +108,7 @@ BDCM_AobChannelHandle BDCM_Aob_OpenChannel(
         goto done;
     }
     BKNI_Memset(hChannel, 0x00, sizeof(struct BDCM_AobChannel));
-    
+
     hChannel->hDevice = hDevice;
     hChannel->devId = BRPC_DevId_DOCSIS_OB0;
     hChannel->enableFEC = pSettings->enableFEC;
@@ -97,7 +119,7 @@ BDCM_AobChannelHandle BDCM_Aob_OpenChannel(
 
     CHK_RETCODE(retCode, BRPC_CallProc(hDevice->hRpc,
                                        BRPC_ProcId_AOB_Open,
-                                       (const uint32_t *)&Param, 
+                                       (const uint32_t *)&Param,
                                        sizeInLong(Param),
                                        NULL, 0, &retVal));
     CHK_RETCODE(retCode, retVal);
@@ -111,7 +133,7 @@ done:
         if( hChannel != NULL )
 		{
             BKNI_Free( hChannel );
-            if (hChannel->mutex) 
+            if (hChannel->mutex)
             {
                 BKNI_DestroyMutex(hChannel->mutex);
             }
@@ -160,7 +182,7 @@ BERR_Code BDCM_Aob_AcquireChannel(
 
     BDBG_ENTER(BDCM_Aob_AcquireChannel);
     BDBG_ASSERT(hChannel);
-    
+
     BDBG_MSG(("%s: modType=%d, symbolRate=%d", __FUNCTION__, modType, symbolRate));
     BKNI_AcquireMutex(hChannel->mutex);
     hChannel->isLock = false;
@@ -171,7 +193,7 @@ BERR_Code BDCM_Aob_AcquireChannel(
     Param.symbolRate = symbolRate;
     CHK_RETCODE(retCode,BRPC_CallProc(hChannel->hDevice->hRpc,
                                       BRPC_ProcId_AOB_Acquire,
-                                      (const uint32_t *)&Param, 
+                                      (const uint32_t *)&Param,
                                       sizeInLong(Param),
                                       NULL, 0, &retVal));
     CHK_RETCODE(retCode, retVal);
@@ -199,8 +221,8 @@ BERR_Code BDCM_Aob_GetChannelStatus(
     CHK_RETCODE(retCode, BRPC_CallProc(hChannel->hDevice->hRpc,
                                        BRPC_ProcId_AOB_GetStatus,
                                        (const uint32_t *)&Param,
-                                       sizeInLong(Param), 
-                                       (uint32_t *)&outParam, 
+                                       sizeInLong(Param),
+                                       (uint32_t *)&outParam,
                                        sizeInLong(outParam),
                                        &retVal) );
     CHK_RETCODE( retCode, retVal);
@@ -244,7 +266,7 @@ BERR_Code BDCM_Aob_GetChannelLockStatus(
     BDBG_ENTER(BDCM_Aob_GetChannelLockStatus);
     BDBG_ASSERT(hChannel);
     BDBG_ASSERT(isLock);
-    
+
     *isLock = false;
 #ifdef USE_RPC_GET_LOCK_STATUS
     Param.devId = hChannel->devId;
@@ -252,7 +274,7 @@ BERR_Code BDCM_Aob_GetChannelLockStatus(
                                       BRPC_ProcId_AOB_GetLockStatus,
                                       (const uint32_t *)&Param,
                                       sizeInLong(Param),
-                                      (uint32_t *)&outParam, 
+                                      (uint32_t *)&outParam,
                                       sizeInLong(outParam),
                                       &retVal));
     CHK_RETCODE(retCode, retVal);
@@ -328,7 +350,7 @@ BERR_Code BDCM_Aob_SetChannelSpectrum(
 
     BDBG_ENTER(BDCM_Aob_SetChannelSpectrum);
     BDBG_ASSERT(hChannel);
-    
+
     Param.devId = hChannel->devId;
     Param.spectrum = spectrum;
     CHK_RETCODE(retCode, BRPC_CallProc(hChannel->hDevice->hRpc,
@@ -355,10 +377,10 @@ BERR_Code BDCM_Aob_ProcessChannelNotification(
 
     BDBG_ENTER(BDCM_Aob_ProcessChannelNotification);
     BDBG_ASSERT(hChannel);
-    
+
     event_code = event>>16;
 
-    switch (event_code) 
+    switch (event_code)
     {
         case BRPC_Notification_Event_LockStatusChanged:
             isQAMLock = BRPC_GET_AOB_QAM_LOCKSTATUS(event);
@@ -368,7 +390,7 @@ BERR_Code BDCM_Aob_ProcessChannelNotification(
             {
                 hChannel->isLock = isQAMLock && isFECLock;
             }
-            else 
+            else
             {
                 hChannel->isLock = isQAMLock;
             }
@@ -396,7 +418,7 @@ BERR_Code BDCM_Aob_InstallChannelCallback(
     )
 {
     BERR_Code retCode = BERR_SUCCESS;
-    
+
     BDBG_ENTER(BDCM_Aob_InstallChannelCallback);
     BDBG_ASSERT(hChannel);
 

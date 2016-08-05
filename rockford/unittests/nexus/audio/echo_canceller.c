@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2014 Broadcom Corporation
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,8 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
 ******************************************************************************/
 /* Nexus example app: single live a/v decode from an input band */
 
@@ -83,6 +75,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <pthread.h>
 
 BDBG_MODULE(echo_canceller);
 
@@ -102,6 +95,19 @@ static void eof(void *context, int param)
 
 #endif /* NEXUS_AUDIO_MODULE_FAMILY == NEXUS_AUDIO_MODULE_FAMILY_APE_RAAGA */
 
+static void *mux_thread(void *pParam);
+
+typedef struct decoderHandles
+{
+    NEXUS_VideoDecoderHandle vdecode;
+    NEXUS_AudioDecoderHandle localDecoder;
+    NEXUS_AudioDecoderHandle remoteDecoder;
+    NEXUS_AudioMuxOutputHandle audioMuxOutput;
+    NEXUS_StcChannelHandle stcChannel;
+    NEXUS_PlaybackHandle playback;
+} decoderHandles;
+
+bool done = false;
 int main(int argc, char **argv)
 {
 #if NEXUS_AUDIO_MODULE_FAMILY == NEXUS_AUDIO_MODULE_FAMILY_APE_RAAGA
@@ -123,8 +129,7 @@ int main(int argc, char **argv)
     NEXUS_AudioDecoderOpenSettings audioOpenSettings;
     NEXUS_AudioEncoderHandle audioEncoder;
     NEXUS_EchoCancellerHandle echoCanceller;
-        NEXUS_AudioMuxOutputStatus audioMuxStatus;
-        NEXUS_AudioMuxOutputStartSettings audioMuxStartSettings;
+    NEXUS_AudioMuxOutputStartSettings audioMuxStartSettings;
     NEXUS_AudioMuxOutputHandle audioMuxOutput;
     NEXUS_AudioEncoderSettings encoderSettings;
 #if NEXUS_NUM_HDMI_OUTPUTS
@@ -146,6 +151,8 @@ int main(int argc, char **argv)
     NEXUS_PlaybackPidChannelSettings rpidSettings;
     NEXUS_PlaybackStartSettings rplaybackStartSettings;
     BKNI_EventHandle event;
+    decoderHandles handles;
+    pthread_t muxThread;
 
     /* Bring up all modules for a platform in a default configuration for this platform */
     NEXUS_Platform_GetDefaultSettings(&platformSettings);
@@ -364,7 +371,74 @@ int main(int argc, char **argv)
     BDBG_WRN(("Starting Local"));
     NEXUS_AudioDecoder_Start(localDecoder, &audioProgram);
 
-#if 0
+
+    handles.remoteDecoder = remoteDecoder;
+    handles.localDecoder = localDecoder;
+    handles.vdecode = vdecode;
+    handles.audioMuxOutput = audioMuxOutput;
+    handles.stcChannel = stcChannel;
+    handles.playback = playback;
+
+    pthread_create(&muxThread, NULL, mux_thread, &handles);
+    printf("Press ENTER to stop decode\n");
+    getchar();
+    done = true;
+
+    pthread_join(muxThread, NULL);
+    /* example shutdown */
+    NEXUS_AudioDecoder_Stop(localDecoder);
+    NEXUS_AudioDecoder_Stop(remoteDecoder);
+    NEXUS_Playback_Stop(playback);
+    NEXUS_Playback_Stop(rplayback);
+    NEXUS_AudioMuxOutput_Stop(audioMuxOutput);
+#if NEXUS_NUM_AUDIO_DACS
+    NEXUS_AudioOutput_RemoveAllInputs(NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]));
+#endif
+
+    NEXUS_FilePlay_Close(file);
+    NEXUS_FilePlay_Close(rfile);
+    NEXUS_Playback_ClosePidChannel(playback, audioProgram.pidChannel);
+    NEXUS_Playback_ClosePidChannel(rplayback, remoteProgram.pidChannel);
+    NEXUS_Playback_Destroy(playback);
+    NEXUS_Playback_Destroy(rplayback);
+    NEXUS_Playpump_Close(playpump);
+    NEXUS_Playpump_Close(rplaypump);
+
+    NEXUS_AudioEncoder_RemoveAllInputs(audioEncoder);
+    NEXUS_AudioOutput_RemoveAllInputs(NEXUS_AudioMuxOutput_GetConnector(audioMuxOutput));
+    NEXUS_EchoCanceller_RemoveAllInputs(echoCanceller);
+    NEXUS_AudioDecoder_Close(localDecoder);
+    NEXUS_AudioDecoder_Close(remoteDecoder);
+    NEXUS_AudioMuxOutput_Destroy(audioMuxOutput);
+    NEXUS_EchoCanceller_Close(echoCanceller);
+    NEXUS_AudioEncoder_Close(audioEncoder);
+    /*NEXUS_VideoWindow_Close(window);*/
+    NEXUS_Display_Close(display);
+    /*NEXUS_VideoDecoder_Close(vdecode);*/
+    NEXUS_StcChannel_Close(stcChannel);
+    NEXUS_PidChannel_Close(videoPidChannel);
+    /*NEXUS_PidChannel_Close(audioPidChannel);*/
+    BKNI_DestroyEvent(event);
+    NEXUS_Platform_Uninit();
+#else
+        BSTD_UNUSED(argc);
+        BSTD_UNUSED(argv);
+#endif /* NEXUS_AUDIO_MODULE_FAMILY == NEXUS_AUDIO_MODULE_FAMILY_APE_RAAGA */
+    return 0;
+}
+
+
+static void *mux_thread(void *pParam)
+{
+    decoderHandles *handles;
+    size_t bytes=0;
+    FILE *fOut[2];
+    void *bufferBase;
+    NEXUS_AudioMuxOutputStatus audioMuxStatus;
+
+
+    handles = (decoderHandles *)pParam;
+    #if 0
     /* Print status while decoding */
     for (;;) {
         NEXUS_VideoDecoderStatus status;
@@ -373,14 +447,14 @@ int main(int argc, char **argv)
         size_t size1, size2;
         uint32_t stc;
 
-        NEXUS_VideoDecoder_GetStatus(vdecode, &status);
-        NEXUS_StcChannel_GetStc(videoProgram.stcChannel, &stc);
+        NEXUS_VideoDecoder_GetStatus(handles->vdecode, &status);
+        NEXUS_StcChannel_GetStc(handles->stcChannel, &stc);
         printf("decode %.4dx%.4d, pts %#x, stc %#x (diff %d) fifo=%d%%\n",
             status.source.width, status.source.height, status.pts, stc, status.ptsStcDifference, status.fifoSize?(status.fifoDepth*100)/status.fifoSize:0);
-        NEXUS_AudioDecoder_GetStatus(localDecoder, &audioStatus);
+        NEXUS_AudioDecoder_GetStatus(handles->localDecoder, &audioStatus);
         printf("audio            pts %#x, stc %#x (diff %d) fifo=%d%%\n",
             audioStatus.pts, stc, audioStatus.ptsStcDifference, audioStatus.fifoSize?(audioStatus.fifoDepth*100)/audioStatus.fifoSize:0);
-        NEXUS_AudioDecoder_GetStatus(remoteDecoder, &audioStatus);
+        NEXUS_AudioDecoder_GetStatus(handles->remoteDecoder, &audioStatus);
         if ( audioStatus.started )
         {
             printf("descriptor        pts %#x, stc %#x (diff %d) fifo=%d%%\n",
@@ -388,13 +462,13 @@ int main(int argc, char **argv)
         }
 
         /* Throw away all the mux output data */
-        NEXUS_AudioMuxOutput_GetBuffer(audioMuxOutput, &pBuf1, &size1, &pBuf2, &size2);
+        NEXUS_AudioMuxOutput_GetBuffer(handles->audioMuxOutput, &pBuf1, &size1, &pBuf2, &size2);
         /*if ( size1+size2 > 0 )
-            NEXUS_AudioMuxOutput_ReadComplete(audioMuxOutput, size1+size2);*/
+            NEXUS_AudioMuxOutput_ReadComplete(handles->audioMuxOutput, size1+size2);*/
 
         BKNI_Sleep(100);
     }
-#else
+    #endif
     /*for(;;) {
         NEXUS_PlaybackStatus playbackStatus;
         NEXUS_Error rc;
@@ -408,88 +482,46 @@ int main(int argc, char **argv)
             printf("audio position=%u.%03u (%u,%u) sec \n", (unsigned)playbackStatus.position/1000, (unsigned)playbackStatus.position%1000, (unsigned)playbackStatus.first/1000, (unsigned)playbackStatus.last/1000 );
         }
     }*/
+    NEXUS_AudioMuxOutput_GetStatus(handles->audioMuxOutput, &audioMuxStatus);
+    NEXUS_MemoryBlock_Lock(audioMuxStatus.bufferBlock, &bufferBase);
+    fprintf(stderr, "audioMuxStatus.bufferBlock: 0x%p (0x%p)\n", (void*)audioMuxStatus.bufferBlock, (void*)bufferBase);
 
-    {
-        size_t bytes=0;
-        FILE *fOut[2];
-        void *bufferBase;
-        NEXUS_AudioMuxOutput_GetStatus(audioMuxOutput, &audioMuxStatus);
-        NEXUS_MemoryBlock_Lock(audioMuxStatus.bufferBlock, &bufferBase);
-        fprintf(stderr, "audioMuxStatus.bufferBlock: 0x%p (0x%p)\n", (void*)audioMuxStatus.bufferBlock, (void*)bufferBase);
+    fOut[0] = fopen("MuxCdbOut", "wb");
+    fOut[1] = fopen("MuxItbOut", "w");
 
-        fOut[0] = fopen("MuxCdbOut", "wb");
-        fOut[1] = fopen("MuxItbOut", "w");
+    while(!done) {
+        size_t size[2];
+        const NEXUS_AudioMuxOutputFrame *desc[2];
+        unsigned i,j;
+        unsigned descs;
 
-        for(;;) {
-            size_t size[2];
-            const NEXUS_AudioMuxOutputFrame *desc[2];
-            unsigned i,j;
-            unsigned descs;
+        NEXUS_AudioMuxOutput_GetBuffer(handles->audioMuxOutput, &desc[0], &size[0], &desc[1], &size[1]);
+        if(size[0]==0 && size[1]==0) {
+            NEXUS_AudioDecoderStatus astatus;
 
-            NEXUS_AudioMuxOutput_GetBuffer(audioMuxOutput, &desc[0], &size[0], &desc[1], &size[1]);
-            if(size[0]==0 && size[1]==0) {
-                NEXUS_AudioDecoderStatus astatus;
-
-                NEXUS_AudioDecoder_GetStatus(localDecoder, &astatus);
-                fflush(fOut[0]);
-                fprintf(stderr, "written %lu bytes.... decode:%u\t\r", (unsigned long)bytes, astatus.pts);
-                BKNI_Sleep(30);
-                continue;
-            }
-            for(descs=0,j=0;j<2;j++) {
-                descs+=size[j];
-                for(i=0;i<size[j];i++) {
-                    if(desc[j][i].length > 0)
-                    {
-                        fwrite((const uint8_t *)bufferBase + desc[j][i].offset, desc[j][i].length, 1, fOut[0]);
-                        fprintf(fOut[1], "%8x %8x   %08x%08x %8x %5u %5d %8x %8lx\n", desc[j][i].flags, desc[j][i].originalPts,
-                            (uint32_t)(desc[j][i].pts>>32), (uint32_t)(desc[j][i].pts & 0xffffffff), desc[j][i].escr,
-                                desc[j][i].ticksPerBit, desc[j][i].shr, desc[j][i].offset, (unsigned long)desc[j][i].length);
-                    }
-                    bytes+= desc[j][i].length;
-                }
-            }
-            NEXUS_AudioMuxOutput_ReadComplete(audioMuxOutput, descs);
+            NEXUS_AudioDecoder_GetStatus(handles->localDecoder, &astatus);
             fflush(fOut[0]);
-            fflush(fOut[1]);
+            fprintf(stderr, "written %lu bytes.... decode:%u\t\r", (unsigned long)bytes, astatus.pts);
+            BKNI_Sleep(30);
+            continue;
         }
-        NEXUS_MemoryBlock_Unlock(audioMuxStatus.bufferBlock);
+        for(descs=0,j=0;j<2;j++) {
+            descs+=size[j];
+            for(i=0;i<size[j];i++) {
+                if(desc[j][i].length > 0)
+                {
+                    fwrite((const uint8_t *)bufferBase + desc[j][i].offset, desc[j][i].length, 1, fOut[0]);
+                    fprintf(fOut[1], "%8x %8x   %08x%08x %8x %5u %5d %8x %8lx\n", desc[j][i].flags, desc[j][i].originalPts,
+                        (uint32_t)(desc[j][i].pts>>32), (uint32_t)(desc[j][i].pts & 0xffffffff), desc[j][i].escr,
+                            desc[j][i].ticksPerBit, desc[j][i].shr, desc[j][i].offset, (unsigned long)desc[j][i].length);
+                }
+                bytes+= desc[j][i].length;
+            }
+        }
+        NEXUS_AudioMuxOutput_ReadComplete(handles->audioMuxOutput, descs);
+        fflush(fOut[0]);
+        fflush(fOut[1]);
     }
-
-    printf("Press ENTER to stop decode\n");
-    getchar();
-
-    /* example shutdown */
-    NEXUS_AudioDecoder_Stop(localDecoder);
-    NEXUS_AudioDecoder_Stop(remoteDecoder);
-    NEXUS_Playback_Stop(playback);
-    NEXUS_Playback_Stop(rplayback);
-#if NEXUS_NUM_AUDIO_DACS
-    NEXUS_AudioOutput_RemoveAllInputs(NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]));
-#endif
-
-    NEXUS_Playback_ClosePidChannel(playback, audioProgram.pidChannel);
-    NEXUS_Playback_ClosePidChannel(rplayback, remoteProgram.pidChannel);
-    NEXUS_Playback_Destroy(playback);
-    NEXUS_Playback_Destroy(rplayback);
-    NEXUS_Playpump_Close(playpump);
-    NEXUS_Playpump_Close(rplaypump);
-
-    NEXUS_AudioDecoder_Close(localDecoder);
-    NEXUS_AudioDecoder_Close(remoteDecoder);
-    /*NEXUS_VideoWindow_Close(window);*/
-    NEXUS_Display_Close(display);
-    /*NEXUS_VideoDecoder_Close(vdecode);*/
-    NEXUS_StcChannel_Close(stcChannel);
-    NEXUS_PidChannel_Close(videoPidChannel);
-    /*NEXUS_PidChannel_Close(audioPidChannel);*/
-    NEXUS_Platform_Uninit();
-#endif
-
-#else
-        BSTD_UNUSED(argc);
-        BSTD_UNUSED(argv);
-#endif /* NEXUS_AUDIO_MODULE_FAMILY == NEXUS_AUDIO_MODULE_FAMILY_APE_RAAGA */
-    return 0;
+    NEXUS_MemoryBlock_Unlock(audioMuxStatus.bufferBlock);
+    return NULL;
 }
-

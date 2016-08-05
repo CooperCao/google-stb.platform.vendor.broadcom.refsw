@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -720,7 +720,7 @@ static BERR_Code BAPE_StandardMixer_P_SetInputVolume(
         BDBG_MODULE_MSG(bape_mixer_input_coeffs_detail, ("Input %d -> BapeMixer %p, muted %d, coeffRamp %x, coeff matrix:", i, (void *)handle, pVolume->muted, pVolume->coefficientRamp));
         for ( j = 0; j < BAPE_Channel_eMax; j++ )
         {
-            BDBG_MODULE_MSG(bape_mixer_input_coeffs_detail, ("%6x %6x %6x %6x %6x %6x %6x %6x\n",
+            BDBG_MODULE_MSG(bape_mixer_input_coeffs_detail, ("%6x %6x %6x %6x %6x %6x %6x %6x",
                    pVolume->coefficients[j][0],
                    pVolume->coefficients[j][1],
                    pVolume->coefficients[j][2],
@@ -872,45 +872,101 @@ static BERR_Code BAPE_StandardMixer_P_SetSettings(
     )
 {
     bool timebaseChanged;
+    bool volumeChanged;
 
     BDBG_OBJECT_ASSERT(hMixer, BAPE_Mixer);
     BDBG_ASSERT(NULL != pSettings);
-
-    if ( hMixer->running )
-    {
-        return BERR_TRACE(BERR_NOT_SUPPORTED);
-    }
 
     if ( !BAPE_StandardMixer_P_ValidateSettings(hMixer->deviceHandle, pSettings) )
     {
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
     
-    /* Give up our resources if allocated */   
-    BAPE_StandardMixer_P_FreeResources(hMixer);
-
-    /* Determine if the timebase has changed */
-    timebaseChanged = (hMixer->settings.outputTimebase != pSettings->outputTimebase) ? true : false;
-
-    /* Store new settings, they will be applied next time the mixer tries to start */
-    hMixer->settings = *pSettings;
-
-    /* Refresh output timebase if needed */
-    if ( timebaseChanged && BAPE_Mixer_P_GetOutputSampleRate(hMixer) != 0 )
+    if ( hMixer->running )
     {
-        BAPE_OutputPort output;
+        /* Determine if the output volume settings have changed */
+        volumeChanged = BKNI_Memcmp(&hMixer->settings.outputVolume, &pSettings->outputVolume, sizeof(BAPE_OutputVolume));
 
-        BKNI_EnterCriticalSection();
-        for ( output = BLST_S_FIRST(&hMixer->outputList); 
-              output != NULL;
-              output = BLST_S_NEXT(output, node) )
+        /* If mixer has downstream connections, apply volume changes here */
+        if ( volumeChanged )
         {
-            if ( output->setTimingParams_isr )
+            BERR_Code errCode;
+            BAPE_OutputPort output;
+            BAPE_PathConnection *pOutputConnection;
+            unsigned mixerIndex = 0;
+            unsigned numOutputConnections = 0;
+
+            /* outputs to mixers are 1:1 -- iterate past them to the downstream connections */
+            for ( output = BLST_S_FIRST(&hMixer->outputList);
+                  output != NULL;
+                  output = BLST_S_NEXT(output, node) )
             {
-                output->setTimingParams_isr(output, BAPE_Mixer_P_GetOutputSampleRate(hMixer), pSettings->outputTimebase);
+                BDBG_ASSERT(NULL != output->sourceMixerGroup);
+                mixerIndex++;
+            }
+
+            /* count downstream connections */
+            for ( pOutputConnection = BLST_SQ_FIRST(&hMixer->pathNode.connectors[0].connectionList);
+                  pOutputConnection != NULL;
+                  pOutputConnection = BLST_SQ_NEXT(pOutputConnection, downstreamNode) )
+            {
+                numOutputConnections++;
+            }
+
+            /* downstream connections are cascaded -- Apply output volume scaling */
+            for (; mixerIndex < hMixer->numMixerGroups; mixerIndex++ )
+            {
+                errCode = BAPE_MixerGroup_P_ApplyOutputVolume(hMixer->mixerGroups[mixerIndex], &pSettings->outputVolume, BAPE_Mixer_P_GetOutputFormat(hMixer), 0);
+                if ( errCode )
+                {
+                    return BERR_TRACE(errCode);
+                }
+                numOutputConnections--;
+                if ( numOutputConnections > 0 )
+                {
+                    errCode = BAPE_MixerGroup_P_ApplyOutputVolume(hMixer->mixerGroups[mixerIndex], &pSettings->outputVolume, BAPE_Mixer_P_GetOutputFormat(hMixer), 1);
+                    if ( errCode )
+                    {
+                        return BERR_TRACE(errCode);
+                    }
+                    numOutputConnections--;
+                }
             }
         }
-        BKNI_LeaveCriticalSection();
+
+        /* Store new settings */
+        hMixer->settings = *pSettings;
+    }
+    else
+    {
+        /* Give up our resources if allocated */
+        BAPE_StandardMixer_P_FreeResources(hMixer);
+
+        /* Determine if the timebase has changed */
+        timebaseChanged = (hMixer->settings.outputTimebase != pSettings->outputTimebase) ? true : false;
+        /* Determine if the output volume settings have changed */
+        volumeChanged = BKNI_Memcmp(&hMixer->settings.outputVolume, &pSettings->outputVolume, sizeof(BAPE_OutputVolume));
+
+        /* Store new settings, they will be applied next time the mixer tries to start */
+        hMixer->settings = *pSettings;
+
+        /* Refresh output timebase if needed */
+        if ( timebaseChanged && BAPE_Mixer_P_GetOutputSampleRate(hMixer) != 0 )
+        {
+            BAPE_OutputPort output;
+
+            BKNI_EnterCriticalSection();
+            for ( output = BLST_S_FIRST(&hMixer->outputList);
+                  output != NULL;
+                  output = BLST_S_NEXT(output, node) )
+            {
+                if ( output->setTimingParams_isr )
+                {
+                    output->setTimingParams_isr(output, BAPE_Mixer_P_GetOutputSampleRate(hMixer), pSettings->outputTimebase);
+                }
+            }
+            BKNI_LeaveCriticalSection();
+        }
     }
 
     return BERR_SUCCESS;
@@ -1104,7 +1160,7 @@ static BERR_Code BAPE_StandardMixer_P_StartPathFromInput(
                 errCode = BAPE_Crc_P_Start(output->crc);
                 if ( errCode )
                 {
-                    BDBG_ERR(("Failed to Start Crc on output - %s\n", output->pName));
+                    BDBG_ERR(("Failed to Start Crc on output - %s", output->pName));
                 }
             }
 
@@ -1157,6 +1213,12 @@ static BERR_Code BAPE_StandardMixer_P_StartPathFromInput(
         /* output connection mixers are cascaded */
         for ( ; mixerIndex < handle->numMixerGroups; mixerIndex++ )
         {
+            errCode = BAPE_MixerGroup_P_ApplyOutputVolume(handle->mixerGroups[mixerIndex], &handle->settings.outputVolume, BAPE_Mixer_P_GetOutputFormat(handle), 0);
+            if ( errCode )
+            {
+                errCode = BERR_TRACE(errCode);
+                goto err_output;
+            }
             errCode = BAPE_MixerGroup_P_StartOutput(handle->mixerGroups[mixerIndex], 0);
             if ( errCode )
             {
@@ -1166,6 +1228,12 @@ static BERR_Code BAPE_StandardMixer_P_StartPathFromInput(
             numOutputConnections--;
             if ( numOutputConnections > 0 )
             {
+                errCode = BAPE_MixerGroup_P_ApplyOutputVolume(handle->mixerGroups[mixerIndex], &handle->settings.outputVolume, BAPE_Mixer_P_GetOutputFormat(handle), 1);
+                if ( errCode )
+                {
+                    errCode = BERR_TRACE(errCode);
+                    goto err_output;
+                }
                 errCode = BAPE_MixerGroup_P_StartOutput(handle->mixerGroups[mixerIndex], 1);
                 if ( errCode )
                 {
@@ -1249,12 +1317,12 @@ static BERR_Code BAPE_StandardMixer_P_StartPathFromInput(
             errCode = BAPE_Crc_P_Start(handle->crcs[inputIndex]);
             if ( errCode )
             {
-                BDBG_ERR(("Failed to Start Crc on input %d\n", inputIndex));
+                BDBG_ERR(("Failed to Start Crc on input %d", inputIndex));
             }
         }
         else
         {
-            BDBG_ERR(("ERROR, invalid mode - Mixers with no Sfifo are not currently supported\n"));
+            BDBG_ERR(("ERROR, invalid mode - Mixers with no Sfifo are not currently supported"));
         }
     }
 

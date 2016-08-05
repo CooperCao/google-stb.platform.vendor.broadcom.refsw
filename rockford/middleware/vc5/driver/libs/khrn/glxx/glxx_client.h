@@ -33,7 +33,7 @@ static inline bool glxx_is_aligned(GLenum type, size_t value)
    case GL_FLOAT:
       return (value & 3) == 0;
    default:
-      UNREACHABLE();
+      unreachable();
       return GL_FALSE;
    }
 }
@@ -64,5 +64,5 @@ void glintColor(float red, float green, float blue, float alpha);
 void glintAttribEnable(GLXX_SERVER_STATE_T *state, uint32_t indx, bool enabled);
 
 void glintAttrib(uint32_t api, uint32_t indx, float x, float y, float z, float w);
-void glintAttribI(uint32_t api, uint32_t indx, uint32_t x, uint32_t y, uint32_t z, uint32_t w, GLenum internal_type);
+void glintAttribI(uint32_t api, uint32_t indx, uint32_t x, uint32_t y, uint32_t z, uint32_t w, bool is_signed);
 #endif

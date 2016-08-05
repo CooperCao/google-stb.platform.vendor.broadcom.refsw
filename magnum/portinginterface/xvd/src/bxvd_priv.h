@@ -146,7 +146,7 @@ extern "C" {
          bDone = true;                                                     \
       }                                                                    \
    }                                                                       \
-   BXVD_DBG_MSG(hXvd, ("%s reset pollcnt: %d\n", string, uiPollCnt));      \
+   BXVD_DBG_MSG(hXvd, ("%s reset pollcnt: %d", string, uiPollCnt));        \
 }
 
 
@@ -183,6 +183,11 @@ extern "C" {
                                            BXVD_P_CREATE_PROTOCOLS_MASK( BAVC_VideoCompressionStd_eH265))
 
 #define BXVD_P_REVR_DECODE_PROTOCOLS_MASK (BXVD_P_REVN_DECODE_PROTOCOLS_MASK | \
+                                           BXVD_P_CREATE_PROTOCOLS_MASK( BAVC_VideoCompressionStd_eVP9))
+
+#define BXVD_P_REVS_DECODE_PROTOCOLS_MASK (BXVD_P_CREATE_PROTOCOLS_MASK( BAVC_VideoCompressionStd_eH265) | \
+                                           BXVD_P_CREATE_PROTOCOLS_MASK( BAVC_VideoCompressionStd_eMVC)  | \
+                                           BXVD_P_CREATE_PROTOCOLS_MASK( BAVC_VideoCompressionStd_eAVS)  | \
                                            BXVD_P_CREATE_PROTOCOLS_MASK( BAVC_VideoCompressionStd_eVP9))
 #endif
 
@@ -1272,6 +1277,30 @@ BERR_Code BXVD_P_HostCmdDbgLogCommand
    char           *pCommand
 );
 
+/***************************************************************************
+ *  Summary
+ *
+ *     BXVD_P_HostCmdDramPerf: Send dram performace capture command.
+ *
+ *  Description
+ *
+ *     The decoder will enable and capture DRAM performance data and store
+ *     PPB,
+ *
+ ***************************************************************************/
+
+BERR_Code BXVD_P_HostCmdDramPerf
+(
+   BXVD_Handle    hXvd,
+   unsigned int   uiDDRStatCtrlReg,
+   unsigned int   uiDDRStatCtrlVal,
+   unsigned int   uiDDRStatCtrlEnableMask,
+   unsigned int   uiDDRStatTimerReg,
+   unsigned int   uiClientRead,
+   unsigned int   uiCAS,
+   unsigned int   uiIntraPenality,
+   unsigned int   uiPostPenality
+);
 
 BERR_Code BXVD_P_ChipInit(BXVD_Handle hXvd,
                           uint32_t uDecoderInstance);

@@ -7,14 +7,22 @@ All rights reserved.
  */
 /* GL ENUMS WITH DUPLICATE VALUES */
 
-//EnumValCase(GL_COLOR_BUFFER_BIT, 16384);                  // =  16384
-//EnumValCase(GL_LIGHT0, 16384);                            // =  16384
 //EnumValCase(GL_FALSE, 0);                                 // =  0
 //EnumValCase(GL_POINTS, 0);                                // =  0
 //EnumValCase(GL_ZERO, 0);                                  // =  0
 //EnumValCase(GL_NO_ERROR, 0);                              // =  0
 //EnumValCase(GL_NONE, 0);                                  // =  0
 //EnumValCase(GL_NONE_OES, 0);                              // =  0
+//EnumValCase(GL_VERSION_ES_CL_1_0, 1);                     // =  1
+//EnumValCase(GL_VERSION_ES_CM_1_1, 1);                     // =  1
+//EnumValCase(GL_VERSION_ES_CL_1_1, 1);                     // =  1
+//EnumValCase(GL_TRUE, 1);                                  // =  1
+//EnumValCase(GL_LINES, 1);                                 // =  1
+//EnumValCase(GL_ONE, 1);                                   // =  1
+//EnumValCase(GL_MAP_READ_BIT, 1);                          // =  1
+//EnumValCase(GL_SYNC_FLUSH_COMMANDS_BIT, 1);               // =  1
+//EnumValCase(GL_VERTEX_SHADER_BIT, 1);                     // =  1
+//EnumValCase(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT, 1);       // =  1
 //EnumValCase(GL_LINE_LOOP, 2);                             // =  2
 //EnumValCase(GL_MAP_WRITE_BIT, 2);                         // =  2
 //EnumValCase(GL_FRAGMENT_SHADER_BIT, 2);                   // =  2
@@ -26,30 +34,32 @@ All rights reserved.
 //EnumValCase(GL_UNIFORM_BARRIER_BIT, 4);                   // =  4
 //EnumValCase(GL_GEOMETRY_SHADER_BIT, 4);                   // =  4
 //EnumValCase(GL_CONTEXT_FLAG_ROBUST_ACCESS_BIT, 4);        // =  4
-//EnumValCase(GL_TRUE, 1);                                  // =  1
-//EnumValCase(GL_LINES, 1);                                 // =  1
-//EnumValCase(GL_ONE, 1);                                   // =  1
-//EnumValCase(GL_MAP_READ_BIT, 1);                          // =  1
-//EnumValCase(GL_SYNC_FLUSH_COMMANDS_BIT, 1);               // =  1
-//EnumValCase(GL_VERTEX_SHADER_BIT, 1);                     // =  1
-//EnumValCase(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT, 1);       // =  1
-//EnumValCase(GL_VERSION_ES_CL_1_0, 1);                     // =  1
-//EnumValCase(GL_VERSION_ES_CM_1_1, 1);                     // =  1
-//EnumValCase(GL_VERSION_ES_CL_1_1, 1);                     // =  1
+//EnumValCase(GL_GEOMETRY_SHADER_BIT_OES, 4);               // =  4
+//EnumValCase(GL_GEOMETRY_SHADER_BIT_EXT, 4);               // =  4
 //EnumValCase(GL_MAP_FLUSH_EXPLICIT_BIT, 16);               // =  16
 //EnumValCase(GL_TESS_EVALUATION_SHADER_BIT, 16);           // =  16
+//EnumValCase(GL_TESS_EVALUATION_SHADER_BIT_OES, 16);       // =  16
+//EnumValCase(GL_CONTEXT_FLAG_PROTECTED_CONTENT_BIT_EXT, 16);// =  16
+//EnumValCase(GL_TESS_EVALUATION_SHADER_BIT_EXT, 16);       // =  16
+//EnumValCase(GL_EXP, 2048);                                // =  2048
+//EnumValCase(GL_TRANSFORM_FEEDBACK_BARRIER_BIT, 2048);     // =  2048
+//EnumValCase(GL_ATOMIC_COUNTER_BARRIER_BIT, 4096);         // =  4096
+//EnumValCase(GL_TEXTURE_WIDTH, 4096);                      // =  4096
+//EnumValCase(GL_GEOMETRY_VERTICES_OUT, 35094);             // =  35094
+//EnumValCase(GL_GEOMETRY_LINKED_VERTICES_OUT_OES, 35094);  // =  35094
+//EnumValCase(GL_GEOMETRY_LINKED_VERTICES_OUT_EXT, 35094);  // =  35094
 //EnumValCase(GL_MAP_UNSYNCHRONIZED_BIT, 32);               // =  32
 //EnumValCase(GL_COMPUTE_SHADER_BIT, 32);                   // =  32
 //EnumValCase(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT, 32);      // =  32
-//EnumValCase(GL_TRANSFORM_FEEDBACK_BARRIER_BIT, 2048);     // =  2048
-//EnumValCase(GL_EXP, 2048);                                // =  2048
-//EnumValCase(GL_ATOMIC_COUNTER_BARRIER_BIT, 4096);         // =  4096
-//EnumValCase(GL_TEXTURE_WIDTH, 4096);                      // =  4096
 //EnumValCase(GL_MAP_INVALIDATE_BUFFER_BIT, 8);             // =  8
 //EnumValCase(GL_TEXTURE_FETCH_BARRIER_BIT, 8);             // =  8
 //EnumValCase(GL_TESS_CONTROL_SHADER_BIT, 8);               // =  8
+//EnumValCase(GL_TESS_CONTROL_SHADER_BIT_OES, 8);           // =  8
+//EnumValCase(GL_TESS_CONTROL_SHADER_BIT_EXT, 8);           // =  8
 //EnumValCase(GL_NEVER, 512);                               // =  512
 //EnumValCase(GL_BUFFER_UPDATE_BARRIER_BIT, 512);           // =  512
+//EnumValCase(GL_COLOR_BUFFER_BIT, 16384);                  // =  16384
+//EnumValCase(GL_LIGHT0, 16384);                            // =  16384
 //EnumValCase(GL_STENCIL_BUFFER_BIT, 1024);                 // =  1024
 //EnumValCase(GL_FRAMEBUFFER_BARRIER_BIT, 1024);            // =  1024
 //EnumValCase(GL_FRAMEBUFFER_BINDING, 36006);               // =  36006
@@ -57,11 +67,20 @@ All rights reserved.
 //EnumValCase(GL_FRAMEBUFFER_BINDING_OES, 36006);           // =  36006
 //EnumValCase(GL_DEPTH_BUFFER_BIT, 256);                    // =  256
 //EnumValCase(GL_TEXTURE_UPDATE_BARRIER_BIT, 256);          // =  256
+//EnumValCase(GL_GEOMETRY_INPUT_TYPE, 35095);               // =  35095
+//EnumValCase(GL_GEOMETRY_LINKED_INPUT_TYPE_OES, 35095);    // =  35095
+//EnumValCase(GL_GEOMETRY_LINKED_INPUT_TYPE_EXT, 35095);    // =  35095
+//EnumValCase(GL_GEOMETRY_OUTPUT_TYPE, 35096);              // =  35096
+//EnumValCase(GL_GEOMETRY_LINKED_OUTPUT_TYPE_OES, 35096);   // =  35096
+//EnumValCase(GL_GEOMETRY_LINKED_OUTPUT_TYPE_EXT, 35096);   // =  35096
 //EnumValCase(GL_INVALID_INDEX, 4294967295);                // =  4294967295
 //EnumValCase(GL_ALL_SHADER_BITS, 4294967295);              // =  4294967295
 //EnumValCase(GL_ALL_BARRIER_BITS, 4294967295);             // =  4294967295
 /* END GL ENUMS WITH DUPLICATE VALUES */
 
+//EnumValCase(GL_VERSION_ES_CL_1_0, 1);                     // Duplicate value
+//EnumValCase(GL_VERSION_ES_CM_1_1, 1);                     // Duplicate value
+//EnumValCase(GL_VERSION_ES_CL_1_1, 1);                     // Duplicate value
 //EnumValCase(GL_DEPTH_BUFFER_BIT, 256);                    // Duplicate value
 //EnumValCase(GL_STENCIL_BUFFER_BIT, 1024);                 // Duplicate value
 //EnumValCase(GL_COLOR_BUFFER_BIT, 16384);                  // Duplicate value
@@ -74,6 +93,14 @@ All rights reserved.
 //EnumValCase(GL_TRIANGLES, 4);                             // Duplicate value
   EnumValCase(GL_TRIANGLE_STRIP, 5);
   EnumValCase(GL_TRIANGLE_FAN, 6);
+//EnumValCase(GL_NEVER, 512);                               // Duplicate value
+  EnumValCase(GL_LESS, 513);
+  EnumValCase(GL_EQUAL, 514);
+  EnumValCase(GL_LEQUAL, 515);
+  EnumValCase(GL_GREATER, 516);
+  EnumValCase(GL_NOTEQUAL, 517);
+  EnumValCase(GL_GEQUAL, 518);
+  EnumValCase(GL_ALWAYS, 519);
 //EnumValCase(GL_ZERO, 0);                                  // Duplicate value
 //EnumValCase(GL_ONE, 1);                                   // Duplicate value
   EnumValCase(GL_SRC_COLOR, 768);
@@ -85,82 +112,107 @@ All rights reserved.
   EnumValCase(GL_DST_COLOR, 774);
   EnumValCase(GL_ONE_MINUS_DST_COLOR, 775);
   EnumValCase(GL_SRC_ALPHA_SATURATE, 776);
-  EnumValCase(GL_FUNC_ADD, 32774);
-  EnumValCase(GL_BLEND_EQUATION, 32777);
-  EnumValCase(GL_BLEND_EQUATION_ALPHA, 34877);
-  EnumValCase(GL_FUNC_SUBTRACT, 32778);
-  EnumValCase(GL_FUNC_REVERSE_SUBTRACT, 32779);
-  EnumValCase(GL_BLEND_DST_RGB, 32968);
-  EnumValCase(GL_BLEND_SRC_RGB, 32969);
-  EnumValCase(GL_BLEND_DST_ALPHA, 32970);
-  EnumValCase(GL_BLEND_SRC_ALPHA, 32971);
-  EnumValCase(GL_CONSTANT_COLOR, 32769);
-  EnumValCase(GL_ONE_MINUS_CONSTANT_COLOR, 32770);
-  EnumValCase(GL_CONSTANT_ALPHA, 32771);
-  EnumValCase(GL_ONE_MINUS_CONSTANT_ALPHA, 32772);
-  EnumValCase(GL_BLEND_COLOR, 32773);
-  EnumValCase(GL_ARRAY_BUFFER, 34962);
-  EnumValCase(GL_ELEMENT_ARRAY_BUFFER, 34963);
-  EnumValCase(GL_ARRAY_BUFFER_BINDING, 34964);
-  EnumValCase(GL_ELEMENT_ARRAY_BUFFER_BINDING, 34965);
-  EnumValCase(GL_STREAM_DRAW, 35040);
-  EnumValCase(GL_STATIC_DRAW, 35044);
-  EnumValCase(GL_DYNAMIC_DRAW, 35048);
-  EnumValCase(GL_BUFFER_SIZE, 34660);
-  EnumValCase(GL_BUFFER_USAGE, 34661);
-  EnumValCase(GL_CURRENT_VERTEX_ATTRIB, 34342);
+  EnumValCase(GL_CLIP_PLANE0, 12288);
+  EnumValCase(GL_CLIP_PLANE1, 12289);
+  EnumValCase(GL_CLIP_PLANE2, 12290);
+  EnumValCase(GL_CLIP_PLANE3, 12291);
+  EnumValCase(GL_CLIP_PLANE4, 12292);
+  EnumValCase(GL_CLIP_PLANE5, 12293);
   EnumValCase(GL_FRONT, 1028);
   EnumValCase(GL_BACK, 1029);
   EnumValCase(GL_FRONT_AND_BACK, 1032);
+  EnumValCase(GL_FOG, 2912);
+  EnumValCase(GL_LIGHTING, 2896);
   EnumValCase(GL_TEXTURE_2D, 3553);
   EnumValCase(GL_CULL_FACE, 2884);
+  EnumValCase(GL_ALPHA_TEST, 3008);
   EnumValCase(GL_BLEND, 3042);
+  EnumValCase(GL_COLOR_LOGIC_OP, 3058);
   EnumValCase(GL_DITHER, 3024);
   EnumValCase(GL_STENCIL_TEST, 2960);
   EnumValCase(GL_DEPTH_TEST, 2929);
+  EnumValCase(GL_POINT_SMOOTH, 2832);
+  EnumValCase(GL_LINE_SMOOTH, 2848);
   EnumValCase(GL_SCISSOR_TEST, 3089);
-  EnumValCase(GL_POLYGON_OFFSET_FILL, 32823);
+  EnumValCase(GL_COLOR_MATERIAL, 2903);
+  EnumValCase(GL_NORMALIZE, 2977);
+  EnumValCase(GL_RESCALE_NORMAL, 32826);
+  EnumValCase(GL_VERTEX_ARRAY, 32884);
+  EnumValCase(GL_NORMAL_ARRAY, 32885);
+  EnumValCase(GL_COLOR_ARRAY, 32886);
+  EnumValCase(GL_TEXTURE_COORD_ARRAY, 32888);
+  EnumValCase(GL_MULTISAMPLE, 32925);
   EnumValCase(GL_SAMPLE_ALPHA_TO_COVERAGE, 32926);
+  EnumValCase(GL_SAMPLE_ALPHA_TO_ONE, 32927);
   EnumValCase(GL_SAMPLE_COVERAGE, 32928);
 //EnumValCase(GL_NO_ERROR, 0);                              // Duplicate value
   EnumValCase(GL_INVALID_ENUM, 1280);
   EnumValCase(GL_INVALID_VALUE, 1281);
   EnumValCase(GL_INVALID_OPERATION, 1282);
+  EnumValCase(GL_STACK_OVERFLOW, 1283);
+  EnumValCase(GL_STACK_UNDERFLOW, 1284);
   EnumValCase(GL_OUT_OF_MEMORY, 1285);
+//EnumValCase(GL_EXP, 2048);                                // Duplicate value
+  EnumValCase(GL_EXP2, 2049);
+  EnumValCase(GL_FOG_DENSITY, 2914);
+  EnumValCase(GL_FOG_START, 2915);
+  EnumValCase(GL_FOG_END, 2916);
+  EnumValCase(GL_FOG_MODE, 2917);
+  EnumValCase(GL_FOG_COLOR, 2918);
   EnumValCase(GL_CW, 2304);
   EnumValCase(GL_CCW, 2305);
+  EnumValCase(GL_CURRENT_COLOR, 2816);
+  EnumValCase(GL_CURRENT_NORMAL, 2818);
+  EnumValCase(GL_CURRENT_TEXTURE_COORDS, 2819);
+  EnumValCase(GL_POINT_SIZE, 2833);
+  EnumValCase(GL_POINT_SIZE_MIN, 33062);
+  EnumValCase(GL_POINT_SIZE_MAX, 33063);
+  EnumValCase(GL_POINT_FADE_THRESHOLD_SIZE, 33064);
+  EnumValCase(GL_POINT_DISTANCE_ATTENUATION, 33065);
+  EnumValCase(GL_SMOOTH_POINT_SIZE_RANGE, 2834);
   EnumValCase(GL_LINE_WIDTH, 2849);
+  EnumValCase(GL_SMOOTH_LINE_WIDTH_RANGE, 2850);
   EnumValCase(GL_ALIASED_POINT_SIZE_RANGE, 33901);
   EnumValCase(GL_ALIASED_LINE_WIDTH_RANGE, 33902);
   EnumValCase(GL_CULL_FACE_MODE, 2885);
   EnumValCase(GL_FRONT_FACE, 2886);
+  EnumValCase(GL_SHADE_MODEL, 2900);
   EnumValCase(GL_DEPTH_RANGE, 2928);
   EnumValCase(GL_DEPTH_WRITEMASK, 2930);
   EnumValCase(GL_DEPTH_CLEAR_VALUE, 2931);
   EnumValCase(GL_DEPTH_FUNC, 2932);
   EnumValCase(GL_STENCIL_CLEAR_VALUE, 2961);
   EnumValCase(GL_STENCIL_FUNC, 2962);
+  EnumValCase(GL_STENCIL_VALUE_MASK, 2963);
   EnumValCase(GL_STENCIL_FAIL, 2964);
   EnumValCase(GL_STENCIL_PASS_DEPTH_FAIL, 2965);
   EnumValCase(GL_STENCIL_PASS_DEPTH_PASS, 2966);
   EnumValCase(GL_STENCIL_REF, 2967);
-  EnumValCase(GL_STENCIL_VALUE_MASK, 2963);
   EnumValCase(GL_STENCIL_WRITEMASK, 2968);
-  EnumValCase(GL_STENCIL_BACK_FUNC, 34816);
-  EnumValCase(GL_STENCIL_BACK_FAIL, 34817);
-  EnumValCase(GL_STENCIL_BACK_PASS_DEPTH_FAIL, 34818);
-  EnumValCase(GL_STENCIL_BACK_PASS_DEPTH_PASS, 34819);
-  EnumValCase(GL_STENCIL_BACK_REF, 36003);
-  EnumValCase(GL_STENCIL_BACK_VALUE_MASK, 36004);
-  EnumValCase(GL_STENCIL_BACK_WRITEMASK, 36005);
+  EnumValCase(GL_MATRIX_MODE, 2976);
   EnumValCase(GL_VIEWPORT, 2978);
+  EnumValCase(GL_MODELVIEW_STACK_DEPTH, 2979);
+  EnumValCase(GL_PROJECTION_STACK_DEPTH, 2980);
+  EnumValCase(GL_TEXTURE_STACK_DEPTH, 2981);
+  EnumValCase(GL_MODELVIEW_MATRIX, 2982);
+  EnumValCase(GL_PROJECTION_MATRIX, 2983);
+  EnumValCase(GL_TEXTURE_MATRIX, 2984);
+  EnumValCase(GL_ALPHA_TEST_FUNC, 3009);
+  EnumValCase(GL_ALPHA_TEST_REF, 3010);
+  EnumValCase(GL_BLEND_DST, 3040);
+  EnumValCase(GL_BLEND_SRC, 3041);
+  EnumValCase(GL_LOGIC_OP_MODE, 3056);
   EnumValCase(GL_SCISSOR_BOX, 3088);
   EnumValCase(GL_COLOR_CLEAR_VALUE, 3106);
   EnumValCase(GL_COLOR_WRITEMASK, 3107);
-  EnumValCase(GL_UNPACK_ALIGNMENT, 3317);
-  EnumValCase(GL_PACK_ALIGNMENT, 3333);
+  EnumValCase(GL_MAX_LIGHTS, 3377);
+  EnumValCase(GL_MAX_CLIP_PLANES, 3378);
   EnumValCase(GL_MAX_TEXTURE_SIZE, 3379);
+  EnumValCase(GL_MAX_MODELVIEW_STACK_DEPTH, 3382);
+  EnumValCase(GL_MAX_PROJECTION_STACK_DEPTH, 3384);
+  EnumValCase(GL_MAX_TEXTURE_STACK_DEPTH, 3385);
   EnumValCase(GL_MAX_VIEWPORT_DIMS, 3386);
+  EnumValCase(GL_MAX_TEXTURE_UNITS, 34018);
   EnumValCase(GL_SUBPIXEL_BITS, 3408);
   EnumValCase(GL_RED_BITS, 3410);
   EnumValCase(GL_GREEN_BITS, 3411);
@@ -169,8 +221,24 @@ All rights reserved.
   EnumValCase(GL_DEPTH_BITS, 3414);
   EnumValCase(GL_STENCIL_BITS, 3415);
   EnumValCase(GL_POLYGON_OFFSET_UNITS, 10752);
+  EnumValCase(GL_POLYGON_OFFSET_FILL, 32823);
   EnumValCase(GL_POLYGON_OFFSET_FACTOR, 32824);
   EnumValCase(GL_TEXTURE_BINDING_2D, 32873);
+  EnumValCase(GL_VERTEX_ARRAY_SIZE, 32890);
+  EnumValCase(GL_VERTEX_ARRAY_TYPE, 32891);
+  EnumValCase(GL_VERTEX_ARRAY_STRIDE, 32892);
+  EnumValCase(GL_NORMAL_ARRAY_TYPE, 32894);
+  EnumValCase(GL_NORMAL_ARRAY_STRIDE, 32895);
+  EnumValCase(GL_COLOR_ARRAY_SIZE, 32897);
+  EnumValCase(GL_COLOR_ARRAY_TYPE, 32898);
+  EnumValCase(GL_COLOR_ARRAY_STRIDE, 32899);
+  EnumValCase(GL_TEXTURE_COORD_ARRAY_SIZE, 32904);
+  EnumValCase(GL_TEXTURE_COORD_ARRAY_TYPE, 32905);
+  EnumValCase(GL_TEXTURE_COORD_ARRAY_STRIDE, 32906);
+  EnumValCase(GL_VERTEX_ARRAY_POINTER, 32910);
+  EnumValCase(GL_NORMAL_ARRAY_POINTER, 32911);
+  EnumValCase(GL_COLOR_ARRAY_POINTER, 32912);
+  EnumValCase(GL_TEXTURE_COORD_ARRAY_POINTER, 32914);
   EnumValCase(GL_SAMPLE_BUFFERS, 32936);
   EnumValCase(GL_SAMPLES, 32937);
   EnumValCase(GL_SAMPLE_COVERAGE_VALUE, 32938);
@@ -180,63 +248,77 @@ All rights reserved.
   EnumValCase(GL_DONT_CARE, 4352);
   EnumValCase(GL_FASTEST, 4353);
   EnumValCase(GL_NICEST, 4354);
+  EnumValCase(GL_PERSPECTIVE_CORRECTION_HINT, 3152);
+  EnumValCase(GL_POINT_SMOOTH_HINT, 3153);
+  EnumValCase(GL_LINE_SMOOTH_HINT, 3154);
+  EnumValCase(GL_FOG_HINT, 3156);
   EnumValCase(GL_GENERATE_MIPMAP_HINT, 33170);
+  EnumValCase(GL_LIGHT_MODEL_AMBIENT, 2899);
+  EnumValCase(GL_LIGHT_MODEL_TWO_SIDE, 2898);
+  EnumValCase(GL_AMBIENT, 4608);
+  EnumValCase(GL_DIFFUSE, 4609);
+  EnumValCase(GL_SPECULAR, 4610);
+  EnumValCase(GL_POSITION, 4611);
+  EnumValCase(GL_SPOT_DIRECTION, 4612);
+  EnumValCase(GL_SPOT_EXPONENT, 4613);
+  EnumValCase(GL_SPOT_CUTOFF, 4614);
+  EnumValCase(GL_CONSTANT_ATTENUATION, 4615);
+  EnumValCase(GL_LINEAR_ATTENUATION, 4616);
+  EnumValCase(GL_QUADRATIC_ATTENUATION, 4617);
   EnumValCase(GL_BYTE, 5120);
   EnumValCase(GL_UNSIGNED_BYTE, 5121);
   EnumValCase(GL_SHORT, 5122);
   EnumValCase(GL_UNSIGNED_SHORT, 5123);
-  EnumValCase(GL_INT, 5124);
-  EnumValCase(GL_UNSIGNED_INT, 5125);
   EnumValCase(GL_FLOAT, 5126);
   EnumValCase(GL_FIXED, 5132);
-  EnumValCase(GL_DEPTH_COMPONENT, 6402);
+  EnumValCase(GL_CLEAR, 5376);
+  EnumValCase(GL_AND, 5377);
+  EnumValCase(GL_AND_REVERSE, 5378);
+  EnumValCase(GL_COPY, 5379);
+  EnumValCase(GL_AND_INVERTED, 5380);
+  EnumValCase(GL_NOOP, 5381);
+  EnumValCase(GL_XOR, 5382);
+  EnumValCase(GL_OR, 5383);
+  EnumValCase(GL_NOR, 5384);
+  EnumValCase(GL_EQUIV, 5385);
+  EnumValCase(GL_INVERT, 5386);
+  EnumValCase(GL_OR_REVERSE, 5387);
+  EnumValCase(GL_COPY_INVERTED, 5388);
+  EnumValCase(GL_OR_INVERTED, 5389);
+  EnumValCase(GL_NAND, 5390);
+  EnumValCase(GL_SET, 5391);
+  EnumValCase(GL_EMISSION, 5632);
+  EnumValCase(GL_SHININESS, 5633);
+  EnumValCase(GL_AMBIENT_AND_DIFFUSE, 5634);
+  EnumValCase(GL_MODELVIEW, 5888);
+  EnumValCase(GL_PROJECTION, 5889);
+  EnumValCase(GL_TEXTURE, 5890);
   EnumValCase(GL_ALPHA, 6406);
   EnumValCase(GL_RGB, 6407);
   EnumValCase(GL_RGBA, 6408);
   EnumValCase(GL_LUMINANCE, 6409);
   EnumValCase(GL_LUMINANCE_ALPHA, 6410);
+  EnumValCase(GL_UNPACK_ALIGNMENT, 3317);
+  EnumValCase(GL_PACK_ALIGNMENT, 3333);
   EnumValCase(GL_UNSIGNED_SHORT_4_4_4_4, 32819);
   EnumValCase(GL_UNSIGNED_SHORT_5_5_5_1, 32820);
   EnumValCase(GL_UNSIGNED_SHORT_5_6_5, 33635);
-  EnumValCase(GL_FRAGMENT_SHADER, 35632);
-  EnumValCase(GL_VERTEX_SHADER, 35633);
-  EnumValCase(GL_MAX_VERTEX_ATTRIBS, 34921);
-  EnumValCase(GL_MAX_VERTEX_UNIFORM_VECTORS, 36347);
-  EnumValCase(GL_MAX_VARYING_VECTORS, 36348);
-  EnumValCase(GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, 35661);
-  EnumValCase(GL_MAX_VERTEX_TEXTURE_IMAGE_UNITS, 35660);
-  EnumValCase(GL_MAX_TEXTURE_IMAGE_UNITS, 34930);
-  EnumValCase(GL_MAX_FRAGMENT_UNIFORM_VECTORS, 36349);
-  EnumValCase(GL_SHADER_TYPE, 35663);
-  EnumValCase(GL_DELETE_STATUS, 35712);
-  EnumValCase(GL_LINK_STATUS, 35714);
-  EnumValCase(GL_VALIDATE_STATUS, 35715);
-  EnumValCase(GL_ATTACHED_SHADERS, 35717);
-  EnumValCase(GL_ACTIVE_UNIFORMS, 35718);
-  EnumValCase(GL_ACTIVE_UNIFORM_MAX_LENGTH, 35719);
-  EnumValCase(GL_ACTIVE_ATTRIBUTES, 35721);
-  EnumValCase(GL_ACTIVE_ATTRIBUTE_MAX_LENGTH, 35722);
-  EnumValCase(GL_SHADING_LANGUAGE_VERSION, 35724);
-  EnumValCase(GL_CURRENT_PROGRAM, 35725);
-//EnumValCase(GL_NEVER, 512);                               // Duplicate value
-  EnumValCase(GL_LESS, 513);
-  EnumValCase(GL_EQUAL, 514);
-  EnumValCase(GL_LEQUAL, 515);
-  EnumValCase(GL_GREATER, 516);
-  EnumValCase(GL_NOTEQUAL, 517);
-  EnumValCase(GL_GEQUAL, 518);
-  EnumValCase(GL_ALWAYS, 519);
+  EnumValCase(GL_FLAT, 7424);
+  EnumValCase(GL_SMOOTH, 7425);
   EnumValCase(GL_KEEP, 7680);
   EnumValCase(GL_REPLACE, 7681);
   EnumValCase(GL_INCR, 7682);
   EnumValCase(GL_DECR, 7683);
-  EnumValCase(GL_INVERT, 5386);
-  EnumValCase(GL_INCR_WRAP, 34055);
-  EnumValCase(GL_DECR_WRAP, 34056);
   EnumValCase(GL_VENDOR, 7936);
   EnumValCase(GL_RENDERER, 7937);
   EnumValCase(GL_VERSION, 7938);
   EnumValCase(GL_EXTENSIONS, 7939);
+  EnumValCase(GL_MODULATE, 8448);
+  EnumValCase(GL_DECAL, 8449);
+  EnumValCase(GL_ADD, 260);
+  EnumValCase(GL_TEXTURE_ENV_MODE, 8704);
+  EnumValCase(GL_TEXTURE_ENV_COLOR, 8705);
+  EnumValCase(GL_TEXTURE_ENV, 8960);
   EnumValCase(GL_NEAREST, 9728);
   EnumValCase(GL_LINEAR, 9729);
   EnumValCase(GL_NEAREST_MIPMAP_NEAREST, 9984);
@@ -247,16 +329,7 @@ All rights reserved.
   EnumValCase(GL_TEXTURE_MIN_FILTER, 10241);
   EnumValCase(GL_TEXTURE_WRAP_S, 10242);
   EnumValCase(GL_TEXTURE_WRAP_T, 10243);
-  EnumValCase(GL_TEXTURE, 5890);
-  EnumValCase(GL_TEXTURE_CUBE_MAP, 34067);
-  EnumValCase(GL_TEXTURE_BINDING_CUBE_MAP, 34068);
-  EnumValCase(GL_TEXTURE_CUBE_MAP_POSITIVE_X, 34069);
-  EnumValCase(GL_TEXTURE_CUBE_MAP_NEGATIVE_X, 34070);
-  EnumValCase(GL_TEXTURE_CUBE_MAP_POSITIVE_Y, 34071);
-  EnumValCase(GL_TEXTURE_CUBE_MAP_NEGATIVE_Y, 34072);
-  EnumValCase(GL_TEXTURE_CUBE_MAP_POSITIVE_Z, 34073);
-  EnumValCase(GL_TEXTURE_CUBE_MAP_NEGATIVE_Z, 34074);
-  EnumValCase(GL_MAX_CUBE_MAP_TEXTURE_SIZE, 34076);
+  EnumValCase(GL_GENERATE_MIPMAP, 33169);
   EnumValCase(GL_TEXTURE0, 33984);
   EnumValCase(GL_TEXTURE1, 33985);
   EnumValCase(GL_TEXTURE2, 33986);
@@ -290,8 +363,111 @@ All rights reserved.
   EnumValCase(GL_TEXTURE30, 34014);
   EnumValCase(GL_TEXTURE31, 34015);
   EnumValCase(GL_ACTIVE_TEXTURE, 34016);
+  EnumValCase(GL_CLIENT_ACTIVE_TEXTURE, 34017);
   EnumValCase(GL_REPEAT, 10497);
   EnumValCase(GL_CLAMP_TO_EDGE, 33071);
+//EnumValCase(GL_LIGHT0, 16384);                            // Duplicate value
+  EnumValCase(GL_LIGHT1, 16385);
+  EnumValCase(GL_LIGHT2, 16386);
+  EnumValCase(GL_LIGHT3, 16387);
+  EnumValCase(GL_LIGHT4, 16388);
+  EnumValCase(GL_LIGHT5, 16389);
+  EnumValCase(GL_LIGHT6, 16390);
+  EnumValCase(GL_LIGHT7, 16391);
+  EnumValCase(GL_ARRAY_BUFFER, 34962);
+  EnumValCase(GL_ELEMENT_ARRAY_BUFFER, 34963);
+  EnumValCase(GL_ARRAY_BUFFER_BINDING, 34964);
+  EnumValCase(GL_ELEMENT_ARRAY_BUFFER_BINDING, 34965);
+  EnumValCase(GL_VERTEX_ARRAY_BUFFER_BINDING, 34966);
+  EnumValCase(GL_NORMAL_ARRAY_BUFFER_BINDING, 34967);
+  EnumValCase(GL_COLOR_ARRAY_BUFFER_BINDING, 34968);
+  EnumValCase(GL_TEXTURE_COORD_ARRAY_BUFFER_BINDING, 34970);
+  EnumValCase(GL_STATIC_DRAW, 35044);
+  EnumValCase(GL_DYNAMIC_DRAW, 35048);
+  EnumValCase(GL_BUFFER_SIZE, 34660);
+  EnumValCase(GL_BUFFER_USAGE, 34661);
+  EnumValCase(GL_SUBTRACT, 34023);
+  EnumValCase(GL_COMBINE, 34160);
+  EnumValCase(GL_COMBINE_RGB, 34161);
+  EnumValCase(GL_COMBINE_ALPHA, 34162);
+  EnumValCase(GL_RGB_SCALE, 34163);
+  EnumValCase(GL_ADD_SIGNED, 34164);
+  EnumValCase(GL_INTERPOLATE, 34165);
+  EnumValCase(GL_CONSTANT, 34166);
+  EnumValCase(GL_PRIMARY_COLOR, 34167);
+  EnumValCase(GL_PREVIOUS, 34168);
+  EnumValCase(GL_OPERAND0_RGB, 34192);
+  EnumValCase(GL_OPERAND1_RGB, 34193);
+  EnumValCase(GL_OPERAND2_RGB, 34194);
+  EnumValCase(GL_OPERAND0_ALPHA, 34200);
+  EnumValCase(GL_OPERAND1_ALPHA, 34201);
+  EnumValCase(GL_OPERAND2_ALPHA, 34202);
+  EnumValCase(GL_ALPHA_SCALE, 3356);
+  EnumValCase(GL_SRC0_RGB, 34176);
+  EnumValCase(GL_SRC1_RGB, 34177);
+  EnumValCase(GL_SRC2_RGB, 34178);
+  EnumValCase(GL_SRC0_ALPHA, 34184);
+  EnumValCase(GL_SRC1_ALPHA, 34185);
+  EnumValCase(GL_SRC2_ALPHA, 34186);
+  EnumValCase(GL_DOT3_RGB, 34478);
+  EnumValCase(GL_DOT3_RGBA, 34479);
+  EnumValCase(GL_FUNC_ADD, 32774);
+  EnumValCase(GL_BLEND_EQUATION, 32777);
+  EnumValCase(GL_BLEND_EQUATION_ALPHA, 34877);
+  EnumValCase(GL_FUNC_SUBTRACT, 32778);
+  EnumValCase(GL_FUNC_REVERSE_SUBTRACT, 32779);
+  EnumValCase(GL_BLEND_DST_RGB, 32968);
+  EnumValCase(GL_BLEND_SRC_RGB, 32969);
+  EnumValCase(GL_BLEND_DST_ALPHA, 32970);
+  EnumValCase(GL_BLEND_SRC_ALPHA, 32971);
+  EnumValCase(GL_CONSTANT_COLOR, 32769);
+  EnumValCase(GL_ONE_MINUS_CONSTANT_COLOR, 32770);
+  EnumValCase(GL_CONSTANT_ALPHA, 32771);
+  EnumValCase(GL_ONE_MINUS_CONSTANT_ALPHA, 32772);
+  EnumValCase(GL_BLEND_COLOR, 32773);
+  EnumValCase(GL_STREAM_DRAW, 35040);
+  EnumValCase(GL_CURRENT_VERTEX_ATTRIB, 34342);
+  EnumValCase(GL_STENCIL_BACK_FUNC, 34816);
+  EnumValCase(GL_STENCIL_BACK_FAIL, 34817);
+  EnumValCase(GL_STENCIL_BACK_PASS_DEPTH_FAIL, 34818);
+  EnumValCase(GL_STENCIL_BACK_PASS_DEPTH_PASS, 34819);
+  EnumValCase(GL_STENCIL_BACK_REF, 36003);
+  EnumValCase(GL_STENCIL_BACK_VALUE_MASK, 36004);
+  EnumValCase(GL_STENCIL_BACK_WRITEMASK, 36005);
+  EnumValCase(GL_INT, 5124);
+  EnumValCase(GL_UNSIGNED_INT, 5125);
+  EnumValCase(GL_DEPTH_COMPONENT, 6402);
+  EnumValCase(GL_FRAGMENT_SHADER, 35632);
+  EnumValCase(GL_VERTEX_SHADER, 35633);
+  EnumValCase(GL_MAX_VERTEX_ATTRIBS, 34921);
+  EnumValCase(GL_MAX_VERTEX_UNIFORM_VECTORS, 36347);
+  EnumValCase(GL_MAX_VARYING_VECTORS, 36348);
+  EnumValCase(GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, 35661);
+  EnumValCase(GL_MAX_VERTEX_TEXTURE_IMAGE_UNITS, 35660);
+  EnumValCase(GL_MAX_TEXTURE_IMAGE_UNITS, 34930);
+  EnumValCase(GL_MAX_FRAGMENT_UNIFORM_VECTORS, 36349);
+  EnumValCase(GL_SHADER_TYPE, 35663);
+  EnumValCase(GL_DELETE_STATUS, 35712);
+  EnumValCase(GL_LINK_STATUS, 35714);
+  EnumValCase(GL_VALIDATE_STATUS, 35715);
+  EnumValCase(GL_ATTACHED_SHADERS, 35717);
+  EnumValCase(GL_ACTIVE_UNIFORMS, 35718);
+  EnumValCase(GL_ACTIVE_UNIFORM_MAX_LENGTH, 35719);
+  EnumValCase(GL_ACTIVE_ATTRIBUTES, 35721);
+  EnumValCase(GL_ACTIVE_ATTRIBUTE_MAX_LENGTH, 35722);
+  EnumValCase(GL_SHADING_LANGUAGE_VERSION, 35724);
+  EnumValCase(GL_CURRENT_PROGRAM, 35725);
+  EnumValCase(GL_INCR_WRAP, 34055);
+  EnumValCase(GL_DECR_WRAP, 34056);
+  EnumValCase(GL_TEXTURE_CUBE_MAP, 34067);
+  EnumValCase(GL_TEXTURE_BINDING_CUBE_MAP, 34068);
+  EnumValCase(GL_TEXTURE_CUBE_MAP_POSITIVE_X, 34069);
+  EnumValCase(GL_TEXTURE_CUBE_MAP_NEGATIVE_X, 34070);
+  EnumValCase(GL_TEXTURE_CUBE_MAP_POSITIVE_Y, 34071);
+  EnumValCase(GL_TEXTURE_CUBE_MAP_NEGATIVE_Y, 34072);
+  EnumValCase(GL_TEXTURE_CUBE_MAP_POSITIVE_Z, 34073);
+  EnumValCase(GL_TEXTURE_CUBE_MAP_NEGATIVE_Z, 34074);
+  EnumValCase(GL_MAX_CUBE_MAP_TEXTURE_SIZE, 34076);
   EnumValCase(GL_MIRRORED_REPEAT, 33648);
   EnumValCase(GL_FLOAT_VEC2, 35664);
   EnumValCase(GL_FLOAT_VEC3, 35665);
@@ -895,7 +1071,6 @@ All rights reserved.
   EnumValCase(GL_BUFFER, 33504);
   EnumValCase(GL_SHADER, 33505);
   EnumValCase(GL_PROGRAM, 33506);
-  EnumValCase(GL_VERTEX_ARRAY, 32884);
   EnumValCase(GL_QUERY, 33507);
   EnumValCase(GL_PROGRAM_PIPELINE, 33508);
   EnumValCase(GL_SAMPLER, 33510);
@@ -908,13 +1083,11 @@ All rights reserved.
   EnumValCase(GL_DEBUG_SEVERITY_LOW, 37192);
   EnumValCase(GL_DEBUG_OUTPUT, 37600);
 //EnumValCase(GL_CONTEXT_FLAG_DEBUG_BIT, 2);                // Duplicate value
-  EnumValCase(GL_STACK_OVERFLOW, 1283);
-  EnumValCase(GL_STACK_UNDERFLOW, 1284);
   EnumValCase(GL_GEOMETRY_SHADER, 36313);
 //EnumValCase(GL_GEOMETRY_SHADER_BIT, 4);                   // Duplicate value
-  EnumValCase(GL_GEOMETRY_VERTICES_OUT, 35094);
-  EnumValCase(GL_GEOMETRY_INPUT_TYPE, 35095);
-  EnumValCase(GL_GEOMETRY_OUTPUT_TYPE, 35096);
+//EnumValCase(GL_GEOMETRY_VERTICES_OUT, 35094);             // Duplicate value
+//EnumValCase(GL_GEOMETRY_INPUT_TYPE, 35095);               // Duplicate value
+//EnumValCase(GL_GEOMETRY_OUTPUT_TYPE, 35096);              // Duplicate value
   EnumValCase(GL_GEOMETRY_SHADER_INVOCATIONS, 34943);
   EnumValCase(GL_LAYER_PROVOKING_VERTEX, 33374);
   EnumValCase(GL_LINES_ADJACENCY, 10);
@@ -1058,163 +1231,6 @@ All rights reserved.
   EnumValCase(GL_SAMPLER_2D_MULTISAMPLE_ARRAY, 37131);
   EnumValCase(GL_INT_SAMPLER_2D_MULTISAMPLE_ARRAY, 37132);
   EnumValCase(GL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE_ARRAY, 37133);
-//EnumValCase(GL_VERSION_ES_CL_1_0, 1);                     // Duplicate value
-//EnumValCase(GL_VERSION_ES_CM_1_1, 1);                     // Duplicate value
-//EnumValCase(GL_VERSION_ES_CL_1_1, 1);                     // Duplicate value
-  EnumValCase(GL_CLIP_PLANE0, 12288);
-  EnumValCase(GL_CLIP_PLANE1, 12289);
-  EnumValCase(GL_CLIP_PLANE2, 12290);
-  EnumValCase(GL_CLIP_PLANE3, 12291);
-  EnumValCase(GL_CLIP_PLANE4, 12292);
-  EnumValCase(GL_CLIP_PLANE5, 12293);
-  EnumValCase(GL_FOG, 2912);
-  EnumValCase(GL_LIGHTING, 2896);
-  EnumValCase(GL_ALPHA_TEST, 3008);
-  EnumValCase(GL_COLOR_LOGIC_OP, 3058);
-  EnumValCase(GL_POINT_SMOOTH, 2832);
-  EnumValCase(GL_LINE_SMOOTH, 2848);
-  EnumValCase(GL_COLOR_MATERIAL, 2903);
-  EnumValCase(GL_NORMALIZE, 2977);
-  EnumValCase(GL_RESCALE_NORMAL, 32826);
-  EnumValCase(GL_NORMAL_ARRAY, 32885);
-  EnumValCase(GL_COLOR_ARRAY, 32886);
-  EnumValCase(GL_TEXTURE_COORD_ARRAY, 32888);
-  EnumValCase(GL_MULTISAMPLE, 32925);
-  EnumValCase(GL_SAMPLE_ALPHA_TO_ONE, 32927);
-//EnumValCase(GL_EXP, 2048);                                // Duplicate value
-  EnumValCase(GL_EXP2, 2049);
-  EnumValCase(GL_FOG_DENSITY, 2914);
-  EnumValCase(GL_FOG_START, 2915);
-  EnumValCase(GL_FOG_END, 2916);
-  EnumValCase(GL_FOG_MODE, 2917);
-  EnumValCase(GL_FOG_COLOR, 2918);
-  EnumValCase(GL_CURRENT_COLOR, 2816);
-  EnumValCase(GL_CURRENT_NORMAL, 2818);
-  EnumValCase(GL_CURRENT_TEXTURE_COORDS, 2819);
-  EnumValCase(GL_POINT_SIZE, 2833);
-  EnumValCase(GL_POINT_SIZE_MIN, 33062);
-  EnumValCase(GL_POINT_SIZE_MAX, 33063);
-  EnumValCase(GL_POINT_FADE_THRESHOLD_SIZE, 33064);
-  EnumValCase(GL_POINT_DISTANCE_ATTENUATION, 33065);
-  EnumValCase(GL_SMOOTH_POINT_SIZE_RANGE, 2834);
-  EnumValCase(GL_SMOOTH_LINE_WIDTH_RANGE, 2850);
-  EnumValCase(GL_SHADE_MODEL, 2900);
-  EnumValCase(GL_MATRIX_MODE, 2976);
-  EnumValCase(GL_MODELVIEW_STACK_DEPTH, 2979);
-  EnumValCase(GL_PROJECTION_STACK_DEPTH, 2980);
-  EnumValCase(GL_TEXTURE_STACK_DEPTH, 2981);
-  EnumValCase(GL_MODELVIEW_MATRIX, 2982);
-  EnumValCase(GL_PROJECTION_MATRIX, 2983);
-  EnumValCase(GL_TEXTURE_MATRIX, 2984);
-  EnumValCase(GL_ALPHA_TEST_FUNC, 3009);
-  EnumValCase(GL_ALPHA_TEST_REF, 3010);
-  EnumValCase(GL_BLEND_DST, 3040);
-  EnumValCase(GL_BLEND_SRC, 3041);
-  EnumValCase(GL_LOGIC_OP_MODE, 3056);
-  EnumValCase(GL_MAX_LIGHTS, 3377);
-  EnumValCase(GL_MAX_CLIP_PLANES, 3378);
-  EnumValCase(GL_MAX_MODELVIEW_STACK_DEPTH, 3382);
-  EnumValCase(GL_MAX_PROJECTION_STACK_DEPTH, 3384);
-  EnumValCase(GL_MAX_TEXTURE_STACK_DEPTH, 3385);
-  EnumValCase(GL_MAX_TEXTURE_UNITS, 34018);
-  EnumValCase(GL_VERTEX_ARRAY_SIZE, 32890);
-  EnumValCase(GL_VERTEX_ARRAY_TYPE, 32891);
-  EnumValCase(GL_VERTEX_ARRAY_STRIDE, 32892);
-  EnumValCase(GL_NORMAL_ARRAY_TYPE, 32894);
-  EnumValCase(GL_NORMAL_ARRAY_STRIDE, 32895);
-  EnumValCase(GL_COLOR_ARRAY_SIZE, 32897);
-  EnumValCase(GL_COLOR_ARRAY_TYPE, 32898);
-  EnumValCase(GL_COLOR_ARRAY_STRIDE, 32899);
-  EnumValCase(GL_TEXTURE_COORD_ARRAY_SIZE, 32904);
-  EnumValCase(GL_TEXTURE_COORD_ARRAY_TYPE, 32905);
-  EnumValCase(GL_TEXTURE_COORD_ARRAY_STRIDE, 32906);
-  EnumValCase(GL_VERTEX_ARRAY_POINTER, 32910);
-  EnumValCase(GL_NORMAL_ARRAY_POINTER, 32911);
-  EnumValCase(GL_COLOR_ARRAY_POINTER, 32912);
-  EnumValCase(GL_TEXTURE_COORD_ARRAY_POINTER, 32914);
-  EnumValCase(GL_PERSPECTIVE_CORRECTION_HINT, 3152);
-  EnumValCase(GL_POINT_SMOOTH_HINT, 3153);
-  EnumValCase(GL_LINE_SMOOTH_HINT, 3154);
-  EnumValCase(GL_FOG_HINT, 3156);
-  EnumValCase(GL_LIGHT_MODEL_AMBIENT, 2899);
-  EnumValCase(GL_LIGHT_MODEL_TWO_SIDE, 2898);
-  EnumValCase(GL_AMBIENT, 4608);
-  EnumValCase(GL_DIFFUSE, 4609);
-  EnumValCase(GL_SPECULAR, 4610);
-  EnumValCase(GL_POSITION, 4611);
-  EnumValCase(GL_SPOT_DIRECTION, 4612);
-  EnumValCase(GL_SPOT_EXPONENT, 4613);
-  EnumValCase(GL_SPOT_CUTOFF, 4614);
-  EnumValCase(GL_CONSTANT_ATTENUATION, 4615);
-  EnumValCase(GL_LINEAR_ATTENUATION, 4616);
-  EnumValCase(GL_QUADRATIC_ATTENUATION, 4617);
-  EnumValCase(GL_CLEAR, 5376);
-  EnumValCase(GL_AND, 5377);
-  EnumValCase(GL_AND_REVERSE, 5378);
-  EnumValCase(GL_COPY, 5379);
-  EnumValCase(GL_AND_INVERTED, 5380);
-  EnumValCase(GL_NOOP, 5381);
-  EnumValCase(GL_XOR, 5382);
-  EnumValCase(GL_OR, 5383);
-  EnumValCase(GL_NOR, 5384);
-  EnumValCase(GL_EQUIV, 5385);
-  EnumValCase(GL_OR_REVERSE, 5387);
-  EnumValCase(GL_COPY_INVERTED, 5388);
-  EnumValCase(GL_OR_INVERTED, 5389);
-  EnumValCase(GL_NAND, 5390);
-  EnumValCase(GL_SET, 5391);
-  EnumValCase(GL_EMISSION, 5632);
-  EnumValCase(GL_SHININESS, 5633);
-  EnumValCase(GL_AMBIENT_AND_DIFFUSE, 5634);
-  EnumValCase(GL_MODELVIEW, 5888);
-  EnumValCase(GL_PROJECTION, 5889);
-  EnumValCase(GL_FLAT, 7424);
-  EnumValCase(GL_SMOOTH, 7425);
-  EnumValCase(GL_MODULATE, 8448);
-  EnumValCase(GL_DECAL, 8449);
-  EnumValCase(GL_ADD, 260);
-  EnumValCase(GL_TEXTURE_ENV_MODE, 8704);
-  EnumValCase(GL_TEXTURE_ENV_COLOR, 8705);
-  EnumValCase(GL_TEXTURE_ENV, 8960);
-  EnumValCase(GL_GENERATE_MIPMAP, 33169);
-  EnumValCase(GL_CLIENT_ACTIVE_TEXTURE, 34017);
-//EnumValCase(GL_LIGHT0, 16384);                            // Duplicate value
-  EnumValCase(GL_LIGHT1, 16385);
-  EnumValCase(GL_LIGHT2, 16386);
-  EnumValCase(GL_LIGHT3, 16387);
-  EnumValCase(GL_LIGHT4, 16388);
-  EnumValCase(GL_LIGHT5, 16389);
-  EnumValCase(GL_LIGHT6, 16390);
-  EnumValCase(GL_LIGHT7, 16391);
-  EnumValCase(GL_VERTEX_ARRAY_BUFFER_BINDING, 34966);
-  EnumValCase(GL_NORMAL_ARRAY_BUFFER_BINDING, 34967);
-  EnumValCase(GL_COLOR_ARRAY_BUFFER_BINDING, 34968);
-  EnumValCase(GL_TEXTURE_COORD_ARRAY_BUFFER_BINDING, 34970);
-  EnumValCase(GL_SUBTRACT, 34023);
-  EnumValCase(GL_COMBINE, 34160);
-  EnumValCase(GL_COMBINE_RGB, 34161);
-  EnumValCase(GL_COMBINE_ALPHA, 34162);
-  EnumValCase(GL_RGB_SCALE, 34163);
-  EnumValCase(GL_ADD_SIGNED, 34164);
-  EnumValCase(GL_INTERPOLATE, 34165);
-  EnumValCase(GL_CONSTANT, 34166);
-  EnumValCase(GL_PRIMARY_COLOR, 34167);
-  EnumValCase(GL_PREVIOUS, 34168);
-  EnumValCase(GL_OPERAND0_RGB, 34192);
-  EnumValCase(GL_OPERAND1_RGB, 34193);
-  EnumValCase(GL_OPERAND2_RGB, 34194);
-  EnumValCase(GL_OPERAND0_ALPHA, 34200);
-  EnumValCase(GL_OPERAND1_ALPHA, 34201);
-  EnumValCase(GL_OPERAND2_ALPHA, 34202);
-  EnumValCase(GL_ALPHA_SCALE, 3356);
-  EnumValCase(GL_SRC0_RGB, 34176);
-  EnumValCase(GL_SRC1_RGB, 34177);
-  EnumValCase(GL_SRC2_RGB, 34178);
-  EnumValCase(GL_SRC0_ALPHA, 34184);
-  EnumValCase(GL_SRC1_ALPHA, 34185);
-  EnumValCase(GL_SRC2_ALPHA, 34186);
-  EnumValCase(GL_DOT3_RGB, 34478);
-  EnumValCase(GL_DOT3_RGBA, 34479);
 //EnumValCase(GL_CONTEXT_FLAG_DEBUG_BIT_KHR, 2);            // Duplicate value
   EnumValCase(GL_TEXTURE_EXTERNAL_OES, 36197);
   EnumValCase(GL_TEXTURE_BINDING_EXTERNAL_OES, 36199);
@@ -1231,33 +1247,22 @@ All rights reserved.
   EnumValCase(GL_PALETTE8_R5_G6_B5_OES, 35735);
   EnumValCase(GL_PALETTE8_RGBA4_OES, 35736);
   EnumValCase(GL_PALETTE8_RGB5_A1_OES, 35737);
-  EnumValCase(GL_DEPTH_COMPONENT32_OES, 33191);
   EnumValCase(GL_TEXTURE_CROP_RECT_OES, 35741);
 //EnumValCase(GL_NONE_OES, 0);                              // Duplicate value
   EnumValCase(GL_FRAMEBUFFER_INCOMPLETE_FORMATS_OES, 36058);
 //EnumValCase(GL_FRAMEBUFFER_BINDING_OES, 36006);           // Duplicate value
+//EnumValCase(GL_GEOMETRY_SHADER_BIT_OES, 4);               // Duplicate value
+//EnumValCase(GL_GEOMETRY_LINKED_VERTICES_OUT_OES, 35094);  // Duplicate value
+//EnumValCase(GL_GEOMETRY_LINKED_INPUT_TYPE_OES, 35095);    // Duplicate value
+//EnumValCase(GL_GEOMETRY_LINKED_OUTPUT_TYPE_OES, 35096);   // Duplicate value
   EnumValCase(GL_BUFFER_ACCESS_OES, 35003);
-  EnumValCase(GL_MAX_VERTEX_UNITS_OES, 34468);
-  EnumValCase(GL_MAX_PALETTE_MATRICES_OES, 34882);
-  EnumValCase(GL_MATRIX_PALETTE_OES, 34880);
-  EnumValCase(GL_MATRIX_INDEX_ARRAY_OES, 34884);
-  EnumValCase(GL_WEIGHT_ARRAY_OES, 34477);
-  EnumValCase(GL_CURRENT_PALETTE_MATRIX_OES, 34883);
-  EnumValCase(GL_MATRIX_INDEX_ARRAY_SIZE_OES, 34886);
-  EnumValCase(GL_MATRIX_INDEX_ARRAY_TYPE_OES, 34887);
-  EnumValCase(GL_MATRIX_INDEX_ARRAY_STRIDE_OES, 34888);
-  EnumValCase(GL_MATRIX_INDEX_ARRAY_POINTER_OES, 34889);
-  EnumValCase(GL_MATRIX_INDEX_ARRAY_BUFFER_BINDING_OES, 35742);
-  EnumValCase(GL_WEIGHT_ARRAY_SIZE_OES, 34475);
-  EnumValCase(GL_WEIGHT_ARRAY_TYPE_OES, 34473);
-  EnumValCase(GL_WEIGHT_ARRAY_STRIDE_OES, 34474);
-  EnumValCase(GL_WEIGHT_ARRAY_POINTER_OES, 34476);
-  EnumValCase(GL_WEIGHT_ARRAY_BUFFER_BINDING_OES, 34974);
   EnumValCase(GL_POINT_SIZE_ARRAY_OES, 35740);
   EnumValCase(GL_POINT_SIZE_ARRAY_TYPE_OES, 35210);
   EnumValCase(GL_POINT_SIZE_ARRAY_STRIDE_OES, 35211);
   EnumValCase(GL_POINT_SIZE_ARRAY_POINTER_OES, 35212);
   EnumValCase(GL_POINT_SIZE_ARRAY_BUFFER_BINDING_OES, 35743);
+//EnumValCase(GL_TESS_CONTROL_SHADER_BIT_OES, 8);           // Duplicate value
+//EnumValCase(GL_TESS_EVALUATION_SHADER_BIT_OES, 16);       // Duplicate value
   EnumValCase(GL_HALF_FLOAT_OES, 36193);
   EnumValCase(GL_CLAMP_TO_BORDER_BRCM, 30976);
   EnumValCase(GL_MIRROR_ONCE_BRCM, 30977);
@@ -1285,8 +1290,16 @@ All rights reserved.
   EnumValCase(GL_R16_SNORM_BRCM, 31011);
   EnumValCase(GL_RG16_SNORM_BRCM, 31012);
   EnumValCase(GL_RGBA16_SNORM_BRCM, 31013);
+//EnumValCase(GL_GEOMETRY_SHADER_BIT_EXT, 4);               // Duplicate value
+//EnumValCase(GL_GEOMETRY_LINKED_VERTICES_OUT_EXT, 35094);  // Duplicate value
+//EnumValCase(GL_GEOMETRY_LINKED_INPUT_TYPE_EXT, 35095);    // Duplicate value
+//EnumValCase(GL_GEOMETRY_LINKED_OUTPUT_TYPE_EXT, 35096);   // Duplicate value
   EnumValCase(GL_FRAMEBUFFER_ATTACHMENT_TEXTURE_SAMPLES_EXT, 36204);
+//EnumValCase(GL_CONTEXT_FLAG_PROTECTED_CONTENT_BIT_EXT, 16);// Duplicate value
+  EnumValCase(GL_TEXTURE_PROTECTED_EXT, 35834);
   EnumValCase(GL_CONTEXT_ROBUST_ACCESS_EXT, 37107);
+//EnumValCase(GL_TESS_CONTROL_SHADER_BIT_EXT, 8);           // Duplicate value
+//EnumValCase(GL_TESS_EVALUATION_SHADER_BIT_EXT, 16);       // Duplicate value
   EnumValCase(GL_TEXTURE_MAX_ANISOTROPY_EXT, 34046);
   EnumValCase(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, 34047);
   EnumValCase(GL_BGRA_EXT, 32993);

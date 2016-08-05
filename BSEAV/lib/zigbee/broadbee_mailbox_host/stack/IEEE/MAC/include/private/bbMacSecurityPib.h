@@ -201,7 +201,7 @@ MAC_PRIVATE MAC_Status_t macSecurityPibSetSecurityLevelDescriptorZBPRO(
  */
 INLINE MAC_ThreadMode_t macSecurityPibGetThreadModeZBPRO(void)
 {
-    return MAC_MEMORY_PIB_ZBPRO().macThreadMode;
+    return MAC_MEMORY_PIB_SECURITY().macThreadMode;
 }
 
 /**//**
@@ -210,7 +210,7 @@ INLINE MAC_ThreadMode_t macSecurityPibGetThreadModeZBPRO(void)
  */
 INLINE void macSecurityPibSetThreadModeZBPRO(const MAC_ThreadMode_t newValue)
 {
-    MAC_MEMORY_PIB_ZBPRO().macThreadMode = newValue;
+    MAC_MEMORY_PIB_SECURITY().macThreadMode = newValue;
 }
 
 /*--------------------------------------------------------------------------------------------------------------------*/
@@ -220,7 +220,7 @@ INLINE void macSecurityPibSetThreadModeZBPRO(const MAC_ThreadMode_t newValue)
  */
 INLINE MAC_KeyTableEntries_t macSecurityPibGetKeyTableEntriesZBPRO(void)
 {
-    return macKeyTableEntries;
+    return MAC_MEMORY_PIB_SECURITY().macKeyTableEntries;
 }
 
 /*--------------------------------------------------------------------------------------------------------------------*/
@@ -230,7 +230,7 @@ INLINE MAC_KeyTableEntries_t macSecurityPibGetKeyTableEntriesZBPRO(void)
  */
 INLINE MAC_DeviceTableEntries_t macSecurityPibGetDeviceTableEntriesZBPRO(void)
 {
-    return macDeviceTableEntries;
+    return MAC_MEMORY_PIB_SECURITY().macDeviceTableEntries;
 }
 
 /*--------------------------------------------------------------------------------------------------------------------*/
@@ -240,7 +240,7 @@ INLINE MAC_DeviceTableEntries_t macSecurityPibGetDeviceTableEntriesZBPRO(void)
  */
 INLINE MAC_SecurityLevelTableEntries_t macSecurityPibGetSecurityLevelTableEntriesZBPRO(void)
 {
-    return macSecurityLevelTableEntries;
+    return MAC_MEMORY_PIB_SECURITY().macSecurityLevelTableEntries;
 }
 
 
@@ -252,7 +252,7 @@ INLINE MAC_SecurityLevelTableEntries_t macSecurityPibGetSecurityLevelTableEntrie
  */
 INLINE MAC_FrameCounter_t macSecurityPibGetFrameCounterZBPRO(void)
 {
-    return macFrameCounter;
+    return MAC_MEMORY_PIB_SECURITY().macFrameCounter;
 }
 
 /**//**
@@ -261,7 +261,7 @@ INLINE MAC_FrameCounter_t macSecurityPibGetFrameCounterZBPRO(void)
  */
 INLINE void macSecurityPibSetFrameCounterZBPRO(const MAC_FrameCounter_t newValue)
 {
-    macFrameCounter = newValue;
+    MAC_MEMORY_PIB_SECURITY().macFrameCounter = newValue;
 }
 
 /*--------------------------------------------------------------------------------------------------------------------*/
@@ -271,7 +271,7 @@ INLINE void macSecurityPibSetFrameCounterZBPRO(const MAC_FrameCounter_t newValue
  */
 INLINE MAC_SecurityLevel_t macSecurityPibGetAutoRequestSecurityLevelZBPRO(void)
 {
-    return macAutoRequestSecurityLevel;
+    return MAC_MEMORY_PIB_SECURITY().macAutoRequestSecurityLevel;
 }
 
 /**//**
@@ -284,7 +284,7 @@ INLINE MAC_Status_t macSecurityPibSetAutoRequestSecurityLevelZBPRO(const MAC_Sec
     if (newValue > MAC_SECURITY_LEVEL__ENC_MIC_128)
         return MAC_INVALID_PARAMETER;
 
-    macAutoRequestSecurityLevel = newValue;
+    MAC_MEMORY_PIB_SECURITY().macAutoRequestSecurityLevel = newValue;
     return MAC_SUCCESS;
 }
 
@@ -295,7 +295,7 @@ INLINE MAC_Status_t macSecurityPibSetAutoRequestSecurityLevelZBPRO(const MAC_Sec
  */
 INLINE MAC_KeyIdMode_t macSecurityPibGetAutoRequestKeyIdModeZBPRO(void)
 {
-    return macAutoRequestIdMode;
+    return MAC_MEMORY_PIB_SECURITY().macAutoRequestIdMode;
 }
 
 /**//**
@@ -308,7 +308,7 @@ INLINE MAC_Status_t macSecurityPibSetAutoRequestKeyIdModeZBPRO(const MAC_KeyIdMo
     if (newValue > MAC_KEY_ID_MODE__EXPLICIT_8B)
         return MAC_INVALID_PARAMETER;
 
-    macAutoRequestIdMode = newValue;
+    MAC_MEMORY_PIB_SECURITY().macAutoRequestIdMode = newValue;
     return MAC_SUCCESS;
 }
 
@@ -319,7 +319,7 @@ INLINE MAC_Status_t macSecurityPibSetAutoRequestKeyIdModeZBPRO(const MAC_KeyIdMo
  */
 INLINE MAC_KeySource_t macSecurityPibGetAutoRequestKeySourceZBPRO(void)
 {
-    return macAutoRequestKeySource;
+    return MAC_MEMORY_PIB_SECURITY().macAutoRequestKeySource;
 }
 
 /**//**
@@ -328,7 +328,7 @@ INLINE MAC_KeySource_t macSecurityPibGetAutoRequestKeySourceZBPRO(void)
  */
 INLINE void macSecurityPibSetAutoRequestKeySourceZBPRO(const MAC_KeySource_t newValue)
 {
-    macAutoRequestKeySource = newValue;
+    MAC_MEMORY_PIB_SECURITY().macAutoRequestKeySource = newValue;
 }
 
 /*--------------------------------------------------------------------------------------------------------------------*/
@@ -338,7 +338,7 @@ INLINE void macSecurityPibSetAutoRequestKeySourceZBPRO(const MAC_KeySource_t new
  */
 INLINE MAC_KeyIndex_t macSecurityPibGetAutoRequestKeyIndexZBPRO(void)
 {
-    return macAutoRequestKeyIndex;
+    return MAC_MEMORY_PIB_SECURITY().macAutoRequestKeyIndex;
 }
 
 /**//**
@@ -351,7 +351,7 @@ INLINE MAC_Status_t macSecurityPibSetAutoRequestKeyIndexZBPRO(const MAC_KeyIndex
     if (newValue == 0x00)
             return MAC_INVALID_PARAMETER;
 
-    macAutoRequestKeyIndex = newValue;
+    MAC_MEMORY_PIB_SECURITY().macAutoRequestKeyIndex = newValue;
     return MAC_SUCCESS;
 }
 
@@ -362,7 +362,7 @@ INLINE MAC_Status_t macSecurityPibSetAutoRequestKeyIndexZBPRO(const MAC_KeyIndex
  */
 INLINE MAC_KeySource_t macSecurityPibGetDefaultKeySourceZBPRO(void)
 {
-    return macDefaultKeySource;
+    return MAC_MEMORY_PIB_SECURITY().macDefaultKeySource;
 }
 
 /**//**
@@ -371,7 +371,7 @@ INLINE MAC_KeySource_t macSecurityPibGetDefaultKeySourceZBPRO(void)
  */
 INLINE void macSecurityPibSetDefaultKeySourceZBPRO(const MAC_KeySource_t newValue)
 {
-    macDefaultKeySource = newValue;
+    MAC_MEMORY_PIB_SECURITY().macDefaultKeySource = newValue;
 }
 
 /*--------------------------------------------------------------------------------------------------------------------*/
@@ -381,7 +381,7 @@ INLINE void macSecurityPibSetDefaultKeySourceZBPRO(const MAC_KeySource_t newValu
  */
 INLINE MAC_ExtendedAddress_t macSecurityPibGetPANCoordExtendedAddressZBPRO(void)
 {
-    return macPANCoordExtendedAddress;
+    return MAC_MEMORY_PIB_SECURITY().macPANCoordExtendedAddress;
 }
 
 /**//**
@@ -390,7 +390,7 @@ INLINE MAC_ExtendedAddress_t macSecurityPibGetPANCoordExtendedAddressZBPRO(void)
  */
 INLINE void macSecurityPibSetPANCoordExtendedAddressZBPRO(const MAC_ExtendedAddress_t newValue)
 {
-    macPANCoordExtendedAddress = newValue;
+    MAC_MEMORY_PIB_SECURITY().macPANCoordExtendedAddress = newValue;
 }
 
 /*--------------------------------------------------------------------------------------------------------------------*/
@@ -400,7 +400,7 @@ INLINE void macSecurityPibSetPANCoordExtendedAddressZBPRO(const MAC_ExtendedAddr
  */
 INLINE MAC_ShortAddress_t macSecurityPibGetPANCoordShortAddressZBPRO(void)
 {
-    return macPANCoordShortAddress;
+    return MAC_MEMORY_PIB_SECURITY().macPANCoordShortAddress;
 }
 
 /**//**
@@ -409,29 +409,26 @@ INLINE MAC_ShortAddress_t macSecurityPibGetPANCoordShortAddressZBPRO(void)
  */
 INLINE void macSecurityPibSetPANCoordShortAddressZBPRO(const MAC_ShortAddress_t newValue)
 {
-    macPANCoordShortAddress = newValue;
+    MAC_MEMORY_PIB_SECURITY().macPANCoordShortAddress = newValue;
 }
 
+/*--------------------------------------------------------------------------------------------------------------------*/
 /**//**
- * \brief   Assigns a new value to the Frame Counter field of the Device Decriptor in the
- *          Device Table.
- * \param[in]   index         Index over the table attribute.
- * \param[in]   frameCounter  Value to assign.
+ * \brief   Assigns a new value to the FrameCounter field of the DeviceDescriptor in the macDeviceTable.
+ * \param[in]   deviceDescriptorId      Index of the DeviceDescriptor to be updated.
+ * \param[in]   updatedFrameCounter     Updated value of the remote FrameCounter.
  */
-MAC_Status_t macSecurityPibDeviceDesciptorSetFrameCounter(
-                        const MAC_DeviceDescriptorId_t index,
-                        const MAC_FrameCounter_t frameCounter);
+void macSecurityPibDeviceDesciptorSetFrameCounter(
+        const MAC_DeviceDescriptorId_t deviceDescriptorId,
+        const MAC_FrameCounter_t updatedFrameCounter);
 
 /**//**
- * \brief   Assigns a new value to the Blacklisted field of the Key Device Decriptor in the
- *          Key Descriptor in the Key Table.
- * \param[in]   index         Index over the Key Table.
- * \param[in]   index         Index over the Key Device List.
- * \param[in]   blacklisted   Value to assign.
+ * \brief   Assigns TRUE to the Blacklisted field of the KeyDeviceDescriptor in the KeyDescriptor in the macKeyTable.
+ * \param[in]   keyDescriptorId         Index of the KeyDescriptor to be updated.
+ * \param[in]   keyDeviceDescriptorId   Index of the KeyDeviceDescriptor to be updated.
  */
-MAC_Status_t macSecurityPibKeyDeviceDescriptorSetBlacklisted(
-                        const MAC_KeyDescriptorId_t keyDescrId,
-                        const MAC_KeyDeviceDescriptorId_t keyDeviceDescrId,
-                        const Bool8_t blacklisted);
+void macSecurityPibKeyDeviceDescriptorSetBlacklisted(
+        const MAC_KeyDescriptorId_t keyDescriptorId,
+        const MAC_KeyDeviceDescriptorId_t keyDeviceDescriptorId);
 
 #endif /* _BB_MAC_SECURITY_PIB_H */

@@ -73,8 +73,7 @@ BDBG_MODULE(BCHP_AVS);
 #undef BCHP_PWR_RESOURCE_AVS
 
 /* The conversion formulas changed on newer products */
-#if (BCHP_CHIP==7145 && BCHP_VER >= BCHP_VER_B0) || \
-    (BCHP_CHIP==7445 && BCHP_VER >= BCHP_VER_D0)
+#if (BCHP_CHIP==7445 && BCHP_VER >= BCHP_VER_D0)
 #define USE_NEW_CONVERSION_FORMULAS
 #endif
 

@@ -10,6 +10,9 @@ FILE DESCRIPTION
 #ifndef GLXX_TMU_BLIT_H
 #define GLXX_TMU_BLIT_H
 
+#include "gl_public_api.h"
+#include "../common/khrn_image.h"
+
 typedef GLint point_t[2];
 
 struct box

@@ -96,7 +96,7 @@
 BDBG_MODULE(BVDC_DISP);
 BDBG_FILE_MODULE(BVDC_DISP_STG);
 BDBG_FILE_MODULE(BVDC_CMP_SIZE);
-BDBG_FILE_MODULE(ignore_ratio);
+BDBG_FILE_MODULE(BVDC_IGNORE_RATIO);
 
 #define BVDC_P_MAKE_STG_INFO(stgid, ulCorId, ulchannelId)         \
 {                                                                 \
@@ -735,7 +735,7 @@ void BVDC_P_ProgrameStgMBox_isr
 #if (BDBG_DEBUG_BUILD)
         hDisplay->ulStgTriggerCount++;
         hDisplay->ulStgIgnoreCount += hDisplay->hCompositor->bIgnorePicture;
-        BDBG_MODULE_MSG(ignore_ratio,("STG%d: ignore/total = %u/%u", pstChan->ulStg, hDisplay->ulStgIgnoreCount, hDisplay->ulStgTriggerCount));
+        BDBG_MODULE_MSG(BVDC_IGNORE_RATIO,("STG%d: ignore/total = %u/%u", pstChan->ulStg, hDisplay->ulStgIgnoreCount, hDisplay->ulStgTriggerCount));
 #endif
         /* disable both timer and EOP triggers */
         ulStgCtrl = (
@@ -800,6 +800,7 @@ void BVDC_P_ProgrameStgMBox_isr
         hDisplay->hCompositor->ulOrigPTS      = 0;
         hDisplay->hCompositor->bMute          = (NULL==hDisplay->hCompositor->hSyncLockSrc);
     }
+    BSTD_UNUSED(pstChan);
 #else
     BSTD_UNUSED(hDisplay);
     BSTD_UNUSED(pList);

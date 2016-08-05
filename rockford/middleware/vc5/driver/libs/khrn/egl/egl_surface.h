@@ -27,11 +27,9 @@ typedef enum
 }
 egl_surface_alphaformat_t;
 
-/* see flush_rendering in egl_context_base.h */
-extern v3d_scheduler_deps* egl_surface_flush_rendering(EGL_SURFACE_T *surface);
-
-/* see copy_surface in egl_context_base.h */
-extern bool egl_surface_copy(EGL_SURFACE_T *surface, KHRN_IMAGE_T *dst);
+/* Flush any render state writing to the surface's back buffer and return a
+ * pointer to dependencies to wait for the writes to complete. */
+extern const v3d_scheduler_deps* egl_surface_flush_back_buffer_writer(EGL_SURFACE_T *surface);
 
 /*
  * Destroy and free the surface if it isn't bound to a context or mapped to a
@@ -61,14 +59,6 @@ extern KHRN_IMAGE_T *egl_surface_get_aux_buffer(const EGL_SURFACE_T *surface,
 
 extern EGL_SURFACE_T *egl_surface_lock(EGLSurface handle);
 extern void egl_surface_unlock(EGL_SURFACE_T *surface); /* tolerates NULL */
-
-/*
- * Call this to indicate that the contents of all surface's auxiliary buffers
- * and optionally also its current back buffer (i.e. color buffer) contain
- * undefined data. This saves copying that data to the hw for it to render on
- * top of.
- */
-extern void egl_surface_invalidate(EGL_SURFACE_T *surface, bool include_color);
 
 /*
  * Check if the surface has been resized by the platform and reallocate

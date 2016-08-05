@@ -97,6 +97,7 @@ typedef enum BCMD_SetMiscBitsField_InCmdField_e
     BCMD_SetMiscBitsField_InCmdField_eBandSel = (6 << 2) + 3,
     BCMD_SetMiscBitsField_InCmdField_eMemcIdx = (6 << 2) + 3,
     BCMD_SetMiscBitsField_InCmdField_eBandNum = (6 << 2) + 2,
+    BCMD_SetMiscBitsField_InCmd_Field_eGenInBits = (6 << 2) + 2,
     BCMD_SetMiscBitsField_InCmdField_eCPSRaveTimestampDis = (6 << 2) + 3,
     BCMD_SetMiscBitsField_InCmdField_eForceSCbits = (7 << 2) + 3,
     BCMD_SetMiscBitsField_InCmdField_eMax

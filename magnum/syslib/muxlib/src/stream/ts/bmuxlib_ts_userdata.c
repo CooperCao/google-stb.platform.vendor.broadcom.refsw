@@ -804,6 +804,7 @@ void BMUXlib_TS_P_Userdata_SchedulePackets(BMUXlib_TS_Handle hMuxTS)
    uint32_t uiSpaceAvailable = hMuxTS->status.stSystemDataInfo.uiPacketsUntilNextPCR;
    uint32_t uiTransportChannelIndex = hMuxTS->status.stInput.system.uiTransportChannelIndex;
    bool aDoneFlags[BMUXLIB_TS_MAX_USERDATA_PIDS];
+   uint64_t uiPacket2PacketTimestampDelta = ((uint64_t)BMUXlib_TS_P_TSPacket_MAXSIZE * 8 * 27000000) / hMuxTS->status.stMuxSettings.uiSystemDataBitRate;
 
    BDBG_ENTER(BMUXlib_TS_P_Userdata_SchedulePackets);
    BKNI_Memset(aDoneFlags, 0, sizeof(aDoneFlags)); /* nothing is done yet */
@@ -926,7 +927,7 @@ void BMUXlib_TS_P_Userdata_SchedulePackets(BMUXlib_TS_Handle hMuxTS)
                         /* NOTE: userdata packets are scheduled to hardware without ESCR to allow hardware to insert them as required */
                         /* Set Packet 2 Packet Timestamp Delta */
                         pDesc->stTsMuxDescriptorConfig.bPacket2PacketTimestampDeltaValid = true;
-                        pDesc->stTsMuxDescriptorConfig.uiPacket2PacketTimestampDelta = hMuxTS->status.stSystemDataInfo.uiPacket2PacketTimestampDelta;
+                        pDesc->stTsMuxDescriptorConfig.uiPacket2PacketTimestampDelta = uiPacket2PacketTimestampDelta;
 
                         /* Set Buffer Info */
                         if ( BMUXlib_TS_P_DataType_eCDB == pMetaDesc->eDataType )
@@ -1005,7 +1006,7 @@ void BMUXlib_TS_P_Userdata_SchedulePackets(BMUXlib_TS_Handle hMuxTS)
    /* save the current input ready for scheduling so we can come back to it next time */
    pStatus->uiCurrentScheduledInput = uiUserdataIndex;
    /* adjust system data timing to account for the userdata packets written ... */
-   hMuxTS->status.stSystemDataInfo.uiESCR += (hMuxTS->status.stSystemDataInfo.uiPacket2PacketTimestampDelta * uiTSPacketsMuxed);
+   hMuxTS->status.stSystemDataInfo.uiESCR += (uiPacket2PacketTimestampDelta * uiTSPacketsMuxed);
    /* update space available for use by system data */
    hMuxTS->status.stSystemDataInfo.uiPacketsUntilNextPCR = uiSpaceAvailable;
 

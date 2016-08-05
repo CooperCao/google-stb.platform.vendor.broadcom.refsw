@@ -79,7 +79,7 @@ typedef struct _ZbProZhaCieDeviceMemDescr_t
     ZbProZhaCieZoneEnrollmentDescriptor_t   zhaCieZoneEnrollmentDescr;
     ZbProZhaCiePanelDescriptor_t            zhaCiePanelDescr;
     ZbProZhaCieUserRulesDescriptor_t        zhaCieUserRulesDescr;
-    bool                                    zhaCieIsRegistered;
+    Bool8_t                                 zhaCieIsRegistered;
     ZBPRO_APS_EndpointId_t                  zhaCieEndpoint;
     ZBPRO_ZDO_SimpleDescReqDescr_t          zhaCieSimpleDescr;
     ZBPRO_NWK_GetReqDescr_t                 zhaCieNwkGetDescr;

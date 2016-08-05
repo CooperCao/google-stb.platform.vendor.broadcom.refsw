@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2013 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *  
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,17 +35,9 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF 
 *  ANY LIMITED REMEDY.
 * 
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * API Description:
 *   API name: AutoVolumeLevel
 *    Specific APIs related to Broadcom AutoVolumeLevel (AVL) Audio Processing
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 
@@ -58,7 +50,7 @@ typedef struct NEXUS_3dSurround
     NEXUS_OBJECT(NEXUS_3dSurround);
     NEXUS_AudioInputObject connector;
     NEXUS_3dSurroundSettings settings;
-    NEXUS_AudioInput input;
+    NEXUS_AudioInputHandle input;
     BAPE_3dSurroundHandle apeHandle;
     char name[12];   /* 3D SURROUND */
 } NEXUS_3dSurround;
@@ -104,6 +96,7 @@ NEXUS_3dSurroundHandle NEXUS_3dSurround_Open(
     NEXUS_OBJECT_INIT(NEXUS_3dSurround, handle);
     BKNI_Snprintf(handle->name, sizeof(handle->name), "3D SURROUND");
     NEXUS_AUDIO_INPUT_INIT(&handle->connector, NEXUS_AudioInputType_e3dSurround, handle);
+    NEXUS_OBJECT_REGISTER(NEXUS_AudioInput, &handle->connector, Open);
     handle->connector.pName = handle->name;
     handle->connector.format = NEXUS_AudioInputFormat_eNone; /* Determined by inputs */
     BAPE_3dSurround_GetDefaultSettings(&defaults);
@@ -141,7 +134,13 @@ static void NEXUS_3dSurround_P_Finalizer(
     BKNI_Free(handle);
 }
 
-NEXUS_OBJECT_CLASS_MAKE(NEXUS_3dSurround, NEXUS_3dSurround_Close);
+static void NEXUS_3dSurround_P_Release(NEXUS_3dSurroundHandle handle)
+{
+    NEXUS_OBJECT_UNREGISTER(NEXUS_AudioInput, &handle->connector, Close);
+    return;
+}
+
+NEXUS_OBJECT_CLASS_MAKE_WITH_RELEASE(NEXUS_3dSurround, NEXUS_3dSurround_Close);
 
 void NEXUS_3dSurround_GetSettings(
     NEXUS_3dSurroundHandle handle,
@@ -194,7 +193,7 @@ NEXUS_Error NEXUS_3dSurround_SetSettings(
     return BERR_SUCCESS;
 }
 
-NEXUS_AudioInput NEXUS_3dSurround_GetConnector(
+NEXUS_AudioInputHandle NEXUS_3dSurround_GetConnector(
     NEXUS_3dSurroundHandle handle
     )
 {
@@ -204,7 +203,7 @@ NEXUS_AudioInput NEXUS_3dSurround_GetConnector(
 
 NEXUS_Error NEXUS_3dSurround_AddInput(
     NEXUS_3dSurroundHandle handle,
-    NEXUS_AudioInput input
+    NEXUS_AudioInputHandle input
     )
 {
     NEXUS_Error errCode;
@@ -233,7 +232,7 @@ NEXUS_Error NEXUS_3dSurround_AddInput(
 
 NEXUS_Error NEXUS_3dSurround_RemoveInput(
     NEXUS_3dSurroundHandle handle,
-    NEXUS_AudioInput input
+    NEXUS_AudioInputHandle input
     )
 {
     NEXUS_Error errCode;
@@ -269,4 +268,3 @@ NEXUS_Error NEXUS_3dSurround_RemoveAllInputs(
     }
     return BERR_SUCCESS;
 }
-

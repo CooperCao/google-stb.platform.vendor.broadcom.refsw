@@ -737,76 +737,82 @@ void BGRC_P_CheckTableMismach( void )
     }
 }
 
-#define SUR_TYPE_SRC  0
-#define SUR_TYPE_DST  1
-#define SUR_TYPE_OUT  2
 static void BGRC_PACKET_P_ValidateSurCompression( BGRC_PacketContext_Handle hContext, uint32_t ulType, uint32_t ulAddr, uint32_t ulWidth, uint32_t ulPitch )
 {
 #if defined(BCHP_M2MC_BSTC_COMPRESS_CONTROL)
+    switch (ulType) {
+    case SUR_TYPE_SRC:
+        hContext->stSurCompressed.stBits.bSrc = 1;
+        break;
+    case SUR_TYPE_DST:
+        hContext->stSurCompressed.stBits.bDst = 1;
+        break;
+    default: /* OUT */
+        hContext->stSurCompressed.stBits.bOut = 1;
+        break;
+    }
+
     if ((ulAddr & 0x1F) || /* 32 = 0x1F + 1 is the size of a BSTC compressed 4x4 area */
         (ulPitch & 0x7) || (ulPitch < ulWidth * 2))
     {
-        if (SUR_TYPE_OUT==ulType)
-        {
+        switch (ulType) {
+        case SUR_TYPE_OUT:
             hContext->stSurInvalid.stBits.bOut = 1;
             if (ulAddr & 0x1F)
                 BDBG_ERR(("Compressed out surface with bad addr 0x%0x. Following blit is likely dropped", ulAddr));
             else
                 BDBG_ERR(("Compressed out surface with bad (pitch 0x%0x, width 0x%x). Following blit is likely dropped", ulPitch, ulWidth));
-        }
-        else if (SUR_TYPE_DST==ulType)
-        {
+            break;
+        case SUR_TYPE_DST:
             hContext->stSurInvalid.stBits.bDst = 1;
             if (ulAddr & 0x1F)
                 BDBG_ERR(("Compressed dst surface with bad addr 0x%0x. Following blit is likely dropped", ulAddr));
             else
                 BDBG_ERR(("Compressed dst surface with bad (pitch 0x%0x, width 0x%x). Following blit is likely dropped", ulPitch, ulWidth));
-        }
-        else /* src */
-        {
+            break;
+        default:  /* SRC */
             hContext->stSurInvalid.stBits.bSrc = 1;
             if (ulAddr & 0x1F)
                 BDBG_ERR(("Compressed src surface with bad addr 0x%0x. Following blit is dropped", ulAddr));
             else
                 BDBG_ERR(("Compressed src surface with bad (pitch 0x%0x, width 0x%x). Following blit is likely dropped", ulPitch, ulWidth));
+            break;
         }
     }
 #elif defined(BCHP_M2MC_DCEG_CFG)
-    if (SUR_TYPE_OUT!=ulType)
-    {
-        if (SUR_TYPE_DST==ulType)
+    switch (ulType) {
+    case SUR_TYPE_DST:
+        hContext->stSurInvalid.stBits.bDst = 1;
+        BDBG_ERR(("No support for compressed dst surface. Following blit is likely dropped"));
+        break;
+    case SUR_TYPE_SRC:
+        hContext->stSurInvalid.stBits.bSrc = 1;
+        BDBG_ERR(("No support for compressed src surface. Following blit is likely dropped"));
+        break;
+    default: /* OUT */
+        if ((ulWidth < 16) || (ulWidth > 4096))
         {
-            hContext->stSurInvalid.stBits.bDst = 1;
-            BDBG_ERR(("No support for compressed dst surface. Following blit is likely dropped"));
+            hContext->stSurInvalid.stBits.bOut = 1;
+            BDBG_ERR(("Compressed out surface with bad width %d. Following blit is likly dropped", ulWidth));
         }
-        else /* src */
-        {
-            hContext->stSurInvalid.stBits.bSrc = 1;
-            BDBG_ERR(("No support for compressed src surface. Following blit is likely dropped"));
-        }
-    }
-    else if ((ulWidth < 16) || (ulWidth > 4096))
-    {
-        hContext->stSurInvalid.stBits.bOut = 1;
-        BDBG_ERR(("Compressed out surface with bad width %d. Following blit is likly dropped", ulWidth));
+        break;
     }
     BSTD_UNUSED(ulAddr);
     BSTD_UNUSED(ulPitch);
 #else  /* no compression support */
-    if (SUR_TYPE_OUT==ulType)
-    {
+    switch (ulType) {
+    case SUR_TYPE_OUT:
         hContext->stSurInvalid.stBits.bOut = 1;
         BDBG_ERR(("No support for compressed out surface. Following blit is likely dropped"));
-    }
-    else if (SUR_TYPE_DST==ulType)
-    {
+        break;
+    case SUR_TYPE_DST:
         hContext->stSurInvalid.stBits.bDst = 1;
         BDBG_ERR(("No support for compressed dst surface. Following blit is likely dropped"));
-    }
-    else /* src */
-    {
+        break;
+    default: /* SRC */
         hContext->stSurInvalid.stBits.bSrc = 1;
         BDBG_ERR(("No support for compressed src surface. Following blit is likely dropped"));
+        break;
     }
     BSTD_UNUSED(ulAddr);
     BSTD_UNUSED(ulWidth);
@@ -852,6 +858,7 @@ static void BGRC_PACKET_P_ProcSwPktSourceFeeder( BGRC_PacketContext_Handle hCont
             palette_lookup = BCHP_M2MC_SRC_SURFACE_FORMAT_DEF_3_PALETTE_BYPASS_MASK;
     }
     hContext->stSurInvalid.stBits.bSrc = 0;
+    hContext->stSurCompressed.stBits.bSrc = 0;
     if (BM2MC_PACKET_PixelFormat_eCompressed_A8_R8_G8_B8 == packet->plane.format)
     {
         BGRC_PACKET_P_ValidateSurCompression( hContext, SUR_TYPE_SRC, packet->plane.address & 0xFFFFFFFF, packet->plane.width, packet->plane.pitch);
@@ -909,6 +916,7 @@ static void BGRC_PACKET_P_ProcSwPktSourceFeeders( BGRC_PacketContext_Handle hCon
     hContext->b420Src = ((packet->plane1.format >= BM2MC_PACKET_PixelFormat_eCb8_Cr8) &&
                          (packet->plane1.format <= BM2MC_PACKET_PixelFormat_eCr10_Cb10));
     hContext->stSurInvalid.stBits.bSrc = 0;
+    hContext->stSurCompressed.stBits.bSrc = 0;
     if (BM2MC_PACKET_PixelFormat_eCompressed_A8_R8_G8_B8 == packet->plane0.format)
     {
         hContext->stSurInvalid.stBits.bSrc = 1;
@@ -964,6 +972,7 @@ static void BGRC_PACKET_P_ProcSwPktStripedSourceFeeders( BGRC_PacketContext_Hand
     hContext->src_format0 = s_BGRC_PACKET_P_DeviceStripedPixelFormats[packet->plane.luma_format - BM2MC_PACKET_PixelFormat_eY8];
     hContext->b420Src = true;
     hContext->stSurInvalid.stBits.bSrc = 0;
+    hContext->stSurCompressed.stBits.bSrc = 0;
 
     BGRC_PACKET_P_DEBUG_PRINT_CTX( "-- StripedSrcFeeders         " );
     BGRC_PACKET_P_STORE_REG( SRC_FEEDER_ENABLE, 1 );
@@ -1014,10 +1023,8 @@ static void BGRC_PACKET_P_ProcSwPktStripedSourceFeeders( BGRC_PacketContext_Hand
 }
 
 /***************************************************************************/
-#if ((BCHP_CHIP==7400) || (BCHP_CHIP==7405) || (BCHP_CHIP==7325) || (BCHP_CHIP==7335) || (BCHP_CHIP==7336) || \
-     (BCHP_CHIP==7340) || (BCHP_CHIP==7342) || (BCHP_CHIP==7550) || (BCHP_CHIP==7420) || (BCHP_CHIP==7125) || \
-     (BCHP_CHIP==7468) || (BCHP_CHIP==7408))
-/* older chips */
+#if ((BCHP_CHIP==7550) || (BCHP_CHIP==7420) || (BCHP_CHIP==7125) || (BCHP_CHIP==7468) || (BCHP_CHIP==7408))
+/* older chips (note: 7400, 7405, ..., 7342 are no longer supported inn baseline code) */
 #define BGRC_PACKET_P_SRC_FEEDER_ENABLE_DISABLE     0
 #else
 /* newer chips */
@@ -1034,6 +1041,7 @@ static void BGRC_PACKET_P_ProcSwPktSourceColor( BGRC_PacketContext_Handle hConte
     hContext->src_format0 = 0;
     hContext->b420Src = false;
     hContext->stSurInvalid.stBits.bSrc = 0;
+    hContext->stSurCompressed.stBits.bSrc = 0;
 
     BGRC_PACKET_P_DEBUG_PRINT_CTX( "-- SrcColor           " );
     BGRC_PACKET_P_STORE_REG( SRC_FEEDER_ENABLE, 1 );
@@ -1076,6 +1084,7 @@ static void BGRC_PACKET_P_ProcSwPktSourceNone( BGRC_PacketContext_Handle hContex
     hContext->src_format0 = 0;
     hContext->b420Src = false;
     hContext->stSurInvalid.stBits.bSrc = 0;
+    hContext->stSurCompressed.stBits.bSrc = 0;
 
     BSTD_UNUSED(header);
     BGRC_PACKET_P_DEBUG_PRINT_CTX( "-- SrcNone            " );
@@ -1146,6 +1155,7 @@ static void BGRC_PACKET_P_ProcSwPktDestinationFeeder( BGRC_PacketContext_Handle 
     }
     hContext->bDestForceDisabled = false;
     hContext->stSurInvalid.stBits.bDst = 0;
+    hContext->stSurCompressed.stBits.bDst = 0;
     if (BM2MC_PACKET_PixelFormat_eCompressed_A8_R8_G8_B8 == packet->plane.format)
     {
         BGRC_PACKET_P_ValidateSurCompression( hContext, SUR_TYPE_DST, packet->plane.address & 0xFFFFFFFF, packet->plane.width, packet->plane.pitch);
@@ -1188,6 +1198,7 @@ static void BGRC_PACKET_P_ProcSwPktDestinationColor( BGRC_PacketContext_Handle h
     hContext->dst_format0 = 0;
     hContext->bDestForceDisabled = false;
     hContext->stSurInvalid.stBits.bDst = 0;
+    hContext->stSurCompressed.stBits.bDst = 0;
 
     BGRC_PACKET_P_DEBUG_PRINT_CTX( "-- DstColor           " );
     BGRC_PACKET_P_STORE_REG( DEST_FEEDER_ENABLE, 1 );
@@ -1215,6 +1226,7 @@ static void BGRC_PACKET_P_ProcSwPktDestinationNone( BGRC_PacketContext_Handle hC
     hContext->dst_format0 = 0;
     hContext->bDestForceDisabled = false;
     hContext->stSurInvalid.stBits.bDst = 0;
+    hContext->stSurCompressed.stBits.bDst = 0;
 
     BSTD_UNUSED(header);
     BGRC_PACKET_P_DEBUG_PRINT_CTX( "-- DstNone            " );
@@ -1260,6 +1272,7 @@ static void BGRC_PACKET_P_ProcSwPktOutputFeeder( BGRC_PacketContext_Handle hCont
     if( (format0 & BGRC_M2MC(SRC_SURFACE_FORMAT_DEF_1_FORMAT_TYPE_MASK)) == M2MC_FT_WRGB1565 )
         format0 &= ~BGRC_M2MC(SRC_SURFACE_FORMAT_DEF_1_FORMAT_TYPE_MASK);
     hContext->stSurInvalid.stBits.bOut = 0;
+    hContext->stSurCompressed.stBits.bOut = 0;
     if (BM2MC_PACKET_PixelFormat_eCompressed_A8_R8_G8_B8 == packet->plane.format)
     {
         BGRC_PACKET_P_ValidateSurCompression( hContext, SUR_TYPE_OUT, packet->plane.address & 0xFFFFFFFF, packet->plane.width, packet->plane.pitch);
@@ -1976,6 +1989,13 @@ static void BGRC_PACKET_P_ProcSwPktFillBlit( BGRC_PacketContext_Handle hContext,
     BGRC_PACKET_P_STORE_REG_FIELD( SCALER_CTRL, HORIZ_SCALER_ENABLE, DISABLE );
     BGRC_PACKET_P_STORE_REG_FIELD( SCALER_CTRL, VERT_SCALER_ENABLE, DISABLE );
 
+    /* this is to work-around for potential picture artifact with BSTC compression */
+    BGRC_PACKET_P_STORE_REG( BLIT_INPUT_STRIPE_WIDTH_0, 0 );
+    BGRC_PACKET_P_STORE_REG( BLIT_INPUT_STRIPE_WIDTH_1, 0 );
+    BGRC_PACKET_P_STORE_REG( BLIT_OUTPUT_STRIPE_WIDTH, 0 );
+    BGRC_PACKET_P_STORE_REG( BLIT_STRIPE_OVERLAP_0, 0 );
+    BGRC_PACKET_P_STORE_REG( BLIT_STRIPE_OVERLAP_1, 0 );
+
 #ifdef BCHP_M2MC_DCEG_CFG
     BGRC_PACKET_P_SetDcegCompression(hContext);
 #endif
@@ -2005,6 +2025,7 @@ static void BGRC_PACKET_P_ProcSwPktFillBlit( BGRC_PacketContext_Handle hContext,
 #define BGRC_PACKET_P_SCALER_STEP_FRAC_ONE        (1 << BGRC_PACKET_P_SCALER_STEP_FRAC_BITS)
 #define BGRC_PACKET_P_SCALER_STEP_FRAC_MASK       (BGRC_PACKET_P_SCALER_STEP_FRAC_ONE - 1)
 #define BGRC_PACKET_P_SCALER_STRIPE_MAX           128
+#define BGRC_PACKET_P_SCALER_COMPRESS_STRIPE_MAX  384
 #define BGRC_PACKET_P_SCALER_STEP_TO_WIDTH_SHIFT  (BGRC_PACKET_P_SCALER_STEP_FRAC_BITS - 16)
 #define BGRC_PACKET_P_SCALER_WIDTH_TO_INT_SHIFT   (BGRC_PACKET_P_SCALER_STEP_FRAC_BITS - BGRC_PACKET_P_SCALER_STEP_TO_WIDTH_SHIFT)
 #define BGRC_PACKET_P_SCALER_HALF_SIZE            4095
@@ -2025,6 +2046,7 @@ static void BGRC_PACKET_P_SetScaler( BGRC_PacketContext_Handle hContext,
     uint32_t h_step, abs_h_phase;
     uint32_t hor_shift_adjust = (src_rect->width > BGRC_PACKET_P_SCALER_HALF_SIZE) ? 1 : 0;
     uint32_t ver_shift_adjust = (src_rect->height > BGRC_PACKET_P_SCALER_HALF_SIZE) ? 1 : 0;
+    uint32_t ulCompressedWidth;
 
     if (hContext->bBlitInvalid)
     {
@@ -2061,7 +2083,11 @@ static void BGRC_PACKET_P_SetScaler( BGRC_PacketContext_Handle hContext,
 
     /* check if striping is required:
      * note: experiment shows that we still need to use stripe even if vertical scl is not used */
-    if( (src_rect->width > BGRC_PACKET_P_SCALER_STRIPE_MAX) && (out_rect->width > BGRC_PACKET_P_SCALER_STRIPE_MAX) )
+    ulCompressedWidth = (hContext->stSurInvalid.stBits.bSrc) ? src_rect->width : 0;
+    ulCompressedWidth = (hContext->stSurInvalid.stBits.bDst) ? out_rect->width + ulCompressedWidth : ulCompressedWidth;
+    ulCompressedWidth = (hContext->stSurInvalid.stBits.bOut) ? out_rect->width + ulCompressedWidth : ulCompressedWidth;
+    if( ((src_rect->width > BGRC_PACKET_P_SCALER_STRIPE_MAX) && (out_rect->width > BGRC_PACKET_P_SCALER_STRIPE_MAX)) ||
+        (ulCompressedWidth > BGRC_PACKET_P_SCALER_COMPRESS_STRIPE_MAX) )
     {
         uint32_t overlap_base, stripe_overlap, stripe_w, in_stripe_w, out_stripe_w, last_stripe_w;
         uint32_t  scale_factor;
@@ -2222,6 +2248,13 @@ static void BGRC_PACKET_P_ProcSwPktCopyBlit( BGRC_PacketContext_Handle hContext,
     BGRC_PACKET_P_STORE_REG_FIELD( SCALER_CTRL, HORIZ_SCALER_ENABLE, DISABLE );
     BGRC_PACKET_P_STORE_REG_FIELD( SCALER_CTRL, VERT_SCALER_ENABLE, DISABLE );
 
+    /* this is to work-around for potential picture artifact with BSTC compression */
+    BGRC_PACKET_P_STORE_REG( BLIT_INPUT_STRIPE_WIDTH_0, 0 );
+    BGRC_PACKET_P_STORE_REG( BLIT_INPUT_STRIPE_WIDTH_1, 0 );
+    BGRC_PACKET_P_STORE_REG( BLIT_OUTPUT_STRIPE_WIDTH, 0 );
+    BGRC_PACKET_P_STORE_REG( BLIT_STRIPE_OVERLAP_0, 0 );
+    BGRC_PACKET_P_STORE_REG( BLIT_STRIPE_OVERLAP_1, 0 );
+
     if (hContext->b420Src)
     {
         BGRC_PACKET_P_SetScaler( hContext, &packet->src_rect, &packet->src_rect );
@@ -2255,6 +2288,13 @@ static void BGRC_PACKET_P_ProcSwPktBlendBlit( BGRC_PacketContext_Handle hContext
     /* this is to work-around for potential BSTC compression hang */
     BGRC_PACKET_P_STORE_REG_FIELD( SCALER_CTRL, HORIZ_SCALER_ENABLE, DISABLE );
     BGRC_PACKET_P_STORE_REG_FIELD( SCALER_CTRL, VERT_SCALER_ENABLE, DISABLE );
+
+    /* this is to work-around for potential picture artifact with BSTC compression */
+    BGRC_PACKET_P_STORE_REG( BLIT_INPUT_STRIPE_WIDTH_0, 0 );
+    BGRC_PACKET_P_STORE_REG( BLIT_INPUT_STRIPE_WIDTH_1, 0 );
+    BGRC_PACKET_P_STORE_REG( BLIT_OUTPUT_STRIPE_WIDTH, 0 );
+    BGRC_PACKET_P_STORE_REG( BLIT_STRIPE_OVERLAP_0, 0 );
+    BGRC_PACKET_P_STORE_REG( BLIT_STRIPE_OVERLAP_1, 0 );
 
     if (hContext->b420Src)
     {
@@ -2575,62 +2615,8 @@ static void BGRC_PACKET_P_ProcSwPktUpdateScaleBlit( BGRC_PacketContext_Handle hC
 }
 
 /***************************************************************************/
-#if BCHP_CHIP==7400
-#define BGRC_PACKET_P_SW_DESTRIPE
-#endif
-
-/***************************************************************************/
 static void BGRC_PACKET_P_ProcSwPktDestripeBlit( BGRC_PacketContext_Handle hContext, BM2MC_PACKET_Header *header )
 {
-#ifdef BGRC_PACKET_P_SW_DESTRIPE
-    BM2MC_PACKET_PacketDestripeBlit *packet = (BM2MC_PACKET_PacketDestripeBlit *) header;
-    BGRC_PACKET_P_Stripe stripe;
-
-    if( hContext->scaler.stripe_num == 0 )
-    {
-        BGRC_PACKET_P_SetScaler( hContext, &packet->src_rect, &packet->out_rect );
-        hContext->scaler_header = header;
-    }
-
-    BGRC_PACKET_P_SetStriping( hContext, &packet->src_rect, &packet->out_rect, &packet->dst_point, &stripe );
-    hContext->scaler.stripe_num++;
-
-    {
-        uint32_t src_pos0 = stripe.src_x | ((uint32_t) packet->src_rect.y << BGRC_M2MC(BLIT_OUTPUT_TOP_LEFT_TOP_SHIFT));
-        uint32_t src_pos1 = (stripe.src_x / 2) | ((uint32_t) (packet->src_rect.y / 2) << BGRC_M2MC(BLIT_OUTPUT_TOP_LEFT_TOP_SHIFT));
-        uint32_t out_pos = stripe.out_x | ((uint32_t) packet->out_rect.y << BGRC_M2MC(BLIT_OUTPUT_TOP_LEFT_TOP_SHIFT));
-        uint32_t dst_pos = stripe.dst_x | ((uint32_t) packet->dst_point.y << BGRC_M2MC(BLIT_OUTPUT_TOP_LEFT_TOP_SHIFT));
-        uint32_t src_size0 = packet->src_rect.height | ((uint32_t) stripe.src_width << BGRC_M2MC(BLIT_OUTPUT_SIZE_SURFACE_WIDTH_SHIFT));
-        uint32_t src_size1 = ((packet->src_rect.height + 1) / 2) | ((uint32_t) ((stripe.src_width + 1) / 2) << BGRC_M2MC(BLIT_OUTPUT_SIZE_SURFACE_WIDTH_SHIFT));
-        uint32_t out_size = packet->out_rect.height | ((uint32_t) stripe.out_width << BGRC_M2MC(BLIT_OUTPUT_SIZE_SURFACE_WIDTH_SHIFT));
-        uint32_t stripe_width = packet->source_stripe_width >> 7;
-
-        uint32_t format00 = s_BGRC_PACKET_P_DeviceStripedPixelFormats[BM2MC_PACKET_PixelFormat_eY8 - BM2MC_PACKET_PixelFormat_eY8];
-        uint32_t format10 = s_BGRC_PACKET_P_DeviceStripedPixelFormats[BM2MC_PACKET_PixelFormat_eCb8_Cr8 - BM2MC_PACKET_PixelFormat_eY8];
-
-        BGRC_PACKET_P_DEBUG_PRINT_CTX( "-- DestripeBlit       " );
-        BGRC_PACKET_P_STORE_REG( SRC_SURFACE_FORMAT_DEF_1, format00 );
-        BGRC_PACKET_P_STORE_REG( SRC_SURFACE_1_FORMAT_DEF_1, format10 ); /* same value for eCb8_Cr8 and eCr8_Cb8 */
-        BGRC_PACKET_P_STORE_REG_FIELD( BLIT_CTRL, STRIPE_ENABLE, DISABLE );
-        BGRC_PACKET_P_STORE_RECT_REGS( src_pos0, src_size0, src_pos1, src_size1, dst_pos, out_size, out_pos, out_size );
-        BGRC_PACKET_P_STORE_REG( BLIT_SRC_STRIPE_HEIGHT_WIDTH_0, stripe_width |
-            (packet->luma_stripe_height << BGRC_M2MC(BLIT_SRC_STRIPE_HEIGHT_WIDTH_0_STRIPE_HEIGHT_SHIFT)) );
-        BGRC_PACKET_P_STORE_REG( BLIT_SRC_STRIPE_HEIGHT_WIDTH_1, stripe_width |
-            (packet->chroma_stripe_height << BGRC_M2MC(BLIT_SRC_STRIPE_HEIGHT_WIDTH_1_STRIPE_HEIGHT_SHIFT)) );
-        BGRC_PACKET_P_STORE_REG_FIELD( BLIT_HEADER, SRC_SCALER_ENABLE, ENABLE );
-        BGRC_PACKET_P_DEBUG_PRINT( "\n                      " );
-        BGRC_PACKET_P_STORE_REG_FIELD( SCALER_CTRL, HORIZ_SCALER_ENABLE, ENABLE );
-        BGRC_PACKET_P_STORE_REG_FIELD( SCALER_CTRL, VERT_SCALER_ENABLE, ENABLE );
-        BGRC_PACKET_P_STORE_REG_FIELD_COMP( SCALER_CTRL, SCALER_ORDER, VERT_THEN_HORIZ, HORIZ_THEN_VERT, stripe.src_width >= stripe.out_width );
-        BGRC_PACKET_P_STORE_SCALE_REGS( HORIZ, 0, stripe.hor_phase, hContext->scaler.hor_step );
-        BGRC_PACKET_P_STORE_SCALE_REGS( HORIZ, 1, stripe.hor_phase / 2, hContext->scaler.hor_step / 2 );
-        BGRC_PACKET_P_STORE_SCALE_REGS( VERT, 0, hContext->scaler.ver_phase, hContext->scaler.ver_step );
-        BGRC_PACKET_P_STORE_SCALE_REGS( VERT, 1, hContext->scaler.ver_phase / 2, hContext->scaler.ver_step / 2 );
-        BGRC_PACKET_P_CheckAndForceDestDisable( hContext );
-        BGRC_PACKET_P_DEBUG_PRINT( "\n" );
-    }
-
-#else /* #ifdef BGRC_PACKET_P_SW_DESTRIPE */
     BM2MC_PACKET_PacketDestripeBlit *packet = (BM2MC_PACKET_PacketDestripeBlit *) header;
     uint32_t src_x0 = packet->src_rect.x;
     uint32_t src_y0 = packet->src_rect.y;
@@ -2677,7 +2663,6 @@ static void BGRC_PACKET_P_ProcSwPktDestripeBlit( BGRC_PacketContext_Handle hCont
     BGRC_PACKET_P_SetScaleFor420Src(hContext);
     BGRC_PACKET_P_CheckAndForceDestDisable( hContext );
     BGRC_PACKET_P_DEBUG_PRINT( "\n" );
-#endif /* #ifdef BGRC_PACKET_P_SW_DESTRIPE */
 }
 
 /***************************************************************************/
@@ -2809,6 +2794,7 @@ static void BGRC_PACKET_P_ProcSwPktSaveState( BGRC_PacketContext_Handle hContext
     hContext->saved_bNeedDestForBlend = hContext->bNeedDestForBlend;
     hContext->saved_bBlitInvalid = hContext->bBlitInvalid;
     hContext->saved_stSurInvalid.ulInts = hContext->stSurInvalid.ulInts;
+    hContext->saved_stSurCompressed.ulInts = hContext->stSurCompressed.ulInts;
 
 #if BGRC_PACKET_P_VERIFY_SURFACE_RECTANGLE && BDBG_DEBUG_BUILD
     hContext->saved_SRC_surface_width = hContext->SRC_surface_width;
@@ -2841,6 +2827,7 @@ static void BGRC_PACKET_P_ProcSwPktRestoreState( BGRC_PacketContext_Handle hCont
     hContext->bNeedDestForBlend = hContext->saved_bNeedDestForBlend;
     hContext->bBlitInvalid = hContext->saved_bBlitInvalid;
     hContext->stSurInvalid.ulInts = hContext->saved_stSurInvalid.ulInts;
+    hContext->stSurCompressed.ulInts = hContext->saved_stSurCompressed.ulInts;
 
 #if BGRC_PACKET_P_VERIFY_SURFACE_RECTANGLE && BDBG_DEBUG_BUILD
     hContext->SRC_surface_width = hContext->saved_SRC_surface_width;
@@ -3278,7 +3265,7 @@ void BGRC_P_CheckHwStatus(
     {
         uint32_t ulBlittedSyncCntr = 0;
 
-        BMEM_FlushCache( hGrc->hMemory, hGrc->pDummySurBase, 1024 );
+        BMEM_FlushCache( hGrc->hMemory, hGrc->pDummySurBase, 16 );
         ulBlittedSyncCntr = *(uint32_t *)hGrc->pDummySurBase;
 
         hContext = bgrc_p_first_context(hGrc);
@@ -3292,6 +3279,7 @@ void BGRC_P_CheckHwStatus(
             hContext = bgrc_p_next_context(hGrc, hContext);
         }
     }
+    else
 #endif
 
     /* now check all contexts */
@@ -3338,7 +3326,7 @@ void BGRC_P_CheckHwStatus(
                     if (BGRC_P_HW_PKT_WRAPPED_OVER(ulPrevHwPktOffsetExecuted, hContext->ulSyncHwPktOffset, ulCurExeHwPkt))
                     {
                         hContext->eSyncState = BGRC_PACKET_P_SyncState_eSynced;
-                }
+                    }
                 }
                 hContext = bgrc_p_next_context(hGrc, hContext);
             }
@@ -3650,9 +3638,6 @@ BERR_Code BGRC_PACKET_P_ProcessSwPktFifo(
 #if 1 /* syang: according to Maulshree, no need to do sw stripe */
                 /* write scaler stripe blits */
                 if( bSoftwareStriping ||
-#ifdef BGRC_PACKET_P_SW_DESTRIPE
-                    (hContext->last_blit_type == BM2MC_PACKET_PacketType_eDestripeBlit) ||
-#endif
                     (hContext->last_blit_type == BM2MC_PACKET_PacketType_eScaleBlendBlit) )
                 {
                     for( ii = 1; ii < hContext->scaler.stripe_count; ++ii )
@@ -3664,12 +3649,6 @@ BERR_Code BGRC_PACKET_P_ProcessSwPktFifo(
                             BM2MC_PACKET_PacketScaleBlendBlit *scale_packet = (BM2MC_PACKET_PacketScaleBlendBlit *) hContext->scaler_header;
                             BGRC_PACKET_P_ProcSwPktStripeBlit( hContext, &scale_packet->src_rect, &scale_packet->out_rect, &scale_packet->dst_point );
                         }
-#ifdef BGRC_PACKET_P_SW_DESTRIPE
-                        else if( hContext->scaler_header->type == BM2MC_PACKET_PacketType_eDestripeBlit )
-                        {
-                            BGRC_PACKET_P_ProcSwPktDestripeBlit( hContext, hContext->scaler_header );
-                        }
-#endif
                         else
                         {
                             BM2MC_PACKET_PacketScaleBlit *scale_packet = (BM2MC_PACKET_PacketScaleBlit *) hContext->scaler_header;

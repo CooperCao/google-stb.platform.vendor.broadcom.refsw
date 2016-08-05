@@ -6,9 +6,13 @@ All rights reserved.
 #include "v3d_common.h"
 #include "v3d_ident.h"
 #include "v3d_limits.h"
+#include "libs/util/gfx_options/gfx_options.h"
 #include "libs/util/demand.h"
 #include "libs/util/log/log.h"
 
+LOG_DEFAULT_CAT("v3d_ident")
+
+#if !V3D_HAS_IDENT_WITH_L2T
 int v3d_ver_from_ident(const V3D_IDENT_T *ident)
 {
    return V3D_MAKE_VER(
@@ -17,6 +21,7 @@ int v3d_ver_from_ident(const V3D_IDENT_T *ident)
       ident->v3d_sub_rev,
       V3D_HIDDEN_REV); /* Note this is by definition not provided by hardware! */
 }
+#endif
 
 int v3d_ver_from_hub_ident(const V3D_HUB_IDENT_T *ident)
 {
@@ -33,12 +38,20 @@ int v3d_ver_from_hub_ident(const V3D_HUB_IDENT_T *ident)
       V3D_HIDDEN_REV); /* Note this is by definition not provided by hardware! */
 }
 
-static void check_v3d_ver(int v3d_ver)
+void v3d_check_ver(int v3d_ver)
 {
-   demand_msg(v3d_ver == V3D_VER,
-      "V3D version of hardware (%u.%u.%u) does not match what software was compiled with (%u.%u.%u)!",
-      V3D_EXTRACT_TECH_VERSION(v3d_ver), V3D_EXTRACT_REVISION(v3d_ver),
-      V3D_EXTRACT_SUB_REV(v3d_ver), V3D_TECH_VERSION, V3D_REVISION, V3D_SUB_REV);
+   static unsigned no_ver_check = ~0u;
+   if (no_ver_check == ~0u)
+      no_ver_check = gfx_options_bool("V3D_NO_VER_CHECK", false);
+
+   if (!no_ver_check)
+   {
+      demand_msg(v3d_ver == V3D_VER,
+         "V3D version of hardware (%u.%u.%u.%u) does not match what software was compiled with (%u.%u.%u.%u)!",
+         V3D_EXTRACT_TECH_VERSION(v3d_ver), V3D_EXTRACT_REVISION(v3d_ver),
+         V3D_EXTRACT_SUB_REV(v3d_ver), V3D_EXTRACT_HIDDEN_REV(v3d_ver),
+         V3D_TECH_VERSION, V3D_REVISION, V3D_SUB_REV, V3D_HIDDEN_REV);
+   }
 }
 
 void v3d_check_ident(const V3D_IDENT_T *ident, uint32_t core)
@@ -46,7 +59,9 @@ void v3d_check_ident(const V3D_IDENT_T *ident, uint32_t core)
    /* v3d_unpack_ident() does a bunch of checking itself, so there isn't much
     * checking left to do here... */
 
-   check_v3d_ver(v3d_ver_from_ident(ident));
+#if !V3D_HAS_IDENT_WITH_L2T
+   v3d_check_ver(v3d_ver_from_ident(ident));
+#endif
 
    assert(ident->core_index == core);
 
@@ -61,7 +76,7 @@ void v3d_check_hub_ident(const V3D_HUB_IDENT_T *ident)
    /* v3d_unpack_hub_ident() does a bunch of checking itself, so there isn't
     * much checking left to do here... */
 
-   check_v3d_ver(v3d_ver_from_hub_ident(ident));
+   v3d_check_ver(v3d_ver_from_hub_ident(ident));
 
    assert(ident->num_cores <= V3D_MAX_CORES);
 }

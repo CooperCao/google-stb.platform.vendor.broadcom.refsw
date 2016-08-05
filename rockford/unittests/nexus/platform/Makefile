@@ -75,7 +75,7 @@ ${MAKEFILE_BUILD}:
 	${NEXUS_TOP}/../BSEAV/tools/build/build.pl -Makefile ${MAKEFILE_BUILD} -log_stdout -default_board -single_revision autobuild
 
 SAGE_PLATFORMS="97250 97439 97445 97364 97366"
-NO_SAGE_PLATFORMS="974371"
+NO_SAGE_PLATFORMS="974371 97271"
 rebuild.all: ${MAKEFILE_BUILD}
 	for plat in ${SAGE_PLATFORMS} ; do \
 		${MAKE} -f ${MAKEFILE_BUILD} $$plat SAGE_SUPPORT=y B_REAL_TARGET=x86.clean; \
@@ -103,7 +103,7 @@ include ${MAGNUM}/basemodules/std/bstd.inc
 BCHP_SOURCES:=
 BREG_SOURCES:=
 CFLAGS += -DBCHP_CHIP=GENERIC -DBCHP_VER=BCHP_VER_A0 -DBSTD_CPU_ENDIAN=BSTD_ENDIAN_LITTLE
-CFLAGS += -g -Os -DBDBG_DEBUG_BUILD=1 -I${NEXUS_TOP}
+CFLAGS += -g -Os -DBDBG_DEBUG_BUILD=1 -I${NEXUS_TOP} -I${NEXUS_TOP}/base/include/public
 
 SOURCES += $(sort $(foreach module, $(MAGNUM_MODULES), $($(module)_SOURCES)))
 INCLUDES := $(addprefix -I,$(sort $(foreach module, $(MAGNUM_MODULES), $($(module)_INCLUDES))))

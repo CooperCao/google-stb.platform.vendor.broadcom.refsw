@@ -32,8 +32,8 @@ static EGL_SYNC_T* egl_gl_synckhr_new(EGL_CONTEXT_T *context,
    /* check attrib list is either NULL or empty */
    if (egl_next_attrib(&attrib_list, attrib_type, &name, &value))
    {
-      UNUSED(name);
-      UNUSED(value);
+      vcos_unused(name);
+      vcos_unused(value);
       error = EGL_BAD_ATTRIBUTE;
       goto end;
    }

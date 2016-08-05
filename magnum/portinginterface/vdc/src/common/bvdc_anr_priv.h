@@ -66,8 +66,6 @@ extern "C" {
 #define BVDC_P_ANR_BUFFER_COUNT                (4)
 #define BVDC_P_SRC_INVALID                     (0xffffffff)
 
-/* 7420: 8-bit MTCF/AND */
-#define BVDC_P_MANR_VER_1                      (1) /* 7420 */
 #define BVDC_P_MANR_VER_2                      (2) /* 7422, 7425 */
 #define BVDC_P_MANR_VER_3                      (3) /* 7435 */
 #define BVDC_P_MANR_VER_4                      (4) /* 7366a0, 7439a0, 74371a0 */

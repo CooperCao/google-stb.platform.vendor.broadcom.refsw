@@ -129,6 +129,7 @@ public:
     NEXUS_PlaypumpHandle audioPlaypump;
     NEXUS_PidChannelHandle videoPidChannel;
     NEXUS_PidChannelHandle audioPidChannel;
+    NEXUS_StcChannelHandle stcChannel;
     BKNI_EventHandle event;
 
     uint64_t last_video_fragment_time;
@@ -155,6 +156,7 @@ AppContext::AppContext()
     window = NULL;
     videoDecoder = NULL;
     audioDecoder = NULL;
+    stcChannel = NULL;
     videoPidChannel = NULL;
     audioPidChannel = NULL;
     event = NULL;
@@ -208,6 +210,11 @@ AppContext::~AppContext()
     if (audioDecoder != NULL) {
         LOGW(("Closing audioDecoder %p", audioDecoder));
         NEXUS_AudioDecoder_Close(audioDecoder);
+    }
+
+    if (stcChannel!= NULL) {
+        LOGW(("Closing stcChannel %p", stcChannel));
+        NEXUS_StcChannel_Close(stcChannel);
     }
 
     if (window != NULL) {
@@ -640,7 +647,6 @@ static void setup_gui()
 static void setup_streamer()
 {
     NEXUS_MemoryAllocationSettings memSettings;
-    NEXUS_StcChannelHandle stcChannel;
     NEXUS_VideoDecoderStartSettings videoProgram;
     NEXUS_AudioDecoderStartSettings audioProgram;
     NEXUS_StcChannelSettings stcSettings;
@@ -688,7 +694,7 @@ static void setup_streamer()
     NEXUS_StcChannel_GetDefaultSettings(0, &stcSettings);
     stcSettings.timebase = NEXUS_Timebase_e0;
     stcSettings.mode = NEXUS_StcChannelMode_eAuto;
-    stcChannel = NEXUS_StcChannel_Open(0, &stcSettings);
+    s_app.stcChannel = NEXUS_StcChannel_Open(0, &stcSettings);
 
     BKNI_CreateEvent(&s_app.event);
 
@@ -738,16 +744,16 @@ static void setup_streamer()
     }
 
     videoProgram.pidChannel = s_app.videoPidChannel;
-    videoProgram.stcChannel = stcChannel;
+    videoProgram.stcChannel = s_app.stcChannel;
     NEXUS_VideoDecoder_Start(s_app.videoDecoder, &videoProgram);
 
     audioProgram.pidChannel = s_app.audioPidChannel;
-    audioProgram.stcChannel = stcChannel;
+    audioProgram.stcChannel = s_app.stcChannel;
     NEXUS_AudioDecoder_Start(s_app.audioDecoder, &audioProgram);
 
 }
 
-static void setup_parser()
+static void setup_files()
 {
     LOGD(("%s - %d\n", __FUNCTION__, __LINE__));
     if (s_app.file == NULL ) {
@@ -762,7 +768,12 @@ static void setup_parser()
         LOGE(("failed to open %s", s_app.file));
         exit(EXIT_FAILURE);
     }
+}
 
+static void setup_parser()
+{
+    LOGD(("%s - %d\n", __FUNCTION__, __LINE__));
+    fflush(stdout);
     s_app.parser = new PiffParser(s_app.fp_mp4);
     if (s_app.parser ==  NULL) {
         LOGE(("failed to new a PiffParser instance"));
@@ -788,22 +799,22 @@ static void setup_parser()
         }
     }
 
-    if(s_app.drmType != drm_type_eUnknown){
+    if (s_app.drmType != drm_type_eUnknown){
         bool drmMatch = false;
         DrmType drmTypes[BMP4_MAX_DRM_SCHEMES];
         uint8_t numOfDrmSchemes = s_app.parser->GetNumOfDrmSchemes(drmTypes, BMP4_MAX_DRM_SCHEMES);
-        for(int i = 0; i<numOfDrmSchemes; i++){
-            if(drmTypes[i] == s_app.drmType){
+        for (int i = 0; i<numOfDrmSchemes; i++){
+            if (drmTypes[i] == s_app.drmType){
                 drmMatch = true;
                 s_app.parser-> SetDrmSchemes(i);
             }
         }
-        if(!drmMatch){
+        if (!drmMatch){
             LOGE(("DRM Type: %d was not found in the stream.", s_app.drmType ));
             LOGE(("Do you want to play it with its default DRM type: %d? [y/n]", drmTypes[0]));
             char resp;
             scanf("%c", &resp);
-            if(resp != 'y')
+            if (resp != 'y')
                 exit(EXIT_FAILURE);
         }
     }
@@ -820,10 +831,13 @@ static void setup_decryptor()
 
     // New API - creating Decryptor
     drmType = s_app.parser->GetDrmType();
-    if (drmType == drm_type_eWidevine) {
+    if (s_app.drmType == drm_type_ePlayready30){
+        drmType = drm_type_ePlayready30;
+        LOGW(("Playready 3.0 for %s", s_app.file[i]));
+    } else if (drmType == drm_type_eWidevine) {
         LOGW(("Widevine for %s", s_app.file));
     } else if (drmType == drm_type_ePlayready) {
-        LOGW(("Playready for %s", s_app.file));
+        LOGW(("Playready 2.5 for %s", s_app.file));
     } else {
         LOGW(("Unknown DRM type for %s", s_app.file));
         return;
@@ -919,6 +933,7 @@ static void print_usage(char* command)
 {
     LOGE(("Usage : %s <files> [OPTIONS]", command));
     LOGE(("        -pr <file> Set DRM type as playready"));
+    LOGE(("        -pr30 <file> Set DRM type as playready 3.0"));
     LOGE(("        -wv <file> Set DRM type as widevine"));
     LOGE(("        -loop N    Set # of playback loops"));
     LOGE(("        -secure    Use secure video picture buffers (URR)"));
@@ -941,7 +956,17 @@ int main(int argc, char* argv[])
     }
 
     for (int i = 1; i< argc; i++){
-        if (strcmp(argv[i], "-pr") == 0) {
+        if (strcmp(argv[i], "-pr30") == 0) {
+            if (i >= argc - 1) {
+                print_usage(argv[0]);
+                exit(EXIT_FAILURE);
+            }
+            s_app.drmType = drm_type_ePlayready30;
+            s_app.file = argv[++i];
+            LOGW(("File PR3.0: %s", s_app.file));
+            num_files++;
+        }
+        else if (strcmp(argv[i], "-pr") == 0) {
             if (i >= argc - 1) {
                 print_usage(argv[0]);
                 exit(EXIT_FAILURE);
@@ -1019,6 +1044,8 @@ int main(int argc, char* argv[])
     setup_gui();
 
     setup_streamer();
+
+    setup_files();
 
     setup_parser();
 

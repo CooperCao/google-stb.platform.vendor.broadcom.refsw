@@ -66,7 +66,7 @@ void glxx_buffer_enable(GLXX_BUFFER_T *buffer)
 void glxx_buffer_term(void *v, size_t size)
 {
    GLXX_BUFFER_T *buffer = (GLXX_BUFFER_T *)v;
-   UNUSED(size);
+   vcos_unused(size);
 
    free(buffer->debug_label);
    buffer->debug_label = NULL;
@@ -157,7 +157,7 @@ bool glxx_buffer_copy_subdata(
    return ok;
 }
 
-int glxx_buffer_find_max(
+bool glxx_buffer_find_max(uint32_t *max, bool *any,
    GLXX_BUFFER_T *buffer,
    unsigned count,
    unsigned per_index_size,
@@ -173,10 +173,10 @@ int glxx_buffer_find_max(
    size_t size = per_index_size * count;
    void* ptr = khrn_res_interlock_map_range(&buffer->resource, offset, size, KHRN_MAP_READ_BIT, &c_gmem_args);
    if (!ptr)
-      return -1;
-   int ret = find_max(count, per_index_size, ptr, primitive_restart);
+      return false;
+   *any = find_max(max, count, per_index_size, ptr, primitive_restart);
    khrn_res_interlock_unmap_range(buffer->resource, offset, size, KHRN_MAP_READ_BIT);
-   return ret;
+   return true;
 }
 
 // todo, this control list code shouldn't live here
@@ -204,10 +204,11 @@ KHRN_RES_INTERLOCK_T* glxx_buffer_get_tf_aware_res_interlock(GLXX_HW_RENDER_STAT
    }
 
    {
-      uint8_t *instr = khrn_fmem_cle(&rs->fmem,
+      uint8_t *instr = khrn_fmem_begin_cle(&rs->fmem,
          V3D_CL_FLUSH_TRANSFORM_FEEDBACK_DATA_SIZE +
          V3D_CL_WAIT_TRANSFORM_FEEDBACK_SIZE +
-         V3D_CL_FLUSH_VCD_CACHE_SIZE);
+         V3D_CL_FLUSH_VCD_CACHE_SIZE +
+         V3D_CL_L2T_CACHE_FLUSH_CONTROL_SIZE);
       if (!instr)
          return NULL;
 
@@ -219,12 +220,10 @@ KHRN_RES_INTERLOCK_T* glxx_buffer_get_tf_aware_res_interlock(GLXX_HW_RENDER_STAT
 
       v3d_cl_flush_vcd_cache(&instr);
 
-      /* Starting from 3.2, attribute data goes through L2T cache */
-      instr = khrn_fmem_cle(&rs->fmem, V3D_CL_L2T_CACHE_FLUSH_CONTROL_SIZE);
-      if (!instr)
-         return NULL;
-
+      /* Attribute data goes through L2T cache */
       v3d_cl_l2t_cache_flush_control(&instr, 0, ~0, V3D_L2T_FLUSH_MODE_FLUSH);
+
+      khrn_fmem_end_cle_exact(&rs->fmem, instr);
    }
 
    return res_i;

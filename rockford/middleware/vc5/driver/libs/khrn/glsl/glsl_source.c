@@ -13,7 +13,6 @@ FILE DESCRIPTION
 
 #include "libs/util/snprintf.h"
 
-#include "glsl_common.h" // For bool, strdup
 #include "glsl_source.h"
 
 #ifdef WIN32

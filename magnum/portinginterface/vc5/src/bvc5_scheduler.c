@@ -172,6 +172,10 @@ static void BVC5_P_ProcessInterrupt(
             pRenderJob->eStatus  = BVC5_JobStatus_eOUT_OF_MEMORY;
          }
 
+         /* Translate to fixed MMU virtual mapping of Nexus heap */
+         if (pJob->pBase->uiPagetablePhysAddr != 0)
+            uiPhysOffset = BVC5_P_TranslateBinAddress(hVC5, uiPhysOffset, pJob->pBase->bSecure);
+
          /* TODO: which core for multi-core */
          BVC5_P_HardwareSupplyBinner(hVC5, uiCoreIndex, uiPhysOffset, pBlock->uiNumBytes);
 
@@ -302,42 +306,12 @@ static void BVC5_P_WatchdogTimeout(
    }
 }
 
-/* BVC5_P_GatherClients
-
-   Copy client handles into schedulerState client array for round robin processing
-   of clients.
-
- */
-static void BVC5_P_GatherClients(
-   BVC5_Handle hVC5
-)
-{
-   BVC5_P_SchedulerState  *psSchedulerState = &hVC5->sSchedulerState;
-   BVC5_ClientMapHandle    hClientMap       = hVC5->hClientMap;
-
-   void                *iter = NULL;
-   BVC5_ClientHandle    hClient;
-   uint32_t             uiNumClients = BVC5_P_ClientMapSize(hClientMap);
-
-   uint32_t i = psSchedulerState->uiClientOffset;
-
-   for (hClient = BVC5_P_ClientMapFirst(hClientMap, &iter);
-        hClient != NULL;
-        hClient = BVC5_P_ClientMapNext(hClientMap, &iter))
-   {
-      psSchedulerState->phClientHandles[i] = hClient;
-
-      i = (i + 1) % uiNumClients;
-   }
-}
-
-
-/* BVC5_P_ScheduleSoftJobs
+/* BVC5_P_ScheduleSoftJobsForClient
 
    Schedule i.e. run and complete, all jobs with only computational components.
 
  */
-static bool BVC5_P_ScheduleSoftJobs(
+static bool BVC5_P_ScheduleSoftJobsForClient(
    BVC5_Handle       hVC5,
    BVC5_ClientHandle hClient
 )
@@ -360,216 +334,357 @@ static bool BVC5_P_ScheduleSoftJobs(
    return bIssued;
 }
 
-/* BVC5_P_ScheduleBinnerJob
+/* BVC5_P_CoreMatchPageTable
 
-   Issue a binner job if there is one.  Binner must be available.
+  Check the page table here and change if possible.
+  Can only change if the cores are idle.
+  The scheduler will ensure that each job gets a chance to set
+  its page table and run its jobs by making sure that work
+  that it wants to do (at least one bin, render and tfu job)
+  is done before moving to the next client.
 
  */
-static bool BVC5_P_ScheduleBinnerJob(
-   BVC5_Handle       hVC5,
-   BVC5_ClientHandle hClient
+static bool BVC5_P_CoreMatchPageTable(
+   BVC5_Handle           hVC5,
+   BVC5_P_InternalJob   *pJob
 )
 {
-   BVC5_JobQHandle       hBinnerQ = hClient->hRunnableBinnerQ;
-   bool                  issued   = false;
-   BVC5_P_InternalJob   *pJob     = BVC5_P_JobQTop(hBinnerQ);
+   BVC5_JobBase *pBase = pJob->pBase;
 
-   if (pJob != NULL)
+   if (hVC5->psCoreStates[0].uiBRCurrentPagetable != pBase->uiPagetablePhysAddr)
    {
-      /* GFXH-1181 workaround for uniform cache issue (TODO -- multicore although probably irrelevant) */
-      if (!pJob->bFlushedV3D && BVC5_P_HardwareCacheClearBlocked(hVC5, 0))
+      if (!BVC5_P_HardwareIsCoreIdle(hVC5, 0))
          return false;
 
-      issued = BVC5_P_HardwareIssueBinnerJob(hVC5, 0, pJob);
-      if (issued)
-         BVC5_P_JobQPop(hBinnerQ);
+      hVC5->psCoreStates[0].uiBRCurrentPagetable = pBase->uiPagetablePhysAddr;
    }
 
-   return issued;
+   BVC5_P_HardwareSetupCoreMmu(hVC5, 0, pBase->uiPagetablePhysAddr, pBase->uiMmuMaxVirtAddr);
+
+   return true;
 }
 
-/* BVC5_P_ScheduleRenderJob
+/* BVC5_P_CoreJobIsRunnable
 
-   Issue a render job if there is one.  Renderer must be available.
+   Check that the system is in the right state to run a bin/render job
+   If possible, change state to accommodate new job
 
+   POWER MUST BE ON
  */
-static bool BVC5_P_ScheduleRenderJob(
-   BVC5_Handle       hVC5,
-   BVC5_ClientHandle hClient
+static bool BVC5_P_CoreJobIsRunnable(
+   BVC5_Handle         hVC5,
+   BVC5_P_InternalJob *pJob
 )
 {
-   BVC5_JobQHandle      hRenderQ = hClient->hRunnableRenderQ;
-   bool                 issued   = false;
-   BVC5_P_InternalJob  *pJob     = BVC5_P_JobQTop(hRenderQ);
+   /* Workaround for GFXH-1181 */
+   if (!pJob->bFlushedV3D && BVC5_P_HardwareCacheClearBlocked(hVC5, 0))
+      return false;
 
-   if (pJob != NULL)
-   {
-      /* GFXH-1181 workaround for uniform cache issue (TODO -- multicore although probably irrelevant) */
-      if (!pJob->bFlushedV3D && BVC5_P_HardwareCacheClearBlocked(hVC5, 0))
-         return false;
+   if (!BVC5_P_SwitchSecurityMode(hVC5, pJob))
+      return false;
 
-      issued = BVC5_P_HardwareIssueRenderJob(hVC5, 0, pJob);
-      if (issued)
-         BVC5_P_JobQPop(hRenderQ);
-   }
+   if (!BVC5_P_CoreMatchPageTable(hVC5, pJob))
+      return false;
 
-   return issued;
+   return true;
 }
 
-/* BVC5_P_ScheduleTFUJob
-
-   Issue a TFU job if there is one.  TFU must be available.
-
- */
-static bool BVC5_P_ScheduleTFUJob(
-   BVC5_Handle       hVC5,
-   BVC5_ClientHandle hClient
+static bool BVC5_P_RenderJobIsRunnable(
+   BVC5_Handle         hVC5,
+   BVC5_P_InternalJob *pJob
 )
 {
-   BVC5_JobQHandle      hTFUQ  = hClient->hRunnableTFUQ;
-   bool                 issued = false;
-   BVC5_P_InternalJob  *pJob   = BVC5_P_JobQTop(hTFUQ);
-
-   if (pJob != NULL)
-   {
-      issued = BVC5_P_HardwareIssueTFUJob(hVC5, pJob);
-      if (issued)
-         BVC5_P_JobQPop(hTFUQ);
-   }
-
-   return issued;
+   return BVC5_P_CoreJobIsRunnable(hVC5, pJob);
 }
 
-/* BVC5_P_ScheduleUsermodeJob
-
-   Schedule a usermode callback job.  Usermode callback must be free.
-
- */
-static bool BVC5_P_ScheduleUsermodeJob(
-   BVC5_Handle       hVC5,
-   BVC5_ClientHandle hClient
+static bool BVC5_P_BinnerJobIsRunnable(
+   BVC5_Handle         hVC5,
+   BVC5_P_InternalJob *pJob
 )
 {
-   BVC5_JobQHandle   hUsermodeQ = hClient->hRunnableUsermodeQ;
-   bool              issued = false;
+   return BVC5_P_CoreJobIsRunnable(hVC5, pJob) &&
+          BVC5_P_BinPoolReplenish(BVC5_P_GetBinPool(hVC5));
+}
 
-   if (BVC5_P_JobQSize(hUsermodeQ) != 0)
+/* BVC5_P_TFUMatchPageTable
+
+  Change the TFU page table here -- will always be possible at
+  present as we only have one TFU job running at a time and it
+  has its own MMU.
+ */
+static bool BVC5_P_TFUMatchPageTable(
+   BVC5_Handle           hVC5,
+   BVC5_P_InternalJob   *pJob
+)
+{
+   BVC5_JobBase *pBase = pJob->pBase;
+
+   /* Currently the TFU has its own page table, so we can always swap */
+   BVC5_P_HardwareSetupTfuMmu(hVC5, pBase->uiPagetablePhysAddr, pBase->uiMmuMaxVirtAddr);
+
+   return true;
+}
+
+/* BVC5_P_TFUJobIsRunnable
+
+   Check that the system is in the right state to run a TFU job
+   If possible, change state to accommodate new job
+
+   POWER MUST BE ON
+ */
+static bool BVC5_P_TFUJobIsRunnable(
+   BVC5_Handle         hVC5,
+   BVC5_P_InternalJob *pJob
+)
+{
+   return BVC5_P_SwitchSecurityMode(hVC5, pJob) &&
+          BVC5_P_TFUMatchPageTable(hVC5, pJob);
+}
+
+/* BVC5_P_ScheduleRenderJobs
+
+   Issue render job if available and runnable in the current mode
+   Prefer the current client
+
+   POWER MUST BE ON
+
+ */
+static void BVC5_P_ScheduleRenderJobs(
+   BVC5_Handle        hVC5,
+   uint32_t           uiNumClients
+)
+{
+   BVC5_P_SchedulerState *psState = &hVC5->sSchedulerState;
+
+   uint32_t uiClient;
+   bool     bRendererAvailable = BVC5_P_HardwareIsRendererAvailable(hVC5, 0);
+
+   /* Schedule render jobs */
+   for (uiClient = 0; bRendererAvailable && uiClient < uiNumClients; ++uiClient)
    {
-      BVC5_P_InternalJob  *pJob = BVC5_P_JobQPop(hUsermodeQ);
-      BVC5_P_IssueUsermodeJob(hVC5, hClient, pJob);
-      issued = true;
+      BVC5_ClientHandle     hClient   = BVC5_P_SchedulerStateGetClient(psState, uiClient);
+      BVC5_P_InternalJob   *renderJob = BVC5_P_JobQTop(hClient->hRunnableRenderQ);
+
+      if (renderJob)
+      {
+         if (BVC5_P_RenderJobIsRunnable(hVC5, renderJob))
+         {
+            BVC5_P_HardwareIssueRenderJob(hVC5, 0, renderJob);
+            BVC5_P_JobQPop(hClient->hRunnableRenderQ);
+            BVC5_P_ClientSetGiven(hClient, BVC5_CLIENT_RENDER);
+            bRendererAvailable = BVC5_P_HardwareIsRendererAvailable(hVC5, 0);
+         }
+         else
+         {
+            /* The current client wanted to render but was denied */
+            if (uiClient == 0)
+               break;
+         }
+      }
+   }
+}
+
+/* BVC5_P_ScheduleBinnerJobs
+
+   Issue binner job if available and runnable in the current mode
+   Prefer the current client
+
+   POWER MUST BE ON
+
+ */
+static void BVC5_P_ScheduleBinnerJobs(
+   BVC5_Handle        hVC5,
+   uint32_t           uiNumClients
+)
+{
+   BVC5_P_SchedulerState *psState = &hVC5->sSchedulerState;
+
+   uint32_t uiClient;
+   bool     bBinnerAvailable = BVC5_P_HardwareIsBinnerAvailable(hVC5, 0);
+
+   for (uiClient = 0; bBinnerAvailable && uiClient < uiNumClients; ++uiClient)
+   {
+      BVC5_ClientHandle     hClient = BVC5_P_SchedulerStateGetClient(psState, uiClient);
+      BVC5_P_InternalJob   *binJob  = BVC5_P_JobQTop(hClient->hRunnableBinnerQ);
+
+      if (binJob)
+      {
+         bool  bOutOfMemory = false;
+
+         if (BVC5_P_BinnerJobIsRunnable(hVC5, binJob))
+         {
+            /* Binner job could fail due to out of binner memory.  We are on a sticky wicket in this case.
+               We could a) wait for enough memory to become available for this client (potentially never) or
+                        b) let other jobs have a chance to run and hope that this job gets memory in the future.
+               For now we will do (b) it seems preferable to stall one client rather than many.
+            */
+            if (BVC5_P_HardwareIssueBinnerJob(hVC5, 0, binJob))
+            {
+               BVC5_P_JobQPop(hClient->hRunnableBinnerQ);
+               BVC5_P_ClientSetGiven(hClient, BVC5_CLIENT_BIN);
+               bBinnerAvailable = false;
+            }
+            else
+            {
+               bOutOfMemory = true;
+            }
+         }
+
+         /* If the binner is still available, we didn't manage to issue a bin */
+         if (bBinnerAvailable)
+         {
+            /* If we failed due to out of memory, then let the others have a go */
+            if (uiClient == 0 && !bOutOfMemory)
+               break;
+         }
+      }
+   }
+}
+
+/* BVC5_P_ScheduleTFUJobs
+
+   Issue TFU job if available and runnable in the current mode
+   Prefer the current client
+
+   POWER MUST BE ON
+
+ */
+static void BVC5_P_ScheduleTFUJobs(
+   BVC5_Handle        hVC5,
+   uint32_t           uiNumClients
+)
+{
+   BVC5_P_SchedulerState *psState = &hVC5->sSchedulerState;
+
+   uint32_t uiClient;
+   bool     bTFUAvailable = BVC5_P_HardwareIsTFUAvailable(hVC5);
+
+   for (uiClient = 0; bTFUAvailable && uiClient < uiNumClients; ++uiClient)
+   {
+      BVC5_ClientHandle     hClient = BVC5_P_SchedulerStateGetClient(psState, uiClient);
+      BVC5_P_InternalJob   *tfuJob  = BVC5_P_JobQTop(hClient->hRunnableTFUQ);
+
+      if (tfuJob)
+      {
+         if (BVC5_P_TFUJobIsRunnable(hVC5, tfuJob))
+         {
+            BVC5_P_HardwareIssueTFUJob(hVC5, tfuJob);
+            BVC5_P_JobQPop(hClient->hRunnableTFUQ);
+            BVC5_P_ClientSetGiven(hClient, BVC5_CLIENT_TFU);
+            bTFUAvailable = false;
+         }
+         else
+         {
+            /* The current client wanted to do a TFU job but was denied */
+            if (uiClient == 0)
+               break;
+         }
+      }
+   }
+}
+
+static void BVC5_P_ScheduleUsermodeJobs(
+   BVC5_Handle        hVC5,
+   uint32_t           uiNumClients,
+   BVC5_ClientHandle *phClients
+)
+{
+   uint32_t uiClient;
+   bool     bUsermodeAvailable = BVC5_P_UsermodeIsAvailable(hVC5);
+
+   /* Handle usermode jobs */
+   for (uiClient = 0; bUsermodeAvailable && uiClient < uiNumClients; ++uiClient)
+   {
+      BVC5_ClientHandle     hClient     = phClients[uiClient];
+      BVC5_P_InternalJob   *usermodeJob = BVC5_P_JobQTop(hClient->hRunnableUsermodeQ);
+
+      if (usermodeJob)
+      {
+         BVC5_P_IssueUsermodeJob(hVC5, hClient, usermodeJob);
+         BVC5_P_JobQPop(hClient->hRunnableUsermodeQ);
+         bUsermodeAvailable = false;
+      }
+   }
+}
+
+static void BVC5_P_ScheduleSoftJobs(
+   BVC5_Handle        hVC5,
+   uint32_t           uiNumClients,
+   BVC5_ClientHandle *phClients
+)
+{
+   bool     issued = false;
+   uint32_t uiClient;
+
+   for (uiClient = 0; uiClient < uiNumClients; ++uiClient)
+      issued = BVC5_P_ScheduleSoftJobsForClient(hVC5, phClients[uiClient]) || issued;
+
+   /* If soft jobs were issued then it is possible we have more work to do */
+   if (issued)
+      BKNI_SetEvent(hVC5->hSchedulerWakeEvent);
+}
+
+/* BVC5_P_HaveHardJobs
+ */
+static bool BVC5_P_HaveHardJobs(
+   uint32_t           uiNumClients,
+   BVC5_ClientHandle *phClients
+)
+{
+   uint32_t             uiClient;
+   bool                 bHaveHardJobs = false;
+
+   for (uiClient = 0; !bHaveHardJobs && uiClient < uiNumClients; ++uiClient)
+   {
+      BVC5_ClientHandle hClient = phClients[uiClient];
+
+      if (BVC5_P_ClientHasHardJobs(hClient))
+         bHaveHardJobs = true;
    }
 
-   return issued;
+   return bHaveHardJobs;
 }
 
 /* BVC5_P_ScheduleRunnableJobs
 
    Schedules as many jobs as possible from the client's runnable queues.
-   Typically all null, wait and signal jobs will run since these do not require hardware.
-   Only one client will likely get to render.
 
  */
 static void BVC5_P_ScheduleRunnableJobs(
-   BVC5_Handle hVC5
+   BVC5_Handle        hVC5,
+   uint32_t           uiNumClients,
+   BVC5_ClientHandle *phClients
 )
 {
-   BVC5_P_SchedulerState  *psState       = &hVC5->sSchedulerState;
-   unsigned int            uiNumClients  = BVC5_P_ClientMapSize(hVC5->hClientMap);
-   bool                    issuedHardJob = false;
-   bool                    issuedSoftJob = false;
-   uint32_t                uiClient;
-
-   /* No clients, nothing to do */
-   if (uiNumClients == 0)
-      return;
-
-   /* Sets the psState->phClientHandles which is a list of all the clients */
-   BVC5_P_GatherClients(hVC5);
-
-   /* If we are going into standby then don't issue any more non-local (h/w or usermode) tasks */
-   if (!hVC5->bEnterStandby)
+   if (!hVC5->bEnterStandby && BVC5_P_HaveHardJobs(uiNumClients, phClients))
    {
-      /* Hardware availability */
-      uint32_t i;
-
-      bool  renderFree   = BVC5_P_HardwareIsUnitAvailable(hVC5, 0, BVC5_P_HardwareUnit_eRenderer);
-      bool  binnerFree   = BVC5_P_HardwareIsUnitAvailable(hVC5, 0, BVC5_P_HardwareUnit_eBinner);
-      bool  tfuFree      = BVC5_P_HardwareIsUnitAvailable(hVC5, 0, BVC5_P_HardwareUnit_eTFU);
-      bool  userModeFree = BVC5_P_UsermodeIsAvailable(hVC5);
-
-      /* Handle render jobs */
-      for (i = 0; i < 2; ++i)
+      /* Power is needed to change modes for security etc. and to issue work */
+      if (!hVC5->sSchedulerState.bHoldingPower)
       {
-         for (uiClient = 0; renderFree && uiClient < uiNumClients; ++uiClient)
-         {
-            BVC5_ClientHandle hClient = psState->phClientHandles[uiClient];
-
-            /* Schedule a render job */
-            if (BVC5_P_ScheduleRenderJob(hVC5, hClient))
-            {
-               renderFree    = BVC5_P_HardwareIsUnitAvailable(hVC5, 0, BVC5_P_HardwareUnit_eRenderer);
-               issuedHardJob = true;
-            }
-         }
+         BVC5_P_HardwarePowerAcquire(hVC5, 1 << 0);
+         hVC5->sSchedulerState.bHoldingPower = true;
       }
 
-      /* Handle binner jobs */
-      for (uiClient = 0; binnerFree && uiClient < uiNumClients; ++uiClient)
+      BVC5_P_SchedulerStateSetClientWanted(&hVC5->sSchedulerState);
+
+      BVC5_P_ScheduleRenderJobs(hVC5, uiNumClients);
+      BVC5_P_ScheduleBinnerJobs(hVC5, uiNumClients);
+      BVC5_P_ScheduleTFUJobs   (hVC5, uiNumClients);
+
+      /* If we did the work for the favoured client, give someone else a go */
+      BVC5_P_SchedulerStateNextClient(&hVC5->sSchedulerState);
+
+      /* If nothing was run then turn off again */
+      if (!BVC5_P_HaveHardJobs(uiNumClients, phClients))
       {
-         BVC5_ClientHandle hClient = psState->phClientHandles[uiClient];
-
-         /* Schedule a bin job if there is memory available */
-         if (BVC5_P_BinPoolReplenish(BVC5_P_GetBinPool(hVC5)) &&
-             BVC5_P_ScheduleBinnerJob(hVC5, hClient))
-         {
-            binnerFree    = false;  /* Only use one binner slot */
-            issuedHardJob = true;
-         }
-      }
-
-      /* Handle TFU jobs */
-      for (uiClient = 0; tfuFree && uiClient < uiNumClients; ++uiClient)
-      {
-         BVC5_ClientHandle hClient = psState->phClientHandles[uiClient];
-
-         /* Schedule a TFU job */
-         if (BVC5_P_ScheduleTFUJob(hVC5, hClient))
-         {
-            tfuFree       = false;  /* We only use one TFU slot */
-            issuedHardJob = true;
-         }
-      }
-
-      /* Handle usermode jobs */
-      for (uiClient = 0; userModeFree && uiClient < uiNumClients; ++uiClient)
-      {
-         BVC5_ClientHandle hClient = psState->phClientHandles[uiClient];
-
-         if (userModeFree && BVC5_P_ScheduleUsermodeJob(hVC5, hClient))
-         {
-            userModeFree  = false;  /* Only do one usermode callback at a time */
-            issuedHardJob = true;   /* Is this appropriate? It will cause the round-robin to tick on */
-         }
+         BVC5_P_HardwarePowerRelease(hVC5, 1 << 0);
+         hVC5->sSchedulerState.bHoldingPower = false;
       }
    }
 
-   /* Handle soft jobs */
-   for (uiClient = 0; uiClient < uiNumClients; ++uiClient)
-   {
-      BVC5_ClientHandle hClient    = psState->phClientHandles[uiClient];
+   BVC5_P_ScheduleUsermodeJobs(hVC5, uiNumClients, phClients);
 
-      /* We can always schedule these */
-      issuedSoftJob = issuedSoftJob || BVC5_P_ScheduleSoftJobs(hVC5, hClient);
-   }
-
-   /* If soft jobs were issued then it is possible we have more work to do */
-   if (issuedSoftJob)
-      BKNI_SetEvent(hVC5->hSchedulerWakeEvent);
-
-   /* If any hardware job has been issued to any client, then move the round-robin on one */
-   if (issuedHardJob)
-      psState->uiClientOffset = (psState->uiClientOffset + 1) % uiNumClients;
+   BVC5_P_ScheduleSoftJobs(hVC5, uiNumClients, phClients);
 }
 
 static bool BVC5_P_AreDepsCompleted(
@@ -577,14 +692,14 @@ static bool BVC5_P_AreDepsCompleted(
    BVC5_P_InternalJob  *pJob
 )
 {
-   bool           hasNoDependencies = true;   /* Assume we have none until we find one */
+   bool           bHasNoDependencies = true;   /* Assume we have none until we find one */
    unsigned int   i;
 
    /* Early exit if all deps satisfied */
    if (pJob->sRunDep_NotCompleted.uiNumDeps == 0)
       return true;
 
-   for (i = 0; hasNoDependencies && i < pJob->sRunDep_NotCompleted.uiNumDeps; ++i)
+   for (i = 0; bHasNoDependencies && i < pJob->sRunDep_NotCompleted.uiNumDeps; ++i)
    {
       uint64_t uiDep = pJob->sRunDep_NotCompleted.uiDep[i];
 
@@ -599,15 +714,15 @@ static bool BVC5_P_AreDepsCompleted(
          else
          {
             /* There is still a dependency */
-            hasNoDependencies = false;
+            bHasNoDependencies = false;
          }
       }
    }
 
-   if (hasNoDependencies)
+   if (bHasNoDependencies)
       pJob->sRunDep_NotCompleted.uiNumDeps = 0;
 
-   return hasNoDependencies;
+   return bHasNoDependencies;
 }
 
 static bool BVC5_P_AreDepsFinalized(
@@ -615,14 +730,14 @@ static bool BVC5_P_AreDepsFinalized(
    BVC5_P_InternalJob  *pJob
 )
 {
-   bool           hasNoDependencies = true;   /* Assume we have none until we find one */
+   bool           bHasNoDependencies = true;   /* Assume we have none until we find one */
    unsigned int   i;
 
    /* Early exit if all deps satisfied */
    if (pJob->sRunDep_NotFinalized.uiNumDeps == 0)
       return true;
 
-   for (i = 0; hasNoDependencies && i < pJob->sRunDep_NotFinalized.uiNumDeps; ++i)
+   for (i = 0; bHasNoDependencies && i < pJob->sRunDep_NotFinalized.uiNumDeps; ++i)
    {
       uint64_t uiDep = pJob->sRunDep_NotFinalized.uiDep[i];
 
@@ -637,15 +752,15 @@ static bool BVC5_P_AreDepsFinalized(
          else
          {
             /* There is still a dependency */
-            hasNoDependencies = false;
+            bHasNoDependencies = false;
          }
       }
    }
 
-   if (hasNoDependencies)
+   if (bHasNoDependencies)
       pJob->sRunDep_NotFinalized.uiNumDeps = 0;
 
-   return hasNoDependencies;
+   return bHasNoDependencies;
 }
 
 /* Test if a job's dependencies have been resolved */
@@ -664,13 +779,13 @@ static bool BVC5_P_AreDepsFinalizersDone(
    BVC5_P_InternalJob  *pJob
 )
 {
-   bool           hasNoDependencies = true;
+   bool           bHasNoDependencies = true;
    unsigned int   i;
 
    if (pJob->sFinDep_NotFinalized.uiNumDeps == 0)
       return true;
 
-   for (i = 0; hasNoDependencies && i < pJob->sFinDep_NotFinalized.uiNumDeps; ++i)
+   for (i = 0; bHasNoDependencies && i < pJob->sFinDep_NotFinalized.uiNumDeps; ++i)
    {
       uint64_t uiDep = pJob->sFinDep_NotFinalized.uiDep[i];
 
@@ -685,47 +800,43 @@ static bool BVC5_P_AreDepsFinalizersDone(
          else
          {
             /* There is still a dependency */
-            hasNoDependencies = false;
+            bHasNoDependencies = false;
          }
       }
    }
 
-   if (hasNoDependencies)
+   if (bHasNoDependencies)
       pJob->sFinDep_NotFinalized.uiNumDeps = 0;
 
-   return hasNoDependencies;
+   return bHasNoDependencies;
 }
 
 /* Test if a job's other prerequisites have been satisified */
 static bool BVC5_P_IsRunnable(
    BVC5_Handle          hVC5,
-   BVC5_ClientHandle    hClient,
    BVC5_P_InternalJob  *pInternalJob
 )
 {
-   BVC5_JobBase       *pBaseJob     = pInternalJob->pBase;
-   bool                isRunnable   = true;
-
-   BSTD_UNUSED(hClient); /* May be needed for a "flush" job */
+   BVC5_JobBase  *pBaseJob    = pInternalJob->pBase;
+   bool           bIsRunnable = true;
 
    switch (pBaseJob->eType)
    {
    case BVC5_JobType_eRender:
       /* Has the bin finished? */
-      isRunnable = (pInternalJob->jobData.sRender.uiBinJobId == 0);
+      bIsRunnable = (pInternalJob->jobData.sRender.uiBinJobId == 0);
       break;
 
    case BVC5_JobType_eFenceWait:
+      /* Has the fence been signalled? */
+      if (!pInternalJob->jobData.sWait.signaled)
       {
-         /* Has the fence been signalled? */
-         if (!pInternalJob->jobData.sWait.signaled)
-         {
-            int res;
-            res = BVC5_P_FenceWaitAsyncIsSignaled(hVC5->hFences, pInternalJob->jobData.sWait.waitData);
-            pInternalJob->jobData.sWait.signaled = (res == 1);
-         }
-         isRunnable = pInternalJob->jobData.sWait.signaled;
+         int res;
+         res = BVC5_P_FenceWaitAsyncIsSignaled(hVC5->hFences, pInternalJob->jobData.sWait.waitData);
+         pInternalJob->jobData.sWait.signaled = (res == 1);
       }
+
+      bIsRunnable = pInternalJob->jobData.sWait.signaled;
       break;
 
    default:
@@ -733,7 +844,7 @@ static bool BVC5_P_IsRunnable(
       break;
    }
 
-   return isRunnable;
+   return bIsRunnable;
 }
 
 /* BVC5_P_ProcessWaitQJob
@@ -743,8 +854,6 @@ static bool BVC5_P_IsRunnable(
       a render job is waiting for its bin job
       wait job's fence is not signalled
 
-      the job is secure and we are running unsecure or vice versa
-
  */
 static bool BVC5_P_ProcessWaitQJob(
    BVC5_Handle          hVC5,
@@ -752,79 +861,137 @@ static bool BVC5_P_ProcessWaitQJob(
    BVC5_P_InternalJob  *psJob
 )
 {
-   bool  runnable = false;
+   bool  bRunnable = false;
 
    BDBG_ASSERT(hClient != NULL);
 
    if (BVC5_P_AreDepsResolved(hClient, psJob) &&
-       BVC5_P_IsRunnable(hVC5, hClient, psJob))
+       BVC5_P_IsRunnable(hVC5, psJob))
    {
       BDBG_MSG(("BVC5_P_ProcessWaitQJob jobID="BDBG_UINT64_FMT" clientID=%d", BDBG_UINT64_ARG(psJob->uiJobId), psJob->uiClientId));
 
-      runnable = true;
+      bRunnable = true;
 
-      /* Secure jobs cannot run in unsecure mode and vv. */
       BVC5_P_ClientJobWaitingToRunnable(hClient, psJob);
    }
 
-   return runnable;
+   return bRunnable;
 }
 
-/* BVC5_P_PumpClient
+/* BVC5_P_ProcessWaitingJobs
 
    Check all the jobs in the wait q to see if they have become runnable
 
  */
-void BVC5_P_PumpClient(
-   BVC5_Handle       hVC5,
-   BVC5_ClientHandle hClient
+static void BVC5_P_ProcessWaitingJobs(
+   BVC5_Handle        hVC5,
+   uint32_t           uiNumClients,
+   BVC5_ClientHandle *phClients
 )
 {
-   /* Take jobs from waitq to runnable if they are ready
-      Then run all runnable jobs if they can be
-    */
-   BVC5_P_InternalJob *pJob;
-   BVC5_P_InternalJob *pNextJob;
-   bool                aBinWasNotRunnable = false;
+   uint32_t uiClient;
 
-   for (pJob = BVC5_P_JobQFirst(hClient->hWaitQ); pJob != NULL; pJob = pNextJob)
+   for (uiClient = 0; uiClient < uiNumClients; ++uiClient)
    {
-      bool  isBin   = pJob->pBase->eType == BVC5_JobType_eBin;
-      bool  process = true;
+      /* Take jobs from waitq to runnable if they are ready
+       */
+      BVC5_ClientHandle   hClient = phClients[uiClient];
 
-      if (isBin && aBinWasNotRunnable)
-         process = false;
+      BVC5_P_InternalJob *pJob;
+      BVC5_P_InternalJob *pNextJob;
+      bool                bABinWasNotRunnable = false;
 
-      pNextJob = BVC5_P_JobQNext(pJob);
-
-      if (process)
+      for (pJob = BVC5_P_JobQFirst(hClient->hWaitQ); pJob != NULL; pJob = pNextJob)
       {
-         bool  wasRunnable;
+         bool  bIsBin   = pJob->pBase->eType == BVC5_JobType_eBin;
+         bool  bProcess = true;
 
-         wasRunnable = BVC5_P_ProcessWaitQJob(hVC5, hClient, pJob);
+         if (bIsBin && bABinWasNotRunnable)
+            bProcess = false;
 
-         if (isBin && !wasRunnable)
-            aBinWasNotRunnable = true;
+         pNextJob = BVC5_P_JobQNext(pJob);
+
+         if (bProcess)
+         {
+            bool  bWasRunnable = BVC5_P_ProcessWaitQJob(hVC5, hClient, pJob);
+
+            if (bIsBin && !bWasRunnable)
+               bABinWasNotRunnable = true;
+         }
       }
    }
+}
 
-   BVC5_P_ScheduleRunnableJobs(hVC5);
-   BVC5_P_ProcessCompletedJobs(hVC5, hClient);
+void BVC5_P_ProcessCompletedJobs(
+   BVC5_Handle        hVC5,
+   uint32_t           uiNumClients,
+   BVC5_ClientHandle *phClients
+)
+{
+   uint32_t uiClient;
+
+   for (uiClient = 0; uiClient < uiNumClients; ++uiClient)
+   {
+      BVC5_ClientHandle    hClient = phClients[uiClient];
+      BVC5_P_InternalJob  *psIter;
+      BVC5_P_InternalJob  *psNext;
+      bool                 bIssueCallback = false;
+
+      /* Move jobs to finalizable state if possible */
+      for (psIter = BVC5_P_JobQFirst(hClient->hCompletedQ); psIter != NULL; psIter = psNext)
+      {
+         /* Remember this as entry may be removed */
+         psNext = BVC5_P_JobQNext(psIter);
+
+         if (BVC5_P_AreDepsFinalizersDone(hClient, psIter))
+         {
+            if (psIter->pBase->pfnCompletion == NULL)
+            {
+               /* If the job has no completion callback we can just move it into
+                * the finalized state right away. */
+               BVC5_P_ClientJobCompletedToFinalized(hVC5, hClient, psIter);
+            }
+            else
+            {
+               BVC5_P_ClientJobCompletedToFinalizable(hClient, psIter);
+            }
+
+            /* We need to issue the callback if there were any jobs transitioned to
+             * finalizable or finalized. The callback tells the driver about the oldest
+             * non-finalized job. We have to do this even if there are no jobs that
+             * have actual pfnCompletion functions. */
+            bIssueCallback = true;
+         }
+      }
+
+      /* Callback to let layer above know there are new callbacks waiting (or to update
+       * the oldest non-finalized job id) */
+      if (bIssueCallback)
+         hVC5->sCallbacks.fpCompletionHandler(hClient->pContext);
+   }
 }
 
 void BVC5_P_PumpAllClients(
    BVC5_Handle       hVC5
 )
 {
-   void                *pIter;
-   BVC5_ClientHandle    hClient = NULL;
+   uint32_t uiNumClients = BVC5_P_ClientMapSize(hVC5->hClientMap);
 
-   for (hClient = BVC5_P_ClientMapFirst(hVC5->hClientMap, &pIter);
-        hClient != NULL;
-        hClient = BVC5_P_ClientMapNext(hVC5->hClientMap, &pIter))
+   if (uiNumClients > 0)
    {
-      BVC5_P_PumpClient(hVC5, hClient);
+      BVC5_ClientHandle *phClients = BVC5_P_SchedulerStateGatherClients(&hVC5->sSchedulerState);
+
+      BVC5_P_ProcessWaitingJobs  (hVC5, uiNumClients, phClients);
+      BVC5_P_ScheduleRunnableJobs(hVC5, uiNumClients, phClients);
+      BVC5_P_ProcessCompletedJobs(hVC5, uiNumClients, phClients);
    }
+}
+
+void BVC5_P_SchedulerPump(
+   BVC5_Handle hVC5
+)
+{
+   BVC5_P_PumpAllClients(hVC5);
 }
 
 /*****************************************************************************/
@@ -899,7 +1066,7 @@ void BVC5_Scheduler(
       }
       else if (err == BERR_SUCCESS)
       {
-         /* We got an interrupt */
+         /* We (maybe) got an interrupt */
          BVC5_P_ProcessInterrupt(hVC5);
       }
 
@@ -925,48 +1092,6 @@ void BVC5_Scheduler(
 
 exit:
    BDBG_LEAVE(BVC5_Scheduler);
-}
-
-void BVC5_P_ProcessCompletedJobs(
-   BVC5_Handle       hVC5,
-   BVC5_ClientHandle hClient
-)
-{
-   BVC5_P_InternalJob   *psIter;
-   BVC5_P_InternalJob   *psNext;
-   bool                 bIssueCallback = false;
-
-   /* Move jobs to finalizable state if possible */
-   for (psIter = BVC5_P_JobQFirst(hClient->hCompletedQ); psIter != NULL; psIter = psNext)
-   {
-      /* Remember this as entry may be removed */
-      psNext = BVC5_P_JobQNext(psIter);
-
-      if (BVC5_P_AreDepsFinalizersDone(hClient, psIter))
-      {
-         if (psIter->pBase->pfnCompletion == NULL)
-         {
-            /* If the job has no completion callback we can just move it into
-             * the finalized state right away. */
-            BVC5_P_ClientJobCompletedToFinalized(hVC5, hClient, psIter);
-         }
-         else
-         {
-            BVC5_P_ClientJobCompletedToFinalizable(hClient, psIter);
-         }
-
-         /* We need to issue the callback if there were any jobs transitioned to
-          * finalizable or finalized. The callback tells the driver about the oldest
-          * non-finalized job. We have to do this even if there are no jobs that
-          * have actual pfnCompletion functions. */
-         bIssueCallback = true;
-      }
-   }
-
-   /* Callback to let layer above know there are new callbacks waiting (or to update
-    * the oldest non-finalized job id) */
-   if (bIssueCallback)
-      hVC5->sCallbacks.fpCompletionHandler(hClient->pContext);
 }
 
 /* BVC5_P_WaitForClientJobComplete

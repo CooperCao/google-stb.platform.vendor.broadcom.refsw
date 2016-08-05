@@ -892,7 +892,7 @@ NEXUS_Error NEXUS_VideoDecoder_P_Xdm_SetPtsOffset(NEXUS_VideoDecoderHandle video
     return BERR_SUCCESS;
 }
 
-#if NEXUS_HAS_ASTM
+#if NEXUS_HAS_ASTM && NEXUS_NUM_SOFT_VIDEO_DECODERS
 NEXUS_Error NEXUS_VideoDecoder_SetAstmSettings_priv_Xdm(NEXUS_VideoDecoderHandle videoDecoder, const NEXUS_VideoDecoderAstmSettings *pAstmSettings)
 {
     NEXUS_Error rc = NEXUS_SUCCESS;
@@ -912,4 +912,3 @@ NEXUS_Error NEXUS_VideoDecoder_SetAstmSettings_priv_Xdm(NEXUS_VideoDecoderHandle
     return rc;
 }
 #endif /* NEXUS_HAS_ASTM */
-

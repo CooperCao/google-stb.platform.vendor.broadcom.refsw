@@ -67,6 +67,7 @@ Summary:
 #define BBOX_INCORRECT_MEMC_COUNT              BERR_MAKE_CODE(BERR_BOX_ID, 3)
 #define BBOX_WINDOW_SIZE_EXCEEDS_LIMIT         BERR_MAKE_CODE(BERR_BOX_ID, 4)
 #define BBOX_FRAME_BUFFER_SIZE_EXCEEDS_LIMIT   BERR_MAKE_CODE(BERR_BOX_ID, 5)
+#define BBOX_RTS_LOADED_BY_CFE                 BERR_MAKE_CODE(BERR_BOX_ID, 6)
 
 /***************************************************************************
 Summary:

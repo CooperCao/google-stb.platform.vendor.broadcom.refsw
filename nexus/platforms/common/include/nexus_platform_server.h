@@ -149,7 +149,7 @@ Acquires object to prevent its destruction
 Description:
 Verifies that object is a valid instance of said type and it's accessible by a given client, and if test passes increases the object reference count
 */
-NEXUS_Error NEXUS_Platform_AcquireObject(NEXUS_ClientHandle client, const NEXUS_InterfaceName *name, NEXUS_PlatformAnyObject object);
+NEXUS_Error NEXUS_Platform_AcquireObject(NEXUS_ClientHandle client, const NEXUS_InterfaceName *name, NEXUS_AnyObject object);
 
 /*
 Summary:
@@ -158,7 +158,7 @@ Releases object to allow its destruction
 Description:
 Verifies that object is a valid instance of said type, and if test passes decreases the object reference count
 */
-void NEXUS_Platform_ReleaseObject(const NEXUS_InterfaceName *name, NEXUS_PlatformAnyObject object);
+void NEXUS_Platform_ReleaseObject(const NEXUS_InterfaceName *name, NEXUS_AnyObject object);
 
 void NEXUS_Platform_GetClientResources(
     NEXUS_ClientHandle client,

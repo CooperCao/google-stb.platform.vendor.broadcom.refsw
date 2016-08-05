@@ -51,6 +51,7 @@ int _tzioc_ioctl_client_close(
 int _tzioc_ioctl_client_getid(
     struct tzioc_client *pClient,
     const char *pName,
+    uint32_t ulPid,
     uint8_t *pId);
 
 int _tzioc_ioctl_msg_send(

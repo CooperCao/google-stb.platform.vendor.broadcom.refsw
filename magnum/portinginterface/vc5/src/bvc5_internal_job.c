@@ -238,15 +238,17 @@ BVC5_P_InternalJob *BVC5_P_JobCreateTFU(
       pJob = BVC5_P_CreateInternalJob(hVC5, uiClientId, (BVC5_JobBase *)psTFUJob, (BVC5_JobBase *)psJob);
 
       if (pJob != NULL)
+      {
          BKNI_Memcpy(psTFUJob, psJob, sizeof(BVC5_JobTFU));
+
+         /* Ensure sync flags are sensible for TFU jobs. */
+         psTFUJob->sBase.uiSyncFlags &= BVC5_SYNC_TFU_READ
+                                      | BVC5_SYNC_TFU_WRITE
+                                      | BVC5_SYNC_CPU_READ
+                                      | BVC5_SYNC_CPU_WRITE;
+      }
       else
          BKNI_Free(psTFUJob);
-
-      /* Ensure sync flags are sensible for TFU jobs. */
-      psTFUJob->sBase.uiSyncFlags &= BVC5_SYNC_TFU_READ
-                                   | BVC5_SYNC_TFU_WRITE
-                                   | BVC5_SYNC_CPU_READ
-                                   | BVC5_SYNC_CPU_WRITE;
    }
 
    return pJob;
@@ -316,7 +318,8 @@ void BVC5_P_JobDestroy(
          break;
       case BVC5_JobType_eFenceWait:
          if (pJob->jobData.sWait.waitData)
-            BVC5_P_FenceWaitAsyncCleanup(hVC5->hFences, pJob->jobData.sWait.waitData);
+            BVC5_P_FenceWaitAsyncCleanup(hVC5->hFences, pJob->uiClientId,
+                  BVC5_P_JobWaitCallback, hVC5, pJob, pJob->jobData.sWait.waitData);
          break;
       default:
          break;

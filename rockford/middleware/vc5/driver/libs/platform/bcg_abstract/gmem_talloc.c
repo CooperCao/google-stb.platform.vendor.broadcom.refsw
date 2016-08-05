@@ -11,7 +11,8 @@ This ulimately saves us the trip through the platform layer and out to NEXUS
 for lock & map.
 =============================================================================*/
 
-#include "vcos.h"
+#include "vcos_thread.h"
+#include "vcos_mutex.h"
 #include "gmem_abstract.h"
 #include "list.h"
 
@@ -117,7 +118,7 @@ error0:
    return NULL;
 }
 
-static void* talloc_thread_main(void *arg)
+static void talloc_thread_main(void *arg)
 {
    talloc *handle = (talloc *)arg;
 
@@ -159,8 +160,6 @@ static void* talloc_thread_main(void *arg)
       vcos_mutex_unlock(&handle->mutex);
       gmem_mutex_unlock_internal();
    }
-
-   return NULL;
 }
 
 void *talloc_initialize(void)
@@ -175,7 +174,7 @@ void *talloc_initialize(void)
       if (vcos_event_create(&handle->done, "tallocDone") != VCOS_SUCCESS)
          goto exit1;
 
-      if (vcos_thread_create(&handle->thread, "talloc", NULL, talloc_thread_main, handle) != VCOS_SUCCESS)
+      if (vcos_thread_create(&handle->thread, "talloc", talloc_thread_main, handle) != VCOS_SUCCESS)
          goto exit2;
 
       vcos_mutex_lock(&handle->mutex);
@@ -197,6 +196,7 @@ exit1:
    vcos_mutex_delete(&handle->mutex);
 
 exit0:
+   free(handle);
    return NULL;
 }
 
@@ -207,7 +207,7 @@ void talloc_term(void *h)
       block *next = NULL;
 
       vcos_event_signal(&handle->done);
-      vcos_thread_join(&handle->thread, NULL);
+      vcos_thread_join(&handle->thread);
       vcos_event_delete(&handle->done);
 
       vcos_mutex_lock(&handle->mutex);
@@ -224,6 +224,7 @@ void talloc_term(void *h)
 
       vcos_mutex_unlock(&handle->mutex);
       vcos_mutex_delete(&handle->mutex);
+      free(handle);
    }
 }
 

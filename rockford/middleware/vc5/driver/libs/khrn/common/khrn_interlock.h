@@ -31,8 +31,7 @@ typedef enum
    ACTION_NONE     = 0,
    ACTION_BIN      = 1U << 0,
    ACTION_RENDER   = 1U << 1,
-   ACTION_BOTH     = ACTION_BIN | ACTION_RENDER,
-   ACTION_TFU      = 1U << 2,
+   ACTION_BOTH     = ACTION_BIN | ACTION_RENDER
 }
 khrn_interlock_action_t;
 
@@ -56,8 +55,6 @@ struct khrn_interlock
           * (often the same render state will appear in both bin and render)
           */
          khrn_render_state_set_t render;
-
-         /* We will probably need to add another set for tfu */
       }
       readers;
 
@@ -66,14 +63,9 @@ struct khrn_interlock
          /* There is only ever one writer (who might also be a reader) */
          KHRN_RENDER_STATE_T *rs;
 
-         /*
-          * Whether the writer is writing (or reading) during binning and/or
-          * rendering etc.
-          */
-         khrn_interlock_action_t actions;
-
-         /* The one writer might also be reading, so record that. */
-         bool also_reading;
+         /* write_actions must not be ACTION_NONE.
+          * read_actions *may* be ACTION_NONE. */
+         khrn_interlock_action_t write_actions, read_actions;
       }
       writer;
    }
@@ -167,10 +159,10 @@ extern void khrn_interlock_add_writer(KHRN_INTERLOCK_T *interlock,
       khrn_interlock_action_t actions, KHRN_RENDER_STATE_T *rs);
 
 /*
- * Add a transform feedback writer. Returns true for success.
- * Failure means it is necessary to flush the render state and try again with a fresh one.
+ * If interlock is already marked as being read by rs, returns false immediately.
+ * Otherwise, calls khrn_interlock_add_writer() and returns true.
  */
-extern bool khrn_interlock_add_writer_tf(KHRN_INTERLOCK_T *interlock,
+extern bool khrn_interlock_add_self_read_conflicting_writer(KHRN_INTERLOCK_T *interlock,
       khrn_interlock_action_t actions, KHRN_RENDER_STATE_T *rs);
 
 /* Begin submitting jobs that read data guarded by this interlock.

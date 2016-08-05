@@ -1,7 +1,7 @@
-/***************************************************************************
- *     (c)2011-2013 Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,18 +34,7 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
- **************************************************************************/
+ *****************************************************************************/
 #if NEXUS_HAS_INPUT_ROUTER && NEXUS_HAS_PICTURE_DECODER && NEXUS_HAS_PLAYBACK && NEXUS_HAS_SIMPLE_DECODER
 /**
 A simple, modal client launcher
@@ -76,6 +65,8 @@ Control returns to the desktop when the client exits.
 
 BDBG_MODULE(desktop);
 
+#define DEFAULT_FONTNAME  "nxclient/arial_18_aa.bwin_font"
+
 static void print_usage(void)
 {
     printf(
@@ -85,6 +76,7 @@ static void print_usage(void)
     "  --help or -h for help\n"
     "  -cfg CONFIGFILE         list of files to launch. default is nxclient/desktop.cfg\n"
     "  -background IMAGE       default is nxclient/desktop_background.png\n"
+    "  -f FONTNAME             <FONTNAME>font file to use in menu\n"
     );
 }
 
@@ -117,10 +109,11 @@ int main(int argc, const char **argv)
     FILE *launchfile;
     const char *launchfilename = "nxclient/desktop.cfg";
     const char *background = "nxclient/desktop_background.png";
-    const char *fontname = "nxclient/arial_18_aa.bwin_font";
+    char fontname[100];
     bool done = false;
 
     memset(pContext, 0, sizeof(*pContext));
+    strcpy(fontname, DEFAULT_FONTNAME);
 
     while (argc > curarg) {
         if (!strcmp(argv[curarg], "--help") || !strcmp(argv[curarg], "-h")) {
@@ -133,6 +126,11 @@ int main(int argc, const char **argv)
         else if (!strcmp(argv[curarg], "-cfg") && argc>curarg+1) {
             launchfilename = argv[++curarg];
         }
+#ifdef FREETYPE_SUPPORT
+        else if (!strcmp(argv[curarg], "-f") && argc>curarg+1) {
+            strcpy(fontname, argv[++curarg]);
+        }
+#endif
         else {
             print_usage();
             return 1;
@@ -177,8 +175,18 @@ int main(int argc, const char **argv)
 
     pContext->input = binput_open(NULL);
     pContext->gui = bgui_create(NULL);
-    
+
+#ifdef FREETYPE_SUPPORT
+    {
+        struct bfont_open_freetype_settings settings;
+        bfont_get_default_open_freetype_settings(&settings);
+        settings.filename = fontname;
+        settings.size = 20;
+        pContext->font = bfont_open_freetype(&settings);
+    }
+#else
     pContext->font = bfont_open(fontname);
+#endif
     if (!pContext->font) {
         BDBG_WRN(("unable to load font %s", fontname));
     }

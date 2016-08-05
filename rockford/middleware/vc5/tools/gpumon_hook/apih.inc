@@ -33,6 +33,153 @@ EGLBoolean (*real_eglWaitGL)(void);
 EGLBoolean (*real_eglWaitNative)(EGLint engine);
 #endif /* EGL_VERSION_1_0*/
 
+#if GL_VERSION_ES_CM_1_0
+void (*real_glAlphaFunc)(GLenum func, GLfloat ref);
+void (*real_glClearColor)(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha);
+void (*real_glClearDepthf)(GLfloat d);
+void (*real_glClipPlanef)(GLenum p, const GLfloat *eqn);
+void (*real_glColor4f)(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha);
+void (*real_glDepthRangef)(GLfloat n, GLfloat f);
+void (*real_glFogf)(GLenum pname, GLfloat param);
+void (*real_glFogfv)(GLenum pname, const GLfloat *params);
+void (*real_glFrustumf)(GLfloat l, GLfloat r, GLfloat b, GLfloat t, GLfloat n, GLfloat f);
+void (*real_glGetClipPlanef)(GLenum plane, GLfloat *equation);
+void (*real_glGetFloatv)(GLenum pname, GLfloat *data);
+void (*real_glGetLightfv)(GLenum light, GLenum pname, GLfloat *params);
+void (*real_glGetMaterialfv)(GLenum face, GLenum pname, GLfloat *params);
+void (*real_glGetTexEnvfv)(GLenum target, GLenum pname, GLfloat *params);
+void (*real_glGetTexParameterfv)(GLenum target, GLenum pname, GLfloat *params);
+void (*real_glLightModelf)(GLenum pname, GLfloat param);
+void (*real_glLightModelfv)(GLenum pname, const GLfloat *params);
+void (*real_glLightf)(GLenum light, GLenum pname, GLfloat param);
+void (*real_glLightfv)(GLenum light, GLenum pname, const GLfloat *params);
+void (*real_glLineWidth)(GLfloat width);
+void (*real_glLoadMatrixf)(const GLfloat *m);
+void (*real_glMaterialf)(GLenum face, GLenum pname, GLfloat param);
+void (*real_glMaterialfv)(GLenum face, GLenum pname, const GLfloat *params);
+void (*real_glMultMatrixf)(const GLfloat *m);
+void (*real_glMultiTexCoord4f)(GLenum target, GLfloat s, GLfloat t, GLfloat r, GLfloat q);
+void (*real_glNormal3f)(GLfloat nx, GLfloat ny, GLfloat nz);
+void (*real_glOrthof)(GLfloat l, GLfloat r, GLfloat b, GLfloat t, GLfloat n, GLfloat f);
+void (*real_glPointParameterf)(GLenum pname, GLfloat param);
+void (*real_glPointParameterfv)(GLenum pname, const GLfloat *params);
+void (*real_glPointSize)(GLfloat size);
+void (*real_glPolygonOffset)(GLfloat factor, GLfloat units);
+void (*real_glRotatef)(GLfloat angle, GLfloat x, GLfloat y, GLfloat z);
+void (*real_glScalef)(GLfloat x, GLfloat y, GLfloat z);
+void (*real_glTexEnvf)(GLenum target, GLenum pname, GLfloat param);
+void (*real_glTexEnvfv)(GLenum target, GLenum pname, const GLfloat *params);
+void (*real_glTexParameterf)(GLenum target, GLenum pname, GLfloat param);
+void (*real_glTexParameterfv)(GLenum target, GLenum pname, const GLfloat *params);
+void (*real_glTranslatef)(GLfloat x, GLfloat y, GLfloat z);
+void (*real_glActiveTexture)(GLenum texture);
+void (*real_glAlphaFuncx)(GLenum func, GLfixed ref);
+void (*real_glBindBuffer)(GLenum target, GLuint buffer);
+void (*real_glBindTexture)(GLenum target, GLuint texture);
+void (*real_glBlendFunc)(GLenum sfactor, GLenum dfactor);
+void (*real_glBufferData)(GLenum target, GLsizeiptr size, const void *data, GLenum usage);
+void (*real_glBufferSubData)(GLenum target, GLintptr offset, GLsizeiptr size, const void *data);
+void (*real_glClear)(GLbitfield mask);
+void (*real_glClearColorx)(GLfixed red, GLfixed green, GLfixed blue, GLfixed alpha);
+void (*real_glClearDepthx)(GLfixed depth);
+void (*real_glClearStencil)(GLint s);
+void (*real_glClientActiveTexture)(GLenum texture);
+void (*real_glClipPlanex)(GLenum plane, const GLfixed *equation);
+void (*real_glColor4ub)(GLubyte red, GLubyte green, GLubyte blue, GLubyte alpha);
+void (*real_glColor4x)(GLfixed red, GLfixed green, GLfixed blue, GLfixed alpha);
+void (*real_glColorMask)(GLboolean red, GLboolean green, GLboolean blue, GLboolean alpha);
+void (*real_glColorPointer)(GLint size, GLenum type, GLsizei stride, const void *pointer);
+void (*real_glCompressedTexImage2D)(GLenum target, GLint level, GLenum internalformat, GLsizei width, GLsizei height, GLint border, GLsizei imageSize, const void *data);
+void (*real_glCompressedTexSubImage2D)(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLsizei imageSize, const void *data);
+void (*real_glCopyTexImage2D)(GLenum target, GLint level, GLenum internalformat, GLint x, GLint y, GLsizei width, GLsizei height, GLint border);
+void (*real_glCopyTexSubImage2D)(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint x, GLint y, GLsizei width, GLsizei height);
+void (*real_glCullFace)(GLenum mode);
+void (*real_glDeleteBuffers)(GLsizei n, const GLuint *buffers);
+void (*real_glDeleteTextures)(GLsizei n, const GLuint *textures);
+void (*real_glDepthFunc)(GLenum func);
+void (*real_glDepthMask)(GLboolean flag);
+void (*real_glDepthRangex)(GLfixed n, GLfixed f);
+void (*real_glDisable)(GLenum cap);
+void (*real_glDisableClientState)(GLenum array);
+void (*real_glDrawArrays)(GLenum mode, GLint first, GLsizei count);
+void (*real_glDrawElements)(GLenum mode, GLsizei count, GLenum type, const void *indices);
+void (*real_glEnable)(GLenum cap);
+void (*real_glEnableClientState)(GLenum array);
+void (*real_glFinish)(void);
+void (*real_glFlush)(void);
+void (*real_glFogx)(GLenum pname, GLfixed param);
+void (*real_glFogxv)(GLenum pname, const GLfixed *param);
+void (*real_glFrontFace)(GLenum mode);
+void (*real_glFrustumx)(GLfixed l, GLfixed r, GLfixed b, GLfixed t, GLfixed n, GLfixed f);
+void (*real_glGetBooleanv)(GLenum pname, GLboolean *data);
+void (*real_glGetBufferParameteriv)(GLenum target, GLenum pname, GLint *params);
+void (*real_glGetClipPlanex)(GLenum plane, GLfixed *equation);
+void (*real_glGenBuffers)(GLsizei n, GLuint *buffers);
+void (*real_glGenTextures)(GLsizei n, GLuint *textures);
+GLenum (*real_glGetError)(void);
+void (*real_glGetFixedv)(GLenum pname, GLfixed *params);
+void (*real_glGetIntegerv)(GLenum pname, GLint *data);
+void (*real_glGetLightxv)(GLenum light, GLenum pname, GLfixed *params);
+void (*real_glGetMaterialxv)(GLenum face, GLenum pname, GLfixed *params);
+void (*real_glGetPointerv)(GLenum pname, void **params);
+const GLubyte * (*real_glGetString)(GLenum name);
+void (*real_glGetTexEnviv)(GLenum target, GLenum pname, GLint *params);
+void (*real_glGetTexEnvxv)(GLenum target, GLenum pname, GLfixed *params);
+void (*real_glGetTexParameteriv)(GLenum target, GLenum pname, GLint *params);
+void (*real_glGetTexParameterxv)(GLenum target, GLenum pname, GLfixed *params);
+void (*real_glHint)(GLenum target, GLenum mode);
+GLboolean (*real_glIsBuffer)(GLuint buffer);
+GLboolean (*real_glIsEnabled)(GLenum cap);
+GLboolean (*real_glIsTexture)(GLuint texture);
+void (*real_glLightModelx)(GLenum pname, GLfixed param);
+void (*real_glLightModelxv)(GLenum pname, const GLfixed *param);
+void (*real_glLightx)(GLenum light, GLenum pname, GLfixed param);
+void (*real_glLightxv)(GLenum light, GLenum pname, const GLfixed *params);
+void (*real_glLineWidthx)(GLfixed width);
+void (*real_glLoadIdentity)(void);
+void (*real_glLoadMatrixx)(const GLfixed *m);
+void (*real_glLogicOp)(GLenum opcode);
+void (*real_glMaterialx)(GLenum face, GLenum pname, GLfixed param);
+void (*real_glMaterialxv)(GLenum face, GLenum pname, const GLfixed *param);
+void (*real_glMatrixMode)(GLenum mode);
+void (*real_glMultMatrixx)(const GLfixed *m);
+void (*real_glMultiTexCoord4x)(GLenum texture, GLfixed s, GLfixed t, GLfixed r, GLfixed q);
+void (*real_glNormal3x)(GLfixed nx, GLfixed ny, GLfixed nz);
+void (*real_glNormalPointer)(GLenum type, GLsizei stride, const void *pointer);
+void (*real_glOrthox)(GLfixed l, GLfixed r, GLfixed b, GLfixed t, GLfixed n, GLfixed f);
+void (*real_glPixelStorei)(GLenum pname, GLint param);
+void (*real_glPointParameterx)(GLenum pname, GLfixed param);
+void (*real_glPointParameterxv)(GLenum pname, const GLfixed *params);
+void (*real_glPointSizex)(GLfixed size);
+void (*real_glPolygonOffsetx)(GLfixed factor, GLfixed units);
+void (*real_glPopMatrix)(void);
+void (*real_glPushMatrix)(void);
+void (*real_glReadPixels)(GLint x, GLint y, GLsizei width, GLsizei height, GLenum format, GLenum type, void *pixels);
+void (*real_glRotatex)(GLfixed angle, GLfixed x, GLfixed y, GLfixed z);
+void (*real_glSampleCoverage)(GLfloat value, GLboolean invert);
+void (*real_glSampleCoveragex)(GLclampx value, GLboolean invert);
+void (*real_glScalex)(GLfixed x, GLfixed y, GLfixed z);
+void (*real_glScissor)(GLint x, GLint y, GLsizei width, GLsizei height);
+void (*real_glShadeModel)(GLenum mode);
+void (*real_glStencilFunc)(GLenum func, GLint ref, GLuint mask);
+void (*real_glStencilMask)(GLuint mask);
+void (*real_glStencilOp)(GLenum fail, GLenum zfail, GLenum zpass);
+void (*real_glTexCoordPointer)(GLint size, GLenum type, GLsizei stride, const void *pointer);
+void (*real_glTexEnvi)(GLenum target, GLenum pname, GLint param);
+void (*real_glTexEnvx)(GLenum target, GLenum pname, GLfixed param);
+void (*real_glTexEnviv)(GLenum target, GLenum pname, const GLint *params);
+void (*real_glTexEnvxv)(GLenum target, GLenum pname, const GLfixed *params);
+void (*real_glTexImage2D)(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const void *pixels);
+void (*real_glTexParameteri)(GLenum target, GLenum pname, GLint param);
+void (*real_glTexParameterx)(GLenum target, GLenum pname, GLfixed param);
+void (*real_glTexParameteriv)(GLenum target, GLenum pname, const GLint *params);
+void (*real_glTexParameterxv)(GLenum target, GLenum pname, const GLfixed *params);
+void (*real_glTexSubImage2D)(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLenum type, const void *pixels);
+void (*real_glTranslatex)(GLfixed x, GLfixed y, GLfixed z);
+void (*real_glVertexPointer)(GLint size, GLenum type, GLsizei stride, const void *pointer);
+void (*real_glViewport)(GLint x, GLint y, GLsizei width, GLsizei height);
+#endif /* GL_VERSION_ES_CM_1_0*/
+
 #if EGL_VERSION_1_1
 EGLBoolean (*real_eglBindTexImage)(EGLDisplay dpy, EGLSurface surface, EGLint buffer);
 EGLBoolean (*real_eglReleaseTexImage)(EGLDisplay dpy, EGLSurface surface, EGLint buffer);
@@ -69,70 +216,35 @@ EGLBoolean (*real_eglWaitSync)(EGLDisplay dpy, EGLSync sync, EGLint flags);
 #endif /* EGL_VERSION_1_5*/
 
 #if GL_ES_VERSION_2_0
-void (*real_glActiveTexture)(GLenum texture);
 void (*real_glAttachShader)(GLuint program, GLuint shader);
 void (*real_glBindAttribLocation)(GLuint program, GLuint index, const GLchar *name);
-void (*real_glBindBuffer)(GLenum target, GLuint buffer);
 void (*real_glBindFramebuffer)(GLenum target, GLuint framebuffer);
 void (*real_glBindRenderbuffer)(GLenum target, GLuint renderbuffer);
-void (*real_glBindTexture)(GLenum target, GLuint texture);
 void (*real_glBlendColor)(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha);
 void (*real_glBlendEquation)(GLenum mode);
 void (*real_glBlendEquationSeparate)(GLenum modeRGB, GLenum modeAlpha);
-void (*real_glBlendFunc)(GLenum sfactor, GLenum dfactor);
 void (*real_glBlendFuncSeparate)(GLenum sfactorRGB, GLenum dfactorRGB, GLenum sfactorAlpha, GLenum dfactorAlpha);
-void (*real_glBufferData)(GLenum target, GLsizeiptr size, const void *data, GLenum usage);
-void (*real_glBufferSubData)(GLenum target, GLintptr offset, GLsizeiptr size, const void *data);
 GLenum (*real_glCheckFramebufferStatus)(GLenum target);
-void (*real_glClear)(GLbitfield mask);
-void (*real_glClearColor)(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha);
-void (*real_glClearDepthf)(GLfloat d);
-void (*real_glClearStencil)(GLint s);
-void (*real_glColorMask)(GLboolean red, GLboolean green, GLboolean blue, GLboolean alpha);
 void (*real_glCompileShader)(GLuint shader);
-void (*real_glCompressedTexImage2D)(GLenum target, GLint level, GLenum internalformat, GLsizei width, GLsizei height, GLint border, GLsizei imageSize, const void *data);
-void (*real_glCompressedTexSubImage2D)(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLsizei imageSize, const void *data);
-void (*real_glCopyTexImage2D)(GLenum target, GLint level, GLenum internalformat, GLint x, GLint y, GLsizei width, GLsizei height, GLint border);
-void (*real_glCopyTexSubImage2D)(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint x, GLint y, GLsizei width, GLsizei height);
 GLuint (*real_glCreateProgram)(void);
 GLuint (*real_glCreateShader)(GLenum type);
-void (*real_glCullFace)(GLenum mode);
-void (*real_glDeleteBuffers)(GLsizei n, const GLuint *buffers);
 void (*real_glDeleteFramebuffers)(GLsizei n, const GLuint *framebuffers);
 void (*real_glDeleteProgram)(GLuint program);
 void (*real_glDeleteRenderbuffers)(GLsizei n, const GLuint *renderbuffers);
 void (*real_glDeleteShader)(GLuint shader);
-void (*real_glDeleteTextures)(GLsizei n, const GLuint *textures);
-void (*real_glDepthFunc)(GLenum func);
-void (*real_glDepthMask)(GLboolean flag);
-void (*real_glDepthRangef)(GLfloat n, GLfloat f);
 void (*real_glDetachShader)(GLuint program, GLuint shader);
-void (*real_glDisable)(GLenum cap);
 void (*real_glDisableVertexAttribArray)(GLuint index);
-void (*real_glDrawArrays)(GLenum mode, GLint first, GLsizei count);
-void (*real_glDrawElements)(GLenum mode, GLsizei count, GLenum type, const void *indices);
-void (*real_glEnable)(GLenum cap);
 void (*real_glEnableVertexAttribArray)(GLuint index);
-void (*real_glFinish)(void);
-void (*real_glFlush)(void);
 void (*real_glFramebufferRenderbuffer)(GLenum target, GLenum attachment, GLenum renderbuffertarget, GLuint renderbuffer);
 void (*real_glFramebufferTexture2D)(GLenum target, GLenum attachment, GLenum textarget, GLuint texture, GLint level);
-void (*real_glFrontFace)(GLenum mode);
-void (*real_glGenBuffers)(GLsizei n, GLuint *buffers);
 void (*real_glGenerateMipmap)(GLenum target);
 void (*real_glGenFramebuffers)(GLsizei n, GLuint *framebuffers);
 void (*real_glGenRenderbuffers)(GLsizei n, GLuint *renderbuffers);
-void (*real_glGenTextures)(GLsizei n, GLuint *textures);
 void (*real_glGetActiveAttrib)(GLuint program, GLuint index, GLsizei bufSize, GLsizei *length, GLint *size, GLenum *type, GLchar *name);
 void (*real_glGetActiveUniform)(GLuint program, GLuint index, GLsizei bufSize, GLsizei *length, GLint *size, GLenum *type, GLchar *name);
 void (*real_glGetAttachedShaders)(GLuint program, GLsizei maxCount, GLsizei *count, GLuint *shaders);
 GLint (*real_glGetAttribLocation)(GLuint program, const GLchar *name);
-void (*real_glGetBooleanv)(GLenum pname, GLboolean *data);
-void (*real_glGetBufferParameteriv)(GLenum target, GLenum pname, GLint *params);
-GLenum (*real_glGetError)(void);
-void (*real_glGetFloatv)(GLenum pname, GLfloat *data);
 void (*real_glGetFramebufferAttachmentParameteriv)(GLenum target, GLenum attachment, GLenum pname, GLint *params);
-void (*real_glGetIntegerv)(GLenum pname, GLint *data);
 void (*real_glGetProgramiv)(GLuint program, GLenum pname, GLint *params);
 void (*real_glGetProgramInfoLog)(GLuint program, GLsizei bufSize, GLsizei *length, GLchar *infoLog);
 void (*real_glGetRenderbufferParameteriv)(GLenum target, GLenum pname, GLint *params);
@@ -140,46 +252,24 @@ void (*real_glGetShaderiv)(GLuint shader, GLenum pname, GLint *params);
 void (*real_glGetShaderInfoLog)(GLuint shader, GLsizei bufSize, GLsizei *length, GLchar *infoLog);
 void (*real_glGetShaderPrecisionFormat)(GLenum shadertype, GLenum precisiontype, GLint *range, GLint *precision);
 void (*real_glGetShaderSource)(GLuint shader, GLsizei bufSize, GLsizei *length, GLchar *source);
-const GLubyte * (*real_glGetString)(GLenum name);
-void (*real_glGetTexParameterfv)(GLenum target, GLenum pname, GLfloat *params);
-void (*real_glGetTexParameteriv)(GLenum target, GLenum pname, GLint *params);
 void (*real_glGetUniformfv)(GLuint program, GLint location, GLfloat *params);
 void (*real_glGetUniformiv)(GLuint program, GLint location, GLint *params);
 GLint (*real_glGetUniformLocation)(GLuint program, const GLchar *name);
 void (*real_glGetVertexAttribfv)(GLuint index, GLenum pname, GLfloat *params);
 void (*real_glGetVertexAttribiv)(GLuint index, GLenum pname, GLint *params);
 void (*real_glGetVertexAttribPointerv)(GLuint index, GLenum pname, void **pointer);
-void (*real_glHint)(GLenum target, GLenum mode);
-GLboolean (*real_glIsBuffer)(GLuint buffer);
-GLboolean (*real_glIsEnabled)(GLenum cap);
 GLboolean (*real_glIsFramebuffer)(GLuint framebuffer);
 GLboolean (*real_glIsProgram)(GLuint program);
 GLboolean (*real_glIsRenderbuffer)(GLuint renderbuffer);
 GLboolean (*real_glIsShader)(GLuint shader);
-GLboolean (*real_glIsTexture)(GLuint texture);
-void (*real_glLineWidth)(GLfloat width);
 void (*real_glLinkProgram)(GLuint program);
-void (*real_glPixelStorei)(GLenum pname, GLint param);
-void (*real_glPolygonOffset)(GLfloat factor, GLfloat units);
-void (*real_glReadPixels)(GLint x, GLint y, GLsizei width, GLsizei height, GLenum format, GLenum type, void *pixels);
 void (*real_glReleaseShaderCompiler)(void);
 void (*real_glRenderbufferStorage)(GLenum target, GLenum internalformat, GLsizei width, GLsizei height);
-void (*real_glSampleCoverage)(GLfloat value, GLboolean invert);
-void (*real_glScissor)(GLint x, GLint y, GLsizei width, GLsizei height);
 void (*real_glShaderBinary)(GLsizei count, const GLuint *shaders, GLenum binaryformat, const void *binary, GLsizei length);
 void (*real_glShaderSource)(GLuint shader, GLsizei count, const GLchar *const*string, const GLint *length);
-void (*real_glStencilFunc)(GLenum func, GLint ref, GLuint mask);
 void (*real_glStencilFuncSeparate)(GLenum face, GLenum func, GLint ref, GLuint mask);
-void (*real_glStencilMask)(GLuint mask);
 void (*real_glStencilMaskSeparate)(GLenum face, GLuint mask);
-void (*real_glStencilOp)(GLenum fail, GLenum zfail, GLenum zpass);
 void (*real_glStencilOpSeparate)(GLenum face, GLenum sfail, GLenum dpfail, GLenum dppass);
-void (*real_glTexImage2D)(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const void *pixels);
-void (*real_glTexParameterf)(GLenum target, GLenum pname, GLfloat param);
-void (*real_glTexParameterfv)(GLenum target, GLenum pname, const GLfloat *params);
-void (*real_glTexParameteri)(GLenum target, GLenum pname, GLint param);
-void (*real_glTexParameteriv)(GLenum target, GLenum pname, const GLint *params);
-void (*real_glTexSubImage2D)(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLenum type, const void *pixels);
 void (*real_glUniform1f)(GLint location, GLfloat v0);
 void (*real_glUniform1fv)(GLint location, GLsizei count, const GLfloat *value);
 void (*real_glUniform1i)(GLint location, GLint v0);
@@ -210,7 +300,6 @@ void (*real_glVertexAttrib3fv)(GLuint index, const GLfloat *v);
 void (*real_glVertexAttrib4f)(GLuint index, GLfloat x, GLfloat y, GLfloat z, GLfloat w);
 void (*real_glVertexAttrib4fv)(GLuint index, const GLfloat *v);
 void (*real_glVertexAttribPointer)(GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const void *pointer);
-void (*real_glViewport)(GLint x, GLint y, GLsizei width, GLsizei height);
 #endif /* GL_ES_VERSION_2_0*/
 
 #if GL_ES_VERSION_3_0
@@ -404,7 +493,6 @@ void (*real_glObjectLabel)(GLenum identifier, GLuint name, GLsizei length, const
 void (*real_glGetObjectLabel)(GLenum identifier, GLuint name, GLsizei bufSize, GLsizei *length, GLchar *label);
 void (*real_glObjectPtrLabel)(const void *ptr, GLsizei length, const GLchar *label);
 void (*real_glGetObjectPtrLabel)(const void *ptr, GLsizei bufSize, GLsizei *length, GLchar *label);
-void (*real_glGetPointerv)(GLenum pname, void **params);
 void (*real_glEnablei)(GLenum target, GLuint index);
 void (*real_glDisablei)(GLenum target, GLuint index);
 void (*real_glBlendEquationi)(GLuint buf, GLenum mode);
@@ -438,103 +526,15 @@ void (*real_glTexBufferRange)(GLenum target, GLenum internalformat, GLuint buffe
 void (*real_glTexStorage3DMultisample)(GLenum target, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height, GLsizei depth, GLboolean fixedsamplelocations);
 #endif /* GL_ES_VERSION_3_2*/
 
-#if GL_VERSION_ES_CM_1_0
-void (*real_glAlphaFunc)(GLenum func, GLfloat ref);
-void (*real_glClipPlanef)(GLenum p, const GLfloat *eqn);
-void (*real_glColor4f)(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha);
-void (*real_glFogf)(GLenum pname, GLfloat param);
-void (*real_glFogfv)(GLenum pname, const GLfloat *params);
-void (*real_glFrustumf)(GLfloat l, GLfloat r, GLfloat b, GLfloat t, GLfloat n, GLfloat f);
-void (*real_glGetClipPlanef)(GLenum plane, GLfloat *equation);
-void (*real_glGetLightfv)(GLenum light, GLenum pname, GLfloat *params);
-void (*real_glGetMaterialfv)(GLenum face, GLenum pname, GLfloat *params);
-void (*real_glGetTexEnvfv)(GLenum target, GLenum pname, GLfloat *params);
-void (*real_glLightModelf)(GLenum pname, GLfloat param);
-void (*real_glLightModelfv)(GLenum pname, const GLfloat *params);
-void (*real_glLightf)(GLenum light, GLenum pname, GLfloat param);
-void (*real_glLightfv)(GLenum light, GLenum pname, const GLfloat *params);
-void (*real_glLoadMatrixf)(const GLfloat *m);
-void (*real_glMaterialf)(GLenum face, GLenum pname, GLfloat param);
-void (*real_glMaterialfv)(GLenum face, GLenum pname, const GLfloat *params);
-void (*real_glMultMatrixf)(const GLfloat *m);
-void (*real_glMultiTexCoord4f)(GLenum target, GLfloat s, GLfloat t, GLfloat r, GLfloat q);
-void (*real_glNormal3f)(GLfloat nx, GLfloat ny, GLfloat nz);
-void (*real_glOrthof)(GLfloat l, GLfloat r, GLfloat b, GLfloat t, GLfloat n, GLfloat f);
-void (*real_glPointParameterf)(GLenum pname, GLfloat param);
-void (*real_glPointParameterfv)(GLenum pname, const GLfloat *params);
-void (*real_glPointSize)(GLfloat size);
-void (*real_glRotatef)(GLfloat angle, GLfloat x, GLfloat y, GLfloat z);
-void (*real_glScalef)(GLfloat x, GLfloat y, GLfloat z);
-void (*real_glTexEnvf)(GLenum target, GLenum pname, GLfloat param);
-void (*real_glTexEnvfv)(GLenum target, GLenum pname, const GLfloat *params);
-void (*real_glTranslatef)(GLfloat x, GLfloat y, GLfloat z);
-void (*real_glAlphaFuncx)(GLenum func, GLfixed ref);
-void (*real_glClearColorx)(GLfixed red, GLfixed green, GLfixed blue, GLfixed alpha);
-void (*real_glClearDepthx)(GLfixed depth);
-void (*real_glClientActiveTexture)(GLenum texture);
-void (*real_glClipPlanex)(GLenum plane, const GLfixed *equation);
-void (*real_glColor4ub)(GLubyte red, GLubyte green, GLubyte blue, GLubyte alpha);
-void (*real_glColor4x)(GLfixed red, GLfixed green, GLfixed blue, GLfixed alpha);
-void (*real_glColorPointer)(GLint size, GLenum type, GLsizei stride, const void *pointer);
-void (*real_glDepthRangex)(GLfixed n, GLfixed f);
-void (*real_glDisableClientState)(GLenum array);
-void (*real_glEnableClientState)(GLenum array);
-void (*real_glFogx)(GLenum pname, GLfixed param);
-void (*real_glFogxv)(GLenum pname, const GLfixed *param);
-void (*real_glFrustumx)(GLfixed l, GLfixed r, GLfixed b, GLfixed t, GLfixed n, GLfixed f);
-void (*real_glGetClipPlanex)(GLenum plane, GLfixed *equation);
-void (*real_glGetFixedv)(GLenum pname, GLfixed *params);
-void (*real_glGetLightxv)(GLenum light, GLenum pname, GLfixed *params);
-void (*real_glGetMaterialxv)(GLenum face, GLenum pname, GLfixed *params);
-void (*real_glGetTexEnviv)(GLenum target, GLenum pname, GLint *params);
-void (*real_glGetTexEnvxv)(GLenum target, GLenum pname, GLfixed *params);
-void (*real_glGetTexParameterxv)(GLenum target, GLenum pname, GLfixed *params);
-void (*real_glLightModelx)(GLenum pname, GLfixed param);
-void (*real_glLightModelxv)(GLenum pname, const GLfixed *param);
-void (*real_glLightx)(GLenum light, GLenum pname, GLfixed param);
-void (*real_glLightxv)(GLenum light, GLenum pname, const GLfixed *params);
-void (*real_glLineWidthx)(GLfixed width);
-void (*real_glLoadIdentity)(void);
-void (*real_glLoadMatrixx)(const GLfixed *m);
-void (*real_glLogicOp)(GLenum opcode);
-void (*real_glMaterialx)(GLenum face, GLenum pname, GLfixed param);
-void (*real_glMaterialxv)(GLenum face, GLenum pname, const GLfixed *param);
-void (*real_glMatrixMode)(GLenum mode);
-void (*real_glMultMatrixx)(const GLfixed *m);
-void (*real_glMultiTexCoord4x)(GLenum texture, GLfixed s, GLfixed t, GLfixed r, GLfixed q);
-void (*real_glNormal3x)(GLfixed nx, GLfixed ny, GLfixed nz);
-void (*real_glNormalPointer)(GLenum type, GLsizei stride, const void *pointer);
-void (*real_glOrthox)(GLfixed l, GLfixed r, GLfixed b, GLfixed t, GLfixed n, GLfixed f);
-void (*real_glPointParameterx)(GLenum pname, GLfixed param);
-void (*real_glPointParameterxv)(GLenum pname, const GLfixed *params);
-void (*real_glPointSizex)(GLfixed size);
-void (*real_glPolygonOffsetx)(GLfixed factor, GLfixed units);
-void (*real_glPopMatrix)(void);
-void (*real_glPushMatrix)(void);
-void (*real_glRotatex)(GLfixed angle, GLfixed x, GLfixed y, GLfixed z);
-void (*real_glSampleCoveragex)(GLclampx value, GLboolean invert);
-void (*real_glScalex)(GLfixed x, GLfixed y, GLfixed z);
-void (*real_glShadeModel)(GLenum mode);
-void (*real_glTexCoordPointer)(GLint size, GLenum type, GLsizei stride, const void *pointer);
-void (*real_glTexEnvi)(GLenum target, GLenum pname, GLint param);
-void (*real_glTexEnvx)(GLenum target, GLenum pname, GLfixed param);
-void (*real_glTexEnviv)(GLenum target, GLenum pname, const GLint *params);
-void (*real_glTexEnvxv)(GLenum target, GLenum pname, const GLfixed *params);
-void (*real_glTexParameterx)(GLenum target, GLenum pname, GLfixed param);
-void (*real_glTexParameterxv)(GLenum target, GLenum pname, const GLfixed *params);
-void (*real_glTranslatex)(GLfixed x, GLfixed y, GLfixed z);
-void (*real_glVertexPointer)(GLint size, GLenum type, GLsizei stride, const void *pointer);
-#endif /* GL_VERSION_ES_CM_1_0*/
-
 #if EGL_KHR_cl_event2
 EGLSyncKHR (*real_eglCreateSync64KHR)(EGLDisplay dpy, EGLenum type, const EGLAttribKHR *attrib_list);
 #endif /* EGL_KHR_cl_event2*/
 
+#if EGL_KHR_client_get_all_proc_addresses
+#endif /* EGL_KHR_client_get_all_proc_addresses*/
+
 #if EGL_KHR_create_context
 #endif /* EGL_KHR_create_context*/
-
-#if EGL_KHR_create_context_no_error
-#endif /* EGL_KHR_create_context_no_error*/
 
 #if EGL_KHR_fence_sync
 EGLSyncKHR (*real_eglCreateSyncKHR)(EGLDisplay dpy, EGLenum type, const EGLint *attrib_list);
@@ -565,9 +565,6 @@ EGLBoolean (*real_eglDestroyImageKHR)(EGLDisplay dpy, EGLImageKHR image);
 
 #if EGL_KHR_image_base
 #endif /* EGL_KHR_image_base*/
-
-#if EGL_KHR_image_pixmap
-#endif /* EGL_KHR_image_pixmap*/
 
 #if EGL_KHR_platform_android
 #endif /* EGL_KHR_platform_android*/
@@ -607,8 +604,8 @@ void (*real_glEGLImageTargetRenderbufferStorageOES)(GLenum target, GLeglImageOES
 #if GL_OES_EGL_image_external
 #endif /* GL_OES_EGL_image_external*/
 
-#if GL_OES_EGL_image_external_essl3
-#endif /* GL_OES_EGL_image_external_essl3*/
+#if GL_OES_EGL_sync
+#endif /* GL_OES_EGL_sync*/
 
 #if GL_OES_compressed_ETC1_RGB8_texture
 #endif /* GL_OES_compressed_ETC1_RGB8_texture*/
@@ -619,8 +616,16 @@ void (*real_glEGLImageTargetRenderbufferStorageOES)(GLenum target, GLeglImageOES
 #if GL_OES_depth24
 #endif /* GL_OES_depth24*/
 
-#if GL_OES_depth32
-#endif /* GL_OES_depth32*/
+#if GL_OES_draw_buffers_indexed
+void (*real_glEnableiOES)(GLenum target, GLuint index);
+void (*real_glDisableiOES)(GLenum target, GLuint index);
+void (*real_glBlendEquationiOES)(GLuint buf, GLenum mode);
+void (*real_glBlendEquationSeparateiOES)(GLuint buf, GLenum modeRGB, GLenum modeAlpha);
+void (*real_glBlendFunciOES)(GLuint buf, GLenum src, GLenum dst);
+void (*real_glBlendFuncSeparateiOES)(GLuint buf, GLenum srcRGB, GLenum dstRGB, GLenum srcAlpha, GLenum dstAlpha);
+void (*real_glColorMaskiOES)(GLuint index, GLboolean r, GLboolean g, GLboolean b, GLboolean a);
+GLboolean (*real_glIsEnablediOES)(GLenum target, GLuint index);
+#endif /* GL_OES_draw_buffers_indexed*/
 
 #if GL_OES_draw_texture
 void (*real_glDrawTexsOES)(GLshort x, GLshort y, GLshort z, GLshort width, GLshort height);
@@ -651,18 +656,21 @@ void (*real_glGetFramebufferAttachmentParameterivOES)(GLenum target, GLenum atta
 void (*real_glGenerateMipmapOES)(GLenum target);
 #endif /* GL_OES_framebuffer_object*/
 
+#if GL_OES_geometry_point_size
+#endif /* GL_OES_geometry_point_size*/
+
+#if GL_OES_geometry_shader
+void (*real_glFramebufferTextureOES)(GLenum target, GLenum attachment, GLuint texture, GLint level);
+#endif /* GL_OES_geometry_shader*/
+
+#if GL_OES_gpu_shader5
+#endif /* GL_OES_gpu_shader5*/
+
 #if GL_OES_mapbuffer
 void * (*real_glMapBufferOES)(GLenum target, GLenum access);
 GLboolean (*real_glUnmapBufferOES)(GLenum target);
 void (*real_glGetBufferPointervOES)(GLenum target, GLenum pname, void **params);
 #endif /* GL_OES_mapbuffer*/
-
-#if GL_OES_matrix_palette
-void (*real_glCurrentPaletteMatrixOES)(GLuint matrixpaletteindex);
-void (*real_glLoadPaletteFromModelViewMatrixOES)(void);
-void (*real_glMatrixIndexPointerOES)(GLint size, GLenum type, GLsizei stride, const void *pointer);
-void (*real_glWeightPointerOES)(GLint size, GLenum type, GLsizei stride, const void *pointer);
-#endif /* GL_OES_matrix_palette*/
 
 #if GL_OES_packed_depth_stencil
 #endif /* GL_OES_packed_depth_stencil*/
@@ -678,20 +686,63 @@ GLbitfield (*real_glQueryMatrixxOES)(GLfixed *mantissa, GLint *exponent);
 #if GL_OES_rgb8_rgba8
 #endif /* GL_OES_rgb8_rgba8*/
 
+#if GL_OES_sample_variables
+#endif /* GL_OES_sample_variables*/
+
+#if GL_OES_shader_image_atomic
+#endif /* GL_OES_shader_image_atomic*/
+
+#if GL_OES_shader_io_blocks
+#endif /* GL_OES_shader_io_blocks*/
+
+#if GL_OES_shader_multisample_interpolation
+#endif /* GL_OES_shader_multisample_interpolation*/
+
 #if GL_OES_standard_derivatives
 #endif /* GL_OES_standard_derivatives*/
 
 #if GL_OES_stencil8
 #endif /* GL_OES_stencil8*/
 
+#if GL_OES_stencil_wrap
+#endif /* GL_OES_stencil_wrap*/
+
 #if GL_OES_surfaceless_context
 #endif /* GL_OES_surfaceless_context*/
+
+#if GL_OES_tessellation_point_size
+#endif /* GL_OES_tessellation_point_size*/
+
+#if GL_OES_tessellation_shader
+void (*real_glPatchParameteriOES)(GLenum pname, GLint value);
+#endif /* GL_OES_tessellation_shader*/
+
+#if GL_OES_texture_border_clamp
+void (*real_glTexParameterIivOES)(GLenum target, GLenum pname, const GLint *params);
+void (*real_glTexParameterIuivOES)(GLenum target, GLenum pname, const GLuint *params);
+void (*real_glGetTexParameterIivOES)(GLenum target, GLenum pname, GLint *params);
+void (*real_glGetTexParameterIuivOES)(GLenum target, GLenum pname, GLuint *params);
+void (*real_glSamplerParameterIivOES)(GLuint sampler, GLenum pname, const GLint *param);
+void (*real_glSamplerParameterIuivOES)(GLuint sampler, GLenum pname, const GLuint *param);
+void (*real_glGetSamplerParameterIivOES)(GLuint sampler, GLenum pname, GLint *params);
+void (*real_glGetSamplerParameterIuivOES)(GLuint sampler, GLenum pname, GLuint *params);
+#endif /* GL_OES_texture_border_clamp*/
+
+#if GL_OES_texture_cube_map_array
+#endif /* GL_OES_texture_cube_map_array*/
+
+#if GL_OES_texture_mirrored_repeat
+#endif /* GL_OES_texture_mirrored_repeat*/
 
 #if GL_OES_texture_npot
 #endif /* GL_OES_texture_npot*/
 
 #if GL_OES_texture_stencil8
 #endif /* GL_OES_texture_stencil8*/
+
+#if GL_OES_texture_storage_multisample_2d_array
+void (*real_glTexStorage3DMultisampleOES)(GLenum target, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height, GLsizei depth, GLboolean fixedsamplelocations);
+#endif /* GL_OES_texture_storage_multisample_2d_array*/
 
 #if GL_OES_vertex_array_object
 void (*real_glBindVertexArrayOES)(GLuint array);
@@ -760,19 +811,14 @@ EGLSurface (*real_eglCreatePlatformPixmapSurfaceEXT)(EGLDisplay dpy, EGLConfig c
 #if EGL_EXT_platform_x11
 #endif /* EGL_EXT_platform_x11*/
 
-#if GL_BRCM_base_instance
-void (*real_glDrawArraysInstancedBaseInstanceBRCM)(GLenum mode, GLint first, GLsizei count, GLsizei instancecount, GLuint baseinstance);
-void (*real_glDrawElementsInstancedBaseInstanceBRCM)(GLenum mode, GLsizei count, GLenum type, const void *indices, GLsizei instancecount, GLuint baseinstance);
-void (*real_glDrawElementsInstancedBaseVertexBaseInstanceBRCM)(GLenum mode, GLsizei count, GLenum type, const void *indices, GLsizei instancecount, GLint basevertex, GLuint baseinstance);
-#endif /* GL_BRCM_base_instance*/
+#if EGL_EXT_protected_content
+#endif /* EGL_EXT_protected_content*/
+
+#if EGL_EXT_protected_surface
+#endif /* EGL_EXT_protected_surface*/
 
 #if GL_BRCM_mirror_once_border
 #endif /* GL_BRCM_mirror_once_border*/
-
-#if GL_BRCM_multi_draw_indirect
-void (*real_glMultiDrawArraysIndirectBRCM)(GLenum mode, const void *indirect, GLsizei drawcount, GLsizei stride);
-void (*real_glMultiDrawElementsIndirectBRCM)(GLenum mode, GLenum type, const void *indirect, GLsizei drawcount, GLsizei stride);
-#endif /* GL_BRCM_multi_draw_indirect*/
 
 #if GL_BRCM_polygon_mode
 void (*real_glPolygonModeBRCM)(GLenum mode);
@@ -792,6 +838,12 @@ void (*real_glTexImage1DBRCM)(GLenum target, GLint level, GLint internalformat, 
 #if GL_BRCM_texture_norm16
 #endif /* GL_BRCM_texture_norm16*/
 
+#if GL_EXT_base_instance
+void (*real_glDrawArraysInstancedBaseInstanceEXT)(GLenum mode, GLint first, GLsizei count, GLsizei instancecount, GLuint baseinstance);
+void (*real_glDrawElementsInstancedBaseInstanceEXT)(GLenum mode, GLsizei count, GLenum type, const void *indices, GLsizei instancecount, GLuint baseinstance);
+void (*real_glDrawElementsInstancedBaseVertexBaseInstanceEXT)(GLenum mode, GLsizei count, GLenum type, const void *indices, GLsizei instancecount, GLint basevertex, GLuint baseinstance);
+#endif /* GL_EXT_base_instance*/
+
 #if GL_EXT_color_buffer_float
 #endif /* GL_EXT_color_buffer_float*/
 
@@ -805,6 +857,17 @@ void (*real_glPopGroupMarkerEXT)(void);
 void (*real_glDiscardFramebufferEXT)(GLenum target, GLsizei numAttachments, const GLenum *attachments);
 #endif /* GL_EXT_discard_framebuffer*/
 
+#if GL_EXT_draw_buffers_indexed
+void (*real_glEnableiEXT)(GLenum target, GLuint index);
+void (*real_glDisableiEXT)(GLenum target, GLuint index);
+void (*real_glBlendEquationiEXT)(GLuint buf, GLenum mode);
+void (*real_glBlendEquationSeparateiEXT)(GLuint buf, GLenum modeRGB, GLenum modeAlpha);
+void (*real_glBlendFunciEXT)(GLuint buf, GLenum src, GLenum dst);
+void (*real_glBlendFuncSeparateiEXT)(GLuint buf, GLenum srcRGB, GLenum dstRGB, GLenum srcAlpha, GLenum dstAlpha);
+void (*real_glColorMaskiEXT)(GLuint index, GLboolean r, GLboolean g, GLboolean b, GLboolean a);
+GLboolean (*real_glIsEnablediEXT)(GLenum target, GLuint index);
+#endif /* GL_EXT_draw_buffers_indexed*/
+
 #if GL_EXT_draw_elements_base_vertex
 void (*real_glDrawElementsBaseVertexEXT)(GLenum mode, GLsizei count, GLenum type, const void *indices, GLint basevertex);
 void (*real_glDrawRangeElementsBaseVertexEXT)(GLenum mode, GLuint start, GLuint end, GLsizei count, GLenum type, const void *indices, GLint basevertex);
@@ -812,10 +875,32 @@ void (*real_glDrawElementsInstancedBaseVertexEXT)(GLenum mode, GLsizei count, GL
 void (*real_glMultiDrawElementsBaseVertexEXT)(GLenum mode, const GLsizei *count, GLenum type, const void *const*indices, GLsizei primcount, const GLint *basevertex);
 #endif /* GL_EXT_draw_elements_base_vertex*/
 
+#if GL_EXT_geometry_point_size
+#endif /* GL_EXT_geometry_point_size*/
+
+#if GL_EXT_geometry_shader
+void (*real_glFramebufferTextureEXT)(GLenum target, GLenum attachment, GLuint texture, GLint level);
+#endif /* GL_EXT_geometry_shader*/
+
+#if GL_EXT_gpu_shader5
+#endif /* GL_EXT_gpu_shader5*/
+
+#if GL_EXT_multi_draw_indirect
+void (*real_glMultiDrawArraysIndirectEXT)(GLenum mode, const void *indirect, GLsizei drawcount, GLsizei stride);
+void (*real_glMultiDrawElementsIndirectEXT)(GLenum mode, GLenum type, const void *indirect, GLsizei drawcount, GLsizei stride);
+#endif /* GL_EXT_multi_draw_indirect*/
+
 #if GL_EXT_multisampled_render_to_texture
 void (*real_glRenderbufferStorageMultisampleEXT)(GLenum target, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height);
 void (*real_glFramebufferTexture2DMultisampleEXT)(GLenum target, GLenum attachment, GLenum textarget, GLuint texture, GLint level, GLsizei samples);
 #endif /* GL_EXT_multisampled_render_to_texture*/
+
+#if GL_EXT_primitive_bounding_box
+void (*real_glPrimitiveBoundingBoxEXT)(GLfloat minX, GLfloat minY, GLfloat minZ, GLfloat minW, GLfloat maxX, GLfloat maxY, GLfloat maxZ, GLfloat maxW);
+#endif /* GL_EXT_primitive_bounding_box*/
+
+#if GL_EXT_protected_textures
+#endif /* GL_EXT_protected_textures*/
 
 #if GL_EXT_robustness
 GLenum (*real_glGetGraphicsResetStatusEXT)(void);
@@ -824,8 +909,35 @@ void (*real_glGetnUniformfvEXT)(GLuint program, GLint location, GLsizei bufSize,
 void (*real_glGetnUniformivEXT)(GLuint program, GLint location, GLsizei bufSize, GLint *params);
 #endif /* GL_EXT_robustness*/
 
+#if GL_EXT_shader_integer_mix
+#endif /* GL_EXT_shader_integer_mix*/
+
+#if GL_EXT_shader_io_blocks
+#endif /* GL_EXT_shader_io_blocks*/
+
 #if GL_EXT_shader_texture_lod
 #endif /* GL_EXT_shader_texture_lod*/
+
+#if GL_EXT_tessellation_point_size
+#endif /* GL_EXT_tessellation_point_size*/
+
+#if GL_EXT_tessellation_shader
+void (*real_glPatchParameteriEXT)(GLenum pname, GLint value);
+#endif /* GL_EXT_tessellation_shader*/
+
+#if GL_EXT_texture_border_clamp
+void (*real_glTexParameterIivEXT)(GLenum target, GLenum pname, const GLint *params);
+void (*real_glTexParameterIuivEXT)(GLenum target, GLenum pname, const GLuint *params);
+void (*real_glGetTexParameterIivEXT)(GLenum target, GLenum pname, GLint *params);
+void (*real_glGetTexParameterIuivEXT)(GLenum target, GLenum pname, GLuint *params);
+void (*real_glSamplerParameterIivEXT)(GLuint sampler, GLenum pname, const GLint *param);
+void (*real_glSamplerParameterIuivEXT)(GLuint sampler, GLenum pname, const GLuint *param);
+void (*real_glGetSamplerParameterIivEXT)(GLuint sampler, GLenum pname, GLint *params);
+void (*real_glGetSamplerParameterIuivEXT)(GLuint sampler, GLenum pname, GLuint *params);
+#endif /* GL_EXT_texture_border_clamp*/
+
+#if GL_EXT_texture_cube_map_array
+#endif /* GL_EXT_texture_cube_map_array*/
 
 #if GL_EXT_texture_filter_anisotropic
 #endif /* GL_EXT_texture_filter_anisotropic*/

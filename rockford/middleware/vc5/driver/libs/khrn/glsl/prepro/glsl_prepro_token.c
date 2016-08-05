@@ -105,7 +105,7 @@ Token *glsl_lex_ppnumber(Token *token)
       case NUM_INT:   token->type = INTCONSTANT; break;
       case NUM_UINT:  token->type = UINTCONSTANT; break;
       case NUM_FLOAT: token->type = FLOATCONSTANT; break;
-      default: UNREACHABLE();
+      default: unreachable();
    }
    token->data.v = value;
 

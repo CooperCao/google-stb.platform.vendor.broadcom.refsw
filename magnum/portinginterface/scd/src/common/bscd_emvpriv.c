@@ -95,12 +95,12 @@ BERR_Code BSCD_Channel_P_EMVATRReadNextByte(
 			BSCD_MAX_ETU_PER_ATR_BYTE,
 			BSCD_MAX_EMV_ETU_FOR_ALL_ATR_BYTES, 
 			outp_ulTotalAtrByteTimeInETU));
-	BDBG_MSG(("In  atqwe errCode = %d\n", errCode));  
+	BDBG_MSG(("In  atqwe errCode = %d", errCode));
 	if (errCode != BERR_SUCCESS) 
 	{										
-	 	BDBG_MSG(("In  BSCD_P_CHECK_ERR_CODE_CONDITION errCode = %d\n", errCode));  	
+		BDBG_MSG(("In  BSCD_P_CHECK_ERR_CODE_CONDITION errCode = %d", errCode));
 		errCode = BSCD_STATUS_DEACTIVATE;	
-	 	BDBG_MSG(("After  BSCD_P_CHECK_ERR_CODE_CONDITION errCode = %d\n", errCode));  			
+		BDBG_MSG(("After  BSCD_P_CHECK_ERR_CODE_CONDITION errCode = %d", errCode));
 		goto BSCD_P_DONE_LABEL;							
 	}
 #endif	
@@ -115,7 +115,7 @@ BERR_Code BSCD_Channel_P_EMVATRReadNextByte(
 	}
 #endif	
 
-        BDBG_MSG(("After EMVATRByteRead errCode = %d\n", errCode));
+        BDBG_MSG(("After EMVATRByteRead errCode = %d", errCode));
 		
 	ulValue = BREG_Read32( 
 		in_channelHandle->moduleHandle->regHandle, 
@@ -142,7 +142,7 @@ BERR_Code BSCD_Channel_P_EMVATRReadNextByte(
 BSCD_P_DONE_LABEL:
 	
 	BDBG_LEAVE(BSCD_Channel_P_EMVATRReadNextByte);
-	BDBG_MSG(("Leave  EMVATRReadNextByte errCode = 0x%x\n", errCode));	
+	BDBG_MSG(("Leave  EMVATRReadNextByte errCode = 0x%x", errCode));
 	return( errCode );
 }
 
@@ -160,7 +160,7 @@ BERR_Code BSCD_Channel_P_EMVATRCheckForAdditionalATRBytes(
 	unsigned int        unAdditionalByteCount = 0;
 
 	
-	BDBG_MSG(("In  BSCD_Channel_P_EMVATRCheckForAdditionalATRBytes\n"));	
+	BDBG_MSG(("In  BSCD_Channel_P_EMVATRCheckForAdditionalATRBytes"));
 	while (errCode == BERR_SUCCESS) {
 
 		/* 
@@ -229,7 +229,7 @@ BERR_Code BSCD_Channel_P_EMVATRCheckForAdditionalATRBytes(
 #endif				 
 			
 		if (errCode == BERR_SUCCESS) {
-			BDBG_MSG(("In  SmartCardATRCheckForAdditionalATRBytes: Extra Byte Detected\n"));    
+			BDBG_MSG(("In  SmartCardATRCheckForAdditionalATRBytes: Extra Byte Detected"));
 			unAdditionalByteCount++;
 		}
 	}
@@ -291,7 +291,7 @@ BERR_Code BSCD_Channel_P_EMVATRReceiveAndDecode(
 				        &ulTotalAtrByteTimeInETU, 
 				        &ucParityErrorDetected);
 
-	BDBG_MSG(("After T0 EMVATRReadNextByte errCode = 0x%x\n", errCode));
+	BDBG_MSG(("After T0 EMVATRReadNextByte errCode = 0x%x", errCode));
 	if (errCode == BSCD_STATUS_DEACTIVATE) {
 		errCode = BERR_TRACE(errCode);	
 		goto BSCD_P_DONE_LABEL;			
@@ -310,7 +310,7 @@ BERR_Code BSCD_Channel_P_EMVATRReceiveAndDecode(
 						&(in_channelHandle->aucRxBuf[in_channelHandle->ulRxLen]), 
 					        &ulTotalAtrByteTimeInETU, 
 					        &ucParityErrorDetected);
-		BDBG_MSG(("After T0 EMVATRReadNextByte errCode = 0x%x\n", errCode));	
+		BDBG_MSG(("After T0 EMVATRReadNextByte errCode = 0x%x", errCode));
 		if (errCode == BSCD_STATUS_DEACTIVATE) {
 			errCode = BERR_TRACE(errCode);	
 			goto BSCD_P_DONE_LABEL;			
@@ -365,7 +365,7 @@ BERR_Code BSCD_Channel_P_EMVATRReceiveAndDecode(
 	else if (in_channelHandle->resetType == BSCD_ResetType_eCold) {
 
 		/* Cold Reset must have a TB1 value specified for EMV */
-		BDBG_ERR (("Cold Reset & Missing TB1 - not allowed for EMV\n"));
+		BDBG_ERR (("Cold Reset & Missing TB1 - not allowed for EMV"));
 		errCode = BERR_TRACE(BSCD_STATUS_FAILED);			
 		bFailedATR = true;
 	}
@@ -393,7 +393,7 @@ BERR_Code BSCD_Channel_P_EMVATRReceiveAndDecode(
 			(in_channelHandle->ulRegStartAddr + BSCD_P_TGUARD), 
 			in_channelHandle->currentChannelSettings.extraGuardTime.ulValue);
 
-		BDBG_MSG(("\nSmartCardValidateTC1Byte: ulGuardTime = 0x%x \n", 
+		BDBG_MSG(("SmartCardValidateTC1Byte: ulGuardTime = 0x%x",
 				in_channelHandle->currentChannelSettings.extraGuardTime.ulValue));
 	}
 
@@ -614,7 +614,7 @@ BERR_Code BSCD_Channel_P_EMVATRReceiveAndDecode(
 		otherwise reject ATR 
 		*/
 		if (in_channelHandle->currentChannelSettings.eProtocolType == BSCD_AsyncProtocolType_e1) {
-			BDBG_MSG(("Failing in SmartCardEMVATRDecode - TB3 \n"));
+			BDBG_MSG(("Failing in SmartCardEMVATRDecode - TB3"));
 
 			/* Cannot just return BSCD_STATUS_FAILED. Test 1800 needs to read the TCK */  
 			bFailedATR = true;
@@ -802,7 +802,7 @@ BERR_Code BSCD_Channel_P_EMVATRReceiveAndDecode(
 	ulValue = BREG_Read32( 
 		in_channelHandle->moduleHandle->regHandle, 
 		(in_channelHandle->ulRegStartAddr + BSCD_P_UART_CMD_2));
-	BDBG_MSG(("orig EMVATRReceiveAndDecode: BSCD_P_UART_CMD_2 = 0x%x\n", 	ulValue));
+	BDBG_MSG(("orig EMVATRReceiveAndDecode: BSCD_P_UART_CMD_2 = 0x%x", 	ulValue));
 	
 	ulValue  &=  (BCHP_SCA_SC_UART_CMD_2_convention_MASK);
 	
@@ -820,7 +820,7 @@ BERR_Code BSCD_Channel_P_EMVATRReceiveAndDecode(
 		(in_channelHandle->ulRegStartAddr + BSCD_P_UART_CMD_2), 
 		ulValue);
 
-	BDBG_MSG(("EMVATRReceiveAndDecode: BSCD_P_UART_CMD_2 = 0x%x\n", 	ulValue));
+	BDBG_MSG(("EMVATRReceiveAndDecode: BSCD_P_UART_CMD_2 = 0x%x", 	ulValue));
 
 
 	
@@ -834,7 +834,7 @@ BSCD_P_DONE_LABEL:
 	wwtTimer.timerMode.eWaitTimerMode = BSCD_WaitTimerMode_eWorkWaitTime;			
 	BSCD_Channel_ConfigTimer(in_channelHandle, &wwtTimer, NULL);
 	
-	BDBG_MSG(("Leave EMVATRReceiveAndDecode  errCode = 0x%x\n", errCode));	
+	BDBG_MSG(("Leave EMVATRReceiveAndDecode  errCode = 0x%x", errCode));
 	BDBG_LEAVE(BSCD_Channel_P_EMVATRReceiveAndDecode);
 	return( errCode );
 	
@@ -847,17 +847,17 @@ BERR_Code BSCD_Channel_P_EMVValidateTSByte(
 	BERR_Code		errCode = BERR_SUCCESS;
 	
 	if (in_ucTSByte == 0x3f) {
-		BDBG_MSG(("TS = %02x, Inverse Convention\n", in_ucTSByte));
+		BDBG_MSG(("TS = %02x, Inverse Convention", in_ucTSByte));
 		return BERR_SUCCESS;
 	} 
 
 	else if (in_ucTSByte == 0x3b) {
-		BDBG_MSG(("TS = %02x, Direct Convention\n", in_ucTSByte));
+		BDBG_MSG(("TS = %02x, Direct Convention", in_ucTSByte));
 		return BERR_SUCCESS;
 	} 
 
 	else {
-		BDBG_ERR(("TS = %02x, Unknown Convention\n", in_ucTSByte));
+		BDBG_ERR(("TS = %02x, Unknown Convention", in_ucTSByte));
 		errCode = BERR_TRACE(BSCD_STATUS_FAILED);
 		return BSCD_STATUS_FAILED;
 	}
@@ -882,7 +882,7 @@ BERR_Code BSCD_Channel_P_EMVValidateTA1Byte(
 
 	BDBG_ENTER(BSCD_Channel_P_EMVValidateTA1Byte);
 
-	BDBG_MSG(("in_ucTA1Byte = %d\n", in_ucTA1Byte));
+	BDBG_MSG(("in_ucTA1Byte = %d", in_ucTA1Byte));
 		
 	/* Decode TA1 (F and D adjustment). */
 	ucFfactor = (in_ucTA1Byte >> 4) & 0x0f;
@@ -898,12 +898,12 @@ BERR_Code BSCD_Channel_P_EMVValidateTA1Byte(
 		*/
 		in_channelHandle->currentChannelSettings.ucFFactor = ucFfactor;
 		in_channelHandle->currentChannelSettings.ucDFactor = ucDFactor;
-		BDBG_MSG(("Clock rate conversion factor, ucFfactor = %1d\n",ucFfactor));
-		BDBG_MSG(("Bit rate adjustment factor, ucDFactor = %1d\n",ucDFactor));
+		BDBG_MSG(("Clock rate conversion factor, ucFfactor = %1d",ucFfactor));
+		BDBG_MSG(("Bit rate adjustment factor, ucDFactor = %1d",ucDFactor));
 	}
 
 	else {
-		BDBG_ERR(("Invalid adjustment factor = %02x\n",in_ucTA1Byte));
+		BDBG_ERR(("Invalid adjustment factor = %02x",in_ucTA1Byte));
 		BSCD_P_CHECK_ERR_CODE_CONDITION(errCode, BSCD_STATUS_FAILED, true);
 	}
 	
@@ -926,8 +926,8 @@ BERR_Code BSCD_Channel_P_EMVValidateTB1Byte(
 	/* Decode TB1 (programming voltage) */
 	if (in_ucTB1Byte == 0x00) {
 		/* 
-		BDBG_MSG(("VPP is not connected in the ICC\n"));
-		BDBG_MSG(("No programming current\n")); 
+		BDBG_MSG(("VPP is not connected in the ICC"));
+		BDBG_MSG(("No programming current"));
 		*/
 	}
 
@@ -938,13 +938,13 @@ BERR_Code BSCD_Channel_P_EMVValidateTB1Byte(
 		*/
 		if (in_channelHandle->resetType == BSCD_ResetType_eWarm) {
 			/*
-			BDBG_ERR(("VPP is not connected in the ICC\n"));
-			BDBG_ERR(("No programming current\n"));
+			BDBG_ERR(("VPP is not connected in the ICC"));
+			BDBG_ERR(("No programming current"));
 			*/
 		}
 
 		else {
-			BDBG_ERR(("Non-Zero TB1 = %02x during cold reset.  Not acceptable for EMV.\n",in_ucTB1Byte));
+			BDBG_ERR(("Non-Zero TB1 = %02x during cold reset.  Not acceptable for EMV.",in_ucTB1Byte));
 			BSCD_P_CHECK_ERR_CODE_CONDITION(errCode, BSCD_STATUS_FAILED, true);
 		}
 	}
@@ -963,7 +963,7 @@ BERR_Code BSCD_Channel_P_EMVValidateTC1Byte(
 		unsigned char in_ucTC1Byte
 )
 {	
-	BDBG_MSG(("In  SmartCardValidateTC1Byte\n"));      
+	BDBG_MSG(("In  SmartCardValidateTC1Byte"));
 
 	/* Decode TC1 (guard time) */
 	if ( (in_channelHandle->currentChannelSettings.eProtocolType == BSCD_AsyncProtocolType_e0) &&
@@ -991,7 +991,7 @@ BERR_Code BSCD_Channel_P_EMVValidateTC1Byte(
 		(in_channelHandle->ulRegStartAddr + BSCD_P_TGUARD), 
 		in_channelHandle->currentChannelSettings.extraGuardTime.ulValue);
 
-	BDBG_MSG(("\nSmartCardValidateTC1Byte: ulGuardTime = 0x%x \n", 
+	BDBG_MSG(("SmartCardValidateTC1Byte: ulGuardTime = 0x%x ",
 			in_channelHandle->currentChannelSettings.extraGuardTime.ulValue));
 
 	return BERR_SUCCESS;
@@ -1015,7 +1015,7 @@ BERR_Code BSCD_Channel_P_EMVValidateTD1Byte(
 		If the lower nibble of ucTD1Byte is not equal to either 0 
 		or 1, then return fail, otherwise return success 
 		*/
-		BDBG_ERR(("Erroneous TD1 l.s. nibble = %02x, should be either 0x00 or 0x01\n",in_ucTD1Byte));
+		BDBG_ERR(("Erroneous TD1 l.s. nibble = %02x, should be either 0x00 or 0x01",in_ucTD1Byte));
 
 		*outp_bTCKRequired = true;
 		BSCD_P_CHECK_ERR_CODE_CONDITION(errCode, BSCD_STATUS_FAILED, true);
@@ -1044,7 +1044,7 @@ BERR_Code BSCD_Channel_P_EMVValidateTA2Byte(
 	BDBG_ENTER((SmartCardValidateTA2Byte));      	
 
 	if ((in_ucTA2Byte & 0x10) != 0) {
-		BDBG_ERR(("Invalid TA2 = %02x \n",in_ucTA2Byte));
+		BDBG_ERR(("Invalid TA2 = %02x ",in_ucTA2Byte));
 		BSCD_P_CHECK_ERR_CODE_CONDITION(errCode, BSCD_STATUS_FAILED, true);
 	}
 
@@ -1059,10 +1059,10 @@ BERR_Code BSCD_Channel_P_EMVValidateTB2Byte(
 )
 {
 	BSTD_UNUSED(in_ucTB2Byte);
-	BDBG_MSG(("In  SmartCardValidateTB2Byte\n"));
+	BDBG_MSG(("In  SmartCardValidateTB2Byte"));
 
 	/* TB2 is not supported by EMV, therefore return failed */
-	BDBG_ERR(("TB2 is present, but not required for Europay standard.  Invalid ATR\n"));
+	BDBG_ERR(("TB2 is present, but not required for Europay standard.  Invalid ATR"));
 
 	return BSCD_STATUS_FAILED;
 }
@@ -1075,13 +1075,13 @@ BERR_Code BSCD_Channel_P_EMVValidateTC2Byte(
 	BERR_Code		errCode = BERR_SUCCESS;
 
 	BDBG_ENTER((SmartCardValidateTC2Byte));
-	BDBG_MSG(("In  BSCD_Channel_P_EMVValidateTC2Byte\n"));	
+	BDBG_MSG(("In  BSCD_Channel_P_EMVValidateTC2Byte"));
 
 	/* Decode TC2.  NOTE: TC2 is specific to protocol type T = 0 */
 	if ((in_ucTC2Byte == 0x00) || (in_ucTC2Byte > 0x0A)) {
 
 		/* Reject ATR if TC2 is equal to '0x00' or greater than '0x0A' */
-		BDBG_ERR(("Invalid TC2 = %02x \n",in_ucTC2Byte));
+		BDBG_ERR(("Invalid TC2 = %02x ",in_ucTC2Byte));
 		BSCD_P_CHECK_ERR_CODE_CONDITION(errCode, BSCD_STATUS_FAILED, true);
 	}
 
@@ -1122,7 +1122,7 @@ BERR_Code BSCD_Channel_P_EMVValidateTD2Byte(
 			If l.s. nibble of TD1 is '0', then l.s. nibble of TD2 
 			must equal '0xE' or 0x01 
 			*/ 
-			BDBG_ERR(("Failing in SmartCardValidateTD2Byte - TD2 != 0x0E \n"));			
+			BDBG_ERR(("Failing in SmartCardValidateTD2Byte - TD2 != 0x0E "));
 			BSCD_P_CHECK_ERR_CODE_CONDITION(errCode, BSCD_STATUS_FAILED, true);
 
 		} 
@@ -1141,7 +1141,7 @@ BERR_Code BSCD_Channel_P_EMVValidateTD2Byte(
 			If l.s. nibble of TD1 is '1', then l.s. nibble of TD2 must 
 			equal '0x01'
 			*/
-			BDBG_MSG(("Failing in SmartCardValidateTD2Byte - TD2 != 0x01 \n"));
+			BDBG_MSG(("Failing in SmartCardValidateTD2Byte - TD2 != 0x01 "));
 			BSCD_P_CHECK_ERR_CODE_CONDITION(errCode, BSCD_STATUS_FAILED, true);
 		}
 	}
@@ -1164,7 +1164,7 @@ BERR_Code BSCD_Channel_P_EMVValidateTA3Byte(
 	/* Decode TA3. */
 	if ((in_ucTA3Byte <= 0x0f) || (in_ucTA3Byte == 0xff))  {
 
-		BDBG_ERR(("Invalid EMV TA3 = %02x \n",in_ucTA3Byte));
+		BDBG_ERR(("Invalid EMV TA3 = %02x ",in_ucTA3Byte));
 		BSCD_P_CHECK_ERR_CODE_CONDITION(errCode, BSCD_STATUS_FAILED, true);
 	}
 
@@ -1234,9 +1234,9 @@ BERR_Code BSCD_Channel_P_EMVValidateTB3Byte(
 		if ((ucCWIVal > 5) || (ucBWIVal > 4) || 
 				(unCWICheck <= ulGuardTimePlusOne)) {
 
-			BDBG_MSG (("ucCWIVal = 0x%02x, ucBWIVal = 0x%02x, unCWICheck = %02d, guard_time = 0x%02x, ulGuardTimePlusOne=%d\n",
+			BDBG_MSG (("ucCWIVal = 0x%02x, ucBWIVal = 0x%02x, unCWICheck = %02d, guard_time = 0x%02x, ulGuardTimePlusOne=%d",
 					ucCWIVal, ucBWIVal, unCWICheck, ulGuardTime, ulGuardTimePlusOne));         		
-			BDBG_ERR(("Invalid TB3 = %02x \n",in_ucTB3Byte));
+			BDBG_ERR(("Invalid TB3 = %02x ",in_ucTB3Byte));
 			BSCD_P_CHECK_ERR_CODE_CONDITION(errCode, BSCD_STATUS_FAILED, true);			
 
 		} 
@@ -1271,7 +1271,7 @@ BERR_Code BSCD_Channel_P_EMVValidateTB3Byte(
 		  }
 #endif
 
-			BDBG_MSG(("ulCWTValue = 0x%x\n", ulCWTValue));
+			BDBG_MSG(("ulCWTValue = 0x%x", ulCWTValue));
 			
 
 			/* set BWT */
@@ -1305,10 +1305,10 @@ BERR_Code BSCD_Channel_P_EMVValidateTB3Byte(
 					ucClkDiv / (in_channelHandle->currentChannelSettings.unPrescale+1) / ucBaudDiv  + 11;
 			}
 
-			BDBG_MSG (("In SmartCardValidateTB3Byte: unBlockWaitTime = %d, ulClkDiv = 0x%02x\n", 
+			BDBG_MSG (("In SmartCardValidateTB3Byte: unBlockWaitTime = %d, ulClkDiv = 0x%02x",
 				ulBlockWaitTime, ucClkDiv));
 
-			BDBG_MSG (("In SmartCardValidateTB3Byte: ulPrescale = 0x%02x, ucBaudDiv = 0x%02x\n", 
+			BDBG_MSG (("In SmartCardValidateTB3Byte: ulPrescale = 0x%02x, ucBaudDiv = 0x%02x",
 				(unsigned int)in_channelHandle->currentChannelSettings.unPrescale, ucBaudDiv));
 				
 
@@ -1321,7 +1321,7 @@ BERR_Code BSCD_Channel_P_EMVValidateTB3Byte(
 				in_channelHandle->currentChannelSettings.blockWaitTime.ulValue =  ulBlockWaitTime ;		
 			in_channelHandle->currentChannelSettings.blockWaitTime.unit = BSCD_TimerUnit_eETU;			
 
-			BDBG_MSG (("TB3, blockWaitTime = %d\n",
+			BDBG_MSG (("TB3, blockWaitTime = %d",
 				in_channelHandle->currentChannelSettings.blockWaitTime.ulValue));
 
 			/* Need this for MetroWerks */
@@ -1350,11 +1350,11 @@ BERR_Code BSCD_Channel_P_EMVValidateTC3Byte(
 	BERR_Code		errCode = BERR_SUCCESS;
 	
 	BDBG_ENTER((BSCD_Channel_P_EMVValidateTC3Byte));
-	BDBG_MSG(("In BSCD_Channel_P_EMVValidateTC3Byte = 0x%02x\n", in_ucTC3Byte));	
+	BDBG_MSG(("In BSCD_Channel_P_EMVValidateTC3Byte = 0x%02x", in_ucTC3Byte));
 
 	/* Terminal shall reject ATR containing non-zero TC3 Byte */
 	if (in_ucTC3Byte != 0) {
-		BDBG_ERR(("Failing in SmartCardValidateTC3Byte \n"));
+		BDBG_ERR(("Failing in SmartCardValidateTC3Byte "));
 		BSCD_P_CHECK_ERR_CODE_CONDITION(errCode, BSCD_STATUS_FAILED, true);
 	}
 
@@ -1382,11 +1382,11 @@ BERR_Code BSCD_Channel_P_EMVValidateTCKByte(
 	/* Start from T0 to TCK.  Including historical bytes if they exist */
 	for (i=1; i<=in_unATRLength; i++) {
 		ucTCKCompare = ucTCKCompare ^ inp_ucATR[i];
-		BDBG_MSG(("In  SmartCardValidateTCKByte inp_ucATR[%d] = %02x\n", i, inp_ucATR[i]));
+		BDBG_MSG(("In  SmartCardValidateTCKByte inp_ucATR[%d] = %02x", i, inp_ucATR[i]));
 	}
 
 	if (ucTCKCompare != 0) {
-		BDBG_ERR(("Invalid TCK. \n"));
+		BDBG_ERR(("Invalid TCK. "));
 		BSCD_P_CHECK_ERR_CODE_CONDITION(errCode, BSCD_STATUS_DEACTIVATE, true);
 	}
 
@@ -1423,7 +1423,7 @@ BERR_Code BSCD_Channel_P_EMVATRByteRead(
 	ulStatus = in_channelHandle->ulStatus2 = BREG_Read32( 
 		in_channelHandle->moduleHandle->regHandle, 
 		(in_channelHandle->ulRegStartAddr + BSCD_P_STATUS_2));
-	BDBG_MSG(("Status2 = 0x%x\n", ulStatus));
+	BDBG_MSG(("Status2 = 0x%x", ulStatus));
 	BKNI_LeaveCriticalSection();
 
 	if ((ulStatus & BCHP_SCA_SC_STATUS_2_rempty_MASK) == BCHP_SCA_SC_STATUS_2_rempty_MASK) {
@@ -1459,12 +1459,12 @@ BERR_Code BSCD_Channel_P_EMVATRByteRead(
 			*inoutp_ultotalAtrByteTimeInETU += ulTimerCntVal; 
 
 			if (*inoutp_ultotalAtrByteTimeInETU > (unsigned long) in_lMaxTotalAtrByteTimeInETU) {
-				BDBG_MSG(("SmartCardATRByteRead: inoutp_ultotalAtrByteTimeInETU = %lu , in_lMaxTotalAtrByteTimeInETU = %ld\n",
+				BDBG_MSG(("SmartCardATRByteRead: inoutp_ultotalAtrByteTimeInETU = %lu , in_lMaxTotalAtrByteTimeInETU = %ld",
 						*inoutp_ultotalAtrByteTimeInETU, in_lMaxTotalAtrByteTimeInETU));	       											
 				BSCD_P_CHECK_ERR_CODE_CONDITION(errCode, BSCD_STATUS_FAILED, true);
 			}
 			
-			BDBG_MSG(("After  WaitForRcv in EMVATRByteRead errCode = 0x%x\n", errCode));	
+			BDBG_MSG(("After  WaitForRcv in EMVATRByteRead errCode = 0x%x", errCode));
 			return errCode;
 		}
 
@@ -1474,7 +1474,7 @@ BERR_Code BSCD_Channel_P_EMVATRByteRead(
 		BKNI_EnterCriticalSection();	
 		in_channelHandle->ulIntrStatus2 &= ~BCHP_SCA_SC_INTR_STAT_2_rcv_intr_MASK;
 		BKNI_LeaveCriticalSection();		
-		BDBG_MSG(("Cancel out RCV_INTR, pSc_intrStatus2 = 0x%x\n", 
+		BDBG_MSG(("Cancel out RCV_INTR, pSc_intrStatus2 = 0x%x",
 			in_channelHandle->ulIntrStatus2));
 	}
 
@@ -1482,12 +1482,12 @@ BERR_Code BSCD_Channel_P_EMVATRByteRead(
 				in_channelHandle->moduleHandle->regHandle, 
 				(in_channelHandle->ulRegStartAddr + BSCD_P_RECEIVE));
 			
-	BDBG_WRN(("atr = 0x%x\n", *inoutp_ucData));
+	BDBG_WRN(("atr = 0x%x", *inoutp_ucData));
 
 BSCD_P_DONE_LABEL:
 	
 	BDBG_LEAVE(BSCD_Channel_P_EMVATRByteRead);
-	BDBG_MSG(("Leave EMVATRByteRead errCode = 0x%x\n", errCode));	
+	BDBG_MSG(("Leave EMVATRByteRead errCode = 0x%x", errCode));
 	return( errCode );	
 }
 

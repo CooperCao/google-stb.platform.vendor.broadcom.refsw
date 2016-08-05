@@ -237,8 +237,6 @@ private:
         }
     }
 
-
-
 #if 0
     void print() {
         int numElements = queue.numElements();
@@ -269,7 +267,6 @@ public:
     PriorityQueue(const PriorityQueue<T>& ) = delete;
     PriorityQueue<T>& operator = (const PriorityQueue<T>& ) = delete;
 };
-
 
 }
 

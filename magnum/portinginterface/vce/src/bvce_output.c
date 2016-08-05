@@ -60,6 +60,10 @@ BDBG_FILE_MODULE(BVCE_OUTPUT_DESC);
 BDBG_FILE_MODULE(BVCE_OUTPUT_CACHE);
 BDBG_FILE_MODULE(BVCE_OUTPUT_PARSER);
 
+BDBG_OBJECT_ID_DECLARE(BVCE_P_Output_Context);    /* BVCE_Output_Handle */
+BDBG_OBJECT_ID_DECLARE(BVCE_P_Channel_Context);   /* BVCE_Channel_Handle */
+BDBG_OBJECT_ID_DECLARE(BVCE_P_Context);           /* BVCE_Handle */
+
 /**********/
 /* Output */
 /**********/
@@ -107,6 +111,7 @@ BVCE_Output_AllocBuffers(
 
    BDBG_ENTER( BVCE_Output_AllocBuffers );
 
+   BDBG_OBJECT_ASSERT(hVce, BVCE_P_Context);
    BDBG_ASSERT( phVceOutputBuffers );
    BDBG_ASSERT( pstOutputAllocBuffersSettings );
    BDBG_ASSERT( BVCE_P_SIGNATURE_ALLOCBUFFERSSETTINGS == pstOutputAllocBuffersSettings->uiSignature );
@@ -340,7 +345,7 @@ BVCE_Output_Open(
 
    BDBG_ENTER( BVCE_Output_Open );
 
-   BDBG_ASSERT( hVce );
+   BDBG_OBJECT_ASSERT(hVce, BVCE_P_Context);
    BDBG_ASSERT( phVceOutput );
    BDBG_ASSERT( pstOutputOpenSettings );
    BDBG_ASSERT( BVCE_P_SIGNATURE_OUTPUTOPENSETTINGS == pstOutputOpenSettings->uiSignature );
@@ -366,7 +371,7 @@ BVCE_Output_Open(
       sizeof( BVCE_P_Output_Context )
       );
 
-   hVceOutput->uiSignature = BVCE_P_SIGNATURE_OUTPUTHANDLE;
+   BDBG_OBJECT_SET(hVceOutput, BVCE_P_Output_Context);
    hVceOutput->hVce = hVce;
    hVceOutput->eStatus = BVCE_P_Status_eOpened;
    hVceOutput->stOpenSettings = *pstOutputOpenSettings;
@@ -549,7 +554,7 @@ BVCE_Output_P_DetachFromChannel(
    BVCE_Output_Handle hVceOutput
    )
 {
-   BDBG_ASSERT( hVceOutput );
+   BDBG_OBJECT_ASSERT(hVceOutput, BVCE_P_Output_Context);
 
    if ( ( NULL != hVceOutput->state.hVceCh )
         && ( BVCE_P_Status_eOpened != BVCE_Channel_P_GetState(hVceOutput->state.hVceCh) )
@@ -570,8 +575,10 @@ BVCE_Output_Close(
 {
    BDBG_ENTER( BVCE_Output_Close );
 
+   /* NOTE: The output could have been closed elsewhere, so a NULL handle is possible */
    if ( NULL != hVceOutput )
    {
+      BDBG_OBJECT_ASSERT(hVceOutput, BVCE_P_Output_Context);
       BVCE_P_FUNCTION_TRACE_ENTER(0, hVceOutput->hVce, hVceOutput->stOpenSettings.uiInstance);
       BVCE_Output_P_DetachFromChannel( hVceOutput );
 
@@ -613,6 +620,8 @@ BVCE_Output_Close(
       /* TODO: Do we need to do anything else? */
       hVceOutput->eStatus = BVCE_P_Status_eIdle;
       BVCE_P_FUNCTION_TRACE_LEAVE(0, hVceOutput->hVce, hVceOutput->stOpenSettings.uiInstance);
+
+      BDBG_OBJECT_UNSET(hVceOutput, BVCE_P_Output_Context);
    }
 
    BDBG_LEAVE( BVCE_Output_Close );
@@ -628,7 +637,7 @@ BVCE_Output_SetBuffers(
 {
    BDBG_ENTER( BVCE_Output_SetBuffers );
 
-   BDBG_ASSERT( hVceOutput );
+   BDBG_OBJECT_ASSERT(hVceOutput, BVCE_P_Output_Context);
    BVCE_P_FUNCTION_TRACE_ENTER(0, hVceOutput->hVce, hVceOutput->stOpenSettings.uiInstance);
 
    /* TODO: Do we need to handle NULL output buffer specially? E.g. snapshot read/write pointers? */
@@ -1196,7 +1205,7 @@ BVCE_Output_P_BufferCacheReset(
          BVCE_Output_Handle hVceOutput
          )
 {
-   BDBG_ASSERT( hVceOutput );
+   BDBG_OBJECT_ASSERT(hVceOutput, BVCE_P_Output_Context);
 
    BKNI_Memset(
             &hVceOutput->state.stBufferCache,
@@ -1406,6 +1415,7 @@ BVCE_Output_P_Reset(
 {
    /* TODO: need to figure out what to do here */
    BSTD_UNUSED( hVceOutput );
+   BDBG_OBJECT_ASSERT(hVceOutput, BVCE_P_Output_Context);
 
    BKNI_Memset( &hVceOutput->state, 0, sizeof(hVceOutput->state) );
 
@@ -1471,6 +1481,7 @@ BVCE_Output_Reset(
 {
    BERR_Code rc;
    BDBG_ENTER( BVCE_Output_Reset );
+   BDBG_OBJECT_ASSERT(hVceOutput, BVCE_P_Output_Context);
    BVCE_P_FUNCTION_TRACE_ENTER(0, hVceOutput->hVce, hVceOutput->stOpenSettings.uiInstance);
 
    BVCE_Power_P_AcquireResource(
@@ -1503,7 +1514,7 @@ BVCE_Output_GetRegisters(
    BERR_Code rc = BERR_SUCCESS;
    BDBG_ENTER( BVCE_Output_GetRegisters);
 
-   BDBG_ASSERT( hVceOutput );
+   BDBG_OBJECT_ASSERT(hVceOutput, BVCE_P_Output_Context);
    BDBG_ASSERT( pstVceOutputRegisters );
    BVCE_P_FUNCTION_TRACE_ENTER(0, hVceOutput->hVce, hVceOutput->stOpenSettings.uiInstance);
 
@@ -1527,7 +1538,7 @@ BVCE_Output_P_FlushDirect(
    unsigned uiCDBBase;
    unsigned uiITBBase;
 
-   BDBG_ASSERT( hVceOutput );
+   BDBG_OBJECT_ASSERT(hVceOutput, BVCE_P_Output_Context);
 
    /* Simply set read = valid */
    uiCDBValid = BREG_Read32(
@@ -2816,15 +2827,13 @@ BVCE_Output_P_SendMetadataDescriptor(
 
          /* Populate Frame Rate */
          {
-            if ( pITBIndexEntry->uiFrameRate < BAVC_FrameRateCode_eMax )
+            /* Validate the size of the FW2PI array is equal to highest possible Frame rate code from FW */
+            BDBG_ASSERT((unsigned)BAVC_FrameRateCodeNumEntries == (unsigned)(BAVC_FWMaxFrameRateCode+1)); /* +1 to account for "unknown" */
+
+            if ( pITBIndexEntry->uiFrameRate < BAVC_FrameRateCodeNumEntries)
             {
                pMetadataDescriptor->uiMetadataFlags |= BAVC_VIDEOMETADATADESCRIPTOR_FLAGS_FRAMERATE_VALID;
-#ifdef BVCE_P_PRERELEASE_TEST_MODE
-               pMetadataDescriptor->stFrameRate.eFrameRateCode = pITBIndexEntry->uiFrameRate;
-#else
-               /* SW7425-6070: Override 19.98 frame rate enum */
-               pMetadataDescriptor->stFrameRate.eFrameRateCode = ( ENCODING_FRAME_RATE_CODE_1998 == pITBIndexEntry->uiFrameRate ) ? BAVC_FrameRateCode_e19_98 : pITBIndexEntry->uiFrameRate;
-#endif
+               pMetadataDescriptor->stFrameRate.eFrameRateCode = BVCE_P_FW2PI_FrameRateLUT[pITBIndexEntry->uiFrameRate];
             }
 
             /* Populate Coded Dimension */
@@ -3208,6 +3217,7 @@ BVCE_Output_GetBufferDescriptors(
    )
 {
    BERR_Code rc;
+   BDBG_OBJECT_ASSERT(hVceOutput, BVCE_P_Output_Context);
    BDBG_ENTER( BVCE_Output_GetBufferDescriptors );
    BVCE_P_FUNCTION_TRACE_ENTER(1, hVceOutput->hVce, hVceOutput->stOpenSettings.uiInstance);
 
@@ -3345,6 +3355,7 @@ BVCE_Output_ConsumeBufferDescriptors(
    )
 {
    BERR_Code rc;
+   BDBG_OBJECT_ASSERT(hVceOutput, BVCE_P_Output_Context);
    BDBG_ENTER( BVCE_Output_ConsumeBufferDescriptors );
    BVCE_P_FUNCTION_TRACE_ENTER(1, hVceOutput->hVce, hVceOutput->stOpenSettings.uiInstance);
 
@@ -3490,6 +3501,7 @@ BVCE_Output_GetBufferStatus(
    )
 {
    BERR_Code rc;
+   BDBG_OBJECT_ASSERT(hVceOutput, BVCE_P_Output_Context);
    BDBG_ENTER( BVCE_Output_GetBufferStatus );
    BVCE_P_FUNCTION_TRACE_ENTER(1, hVceOutput->hVce, hVceOutput->stOpenSettings.uiInstance);
 
@@ -3518,7 +3530,7 @@ BVCE_Output_P_Flush(
    BVCE_Output_Handle hVceOutput
    )
 {
-   BDBG_ASSERT( hVceOutput );
+   BDBG_OBJECT_ASSERT(hVceOutput, BVCE_P_Output_Context);
 
    if ( BVCE_P_Output_BufferAccessMode_eDirect != hVceOutput->state.eBufferAccessMode )
    {
@@ -3554,7 +3566,7 @@ BVCE_Output_Flush(
 {
    BDBG_ENTER( BVCE_Output_Flush );
 
-   BDBG_ASSERT( hVceOutput );
+   BDBG_OBJECT_ASSERT(hVceOutput, BVCE_P_Output_Context);
    BVCE_P_FUNCTION_TRACE_ENTER(0, hVceOutput->hVce, hVceOutput->stOpenSettings.uiInstance);
 
    BVCE_Power_P_AcquireResource(
@@ -3583,7 +3595,7 @@ BVCE_Channel_Output_Reset(
 
    BDBG_ENTER( BVCE_Channel_Output_Reset );
 
-   BDBG_ASSERT( hVceCh );
+   BDBG_OBJECT_ASSERT(hVceCh, BVCE_P_Channel_Context);
    BVCE_P_FUNCTION_TRACE_ENTER(0, hVceCh->hVce, hVceCh->stOpenSettings.uiInstance);
 
    hVceOutput = hVceCh->stStartEncodeSettings.hOutputHandle;
@@ -3593,6 +3605,7 @@ BVCE_Channel_Output_Reset(
    }
 
    BDBG_ASSERT( NULL != hVceOutput );
+   BDBG_OBJECT_ASSERT(hVceOutput, BVCE_P_Output_Context);
 
    rc = BVCE_Output_Reset( hVceOutput );
 
@@ -3613,7 +3626,7 @@ BVCE_Channel_Output_GetRegisters(
 
    BDBG_ENTER( BVCE_Channel_Output_GetRegisters );
 
-   BDBG_ASSERT( hVceCh );
+   BDBG_OBJECT_ASSERT(hVceCh, BVCE_P_Channel_Context);
    BVCE_P_FUNCTION_TRACE_ENTER(1, hVceCh->hVce, hVceCh->stOpenSettings.uiInstance);
 
    hVceOutput = hVceCh->stStartEncodeSettings.hOutputHandle;
@@ -3623,6 +3636,7 @@ BVCE_Channel_Output_GetRegisters(
    }
 
    BDBG_ASSERT( NULL != hVceOutput );
+   BDBG_OBJECT_ASSERT(hVceOutput, BVCE_P_Output_Context);
 
    rc = BVCE_Output_GetRegisters( hVceOutput, pstVceChOutputRegisters );
 
@@ -3646,7 +3660,7 @@ BVCE_Channel_Output_GetBufferDescriptors(
 
    BDBG_ENTER( BVCE_Channel_Output_GetBufferDescriptors );
 
-   BDBG_ASSERT( hVceCh );
+   BDBG_OBJECT_ASSERT(hVceCh, BVCE_P_Channel_Context);
    BVCE_P_FUNCTION_TRACE_ENTER(1, hVceCh->hVce, hVceCh->stOpenSettings.uiInstance);
 
    hVceOutput = hVceCh->stStartEncodeSettings.hOutputHandle;
@@ -3656,6 +3670,7 @@ BVCE_Channel_Output_GetBufferDescriptors(
    }
 
    BDBG_ASSERT( NULL != hVceOutput );
+   BDBG_OBJECT_ASSERT(hVceOutput, BVCE_P_Output_Context);
 
    rc = BVCE_Output_GetBufferDescriptors( hVceOutput, astDescriptors0, puiNumDescriptors0, astDescriptors1, puiNumDescriptors1 );
 
@@ -3676,7 +3691,7 @@ BVCE_Channel_Output_ConsumeBufferDescriptors(
 
    BDBG_ENTER( BVCE_Channel_Output_ConsumeBufferDescriptors );
 
-   BDBG_ASSERT( hVceCh );
+   BDBG_OBJECT_ASSERT(hVceCh, BVCE_P_Channel_Context);
    BVCE_P_FUNCTION_TRACE_ENTER(1, hVceCh->hVce, hVceCh->stOpenSettings.uiInstance);
 
    hVceOutput = hVceCh->stStartEncodeSettings.hOutputHandle;
@@ -3686,6 +3701,7 @@ BVCE_Channel_Output_ConsumeBufferDescriptors(
    }
 
    BDBG_ASSERT( NULL != hVceOutput );
+   BDBG_OBJECT_ASSERT(hVceOutput, BVCE_P_Output_Context);
 
    rc = BVCE_Output_ConsumeBufferDescriptors( hVceOutput, uiNumBufferDescriptors );
 
@@ -3706,7 +3722,7 @@ BVCE_Channel_Output_GetBufferStatus(
 
    BDBG_ENTER( BVCE_Channel_Output_GetBufferStatus );
 
-   BDBG_ASSERT( hVceCh );
+   BDBG_OBJECT_ASSERT(hVceCh, BVCE_P_Channel_Context);
    BVCE_P_FUNCTION_TRACE_ENTER(1, hVceCh->hVce, hVceCh->stOpenSettings.uiInstance);
 
    hVceOutput = hVceCh->stStartEncodeSettings.hOutputHandle;
@@ -3716,6 +3732,7 @@ BVCE_Channel_Output_GetBufferStatus(
    }
 
    BDBG_ASSERT( NULL != hVceOutput );
+   BDBG_OBJECT_ASSERT(hVceOutput, BVCE_P_Output_Context);
 
    rc = BVCE_Output_GetBufferStatus( hVceOutput, pBufferStatus );
 

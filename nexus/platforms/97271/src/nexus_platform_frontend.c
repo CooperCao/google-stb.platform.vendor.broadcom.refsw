@@ -74,11 +74,40 @@
 
 BDBG_MODULE(nexus_platform_frontend);
 
+/*
+ * Special note for 7271/7268 SV boards. If the frontend will be plugged into the second
+ * FEMTSIF connector (FEMTSIF1), set:
+ *     NEXUS_CFLAGS=-DNEXUS_FRONTEND_USE_SECOND_FEMTSIF
+ * This will switch from FEMTSIF0 to FEMTSIF1 for the frontend.
+ */
+
 static NEXUS_GpioHandle gpioHandleInt = NULL;
 
 #if NEXUS_HAS_SPI
 static NEXUS_SpiHandle g_dc_spi[NEXUS_NUM_SPI_CHANNELS] = {NULL};
 #endif
+
+#if (BCHP_CHIP == 7260)
+    #define SV_BOARD_ID 1
+    #define DV_BOARD_ID 2
+    #define HB_BOARD_ID 6
+    #define HB_INT_GPIO 24
+    #define HB_INT_GPIO_TYPE NEXUS_GpioType_eAonStandard
+#elif (BCHP_CHIP == 7268)
+    #define SV_BOARD_ID 1
+    #define DV_BOARD_ID 3
+    #define HB_BOARD_ID 4
+    #define HB_INT_GPIO 7
+    #define HB_INT_GPIO_TYPE NEXUS_GpioType_eAonStandard
+#elif (BCHP_CHIP == 7271)
+    #define SV_BOARD_ID 1
+    #define DV_BOARD_ID 3
+    #define HB_BOARD_ID 4
+    #define HB_INT_GPIO 18
+    #define HB_INT_GPIO_TYPE NEXUS_GpioType_eStandard
+#endif
+
+static void ConfigureIntGpioPin(int intGpio);
 
 NEXUS_Error NEXUS_Platform_InitFrontend(void)
 {
@@ -88,7 +117,7 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
     unsigned i=0;
     NEXUS_FrontendDeviceOpenSettings deviceSettings;
     NEXUS_GpioSettings gpioSettings;
-    unsigned i2c = 3; /* default for 7271 boards */
+    unsigned i2c = 3; /* Default for 7260, 7268 & 7271 boards */
     unsigned i2c_addr = 0x68;
     unsigned intGpio = 18;
     NEXUS_GpioType intGpioType = NEXUS_GpioType_eStandard;
@@ -106,24 +135,26 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
 
         NEXUS_Platform_GetStatus(&platformStatus);
         BDBG_MSG(("board major: %d, minor: %d", platformStatus.boardId.major, platformStatus.boardId.minor));
-        if (platformStatus.boardId.major == 1) {
+        if (platformStatus.boardId.major == SV_BOARD_ID) {
             BDBG_MSG(("SV"));
-            intGpio = 37; /* or 39 */
+#if NEXUS_FRONTEND_USE_SECOND_FEMTSIF
+            intGpio = 39;
+#else
+            intGpio = 37;
+#endif
             sv = true;
-        } else if (platformStatus.boardId.major == 2) {
-            BDBG_MSG(("USFF/IP"));
-            /* USFF/IP platform has no frontend, so return */
-            return NEXUS_SUCCESS;
-        } else if (platformStatus.boardId.major == 3) {
+        } else if (platformStatus.boardId.major == DV_BOARD_ID) {
             BDBG_MSG(("DV"));
             intGpio = 37;
             dv = true;
-        } else if (platformStatus.boardId.major == 4) {
+        } else if (platformStatus.boardId.major == HB_BOARD_ID) {
             BDBG_MSG(("C/D/T/HB"));
-            intGpio = 18;
             cdt = true;
+            intGpio = HB_INT_GPIO;
+            intGpioType = HB_INT_GPIO_TYPE;
         } else {
-            BDBG_WRN(("Unrecognized BID(%d, %d)", platformStatus.boardId.major, platformStatus.boardId.minor));
+            BDBG_WRN(("Unrecognized BID(%d, %d), not configuring any frontends", platformStatus.boardId.major, platformStatus.boardId.minor));
+            return NEXUS_SUCCESS;
         }
     }
 
@@ -151,53 +182,13 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
     deviceSettings.i2cDevice = pConfig->i2c[i2c];
     deviceSettings.i2cAddress = i2c_addr;
 #endif
+
 #if 0
     deviceSettings.satellite.diseqc.i2cAddress= 0x0B;
     deviceSettings.satellite.diseqc.i2cDevice = pConfig->i2c[NEXUS_PLATFORM_SAT_I2C];
 #endif
 
-    if (intGpio == 18) {
-        BREG_Handle hReg = g_pCoreHandles->reg;
-        uint32_t reg;
-
-        reg = BREG_Read32(hReg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_3);
-        BDBG_MSG(("BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_3: %08x",reg));
-        reg &= ~(
-                 BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_3, gpio_018)
-                 );
-        reg |= (
-                BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_3, gpio_018, 0) /* GPIO_018 */
-                );
-        BREG_Write32(hReg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_3, reg);
-    }
-    if (intGpio == 37) {
-        BREG_Handle hReg = g_pCoreHandles->reg;
-        uint32_t reg;
-
-        reg = BREG_Read32(hReg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_5);
-        BDBG_MSG(("BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_5: %08x",reg));
-        reg &= ~(
-                 BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_5, gpio_037)
-                 );
-        reg |= (
-                BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_5, gpio_037, 0) /* GPIO_037 */
-                );
-        BREG_Write32(hReg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_5, reg);
-    }
-    if (intGpio == 39) {
-        BREG_Handle hReg = g_pCoreHandles->reg;
-        uint32_t reg;
-
-        reg = BREG_Read32(hReg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_5);
-        BDBG_MSG(("BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_5: %08x",reg));
-        reg &= ~(
-                 BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_5, gpio_039)
-                 );
-        reg |= (
-                BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_5, gpio_039, 0) /* GPIO_039 */
-                );
-        BREG_Write32(hReg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_5, reg);
-    }
+    ConfigureIntGpioPin(intGpio);
 
     if (dv || sv || cdt) {
         NEXUS_GpioHandle gpio;
@@ -299,7 +290,6 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
                     NEXUS_FrontendDevice_Set3461Settings(device, &settings);
                 }
 #endif
-
                 NEXUS_FrontendDevice_GetCapabilities(device, &capabilities);
                 BDBG_MSG(("Opening %d %x frontends",capabilities.numTuners,probeResults.chip.familyId));
                 for (i=0; i < capabilities.numTuners ; i++)
@@ -325,13 +315,19 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
                 if (probeResults.chip.familyId == 0x3461) {
                     BREG_Handle hReg = g_pCoreHandles->reg;
                     uint32_t reg;
+                    bool pktUseAlt2 = false;
+#if (BCHP_CHIP == 7268) || (BCHP_CHIP == 7271)
+                    /* 7268/71 HB boards use different ALT routing for the PKT interface */
+                    if (cdt) pktUseAlt2 = true;
+#endif
                     /* 3 sync
                      * 2 data 0
                      * 7 data 1
                      * 1 clk
                      */
                     /* 3461 is PKT, not MTSIF, and requires board-specific pinmux changes to route transport data */
-                    if (cdt) {
+
+                    if (pktUseAlt2) {
                         reg = BREG_Read32(hReg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_1);
                         BDBG_WRN(("PIN_CTRL_PIN_MUX_CTRL_1: %08x",reg));
                         reg &= ~(
@@ -348,8 +344,7 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
                                 );
                         BREG_Write32(hReg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_1, reg);
                         BDBG_WRN(("PIN_CTRL_PIN_MUX_CTRL_1: %08x",reg));
-                    }
-                    if (dv || sv) {
+                    } else { /* 7268/71 DV, SV - 7260 */
                         reg = BREG_Read32(hReg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_3);
                         BDBG_MSG(("PIN_CTRL_PIN_MUX_CTRL_3: %08x",reg));
                         reg &= ~(
@@ -427,6 +422,89 @@ void NEXUS_Platform_UninitFrontend(void)
         }
     }
 #endif
+}
+
+static void ConfigureIntGpioPin(int intGpio)
+{
+    BREG_Handle hReg = g_pCoreHandles->reg;
+    uint32_t reg;
+
+    switch (intGpio)
+    {
+        case 7:
+        {
+            reg = BREG_Read32(hReg, BCHP_AON_PIN_CTRL_PIN_MUX_CTRL_0);
+            BDBG_MSG(("BCHP_AON_PIN_CTRL_PIN_MUX_CTRL_0: %08x",reg));
+            reg &= ~(
+                BCHP_MASK(AON_PIN_CTRL_PIN_MUX_CTRL_0, aon_gpio_07)
+                );
+            reg |= (
+                BCHP_FIELD_DATA(AON_PIN_CTRL_PIN_MUX_CTRL_0, aon_gpio_07, 0) /* AON_GPIO_07 */
+                );
+            BREG_Write32(hReg, BCHP_AON_PIN_CTRL_PIN_MUX_CTRL_0, reg);
+            break;
+        }
+
+        case 18:
+        {
+            reg = BREG_Read32(hReg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_3);
+            BDBG_MSG(("BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_3: %08x",reg));
+            reg &= ~(
+                BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_3, gpio_018)
+                );
+            reg |= (
+                BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_3, gpio_018, 0) /* GPIO_018 */
+                );
+            BREG_Write32(hReg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_3, reg);
+            break;
+        }
+
+        case 24:
+        {
+            reg = BREG_Read32(hReg, BCHP_AON_PIN_CTRL_PIN_MUX_CTRL_3);
+            BDBG_MSG(("BCHP_AON_PIN_CTRL_PIN_MUX_CTRL_0: %08x",reg));
+            reg &= ~(
+                BCHP_MASK(AON_PIN_CTRL_PIN_MUX_CTRL_3, aon_gpio_24)
+                );
+            reg |= (
+                BCHP_FIELD_DATA(AON_PIN_CTRL_PIN_MUX_CTRL_3, aon_gpio_24, 0) /* AON_GPIO_24 */
+                );
+            BREG_Write32(hReg, BCHP_AON_PIN_CTRL_PIN_MUX_CTRL_3, reg);
+            break;
+        }
+
+#if !NEXUS_FRONTEND_USE_SECOND_FEMTSIF
+        case 37:
+        {
+            reg = BREG_Read32(hReg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_5);
+            BDBG_MSG(("BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_5: %08x",reg));
+            reg &= ~(
+                BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_5, gpio_037)
+                 );
+            reg |= (
+                BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_5, gpio_037, 0) /* GPIO_037 */
+                );
+            BREG_Write32(hReg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_5, reg);
+            break;
+        }
+#endif
+
+#if NEXUS_FRONTEND_USE_SECOND_FEMTSIF
+        case 39:
+        {
+            reg = BREG_Read32(hReg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_5);
+            BDBG_MSG(("BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_5: %08x",reg));
+            reg &= ~(
+                BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_5, gpio_039)
+                 );
+            reg |= (
+                BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_5, gpio_039, 0) /* GPIO_039 */
+                );
+            BREG_Write32(hReg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_5, reg);
+            break;
+        }
+#endif
+    }
 }
 
 BTRC_MODULE(ChnChange_TuneStreamer, ENABLE);

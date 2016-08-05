@@ -44,8 +44,12 @@
 #include "blst_circleq.h"
 #include "bvdc_common_priv.h"
 #include "bvdc_bufferheap_priv.h"
+
 #if (BVDC_BUF_LOG == 1)
 #include "bvdc_dbg.h"
+#if BVDC_BUF_DUMP_LOG_TO_FILE
+#include "stdio.h"
+#endif
 #endif
 
 #ifdef __cplusplus
@@ -520,9 +524,6 @@ typedef enum _BVDC_P_WrRateCode
  * eMadPhase  - indicates that the deinterlacer determines the picture node,
  *              ie., MAD phase, to display or drop
  * eXdmRepeat - indicates that the XDM repeats are to be dropped
- * eNoDrop    - indicates that there are no dropped pitcures. This is
- *              associated with interlaced capture and interlaced display.
- *              The buffer handling operates in a typical sync-slip fashion
  * eNonMtg    - as name says
  *
  ***************************************************************************/
@@ -531,7 +532,6 @@ typedef enum
 {
     BVDC_P_Buffer_MtgMode_eMadPhase = 0,
     BVDC_P_Buffer_MtgMode_eXdmRepeat,
-    BVDC_P_Buffer_MtgMode_eNoDrop,
     BVDC_P_Buffer_MtgMode_eNonMtg
 } BVDC_P_Buffer_MtgMode;
 
@@ -750,17 +750,19 @@ BERR_Code BVDC_P_Buffer_SetRightBufferPictureNodes_isr
 void BVDC_P_Buffer_SetLogStateAndDumpTrigger
     ( BVDC_BufLogState                 eLogState,
       const BVDC_CallbackFunc_isr      pfCallback,
-      void                             *pvParm1,
+      void                            *pvParm1,
       int                              iParm2 );
-
-void BVDC_P_Buffer_DumpLog(void);
 
 void BVDC_P_Buffer_SetManualTrigger(void);
 
 void BVDC_P_Buffer_EnableBufLog
-    ( BVDC_P_WindowId                   eId,
-      bool                              bEnable);
+    ( BVDC_P_WindowId                  eId,
+      bool                             bEnable);
 
+void BVDC_P_Buffer_DumpLog
+    ( char                            *pLog,
+      unsigned int                     uiLenToRead,
+      unsigned int                    *puiReadCount );
 #endif
 
 

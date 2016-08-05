@@ -117,3 +117,61 @@ void BVC5_P_DebugDumpHeapContents(BMEM_Heap_Handle hHeap, uint32_t uiCoreIndex)
       fclose(fp);
    }
 }
+
+#ifdef BVC5_USE_DRM
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/ioctl.h>
+#include <fcntl.h>
+
+/*
+ * C90 is not compatible with the 4.1 Linux uerspace headers, which use
+ * "long long". Also they use trailing "," at the end of enumerations lists
+ * which triggers a pedantic warning. So use some GCC magic to hide the
+ * warnings.
+ */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wlong-long"
+#pragma GCC diagnostic ignored "-Wpedantic"
+
+#include <drm/brcmv3d_drm.h>
+
+#pragma GCC diagnostic pop
+
+/*
+ * Singleton filedescriptor to access the DRM device.
+ */
+static int drmFd = -1;
+
+BERR_Code BVC5_P_DRMOpen(uint32_t uiDRMDevice)
+{
+   if (drmFd < 0)
+   {
+      char drmDeviceName[128];
+      sprintf(drmDeviceName,"/dev/dri/card%u", uiDRMDevice);
+      drmFd = open(drmDeviceName, O_RDWR);
+   }
+   return (drmFd < 0) ? BERR_OS_ERROR : BERR_SUCCESS;
+}
+
+void BVC5_P_DRMTerminateClient(uint64_t uiPlatformToken)
+{
+   if (drmFd > 0)
+   {
+      struct drm_v3d_file_private_token s;
+
+      s.token = uiPlatformToken;
+      ioctl(drmFd, DRM_IOCTL_V3D_SET_CLIENT_TERM, &s);
+   }
+}
+#else
+void BVC5_P_DRMOpen(uint32_t uiDRMDevice)
+{
+   BSTD_UNUSED(uiDRMDevice);
+}
+
+void BVC5_P_DRMTerminateClient(uint64_t uiPlatformToken)
+{
+   BSTD_UNUSED(uiPlatformToken);
+}
+#endif

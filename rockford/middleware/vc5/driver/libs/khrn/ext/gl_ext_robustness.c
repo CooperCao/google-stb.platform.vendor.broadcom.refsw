@@ -9,16 +9,14 @@ FILE DESCRIPTION
 =============================================================================*/
 #include "../glxx/glxx_server.h"
 
-#if GL_EXT_robustness
 GL_APICALL GLenum GL_APIENTRY glGetGraphicsResetStatusEXT(void)
 {
    /* v3d doesnt loose context on GPU reset.  return GL_NO_ERROR always.*/
 
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE_UNCHANGED();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state_unchanged(OPENGL_ES_ANY);
    GLenum result = GL_NO_ERROR;
    if (!state) return GL_NO_ERROR;
 
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
    return result;
 }
-#endif

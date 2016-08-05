@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2003-2015 Broadcom Corporation
+*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,17 +35,12 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * Description:
 *
-* Revision History:
-*
-* $brcm_Log: $
-*
 ***************************************************************************/
+#if defined(LOG_IP_LATENCY)
+#include "ts_packet.h"
+#endif
 
 void B_PlaybackIp_UtilsTuneNetworkStack(int fd);
 int B_PlaybackIp_UtilsWaitForSocketData(B_PlaybackIpHandle playback_ip, bool *recvTimeout);
@@ -156,3 +151,12 @@ unsigned B_PlaybackIp_UtilsGetEndOfStreamTimeout( B_PlaybackIpHandle playback_ip
 void B_PlaybackIp_UtilsBuildPictureTagBtp(unsigned pid, unsigned pictureTag, unsigned timestampOffset, uint8_t *pkt);
 void B_PlaybackIp_UtilsBuildInlineFlushBtp(unsigned pid, unsigned timestampOffset, uint8_t *pkt);
 void B_PlaybackIp_UtilsBuildPictureOutputCountBtp(unsigned pid, unsigned pictureCount, unsigned timestampOffset, uint8_t *pkt);
+
+#if defined(LOG_IP_LATENCY)
+bool B_PlaybackIp_UtilsReadEnvInt(char *varName, int *var, int varMin, int varMax);
+NEXUS_Error B_PlaybackIp_UtilsGetVideoDecoderFifoStatus(B_PlaybackIpHandle playback_ip, NEXUS_VideoDecoderFifoStatus *pfifoStatus);
+void B_PlaybackIp_UtilsTrkLatencyStreamToDecodePts(B_PlaybackIpHandle playback_ip, TS_packet *pTsPkt);
+void B_PlaybackIp_UtilsTrkPcrJitter(B_PlaybackIpHandle playback_ip, TS_packet *pTsPkt);
+void B_PlaybackIp_UtilsTrkLatencyLog(B_PlaybackIpHandle playback_ip);
+void B_PlaybackIp_UtilsTrkLatencyInit(B_PlaybackIpHandle playback_ip);
+#endif

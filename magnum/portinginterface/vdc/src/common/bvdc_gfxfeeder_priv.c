@@ -132,7 +132,6 @@ BDBG_OBJECT_ID(BVDC_GFX);
 #define  GFD_NUM_REGS_W_ALPHA               1
 #define  GFD_NUM_REGS_KEY                   4
 #define  GFD_NUM_REGS_ALPHA                 2
-#define  GFD_NUM_REGS_PALETTE               2
 #define  GFD_NUM_REGS_DISP                  1
 #define  GFD_NUM_REGS_COLOR_MATRIX          9
 #if (BVDC_P_SUPPORT_GFD_VER >= BVDC_P_SUPPORT_GFD_VER_4)
@@ -160,6 +159,7 @@ BERR_Code BVDC_P_GfxFeeder_Create
       BVDC_Source_Handle               hSource)
 {
     BVDC_P_GfxFeederContext *pGfxFeeder = NULL;
+
 #ifdef BCHP_GFD_0_HW_CONFIGURATION
 #if (BVDC_P_SUPPORT_GFD_VER >= BVDC_P_SUPPORT_GFD_VER_3)
     uint32_t  ulHwCfg;
@@ -772,6 +772,7 @@ BERR_Code BVDC_P_GfxFeeder_ValidateChanges
     BVDC_P_DisplayInfo *pDispNewInfo, *pDispCurInfo;
     BFMT_Orientation  eOrientation, eSrcOrientation;
     BVDC_Window_Handle  hWindow;
+    const BBOX_Vdc_Capabilities *pBoxVdc;
     BERR_Code eResult = BERR_SUCCESS;
 
     BDBG_ENTER(BVDC_P_GfxFeeder_ValidateChanges);
@@ -858,6 +859,17 @@ BERR_Code BVDC_P_GfxFeeder_ValidateChanges
             pNewDirty->stBits.bSurOffset = BVDC_P_DIRTY;
             pNewSur->bChangeSurface = true;
         }
+    }
+
+    /* check if BSTC compression is enabled and if so check if the
+       new surface's pixel format corresponds. */
+    pBoxVdc = &hGfxFeeder->hSource->hVdc->stBoxConfig.stVdc;
+    if (pBoxVdc->astSource[hGfxFeeder->eId].bCompressed &&
+        !BPXL_IS_COMPRESSED_FORMAT(pNewSur->eInputPxlFmt))
+    {
+        BDBG_ERR(("Compressed surface for GFD%d has incorrect pixel format - %s.",
+                   (hGfxFeeder->eId - BAVC_SourceId_eGfx0), BPXL_ConvertFmtToStr(pNewSur->eInputPxlFmt)));
+        return BERR_TRACE((BERR_INVALID_PARAMETER));
     }
 
     hGfxFeeder->pNewSur = pNewSur;
@@ -1161,9 +1173,12 @@ static BERR_Code BVDC_P_GfxFeeder_BuildRulForUserChangeOnly_isr
         ulClutSize = pCurCfg->ulNumGammaClutEntries;
 
         /* set the addr and size for table loading */
-        *pulRulCur++ = BRDC_OP_IMMS_TO_REGS( GFD_NUM_REGS_PALETTE );
+        /* TODO: add 64-bit address & command support */
+        *pulRulCur++ = BRDC_OP_IMM_TO_REG( );
         *pulRulCur++ = BRDC_REGISTER( BCHP_GFD_0_PALETTE_START ) + ulRulOffset;
-        *pulRulCur++ = BCHP_FIELD_DATA( GFD_0_PALETTE_START, ADDR, ulClutAddr );
+        *pulRulCur++ = ulClutAddr;
+        *pulRulCur++ = BRDC_OP_IMM_TO_REG( );
+        *pulRulCur++ = BRDC_REGISTER( BCHP_GFD_0_PALETTE_SIZE ) + ulRulOffset;
         *pulRulCur++ = BCHP_FIELD_DATA( GFD_0_PALETTE_SIZE,  SIZE, ulClutSize );
 
         /* triger the table loading */
@@ -1477,11 +1492,11 @@ static BERR_Code BVDC_P_GfxFeeder_BuildRulForSurCtrl_isr
         *pulRulCur++ = BRDC_REGISTER( BCHP_GFD_0_SRC_OFFSET ) + ulRulOffset;
         *pulRulCur++ = BCHP_FIELD_DATA( GFD_0_SRC_OFFSET, BLANK_PIXEL_COUNT, ulOffsetPixInByte );
         *pulRulCur++ = BCHP_FIELD_DATA( GFD_0_SRC_HSIZE,  HSIZE, pCurCfg->ulCntWidth );
-        *pulRulCur++ = BCHP_FIELD_DATA( GFD_0_SRC_START,  ADDR,  0 ); /* set later */
+        *pulRulCur++ = 0; /* set later */
 
 #if (BVDC_P_SUPPORT_GFD_VER >= BVDC_P_SUPPORT_GFD_VER_4)
         /* 3D support */
-        *pulRulCur++ = BCHP_FIELD_DATA( GFD_0_SRC_START_R, ADDR, 0);
+        *pulRulCur++ = 0;
 #endif
         *pulRulCur++ = BCHP_FIELD_DATA( GFD_0_SRC_PITCH,  PITCH, ulMainSurPitch );
 
@@ -1745,9 +1760,11 @@ static BERR_Code BVDC_P_GfxFeeder_BuildRulForColorCtrl_isr
         ulClutSize = pCurSur->ulPaletteNumEntries;
 
         /* set the addr and size for table loading */
-        *pulRulCur++ = BRDC_OP_IMMS_TO_REGS( GFD_NUM_REGS_PALETTE );
+        *pulRulCur++ = BRDC_OP_IMM_TO_REG( );
         *pulRulCur++ = BRDC_REGISTER( BCHP_GFD_0_PALETTE_START ) + ulRulOffset;
-        *pulRulCur++ = BCHP_FIELD_DATA( GFD_0_PALETTE_START, ADDR, ulClutAddr );
+        *pulRulCur++ = ulClutAddr;
+        *pulRulCur++ = BRDC_OP_IMM_TO_REG( );
+        *pulRulCur++ = BRDC_REGISTER( BCHP_GFD_0_PALETTE_SIZE ) + ulRulOffset;
         *pulRulCur++ = BCHP_FIELD_DATA( GFD_0_PALETTE_SIZE,  SIZE, ulClutSize );
 
         /* triger the table loading */
@@ -1858,9 +1875,12 @@ static BERR_Code BVDC_P_GfxFeeder_BuildRulForColorCtrl_isr
                 BCHP_FIELD_ENUM(GFD_0_NL_CSC_CTRL, LRANGE_ADJ_EN,  ENABLE)             |
                 BCHP_FIELD_DATA(GFD_0_NL_CSC_CTRL, SEL_L2NL,       pEotfConv->ucL2NL)  |
                 BCHP_FIELD_DATA(GFD_0_NL_CSC_CTRL, SEL_NL2L,       pEotfConv->ucNL2L)  |
-                BCHP_FIELD_DATA(GFD_0_NL_CSC_CTRL, SEL_CL_IN,      pGfxCsc->ucInputCL) |
-                BCHP_FIELD_DATA(GFD_0_NL_CSC_CTRL, SEL_XVYCC,      pGfxCsc->ucXvYcc)   |
-                BCHP_FIELD_ENUM(GFD_0_NL_CSC_CTRL, NL_CSC,         ENABLE);
+                BCHP_FIELD_DATA(GFD_0_NL_CSC_CTRL, SEL_CL_IN,      pGfxCsc->ucInputCL)
+#if BVDC_P_CMP_NON_LINEAR_CSC_VER == BVDC_P_NL_CSC_VER_2
+              | BCHP_FIELD_DATA(GFD_0_NL_CSC_CTRL, SEL_XVYCC,      pGfxCsc->ucXvYcc)   |
+                BCHP_FIELD_ENUM(GFD_0_NL_CSC_CTRL, NL_CSC,         ENABLE)
+#endif
+                ;
 
             pLRangeAdj = pEotfConv->pLRangeAdj;
             *pulRulCur++ = BRDC_OP_IMMS_TO_REGS( 16 );

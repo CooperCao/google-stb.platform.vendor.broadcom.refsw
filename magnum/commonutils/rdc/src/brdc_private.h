@@ -150,6 +150,10 @@ Description:
 #define BRDC_P_SUPPORT_HIGH_PRIORITY_SLOT  (0)
 #endif
 
+#ifdef BCHP_RDC_sync_0_arm
+#define BRDC_P_MAX_SYNC                       (32)
+#endif
+
 
 /***************************************************************************
  * Data Structure
@@ -193,6 +197,11 @@ typedef struct BRDC_P_Handle
 #ifdef BCHP_RDC_stc_flag_0
     BRDC_Trigger                       aeStcTrigger[BRDC_MAX_STC_FLAG_COUNT];
 #endif
+
+    /* sync */
+#ifdef BCHP_RDC_sync_0_arm
+    bool                               abSyncUsed[BRDC_P_MAX_SYNC];
+#endif
 } BRDC_P_Handle;
 
 
@@ -222,6 +231,9 @@ typedef struct BRDC_P_Slot_Handle
     uint32_t          *pulRulConfigVal; /* point to the current RUL's config value */
 
     BRDC_Slot_Settings  stSlotSetting;
+
+    /* Slot may select specific synchronizer */
+    uint32_t           ulSyncId;
 
     BLST_D_ENTRY(BRDC_P_Slot_Handle)  link;         /* doubly-linked list support */
 
@@ -283,6 +295,19 @@ void BRDC_P_ReleaseSemaphore_isr
     ( BRDC_Handle                      hRdc,
       BRDC_List_Handle                 hList,
       BRDC_SlotId                      eSlotId );
+
+BERR_Code BRDC_P_AcquireSync
+    ( BRDC_Handle                      hRdc,
+      uint32_t                        *pulId );
+
+BERR_Code BRDC_P_ReleaseSync
+    ( BRDC_Handle                      hRdc,
+      uint32_t                         ulId );
+
+BERR_Code BRDC_P_ArmSync_isr
+    ( BRDC_Handle                      hRdc,
+      uint32_t                         ulSyncId,
+      bool                             bArm );
 
 void BRDC_P_DumpSlot_isr
     ( BRDC_Handle                      hRdc,

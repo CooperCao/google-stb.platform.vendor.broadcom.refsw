@@ -786,6 +786,17 @@ static void BVEE_Channel_P_LinkStages(BVEE_ChannelHandle handle)
          goto err_stage;
      }
 
+#if 	BDSP_ENCODER_ACCELERATOR_SUPPORT
+	errCode = BDSP_Stage_SetAlgorithm(handle->hPrimaryStage, BDSP_Algorithm_eX264Encode);
+#else
+	errCode = BDSP_Stage_SetAlgorithm(handle->hPrimaryStage, BDSP_Algorithm_eH264Encode);
+#endif
+	if ( errCode )
+	{
+		errCode = BERR_TRACE(errCode);
+		goto err_stage;
+	}
+
      /* Allocate Memory for output Buffers*/
      errCode = BVEE_Channel_P_AllocateOutputBuffers(handle);
      if ( errCode )
@@ -2395,7 +2406,11 @@ BVEE_Channel_UserData_GetStatus_isr(
     )
 {
      BERR_Code errCode = BERR_SUCCESS;
-     BDSP_Raaga_VideoBH264UserConfig userConfig;
+#if 	 BDSP_ENCODER_ACCELERATOR_SUPPORT
+	BDSP_Raaga_VideoBX264UserConfig userConfig;
+#else
+	BDSP_Raaga_VideoBH264UserConfig userConfig;
+#endif
 
      BDBG_OBJECT_ASSERT(handle, BVEE_Channel);
      BDBG_ASSERT(NULL != pSettings);
@@ -2427,7 +2442,11 @@ BVEE_Channel_UserData_GetStatus_isr(
     )
 {
     BERR_Code errCode = BERR_SUCCESS;
-    BDSP_Raaga_VideoBH264UserConfig userConfig;
+#if 	 BDSP_ENCODER_ACCELERATOR_SUPPORT
+	BDSP_Raaga_VideoBX264UserConfig userConfig;
+#else
+	BDSP_Raaga_VideoBH264UserConfig userConfig;
+#endif
 
     BDBG_OBJECT_ASSERT(handle, BVEE_Channel);
     BDBG_ASSERT(NULL != pSettings);

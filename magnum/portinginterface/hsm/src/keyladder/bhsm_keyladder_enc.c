@@ -54,15 +54,13 @@
 
 BDBG_MODULE(BHSM);
 
+BDBG_OBJECT_ID_DECLARE( BHSM_P_Handle );
 
 BERR_Code  BHSM_InitialiseKeyLadders ( BHSM_Handle hHsm )
 {
     BERR_Code rc = BERR_SUCCESS;
 
-    if( hHsm == NULL || hHsm->ulMagicNumber != BHSM_P_HANDLE_MAGIC_NUMBER )
-    {
-        return BERR_TRACE(BHSM_STATUS_FAILED);
-    }
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
 
     if( ( rc = BHSM_LoadVklOwnershipFromBsp( hHsm ) ) != BERR_SUCCESS )
     {
@@ -90,7 +88,9 @@ BERR_Code BHSM_AllocateVKL(
 
     BDBG_ENTER(BHSM_AllocateVKL);
 
-    if( hHsm == NULL || hHsm->ulMagicNumber != BHSM_P_HANDLE_MAGIC_NUMBER || pAllocVkl == NULL )
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
+
+    if( pAllocVkl == NULL )
     {
         return BERR_TRACE(BHSM_STATUS_FAILED);
     }
@@ -198,11 +198,7 @@ void BHSM_FreeVKL(  BHSM_Handle   hHsm,
 
     BDBG_ENTER( BHSM_FreeVKL );
 
-    if( hHsm == NULL || hHsm->ulMagicNumber != BHSM_P_HANDLE_MAGIC_NUMBER )
-    {
-        (void)BERR_TRACE(BHSM_STATUS_FAILED);
-        return;
-    }
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
 
     vkl = BHSM_RemapVklId(vkl);
 
@@ -234,7 +230,9 @@ BERR_Code BHSM_InvalidateVKL( BHSM_Handle hHsm,
 
     BDBG_ENTER( BHSM_InvalidateVKL );
 
-    if( hHsm == NULL || hHsm->ulMagicNumber != BHSM_P_HANDLE_MAGIC_NUMBER || pConfig == NULL )
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
+
+    if( pConfig == NULL )
     {
         return BERR_TRACE(BHSM_STATUS_FAILED);
     }
@@ -333,7 +331,9 @@ BERR_Code BHSM_GenerateRouteKey(
 
     BDBG_ENTER(BHSM_GenerateRouteKey);
 
-    if( hHsm == NULL || hHsm->ulMagicNumber != BHSM_P_HANDLE_MAGIC_NUMBER || pGrk == NULL )
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
+
+    if( pGrk == NULL )
     {
         return BERR_TRACE(BHSM_STATUS_FAILED);
     }
@@ -727,7 +727,9 @@ BERR_Code  BHSM_GenerateGlobalKey( BHSM_Handle hHsm, BHSM_GenerateGlobalKey_t *p
 
     BDBG_ENTER(BHSM_GenerateGlobalKey);
 
-    if( hHsm == NULL || hHsm->ulMagicNumber != BHSM_P_HANDLE_MAGIC_NUMBER || pGlobalKey == NULL )
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
+
+    if( pGlobalKey == NULL )
     {
         return BERR_TRACE(BHSM_STATUS_FAILED);
     }
@@ -814,10 +816,7 @@ BERR_Code  BHSM_LoadVklOwnershipFromBsp ( BHSM_Handle hHsm )
 
     BDBG_ENTER( BHSM_LoadVklOwnershipFromBsp );
 
-    if( ( hHsm == NULL ) || ( hHsm->ulMagicNumber != BHSM_P_HANDLE_MAGIC_NUMBER ) )
-    {
-        return  BERR_TRACE( BHSM_STATUS_INPUT_PARM_ERR );
-    }
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
 
     if( ( rc = BHSM_BspMsg_Create( hHsm, &hMsg ) ) != BERR_SUCCESS )
     {
@@ -926,7 +925,9 @@ BERR_Code BHSM_ProcOutCmd (
 
     BDBG_ENTER( BHSM_ProcOutCmd );
 
-    if( ( hHsm == NULL ) || ( hHsm->ulMagicNumber != BHSM_P_HANDLE_MAGIC_NUMBER ) || ( pProcOutCmd == NULL )  )
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
+
+    if( pProcOutCmd == NULL )
     {
         return  BERR_TRACE( BHSM_STATUS_INPUT_PARM_ERR );
     }
@@ -1005,7 +1006,9 @@ BERR_Code BHSM_FastLoadEncryptedHdcpKey (
     BCMD_RootKeySrc_e RootKeySrc;
     BHSM_AllocateVKLIO_t vkl;
 
-    if( hHsm == NULL || hHsm->ulMagicNumber != BHSM_P_HANDLE_MAGIC_NUMBER || keyStruct == NULL )
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
+
+    if( keyStruct == NULL )
     {
         return BERR_TRACE(BHSM_STATUS_FAILED);
     }
@@ -1142,7 +1145,9 @@ BERR_Code BHSM_KladChallenge (
 
     BDBG_ENTER(BHSM_KladChallenge);
 
-    if( hHsm == NULL || hHsm->ulMagicNumber != BHSM_P_HANDLE_MAGIC_NUMBER || pChallenge == NULL )
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
+
+    if( pChallenge == NULL )
     {
         return BERR_TRACE(BHSM_STATUS_FAILED);
     }
@@ -1215,7 +1220,9 @@ BERR_Code BHSM_KladResponse (
 
     BDBG_ENTER(BHSM_KladResponse);
 
-    if( hHsm == NULL || hHsm->ulMagicNumber != BHSM_P_HANDLE_MAGIC_NUMBER || pResponse == NULL )
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
+
+    if( pResponse == NULL )
     {
         return BERR_TRACE(BHSM_STATUS_FAILED);
     }

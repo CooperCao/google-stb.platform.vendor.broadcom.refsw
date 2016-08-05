@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2013 Broadcom Corporation
+*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,17 +35,9 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * API Description:
 *   API name: IrInput
 *    Specific APIs related to IR Input Control.
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 
@@ -265,6 +257,16 @@ Check if preamble A or preamble B is detected
 NEXUS_Error NEXUS_IrInput_GetPreambleStatus(
     NEXUS_IrInputHandle handle,
     NEXUS_IrInputPreambleStatus *pStatus /* [out] */
+    );
+
+/***************************************************************************
+Summary:
+Returns unbuffered data.
+Could be used to read IR event which woke up settop.
+***************************************************************************/
+NEXUS_Error NEXUS_IrInput_ReadEvent(
+    NEXUS_IrInputHandle irInput,
+    NEXUS_IrInputEvent *pEvent /* [out] only code and codeHigh are valid */
     );
 
 /***************************************************************************

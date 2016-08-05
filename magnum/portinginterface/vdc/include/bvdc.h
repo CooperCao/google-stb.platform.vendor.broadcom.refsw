@@ -326,7 +326,6 @@ Example:
        BVDC_Source_SetChromaExpansion,
        BVDC_Source_EnableColorKey, BVDC_Source_DisableColorKey,
        BVDC_Source_SetHorizontalScaleCoeffs,
-       BVDC_Source_EnableGammaCorrection, BVDC_Source_DisableGammaCorrection
 
 See Also:
     BVDC_Source_Create, BVDC_Source_Destroy,
@@ -4516,10 +4515,6 @@ Description:
     eNumBins - This parameter indicates the number of histogram bins used
 
 See Also:
-    BVDC_Compositor_SetLumaStatsConfiguration,
-    BVDC_Compositor_GetLumaStatsConfiguration,
-    BVDC_Window_SetLumaStatsConfiguration,
-    BVDC_Window_GetLumaStatsConfiguration
 ***************************************************************************/
 typedef struct
 {
@@ -4528,7 +4523,6 @@ typedef struct
     BVDC_HistBinSelect                 eNumBins;
 
 } BVDC_LumaSettings;
-
 
 
 /***************************************************************************
@@ -4556,8 +4550,6 @@ Description:
     ulPixelCnt - This is the total pixel count.
 
 See Also:
-    BVDC_Compositor_GetLumaStats,
-    BVDC_Window_GetLumaStats
 ***************************************************************************/
 typedef struct
 {
@@ -4569,99 +4561,6 @@ typedef struct
     uint32_t                           ulPixelCnt;
 } BVDC_LumaStatus;
 
-/***************************************************************************
-Summary:
-    This structure describes the chroma setting.
-
-Description:
-    BVDC_ChromaSettings is a structure that contains the settings of the
-    chroma rectangle, sat min and hue min/max values, and the chroma
-    histogram type for a window.
-
-    stRegion - This parameter indicates the region to obtain the
-    the Chroma Histogram data for. It's specified in terms of clipping
-    amount relative to the input to the Chroma Histogram Block.  By default
-    there is no clipping.  The unit of clipping is in 100th of a percent.
-
-        No clipping example:
-            stRegion.ulLeft   = 0
-            stRegion.ulRight  = 0
-            stRegion.ulTop    = 0
-            stRegion.ulBottom = 0
-
-        5% clipping on each side example:
-            stRegion.ulLeft   = 500
-            stRegion.ulRight  = 500
-            stRegion.ulTop    = 500
-            stRegion.ulBottom = 500
-
-    eType    - indicates the chroma histogram type
-
-    ulSatMin - This parameter indicates the min of all saturation in the
-               specified region.
-
-    ulHueMax - Maximum Hue Value. Enter as unsigned hue angle (U9.1 format)
-               in the range 0 to 359.5 degrees..
-
-    ulHueMin - Minimum Hue Value. Enter as unsigned hue angle (U9.1 format)
-               in the range 0 to 359.5 degrees.
-
-See Also:
-    BVDC_Window_SetChromaStatsConfiguration,
-    BVDC_Window_GetChromaStatsConfiguration
-***************************************************************************/
-typedef struct
-{
-    BVDC_ClipRect                      stRegion;
-    BVDC_ChromaHistType                eType;
-    uint32_t                           ulSatMin;
-    uint32_t                           ulHueMin;
-    uint32_t                           ulHueMax;
-} BVDC_ChromaSettings;
-
-/***************************************************************************
-Summary:
-    This structure describes the chroma status.
-
-Description:
-    BVDC_ChromaStatus is a structure that contains the chroma histogram data
-    of a window. Note that interpretation of the contents of the arrays
-    is highly dependent on the chroma histogram type specified in the
-    BVDC_ChromaSettings structure.
-
-    stCrCbHist.aulCrHistogram - this will be populated only for CR/CB type
-                                histogram
-    stCrCbHist.aulCbHistogram - this will be populated only for CR/CB type
-                                histogram
-
-    stHueSatHist.aulHueHistogram - this will be populated only for HUE/SAT type
-                                histogram
-    stHueSatHist.aulSatHistogram - this will be populated only for HUE/SAT type
-                                histogram
-
-    ulCount                    - indicates the number of elements in the
-                                 above histogram arrays, ie., 32 for CR/CB type
-                                 or 24 for HUE/SAT type histogram
-
-See Also:
-    BVDC_ChromaSettings
-    BVDC_Window_GetChromaStats
-***************************************************************************/
-typedef union {
-    struct
-    {
-        uint32_t aulCrHistogram[BVDC_CR_CB_HISTOGRAM_COUNT];
-        uint32_t aulCbHistogram[BVDC_CR_CB_HISTOGRAM_COUNT];
-        uint32_t ulCount;
-    } stCrCbHist;
-
-    struct
-    {
-        uint32_t aulHueHistogram[BVDC_HUE_SAT_HISTOGRAM_COUNT];
-        uint32_t aulSatHistogram[BVDC_HUE_SAT_HISTOGRAM_COUNT];
-        uint32_t ulCount;
-    } stHueSatHist;
-} BVDC_ChromaStatus;
 
 /***************************************************************************
 Summary:
@@ -5845,108 +5744,6 @@ BERR_Code BVDC_Compositor_GetBackgroundColor
       uint8_t                         *pucRed,
       uint8_t                         *pucGreen,
       uint8_t                         *pucBlue );
-
-
-/***************************************************************************
-Summary:
-    This function set the luma sum configuration for a compositor.
-
-Description:
-    Specify what is the region of the compositor to compute the luma sum.
-    The region must be bounded by the compositor's canvas.  For example
-    if the compositor/display output is 1080p, then the region is
-    1920x1080.
-
-Input:
-    hCompositor - A compositor handle that was previously created
-    by BVDC_Compositor_Create.
-
-    pLumaSettings - A pointer contains the settings.  If pLumaSettings is NULL
-    The region will be size of compositor's format active video.  For
-    example if the format 720p the size will be 1280x720p, or if 1080i the
-    the region will be 1920x1080i.
-
-Output:
-
-Returns:
-    BERR_INVALID_PARAMETER - Invalid function parameters.  If the compositor
-       does not support luma sum computation.
-
-    BERR_SUCCESS - Successfully queried the luma sum.
-
-See Also:
-    BVDC_LumaSettings,
-    BVDC_Compositor_GetLumaStatus,
-    BVDC_Compositor_GetLumaStatsConfiguration
-**************************************************************************/
-BERR_Code BVDC_Compositor_SetLumaStatsConfiguration
-    ( BVDC_Compositor_Handle           hCompositor,
-      const BVDC_LumaSettings         *pLumaSettings );
-
-
-/***************************************************************************
-Summary:
-    This function get the luma sum configuration for a compositor.
-
-Description:
-    Get the specified luma sum settings.
-
-Input:
-    hCompositor - A compositor handle that was previously created
-    by BVDC_Compositor_Create.
-
-Output:
-    pLumaSettings - A reference to store the settings.
-
-Returns:
-    BERR_INVALID_PARAMETER - Invalid function parameters.  If the compositor
-       does not support luma sum computation.
-
-    BERR_SUCCESS - Successfully queried the luma sum.
-
-See Also:
-    BVDC_LumaSettings,
-    BVDC_Compositor_GetLumaStatus,
-    BVDC_Compositor_SetLumaStatsConfiguration
-**************************************************************************/
-BERR_Code BVDC_Compositor_GetLumaStatsConfiguration
-    ( const BVDC_Compositor_Handle     hCompositor,
-      BVDC_LumaSettings               *pLumaSettings );
-
-
-/***************************************************************************
-Summary:
-    This function gets the luma sum of current field/frame of this
-    compositor.
-
-Description:
-    The luma sum value can be use to dynamically adjust backlit of the output
-    depend on content.  It's envision that application will period read this
-    luma sum value, and adjust backlit, brightness, and etc to their desired
-    output.  The value of pLumaStatus is the value of the last field/frame.
-    In the case of chipset of that does not support luma sum pLumaStatus
-    will not be updated by this function.
-
-Input:
-    hCompositor - A compositor handle that was previously created
-    by BVDC_Compositor_Create.
-
-Output:
-    pLumaStatus - A reference to store the luma sum status.  In the case that
-    the chipset does not support luma min/max the compositor will return
-    pLumaStatus->ulMin pLumaStatus->ulMax = 0.
-
-Returns:
-    BERR_INVALID_PARAMETER - Invalid function parameters.
-    BERR_SUCCESS - Successfully queried the luma sum.
-
-See Also:
-    BVDC_LumaStatus,
-    BVDC_Window_SetLumaStatsConfiguration.
-**************************************************************************/
-BERR_Code BVDC_Compositor_GetLumaStatus
-    ( const BVDC_Compositor_Handle     hCompositor,
-      BVDC_LumaStatus                 *pLumaStatus );
 
 
 /***************************************************************************
@@ -7262,8 +7059,8 @@ Description:
     ratio is typically considered to be contributed by the full source canvas.
     But it is possible to specify a sub-rectangle of the source canvas as the
     area that make up the the full source aspect ratio. This is also true for
-    display pixel aspect ratio. Refer to BVDC_Source_SetAspectRatioCanvasClip
-    and BVDC_Display_SetAspectRatioCanvasClip for more detail.
+    display pixel aspect ratio. Refer to BVDC_Display_SetAspectRatioCanvasClip
+    for more detail.
 
 Input:
     hWindow - A valid window handle created earlier.
@@ -7278,7 +7075,7 @@ Returns:
 
 See Also:
     BVDC_Window_GetAspectRatioMode,
-    BVDC_Source_OverrideAspectRatio, BVDC_Source_SetAspectRatioCanvasClip,
+    BVDC_Source_OverrideAspectRatio,
     BVDC_Display_SetAspectRatio, BVDC_Display_SetAspectRatioCanvasClip,
     BVDC_Window_SetSrcClip,
     BVDC_Window_SetScalerOutput
@@ -9453,210 +9250,6 @@ BERR_Code BVDC_Window_GetColorKeyConfiguration
     ( BVDC_Window_Handle               hWindow,
       BVDC_ColorKey_Settings          *pColorKeySettings );
 
-
-/***************************************************************************
-Summary:
-    This function set the luma sum configuration for a window.
-
-Description:
-    Specify what is the region of the window to compute the luma sum.
-    The region must be bounded by the window's size.  For example
-    if the window output is 1080p, then the region is 1920x1080.
-
-Input:
-    hWindow - A window handle that was previously created
-    by BVDC_Window_Create.
-
-    pLumaSettings - A pointer contains the settings.  If pLumaSettings is NULL
-    The region will be size of compositor's format active video.  For
-    example if the format 720p the size will be 1280x720p, or if 1080i the
-    the region will be 1920x1080i.
-
-Output:
-
-Returns:
-    BERR_INVALID_PARAMETER - Invalid function parameters.  If the window
-       does not support luma sum computation.
-
-    BERR_SUCCESS - Successfully queried the luma sum.
-
-See Also:
-    BVDC_LumaSettings,
-    BVDC_Window_GetLumaStatus,
-    BVDC_Window_GetLumaStatsConfiguration
-**************************************************************************/
-BERR_Code BVDC_Window_SetLumaStatsConfiguration
-    ( BVDC_Window_Handle               hWindow,
-      const BVDC_LumaSettings         *pLumaSettings );
-
-
-/***************************************************************************
-Summary:
-    This function get the luma sum configuration for a window.
-
-Description:
-    Get the specified luma sum settings.
-
-Input:
-    hWindow - A window handle that was previously created
-    by BVDC_Window_Create.
-
-Output:
-    pLumaSettings - A reference to store the settings.
-
-Returns:
-    BERR_INVALID_PARAMETER - Invalid function parameters.  If the window
-       does not support luma sum computation.
-
-    BERR_SUCCESS - Successfully queried the luma sum.
-
-See Also:
-    BVDC_LumaSettings,
-    BVDC_Window_GetLumaStatus,
-    BVDC_Window_SetLumaStatsConfiguration
-**************************************************************************/
-BERR_Code BVDC_Window_GetLumaStatsConfiguration
-    ( BVDC_Window_Handle               hWindow,
-      BVDC_LumaSettings               *pLumaSettings );
-
-
-/***************************************************************************
-Summary:
-    This function gets the luma sum of current field/frame of this
-    window.
-
-Description:
-    The luma sum value can be use to dynamically adjust backlit of the output
-    depend on content.  It's envision that application will period read this
-    luma sum value, and adjust backlit, brightness, and etc to their desired
-    output.  The value of pLumaStatus is the value of the last field/frame.
-    In the case of chipset of that does not support luma sum pLumaStatus will
-    not be updated by this function.  The min/max is updated every two
-    fields/frame.  In the case of chipset with new histogram hardware, this
-    function will not return valid data unless users enable dynamic contrast
-    or set Luma Stats Configuration for the corresponding window.
-
-Input:
-    hWindow - A compositor handle that was previously created
-    by BVDC_Window_Create.
-
-Output:
-    pLumaStatus - A reference to store the luma sum status.
-
-Returns:
-    BERR_INVALID_PARAMETER - Invalid function parameters.
-    BERR_SUCCESS - Successfully queried the luma sum.
-
-See Also:
-    BVDC_LumaStatus,
-    BVDC_Window_SetLumaStatsConfiguration.
-**************************************************************************/
-BERR_Code BVDC_Window_GetLumaStatus
-    ( const BVDC_Window_Handle         hWindow,
-      BVDC_LumaStatus                 *pLumaStatus );
-
-/***************************************************************************
-Summary:
-    This function set the chroma status configuration for a window.
-
-Description:
-    Specifies the region of the window to obtain the chroma histogram from.
-    The region's maximum size is bounded by the window's size.  For example
-    if the window output is 1080p, then the region is 1920x1080.
-
-    This requires a call to BVDC_ApplyChanges
-
-Input:
-    hWindow - A window handle that was previously created
-    by BVDC_Window_Create.
-
-    pChromaSettings - A pointer containing the settings.  If pChromaSettings
-    is NULL, chroma histogram collection is disabled
-
-Output:
-
-Returns:
-    BERR_INVALID_PARAMETER - Invalid function parameters.  If the window
-       does not support chroma histogram collection.
-
-    BERR_SUCCESS - Successfully queried the chroma.
-
-See Also:
-    BVDC_ChromaSettings,
-    BVDC_Window_GetChromaStatus,
-    BVDC_Window_GetChromaStatsConfiguration
-**************************************************************************/
-BERR_Code BVDC_Window_SetChromaStatsConfiguration
-    ( BVDC_Window_Handle               hWindow,
-      const BVDC_ChromaSettings       *pSettings );
-
-
-/***************************************************************************
-Summary:
-    This function get the chroma status configuration for a window.
-
-Description:
-    Get the specified chroma settings.
-
-Input:
-    hWindow - A window handle that was previously created
-    by BVDC_Window_Create.
-
-Output:
-    pChromaSettings - A reference to store the settings.
-
-Returns:
-    BERR_INVALID_PARAMETER - Invalid function parameters.  If the window
-       does not support luma sum computation.
-
-    BERR_SUCCESS - Successfully queried the luma sum.
-
-See Also:
-    BVDC_ChromaSettings,
-    BVDC_Window_GetChromaStatus,
-    BVDC_Window_SetChromaStatsConfiguration
-**************************************************************************/
-BERR_Code BVDC_Window_GetChromaStatsConfiguration
-    ( BVDC_Window_Handle               hWindow,
-      BVDC_ChromaSettings             *pSettings );
-
-
-/***************************************************************************
-Summary:
-    This function gets the chroma histogram of the given window.
-
-Description:
-    The chroma histogram can be used to dynamically adjust the backlight of
-    the output.  It's envisioned that the application will periodically read
-    the chroma histogram. The value of pChromaStatus is not field/frame accurate
-    because of hardware limitation. At the maximum, chroma histogram is
-    available every other frame.
-
-    In the case of a chipset that does not support chroma histogram,
-    pChromaStatus will not be updated by this function.
-
-    To obtain the chroma histogram, BVDC_Window_SetChromaStatsConfiguration
-    must be called; otherwise, a NULL is returned for pChromaStatus.
-
-Input:
-    hWindow - A compositor handle that was previously created
-    by BVDC_Window_Create.
-
-Output:
-    pChromaStatus - A reference to store the chroma histogram.
-
-Returns:
-    BERR_INVALID_PARAMETER - Invalid function parameters.
-    BERR_SUCCESS - Successfully queried the chroma histogram.
-
-See Also:
-    BVDC_ChromaStatus,
-    BVDC_Window_SetChromaStatsConfiguration.
-**************************************************************************/
-BERR_Code BVDC_Window_GetChromaStatus
-    ( const BVDC_Window_Handle         hWindow,
-      BVDC_ChromaStatus               *pStatus );
-
 /***************************************************************************
 Summary:
     Sets the 3x5 color matrix in CMP for the video window.
@@ -10763,47 +10356,11 @@ Returns:
     BERR_INVALID_PARAMETER - Invalid function parameters.
     BERR_SUCCESS - Function succeed
 See Also:
-    BVDC_Source_GetAspectRatio, BVDC_Source_OverrideAspectRatio_isr,
+    BVDC_Source_GetAspectRatio,
     BVDC_Source_SetVideoFormat, BVDC_Source_SetAutoFormat,
-    BVDC_Source_SetAspectRatioCanvasClip,
     BVDC_Window_SetAspectRatioMode, BVDC_Window_SetNonLinearScl
 **************************************************************************/
 BERR_Code BVDC_Source_OverrideAspectRatio
-    ( BVDC_Source_Handle               hSource,
-      BFMT_AspectRatio                 eAspectRatio );
-
-/***************************************************************************
-Summary:
-    Override the source aspect ratio in "_isr" context.
-
-Description:
-    This is the "_isr" version of BVDC_Source_OverrideAspectRatio. It is
-    used in interrupt handler or critical section.
-
-    The change will take effect immediately, without the need of calling to
-    BVDC_ApplyChanges. It overrides the setting previously auto-updated by
-    BVDC according to the source video format or activated by previous
-    ApplyChanges. And also it could be overridden by future source video
-    format changes or by future pair of calling to
-    BVDC_Source_OverrideAspectRatio and BVDC_ApplyChanges.
-
-Input:
-    hSource - Source handle created earlier with BVDC_Source_Create.
-    eAspectRatio - Desired aspect ratio.
-
-Output:
-    none
-
-Returns:
-    BERR_INVALID_PARAMETER - Invalid function parameters.
-    BERR_SUCCESS - Function succeed
-See Also:
-    BVDC_Source_GetAspectRatio, BVDC_Source_OverrideAspectRatio
-    BVDC_Source_SetVideoFormat, BVDC_Source_SetAutoFormat,
-    BVDC_Source_SetAspectRatioCanvasClip,
-    BVDC_Window_SetAspectRatioMode, BVDC_Window_SetNonLinearScl
-**************************************************************************/
-BERR_Code BVDC_Source_OverrideAspectRatio_isr
     ( BVDC_Source_Handle               hSource,
       BFMT_AspectRatio                 eAspectRatio );
 
@@ -10840,95 +10397,6 @@ See Also:
 BERR_Code BVDC_Source_GetAspectRatio
     ( const BVDC_Source_Handle         hSourceVdec,
       BFMT_AspectRatio                *peAspectRatio );
-
-/***************************************************************************
-Summary:
-    This function sets the video source aspect ratio canvas clip.
-
-Description:
-    This function currently only applies to video source. It would return
-    BERR_INVALID_PARAMETER if hSource represents a graphics source.
-
-    By default, the full source aspect ratio is considered to be contributed
-    by the full source rectangle (i.e. the source canvas), and based on that
-    the source pixel aspect ratio is calculated. However, in some video
-    content it is a sub-rectangle area (inside the source canvas) that make
-    up the full source aspect ratio, and the remaining surrounding edge does
-    not convey real picture pixel. This API function allows user to specify
-    the sub-rectangle by describing the numbers of pixels to clip from the
-    left, right, top, and bottom of the full source canvas.
-
-    Does not take immediate effect. Requires an ApplyChanges() call.
-
-    If the the specified clipping row or column number is bigger than half of
-    the full source size, it will causes the following ApplyChanges to fail
-    and to return an error.
-
-Input:
-    hSource - A valid source handle created earlier.
-    ulLeft - The number of columns to clip from the left of source canvas.
-    ulRight - The number of columns to clip from the right of source canvas.
-    ulTop - The number of rows to clip from the top of source canvas.
-    ulBottom - The number of rows to clip from the bottom of source canvas.
-
-Output:
-
-Returns:
-    BERR_INVALID_PARAMETER - Invalid function parameters.
-    BERR_SUCCESS - Successfully set the video source aspect ratio canvas clip.
-
-See Also:
-    BVDC_Window_SetAspectRatioMode, BVDC_Source_OverrideAspectRatio,
-    BVDC_Source_SetAspectRatioCanvasClip_isr,
-    BVDC_Display_SetAspectRatioCanvasClip.
-**************************************************************************/
-BERR_Code BVDC_Source_SetAspectRatioCanvasClip
-    ( BVDC_Source_Handle               hSource,
-      uint32_t                         ulLeft,
-      uint32_t                         ulRight,
-      uint32_t                         ulTop,
-      uint32_t                         ulBottom );
-
-/***************************************************************************
-Summary:
-    This function sets the video source aspect ratio canvas clip in _isr mode.
-
-Description:
-    This is the "_isr" version of BVDC_Source_SetAspectRatioCanvasClip. It
-    is used in interrupt handler or critical section.
-
-    The change will take effect immediately, without the need of calling to
-    BVDC_ApplyChanges. It overrides the setting activated by previous
-    ApplyChanges and also it could be overridden by future pair of calling
-    to BVDC_Source_SetAspectRatioCanvasClip and BVDC_ApplyChanges.
-
-    If the the specified clipping row or column number is bigger than half of
-    the full source size, the _isr setting is simply ignored.
-
-Input:
-    hSource - A valid source handle created earlier.
-    ulLeft - The number of columns to clip from the left of source canvas.
-    ulRight - The number of columns to clip from the right of source canvas.
-    ulTop - The number of rows to clip from the top of source canvas.
-    ulBottom - The number of rows to clip from the bottom of source canvas.
-
-Output:
-
-Returns:
-    BERR_INVALID_PARAMETER - Invalid function parameters.
-    BERR_SUCCESS - Successfully set the video source aspect ratio canvas clip.
-
-See Also:
-    BVDC_Window_SetAspectRatioMode, BVDC_Source_OverrideAspectRatio,
-    BVDC_Source_SetAspectRatioCanvasClip,
-    BVDC_Display_SetAspectRatioCanvasClip.
-**************************************************************************/
-BERR_Code BVDC_Source_SetAspectRatioCanvasClip_isr
-    ( BVDC_Source_Handle               hSource,
-      uint32_t                         ulLeft,
-      uint32_t                         ulRight,
-      uint32_t                         ulTop,
-      uint32_t                         ulBottom );
 
 /***************************************************************************
 Summary:
@@ -11686,141 +11154,6 @@ BERR_Code BVDC_Source_SetScaleCoeffs
     ( BVDC_Source_Handle               hSource,
       BVDC_FilterCoeffs                eHorzCoeffs,
       BVDC_FilterCoeffs                eVertCoeffs );
-
-
-/***************************************************************************
-Summary:
-    Sets and enables gamma correction in the graphics source device specified
-    by the source handle.
-
-Description:
-    This function currently only applies to the source type of graphics
-    feeder. It would return BERR_INVALID_PARAMETER if hSource does not
-    represent a graphics feeder.
-
-    Gamma correction is to compensate the non-linear relation of the
-    brightness seen on a CRT and the color components output from Hydra to
-    the CRT. As enabled, graphics feeder loads the gamma (correction) table
-    specified by pvGammaTable and uiNumEntries into the graphics feeder from
-    memory, and uses the current pixel color component as index to look up
-    its gamma corrected value from the table, right before the color matrix
-    operation. Due to hardware limitation, if the graphics surface has a
-    palette format, gamma correction can not be enabled. Otherwise,
-    BVDC_ApplyChanges will return an error. If gamma correction is needed with
-    a palette surface, the higher level software should combine the gamma
-    correction into the entries of the palette table when it is built.
-
-    Please notice that each color component is used independently to look up its
-    gamma corrected value, and that the looking up is done after the pixel color
-    is expanded into four 8-bits components. The looking up result is also 8-bits.
-
-    The user provided gamma table buffer must have 256 uint32_t entries, and be
-    allocated with BMMA_Alloc, otherwise the enabling will fail and error will be
-    returned.
-
-    If the graphics surface is type of RGB, the 256 entries should be arranged as
-    the following:
-             |  R3|  R2|  R1|  R0|
-             |  R7|  R6|  R5|  R4|
-             |  G3|  G2|  G1|  G0|
-             |  G7|  G6|  G5|  G4|
-             |  B3|  B2|  B1|  B0|
-             |  B7|  B6|  B5|  B4|
-             |  A3|  A2|  A1|  A0|
-             |  A7|  A6|  A5|  A4|
-
-             | R11| R10|  R9|  R8|
-             | R15| R14| R13| R12|
-             | G11| G10|  G9|  G8|
-             | G15| G14| G13| G12|
-             | B11| B10|  B9|  B8|
-             | B15| B14| B13| B12|
-             | A11| A10|  A9|  A8|
-             | A15| A14| A13| A12|
-
-             ... ...
-
-             |R251|R250|R249|R248|
-             |R255|R254|R253|R252|
-             |G251|G250|G249|G248|
-             |G255|G254|G253|G252|
-             |B251|B250|B249|B248|
-             |B255|B254|B253|B252|
-             |A251|A250|A249|A248|
-             |A255|A254|A253|A252|
-
-    In the above table Ri is the gamma corrected R value according to original R
-    value i. Gi and Bi are similar for G and B component.
-
-    If the surface is type of YCrCb, the R, G, B in the above table are replaced
-    with Y, Cb, Cr respectively.
-
-    A is not gamma corrected, therefore Ai in the above table is not used. It is
-    there only for place holder.
-
-    By default gamma correction is disabled.
-
-    This setting will not be applied until a call to BVDC_ApplyChanges is
-    made.
-
-Input:
-    hSource - The source device to modify.
-    uiNumEntries - Number of entries for the table. It must be 256.
-    hGammaTable - Memory block that contains the entries. This is allocated
-                  thru BMMA_Alloc and must be passed to
-                  BVDC_Source_DisableGammaCorrection.
-
-Output:
-
-Returns:
-    BERR_INVALID_PARAMETER - hSource is not a valid source handle.
-    BERR_PALETTE_FORMAT - the source surface pixel format is a palette type.
-    BERR_SUCCESS - Successfully enabled gamma correction.
-
-See Also:
-    BVDC_Source_SetSrc
-    BVDC_Source_DisableGammaCorrection
-    BVDC_ApplyChanges
-****************************************************************************/
-BERR_Code BVDC_Source_EnableGammaCorrection
-    ( BVDC_Source_Handle               hSource,
-      uint32_t                         ulNumEntries,
-      const BMMA_Block_Handle          hGammaTable );
-
-/***************************************************************************
-Summary:
-    Disables gamma correction in the graphics source device specified by the
-    source handle.
-
-Description:
-    This function currently only applies to the source type of graphics
-    feeder. It would return BERR_INVALID_PARAMETER if hSource does not
-    represent a graphics feeder.
-
-    By default gamma correction is disabled.
-
-    This setting will not be applied until a call to BVDC_ApplyChanges is
-    made.
-
-Input:
-    hSource - The source device to modify.
-    hGammaTable - Memory block that contains the entries. Must be the
-                  same block that was passed into
-                  BVDC_Source_EnableGammaCorrection.
-
-Output:
-
-Returns:
-    BERR_INVALID_PARAMETER - hSource is not a valid source handle.
-    BERR_SUCCESS - Successfully disabled gamma correction
-
-See Also:
-    BVDC_Source_EnableGammaCorrection
-    BVDC_ApplyChanges
-****************************************************************************/
-BERR_Code BVDC_Source_DisableGammaCorrection
-    ( BVDC_Source_Handle               hSource,
-      const BMMA_Block_Handle          hGammaTable );
 
 /***************************************************************************
 Summary:
@@ -13375,7 +12708,6 @@ Returns:
 
 See Also:
     BVDC_Display_SetAspectRatio, BVDC_Window_SetAspectRatioMode,
-    BVDC_Source_SetAspectRatioCanvasClip.
 **************************************************************************/
 BERR_Code BVDC_Display_SetAspectRatioCanvasClip
     ( BVDC_Display_Handle              hDisplay,

@@ -72,34 +72,6 @@ ifndef BCHP_CHIP
         BCHP_VER := B1
         endif
     endif
-    ifeq ($(filter $(NEXUS_PLATFORM),97420), $(NEXUS_PLATFORM))
-        BCHP_CHIP := 7420
-        ifndef BCHP_VER
-        $(warning Defaulting to BCHP_VER=B0)
-        BCHP_VER := B0
-        endif
-    endif
-    ifeq ($(filter $(NEXUS_PLATFORM),97125 97019), $(NEXUS_PLATFORM))
-        BCHP_CHIP := 7125
-        ifndef BCHP_VER
-        $(warning Defaulting to BCHP_VER=A0)
-        BCHP_VER := A0
-        endif
-    endif
-    ifeq ($(filter $(NEXUS_PLATFORM),97468 97208), $(NEXUS_PLATFORM))
-        BCHP_CHIP := 7468
-        ifndef BCHP_VER
-        $(warning Defaulting to BCHP_VER=A0)
-        BCHP_VER := A0
-        endif
-    endif
-    ifeq ($(NEXUS_PLATFORM),97408)
-        BCHP_CHIP := 7408
-        ifndef BCHP_VER
-        $(warning Defaulting to BCHP_VER=A0)
-        BCHP_VER := A0
-        endif
-    endif
     ifeq ($(NEXUS_PLATFORM),97630)
         BCHP_CHIP := 7630
         ifndef BCHP_VER
@@ -341,6 +313,14 @@ ifndef BCHP_CHIP
         ifndef BCHP_VER
         $(warning Defaulting to BCHP_VER=B0)
         BCHP_VER := B0
+        endif
+    endif
+
+    ifeq ($(NEXUS_PLATFORM),97260)
+        BCHP_CHIP := 7260
+        ifndef BCHP_VER
+        $(warning Defaulting to BCHP_VER=A0)
+        BCHP_VER := A0
         endif
     endif
 

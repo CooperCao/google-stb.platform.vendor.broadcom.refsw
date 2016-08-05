@@ -123,11 +123,14 @@ typedef enum BCMD_cmdType_e
     BCMD_cmdType_eREAD_LAST_BOOT_STATUS = 0x32,
 
     BCMD_cmdType_eRESERVED_51 = 0x33,
+	BCMD_cmdType_eReserved51  =  0x33,
+
     BCMD_cmdType_eRESERVED_52 = 0x34,
     BCMD_cmdType_eSTART_AVD = 0x35,
     BCMD_cmdType_eSECOND_TIER_KEY_VERIFY = 0x36,
     BCMD_cmdType_eSECOND_STAGE_CODE_LOAD = 0x37,
     BCMD_cmdType_eRESERVED_56 = 0x38,
+    BCMD_cmdType_eReserved56  = 0x38,
     BCMD_cmdType_eMEMSYS_READY_FOR_INIT = 0x39,
     BCMD_cmdType_eReserved58  =  0x3a,
     BCMD_cmdType_eReserved59  =  0x3b,
@@ -198,6 +201,7 @@ typedef enum BCMD_cmdType_e
     BCMD_cmdType_eReserved98  =  0x62,
     BCMD_cmdType_eRESERVED_98 = 0x62,
     BCMD_cmdType_eRESERVED_99 = 0x63,
+    BCMD_cmdType_eOTP_ROLLOVER_COUNTER_Op = 0x63,
 
     BCMD_cmdType_eOTP_ReadMSP32 = 0x64,
     BCMD_cmdType_eReserved101  =  0x65,

@@ -358,11 +358,19 @@ bool BXVD_P_IsDecodeProtocolSupported(BXVD_Handle               hXvd,
       }
    }
 
+#if BXVD_P_NO_LEGACY_PROTOCOL_SUPPORT
+   /* Only MPEG2 and AVC are supported by default on Rev S.1 and later cores */
+   else if ((eVideoCmprStd == BAVC_VideoCompressionStd_eH264) || (eVideoCmprStd == BAVC_VideoCompressionStd_eMPEG2))
+   {
+      rc = true;
+   }
+#else
    /* All others are supported on all platforms */
    else if (eVideoCmprStd < BAVC_VideoCompressionStd_eMPEG4Part2)
    {
       rc = true;
    }
+#endif
 
    return rc;
 }
@@ -1196,13 +1204,13 @@ BERR_Code BXVD_P_GetStillDecodeFWMemSize(BXVD_Handle hXvd,
       else
 #endif
       {
-         if ( eDecodeResolution == BXVD_DecodeResolution_e4K)
+         if ( eDecodeResolution == BXVD_DecodeResolution_eSD)
          {
-            temp_eDecodeResolution = BXVD_DecodeResolution_eHD;
+            temp_eDecodeResolution = BXVD_DecodeResolution_eSD;
          }
          else
          {
-            temp_eDecodeResolution = eDecodeResolution;
+            temp_eDecodeResolution = BXVD_DecodeResolution_eHD;
          }
 
          if (sChannelStillFWMemCfg[eVideoProtocol][temp_eDecodeResolution].general_memory_size > genMemReq)
@@ -1784,7 +1792,7 @@ BERR_Code BXVD_P_FreeFWMem(BXVD_Handle hXvd,
 
    if (pstDecodeFWBaseAddrs->uiFWPicBase)
    {
-      BXVD_DBG_MSG(hXvdCh, ("Picture buffers in specified heap, Free sub-allocation\n"));
+      BXVD_DBG_MSG(hXvdCh, ("Picture buffers in specified heap, Free sub-allocation"));
 
       if (hXvdCh->sChSettings.hChannelPictureBlock != 0)
       {
@@ -1843,7 +1851,7 @@ BERR_Code BXVD_P_FreeFWMem(BXVD_Handle hXvd,
 
    if (pstDecodeFWBaseAddrs->uiFWCabacBase)
    {
-      BXVD_DBG_MSG(hXvdCh, ("Cabac in Secure memory, Free sub-allocation \n"));
+      BXVD_DBG_MSG(hXvdCh, ("Cabac in Secure memory, Free sub-allocation "));
 
       if (hXvdCh->sChSettings.hChannelCabacBlock != 0)
       {
@@ -1862,7 +1870,7 @@ BERR_Code BXVD_P_FreeFWMem(BXVD_Handle hXvd,
       }
    }
 
-   BXVD_DBG_MSG(hXvdCh, ("Free Context sub-allocation\n"));
+   BXVD_DBG_MSG(hXvdCh, ("Free Context sub-allocation"));
 
    uiMemBlockAddr = pstDecodeFWBaseAddrs->uiFWContextBase;
 

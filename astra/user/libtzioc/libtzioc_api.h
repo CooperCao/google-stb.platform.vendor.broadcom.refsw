@@ -184,6 +184,7 @@ Description:
 Input:
     hClient - local (calling) TZIOC client handle
     pName - pointer to local (querried) TZIOC client name string
+    ulPid - if specified (non-zero), pid of the process which opens the client
 
 Output:
     *pId - local (querried) TZIOC client ID
@@ -196,6 +197,7 @@ Returns:
 int tzioc_client_getid(
     tzioc_client_handle hClient,
     const char *pName,
+    uint32_t ulPid,
     uint8_t *pId);
 
 /*****************************************************************************

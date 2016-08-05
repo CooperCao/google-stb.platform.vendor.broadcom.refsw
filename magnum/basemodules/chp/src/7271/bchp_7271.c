@@ -83,6 +83,7 @@ static const struct BCHP_P_Info s_aChipInfoTable[] =
 #if BCHP_VER == BCHP_VER_A0
     /* A0 code will run on A0 */
     {0x72710000},
+    {0x72710001},
 #elif BCHP_VER == BCHP_VER_B0
     /* B0 code will run on Bx */
     {0x72710010},

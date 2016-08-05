@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2014 Broadcom Corporation
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
 ******************************************************************************/
 #if NEXUS_HAS_DISPLAY && NEXUS_HAS_SIMPLE_DECODER
@@ -90,6 +82,19 @@ static void print_usage(void)
     "  -timeout SECONDS\n"
     "  -xdm (uses timestamp managed display path)\n"
     );
+}
+
+static int wait_for_idle_decoder(NEXUS_SimpleVideoDecoderHandle videoDecoder)
+{
+    NEXUS_SimpleVideoDecoderClientStatus status;
+    int rc;
+    while (1) {
+        rc = NEXUS_SimpleVideoDecoder_GetClientStatus(videoDecoder, &status);
+        if (rc) return BERR_TRACE(rc);
+        if (status.enabled) break;
+        BKNI_Sleep(250);
+    }
+    return 0;
 }
 
 int main(int argc, char **argv)
@@ -160,6 +165,7 @@ int main(int argc, char **argv)
     gfxSettings.checkpointCallback.context = event;
     NEXUS_Graphics2D_SetSettings(gfx, &gfxSettings);
 
+restart:
     NEXUS_SimpleVideoDecoder_GetDefaultStartSettings(&startSettings);
     startSettings.lowDelayImageInput = !xdm;    /* Low delay mode bypasses xdm display management */
     imageInput = NEXUS_SimpleVideoDecoder_StartImageInput(videoDecoder, &startSettings);
@@ -208,11 +214,23 @@ int main(int argc, char **argv)
                 /* a surface after it has been displayed                                */
                 BDBG_MSG(("g_surface[submitIdx=%d].submitted in use, wait for recycle" , submitIdx));
                 rc = BKNI_WaitForEvent(imageEvent, 3000);
-                BDBG_ASSERT(!rc);
+                if (rc) {
+                    /* If the regular decoder is preempted, we monitor then restart. We can't just
+                    resume because the VideoImageInput may be different. */
+                    if (!wait_for_idle_decoder(videoDecoder)) {
+                        goto restart;
+                    }
+                    goto done;
+                }
             }
 
-            rc=NEXUS_VideoImageInput_RecycleSurface(imageInput, &freeSurface , 1, &num_entries);
-            BDBG_ASSERT(!rc);
+            rc = NEXUS_VideoImageInput_RecycleSurface(imageInput, &freeSurface , 1, &num_entries);
+            if (rc) {
+                if (!wait_for_idle_decoder(videoDecoder)) {
+                    goto restart;
+                }
+                goto done;
+            }
             if (num_entries) {
                 /* our surface has been displayed, we can now re-use and re-queue it */
                 BDBG_MSG(("g_surface[releaseIdx=%d].handle=%p  recycSurface=%p" , releaseIdx, (void*)g_surface[releaseIdx].handle , (void*)freeSurface));
@@ -270,6 +288,7 @@ int main(int argc, char **argv)
         if (rc) break;
     }
 
+done:
     NEXUS_SimpleVideoDecoder_StopImageInput(videoDecoder);
 
     BKNI_DestroyEvent(imageEvent);

@@ -47,24 +47,18 @@
 #include "parse_utils.h"
 
 #include "kernel.h"
-#include "tzmemory.h"
-#include "pgtable.h"
 #include "objalloc.h"
+#include "mempool.h"
 
-static uint8_t tzDevTree[MAX_DT_SIZE_BYTES];
-static unsigned long tzSysMemSize = 0;
-static unsigned long imgSize = 0;
+#include "system.h"
 
-extern unsigned long _kernel_img_start, _kernel_img_end;
+extern uint8_t tzDevTree[MAX_DT_SIZE_BYTES];
+static unsigned long tzMemSize = 0;
+static unsigned long tzImgSize = 0;
+
+extern unsigned long _start, _end;
 
 #define assert(cond) if (!(cond)) { err_msg("%s:%d - Assertion failed", __PRETTY_FUNCTION__, __LINE__); while (true) {} }
-
-extern "C" void tz_handle_fiq() {
-    printf("Got Fiq\n");
-
-    while (true) {}
-}
-
 
 void setupPageAllocTests(void *devTree) {
 
@@ -122,20 +116,19 @@ void setupPageAllocTests(void *devTree) {
              parseInt64(rangeData, szByteSize));
         rangeData += szByteSize;
 
-        printf("Adding memory range 0x%x, size 0x%x\n",
-               (unsigned int)rangeStart, (unsigned int)rangeSize);
-
-        tzSysMemSize += rangeSize;
+        //printf("Adding memory range 0x%x, size 0x%x\n",
+        //       (unsigned int)rangeStart, (unsigned int)rangeSize);
+        tzMemSize += rangeSize;
+        UNUSED(rangeStart);
     }
 
-    imgSize = (unsigned long)&_kernel_img_end - (unsigned long)&_kernel_img_start;
+    tzImgSize = (unsigned long)&_end - (unsigned long)&_start;
 }
 
 static bool hasDuplicates(TzMem::PhysAddr *pages, int numPages) {
     UNUSED(pages); UNUSED(numPages);
     return false;
-// #ifdef RIGOROUS_CHECK
-#if 1
+
     for (int i=0; i<numPages; i++) {
         for (int j=0; j<numPages; j++) {
             if (j == i)
@@ -146,8 +139,6 @@ static bool hasDuplicates(TzMem::PhysAddr *pages, int numPages) {
         }
     }
     return false;
-#endif
-
 }
 
 static TzMem::PhysAddr allocPages[TzMem::TZ_MAX_NUM_PAGES];
@@ -157,9 +148,9 @@ void runPageAllocTests() {
     /*
      * Validate the amount of memory available to the memory manager
      */
-    int availMemSize = tzSysMemSize - imgSize;
+    int availMemSize = tzMemSize - tzImgSize;
     int nfPages = TzMem::numFreePages();
-    printf("numFreePages %d expected %d\n", nfPages, availMemSize/PAGE_SIZE_4K_BYTES);
+    //printf("numFreePages %d expected %d\n", nfPages, availMemSize/PAGE_SIZE_4K_BYTES);
     assert(nfPages*PAGE_SIZE_4K_BYTES == availMemSize);
     success_msg("Mem size test passed\n");
 
@@ -224,28 +215,20 @@ void runPageAllocTests() {
         TzMem::freePage(page);
     }
     success_msg("Repeated alloc-free test passed\n");
-
-
 }
 
 void runPageTableTests() {
 
-    PageTable *sysPageTable = PageTable::kernelPageTable();
-    extern unsigned long _kernel_img_start, _kernel_img_end, _system_link_base;
-    extern uint64_t bootstrap_pt_blocks[4096];
-
-    printf("Kernel map [%p - %p]. Pages %p\n", &_kernel_img_start, &_kernel_img_end, &bootstrap_pt_blocks[0]);
+    PageTable *kernelPageTable = PageTable::kernelPageTable();
 
     // Find unmapped pages just below start of kernel code
-    TzMem::VirtAddr stackPageStart = sysPageTable->reserveAddrRange(&_system_link_base, PAGE_SIZE_4K_BYTES*4, PageTable::ScanBackward);
+    TzMem::VirtAddr stackPageStart = kernelPageTable->reserveAddrRange((void *)KERNEL_STACKS_START, PAGE_SIZE_4K_BYTES*4, PageTable::ScanBackward);
     TzMem::VirtAddr stackPageLast = (TzMem::VirtAddr)((unsigned long)stackPageStart + (PAGE_SIZE_4K_BYTES*4));
-    printf("Located an unmapped virtual address range %p - %p for stack\n", stackPageStart, stackPageLast );
+    printf("Located an unmapped virtual address range %p - %p for stack\n", stackPageStart, stackPageLast);
 
-    TzMem::VirtAddr heapPageStart = sysPageTable->reserveAddrRange((TzMem::VirtAddr)0x1000, PAGE_SIZE_4K_BYTES*16, PageTable::ScanForward);
+    TzMem::VirtAddr heapPageStart = kernelPageTable->reserveAddrRange((void *)KERNEL_HEAP_START, PAGE_SIZE_4K_BYTES*16, PageTable::ScanForward);
     TzMem::VirtAddr heapPageLast = (TzMem::VirtAddr)((unsigned long)heapPageStart + (PAGE_SIZE_4K_BYTES*16));
-
-    printf("Located an unmapped virtual address range %p - %p for heap\n", heapPageStart, heapPageLast );
-
+    printf("Located an unmapped virtual address range %p - %p for heap\n", heapPageStart, heapPageLast);
 
     //
     // Mix up the page allocator list of free pages. We want them to become non-contiguous
@@ -269,7 +252,7 @@ void runPageTableTests() {
             return;
         }
 
-        sysPageTable->mapPage(stackCurr, addr, MAIR_MEMORY, MEMORY_ACCESS_RW_KERNEL);
+        kernelPageTable->mapPage(stackCurr, addr, MAIR_MEMORY, MEMORY_ACCESS_RW_KERNEL);
         stackCurr = (uint8_t *)stackCurr + PAGE_SIZE_4K_BYTES;
     }
 
@@ -297,7 +280,7 @@ void runPageTableTests() {
             return;
         }
 
-        sysPageTable->mapPage(heapCurr, addr, MAIR_MEMORY, MEMORY_ACCESS_RW_KERNEL);
+        kernelPageTable->mapPage(heapCurr, addr, MAIR_MEMORY, MEMORY_ACCESS_RW_KERNEL);
         heapCurr = (uint8_t *)heapCurr + PAGE_SIZE_4K_BYTES;
     }
 
@@ -314,6 +297,7 @@ void runPageTableTests() {
         }
         curr++;
     }
+
     success_msg("Heap test passed\n");
 }
 
@@ -326,7 +310,7 @@ void runMallocTests() {
     ObjCacheAllocator<TestStruct> allocator;
     static TestStruct *objects[1024];
 
-    printf("starting malloc tests\n");
+    //printf("starting malloc tests\n");
 
     allocator.init();
 
@@ -373,60 +357,74 @@ void runMallocTests() {
         //printf("Freeing %p\n", objects[i]);
         allocator.free(objects[i]);
         objects[i] = nullptr;
-
     }
 
     success_msg("Malloc tests passed\n");
+}
+
+void runMemPoolTests() {
+    MemPool pool(KERNEL_PID, 16*1024);
+
+    // Large allocation and free in same order
+    // as allocations.
+    void *largeAllocs[3];
+    for (int i=0; i<3; i++) {
+        largeAllocs[i] = pool.alloc(4096);
+        assert(largeAllocs[i] != nullptr);
+    }
+
+    for (int i=0; i<3; i++) {
+        pool.free(largeAllocs[i]);
+    }
+
+    // Large allocation and free in the opposite
+    // order of allocations.
+    for (int i=0; i<3; i++) {
+        largeAllocs[i] = pool.alloc(4096);
+        assert(largeAllocs[i] != nullptr);
+    }
+
+    for (int i=2; i>=0; i--) {
+        pool.free(largeAllocs[i]);
+    }
+
+    // Large allocation and free in mixed order
+    for (int i=0; i<3; i++) {
+        largeAllocs[i] = pool.alloc(4096);
+        assert(largeAllocs[i] != nullptr);
+    }
+
+    pool.free(largeAllocs[0]);
+    pool.free(largeAllocs[2]);
+    pool.free(largeAllocs[1]);
+
+    success_msg("large allocs tests passed\n");
 }
 
 void tzKernelInit(const void *devTree) {
 
     printf("%s: Memory subsystem unit tests\n", __FUNCTION__);
 
-    // The bootstrap code has mapped device tree memory one-to-one VA and PA.
-    int rc = fdt_check_header(devTree);
-    if (rc) {
-        err_msg("Corrupted device tree at %p.\n", devTree);
-        return;
-    }
-
-    int dtSize = fdt_totalsize(devTree);
-    if (dtSize > MAX_DT_SIZE_BYTES) {
-        err_msg("Device tree is too large (size %d) . Increase MAX_DT_SIZE_BYTES\n", dtSize);
-        return;
-    }
-
-    rc = fdt_move(devTree, tzDevTree, dtSize);
-    if (rc) {
-        err_msg("Device tree could not be relocated to tzDevTree: %s\n", fdt_strerror(rc));
-        return;
-    }
-
-    TzMem::init(tzDevTree);
-    PageTable::init(devTree);
-
-    {
-        PageTable pt(*PageTable::kernelPageTable(), 0, false);
-        UNUSED(pt);
-    }
-
-    PageTable::kernelPageTable()->dump();
-    runMallocTests();
+    System::init(devTree);
 
     setupPageAllocTests(tzDevTree);
+
     runPageAllocTests();
 
     runPageTableTests();
 
-    success_msg("mem tests done\n");
+    runMallocTests();
+
+    runMemPoolTests();
+
+    success_msg("Memory subsystem unit tests done\n");
     while (1) {
         asm volatile("wfi":::);
     }
 }
 
 void kernelHalt(const char *reason) {
-
-    UNUSED(reason);
+    err_msg("%s\n", reason);
     while (true) {}
 }
 

@@ -135,15 +135,14 @@ BDBG_OBJECT_ID(BRDC_LST);
 #define BRDC_P_MAX_TIMER_COUNTER           (0xffffffff)
 
 /* Chips (version earlier than  3.1.0) run at 108Mhz :
- * 7125, 7340, 7342, 7408 , 7420, 7468, 7550 */
-#if (BCHP_CHIP==7125) || (BCHP_CHIP==7340) || (BCHP_CHIP==7342) || \
-    (BCHP_CHIP==7408) || (BCHP_CHIP==7420) || (BCHP_CHIP==7468) || \
-    (BCHP_CHIP==7550)
+ * 7340, 7342 */
+#if (BCHP_CHIP==7340) || (BCHP_CHIP==7342)
 #define BRDC_P_TIMESTAMP_CLOCK_RATE        (108ul)
 #elif (BCHP_CHIP==7445) && (BCHP_VER>=BCHP_VER_D0) || \
       (BCHP_CHIP==7145) && (BCHP_VER>=BCHP_VER_B0) || \
       (BCHP_CHIP==7439) || (BCHP_CHIP==7366) ||(BCHP_CHIP==7271) || \
-      (BCHP_CHIP==7268) || (BCHP_CHIP==7260) ||(BCHP_CHIP==7278)
+      (BCHP_CHIP==7268) || (BCHP_CHIP==7260) ||(BCHP_CHIP==7278) || \
+      (BCHP_CHIP==7260)
 /* Chips (version later than or equal to 3.1.0) run at 324Mhz */
 #define BRDC_P_TIMESTAMP_CLOCK_RATE        (324ul)
 #else
@@ -817,103 +816,6 @@ static const BRDC_TrigInfo s_aRdcTrigInfo[] =
     BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec0Bypass0, -1, UNKNOWN        ),
     BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec0Bypass1, -1, UNKNOWN        ),
 
-#elif (BCHP_CHIP==7420)
-
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eCap0Trig0,    0, cap_0_trig_0   ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eCap0Trig1,    1, cap_0_trig_1   ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eCap1Trig0,    2, cap_1_trig_0   ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eCap1Trig1,    3, cap_1_trig_1   ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eCap2Trig0,    4, cap_2_trig_0   ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eCap2Trig1,    5, cap_2_trig_1   ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eCap3Trig0,    6, cap_3_trig_0   ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eCap3Trig1,    7, cap_3_trig_1   ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCap4Trig0,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCap4Trig1,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCap5Trig0,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCap5Trig1,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCap6Trig0,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCap6Trig1,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCap7Trig0,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCap7Trig1,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eVec0Trig0,    8, prim_vec_trig_0),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eVec0Trig1,    9, prim_vec_trig_1),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec0Trig2,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec0Trig3,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eVec1Trig0,   10, sec_vec_trig_0 ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eVec1Trig1,   11, sec_vec_trig_1 ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec1Trig2,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec1Trig3,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eVec2Trig0,   16, ter_vec_trig_0 ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eVec2Trig1,   17, ter_vec_trig_1 ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec2Trig2,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec2Trig3,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eDtgTrig0,    12, itu_r656_out_0 ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eDtgTrig1,    13, itu_r656_out_1 ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eDtg1Trig0,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eDtg1Trig1,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVdec0Trig0,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVdec0Trig1,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVdec1Trig0,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVdec1Trig1,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(e6560Trig0,   18, itu_r656_0_0   ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(e6560Trig1,   19, itu_r656_0_1   ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(e6561Trig0,   27, itu_r656_1_0   ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(e6561Trig1,   28, itu_r656_1_1   ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eM2mc0Trig,   20, m2mc_trig_0    ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eM2mc1Trig,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eHdDvi0Trig0, 21, hd_dvi_0_trig_0),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eHdDvi0Trig1, 22, hd_dvi_0_trig_1),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eHdDvi1Trig0, -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eHdDvi1Trig1, -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eStg0Trig0,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eStg0Trig1,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eLboxTrig0,   25, letterbox_0    ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eLboxTrig1,   26, letterbox_1    ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eDvoTrig0,    14, hd_dvi_out_0   ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eDvoTrig1,    15, hd_dvi_out_1   ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eDvoTrig2,    -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eDvoTrig3,    -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eMfd0Eof,     29, mfd_0_eof      ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eMfd1Eof,     30, mfd_1_eof      ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd2Eof,     -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd3Eof,     -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd4Eof,     -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd5Eof,     -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd0Mtg0,    -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd0Mtg1,    -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd1Mtg0,    -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd1Mtg1,    -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd2Mtg0,    -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd2Mtg1,    -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd3Mtg0,    -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd3Mtg1,    -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd4Mtg0,    -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd4Mtg1,    -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd5Mtg0,    -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd5Mtg1,    -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eAnr0Trig0,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eAnr0Trig1,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eAnr1Trig0,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eAnr1Trig1,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eDgp0Trig0,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(ePx3d0Trig0,  31, px3d_0         ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_0Trig0,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_0Trig1,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_1Trig0,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_1Trig1,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_2Trig0,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_2Trig1,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_3Trig0,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_3Trig1,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_4Trig0,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_4Trig1,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_5Trig0,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_5Trig1,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_6Trig0,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_6Trig1,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec0Bypass0, -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec0Bypass1, -1, UNKNOWN        ),
-
 #elif (BCHP_CHIP==7422) || (BCHP_CHIP==7425)
 
     BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eCap0Trig0,    0, cap_0_trig_0   ),
@@ -1156,395 +1058,7 @@ static const BRDC_TrigInfo s_aRdcTrigInfo[] =
     BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec0Bypass0, -1, UNKNOWN        ),
     BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec0Bypass1, -1, UNKNOWN        ),
 
-#elif (BCHP_CHIP==7550)
-
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eCap0Trig0,    0, cap_0_trig_0   ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eCap0Trig1,    1, cap_0_trig_1   ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eCap1Trig0,    2, cap_1_trig_0   ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eCap1Trig1,    3, cap_1_trig_1   ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eCap2Trig0,    4, cap_2_trig_0   ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eCap2Trig1,    5, cap_2_trig_1   ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eCap3Trig0,    6, cap_3_trig_0   ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eCap3Trig1,    7, cap_3_trig_1   ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCap4Trig0,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCap4Trig1,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCap5Trig0,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCap5Trig1,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCap6Trig0,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCap6Trig1,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCap7Trig0,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCap7Trig1,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eVec0Trig0,    8, prim_vec_trig_0),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eVec0Trig1,    9, prim_vec_trig_1),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec0Trig2,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec0Trig3,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eVec1Trig0,   10, sec_vec_trig_0 ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eVec1Trig1,   11, sec_vec_trig_1 ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec1Trig2,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec1Trig3,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec2Trig0,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec2Trig1,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec2Trig2,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec2Trig3,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eDtgTrig0,    12, itu_r656_out_0 ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eDtgTrig1,    13, itu_r656_out_1 ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eDtg1Trig0,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eDtg1Trig1,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVdec0Trig0,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVdec0Trig1,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVdec1Trig0,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVdec1Trig1,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(e6560Trig0,   18, itu_r656_0_0   ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(e6560Trig1,   19, itu_r656_0_1   ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(e6561Trig0,   27, itu_r656_1_0   ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(e6561Trig1,   28, itu_r656_1_1   ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eM2mc0Trig,   20, m2mc_trig_0    ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eM2mc1Trig,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eStg0Trig0,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eStg0Trig1,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eHdDvi0Trig0, 21, hd_dvi_0_trig_0),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eHdDvi0Trig1, 22, hd_dvi_0_trig_1),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eHdDvi1Trig0, -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eHdDvi1Trig1, -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eLboxTrig0,   25, letterbox_0    ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eLboxTrig1,   26, letterbox_1    ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eDvoTrig0,    14, hd_dvi_out_0   ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eDvoTrig1,    15, hd_dvi_out_1   ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eDvoTrig2,    -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eDvoTrig3,    -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eMfd0Eof,     29, mfd_0_eof      ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eMfd1Eof,     30, mfd_1_eof      ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd2Eof,     -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd3Eof,     -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd4Eof,     -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd5Eof,     -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd0Mtg0,    -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd0Mtg1,    -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd1Mtg0,    -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd1Mtg1,    -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd2Mtg0,    -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd2Mtg1,    -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd3Mtg0,    -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd3Mtg1,    -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd4Mtg0,    -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd4Mtg1,    -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd5Mtg0,    -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd5Mtg1,    -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eAnr0Trig0,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eAnr0Trig1,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eAnr1Trig0,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eAnr1Trig1,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eDgp0Trig0,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(ePx3d0Trig0,  31, px3d_0         ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_0Trig0,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_0Trig1,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_1Trig0,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_1Trig1,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_2Trig0,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_2Trig1,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_3Trig0,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_3Trig1,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_4Trig0,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_4Trig1,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_5Trig0,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_5Trig1,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_6Trig0,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_6Trig1,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec0Bypass0, -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec0Bypass1, -1, UNKNOWN        ),
-
 #elif (BCHP_CHIP==7340) || (BCHP_CHIP==7342)
-
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eCap0Trig0,    0, cap_0_trig_0   ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eCap0Trig1,    1, cap_0_trig_1   ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eCap1Trig0,    2, cap_1_trig_0   ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eCap1Trig1,    3, cap_1_trig_1   ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCap2Trig0,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCap2Trig1,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCap3Trig0,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCap3Trig1,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCap4Trig0,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCap4Trig1,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCap5Trig0,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCap5Trig1,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCap6Trig0,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCap6Trig1,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCap7Trig0,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCap7Trig1,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eVec0Trig0,    8, prim_vec_trig_0),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eVec0Trig1,    9, prim_vec_trig_1),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec0Trig2,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec0Trig3,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eVec1Trig0,   10, sec_vec_trig_0 ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eVec1Trig1,   11, sec_vec_trig_1 ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec1Trig2,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec1Trig3,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec2Trig0,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec2Trig1,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec2Trig2,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec2Trig3,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eDtgTrig0,    -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eDtgTrig1,    -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eDtg1Trig0,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eDtg1Trig1,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVdec0Trig0,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVdec0Trig1,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVdec1Trig0,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVdec1Trig1,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(e6560Trig0,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(e6560Trig1,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(e6561Trig0,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(e6561Trig1,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eM2mc0Trig,   20, m2mc_trig_0    ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eM2mc1Trig,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eHdDvi0Trig0, -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eHdDvi0Trig1, -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eHdDvi1Trig0, -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eHdDvi1Trig1, -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eStg0Trig0,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eStg0Trig1,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eLboxTrig0,   25, letterbox_0    ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eLboxTrig1,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eDvoTrig0,    14, hd_dvi_out_0   ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eDvoTrig1,    15, hd_dvi_out_1   ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eDvoTrig2,    -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eDvoTrig3,    -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eMfd0Eof,     29, mfd_0_eof      ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd1Eof,     -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd2Eof,     -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd3Eof,     -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd4Eof,     -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd5Eof,     -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd0Mtg0,    -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd0Mtg1,    -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd1Mtg0,    -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd1Mtg1,    -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd2Mtg0,    -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd2Mtg1,    -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd3Mtg0,    -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd3Mtg1,    -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd4Mtg0,    -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd4Mtg1,    -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd5Mtg0,    -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd5Mtg1,    -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eAnr0Trig0,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eAnr0Trig1,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eAnr1Trig0,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eAnr1Trig1,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eDgp0Trig0,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(ePx3d0Trig0,  31, px3d_0         ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_0Trig0,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_0Trig1,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_1Trig0,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_1Trig1,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_2Trig0,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_2Trig1,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_3Trig0,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_3Trig1,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_4Trig0,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_4Trig1,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_5Trig0,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_5Trig1,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_6Trig0,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_6Trig1,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec0Bypass0, -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec0Bypass1, -1, UNKNOWN        ),
-
-#elif (BCHP_CHIP==7125)
-
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eCap0Trig0,    0, cap_0_trig_0   ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eCap0Trig1,    1, cap_0_trig_1   ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eCap1Trig0,    2, cap_1_trig_0   ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eCap1Trig1,    3, cap_1_trig_1   ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCap2Trig0,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCap2Trig1,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCap3Trig0,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCap3Trig1,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCap4Trig0,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCap4Trig1,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCap5Trig0,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCap5Trig1,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCap6Trig0,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCap6Trig1,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCap7Trig0,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCap7Trig1,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eVec0Trig0,    8, prim_vec_trig_0),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eVec0Trig1,    9, prim_vec_trig_1),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec0Trig2,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec0Trig3,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eVec1Trig0,   10, sec_vec_trig_0 ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eVec1Trig1,   11, sec_vec_trig_1 ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec1Trig2,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec1Trig3,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec2Trig0,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec2Trig1,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec2Trig2,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec2Trig3,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eDtgTrig0,    -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eDtgTrig1,    -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eDtg1Trig0,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eDtg1Trig1,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVdec0Trig0,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVdec0Trig1,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVdec1Trig0,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVdec1Trig1,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(e6560Trig0,   18, itu_r656_0_0   ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(e6560Trig1,   19, itu_r656_0_1   ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(e6561Trig0,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(e6561Trig1,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eM2mc0Trig,   20, m2mc_trig_0    ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eM2mc1Trig,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eHdDvi0Trig0, -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eHdDvi0Trig1, -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eHdDvi1Trig0, -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eHdDvi1Trig1, -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eStg0Trig0,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eStg0Trig1,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eLboxTrig0,   25, letterbox_0    ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eLboxTrig1,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eDvoTrig0,    14, hd_dvi_out_0   ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eDvoTrig1,    15, hd_dvi_out_1   ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eDvoTrig2,    -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eDvoTrig3,    -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eMfd0Eof,     29, mfd_0_eof      ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd1Eof,     -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd2Eof,     -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd3Eof,     -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd4Eof,     -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd5Eof,     -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd0Mtg0,    -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd0Mtg1,    -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd1Mtg0,    -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd1Mtg1,    -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd2Mtg0,    -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd2Mtg1,    -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd3Mtg0,    -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd3Mtg1,    -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd4Mtg0,    -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd4Mtg1,    -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd5Mtg0,    -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd5Mtg1,    -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eAnr0Trig0,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eAnr0Trig1,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eAnr1Trig0,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eAnr1Trig1,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eDgp0Trig0,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(ePx3d0Trig0,  31, px3d_0         ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_0Trig0,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_0Trig1,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_1Trig0,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_1Trig1,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_2Trig0,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_2Trig1,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_3Trig0,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_3Trig1,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_4Trig0,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_4Trig1,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_5Trig0,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_5Trig1,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_6Trig0,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_6Trig1,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec0Bypass0, -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec0Bypass1, -1, UNKNOWN        ),
-
-#elif (BCHP_CHIP==7468)
-
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eCap0Trig0,    0, cap_0_trig_0   ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eCap0Trig1,    1, cap_0_trig_1   ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eCap1Trig0,    2, cap_1_trig_0   ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eCap1Trig1,    3, cap_1_trig_1   ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCap2Trig0,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCap2Trig1,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCap3Trig0,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCap3Trig1,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCap4Trig0,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCap4Trig1,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCap5Trig0,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCap5Trig1,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCap6Trig0,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCap6Trig1,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCap7Trig0,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCap7Trig1,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eVec0Trig0,    8, prim_vec_trig_0),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eVec0Trig1,    9, prim_vec_trig_1),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec0Trig2,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec0Trig3,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eVec1Trig0,   10, sec_vec_trig_0 ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eVec1Trig1,   11, sec_vec_trig_1 ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec1Trig2,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec1Trig3,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec2Trig0,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec2Trig1,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec2Trig2,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec2Trig3,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eDtgTrig0,    -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eDtgTrig1,    -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eDtg1Trig0,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eDtg1Trig1,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVdec0Trig0,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVdec0Trig1,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVdec1Trig0,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVdec1Trig1,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(e6560Trig0,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(e6560Trig1,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(e6561Trig0,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(e6561Trig1,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eM2mc0Trig,   20, m2mc_trig_0    ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eM2mc1Trig,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eHdDvi0Trig0, -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eHdDvi0Trig1, -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eHdDvi1Trig0, -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eHdDvi1Trig1, -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eStg0Trig0,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eStg0Trig1,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eLboxTrig0,   25, letterbox_0    ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eLboxTrig1,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eDvoTrig0,    14, hd_dvi_out_0   ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eDvoTrig1,    15, hd_dvi_out_1   ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eDvoTrig2,    -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eDvoTrig3,    -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eMfd0Eof,     29, mfd_0_eof      ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd1Eof,     -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd2Eof,     -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd3Eof,     -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd4Eof,     -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd5Eof,     -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd0Mtg0,    -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd0Mtg1,    -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd1Mtg0,    -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd1Mtg1,    -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd2Mtg0,    -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd2Mtg1,    -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd3Mtg0,    -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd3Mtg1,    -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd4Mtg0,    -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd4Mtg1,    -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd5Mtg0,    -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd5Mtg1,    -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eAnr0Trig0,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eAnr0Trig1,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eAnr1Trig0,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eAnr1Trig1,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eDgp0Trig0,   -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(ePx3d0Trig0,  31, px3d_0         ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_0Trig0,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_0Trig1,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_1Trig0,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_1Trig1,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_2Trig0,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_2Trig1,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_3Trig0,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_3Trig1,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_4Trig0,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_4Trig1,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_5Trig0,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_5Trig1,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_6Trig0,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_6Trig1,  -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec0Bypass0, -1, UNKNOWN        ),
-    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec0Bypass1, -1, UNKNOWN        ),
-
-#elif (BCHP_CHIP==7408)
 
     BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eCap0Trig0,    0, cap_0_trig_0   ),
     BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eCap0Trig1,    1, cap_0_trig_1   ),
@@ -2476,6 +1990,103 @@ static const BRDC_TrigInfo s_aRdcTrigInfo[] =
     BRDC_P_MAKE_TRIG_WORD_2_INFO_NORM(eVec0Bypass0, 76, vec_hddvi_0_passthr_trig_0),
     BRDC_P_MAKE_TRIG_WORD_2_INFO_NORM(eVec0Bypass1, 77, vec_hddvi_0_passthr_trig_0),
 
+#elif (BCHP_CHIP==7260)
+
+    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eCap0Trig0,    0, cap_0_trig_0   ),
+    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eCap0Trig1,    1, cap_0_trig_1   ),
+    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eCap1Trig0,    2, cap_1_trig_0   ),
+    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eCap1Trig1,    3, cap_1_trig_1   ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCap2Trig0,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCap2Trig1,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCap3Trig0,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCap3Trig1,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCap4Trig0,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCap4Trig1,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCap5Trig0,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCap5Trig1,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCap6Trig0,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCap6Trig1,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCap7Trig0,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCap7Trig1,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec0Trig0,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec0Trig1,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec0Trig2,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec0Trig3,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec1Trig0,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec1Trig1,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec1Trig2,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec1Trig3,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec2Trig0,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec2Trig1,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec2Trig2,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec2Trig3,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eDtgTrig0,    -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eDtgTrig1,    -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eDtg1Trig0,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eDtg1Trig1,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVdec0Trig0,  -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVdec0Trig1,  -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVdec1Trig0,  -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVdec1Trig1,  -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(e6560Trig0,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(e6560Trig1,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(e6561Trig0,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(e6561Trig1,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_2_INFO_NORM(eM2mc0Trig,   72, m2mc_trig_0    ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eM2mc1Trig,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eHdDvi0Trig0, -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eHdDvi0Trig1, -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eHdDvi1Trig0, -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eHdDvi1Trig1, -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eStg0Trig0,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eStg0Trig1,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eLboxTrig0,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eLboxTrig1,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eDvoTrig0,    -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eDvoTrig1,    -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eDvoTrig2,    -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eDvoTrig3,    -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd0Eof,     -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd1Eof,     -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd2Eof,     -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd3Eof,     -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd4Eof,     -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd5Eof,     -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_1_INFO_NORM(eMfd0Mtg0,    52, mfd_0_trig_0   ),
+    BRDC_P_MAKE_TRIG_WORD_1_INFO_NORM(eMfd0Mtg1,    53, mfd_0_trig_1   ),
+    BRDC_P_MAKE_TRIG_WORD_1_INFO_NORM(eMfd1Mtg0,    54, mfd_1_trig_0   ),
+    BRDC_P_MAKE_TRIG_WORD_1_INFO_NORM(eMfd1Mtg1,    55, mfd_1_trig_1   ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd2Mtg0,    -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd2Mtg1,    -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd3Mtg0,    -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd3Mtg1,    -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd4Mtg0,    -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd4Mtg1,    -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd5Mtg0,    -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd5Mtg1,    -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eAnr0Trig0,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eAnr0Trig1,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eAnr1Trig0,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eAnr1Trig1,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eDgp0Trig0,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(ePx3d0Trig0,  -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eCmp_0Trig0,  24, vec_source_0_trig_0),
+    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eCmp_0Trig1,  25, vec_source_0_trig_1),
+    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eCmp_1Trig0,  26, vec_source_1_trig_0),
+    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eCmp_1Trig1,  27, vec_source_1_trig_1),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_2Trig0,  -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_2Trig1,  -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_3Trig0,  -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_3Trig1,  -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_4Trig0,  -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_4Trig1,  -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_5Trig0,  -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_5Trig1,  -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_6Trig0,  -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_6Trig1,  -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec0Bypass0, -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec0Bypass1, -1, UNKNOWN        ),
+
 #elif (BCHP_CHIP == 11360)
 /*
  * For all platforms which do not have BRDC, appropriate BCHP_CHIP must be added
@@ -2648,6 +2259,13 @@ BERR_Code BRDC_Open
     {
         hRdc->aeStcTrigger[i] = BRDC_Trigger_UNKNOWN;
         BRDC_P_Write32(hRdc, BCHP_RDC_stc_flag_0 + i*sizeof(uint32_t), 0);
+    }
+#endif
+
+#if BRDC_P_SUPPORT_SYNCHRONIZER
+    for(i = 0; i < BRDC_P_MAX_SYNC; i++)
+    {
+        hRdc->abSyncUsed[i] = false;
     }
 #endif
 
@@ -3095,7 +2713,7 @@ uint32_t BRDC_AcquireStcFlag_isr
     ulReg = BRDC_P_Read32(hRdc, ulAddr);
     ulReg &= ~BCHP_MASK(RDC_stc_flag_0, trig_src_sel);
     ulReg |= (
-        BCHP_FIELD_DATA(RDC_stc_flag_0, trig_src_sel, BCHP_RDC_stc_flag_0_trig_src_sel_VEC_0
+        BCHP_FIELD_DATA(RDC_stc_flag_0, trig_src_sel, BCHP_RDC_stc_flag_0_trig_src_sel_VEC_SOURCE_0
             + ((eTrig - BRDC_Trigger_eCmp_0Trig0)>>1)) |
         BCHP_FIELD_DATA(RDC_stc_flag_0, trig_en, 1));
     BRDC_P_Write32(hRdc, ulAddr, ulReg);
@@ -3449,123 +3067,178 @@ bool BRDC_List_GetLastExecStatus_isr
 /***************************************************************************
  *
  */
-BERR_Code BRDC_Slot_Create
+BERR_Code BRDC_Slots_Create
     ( BRDC_Handle                      hRdc,
-      BRDC_Slot_Handle                *phSlot )
+      BRDC_Slot_Handle                *phSlot,
+      uint32_t                         ulNum )
 {
     BERR_Code         err   = BERR_SUCCESS;
+    uint32_t          i     = 0;
     BRDC_SlotId       eSlotId;
+    uint32_t          ulSyncId;
     BRDC_Slot_Handle  hSlot = NULL;
 
-    BDBG_ENTER(BRDC_Slot_Create);
+    BDBG_ENTER(BRDC_Slots_Create);
 
+    BDBG_ASSERT(ulNum > 0 && ulNum <= BRDC_SlotId_eSlotMAX);
     BDBG_OBJECT_ASSERT(hRdc, BRDC_RDC);
 
-    /* Create slot */
-    hSlot = (BRDC_Slot_Handle)BKNI_Malloc(sizeof(BRDC_P_Slot_Handle));
-    if( !hSlot )
-    {
-        BDBG_ERR(( "Out of System Memory" ));
-        return BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
+    /* acquire synchronizer for the group of slots */
+    err = BRDC_P_AcquireSync(hRdc, &ulSyncId);
+    if(err != BERR_SUCCESS) {
+        BDBG_ERR(("Failed to acquire synchronizer!"));
+        goto err_acquireSync;
     }
 
-    /* Initialize context of slot handle */
-    BKNI_Memset((void*)hSlot, 0x0, sizeof(BRDC_P_Slot_Handle));
-    BDBG_OBJECT_SET(hSlot, BRDC_SLT);
-
-    /* Use critical section when find next available slot */
-    BKNI_EnterCriticalSection();
-    err = BERR_TRACE(BRDC_Slot_P_GetNextSlot(hRdc, &eSlotId));
-    BKNI_LeaveCriticalSection();
-    if( err != BERR_SUCCESS )
-    {
-        BKNI_Free(hSlot);
-        goto done;
+#ifdef BCHP_RDC_sync_0_arm
+    if(ulSyncId >= BRDC_P_MAX_SYNC) {
+        BDBG_ERR(( "Unsupported synchronizer %u", ulSyncId ));
+        return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
-
-    if(s_aRdcSlotInfo[eSlotId].SlotIntId == BRDC_P_NULL_BINTID)
-    {
-        BKNI_Free(hSlot);
-        err = BERR_TRACE(BRDC_SLOT_ERR_ALL_USED);
-        goto done;
-    }
-
-    /* Assign the slot to the calling module */
-    hSlot->eSlotId     = eSlotId;
-    hSlot->hRdc        = hRdc;
-    hSlot->bRecurring  = false;
-    hSlot->eRDCTrigger = BRDC_Trigger_UNKNOWN;
-    hSlot->hList       = NULL;
-    hSlot->ulRegOffset = ((BCHP_RDC_desc_1_addr - BCHP_RDC_desc_0_addr) *
-        (eSlotId - BRDC_SlotId_eSlot0));
-    hSlot->SlotIntId   = s_aRdcSlotInfo[eSlotId].SlotIntId;
-
-    /* Keeping track if last RUL executed. */
-    if(BRDC_P_NO_TRACKING_ADDR != s_aRdcSlotInfo[eSlotId].ulTrackRegAddr)
-    {
-#ifdef BRDC_DISABLE_TRACK_EXECUTION
-        hSlot->bTrackExecution  = false ;
-#else
-        hSlot->bTrackExecution  = true ;
 #endif
-        hSlot->ulTrackCount     = 0;
-        hSlot->ulTrackRegAddr   = s_aRdcSlotInfo[eSlotId].ulTrackRegAddr;
-        BDBG_MSG(("Creating slot[%d] with track executions!", hSlot->eSlotId));
-    }
-    else
-    {
-        BDBG_WRN(("Creating slot[%d] without track executions!", hSlot->eSlotId));
+
+    /* create the group of slots */
+    for(i = 0; i < ulNum; i++) {
+        /* Create slot */
+        hSlot = (BRDC_Slot_Handle)BKNI_Malloc(sizeof(BRDC_P_Slot_Handle));
+        if( !hSlot )
+        {
+            BDBG_ERR(( "Out of System Memory" ));
+            return BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
+        }
+
+        /* Initialize context of slot handle */
+        BKNI_Memset((void*)hSlot, 0x0, sizeof(BRDC_P_Slot_Handle));
+        BDBG_OBJECT_SET(hSlot, BRDC_SLT);
+
+        /* Use critical section when find next available slot */
+        BKNI_EnterCriticalSection();
+        err = BERR_TRACE(BRDC_Slot_P_GetNextSlot(hRdc, &eSlotId));
+        BKNI_LeaveCriticalSection();
+        if( err != BERR_SUCCESS )
+        {
+            BKNI_Free(hSlot);
+            goto done;
+        }
+
+        if(s_aRdcSlotInfo[eSlotId].SlotIntId == BRDC_P_NULL_BINTID)
+        {
+            BKNI_Free(hSlot);
+            err = BERR_TRACE(BRDC_SLOT_ERR_ALL_USED);
+            goto done;
+        }
+
+        /* Assign the slot to the calling module */
+        hSlot->eSlotId     = eSlotId;
+        hSlot->hRdc        = hRdc;
+        hSlot->bRecurring  = false;
+        hSlot->eRDCTrigger = BRDC_Trigger_UNKNOWN;
+        hSlot->hList       = NULL;
+        hSlot->ulRegOffset = ((BCHP_RDC_desc_1_addr - BCHP_RDC_desc_0_addr) *
+            (eSlotId - BRDC_SlotId_eSlot0));
+        hSlot->SlotIntId   = s_aRdcSlotInfo[eSlotId].SlotIntId;
+        hSlot->ulSyncId    = ulSyncId;
+
+        /* link synchronizer */
+#ifdef BCHP_RDC_sync_0_arm
+        BRDC_Slot_P_Write32(hSlot, BCHP_RDC_desc_0_config + hSlot->ulRegOffset,
+            BCHP_FIELD_DATA(RDC_desc_0_config, sync_sel, ulSyncId));
+#endif
+        /* Keeping track if last RUL executed. */
+        if(BRDC_P_NO_TRACKING_ADDR != s_aRdcSlotInfo[eSlotId].ulTrackRegAddr)
+        {
+#ifdef BRDC_DISABLE_TRACK_EXECUTION
+            hSlot->bTrackExecution  = false ;
+#else
+            hSlot->bTrackExecution  = true ;
+#endif
+            hSlot->ulTrackCount     = 0;
+            hSlot->ulTrackRegAddr   = s_aRdcSlotInfo[eSlotId].ulTrackRegAddr;
+            BDBG_MSG(("Creating slot[%d] with track executions!", hSlot->eSlotId));
+        }
+        else
+        {
+            BDBG_WRN(("Creating slot[%d] without track executions!", hSlot->eSlotId));
+        }
+
+        /* Update RDC */
+        hRdc->bSlotUsed[eSlotId] = true;
+        hRdc->apSlot[eSlotId] = hSlot;
+
+        /* All done */
+        *(phSlot + i) = hSlot;
     }
 
-    /* Update RDC */
-    hRdc->bSlotUsed[eSlotId] = true;
-    hRdc->apSlot[eSlotId] = hSlot;
-
-    /* All done */
-    *phSlot = hSlot;
+    /* arm the synchronizer by default */
+    BRDC_P_ArmSync_isr(hRdc, ulSyncId, true);
 
 done:
-    BDBG_LEAVE(BRDC_Slot_Create);
+    BRDC_P_ReleaseSync(hRdc, ulSyncId);
+err_acquireSync:
+    BDBG_LEAVE(BRDC_Slots_Create);
     return err ;
 }
 
 /***************************************************************************
  *
  */
-BERR_Code BRDC_Slot_Destroy
-    ( BRDC_Slot_Handle                 hSlot )
+BERR_Code BRDC_Slots_Destroy
+    ( BRDC_Slot_Handle                *phSlot,
+      uint32_t                         ulNum )
 {
+    uint32_t          i   = 0;
     BERR_Code         err = BERR_SUCCESS;
+    BRDC_Slot_Handle  hSlot = *phSlot;
+    uint32_t          ulSyncId;
+    BRDC_Handle       hRdc;
 
-    BDBG_ENTER(BRDC_Slot_Destroy);
-
+    BDBG_ENTER(BRDC_Slots_Destroy);
     BDBG_OBJECT_ASSERT(hSlot, BRDC_SLT);
+    hRdc = hSlot->hRdc;
+    ulSyncId = hSlot->ulSyncId;
 
-    /* Disable the slot */
-    BKNI_EnterCriticalSection();
-    err = BERR_TRACE(BRDC_Slot_Disable_isr(hSlot));
-    BKNI_LeaveCriticalSection();
-    if( err != BERR_SUCCESS )
-        goto done;
+    for(i = 0; i < ulNum; i++) {
+        /* Disable the slot */
+        BKNI_EnterCriticalSection();
+        err = BERR_TRACE(BRDC_Slot_Disable_isr(hSlot));
+        BKNI_LeaveCriticalSection();
+        if( err != BERR_SUCCESS )
+            goto done;
 
-    /* Update RDC: This slot becomes available */
-    hSlot->hRdc->bSlotUsed[hSlot->eSlotId] = false;
-    hSlot->hRdc->apSlot[hSlot->eSlotId]    = NULL;
+        /* Update RDC: This slot becomes available */
+        hSlot->hRdc->bSlotUsed[hSlot->eSlotId] = false;
+        hSlot->hRdc->apSlot[hSlot->eSlotId]    = NULL;
 
-    /* Clear list from the slot */
-    if( hSlot->hList )
-    {
-        hSlot->hList->ulNumSlotAssigned--;
+        /* check sync ID mismatch */
+        if(ulSyncId != hSlot->ulSyncId) {
+            BDBG_ERR(("Mismatched syncId: 0:%u vs %u:%u", ulSyncId, i, hSlot->ulSyncId));
+        }
 
-        /* Remove slot */
-        BLST_D_REMOVE(hSlot->hList->pSlotAssigned, hSlot, link);
+        /* Clear list from the slot */
+        if( hSlot->hList )
+        {
+            hSlot->hList->ulNumSlotAssigned--;
+
+            /* Remove slot */
+            BLST_D_REMOVE(hSlot->hList->pSlotAssigned, hSlot, link);
+        }
+
+        /* Free slot */
+        BKNI_Free(hSlot);
+
+        hSlot = *(++phSlot);
     }
 
-    /* Free slot */
-    BKNI_Free(hSlot);
+    /* disarm & release synchronizer */
+    if(ulSyncId != (uint32_t)(-1) && hRdc) {
+        err = BRDC_P_ReleaseSync(hRdc, ulSyncId);
+        if(err != BERR_SUCCESS) {
+            BDBG_ERR(("Failed to release synchronizer[%u]!", ulSyncId));
+        }
+    }
 
 done:
-    BDBG_LEAVE(( "BRDC_Slot_Destroy" ));
+    BDBG_LEAVE(( "BRDC_Slots_Destroy" ));
     return err;
 }
 
@@ -3602,7 +3275,7 @@ BERR_Code BRDC_Slot_GetConfiguration_isr
     BDBG_ASSERT(pSettings);
     BDBG_OBJECT_ASSERT(hSlot, BRDC_SLT);
 
-    BKNI_Memcpy((void *)pSettings, (void *)&hSlot->stSlotSetting, sizeof(BRDC_Slot_Settings));
+    BKNI_Memcpy_isr((void *)pSettings, (void *)&hSlot->stSlotSetting, sizeof(BRDC_Slot_Settings));
 
     BDBG_LEAVE(BRDC_Slot_GetConfiguration_isr);
     return err;
@@ -3616,9 +3289,7 @@ BERR_Code BRDC_Slot_SetConfiguration_isr
     ( BRDC_Slot_Handle                 hSlot,
       const BRDC_Slot_Settings        *pSettings )
 {
-#if (BRDC_P_SUPPORT_HIGH_PRIORITY_SLOT)
     uint32_t   ulRegVal;
-#endif
     BERR_Code err = BERR_SUCCESS;
 
     BDBG_ENTER(BRDC_Slot_SetConfiguration_isr);
@@ -3626,9 +3297,8 @@ BERR_Code BRDC_Slot_SetConfiguration_isr
     BDBG_ASSERT(pSettings);
     BDBG_OBJECT_ASSERT(hSlot, BRDC_SLT);
 
-    hSlot->stSlotSetting.bHighPriority = pSettings->bHighPriority;
+    BKNI_Memcpy_isr((void *)&hSlot->stSlotSetting, (void *)pSettings, sizeof(BRDC_Slot_Settings));
 
-#if (BRDC_P_SUPPORT_HIGH_PRIORITY_SLOT)
     /* Acquire semaphore */
     err = BERR_TRACE(BRDC_P_AcquireSemaphore_isr(hSlot->hRdc, hSlot->hList, hSlot->eSlotId));
     if (err != BERR_SUCCESS)
@@ -3643,17 +3313,19 @@ BERR_Code BRDC_Slot_SetConfiguration_isr
     ulRegVal = BRDC_Slot_P_Read32(hSlot, BCHP_RDC_desc_0_config + hSlot->ulRegOffset);
 
     /* Clear high_priority */
+#if (BRDC_P_SUPPORT_HIGH_PRIORITY_SLOT)
     ulRegVal &= ~BCHP_MASK(RDC_desc_0_config, high_priority);
 
     /* Set high_priority bit and update register */
     ulRegVal |= BCHP_FIELD_DATA(RDC_desc_0_config, high_priority, hSlot->stSlotSetting.bHighPriority);
+#endif
+
     BRDC_Slot_P_Write32(hSlot, BCHP_RDC_desc_0_config + hSlot->ulRegOffset, ulRegVal);
 
     /* Release semaphore */
     BRDC_P_ReleaseSemaphore_isr(hSlot->hRdc, hSlot->hList, hSlot->eSlotId);
 
 done:
-#endif
 
     BDBG_LEAVE(BRDC_Slot_SetConfiguration_isr);
     return err;
@@ -3682,10 +3354,10 @@ BERR_Code BRDC_Slot_GetList_isr
 BERR_Code BRDC_P_Slots_SetList_isr
     ( BRDC_Slot_Handle                *phSlots,
       BRDC_List_Handle                 hList,
-      size_t                           ulNum)
+      uint32_t                         ulNum)
 {
     uint32_t ulRegVal;
-    size_t i;
+    uint32_t i;
     BERR_Code  err = BERR_SUCCESS;
 
     BDBG_ENTER(BRDC_P_Slots_SetList_isr);
@@ -3715,6 +3387,11 @@ BERR_Code BRDC_P_Slots_SetList_isr
     BRDC_P_DBG_WriteCaptures_isr(&hList->hRdc->captureBuffer, phSlots, hList, ulNum);
 #endif
 
+#ifdef BCHP_RDC_sync_0_arm
+    /* disarm synchronizer (assume group of slots share the same sycnhronizer) */
+    BRDC_P_ArmSync_isr(hList->hRdc, phSlots[0]->ulSyncId, false);
+#endif
+
     /* Call the intercept if non NULL */
     for(i = 0; i < ulNum; i++)
     {
@@ -3727,6 +3404,13 @@ BERR_Code BRDC_P_Slots_SetList_isr
                 goto done;
             }
         }
+
+#ifdef BCHP_RDC_sync_0_arm
+        /* check sync ID mismatch */
+        if(phSlots[i]->ulSyncId != phSlots[0]->ulSyncId) {
+            BDBG_ERR(("Mismatched syncId: 0:%u vs %u:%u", phSlots[i]->ulSyncId, i, phSlots[i]->ulSyncId));
+        }
+#endif
 
         /********************** slot i start *****************/
         /* Acquire dual semaphores */
@@ -3747,11 +3431,16 @@ BERR_Code BRDC_P_Slots_SetList_isr
         ulRegVal = BRDC_Slot_P_Read32(phSlots[i], BCHP_RDC_desc_0_config + phSlots[i]->ulRegOffset);
 
         /* Clear count */
+#if BCHP_RDC_desc_0_config_count_MASK
         ulRegVal &= ~BCHP_MASK(RDC_desc_0_config, count);
 
         /* Set count and update register */
         ulRegVal |= BCHP_FIELD_DATA(RDC_desc_0_config, count, hList->ulEntries -1);
         BRDC_Slot_P_Write32(phSlots[i], BCHP_RDC_desc_0_config + phSlots[i]->ulRegOffset, ulRegVal);
+#else
+        ulRegVal = BCHP_FIELD_DATA(RDC_desc_0_count, count, hList->ulEntries -1);
+        BRDC_Slot_P_Write32(phSlots[i], BCHP_RDC_desc_0_count + phSlots[i]->ulRegOffset, ulRegVal);
+#endif
 
         /* Release semaphore */
         BRDC_P_ReleaseSemaphore_isr(phSlots[i]->hRdc, phSlots[i]->hList, phSlots[i]->eSlotId);
@@ -3776,6 +3465,11 @@ BERR_Code BRDC_P_Slots_SetList_isr
         phSlots[i]->hList = hList;
     }
 
+#ifdef BCHP_RDC_sync_0_arm
+    /* arm synchronizer */
+    BRDC_P_ArmSync_isr(hList->hRdc, phSlots[0]->ulSyncId, true);
+#endif
+
 done:
     BDBG_LEAVE(BRDC_P_Slots_SetList_isr);
     return err;
@@ -3788,9 +3482,9 @@ done:
 BERR_Code BRDC_Slots_SetList_isr
     ( BRDC_Slot_Handle                *phSlot,
       BRDC_List_Handle                 hList,
-      size_t                           ulNum)
+      uint32_t                         ulNum)
 {
-    size_t i;
+    uint32_t i;
     uint32_t *pulStart   = hList->pulRULAddr;
     uint32_t *pulCurrent = pulStart + hList->ulEntries;
     BERR_Code  err = BERR_SUCCESS;
@@ -4034,7 +3728,7 @@ bool BRDC_Slot_UpdateLastRulStatus_isr
 }
 
 /***************************************************************************
- * This function program RUL to config the length of the RUL;
+ * This function program RUL to config the length of the RUL for PsF mode;
  */
 BERR_Code BRDC_Slot_RulConfigRulSize_isr
     ( BRDC_Slot_Handle                 hSlot,
@@ -4058,6 +3752,11 @@ BERR_Code BRDC_Slot_RulConfigRulSize_isr
         return BERR_INVALID_PARAMETER;
     }
 
+    pulStart   = hList->pulRULAddr;
+    pulCurrent = pulStart + hList->ulEntries;
+    *pulCurrent++ = BRDC_OP_IMM_TO_REG();
+
+#if BCHP_RDC_desc_0_config_count_MASK
     /* Read RDC_desc_x_config */
     ulRegVal = BRDC_Slot_P_Read32(hSlot, BCHP_RDC_desc_0_config + hSlot->ulRegOffset);
 
@@ -4067,12 +3766,19 @@ BERR_Code BRDC_Slot_RulConfigRulSize_isr
     /* Set count and update register */
     ulRegVal |= BCHP_FIELD_DATA(RDC_desc_0_config, count, ulCount-1);
 
-    pulStart   = hList->pulRULAddr;
-    pulCurrent = pulStart + hList->ulEntries;
-
     /* hList RUL programs slave slot config register */
-    *pulCurrent++ = BRDC_OP_IMM_TO_REG();
     *pulCurrent++ = BRDC_REGISTER(BCHP_RDC_desc_0_config + hSlot->ulRegOffset);
+#else
+    /* write both count and count_direct copy of the register to make sure double-buffered count
+       register is updated with the ulCount-1, in case:
+       1) next trigger fires before the next isr disarms/update the slot count; or
+       2) next trigger fires right after the slot is disarmed AND before being updated/re-armed by next isr; */
+    ulRegVal = BCHP_FIELD_DATA(RDC_desc_0_count, count, ulCount-1);
+    *pulCurrent++ = BRDC_REGISTER(BCHP_RDC_desc_0_count + hSlot->ulRegOffset);
+    *pulCurrent++ = ulRegVal;
+    *pulCurrent++ = BRDC_OP_IMM_TO_REG();
+    *pulCurrent++ = BRDC_REGISTER(BCHP_RDC_desc_0_count_direct + hSlot->ulRegOffset);
+#endif
     *pulCurrent++ = ulRegVal;
 
     /* update list size */
@@ -4123,9 +3829,18 @@ BERR_Code BRDC_Slot_RulConfigSlaveTrigger_isr
     *pulCurrent++ =
             BCHP_FIELD_DATA(RDC_desc_0_config, enable,         1            ) |
             BCHP_FIELD_DATA(RDC_desc_0_config, repeat,         bRecurring   ) |
-            BCHP_FIELD_DATA(RDC_desc_0_config, trigger_select, ulTrigSelect ) |
+            BCHP_FIELD_DATA(RDC_desc_0_config, trigger_select, ulTrigSelect )
+#if BCHP_RDC_desc_0_config_count_MASK
             /* place holder for the real slave RUL size; */
-            BCHP_FIELD_DATA(RDC_desc_0_config, count,          0 );
+            | BCHP_FIELD_DATA(RDC_desc_0_config, count,          0 )
+#endif
+            ;
+#if BCHP_RDC_desc_0_count
+    /* place holder for the real slave RUL size; */
+    *pulCurrent++ = BRDC_OP_IMM_TO_REG();
+    *pulCurrent++ = BRDC_REGISTER(BCHP_RDC_desc_0_count + hSlotSlave->ulRegOffset);
+    *pulCurrent++ = BCHP_FIELD_DATA(RDC_desc_0_count, count, 0 );
+#endif
     hList->ulEntries = (uint32_t)(pulCurrent - pulStart);
 
     /* store the location of the previous desc_config setting; */
@@ -4154,9 +3869,15 @@ BERR_Code BRDC_Slot_RulConfigCount_isr
     BDBG_ASSERT(hSlot->pulRulConfigPrevVal);
 
     /* (0) update previous RUL's desc_config setting, specifically 'count'; */
+#if BCHP_RDC_desc_0_config_count_MASK
     *(hSlot->pulRulConfigPrevVal) = (*(hSlot->pulRulConfigPrevVal) &
         (~BCHP_MASK(RDC_desc_0_config, count))) |
         BCHP_FIELD_DATA(RDC_desc_0_config, count, ulCount - 1);
+#else
+    *(hSlot->pulRulConfigPrevVal) = (*(hSlot->pulRulConfigPrevVal) &
+        (~BCHP_MASK(RDC_desc_0_count, count))) |
+        BCHP_FIELD_DATA(RDC_desc_0_count, count, ulCount - 1);
+#endif
 
     BDBG_LEAVE(BRDC_Slot_RulConfigCount_isr);
     return err;
@@ -4267,8 +3988,12 @@ BERR_Code BRDC_Slot_RulConfigSlaveListTail_isr
     *pulCurrent++ =
             BCHP_FIELD_DATA(RDC_desc_0_config, enable,         0            ) |
             BCHP_FIELD_DATA(RDC_desc_0_config, repeat,         0            ) |
-            BCHP_FIELD_DATA(RDC_desc_0_config, trigger_select, ulTrigSelect ) |
-            BCHP_FIELD_DATA(RDC_desc_0_config, count,          0            );
+            BCHP_FIELD_DATA(RDC_desc_0_config, trigger_select, ulTrigSelect )
+#if BCHP_RDC_desc_0_config_count_MASK
+            /* place holder for the real slave RUL size; */
+            | BCHP_FIELD_DATA(RDC_desc_0_config, count,          0 )
+#endif
+            ;
 
     hList->ulEntries = (uint32_t)(pulCurrent - pulStart);
 

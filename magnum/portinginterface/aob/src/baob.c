@@ -96,7 +96,7 @@ static const BAOB_AcquireParam defAcquireParams =
 *   Private Module Functions
 *
 *******************************************************************************/
-BERR_Code BAOB_3128_p_EventCallback_isr(
+BERR_Code BAOB_3158_p_EventCallback_isr(
     void * pParam1, int param2
     )
 {
@@ -104,7 +104,7 @@ BERR_Code BAOB_3128_p_EventCallback_isr(
     BERR_Code retCode = BERR_SUCCESS;
     BHAB_InterruptType event = (BHAB_InterruptType) param2;
 
-    BDBG_ENTER(BAOB_3128_p_EventCallback_isr);
+    BDBG_ENTER(BAOB_3158_p_EventCallback_isr);
 
     BDBG_ASSERT( hDev );
     switch (event) {
@@ -123,11 +123,11 @@ BERR_Code BAOB_3128_p_EventCallback_isr(
             }
             break;
         default:
-            BDBG_WRN((" unknown event code from 3128"));
+            BDBG_WRN((" unknown event code from 3158"));
         break;
     }
 
-    BDBG_LEAVE(BAOB_3128_p_EventCallback_isr);
+    BDBG_LEAVE(BAOB_3158_p_EventCallback_isr);
     return( retCode );
 }
 
@@ -194,7 +194,7 @@ BERR_Code BAOB_Open(
     hDev->outputMode = BAOB_OutputMode_eFEC;
 
     CHK_RETCODE(retCode, BKNI_CreateMutex(&hDev->mutex));
-    BHAB_InstallInterruptCallback( hDev->hHab,  hDev->devId, BAOB_3128_p_EventCallback_isr , (void *) hDev, event);
+    BHAB_InstallInterruptCallback( hDev->hHab,  hDev->devId, BAOB_3158_p_EventCallback_isr , (void *) hDev, event);
 
     CHK_RETCODE(retCode, BHAB_GetApVersion(hDev->hHab, &familyId, &chipId, &chipVer, &apVer, &minApVer));
 
@@ -413,7 +413,7 @@ BERR_Code BAOB_Acquire(
 {
     BERR_Code retCode = BERR_SUCCESS;
 #if BAOB_CHIP==3158
-	uint8_t buf[13] = HAB_MSG_HDR(BAOB_eAcquire, 8, BAOB_CORE_TYPE, BAOB_CORE_ID );
+    uint8_t buf[13] = HAB_MSG_HDR(BAOB_eAcquire, 8, BAOB_CORE_TYPE, BAOB_CORE_ID );
 #else
     uint8_t buf[5] = HAB_MSG_HDR(BAOB_eAcquire, 0, BAOB_CORE_TYPE, BAOB_CORE_ID );
 #endif
@@ -437,11 +437,11 @@ BERR_Code BAOB_Acquire(
     {
         /* Acquire */
 #if BAOB_CHIP==3158
-		buf[8] = obParams->frequency >> 24;
-		buf[9] = obParams->frequency >> 16;
-		buf[10] = obParams->frequency >> 8;
-		buf[11] = obParams->frequency;
-		CHK_RETCODE(retCode, BHAB_SendHabCommand(hDev->hHab, buf, 13, buf, 0, false, true, 13 ));
+        buf[8] = obParams->frequency >> 24;
+        buf[9] = obParams->frequency >> 16;
+        buf[10] = obParams->frequency >> 8;
+        buf[11] = obParams->frequency;
+        CHK_RETCODE(retCode, BHAB_SendHabCommand(hDev->hHab, buf, 13, buf, 0, false, true, 13 ));
 #else
         CHK_RETCODE(retCode, BHAB_SendHabCommand(hDev->hHab, buf, 5, buf, 0, false, true, 5 ));
 #endif
@@ -471,7 +471,7 @@ BERR_Code BAOB_GetAsyncStatus(
     )
 {
     BERR_Code retCode = BERR_SUCCESS;
-    uint8_t buf[66] = HAB_MSG_HDR(BAOB_eGetStatus, 0, BAOB_CORE_TYPE, BAOB_CORE_ID );
+    uint8_t buf[101] = HAB_MSG_HDR(BAOB_eGetStatus, 0, BAOB_CORE_TYPE, BAOB_CORE_ID );
 
     BDBG_ENTER(BAOB_GetAsyncStatus);
     BDBG_ASSERT( hDev );
@@ -486,7 +486,7 @@ BERR_Code BAOB_GetAsyncStatus(
     }
     else
     {
-        CHK_RETCODE(retCode, BHAB_SendHabCommand(hDev->hHab, buf, 5, buf, 65, false, true, 65));
+        CHK_RETCODE(retCode, BHAB_SendHabCommand(hDev->hHab, buf, 5, buf, 101, false, true, 101));
 
         /* Populate the status structure here. */
         pStatus->modType = ((buf[5] & 0x8) >> 3) ? BAOB_ModulationType_eDvs167Qpsk : BAOB_ModulationType_eDvs178Qpsk;
@@ -644,7 +644,7 @@ BERR_Code BAOB_GetSoftDecision(
         CHK_RETCODE(retCode, BHAB_SendHabCommand(hDev->hHab, buf, 5, buf, 0x41, false, true, 0x41));
 
         for (i = 0; i < 30 && i < nbrToGet; i++)
-		{
+        {
             iVal[i] = buf[4+(2*i)] & 0xFF;
             qVal[i] = buf[5+(2*i)] & 0xFF;
         }
@@ -736,7 +736,7 @@ BERR_Code BAOB_ProcessNotification(
             }
             break;
         default:
-            BDBG_WRN((" unknown event code from 3128 %x",event_code ));
+            BDBG_WRN((" unknown event code from 3158 %x",event_code ));
             break;
     }
 

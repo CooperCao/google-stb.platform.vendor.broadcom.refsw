@@ -73,16 +73,13 @@ NEXUS_SECURITY_PUBLIC_INCLUDES = $(NEXUS_TOP)/modules/security/include
 # Module Sources #
 ##################
 ifneq ($(HSM_SOURCE_AVAILABLE),n)
-  ifeq ($(filter $(CORETECH), core65nmASKM core65nm), $(CORETECH))
-    NEXUS_SECURITY_SOURCES := $(NEXUS_TOP)/modules/security/src/nexus_security_65nm.c
-  else
     NEXUS_SECURITY_SOURCES := $(NEXUS_TOP)/modules/security/src/nexus_security.c
-  endif
   NEXUS_SECURITY_SOURCES += $(NEXUS_TOP)/modules/security/src/nexus_security_misc.c
   ifeq ($(filter $(CORETECH), core40nm core28nm ),$(CORETECH))
     NEXUS_SECURITY_SOURCES += $(NEXUS_TOP)/modules/security/src/nexus_security_regver.c
     NEXUS_SECURITY_FW_SIGN := y
   endif
+    NEXUS_SECURITY_SOURCES += $(NEXUS_TOP)/modules/security/src/nexus_region_verification.c
 endif
 
 ifeq ($(NEXUS_SECURITY_FW_SIGN),y)
@@ -111,7 +108,6 @@ NEXUS_SECURITY_DEPENDENCIES := BASE CORE TRANSPORT
 ##################
 # Magnum Modules #
 ##################
-CUST ?= GENERIC3A
 BHSM_OTPMSP ?=OFF
 BHSM_IPTV ?=OFF
 BHSM_SECURE_RSA ?=OFF
@@ -123,17 +119,15 @@ BHSM_GEN_ROOT_KEY ?=OFF
 BHSM_NSKCMD ?=OFF
 BHSM_SECURE_PKL ?=OFF
 AVKEYLADDER_SUPPORT ?= n
+KEYLADDER_SUPPORT ?=y
+BSECKCMD_SUPPORT  ?=y
+NEXUS_COMMON_CRYPTO_SUPPORT ?=y
 
 
 NEXUS_SECURITY_MAGNUM_MODULES = $(MAGNUM)/portinginterface/hsm/bhsm.inc
 
 NEXUS_SECURITY_DEFINES += NEXUS_SECURITY_ZEUS_VERSION_MAJOR=$(NEXUS_SECURITY_ZEUS_VERSION_MAJOR)
 NEXUS_SECURITY_DEFINES += NEXUS_SECURITY_ZEUS_VERSION_MINOR=$(NEXUS_SECURITY_ZEUS_VERSION_MINOR)
-
-ifeq ($(filter $(CORETECH), core65nmASKM core40nm core28nm), $(CORETECH))
-    # Make these default for 65-nm ASKM, 40-nm, and 26-nm chips
-    NEXUS_SECURITY_DEFINES += NEXUS_SECURITY_EXT_KEY_IV
-endif
 
 ifeq ($(MSDRM_PD_SUPPORT),y)
     NEXUS_SECURITY_DEFINES += MSDRM_PD_SUPPORT=1
@@ -143,16 +137,16 @@ ifeq ($(BSP_DS2_KEY_ROUTING),ON)
     NEXUS_SECURITY_DEFINES += NEXUS_SECURITY_DS2_ROUTING
 endif
 
-ifeq ($(BSP_M2M_EXT_KEY_IV_SUPPORT),ON)
-    NEXUS_SECURITY_DEFINES += NEXUS_SECURITY_EXT_KEY_IV
-endif
-
 ifeq ($(NEXUS_REGION_VERIFICATION_DUMP_FIRMWARE),y)
     NEXUS_SECURITY_DEFINES += NEXUS_REGION_VERIFICATION_DUMP_FIRMWARE=1
 endif
+
 ifeq ($(NEXUS_REGION_VERIFICATION_DUMP_FIRMWARE_RAW),y)
     NEXUS_SECURITY_DEFINES += NEXUS_REGION_VERIFICATION_DUMP_FIRMWARE_RAW=1
 endif
+
+NEXUS_SECURITY_DEFINES += NEXUS_SECURITY_HAS_ASKM=1
+NEXUS_SECURITY_DEFINES += NEXUS_SECURITY_EXT_KEY_IV
 
 #####################
 # Module Extensions #
@@ -169,12 +163,6 @@ else
     SEC_OBJ_EXT := lo
 endif
 
-
-ifeq ($(filter $(CORETECH), core65nmASKM core40nm core28nm ),$(CORETECH))
-    NEXUS_SECURITY_DEFINES += NEXUS_SECURITY_HAS_ASKM=1
-    #$(warning NEXUS_SECURITY_DEFINES += NEXUS_SECURITY_HAS_ASKM=1)
-endif
-
 ifeq ($(CORETECH),core28nm)
     NEXUS_SECURITY_DEFINES += NEXUS_SECURITY_CHIP_SIZE=28
     #$(warning NEXUS_SECURITY_DEFINES += NEXUS_SECURITY_CHIP_SIZE=28)
@@ -182,11 +170,6 @@ else
     ifeq ($(CORETECH),core40nm)
         NEXUS_SECURITY_DEFINES += NEXUS_SECURITY_CHIP_SIZE=40
         #$(warning NEXUS_SECURITY_DEFINES += NEXUS_SECURITY_CHIP_SIZE=40)
-    else
-        ifeq ($(CORETECH),core65nmASKM)
-            NEXUS_SECURITY_DEFINES += NEXUS_SECURITY_CHIP_SIZE=65
-            #$(warning NEXUS_SECURITY_DEFINES += NEXUS_SECURITY_CHIP_SIZE=65)
-        endif
     endif
 endif
 
@@ -229,38 +212,6 @@ endif  ##($(NEXUS_EXTRA_SECLIBS_FILES),)
 # has to also be able to take care of libnexus_security build (HSM_SOURCE_AVAILABLE = n)
 # In this case only include the module if the PI component of the module is in libnexus_security archive.
 
-ifeq ($(KEYLADDER_SUPPORT),)
-    ifeq ($(HSM_SOURCE_AVAILABLE),n)
-        AR_OUT := $(shell ar t ${NEXUS_EXTRALIBS} bhsm_keyladder_enc.${SEC_OBJ_EXT} 2>/dev/null)
-        KEYLADDER_SUPPORT := $(shell test -e ${NEXUS_SECURITY_EXTENSION}/keyladder/keyladder_ext.inc && test "${AR_OUT}" = "bhsm_keyladder_enc.${SEC_OBJ_EXT}" && echo y)
-        #$(warning NEXUS_SECURITY_EXT is  $(NEXUS_SECURITY_EXTENSION))
-        #$(warning NEXUS_EXTRALIBS is $(NEXUS_EXTRALIBS) AR_OUT is $(AR_OUT) KEYLADDER_SUPPORT is $(KEYLADDER_SUPPORT))
-    else
-        ifeq ($(filter $(CORETECH), core65nm core65nmASKM), $(CORETECH))
-            KEYLADDER_SUPPORT := $(shell test -e ${NEXUS_SECURITY_EXTENSION}/keyladder/keyladder_ext.inc && test -e ${BHSM_SRC}/${CORETECH}/keyladder/bhsm_keyladder_enc.c && echo y)
-        else
-            KEYLADDER_SUPPORT := $(shell test -e ${NEXUS_SECURITY_EXTENSION}/keyladder/keyladder_ext.inc && test -e ${BHSM_SRC}/keyladder/bhsm_keyladder_enc.c && echo y)
-        endif
-    endif
-endif
-
-ifeq ($(filter $(CORETECH), core65nm core65nmASKM), $(CORETECH))
-    CHIP_GEOMETRY := 65nm
-    ifeq (${KEYLADDER_SUPPORT}, y)
-        NEXUS_COMMON_CRYPTO_SUPPORT ?=y
-    endif
-    SECUREACCESS_SUPPORT =?n
-else
-    NEXUS_COMMON_CRYPTO_SUPPORT ?=y
-    ifeq ($(CORETECH),core40nm)
-        CHIP_GEOMETRY := 40nm
-    else
-        ifeq ($(CORETECH),core28nm)
-            CHIP_GEOMETRY := 40nm
-            ## TODO ... 28nm is still mapped to 40nm
-        endif
-    endif
-endif
 
 ifeq ($(OTPMSP_SUPPORT),)
     ifeq ($(HSM_SOURCE_AVAILABLE),n)
@@ -268,11 +219,7 @@ ifeq ($(OTPMSP_SUPPORT),)
         OTPMSP_SUPPORT := $(shell test -e ${NEXUS_SECURITY_EXTENSION}/otpmsp/otpmsp_ext.inc && test "${AR_OUT}" = "bhsm_otpmsp.${SEC_OBJ_EXT}" && echo y)
         #$(warning $(AR_OUT) $(OTPMSP_SUPPORT))
     else
-        ifeq ($(filter $(CORETECH), core65nm core65nmASKM), $(CORETECH))
-            OTPMSP_SUPPORT := $(shell test -e ${NEXUS_SECURITY_EXTENSION}/otpmsp/otpmsp_ext.inc && test -e ${BHSM_SRC}/${CORETECH}/otpmsp/bhsm_otpmsp.c && echo y)
-        else
-            OTPMSP_SUPPORT := $(shell test -e ${NEXUS_SECURITY_EXTENSION}/otpmsp/otpmsp_ext.inc && test -e ${BHSM_SRC}/otpmsp/bhsm_otpmsp.c && echo y)
-        endif
+        OTPMSP_SUPPORT :=y
     endif
 endif
 
@@ -282,13 +229,7 @@ ifeq ($(OTPID_SUPPORT),)
         OTPID_SUPPORT := $(shell test -e ${NEXUS_SECURITY_EXTENSION}/otp_id/otp_id_ext.inc && test "${AR_OUT}" = "bhsm_otp_id.${SEC_OBJ_EXT}" && echo y)
         #$(warning $(AR_OUT) OTPID_SUPPORT [$(OTPID_SUPPORT)] )
     else
-        ifeq ($(filter $(CORETECH), core65nm core65nmASKM), $(CORETECH))
-            OTPID_SUPPORT := $(shell test -e ${NEXUS_SECURITY_EXTENSION}/otp_id/otp_id_ext.inc && test -e ${BHSM_SRC}/${CORETECH}/common/bhsm_otp_id.c && echo y)
-            #$(warning $(AR_OUT) OTPID_SUPPORT [$(OTPID_SUPPORT)] )
-        else
-            OTPID_SUPPORT := $(shell test -e ${NEXUS_SECURITY_EXTENSION}/otp_id/otp_id_ext.inc && test -e ${BHSM_SRC}/common/bhsm_otp_id.c && echo y)
-            #$(warning $(AR_OUT) OTPID_SUPPORT [$(OTPID_SUPPORT)] )
-        endif
+        OTPID_SUPPORT :=y
     endif
 endif
 
@@ -299,7 +240,7 @@ ifeq ($(ZEUSVER),Zeus42)
             OTPKEY_SUPPORT := $(shell test -e ${NEXUS_SECURITY_EXTENSION}/otp_key/otp_key.inc && test "${AR_OUT}" = "bhsm_otp_key.${SEC_OBJ_EXT}" && echo y)
             $(warning $(AR_OUT) $(OTPKEY_SUPPORT))
         else
-            OTPKEY_SUPPORT := $(shell test -e ${BHSM_SRC}/common/bhsm_otp_key.c && echo y)
+            OTPKEY_SUPPORT:=y
         endif
     endif
 else
@@ -314,11 +255,7 @@ ifeq ($(AEGIS_USERCMD_SUPPORT),)
                                 && echo y)
         #$(warning $(AR_OUT) AEGIS_USERCMD_SUPPORT[$(AEGIS_USERCMD_SUPPORT)] )
     else
-        AEGIS_USERCMD_SUPPORT := $(shell test -e ${NEXUS_SECURITY_EXTENSION}/usercmd/usercmd_ext.inc \
-                                && test -e ${NEXUS_SECURITY_EXTENSION}/usercmd/src/${CHIP_GEOMETRY}/nexus_hmac_sha_cmd.c \
-                                && test -e ${NEXUS_SECURITY_EXTENSION}/usercmd/src/${CHIP_GEOMETRY}/nexus_random_number.c \
-                                && echo y)
-        #$(warning $(AR_OUT) AEGIS_USERCMD_SUPPORT[$(AEGIS_USERCMD_SUPPORT)] )
+        AEGIS_USERCMD_SUPPORT:=y
     endif
 endif
 
@@ -329,11 +266,7 @@ ifeq ($(SECUREACCESS_SUPPORT),)
         SECUREACCESS_SUPPORT := $(shell test -e ${NEXUS_SECURITY_EXTENSION}/secureaccess/secureaccess_ext.inc && test "${AR_OUT}" = "bhsm_secure_access.${SEC_OBJ_EXT}" && echo y)
         #$(warning $(AR_OUT) $(SECUREACCESS_SUPPORT))
     else
-        ifeq ($(filter $(CORETECH), core65nm core65nmASKM), $(CORETECH))
-            SECUREACCESS_SUPPORT := $(shell test -e ${NEXUS_SECURITY_EXTENSION}/secureaccess/secureaccess_ext.inc && test -e ${BHSM_SRC}/${CORETECH}/secure_access/bhsm_secure_access.c && echo y)
-        else
-            SECUREACCESS_SUPPORT := $(shell test -e ${NEXUS_SECURITY_EXTENSION}/secureaccess/secureaccess_ext.inc && test -e ${BHSM_SRC}/secure_access/bhsm_secure_access.c && echo y)
-        endif
+        SECUREACCESS_SUPPORT := $(shell test -e ${NEXUS_SECURITY_EXTENSION}/secureaccess/secureaccess_ext.inc && test -e ${BHSM_SRC}/secure_access/bhsm_secure_access.c && echo y)
     endif
 endif
 
@@ -343,11 +276,7 @@ ifeq ($(SECURERSA_SUPPORT),)
         SECURERSA_SUPPORT := $(shell test -e ${NEXUS_SECURITY_EXTENSION}/securersa/securersa_ext.inc && test "${AR_OUT}" = "bhsm_secure_rsa.${SEC_OBJ_EXT}" && echo y)
         #$(warning $(AR_OUT) $(SECURERSA_SUPPORT))
     else
-        ifeq ($(filter $(CORETECH), core65nm core65nmASKM), $(CORETECH))
-            SECURERSA_SUPPORT := $(shell test -e ${NEXUS_SECURITY_EXTENSION}/securersa/securersa_ext.inc && test -e ${BHSM_SRC}/${CORETECH}/secure_rsa/bhsm_secure_rsa.c && echo y)
-        else
-            SECURERSA_SUPPORT := $(shell test -e ${NEXUS_SECURITY_EXTENSION}/securersa/securersa_ext.inc && test -e ${BHSM_SRC}/secure_rsa/bhsm_secure_rsa.c && echo y)
-        endif
+        SECURERSA_SUPPORT := $(shell test -e ${NEXUS_SECURITY_EXTENSION}/securersa/securersa_ext.inc && test -e ${BHSM_SRC}/secure_rsa/bhsm_secure_rsa.c && echo y)
     endif
 endif
 
@@ -357,9 +286,7 @@ ifeq ($(SECURERAWCMD_SUPPORT),)
         SECURERAWCMD_SUPPORT := $(shell test -e ${NEXUS_SECURITY_EXTENSION}/rawcommand/rawcmd_ext.inc && test "${AR_OUT}" = "nexus_security_rawcommand.${SEC_OBJ_EXT}" && echo y)
         #$(warning $(AR_OUT) $(SECURERAWCMD_SUPPORT))
     else
-        SECURERAWCMD_SUPPORT := $(shell test -e ${NEXUS_SECURITY_EXTENSION}/rawcommand/rawcmd_ext.inc \
-                                  && test -e ${NEXUS_SECURITY_EXTENSION}/rawcommand/src/nexus_security_rawcommand.c \
-                                  && echo y)
+        SECURERAWCMD_SUPPORT :=y
     endif
 endif
 
@@ -369,11 +296,7 @@ ifeq ($(IPLICENSING_SUPPORT),)
         IPLICENSING_SUPPORT := $(shell test -e ${NEXUS_SECURITY_EXTENSION}/iplicensing/iplicensing_ext.inc && test "${AR_OUT}" = "bhsm_ip_licensing.${SEC_OBJ_EXT}" && echo y)
         #$(warning $(AR_OUT) $(IPLICENSING_SUPPORT))
     else
-        ifeq ($(filter $(CORETECH), core65nm core65nmASKM), $(CORETECH))
-            IPLICENSING_SUPPORT := $(shell test -e ${NEXUS_SECURITY_EXTENSION}/iplicensing/iplicensing_ext.inc && test -e ${BHSM_SRC}/${CORETECH}/ip_licensing/bhsm_ip_licensing.c && echo y)
-        else
-            IPLICENSING_SUPPORT := $(shell test -e ${BHSM_SRC}/ip_licensing/bhsm_ip_licensing.c && echo y)
-        endif
+        IPLICENSING_SUPPORT := $(shell test -e ${BHSM_SRC}/ip_licensing/bhsm_ip_licensing.c && echo y)
     endif
 endif
 
@@ -383,27 +306,19 @@ ifeq ($(AVKEYLADDER_SUPPORT),)
         AVKEYLADDER_SUPPORT := $(shell test -e ${NEXUS_SECURITY_EXTENSION}/avkeyladder/avkeyladder_ext.inc && test "${AR_OUT}" = "bhsm_avcmd.${SEC_OBJ_EXT}" && echo y)
         #$(warning $(AR_OUT) $(AVKEYLADDER_SUPPORT))
     else
-        ifeq ($(filter $(CORETECH), core65nm core65nmASKM), $(CORETECH))
-            AVKEYLADDER_SUPPORT := $(shell test -e ${NEXUS_SECURITY_EXTENSION}/avkeyladder/avkeyladder_ext.inc && test -e ${BHSM_SRC}/${CORETECH}/av_cmd/bhsm_avcmd.c && echo y)
-        else
-            AVKEYLADDER_SUPPORT := $(shell test -e ${NEXUS_SECURITY_EXTENSION}/avkeyladder/avkeyladder_ext.inc && test -e ${BHSM_SRC}/av_cmd/bhsm_avcmd.c && echo y)
-        endif
+        AVKEYLADDER_SUPPORT := $(shell test -e ${NEXUS_SECURITY_EXTENSION}/avkeyladder/avkeyladder_ext.inc && test -e ${BHSM_SRC}/av_cmd/bhsm_avcmd.c && echo y)
     endif
 endif
 
-ifeq ($(BSECKCMD_SUPPORT),)
-    ifeq ($(HSM_SOURCE_AVAILABLE),n)
-        AR_OUT := $(shell ar t ${NEXUS_EXTRALIBS} bhsm_bseck.${SEC_OBJ_EXT} 2>/dev/null)
-        BSECKCMD_SUPPORT := $(shell test -e ${NEXUS_SECURITY_EXTENSION}/bseckcmd/bseckcmd_ext.inc && test "${AR_OUT}" = "bhsm_bseck.${SEC_OBJ_EXT}" && echo y)
-        #$(warning $(AR_OUT) $(BSECKCMD_SUPPORT))
-    else
-        ifeq ($(filter $(CORETECH), core65nm core65nmASKM), $(CORETECH))
-            BSECKCMD_SUPPORT := $(shell test -e ${NEXUS_SECURITY_EXTENSION}/bseckcmd/bseckcmd_ext.inc && test -e ${BHSM_SRC}/${CORETECH}/bseck_cmd/bhsm_bseck.c && echo y)
-        else
-            BSECKCMD_SUPPORT := $(shell test -e ${NEXUS_SECURITY_EXTENSION}/bseckcmd/bseckcmd_ext.inc && test -e ${BHSM_SRC}/bseck_cmd/bhsm_bseck.c && echo y)
-        endif
-    endif
-endif
+# ifeq ($(BSECKCMD_SUPPORT),)
+#    ifeq ($(HSM_SOURCE_AVAILABLE),n)
+#        AR_OUT := $(shell ar t ${NEXUS_EXTRALIBS} bhsm_bseck.${SEC_OBJ_EXT} 2>/dev/null)
+#        BSECKCMD_SUPPORT := $(shell test -e ${NEXUS_SECURITY_EXTENSION}/bseckcmd/bseckcmd_ext.inc && test "${AR_OUT}" = "bhsm_bseck.${SEC_OBJ_EXT}" && echo y)
+#        #$(warning $(AR_OUT) $(BSECKCMD_SUPPORT))
+#    else
+#        BSECKCMD_SUPPORT:=y
+#    endif
+# endif
 
 ifeq ($(SECURITY_MSIPTV_SUPPORT),)
     ifeq ($(HSM_SOURCE_AVAILABLE),n)
@@ -411,11 +326,7 @@ ifeq ($(SECURITY_MSIPTV_SUPPORT),)
         SECURITY_MSIPTV_SUPPORT := $(shell test -e ${NEXUS_SECURITY_EXTENSION}/msiptv/msiptv_ext.inc && test "${AR_OUT}" = "bhsm_iptv.${SEC_OBJ_EXT}" && echo y)
         #$(warning $(AR_OUT) $(SECURITY_MSIPTV_SUPPORT))
     else
-        ifeq ($(filter $(CORETECH), core65nm core65nmASKM), $(CORETECH))
-            SECURITY_MSIPTV_SUPPORT := $(shell test -e ${NEXUS_SECURITY_EXTENSION}/msiptv/msiptv_ext.inc && test -e ${BHSM_SRC}/${CORETECH}/iptv/bhsm_iptv.c && echo y)
-        else
-            SECURITY_MSIPTV_SUPPORT := $(shell test -e ${NEXUS_SECURITY_EXTENSION}/msiptv/msiptv_ext.inc && test -e ${BHSM_SRC}/msiptv/bhsm_iptv.c && test -e ${BSP_INCLUDE}/bsp_s_msiptv.h && echo y)
-        endif
+        SECURITY_MSIPTV_SUPPORT := $(shell test -e ${NEXUS_SECURITY_EXTENSION}/msiptv/msiptv_ext.inc && test -e ${BHSM_SRC}/msiptv/bhsm_iptv.c && test -e ${BSP_INCLUDE}/bsp_s_msiptv.h && echo y)
     endif
 endif
 
@@ -425,11 +336,7 @@ ifeq ($(GENROOTKEY_SUPPORT),)
         GENROOTKEY_SUPPORT := $(shell test -e ${NEXUS_SECURITY_EXTENSION}/genrootkey/genrootkey_ext.inc && test "${AR_OUT}" = "bhsm_gen_root_key.${SEC_OBJ_EXT}" && echo y)
         #$(warning $(AR_OUT) $(GENROOTKEY_SUPPORT))
     else
-        ifeq ($(filter $(CORETECH), core65nm core65nmASKM), $(CORETECH))
-            GENROOTKEY_SUPPORT := $(shell test -e ${NEXUS_SECURITY_EXTENSION}/genrootkey/genrootkey_ext.inc && test -e ${BHSM_SRC}/${CORETECH}/gen_root_key/bhsm_gen_root_key.c && echo y)
-        else
-            GENROOTKEY_SUPPORT := $(shell test -e ${NEXUS_SECURITY_EXTENSION}/genrootkey/genrootkey_ext.inc && test -e ${BHSM_SRC}/gen_root_key/bhsm_gen_root_key.c && echo y)
-        endif
+        GENROOTKEY_SUPPORT := $(shell test -e ${NEXUS_SECURITY_EXTENSION}/genrootkey/genrootkey_ext.inc && test -e ${BHSM_SRC}/gen_root_key/bhsm_gen_root_key.c && echo y)
     endif
 endif
 
@@ -439,11 +346,7 @@ ifeq ($(SECUREPKL_SUPPORT),)
         SECUREPKL_SUPPORT := $(shell test -e ${NEXUS_SECURITY_EXTENSION}/securepkl/securepkl_ext.inc && test "${AR_OUT}" = "bhsm_secure_pkl.${SEC_OBJ_EXT}" && echo y)
         #$(warning $(AR_OUT) $(SECUREPKL_SUPPORT))
     else
-        ifeq ($(filter $(CORETECH), core65nm core65nmASKM), $(CORETECH))
-            SECUREPKL_SUPPORT := $(shell test -e ${NEXUS_SECURITY_EXTENSION}/securepkl/securepkl_ext.inc && test -e ${BHSM_SRC}/${CORETECH}/secure_pkl/bhsm_secure_pkl.c && echo y)
-        else
-            SECUREPKL_SUPPORT := $(shell test -e ${NEXUS_SECURITY_EXTENSION}/securepkl/securepkl_ext.inc && test -e ${BHSM_SRC}/secure_pkl/bhsm_secure_pkl.c && echo y)
-        endif
+        SECUREPKL_SUPPORT := $(shell test -e ${NEXUS_SECURITY_EXTENSION}/securepkl/securepkl_ext.inc && test -e ${BHSM_SRC}/secure_pkl/bhsm_secure_pkl.c && echo y)
     endif
 endif
 
@@ -586,7 +489,7 @@ ifeq ($(HSM_SOURCE_AVAILABLE),n)
 endif
 
 ifeq ($(NEXUS_COMMON_CRYPTO_SUPPORT), y)
-include $(BSEAV)/lib/security/common_crypto/common_crypto.inc
-NEXUS_SECURITY_PRIVATE_INCLUDES += $(COMMON_CRYPTO_INCLUDES)
-NEXUS_SECURITY_SOURCES += $(COMMON_CRYPTO_SOURCES)
+    include $(BSEAV)/lib/security/common_crypto/common_crypto.inc
+    NEXUS_SECURITY_PRIVATE_INCLUDES += $(COMMON_CRYPTO_INCLUDES)
+    NEXUS_SECURITY_SOURCES += $(COMMON_CRYPTO_SOURCES)
 endif

@@ -1,15 +1,8 @@
 /*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
+Broadcom Proprietary and Confidential. (c)2016 Broadcom.
 All rights reserved.
-
-Project  :  helpers
-Module   :
-
-FILE DESCRIPTION
 =============================================================================*/
-
-#ifndef GFX_LFMT_TRANSLATE_V3D_H
-#define GFX_LFMT_TRANSLATE_V3D_H
+#pragma once
 
 #include "lfmt.h"
 #include "libs/core/v3d/v3d_common.h"
@@ -31,7 +24,7 @@ extern GFX_LFMT_T gfx_lfmt_translate_from_tfu_iformat(
 extern GFX_LFMT_T gfx_lfmt_translate_from_tfu_oformat(
    v3d_tfu_oformat_t tfu_oformat);
 
-/** TLB pixel format (for color buffers) */
+/** TLB pixel format */
 
 /* These only pay attention to format, ignoring premultipliedness */
 extern v3d_pixel_format_t gfx_lfmt_maybe_translate_pixel_format(GFX_LFMT_T lfmt);
@@ -44,6 +37,7 @@ extern GFX_LFMT_T gfx_lfmt_translate_from_pixel_format(v3d_pixel_format_t pixel_
 static inline GFX_LFMT_T gfx_lfmt_translate_from_memory_pixel_format_and_flipy(
    v3d_memory_format_t memory_format, v3d_pixel_format_t pixel_format, bool flipy)
 {
+   assert(v3d_memory_and_pixel_formats_compatible(memory_format, pixel_format));
    GFX_LFMT_T lfmt = gfx_lfmt_set_format(
       gfx_lfmt_translate_from_memory_format(memory_format),
       gfx_lfmt_translate_from_pixel_format(pixel_format));
@@ -54,6 +48,8 @@ static inline GFX_LFMT_T gfx_lfmt_translate_from_memory_pixel_format_and_flipy(
    }
    return lfmt;
 }
+
+#if !V3D_HAS_NEW_TLB_CFG
 
 /* Returns dims & format */
 extern GFX_LFMT_T gfx_lfmt_translate_internal_raw_mode(GFX_LFMT_T lfmt);
@@ -67,7 +63,6 @@ extern GFX_LFMT_T gfx_lfmt_translate_internal_raw_mode(GFX_LFMT_T lfmt);
 /* These only pay attention to format */
 extern v3d_depth_format_t gfx_lfmt_maybe_translate_depth_format(GFX_LFMT_T lfmt);
 extern v3d_depth_format_t gfx_lfmt_translate_depth_format(GFX_LFMT_T lfmt);
-extern v3d_depth_type_t gfx_lfmt_translate_depth_type(GFX_LFMT_T lfmt);
 
 /* Returns just format */
 extern GFX_LFMT_T gfx_lfmt_translate_from_depth_format(v3d_depth_format_t depth_format);
@@ -80,6 +75,12 @@ static inline GFX_LFMT_T gfx_lfmt_translate_from_memory_and_depth_format(
       gfx_lfmt_translate_from_memory_format(memory_format),
       gfx_lfmt_translate_from_depth_format(depth_format));
 }
+
+#endif
+
+/** TLB internal depth type */
+
+extern v3d_depth_type_t gfx_lfmt_translate_depth_type(GFX_LFMT_T lfmt);
 
 /** TMU */
 
@@ -124,28 +125,23 @@ typedef struct
 /* These only pay attention to format, ignoring premultipliedness.
  * false is returned on failure. */
 extern bool gfx_lfmt_maybe_translate_tmu(GFX_LFMT_TMU_TRANSLATION_T *t,
-   GFX_LFMT_T lfmt, gfx_lfmt_tmu_depth_pref_t depth_pref,
-   int v3d_version);
+   GFX_LFMT_T lfmt, gfx_lfmt_tmu_depth_pref_t depth_pref);
 extern void gfx_lfmt_translate_tmu(GFX_LFMT_TMU_TRANSLATION_T *t,
-   GFX_LFMT_T lfmt, gfx_lfmt_tmu_depth_pref_t depth_pref,
-   int v3d_version);
+   GFX_LFMT_T lfmt, gfx_lfmt_tmu_depth_pref_t depth_pref);
 
 /* Returns just format */
-extern GFX_LFMT_T gfx_lfmt_translate_from_tmu_type(
-   v3d_tmu_type_t tmu_type, bool srgb, int v3d_version);
+extern GFX_LFMT_T gfx_lfmt_translate_from_tmu_type(v3d_tmu_type_t tmu_type, bool srgb);
 
 /* Returns just dims */
 extern GFX_LFMT_DIMS_T gfx_lfmt_translate_from_tmu_ltype(v3d_tmu_ltype_t ltype);
 
 /* Returns dims and format */
 static inline GFX_LFMT_T gfx_lfmt_translate_from_tmu_type_and_ltype(
-   v3d_tmu_type_t tmu_type, bool srgb, v3d_tmu_ltype_t ltype, int v3d_version)
+   v3d_tmu_type_t tmu_type, bool srgb, v3d_tmu_ltype_t ltype)
 {
    GFX_LFMT_T dims_only = GFX_LFMT_NONE;
    gfx_lfmt_set_dims(&dims_only, gfx_lfmt_translate_from_tmu_ltype(ltype));
-   return gfx_lfmt_set_format(
-      dims_only,
-      gfx_lfmt_translate_from_tmu_type(tmu_type, srgb, v3d_version));
+   return gfx_lfmt_set_format(dims_only, gfx_lfmt_translate_from_tmu_type(tmu_type, srgb));
 }
 
 /** TFU */
@@ -153,8 +149,7 @@ static inline GFX_LFMT_T gfx_lfmt_translate_from_tmu_type_and_ltype(
 /* Returns just formats */
 extern void gfx_lfmt_translate_from_tfu_type(
    GFX_LFMT_T *fmts, uint32_t *num_planes, v3d_tfu_yuv_col_space_t *yuv_col_space,
-   v3d_tfu_type_t tfu_type, v3d_tfu_rgbord_t rgbord, bool srgb, int v3d_version,
-   bool is_sand);
+   v3d_tfu_type_t tfu_type, v3d_tfu_rgbord_t rgbord, bool srgb, bool is_sand);
 
 /* Pays attention to format *and layout*
  * Returns false on failure to translate */
@@ -162,14 +157,12 @@ extern bool gfx_lfmt_maybe_translate_to_tfu_type(
    v3d_tfu_type_t *tfu_type, bool *srgb, v3d_tfu_rgbord_t *rgbord,
    const GFX_LFMT_T *src_lfmts, uint32_t src_num_planes,
    v3d_tfu_yuv_col_space_t src_yuv_col_space, /* Ignored if src not YUV. TODO Should this be in lfmt? */
-   GFX_LFMT_T dst_lfmt, int v3d_version);
+   GFX_LFMT_T dst_lfmt);
 
 extern void gfx_lfmt_translate_to_tfu_type(
    v3d_tfu_type_t *tfu_type, bool *srgb, v3d_tfu_rgbord_t *rgbord,
    const GFX_LFMT_T *src_lfmts, uint32_t src_num_planes,
    v3d_tfu_yuv_col_space_t src_yuv_col_space, /* Ignored if src not YUV */
-   GFX_LFMT_T dst_lfmt, int v3d_version);
+   GFX_LFMT_T dst_lfmt);
 
 VCOS_EXTERN_C_END
-
-#endif

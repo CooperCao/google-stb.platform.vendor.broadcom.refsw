@@ -44,17 +44,19 @@
  * This module was generated magically with RDB from a source description
  * file. You must edit the source file for changes to be made to this file.
  *
+ * The launch point for all information concerning RDB is found at:
+ *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Wed Mar  2 16:01:10 2016
- *                 Full Compile MD5 Checksum  4b84f30a4b3665aac5b824a1ed76e56c
+ * Date:           Generated on               Thu Jun 23 18:55:21 2016
+ *                 Full Compile MD5 Checksum  726d365438fe88693b6f0a492958face
  *                     (minus title and desc)
- *                 MD5 Checksum               4894bba0ec078aee10b5b5954262d56e
+ *                 MD5 Checksum               942083b46396c70655d90e546c008796
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     827
+ *                 RDB.pm                     1048
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
  *                 Script Source              /home/pntruong/sbin/combo_header.pl
  *                 DVTSWVER                   n/a
@@ -70,14 +72,14 @@
  ***************************************************************************/
 #define BCHP_PHYSICAL_OFFSET                               0x00000000
 #define BCHP_REGISTER_START                                0x00000000 /* LEAP_ROM is first */
-#define BCHP_REGISTER_END                                  0x04403800 /* DEMOD_XPT_FE is last */
-#define BCHP_REGISTER_SIZE                                 0x01100e00 /* Number of registers */
+#define BCHP_REGISTER_END                                  0x04500040 /* MTAP_CONTROL is last */
+#define BCHP_REGISTER_SIZE                                 0x01140010 /* Number of registers */
 
 /****************************************************************************
  * Core instance register start address.
  ***************************************************************************/
 #define BCHP_LEAP_ROM_REG_START                            0x00000000
-#define BCHP_LEAP_ROM_REG_END                              0x00007ffc
+#define BCHP_LEAP_ROM_REG_END                              0x00008ffc
 #define BCHP_LEAP_PROG0_MEM_REG_START                      0x00020000
 #define BCHP_LEAP_PROG0_MEM_REG_END                        0x0003fffc
 #define BCHP_LEAP_PROG1_MEM_REG_START                      0x00040000
@@ -197,11 +199,11 @@
 #define BCHP_CLKGEN_REG_START                              0x04128000
 #define BCHP_CLKGEN_REG_END                                0x041280f8
 #define BCHP_AIF_WB_CAB_CORE_REG_START                     0x04200000
-#define BCHP_AIF_WB_CAB_CORE_REG_END                       0x042005c4
+#define BCHP_AIF_WB_CAB_CORE_REG_END                       0x04200600
 #define BCHP_AIF_WB_CAB_CORE_INTR2_REG_START               0x04200800
 #define BCHP_AIF_WB_CAB_CORE_INTR2_REG_END                 0x0420082c
 #define BCHP_AIF_WB_CAB_ANA_REG_START                      0x04201000
-#define BCHP_AIF_WB_CAB_ANA_REG_END                        0x042010c0
+#define BCHP_AIF_WB_CAB_ANA_REG_END                        0x042010bc
 #define BCHP_DS_A_MICRO_REG_START                          0x04300000
 #define BCHP_DS_A_MICRO_REG_END                            0x04300020
 #define BCHP_DS_A_TOPS_REG_START                           0x04300100
@@ -253,7 +255,7 @@
 #define BCHP_DS_A_00_FFT_REG_START                         0x04321000
 #define BCHP_DS_A_00_FFT_REG_END                           0x0432117c
 #define BCHP_DS_A_00_OI_REG_START                          0x04321200
-#define BCHP_DS_A_00_OI_REG_END                            0x0432123c
+#define BCHP_DS_A_00_OI_REG_END                            0x04321240
 #define BCHP_DS_A_00_IRQ_REG_START                         0x04321300
 #define BCHP_DS_A_00_IRQ_REG_END                           0x04321314
 #define BCHP_DS_A_01_ISW_MXR_REG_START                     0x04322000
@@ -271,7 +273,7 @@
 #define BCHP_DS_A_01_FFT_REG_START                         0x04323000
 #define BCHP_DS_A_01_FFT_REG_END                           0x0432317c
 #define BCHP_DS_A_01_OI_REG_START                          0x04323200
-#define BCHP_DS_A_01_OI_REG_END                            0x0432323c
+#define BCHP_DS_A_01_OI_REG_END                            0x04323240
 #define BCHP_DS_A_01_IRQ_REG_START                         0x04323300
 #define BCHP_DS_A_01_IRQ_REG_END                           0x04323314
 #define BCHP_DS_A_02_ISW_MXR_REG_START                     0x04324000
@@ -289,7 +291,7 @@
 #define BCHP_DS_A_02_FFT_REG_START                         0x04325000
 #define BCHP_DS_A_02_FFT_REG_END                           0x0432517c
 #define BCHP_DS_A_02_OI_REG_START                          0x04325200
-#define BCHP_DS_A_02_OI_REG_END                            0x0432523c
+#define BCHP_DS_A_02_OI_REG_END                            0x04325240
 #define BCHP_DS_A_02_IRQ_REG_START                         0x04325300
 #define BCHP_DS_A_02_IRQ_REG_END                           0x04325314
 #define BCHP_DS_A_03_ISW_MXR_REG_START                     0x04326000
@@ -307,7 +309,7 @@
 #define BCHP_DS_A_03_FFT_REG_START                         0x04327000
 #define BCHP_DS_A_03_FFT_REG_END                           0x0432717c
 #define BCHP_DS_A_03_OI_REG_START                          0x04327200
-#define BCHP_DS_A_03_OI_REG_END                            0x0432723c
+#define BCHP_DS_A_03_OI_REG_END                            0x04327240
 #define BCHP_DS_A_03_IRQ_REG_START                         0x04327300
 #define BCHP_DS_A_03_IRQ_REG_END                           0x04327314
 #define BCHP_DS_A_04_ISW_MXR_REG_START                     0x04328000
@@ -325,7 +327,7 @@
 #define BCHP_DS_A_04_FFT_REG_START                         0x04329000
 #define BCHP_DS_A_04_FFT_REG_END                           0x0432917c
 #define BCHP_DS_A_04_OI_REG_START                          0x04329200
-#define BCHP_DS_A_04_OI_REG_END                            0x0432923c
+#define BCHP_DS_A_04_OI_REG_END                            0x04329240
 #define BCHP_DS_A_04_IRQ_REG_START                         0x04329300
 #define BCHP_DS_A_04_IRQ_REG_END                           0x04329314
 #define BCHP_DS_A_05_ISW_MXR_REG_START                     0x0432a000
@@ -343,7 +345,7 @@
 #define BCHP_DS_A_05_FFT_REG_START                         0x0432b000
 #define BCHP_DS_A_05_FFT_REG_END                           0x0432b17c
 #define BCHP_DS_A_05_OI_REG_START                          0x0432b200
-#define BCHP_DS_A_05_OI_REG_END                            0x0432b23c
+#define BCHP_DS_A_05_OI_REG_END                            0x0432b240
 #define BCHP_DS_A_05_IRQ_REG_START                         0x0432b300
 #define BCHP_DS_A_05_IRQ_REG_END                           0x0432b314
 #define BCHP_DS_A_06_ISW_MXR_REG_START                     0x0432c000
@@ -361,7 +363,7 @@
 #define BCHP_DS_A_06_FFT_REG_START                         0x0432d000
 #define BCHP_DS_A_06_FFT_REG_END                           0x0432d17c
 #define BCHP_DS_A_06_OI_REG_START                          0x0432d200
-#define BCHP_DS_A_06_OI_REG_END                            0x0432d23c
+#define BCHP_DS_A_06_OI_REG_END                            0x0432d240
 #define BCHP_DS_A_06_IRQ_REG_START                         0x0432d300
 #define BCHP_DS_A_06_IRQ_REG_END                           0x0432d314
 #define BCHP_DS_A_07_ISW_MXR_REG_START                     0x0432e000
@@ -379,7 +381,7 @@
 #define BCHP_DS_A_07_FFT_REG_START                         0x0432f000
 #define BCHP_DS_A_07_FFT_REG_END                           0x0432f17c
 #define BCHP_DS_A_07_OI_REG_START                          0x0432f200
-#define BCHP_DS_A_07_OI_REG_END                            0x0432f23c
+#define BCHP_DS_A_07_OI_REG_END                            0x0432f240
 #define BCHP_DS_A_07_IRQ_REG_START                         0x0432f300
 #define BCHP_DS_A_07_IRQ_REG_END                           0x0432f314
 #define BCHP_DS_A_08_ISW_MXR_REG_START                     0x04330000
@@ -397,7 +399,7 @@
 #define BCHP_DS_A_08_FFT_REG_START                         0x04331000
 #define BCHP_DS_A_08_FFT_REG_END                           0x0433117c
 #define BCHP_DS_A_08_OI_REG_START                          0x04331200
-#define BCHP_DS_A_08_OI_REG_END                            0x0433123c
+#define BCHP_DS_A_08_OI_REG_END                            0x04331240
 #define BCHP_DS_A_08_IRQ_REG_START                         0x04331300
 #define BCHP_DS_A_08_IRQ_REG_END                           0x04331314
 #define BCHP_DS_A_09_ISW_MXR_REG_START                     0x04332000
@@ -415,7 +417,7 @@
 #define BCHP_DS_A_09_FFT_REG_START                         0x04333000
 #define BCHP_DS_A_09_FFT_REG_END                           0x0433317c
 #define BCHP_DS_A_09_OI_REG_START                          0x04333200
-#define BCHP_DS_A_09_OI_REG_END                            0x0433323c
+#define BCHP_DS_A_09_OI_REG_END                            0x04333240
 #define BCHP_DS_A_09_IRQ_REG_START                         0x04333300
 #define BCHP_DS_A_09_IRQ_REG_END                           0x04333314
 #define BCHP_DS_A_10_ISW_MXR_REG_START                     0x04334000
@@ -433,7 +435,7 @@
 #define BCHP_DS_A_10_FFT_REG_START                         0x04335000
 #define BCHP_DS_A_10_FFT_REG_END                           0x0433517c
 #define BCHP_DS_A_10_OI_REG_START                          0x04335200
-#define BCHP_DS_A_10_OI_REG_END                            0x0433523c
+#define BCHP_DS_A_10_OI_REG_END                            0x04335240
 #define BCHP_DS_A_10_IRQ_REG_START                         0x04335300
 #define BCHP_DS_A_10_IRQ_REG_END                           0x04335314
 #define BCHP_DS_A_11_ISW_MXR_REG_START                     0x04336000
@@ -451,7 +453,7 @@
 #define BCHP_DS_A_11_FFT_REG_START                         0x04337000
 #define BCHP_DS_A_11_FFT_REG_END                           0x0433717c
 #define BCHP_DS_A_11_OI_REG_START                          0x04337200
-#define BCHP_DS_A_11_OI_REG_END                            0x0433723c
+#define BCHP_DS_A_11_OI_REG_END                            0x04337240
 #define BCHP_DS_A_11_IRQ_REG_START                         0x04337300
 #define BCHP_DS_A_11_IRQ_REG_END                           0x04337314
 #define BCHP_DS_A_12_ISW_MXR_REG_START                     0x04338000
@@ -469,7 +471,7 @@
 #define BCHP_DS_A_12_FFT_REG_START                         0x04339000
 #define BCHP_DS_A_12_FFT_REG_END                           0x0433917c
 #define BCHP_DS_A_12_OI_REG_START                          0x04339200
-#define BCHP_DS_A_12_OI_REG_END                            0x0433923c
+#define BCHP_DS_A_12_OI_REG_END                            0x04339240
 #define BCHP_DS_A_12_IRQ_REG_START                         0x04339300
 #define BCHP_DS_A_12_IRQ_REG_END                           0x04339314
 #define BCHP_DS_A_13_ISW_MXR_REG_START                     0x0433a000
@@ -487,7 +489,7 @@
 #define BCHP_DS_A_13_FFT_REG_START                         0x0433b000
 #define BCHP_DS_A_13_FFT_REG_END                           0x0433b17c
 #define BCHP_DS_A_13_OI_REG_START                          0x0433b200
-#define BCHP_DS_A_13_OI_REG_END                            0x0433b23c
+#define BCHP_DS_A_13_OI_REG_END                            0x0433b240
 #define BCHP_DS_A_13_IRQ_REG_START                         0x0433b300
 #define BCHP_DS_A_13_IRQ_REG_END                           0x0433b314
 #define BCHP_DS_A_14_ISW_MXR_REG_START                     0x0433c000
@@ -505,7 +507,7 @@
 #define BCHP_DS_A_14_FFT_REG_START                         0x0433d000
 #define BCHP_DS_A_14_FFT_REG_END                           0x0433d17c
 #define BCHP_DS_A_14_OI_REG_START                          0x0433d200
-#define BCHP_DS_A_14_OI_REG_END                            0x0433d23c
+#define BCHP_DS_A_14_OI_REG_END                            0x0433d240
 #define BCHP_DS_A_14_IRQ_REG_START                         0x0433d300
 #define BCHP_DS_A_14_IRQ_REG_END                           0x0433d314
 #define BCHP_DS_A_15_ISW_MXR_REG_START                     0x0433e000
@@ -523,7 +525,7 @@
 #define BCHP_DS_A_15_FFT_REG_START                         0x0433f000
 #define BCHP_DS_A_15_FFT_REG_END                           0x0433f17c
 #define BCHP_DS_A_15_OI_REG_START                          0x0433f200
-#define BCHP_DS_A_15_OI_REG_END                            0x0433f23c
+#define BCHP_DS_A_15_OI_REG_END                            0x0433f240
 #define BCHP_DS_A_15_IRQ_REG_START                         0x0433f300
 #define BCHP_DS_A_15_IRQ_REG_END                           0x0433f314
 #define BCHP_DS_A_16_ISW_MXR_REG_START                     0x04340000
@@ -541,7 +543,7 @@
 #define BCHP_DS_A_16_FFT_REG_START                         0x04341000
 #define BCHP_DS_A_16_FFT_REG_END                           0x0434117c
 #define BCHP_DS_A_16_OI_REG_START                          0x04341200
-#define BCHP_DS_A_16_OI_REG_END                            0x0434123c
+#define BCHP_DS_A_16_OI_REG_END                            0x04341240
 #define BCHP_DS_A_16_IRQ_REG_START                         0x04341300
 #define BCHP_DS_A_16_IRQ_REG_END                           0x04341314
 #define BCHP_DEMOD_XPT_MTSIF_TX0_IO_REG_START              0x04400200
@@ -552,6 +554,8 @@
 #define BCHP_DEMOD_XPT_WAKEUP_REG_END                      0x04401fbc
 #define BCHP_DEMOD_XPT_FE_REG_START                        0x04402000
 #define BCHP_DEMOD_XPT_FE_REG_END                          0x044037fc
+#define BCHP_MTAP_CONTROL_REG_START                        0x04500000
+#define BCHP_MTAP_CONTROL_REG_END                          0x0450003c
 
 
 #endif /* #ifndef BCHP_COMMON_H__ */

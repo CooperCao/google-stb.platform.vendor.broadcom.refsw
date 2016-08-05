@@ -7,6 +7,7 @@ All rights reserved.
 #include "gmem_talloc.h"
 #include "gmem_analyzer.h"
 #include "vcos.h"
+#include "vcos_mutex.h"
 #include "libs/util/demand.h"
 #include "libs/core/v3d/v3d_limits.h"
 #include <stdlib.h>
@@ -95,6 +96,7 @@ void gmem_destroy(void)
    log_trace(VCOS_FUNCTION);
 
    talloc_term(s_context.talloc);
+   s_context.talloc = NULL; /* Not a valid pointer after talloc_term */
 
    /* initial block is NULL block, everything else is inserted after this.  Check for
       additional linked blocks */
@@ -103,7 +105,7 @@ void gmem_destroy(void)
       /* save next ptr before its deleted */
       gmem_alloc_item *next = item->next;
 
-      if (!item->externalAlloc)
+      if (!item->externalAlloc || item->memory_handle != NULL)
       {
          leaked = true;
 
@@ -244,7 +246,9 @@ gmem_handle_t gmem_alloc(size_t size, size_t align, gmem_usage_flags_t usage_fla
 }
 
 /* Wrap a device offset and cached ptr in a gmem_handle */
-gmem_handle_t gmem_from_external_memory(uint64_t physOffset, void *cachedPtr, size_t length, const char *desc)
+gmem_handle_t gmem_from_external_memory(GMEM_TERM_T term, void *nativeSurface,
+                                        uint64_t physOffset, void *cachedPtr,
+                                        size_t length, const char *desc)
 {
    gmem_alloc_item   *item = NULL;
 
@@ -254,18 +258,32 @@ gmem_handle_t gmem_from_external_memory(uint64_t physOffset, void *cachedPtr, si
    if (item == NULL)
       goto error;
 
-   item->memory_handle = 0;
-
-   item->magic       = GMEM_HANDLE_MAGIC;
-   item->size        = length;
-   item->align       = 1;
-   item->desc        = desc;
+   item->magic          = GMEM_HANDLE_MAGIC;
+   item->size           = length;
+   item->align          = 1;
+   item->desc           = desc;
+   item->nativeSurface  = nativeSurface;
+   item->term           = term;
 
    item->driver_map_count     = 0;           /* This is pre-mapped, but not by the driver */
    item->cur_map_ptr          = cachedPtr;
    item->driver_lock_count    = 0;           /* This is pre-locked, but not by the driver */
-   item->cur_lock_phys        = physOffset;
-   item->externalAlloc        = true;
+
+   if (s_context.mem_iface.WrapExternal)
+   {
+      item->memory_handle = s_context.mem_iface.WrapExternal(s_context.mem_iface.context, physOffset, length, desc);
+      if (!item->memory_handle)
+         goto error;
+
+      item->cur_lock_phys = (v3d_addr_t)s_context.mem_iface.Lock(s_context.mem_iface.context, item->memory_handle);
+   }
+   else
+   {
+      item->cur_lock_phys = physOffset;
+      item->memory_handle = 0;
+   }
+
+   item->externalAlloc = true;
 
    if (cachedPtr == NULL)                    /* Test for a secure buffer */
       item->usage_flags = GMEM_USAGE_SECURE | GMEM_USAGE_V3D; /* Only accessed from V3D */
@@ -291,6 +309,7 @@ gmem_handle_t gmem_from_external_memory(uint64_t physOffset, void *cachedPtr, si
 
 error:
    vcos_mutex_unlock(&s_context.api_mutex);
+   free(item);
 
    return GMEM_HANDLE_INVALID;
 }
@@ -324,6 +343,19 @@ void gmem_free_internal(gmem_handle_t handle)
    {
       talloc_free(s_context.talloc, item->cur_map_ptr);
    }
+   else if (item->externalAlloc && item->memory_handle != NULL)
+   {
+      /*
+       * This is a wrapped external memory object, so we still need to free it.
+       *
+       * We locked it when we wrapped the memory to get the physical,
+       * so unlock it, although this will probably always be a nop.
+       */
+      s_context.mem_iface.Unlock(s_context.mem_iface.context, item->memory_handle);
+      item->cur_lock_phys = 0;
+
+      s_context.mem_iface.Free(s_context.mem_iface.context, item->memory_handle);
+   }
    else if (!item->externalAlloc)
    {
       if (!s_context.disable_map_lock_opt && item->cur_map_ptr != NULL)
@@ -354,6 +386,9 @@ void gmem_free_internal(gmem_handle_t handle)
 
    /* Just in case this memory gets reused as an item */
    item->magic = 0xFFEEFFEE;
+
+   if (item->term)
+      item->term(item->nativeSurface);
 
    free(item);
 }
@@ -826,6 +861,46 @@ gmem_usage_flags_t gmem_get_usage(gmem_handle_t handle)
    assert(item != NULL);
 
    return item->usage_flags;
+}
+
+uint64_t gmem_get_pagetable_physical_addr(void)
+{
+   if (!s_context.mem_iface.GetInfo)
+      return 0;
+
+   return s_context.mem_iface.GetInfo(s_context.mem_iface.context, BEGL_MemPagetablePhysAddr);
+}
+
+v3d_addr_t gmem_get_mmu_max_virtual_addr(void)
+{
+   if (!s_context.mem_iface.GetInfo)
+      return 0;
+
+   return (v3d_addr_t)s_context.mem_iface.GetInfo(s_context.mem_iface.context, BEGL_MemMmuMaxVirtAddr);
+}
+
+int64_t gmem_get_mmu_unsecure_bin_translation(void)
+{
+   if (!s_context.mem_iface.GetInfo)
+      return 0;
+
+   return (int64_t)s_context.mem_iface.GetInfo(s_context.mem_iface.context, BEGL_MemMmuUnsecureBinTranslation);
+}
+
+int64_t gmem_get_mmu_secure_bin_translation(void)
+{
+   if (!s_context.mem_iface.GetInfo)
+      return 0;
+
+   return (int64_t)s_context.mem_iface.GetInfo(s_context.mem_iface.context, BEGL_MemMmuSecureBinTranslation);
+}
+
+uint64_t gmem_get_platform_token(void)
+{
+   if (!s_context.mem_iface.GetInfo)
+      return 0;
+
+   return (int64_t)s_context.mem_iface.GetInfo(s_context.mem_iface.context, BEGL_MemPlatformToken);
 }
 
 void *gmem_addr_to_ptr(v3d_addr_t addr)

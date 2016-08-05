@@ -10,12 +10,10 @@ Creates GLES1.1 shaders as dataflow graphs and passes them to the compiler
 backend.
 =============================================================================*/
 
+#include "gl11_shader.h"
 #include "../glsl/glsl_dataflow.h"
 #include "../glxx/glxx_shader_ops.h"
-#include "gl11_shader.h"
 #include "../glxx/glxx_server.h"   /* For STATE_OFFSET */
-
-#include "gl11_shaders.h"
 
 typedef struct {
    GLXX_VEC4_T  vertex;
@@ -701,6 +699,7 @@ void gl11_get_cvshader(const GL11_CACHE_KEY_T *v, IRShader **sh_out, LinkMap **l
       shaded[DF_VNODE_VARY(4*i+3)] = vcard.varying[i].w;
    }
 
-   *sh_out = gl11_ir_shader_from_nodes(shaded, DF_BLOB_VERTEX_COUNT);
-   *lm_out = gl11_link_map_from_bindings(DF_BLOB_VERTEX_COUNT, 4*GL11_IX_MAX_ATTRIBS, unif_count, unif_bindings);
+   int out_bindings[DF_BLOB_VERTEX_COUNT];
+   *sh_out = gl11_ir_shader_from_nodes(shaded, DF_BLOB_VERTEX_COUNT, out_bindings);
+   *lm_out = gl11_link_map_from_bindings(DF_BLOB_VERTEX_COUNT, out_bindings, 4*GL11_IX_MAX_ATTRIBS, unif_count, unif_bindings);
 }

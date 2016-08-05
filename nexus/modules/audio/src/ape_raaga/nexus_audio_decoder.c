@@ -305,6 +305,7 @@ NEXUS_AudioDecoderHandle NEXUS_AudioDecoder_Open( /* attr{destructor=NEXUS_Audio
         /* Setup handle linkage */
         BKNI_Snprintf(handle->name, sizeof(handle->name), "DECODER %u",index);
         NEXUS_AUDIO_INPUT_INIT(&handle->connectors[j], NEXUS_AudioInputType_eDecoder, handle);
+        NEXUS_OBJECT_REGISTER(NEXUS_AudioInput, &handle->connectors[j], Open);
         handle->connectors[j].pName = handle->name;
 
         /* Set format per-connector */
@@ -728,7 +729,17 @@ static void NEXUS_AudioDecoder_P_Finalizer(
     BKNI_Free(handle);
 }
 
-NEXUS_OBJECT_CLASS_MAKE(NEXUS_AudioDecoder, NEXUS_AudioDecoder_Close);
+static void NEXUS_AudioDecoder_P_Release(NEXUS_AudioDecoderHandle handle)
+{
+    unsigned i;
+    for ( i = 0; i < NEXUS_AudioConnectorType_eMax; i++ )
+    {
+        NEXUS_OBJECT_UNREGISTER(NEXUS_AudioInput, &handle->connectors[i], Close);
+    }
+    return;
+}
+
+NEXUS_OBJECT_CLASS_MAKE_WITH_RELEASE(NEXUS_AudioDecoder, NEXUS_AudioDecoder_Close);
 
 /***************************************************************************
 Summary:
@@ -1374,6 +1385,7 @@ void NEXUS_AudioDecoder_GetCodecSettings(
 {
     BAPE_DecoderCodecSettings codecSettings;
     BAVC_AudioCompressionStd avcCodec;
+    unsigned i;
 
     BDBG_OBJECT_ASSERT(handle, NEXUS_AudioDecoder);
     BDBG_ASSERT(NULL != pSettings);
@@ -1467,6 +1479,16 @@ void NEXUS_AudioDecoder_GetCodecSettings(
         pSettings->codecSettings.ac4.presentationId = codecSettings.codecSettings.ac4.presentationId;
         pSettings->codecSettings.ac4.dialogEnhancerAmount = codecSettings.codecSettings.ac4.dialogEnhancerAmount;
         pSettings->codecSettings.ac4.certificationMode = codecSettings.codecSettings.ac4.certificationMode;
+        /* personalization settings */
+        pSettings->codecSettings.ac4.selectionMode = (NEXUS_AudioDecoderAc4PresentationSelectionMode)codecSettings.codecSettings.ac4.selectionMode;
+        pSettings->codecSettings.ac4.preferredAssociateType = (NEXUS_AudioAc4AssociateType)codecSettings.codecSettings.ac4.preferredAssociateType;
+        pSettings->codecSettings.ac4.enableAssociateMixing = codecSettings.codecSettings.ac4.enableAssociateMixing;
+        BDBG_CASSERT(NEXUS_AUDIO_AC4_LANGUAGE_NAME_LENGTH == BAPE_AC4_LANGUAGE_NAME_LENGTH);
+        BDBG_CASSERT(NEXUS_AUDIO_AC4_NUM_LANGUAGES == BAPE_AC4_NUM_LANGUAGES);
+        for ( i = 0; i < NEXUS_AUDIO_AC4_NUM_LANGUAGES; i++ )
+        {
+            BKNI_Memcpy(pSettings->codecSettings.ac4.languagePreference[i].selection, codecSettings.codecSettings.ac4.languagePreference[i].selection, sizeof(char) * NEXUS_AUDIO_AC4_LANGUAGE_NAME_LENGTH);
+        }
         break;
     case NEXUS_AudioCodec_eAacAdts:
     case NEXUS_AudioCodec_eAacLoas:
@@ -1480,10 +1502,12 @@ void NEXUS_AudioDecoder_GetCodecSettings(
         pSettings->codecSettings.aac.downmixMode = codecSettings.codecSettings.aac.downmixMode;
         BDBG_CASSERT((int)NEXUS_AudioDecoderDolbyPulseDrcMode_eLine == (int)BAPE_DolbyPulseDrcMode_eLine);
         BDBG_CASSERT((int)NEXUS_AudioDecoderDolbyPulseDrcMode_eRf == (int)BAPE_DolbyPulseDrcMode_eRf);
+        BDBG_CASSERT((int)NEXUS_AudioDecoderDolbyPulseDrcMode_eOff == (int)BAPE_DolbyPulseDrcMode_eOff);
         pSettings->codecSettings.aac.drcMode = codecSettings.codecSettings.aac.drcMode;
         pSettings->codecSettings.aac.drcDefaultLevel = codecSettings.codecSettings.aac.drcDefaultLevel;
         pSettings->codecSettings.aac.mpegConformanceMode = codecSettings.codecSettings.aac.mpegConformanceMode;
         pSettings->codecSettings.aac.enableSbrDecoding = codecSettings.codecSettings.aac.enableSbrDecoding;
+        pSettings->codecSettings.aac.ignoreEmbeddedPrl = codecSettings.codecSettings.aac.ignoreEmbeddedPrl;
         break;
     case NEXUS_AudioCodec_eAacPlusAdts:
     case NEXUS_AudioCodec_eAacPlusLoas:
@@ -1497,10 +1521,18 @@ void NEXUS_AudioDecoder_GetCodecSettings(
         pSettings->codecSettings.aacPlus.downmixMode = codecSettings.codecSettings.aacPlus.downmixMode;
         BDBG_CASSERT((int)NEXUS_AudioDecoderDolbyPulseDrcMode_eLine == (int)BAPE_DolbyPulseDrcMode_eLine);
         BDBG_CASSERT((int)NEXUS_AudioDecoderDolbyPulseDrcMode_eRf == (int)BAPE_DolbyPulseDrcMode_eRf);
+        BDBG_CASSERT((int)NEXUS_AudioDecoderDolbyPulseDrcMode_eOff == (int)BAPE_DolbyPulseDrcMode_eOff);
         pSettings->codecSettings.aacPlus.drcMode = codecSettings.codecSettings.aacPlus.drcMode;
         pSettings->codecSettings.aacPlus.drcDefaultLevel = codecSettings.codecSettings.aacPlus.drcDefaultLevel;
         pSettings->codecSettings.aacPlus.mpegConformanceMode = codecSettings.codecSettings.aacPlus.mpegConformanceMode;
         pSettings->codecSettings.aacPlus.enableSbrDecoding = codecSettings.codecSettings.aacPlus.enableSbrDecoding;
+        pSettings->codecSettings.aacPlus.ignoreEmbeddedPrl = codecSettings.codecSettings.aacPlus.ignoreEmbeddedPrl;
+        break;
+    case NEXUS_AudioCodec_eMp3:
+        pSettings->codecSettings.mp3.inputReferenceLevel = codecSettings.codecSettings.mp3.inputReferenceLevel;
+        break;
+    case NEXUS_AudioCodec_eMpeg:
+        pSettings->codecSettings.mpeg.inputReferenceLevel = codecSettings.codecSettings.mpeg.inputReferenceLevel;
         break;
     case NEXUS_AudioCodec_eWmaPro:
         /* TODO: Nexus is exposing the older WMA Pro DRC mode.  This should switch from bool .. enum to match APE */
@@ -1579,6 +1611,7 @@ NEXUS_Error NEXUS_AudioDecoder_SetCodecSettings(
     BAPE_DecoderCodecSettings codecSettings;
     BAVC_AudioCompressionStd avcCodec;
     BERR_Code errCode;
+    unsigned i;
 
     BDBG_OBJECT_ASSERT(handle, NEXUS_AudioDecoder);
     BDBG_ASSERT(NULL != pSettings);
@@ -1671,6 +1704,14 @@ NEXUS_Error NEXUS_AudioDecoder_SetCodecSettings(
         codecSettings.codecSettings.ac4.presentationId = pSettings->codecSettings.ac4.presentationId;
         codecSettings.codecSettings.ac4.dialogEnhancerAmount = pSettings->codecSettings.ac4.dialogEnhancerAmount;
         codecSettings.codecSettings.ac4.certificationMode = pSettings->codecSettings.ac4.certificationMode;
+        /* personalization settings */
+        codecSettings.codecSettings.ac4.selectionMode = (BAPE_Ac4PresentationSelectionMode)pSettings->codecSettings.ac4.selectionMode;
+        codecSettings.codecSettings.ac4.preferredAssociateType = (BAPE_Ac4AssociateType)pSettings->codecSettings.ac4.preferredAssociateType;
+        codecSettings.codecSettings.ac4.enableAssociateMixing = pSettings->codecSettings.ac4.enableAssociateMixing;
+        for ( i = 0; i < BAPE_AC4_NUM_LANGUAGES; i++ )
+        {
+            BKNI_Memcpy(codecSettings.codecSettings.ac4.languagePreference[i].selection, pSettings->codecSettings.ac4.languagePreference[i].selection, sizeof(char) * BAPE_AC4_LANGUAGE_NAME_LENGTH);
+        }
         break;
     case NEXUS_AudioCodec_eAacAdts:
     case NEXUS_AudioCodec_eAacLoas:
@@ -1682,6 +1723,7 @@ NEXUS_Error NEXUS_AudioDecoder_SetCodecSettings(
         codecSettings.codecSettings.aac.drcDefaultLevel = pSettings->codecSettings.aac.drcDefaultLevel;
         codecSettings.codecSettings.aac.mpegConformanceMode = pSettings->codecSettings.aac.mpegConformanceMode;
         codecSettings.codecSettings.aac.enableSbrDecoding = pSettings->codecSettings.aac.enableSbrDecoding;
+        codecSettings.codecSettings.aac.ignoreEmbeddedPrl = pSettings->codecSettings.aac.ignoreEmbeddedPrl;
         break;
     case NEXUS_AudioCodec_eAacPlusAdts:
     case NEXUS_AudioCodec_eAacPlusLoas:
@@ -1693,6 +1735,13 @@ NEXUS_Error NEXUS_AudioDecoder_SetCodecSettings(
         codecSettings.codecSettings.aacPlus.drcDefaultLevel = pSettings->codecSettings.aacPlus.drcDefaultLevel;
         codecSettings.codecSettings.aacPlus.mpegConformanceMode = pSettings->codecSettings.aacPlus.mpegConformanceMode;
         codecSettings.codecSettings.aacPlus.enableSbrDecoding = pSettings->codecSettings.aacPlus.enableSbrDecoding;
+        codecSettings.codecSettings.aacPlus.ignoreEmbeddedPrl = pSettings->codecSettings.aacPlus.ignoreEmbeddedPrl;
+        break;
+    case NEXUS_AudioCodec_eMp3:
+        codecSettings.codecSettings.mp3.inputReferenceLevel = pSettings->codecSettings.mp3.inputReferenceLevel;
+        break;
+    case NEXUS_AudioCodec_eMpeg:
+        codecSettings.codecSettings.mpeg.inputReferenceLevel = pSettings->codecSettings.mpeg.inputReferenceLevel;
         break;
     case NEXUS_AudioCodec_eWmaPro:
         /* TODO: Nexus is exposing the older WMA Pro DRC mode.  This should switch from bool .. enum to match APE */
@@ -2101,6 +2150,9 @@ NEXUS_Error NEXUS_AudioDecoder_GetStatus(
             pStatus->codecStatus.cook.stereo = decoderStatus.codecStatus.cook.stereo;
             pStatus->codecStatus.cook.frameSize = decoderStatus.codecStatus.cook.frameSize;
             break;
+        case BAVC_AudioCompressionStd_eAls:
+            pStatus->codecStatus.als.bitsPerSample = decoderStatus.codecStatus.als.bitsPerSample;
+            break;
         default:
             /* No specifics for this codec */
             break;
@@ -2131,6 +2183,7 @@ NEXUS_Error NEXUS_AudioDecoder_GetPresentationStatus(
 
     BDBG_CASSERT(BAPE_AC4_PRESENTATION_LANGUAGE_NAME_LENGTH == NEXUS_AUDIO_AC4_PRESENTATION_LANGUAGE_NAME_LENGTH);
     BDBG_CASSERT(BAPE_AC4_PRESENTATION_NAME_LENGTH == NEXUS_AUDIO_AC4_PRESENTATION_NAME_LENGTH);
+    BDBG_CASSERT(NEXUS_AudioAc4AssociateType_eMax == (NEXUS_AudioAc4AssociateType)BAPE_Ac4AssociateType_eMax);
 
     BKNI_Memset(pStatus, 0, sizeof(NEXUS_AudioDecoderPresentationStatus));
 
@@ -2148,18 +2201,10 @@ NEXUS_Error NEXUS_AudioDecoder_GetPresentationStatus(
         BDBG_WRN(("Presentation Status not supported for codec %d", pStatus->codec));
         break;
     case NEXUS_AudioCodec_eAc4:
-        BKNI_Memcpy(pStatus->status.ac4.name, piPresentationInfo.info.ac4.name, NEXUS_AUDIO_AC4_PRESENTATION_NAME_LENGTH);
-        BKNI_Memcpy(pStatus->status.ac4.language, piPresentationInfo.info.ac4.language, NEXUS_AUDIO_AC4_PRESENTATION_LANGUAGE_NAME_LENGTH);
+        BKNI_Memcpy(pStatus->status.ac4.name, piPresentationInfo.info.ac4.name, sizeof(char)*NEXUS_AUDIO_AC4_PRESENTATION_NAME_LENGTH);
+        BKNI_Memcpy(pStatus->status.ac4.language, piPresentationInfo.info.ac4.language, sizeof(char)*NEXUS_AUDIO_AC4_PRESENTATION_LANGUAGE_NAME_LENGTH);
         pStatus->status.ac4.id = piPresentationInfo.info.ac4.id;
-        switch ( piPresentationInfo.info.ac4.type )
-        {
-        default:
-        case 0: pStatus->status.ac4.type = NEXUS_AudioAc4PresentationType_eNotSpecified; break;
-        case 1: pStatus->status.ac4.type = NEXUS_AudioAc4PresentationType_eMainOnly; break;
-        case 2: pStatus->status.ac4.type = NEXUS_AudioAc4PresentationType_eAssociateOnly; break;
-        case 3: pStatus->status.ac4.type = NEXUS_AudioAc4PresentationType_eMainAndAssociate; break;
-        case 4: pStatus->status.ac4.type = NEXUS_AudioAc4PresentationType_eCustom; break;
-        }
+        pStatus->status.ac4.associateType = (NEXUS_AudioAc4AssociateType)piPresentationInfo.info.ac4.associateType;
         break;
     }
 
@@ -2193,7 +2238,7 @@ NEXUS_Error NEXUS_AudioDecoder_GetRawChannelStatus(
 Summary:
     Get an audio connector for use in the audio mixer
 ***************************************************************************/
-NEXUS_AudioInput NEXUS_AudioDecoder_GetConnector( /* attr{shutdown=NEXUS_AudioInput_Shutdown} */
+NEXUS_AudioInputHandle NEXUS_AudioDecoder_GetConnector( /* attr{shutdown=NEXUS_AudioInput_Shutdown} */
     NEXUS_AudioDecoderHandle handle,
     NEXUS_AudioConnectorType type
     )
@@ -3821,7 +3866,7 @@ NEXUS_Error NEXUS_AudioDecoder_P_IsDspMixerAttached(
         NEXUS_AudioMixerHandle mixerHandle = NEXUS_AudioInput_P_LocateMixer( &handle->connectors[i], NULL);
         if (mixerHandle)
         {
-            NEXUS_AudioInput connector = NEXUS_AudioMixer_GetConnector(mixerHandle);
+            NEXUS_AudioInputHandle connector = NEXUS_AudioMixer_GetConnector(mixerHandle);
             if (connector->objectType == NEXUS_AudioInputType_eDspMixer)
             {
                 *pDSPMixerAttached = true;

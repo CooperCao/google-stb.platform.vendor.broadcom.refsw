@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2012-2013 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2012-2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,16 +34,6 @@
 *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
-*
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* API Description:
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 #include "nexus_base.h"
@@ -521,7 +511,7 @@ void NEXUS_P_Base_Stats_SchedulersReport(void)
             BDBG_MODULE_MSG(nexus_statistics_scheduler,NEXUS_P_BASE_STATS_REPORT_SEPARATOR("scheduler"));
         }
 
-        BDBG_MODULE_MSG(nexus_statistics_scheduler,("%s calls %u total %u max %u avg %u " NEXUS_P_BASE_STATS_TIME_UNITS, NEXUS_P_Base_Stats_PriorityName(priority), maxScheduler->count, maxScheduler->totalTime, maxScheduler->maxTime, maxScheduler->totalTime/maxScheduler->count));
+        BDBG_MODULE_MSG(nexus_statistics_scheduler,("%s calls %u total %u max %u avg %u " NEXUS_P_BASE_STATS_TIME_UNITS, NEXUS_P_Base_Stats_PriorityName(priority), maxScheduler->count, (unsigned)maxScheduler->totalTime, (unsigned)maxScheduler->maxTime, (unsigned)(maxScheduler->totalTime/maxScheduler->count)));
     }
     return;
 }
@@ -557,7 +547,7 @@ static void NEXUS_P_Base_Stats_CallbackAggregateReport(void)
         if(i==0) {
             BDBG_MODULE_MSG(nexus_statistics_callback,NEXUS_P_BASE_STATS_REPORT_SEPARATOR("callback by count"));
         }
-        BDBG_MODULE_MSG(nexus_statistics_callback,("%s[%s] callback %p:%p from %s:%u %u times total %u (avg %u) " NEXUS_P_BASE_STATS_TIME_UNITS, node->kind, NEXUS_P_Base_Stats_PriorityName(node->priority), node->aggregateNode.key.object, node->destination, node->aggregateNode.key.file, node->aggregateNode.key.lineNo, node->aggregateNode.key.count, node->aggregateNode.key.totalTime, node->aggregateNode.key.totalTime/node->aggregateNode.key.count));
+        BDBG_MODULE_MSG(nexus_statistics_callback,("%s[%s] callback %p:%p from %s:%u %u times total %u (avg %u) " NEXUS_P_BASE_STATS_TIME_UNITS, node->kind, NEXUS_P_Base_Stats_PriorityName(node->priority), node->aggregateNode.key.object, node->destination, node->aggregateNode.key.file, node->aggregateNode.key.lineNo, node->aggregateNode.key.count, (unsigned)node->aggregateNode.key.totalTime, (unsigned)(node->aggregateNode.key.totalTime/node->aggregateNode.key.count)));
     }
     for(    i=0, node=(NEXUS_P_Base_Stats_CallbackAggregateNode *)BLST_AA_TREE_FIRST(NEXUS_P_Base_Stats_AggregateTotalTimeTree, &state->callbackAggregate.totalTimeTree);
             node && i<NEXUS_P_BASE_STATS_TOP_COUNT;
@@ -569,7 +559,7 @@ static void NEXUS_P_Base_Stats_CallbackAggregateReport(void)
         if(i==0) {
             BDBG_MODULE_MSG(nexus_statistics_callback,NEXUS_P_BASE_STATS_REPORT_SEPARATOR("callback by total time"));
         }
-        BDBG_MODULE_MSG(nexus_statistics_callback,("%s[%s] callback %p:%p from %s:%u total %u (avg %u) " NEXUS_P_BASE_STATS_TIME_UNITS, node->kind, NEXUS_P_Base_Stats_PriorityName(node->priority), node->aggregateNode.key.object , node->destination, node->aggregateNode.key.file, node->aggregateNode.key.lineNo, node->aggregateNode.key.totalTime, node->aggregateNode.key.totalTime/node->aggregateNode.key.count));
+        BDBG_MODULE_MSG(nexus_statistics_callback,("%s[%s] callback %p:%p from %s:%u total %u (avg %u) " NEXUS_P_BASE_STATS_TIME_UNITS, node->kind, NEXUS_P_Base_Stats_PriorityName(node->priority), node->aggregateNode.key.object , node->destination, node->aggregateNode.key.file, node->aggregateNode.key.lineNo, (unsigned)node->aggregateNode.key.totalTime, (unsigned)(node->aggregateNode.key.totalTime/node->aggregateNode.key.count)));
     }
     for(    i=0, node=(NEXUS_P_Base_Stats_CallbackAggregateNode *)BLST_AA_TREE_FIRST(NEXUS_P_Base_Stats_AggregateMaxTimeTree, &state->callbackAggregate.maxTimeTree);
             node && i<NEXUS_P_BASE_STATS_TOP_COUNT;
@@ -581,7 +571,7 @@ static void NEXUS_P_Base_Stats_CallbackAggregateReport(void)
         if(i==0) {
             BDBG_MODULE_MSG(nexus_statistics_callback,NEXUS_P_BASE_STATS_REPORT_SEPARATOR("callback by max time"));
         }
-        BDBG_MODULE_MSG(nexus_statistics_callback,("%s[%s] callback %p:%p from %s:%u max %u (avg %u) " NEXUS_P_BASE_STATS_TIME_UNITS, node->kind, NEXUS_P_Base_Stats_PriorityName(node->priority), node->aggregateNode.key.object, node->destination, node->aggregateNode.key.file, node->aggregateNode.key.lineNo, node->aggregateNode.key.maxTime, node->aggregateNode.key.totalTime/node->aggregateNode.key.count));
+        BDBG_MODULE_MSG(nexus_statistics_callback,("%s[%s] callback %p:%p from %s:%u max %u (avg %u) " NEXUS_P_BASE_STATS_TIME_UNITS, node->kind, NEXUS_P_Base_Stats_PriorityName(node->priority), node->aggregateNode.key.object, node->destination, node->aggregateNode.key.file, node->aggregateNode.key.lineNo, (unsigned)node->aggregateNode.key.maxTime, (unsigned)(node->aggregateNode.key.totalTime/node->aggregateNode.key.count)));
     }
     return;
 }
@@ -616,7 +606,7 @@ static void NEXUS_P_Base_Stats_ApiAggregateReport(void)
         if(i==0) {
             BDBG_MODULE_MSG(nexus_statistics_api,NEXUS_P_BASE_STATS_REPORT_SEPARATOR("API by count"));
         }
-        BDBG_MODULE_MSG(nexus_statistics_api,("%s[%s] %u times total %u max %u (avg %u) " NEXUS_P_BASE_STATS_TIME_UNITS, node->aggregateNode.key.object, node->moduleName, node->aggregateNode.key.count, node->aggregateNode.key.totalTime, node->aggregateNode.key.maxTime, node->aggregateNode.key.totalTime/node->aggregateNode.key.count));
+        BDBG_MODULE_MSG(nexus_statistics_api,("%s[%s] %u times total %u max %u (avg %u) " NEXUS_P_BASE_STATS_TIME_UNITS, (char *)node->aggregateNode.key.object, node->moduleName, node->aggregateNode.key.count, (unsigned)node->aggregateNode.key.totalTime, (unsigned)node->aggregateNode.key.maxTime, (unsigned)(node->aggregateNode.key.totalTime/node->aggregateNode.key.count)));
     }
     for(    i=0, node=(NEXUS_P_Base_Stats_ApiAggregateNode *)BLST_AA_TREE_FIRST(NEXUS_P_Base_Stats_AggregateTotalTimeTree, &state->apiAggregate.totalTimeTree);
             node && i<NEXUS_P_BASE_STATS_TOP_COUNT;
@@ -628,7 +618,7 @@ static void NEXUS_P_Base_Stats_ApiAggregateReport(void)
         if(i==0) {
             BDBG_MODULE_MSG(nexus_statistics_api,NEXUS_P_BASE_STATS_REPORT_SEPARATOR("API by total time"));
         }
-        BDBG_MODULE_MSG(nexus_statistics_api,("%s[%s] %u times total %u max %u (avg %u) " NEXUS_P_BASE_STATS_TIME_UNITS, node->aggregateNode.key.object, node->moduleName, node->aggregateNode.key.count, node->aggregateNode.key.totalTime, node->aggregateNode.key.maxTime, node->aggregateNode.key.totalTime/node->aggregateNode.key.count));
+        BDBG_MODULE_MSG(nexus_statistics_api,("%s[%s] %u times total %u max %u (avg %u) " NEXUS_P_BASE_STATS_TIME_UNITS, (char *)node->aggregateNode.key.object, node->moduleName, node->aggregateNode.key.count, (unsigned)node->aggregateNode.key.totalTime, (unsigned)node->aggregateNode.key.maxTime, (unsigned)(node->aggregateNode.key.totalTime/node->aggregateNode.key.count)));
     }
     for(    i=0, node=(NEXUS_P_Base_Stats_ApiAggregateNode *)BLST_AA_TREE_FIRST(NEXUS_P_Base_Stats_AggregateMaxTimeTree, &state->apiAggregate.maxTimeTree);
             node && i<NEXUS_P_BASE_STATS_TOP_COUNT;
@@ -640,7 +630,8 @@ static void NEXUS_P_Base_Stats_ApiAggregateReport(void)
         if(i==0) {
             BDBG_MODULE_MSG(nexus_statistics_api,NEXUS_P_BASE_STATS_REPORT_SEPARATOR("API by max time"));
         }
-        BDBG_MODULE_MSG(nexus_statistics_api,("%s[%s] %u times total %u max %u (avg %u) " NEXUS_P_BASE_STATS_TIME_UNITS, node->aggregateNode.key.object, node->moduleName, node->aggregateNode.key.count, node->aggregateNode.key.totalTime, node->aggregateNode.key.maxTime, node->aggregateNode.key.totalTime/node->aggregateNode.key.count));
+        BDBG_MODULE_MSG(nexus_statistics_api,("%s[%s] %u times total %u max %u (avg %u) " NEXUS_P_BASE_STATS_TIME_UNITS, (char *)node->aggregateNode.key.object, node->moduleName, node->aggregateNode.key.count, (unsigned)node->aggregateNode.key.totalTime, (unsigned)node->aggregateNode.key.maxTime, (unsigned)(node->aggregateNode.key.totalTime/node->aggregateNode.key.count)));
+
     }
     return;
 }

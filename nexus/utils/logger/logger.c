@@ -1,7 +1,7 @@
-/***************************************************************************
- *     (c)2011-2013 Broadcom Corporation
+/******************************************************************************
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,18 +34,7 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
- **************************************************************************/
+ ******************************************************************************/
 #include "bstd.h"
 #include "bkni.h"
 #include "bdbg_fifo.h"
@@ -292,13 +281,13 @@ static BERR_Code print_log_message(BDBG_FifoReader_Handle logReader, int deviceF
 int main(int argc, const char *argv[])
 {
     BERR_Code rc;
-    BDBG_FifoReader_Handle logReader;
-    BDBG_Fifo_Handle logWriter;
-    int fd;
+    BDBG_FifoReader_Handle logReader=NULL;
+    BDBG_Fifo_Handle logWriter=NULL;
+    int fd=-1;
     int device_fd=-1;
     bool driver_ready = false;
     const char *fname;
-    size_t size;
+    size_t size=0;
     void *shared;
     struct stat st;
     int urc;
@@ -326,10 +315,12 @@ int main(int argc, const char *argv[])
     fname = argv[1];
     BDBG_ASSERT(fname);
     /* coverity[tainted_string] */
-    fd = open(fname, O_RDONLY);
-    if(fd<0) {
-        perror(fname);
-        usage(argv[0]);
+    if ( strcmp(fname, "disabled") ) {
+        fd = open(fname, O_RDONLY);
+        if(fd<0) {
+            perror(fname);
+            usage(argv[0]);
+        }
     }
 
     if(argc>2 && argv[2][0]!='\0') {
@@ -353,20 +344,26 @@ int main(int argc, const char *argv[])
         }
     }
     /* unlink(fname); don't remove file, allow multiple copies of logger */
-    urc = fstat(fd, &st);
-    if(urc<0) {
-        perror("stat");
-        usage(argv[0]);
+    if ( fd >= 0 ) {
+        urc = fstat(fd, &st);
+        if(urc<0) {
+            perror("stat");
+            usage(argv[0]);
+        }
     }
     parent = getppid();
     signal(SIGUSR1,sigusr1_handler);
-    size = st.st_size;
-    shared = mmap(NULL, size, PROT_READ, MAP_SHARED, fd, 0);
-    if(shared==MAP_FAILED) {
-        perror("mmap");
-        usage(argv[0]);
+    if ( fd >= 0 ) {
+        size = st.st_size;
+        shared = mmap(NULL, size, PROT_READ, MAP_SHARED, fd, 0);
+        if(shared==MAP_FAILED) {
+            perror("mmap");
+            usage(argv[0]);
+        }
+        logWriter = (BDBG_Fifo_Handle)shared;
+        rc = BDBG_FifoReader_Create(&logReader, logWriter);
+        BDBG_ASSERT(rc==BERR_SUCCESS);
     }
-    logWriter = (BDBG_Fifo_Handle)shared;
     if(argc>3) {
         int ready_fd = atoi(argv[3]);
         char data[1]={'\0'};
@@ -374,19 +371,19 @@ int main(int argc, const char *argv[])
         rc = write(ready_fd,data,1); /* signal parent that we've started */
         close(ready_fd);
     }
-    rc = BDBG_FifoReader_Create(&logReader, logWriter);
-    BDBG_ASSERT(rc==BERR_SUCCESS);
     for(;;) {
         unsigned timeout;
         unsigned driverTimeout;
 
         for(;;) {
-
-            timeout = 0;
-            rc = print_log_message(logReader, -1, NULL, &timeout );
+            if ( logReader ) {
+                timeout = 0;
+                rc = print_log_message(logReader, -1, NULL, &timeout );
+            } else {
+                timeout = 5;
+            }
 
             if(driver_ready) {
-
                 rc = print_log_message(NULL, device_fd, &instance, &driverTimeout );
 
                 if (rc == BERR_SUCCESS && timeout>driverTimeout) {
@@ -427,9 +424,11 @@ done:
     if(device_fd>=0) {
         close(device_fd); 
     }
-    close(fd);
-    BDBG_FifoReader_Destroy(logReader);
-
+    if ( fd >= 0 ) {
+        close(fd);
+        if (logReader)
+            BDBG_FifoReader_Destroy(logReader);
+    }
     BDBG_Uninit();
     /* BKNI_Uninit(); Don't call it since this would print memory allocation stats */
     return 0;

@@ -59,6 +59,7 @@
 #include "private/bbZbProZdoNetworkManagerIntraPanPort.h"
 #include "private/bbZbProZdoSecurityManager.h"
 #include "private/bbZbProZdoPersistentManager.h"
+#include "private/bbZbProZdoFrequencyAgilityPrivate.h"
 
 /************************* DEFINITIONS **************************************************/
 /**//**
@@ -74,6 +75,7 @@ typedef struct _ZbProZdoMemDescr_t
     ZbProZdoNetworkManagerIntraPanPortDescr_t   networkManagerIntraPanPort;
     ZbProZdoPersistenDescr_t                    zdoPersistentDescr;
     ZbProZdoChannelManagerDescr_t               channelManager;
+    ZbProZdoFAManagerDescr_t                    faManager;
 } ZbProZdoMemDescr_t;
 
 /************************* PROTOTYPES ***************************************************/
@@ -127,6 +129,11 @@ INLINE ZbProZdoNetworkManagerDescr_t *zbProZdoNetworkManagerDescr(void)
 INLINE ZbProZdoChannelManagerDescr_t *zbProZdoChannelManagerDescr(void)
 {
     return &zbProZdoMemDescr.channelManager;
+}
+
+INLINE ZbProZdoFAManagerDescr_t *zbProZdoFaManagerDescr(void)
+{
+    return &zbProZdoMemDescr.faManager;
 }
 
 /**//**

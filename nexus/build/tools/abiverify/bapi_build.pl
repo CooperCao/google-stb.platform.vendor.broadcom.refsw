@@ -48,8 +48,8 @@ my $main = bapi_main::main ('abiverify');
 my $destdir = $main->{DESTDIR};
 my $module = lc $main->{MODULE};
 
-my $h_file = "nexus_${module}_abiverify.h";
-my $file = "$destdir/$h_file";
+my $h_file = "nexus_${module}_abiverify";
+my $file = "$destdir/$h_file.h";
 if(defined $main->{OUTPUT}) {
     $file = $main->{OUTPUT};
 }
@@ -76,7 +76,11 @@ if(not defined $main->{OUTPUT}) {
     print $fout_c "#define NEXUS_P_ABIVERIFY_MODULE    b_abi_verify_$main->{MODULE}\n";
     print $fout_c "#include \"nexus_${module}_module.h\"\n";
     print $fout_c "#include \"abiverify/nexus_abiverify_prologue.h\"\n";
-    print $fout_c "#include \"$h_file\"\n";
+    print $fout_c "#include \"$h_file.h\"\n";
+    print $fout_c "#if NEXUS_P_ABI_VERIFY_MODE_VERIFY\n";
+    print $fout_c "#include \"${h_file}_aarch32.h\"\n";
+    print $fout_c "#endif\n";
+    print $fout_c "#include \"abiverify/nexus_abiverify_epilogue.h\"\n";
     close ($fout_c);
 }
 close($fout_h);

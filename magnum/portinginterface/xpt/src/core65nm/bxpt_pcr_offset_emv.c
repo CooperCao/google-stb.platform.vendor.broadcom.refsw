@@ -904,7 +904,7 @@ BERR_Code BXPT_PcrOffset_EnableOffset(
     Reg = BREG_Read32( hPcrOff->hReg, RegAddr );
 
     bAlreadyEnabled = BCHP_GET_FIELD_DATA( Reg, XPT_PCROFFSET_PID_CONFIG_TABLE_i, PCROFFSET_EN ) == 1 ? true : false;
-    if (bAlreadyEnabled) { ExitCode = BERR_NOT_SUPPORTED; BERR_TRACE( ExitCode); goto Done; }
+    if (bAlreadyEnabled) { ExitCode = BERR_NOT_SUPPORTED; (void)BERR_TRACE( ExitCode); goto Done; }
 
     Reg &= ~(
         BCHP_MASK( XPT_PCROFFSET_PID_CONFIG_TABLE_i, JITTER_DIS ) |

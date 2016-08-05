@@ -89,7 +89,7 @@ b_shared_gpio_irq_type NEXUS_Platform_P_SharedGpio_NexusInterruptTypeToDriver(NE
     return driver_type;
 }
 
-void NEXUS_Platform_P_SharedGpio_GetPinDesc(NEXUS_GpioModuleOsSharedBankPinHandle pin, b_shared_gpio_pin_desc * pinDesc)
+void NEXUS_Platform_P_SharedGpio_GetPinDesc_isrsafe(NEXUS_GpioModuleOsSharedBankPinHandle pin, b_shared_gpio_pin_desc * pinDesc)
 {
     pinDesc->bank_base_address = pin->openSettings.bankBaseAddress;
     pinDesc->shift = pin->openSettings.shift;

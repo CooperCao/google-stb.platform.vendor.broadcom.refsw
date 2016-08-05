@@ -100,7 +100,7 @@ typedef enum BDSP_P_AlgoType
     BDSP_P_AlgoType_eVideoEncode,
     BDSP_P_AlgoType_eScm,
     BDSP_P_AlgoType_eLast,
-    BDSP_P_AlgoType_eInvalid = 0x7F
+    BDSP_P_AlgoType_eInvalid = 0x7FFFFFFF
 
 } BDSP_P_AlgoType;
 
@@ -120,7 +120,7 @@ typedef enum BDSP_P_TaskType
     BDSP_P_TaskType_eOnDemand,
 
     BDSP_P_TaskType_eLast,
-    BDSP_P_TaskType_eInvalid = 0x7F
+    BDSP_P_TaskType_eInvalid = 0x7FFFFFFF
 
 } BDSP_P_TaskType;
 
@@ -137,7 +137,7 @@ typedef enum BDSP_P_SchedulingMode
     BDSP_P_SchedulingMode_eSlave,
 
     BDSP_P_SchedulingMode_eLast,
-    BDSP_P_SchedulingMode_eInvalid = 0x7F
+    BDSP_P_SchedulingMode_eInvalid = 0x7FFFFFFF
 
 } BDSP_P_SchedulingMode;
 

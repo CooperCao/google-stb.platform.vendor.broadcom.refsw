@@ -118,16 +118,18 @@ Summary:
 **/
 typedef struct NEXUS_SimpleAudioDecoderStartSettings
 {
-    NEXUS_AudioDecoderStartSettings primary;   /* Required pid and codec for audio decode and (if secondary settings are not specified) for passthrough. */
-    NEXUS_AudioDecoderStartSettings secondary; /* Optional second pid and codec for passthrough decoder. if secondary.pidChannel == NULL, primary start settings will
-                                                  be used for passthrough decoder */
+    NEXUS_AudioDecoderStartSettings primary;   /* Required pid and codec for audio decode and (if secondary settings are not specified)
+                                                  for passthrough. */
+    NEXUS_AudioDecoderStartSettings secondary; /* Optional second pid and codec for passthrough decoder. if secondary.pidChannel == NULL,
+                                                  primary start settings will be used for passthrough decoder */
     NEXUS_AudioDecoderStartSettings description; /* optional pid and codec for audio description */
     struct {
         bool pcm, compressed; /* start primers for pcm and/or compressed if regular decoder not available. */
     } primer;
 
     struct {
-        bool enabled;                   /* If true, decoder will be used to passthrough application-provided IEC61937 data via GetPassthroughBuffer() and PassthroughWriteComplete().  No decoding will be performed. */
+        bool enabled;                   /* If true, decoder will be used to passthrough application-provided IEC61937 data via GetPassthroughBuffer()
+                                           and PassthroughWriteComplete().  No decoding will be performed. */
         unsigned sampleRate;            /* Sample Rate in Hz */
         NEXUS_CallbackDesc dataCallback;
     } passthroughBuffer;

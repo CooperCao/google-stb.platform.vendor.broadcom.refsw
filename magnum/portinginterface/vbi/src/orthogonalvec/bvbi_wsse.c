@@ -272,7 +272,6 @@ BERR_Code BVBI_P_WSS_Enc_Program (
             ~BCHP_MASK       (WSE_ANCIL_0_control, active_line              );
         ulControlReg |=
              BCHP_FIELD_DATA (WSE_ANCIL_0_control, active_line, ulActiveLine);
-#ifdef BVBI_P_HAS_WSE_PARITY
 #if defined(BVBI_P_WSE_VER1)
         ulControlReg &=
             ~BCHP_MASK       (WSE_ANCIL_0_control, AUTO_PARITY_TYP_656      );
@@ -283,7 +282,6 @@ BERR_Code BVBI_P_WSS_Enc_Program (
             ~BCHP_MASK       (WSE_ANCIL_0_control, AUTO_PARITY_EN_656       );
         ulControlReg |=
              BCHP_FIELD_DATA (WSE_ANCIL_0_control, AUTO_PARITY_EN_656,     1);
-#endif
 #endif
     }
     else
@@ -296,7 +294,6 @@ BERR_Code BVBI_P_WSS_Enc_Program (
             ~BCHP_MASK       (WSE_0_control, start_delay              );
         ulControlReg |=
              BCHP_FIELD_DATA (WSE_0_control, start_delay,  start_delay);
-#ifdef BVBI_P_HAS_WSE_PARITY
         ulControlReg &=
             ~BCHP_MASK       (WSE_0_control, AUTO_PARITY_TYP          );
         ulControlReg |=
@@ -315,7 +312,6 @@ BERR_Code BVBI_P_WSS_Enc_Program (
             ~BCHP_MASK       (WSE_0_control, AUTO_PARITY_EN_656       );
         ulControlReg |=
              BCHP_FIELD_DATA (WSE_0_control, AUTO_PARITY_EN_656,     1);
-#endif
 #if defined(BVBI_P_WSE_VER3) || defined(BVBI_P_WSE_VER4) || \
     defined(BVBI_P_WSE_VER5)
         ulControlReg &=
@@ -365,11 +361,6 @@ uint32_t BVBI_P_WSS_Encode_Data_isr (
         BDBG_LEAVE(BVBI_P_WSS_Encode_Data_isr);
         return (uint32_t)(-1);
     }
-
-    /* Apply the WSS parity bit */
-#ifndef BVBI_P_HAS_WSE_PARITY
-    usData = BVBI_P_AddWSSparity (usData);
-#endif
 
     /* Write new register value */
     ulDataReg = BREG_Read32 (hReg, BCHP_WSE_0_wss_data + ulCoreOffset);

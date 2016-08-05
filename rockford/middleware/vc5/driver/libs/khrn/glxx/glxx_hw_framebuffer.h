@@ -19,23 +19,22 @@ FILE DESCRIPTION
 
 typedef struct
 {
-   bool  ms;
+   bool ms;
 
    /* all the color images from the fb are stored here, irrespective of enabled
     * draw buffers */
-   KHRN_IMAGE_PLANE_T   color[GLXX_MAX_RENDER_TARGETS];
-   KHRN_IMAGE_PLANE_T   color_ms[GLXX_MAX_RENDER_TARGETS];
+   uint32_t rt_count; /* Index of highest used RT + 1 or 1 if no used RTs */
+   KHRN_IMAGE_PLANE_T color[GLXX_MAX_RENDER_TARGETS]; // Always downsampled
+   KHRN_IMAGE_PLANE_T color_ms[GLXX_MAX_RENDER_TARGETS]; // Always multisampled
+   v3d_rt_bpp_t color_internal_bpp[GLXX_MAX_RENDER_TARGETS];
+   v3d_rt_type_t color_internal_type[GLXX_MAX_RENDER_TARGETS];
 
-   /* Max used color render targets */
-   uint32_t    rt_count;
+   /* if ms = true, depth and stencil are multisampled images */
+   KHRN_IMAGE_PLANE_T depth;
+   KHRN_IMAGE_PLANE_T stencil;
 
-   /* if ms = true, depth and  stencil are multisampled images */
-   KHRN_IMAGE_PLANE_T   depth;
-   KHRN_IMAGE_PLANE_T   stencil;
-
-   unsigned    width;               /* min width of all images */
-   unsigned    height;              /* min height of all images */
-   v3d_rt_bpp_t   max_bpp;          /* max bpp for for all color images */
+   unsigned width; /* min width of all images */
+   unsigned height; /* min height of all images */
 
 } GLXX_HW_FRAMEBUFFER_T;
 

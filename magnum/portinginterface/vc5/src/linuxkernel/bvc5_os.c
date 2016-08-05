@@ -65,3 +65,27 @@ void BVC5_P_DebugDumpHeapContents(BMEM_Heap_Handle hHeap, uint32_t uiCoreIndex)
 
    BDBG_MSG(("Warning: Debug memory dump is not available in kernel mode"));
 }
+
+BERR_Code BVC5_P_DRMOpen(uint32_t uiDRMDevice)
+{
+   /* Nothing to do in kernel mode */
+   BSTD_UNUSED(uiDRMDevice);
+   return BERR_SUCCESS;
+}
+
+#ifdef BVC5_USE_DRM
+/*
+ * Exported entrypoint into the DRM kernel driver just for this module to use
+ */
+extern void v3d_drm_term_client(uint64_t);
+
+void BVC5_P_DRMTerminateClient(uint64_t uiPlatformToken)
+{
+   v3d_drm_term_client(uiPlatformToken);
+}
+#else
+void BVC5_P_DRMTerminateClient(uint64_t uiPlatformToken)
+{
+   BSTD_UNUSED(uiPlatformToken);
+}
+#endif

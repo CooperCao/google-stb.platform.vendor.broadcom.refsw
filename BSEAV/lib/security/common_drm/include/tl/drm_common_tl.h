@@ -137,7 +137,7 @@ DrmRC DRM_Common_TL_Finalize(void);
 DrmRC DRM_Common_TL_ModuleInitialize(DrmCommon_ModuleId_e module_id,
                                  char * drm_bin_filename,
                                  BSAGElib_InOutContainer *container,
-							     SRAI_ModuleHandle *moduleHandle);
+                                 SRAI_ModuleHandle *moduleHandle);
 
 DrmRC DRM_Common_TL_ModuleFinalize(SRAI_ModuleHandle moduleHandle);
 

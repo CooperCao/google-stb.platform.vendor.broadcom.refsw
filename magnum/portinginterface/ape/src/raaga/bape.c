@@ -1184,7 +1184,7 @@ BERR_Code BAPE_ProcessWatchdogInterruptStop(
     BDBG_OBJECT_ASSERT(handle, BAPE_Device);
 
 #if BAPE_DSP_SUPPORT
-    if ( handle->dspContext )
+    if ( handle->dspContext || handle->armContext )
     {
         BERR_Code errCode;
         unsigned i, numFound;
@@ -1247,11 +1247,24 @@ BERR_Code BAPE_ProcessWatchdogInterruptStop(
             }
         }
 
-        /* Reboot the DSP */
-        errCode = BDSP_Context_ProcessWatchdogInterrupt(handle->dspContext);
-        if ( errCode )
+        /* Reboot ARM Audio context */
+        if ( handle->armContext )
         {
-            return BERR_TRACE(errCode);
+            errCode = BDSP_Context_ProcessWatchdogInterrupt(handle->armContext);
+            if ( errCode )
+            {
+                return BERR_TRACE(errCode);
+            }
+        }
+
+        /* Reboot the DSP */
+        if ( handle->dspContext )
+        {
+            errCode = BDSP_Context_ProcessWatchdogInterrupt(handle->dspContext);
+            if ( errCode )
+            {
+                return BERR_TRACE(errCode);
+            }
         }
     }
 #endif

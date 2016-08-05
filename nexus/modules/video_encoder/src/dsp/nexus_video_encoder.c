@@ -690,6 +690,12 @@ error:
 NEXUS_Error
 NEXUS_VideoEncoder_GetStatus(NEXUS_VideoEncoderHandle encoder, NEXUS_VideoEncoderStatus *pStatus)
 {
+    return NEXUS_VideoEncoder_GetBufferStatus_priv(encoder, pStatus);
+}
+
+NEXUS_Error
+NEXUS_VideoEncoder_GetBufferStatus_priv(NEXUS_VideoEncoderHandle encoder, NEXUS_VideoEncoderStatus *pStatus)
+{
     NEXUS_Error rc;
     NEXUS_DspVideoEncoderStatus bufferStatus;
 

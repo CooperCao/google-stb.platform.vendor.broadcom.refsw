@@ -9,8 +9,8 @@
             <span id=h2memory onclick="MyClick(event);" >Memory </span>Configuration GUI</h1></td>
     </tr>
     <tr><td colspan=2><hr></td></tr>
-        <tr><td colspan=2 >Platform: <span id=platform >xxxxx</span>&nbsp;<span id=platver>YY</span>&nbsp;&nbsp;
-            <select id="boxmode" onchange="MyClick(event);" ></select><!-- onselect does not work for some reason -->
+        <tr><td colspan=2 ><table><tr><td>Platform: <span id=platform >xxxxx</span>&nbsp;</td><td><span id=platver>YY</span>&nbsp;&nbsp;</td>
+            <td><div id=divboxmode ><select id="boxmode" onchange="MyClick(event);" ></select><!-- onselect does not work for some reason --></div></td></tr></table>
             </td></tr>
     <tr><th valign=top ><span id=stbtime >00:00:00</span><br><br>
         <form method="get" action="/cgi/bmemconfig.cgi" >

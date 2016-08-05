@@ -35,30 +35,24 @@ FILE DESCRIPTION
 #include "glsl_stringbuilder.h"
 #include "glsl_intern.h"
 #include "glsl_dataflow_visitor.h"
-#include "glsl_uniform_layout.h"
+#include "glsl_mem_layout.h"
 #include "glsl_ir_program.h"
 #include "glsl_dataflow_builder.h"
 #include "glsl_stackmem.h"
 #include "glsl_dataflow_cse.h"
 #include "glsl_layout.h"
+#include "glsl_compiled_shader.h"
+#include "glsl_extensions.h"
 
 #include "glsl_primitive_types.auto.h"
 #include "glsl_stdlib.auto.h"
 
+#include "../glxx/glxx_int_config.h"
+
+#include "libs/util/gfx_util/gfx_util.h"
+
 void glsl_term_lexer();
 bool glsl_find_version(int sourcec, const char *const *sourcev, int *version);
-
-#include "glsl_compiled_shader.h"
-
-void glsl_init_compiler_common(void)
-{
-   // Initialize string intern facility
-   glsl_init_intern(1024);
-
-   glsl_dataflow_reset_count();
-   glsl_prim_init();
-   glsl_stdlib_init();
-}
 
 CompiledShader *compiled_shader_create(ShaderFlavour f, int version) {
    CompiledShader *ret = malloc(sizeof(CompiledShader));
@@ -181,6 +175,12 @@ static void find_static_use(Expr *e, void *data) {
       assert(e->u.instance.symbol != NULL);
       for (int i=0; i<d->count; i++) {
          if (e->u.instance.symbol == d->data[i].symbol) d->data[i].used = true;
+         if (e->u.instance.symbol->flavour == SYMBOL_VAR_INSTANCE &&
+             e->u.instance.symbol->u.var_instance.block_info_valid &&
+             e->u.instance.symbol->u.var_instance.block_info.block_symbol == d->data[i].symbol)
+         {
+            d->data[i].used = true;
+         }
       }
    }
 }
@@ -366,9 +366,10 @@ static void record_type(struct shader_maps *m, SymbolType *t) {
          return;
       case SYMBOL_BLOCK_TYPE:
          record_struct_members(m, t->u.block_type.member, t->u.block_type.member_count);
-         record_lq(m, t->u.block_type.lq);
+         if (t->u.block_type.lq)
+            record_lq(m, t->u.block_type.lq);
          return;
-      default: UNREACHABLE();
+      default: unreachable();
    }
 }
 
@@ -482,11 +483,11 @@ static bool copy_compiled_shader(CompiledShader *sh, ShaderInterfaces *ifaces, M
             break;
          case SYMBOL_BLOCK_TYPE:
             dest->u.block_type.member = &sh->struct_member_block[((int *)glsl_map_get(output.struct_members, t->u.block_type.member))[1]];
-            dest->u.block_type.lq = &sh->lq_block[(uintptr_t)glsl_map_get(output.lq, t->u.block_type.lq)];
+            dest->u.block_type.lq = t->u.block_type.lq ? &sh->lq_block[(uintptr_t)glsl_map_get(output.lq, t->u.block_type.lq)] : NULL;
             dest->u.block_type.layout = NULL;
             break;
          default:
-            UNREACHABLE();
+            unreachable();
             break;
       }
    }
@@ -697,7 +698,7 @@ void dpostv_setup_required_components(Dataflow *df, void *data)
       case DATAFLOW_FRAG_GET_COL: df_operand->u.get_col.required_components |= comp_mask; break;
       case DATAFLOW_TEXTURE_SIZE: /* Do nothing. Not sure why */ break;
       case DATAFLOW_VECTOR_LOAD: df_operand->u.vector_load.required_components |= comp_mask; break;
-      default: UNREACHABLE(); break;
+      default: unreachable(); break;
    }
 }
 
@@ -1119,7 +1120,7 @@ static void generate_compute_variables(BasicBlock *entry_block, Map *initial_val
 
    // Limit shared memory use to half the L2 cache size.
    Dataflow *shared_block_start = glsl_dataflow_construct_const_uint(0u);
-   unsigned const shared_block_size = shared_block->u.interface_block.block_data_type->u.block_type.layout->u.block_layout.size;
+   unsigned const shared_block_size = shared_block->u.interface_block.block_data_type->u.block_type.layout->u.struct_layout.size;
    if (shared_block_size > 0)
    {
       unsigned const l2_size = 128*1024; // timh-todo: 256k on v3d 3.3, is version available here?
@@ -1175,8 +1176,8 @@ static Symbol *construct_shared_block(SymbolList *members)
    resultType->u.block_type.member_count = count;
    resultType->u.block_type.member       = memb;
 
-   resultType->u.block_type.layout = malloc_fast(sizeof(MEMBER_LAYOUT_T));
-   calculate_block_layout(resultType->u.block_type.layout, resultType);
+   resultType->u.block_type.layout = malloc_fast(sizeof(MemLayout));
+   glsl_mem_calculate_block_layout(resultType->u.block_type.layout, resultType);
 
    Qualifiers q = { .invariant = false,
                     .lq = NULL,
@@ -1192,9 +1193,22 @@ static Symbol *construct_shared_block(SymbolList *members)
    for (n=members->head, i=0; n; n=n->next, i++) {
       n->s->u.var_instance.block_info_valid = true;
       n->s->u.var_instance.block_info.block_symbol = shared_block;
-      n->s->u.var_instance.block_info.layout = &shared_block->u.interface_block.block_data_type->u.block_type.layout->u.block_layout.member_layouts[i];
+      n->s->u.var_instance.block_info.layout = &shared_block->u.interface_block.block_data_type->u.block_type.layout->u.struct_layout.member_layouts[i];
+      n->s->u.var_instance.block_info.field_no = i;
    }
    return shared_block;
+}
+
+static void init_compiler_common(void)
+{
+   // Initialize string intern facility
+   glsl_init_intern(1024);
+
+   glsl_dataflow_reset_count();
+   glsl_prim_init();
+   glsl_stdlib_init();
+
+   glsl_compile_error_reset();
 }
 
 #ifdef ANDROID
@@ -1210,7 +1224,7 @@ CompiledShader *glsl_compile_shader(ShaderFlavour flavour, const GLSL_SHADER_SOU
 
    glsl_fastmem_init();
    glsl_dataflow_begin_construction();
-   glsl_init_compiler_common();
+   init_compiler_common();
 
    // Set long jump point in case of error.
    if (setjmp(g_ErrorHandlerEnv) != 0)
@@ -1231,9 +1245,10 @@ CompiledShader *glsl_compile_shader(ShaderFlavour flavour, const GLSL_SHADER_SOU
       glsl_compile_error(ERROR_PREPROCESSOR, 5, -1, "Invalid or unsupported version");
 
    Statement *ast = glsl_parse_ast(flavour, version, src->sourcec, src->sourcev);
-   glsl_ast_validate(ast, flavour, version);
 
-   if (g_ShaderFlavour == SHADER_COMPUTE) {
+   ShaderInterfaces *interfaces = glsl_shader_interfaces_new();
+
+   if (flavour == SHADER_COMPUTE) {
       SymbolType *type = &primitiveTypes[PRIM_UVEC3];
       Qualifiers quals = { .invariant = false,
                            .lq = NULL,
@@ -1243,26 +1258,24 @@ CompiledShader *glsl_compile_shader(ShaderFlavour flavour, const GLSL_SHADER_SOU
                            .mq = MEMORY_NONE };
       Symbol *compute_vary = malloc_fast(sizeof(Symbol));
       glsl_symbol_construct_var_instance(compute_vary, glsl_intern("$$comp_vary", false), type, &quals, NULL, NULL);
-      glsl_shader_interfaces_update(g_ShaderInterfaces, compute_vary);
+      glsl_shader_interfaces_update(interfaces, compute_vary);
    }
 
-   /* Walk the AST looking for shared variable symbols. They must be at global scope */
-   SymbolList *shared = glsl_symbol_list_new();
+   uint64_t active_mask = glsl_stdlib_get_property_mask(flavour, version) | glsl_ext_get_symbol_mask();
+   glsl_stdlib_interfaces_update(interfaces, active_mask);
+
+   /* Walk the AST looking for interface variable symbols. They must be at global scope */
    for (StatementChainNode *n = ast->u.ast.decls->first; n; n=n->next) {
       if (n->statement->flavour == STATEMENT_DECL_LIST) {
-         for (StatementChainNode *n2 = n->statement->u.decl_list.decls->first; n2; n2=n2->next) {
-            if (n2->statement->u.var_decl.var->u.var_instance.storage_qual == STORAGE_SHARED)
-               glsl_symbol_list_append(shared, n2->statement->u.var_decl.var);
-         }
-      } else if (n->statement->flavour == STATEMENT_VAR_DECL) {
-         if (n->statement->u.var_decl.var->u.var_instance.storage_qual == STORAGE_SHARED)
-            glsl_symbol_list_append(shared, n->statement->u.var_decl.var);
-      }
+         for (StatementChainNode *n2 = n->statement->u.decl_list.decls->first; n2; n2=n2->next)
+            glsl_shader_interfaces_update(interfaces, n2->statement->u.var_decl.var);
+      } else if (n->statement->flavour == STATEMENT_VAR_DECL)
+         glsl_shader_interfaces_update(interfaces, n->statement->u.var_decl.var);
    }
 
-   Symbol *shared_block = construct_shared_block(shared);
+   Symbol *shared_block = construct_shared_block(interfaces->shared);
 
-   Map *symbol_ids = glsl_shader_interfaces_id_map(g_ShaderInterfaces);
+   Map *symbol_ids = glsl_shader_interfaces_id_map(interfaces);
 
    /* Normalise the AST */
    NStmtList *nast = glsl_nast_build(ast);
@@ -1276,11 +1289,15 @@ CompiledShader *glsl_compile_shader(ShaderFlavour flavour, const GLSL_SHADER_SOU
    enum tess_spacing tess_spacing = TESS_SPACING_EQUAL;
    bool tess_cw = false;
    bool tess_points = false;
-   unsigned tess_vertices = 0;      /* Value never used */
+   unsigned tess_vertices = 0;               /* Value never used */
+   enum gs_out_type gs_out = GS_OUT_INVALID; /* Value never used */
+   unsigned gs_n_invocations = 1;
+   unsigned gs_max_vertices = 0;
    if (flavour != SHADER_VERTEX) {
       bool size_declared = false;
       bool tess_mode_declared = false;
       bool tess_vertices_declared = false;
+      bool gs_out_type_declared = false;
       for (StatementChainNode *n = ast->u.ast.decls->first; n; n=n->next) {
          if (n->statement->flavour != STATEMENT_QUALIFIER_DEFAULT) continue;
          for (QualListNode *qn = n->statement->u.qualifier_default.quals->head; qn; qn=qn->next) {
@@ -1298,9 +1315,14 @@ CompiledShader *glsl_compile_shader(ShaderFlavour flavour, const GLSL_SHADER_SOU
                      case LQ_SPACING_EQUAL:           tess_spacing = TESS_SPACING_EQUAL;      break;
                      case LQ_SPACING_FRACTIONAL_EVEN: tess_spacing = TESS_SPACING_FRACT_EVEN; break;
                      case LQ_SPACING_FRACTIONAL_ODD:  tess_spacing = TESS_SPACING_FRACT_ODD;  break;
-                     case LQ_CW:  tess_cw = true;  break;
-                     case LQ_CCW: tess_cw = false; break;
-                     case LQ_POINT_MODE: tess_points = true; break;
+                     case LQ_CW:             tess_cw = true;                      break;
+                     case LQ_CCW:            tess_cw = false;                     break;
+                     case LQ_POINT_MODE:     tess_points = true;                  break;
+                     case LQ_POINTS:         gs_out = GS_OUT_POINTS;              break;
+                     case LQ_LINE_STRIP:     gs_out = GS_OUT_LINE_STRIP;          break;
+                     case LQ_TRIANGLE_STRIP: gs_out = GS_OUT_TRI_STRIP;           break;
+                     case LQ_INVOCATIONS:    gs_n_invocations = idn->l->argument; break;
+                     case LQ_MAX_VERTICES:   gs_max_vertices  = idn->l->argument; break;
                      default: /* Do nothing */ break;
                   }
 
@@ -1308,6 +1330,8 @@ CompiledShader *glsl_compile_shader(ShaderFlavour flavour, const GLSL_SHADER_SOU
                      tess_vertices_declared = true;
                   if (idn->l->id == LQ_ISOLINES || idn->l->id == LQ_TRIANGLES || idn->l->id == LQ_QUADS)
                      tess_mode_declared = true;
+                  if (idn->l->id == LQ_POINTS || idn->l->id == LQ_LINE_STRIP || idn->l->id == LQ_TRIANGLE_STRIP)
+                     gs_out_type_declared = true;
                   if (idn->l->id == LQ_SIZE_X || idn->l->id == LQ_SIZE_Y || idn->l->id == LQ_SIZE_Z)
                      size_declared = true;
                }
@@ -1315,11 +1339,16 @@ CompiledShader *glsl_compile_shader(ShaderFlavour flavour, const GLSL_SHADER_SOU
          }
       }
       if (flavour == SHADER_TESS_CONTROL && !tess_vertices_declared)
-         glsl_compile_error(ERROR_CUSTOM, 15, g_LineNumber, "tessellation control shader requires output patch size declaration");
+         glsl_compile_error(ERROR_CUSTOM, 15, -1, "tessellation control shader requires output patch size declaration");
       if (flavour == SHADER_TESS_EVALUATION && !tess_mode_declared)
-         glsl_compile_error(ERROR_CUSTOM, 15, g_LineNumber, "tessellation evaluation shader requires mode declaration");
+         glsl_compile_error(ERROR_CUSTOM, 15, -1, "tessellation evaluation shader requires mode declaration");
+      if (flavour == SHADER_GEOMETRY && !gs_out_type_declared)
+         glsl_compile_error(ERROR_CUSTOM, 15, -1, "geometry shader requires output type declaration");
+      if (flavour == SHADER_GEOMETRY && (gs_max_vertices < 1 || gs_max_vertices > GLXX_CONFIG_MAX_GEOMETRY_OUTPUT_VERTICES))
+         glsl_compile_error(ERROR_CUSTOM, 15, -1, "geometry shader must declare max_vertices in the range (0, %d]",
+                                                  GLXX_CONFIG_MAX_GEOMETRY_OUTPUT_VERTICES);
       if (flavour == SHADER_COMPUTE && !size_declared)
-         glsl_compile_error(ERROR_CUSTOM, 15, g_LineNumber, "compute shader requires local size qualifiers");
+         glsl_compile_error(ERROR_CUSTOM, 15, -1, "compute shader requires local size qualifiers");
    }
 
    BasicBlockList *l = glsl_basic_block_get_reverse_postorder_list(shader_start_block);
@@ -1350,7 +1379,7 @@ CompiledShader *glsl_compile_shader(ShaderFlavour flavour, const GLSL_SHADER_SOU
    *entry_age_offset = 0;
    glsl_map_put(offsets, entry_block, entry_age_offset);
    entry_block->fallthrough_target = shader_start_block;
-   Map *initial_values = glsl_shader_interfaces_create_dataflow(g_ShaderInterfaces, symbol_ids);
+   Map *initial_values = glsl_shader_interfaces_create_dataflow(interfaces, symbol_ids);
 
    initialise_interface_symbols(entry_block, initial_values);
    if (flavour == SHADER_COMPUTE)
@@ -1379,7 +1408,7 @@ CompiledShader *glsl_compile_shader(ShaderFlavour flavour, const GLSL_SHADER_SOU
       get_block_info_outputs(bl, block_ids, ssa_blocks, output_maps);
       normalise_ir_format(bl, block_ids, ssa_blocks, output_maps, symbol_ids, phi_args);
 
-      fill_ir_outputs(g_ShaderInterfaces->outs, symbol_final_values, block_ids, output_maps, symbol_ids, &ir_outputs, &n_outputs);
+      fill_ir_outputs(interfaces->outs, symbol_final_values, block_ids, output_maps, symbol_ids, &ir_outputs, &n_outputs);
 
       glsl_safemem_free(phi_args);
       glsl_safemem_free(output_maps);
@@ -1399,15 +1428,15 @@ CompiledShader *glsl_compile_shader(ShaderFlavour flavour, const GLSL_SHADER_SOU
    if (ret == NULL) { return NULL; }
 
    Map *symbol_map = glsl_map_new();
-   if (!copy_compiled_shader(ret, g_ShaderInterfaces, symbol_map)) {
+   if (!copy_compiled_shader(ret, interfaces, symbol_map)) {
       glsl_compiled_shader_free(ret);
       return NULL;
    }
 
-   if (!interface_from_symbol_list(&ret->uniform, ast, g_ShaderInterfaces->uniforms, symbol_map, symbol_ids) ||
-       !interface_from_symbol_list(&ret->in,      ast, g_ShaderInterfaces->ins,      symbol_map, symbol_ids) ||
-       !interface_from_symbol_list(&ret->out,     ast, g_ShaderInterfaces->outs,     symbol_map, symbol_ids) ||
-       !interface_from_symbol_list(&ret->buffer,  ast, g_ShaderInterfaces->buffers,  symbol_map, symbol_ids)   )
+   if (!interface_from_symbol_list(&ret->uniform, ast, interfaces->uniforms, symbol_map, symbol_ids) ||
+       !interface_from_symbol_list(&ret->in,      ast, interfaces->ins,      symbol_map, symbol_ids) ||
+       !interface_from_symbol_list(&ret->out,     ast, interfaces->outs,     symbol_map, symbol_ids) ||
+       !interface_from_symbol_list(&ret->buffer,  ast, interfaces->buffers,  symbol_map, symbol_ids)   )
    {
       glsl_compiled_shader_free(ret);
       return NULL;
@@ -1452,10 +1481,14 @@ CompiledShader *glsl_compile_shader(ShaderFlavour flavour, const GLSL_SHADER_SOU
       ret->tess_point_mode = tess_points;
    }
 
+   if (flavour == SHADER_GEOMETRY) {
+      ret->gs_out = gs_out;
+      ret->gs_n_invocations = gs_n_invocations;
+   }
 
    if (flavour == SHADER_COMPUTE) {
       for (int i=0; i<3; i++) ret->wg_size[i] = wg_size[i];
-      ret->shared_block_size = shared_block->u.interface_block.block_data_type->u.block_type.layout->u.block_layout.size;
+      ret->shared_block_size = shared_block->u.interface_block.block_data_type->u.block_type.layout->u.struct_layout.size;
    }
 
    glsl_safemem_free(ssa_blocks);

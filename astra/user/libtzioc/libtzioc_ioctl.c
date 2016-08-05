@@ -95,6 +95,7 @@ int _tzioc_ioctl_client_close(
 int _tzioc_ioctl_client_getid(
     struct tzioc_client *pClient,
     const char *pName,
+    uint32_t ulPid,
     uint8_t *pId)
 {
     struct tzioc_ioctl_client_getid_data clientGetIdData;
@@ -102,6 +103,7 @@ int _tzioc_ioctl_client_getid(
 
     clientGetIdData.hClient = pClient->hKlient;
     strncpy(clientGetIdData.name, pName, TZIOC_CLIENT_NAME_LEN_MAX);
+    clientGetIdData.pid = ulPid;
 
     err = ioctl(
         pClient->fd,

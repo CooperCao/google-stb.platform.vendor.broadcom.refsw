@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -424,6 +424,19 @@ static BIP_Status startPBipLiveStreamer(
         {
             liveStreamingOpenSettings.recpumpHandle = hHttpStreamer->pStreamer->hRecpump;
             liveStreamingOpenSettings.heapHandle = getStreamerHeapHandle(hHttpStreamer->output.settings.heapHandle);
+
+            if(hHttpStreamer->startSettings.streamingMethod == BIP_StreamingMethod_eRaveInterruptBased)
+            {
+                liveStreamingOpenSettings.streamingMethod = B_PlaybackIpStreamingMethod_eRaveInterruptBased;
+                liveStreamingOpenSettings.timeOutIntervalInMs =
+                    hHttpStreamer->startSettings.streamingSettings.raveInterruptBasedSettings.timeOutIntervalInMs;
+            }
+            else if(hHttpStreamer->startSettings.streamingMethod == BIP_StreamingMethod_eSystemTimerBased)
+            {
+                liveStreamingOpenSettings.streamingMethod = B_PlaybackIpStreamingMethod_eSystemTimerBased;
+                liveStreamingOpenSettings.timeOutIntervalInMs =
+                    hHttpStreamer->startSettings.streamingSettings.systemTimerBasedSettings.timeOutIntervalInMs;
+            }
         }
 
         hHttpStreamer->playbackIpState.hLiveStreamer = B_PlaybackIp_LiveStreamingOpen( &liveStreamingOpenSettings );
@@ -3078,7 +3091,14 @@ static void processHttpDirectStreamerState(
                     BIP_StreamerPrepareSettings prepareSettings;
 
                     BIP_Streamer_GetDefaultPrepareSettings( &prepareSettings );
-                    prepareSettings.recpumpOpenSettings.data.dataReadyThreshold = prepareSettings.recpumpOpenSettings.data.atomSize * 2;
+
+                    /*  This always have to set irrespective of whether we are running in RaveInterruptbased or systemTimer based mode,
+                        since Rave interrupt internally is always enable only we don't wait for that event in systemTimer mode.
+                        Now in system timer mode since we are running based on systemTimer,
+                        so we can set dataReadyThreshold high based on the systemTimer duration, which eventually reduce the number of interrupt.*/
+                    prepareSettings.recpumpOpenSettings.data.dataReadyThreshold =
+                            prepareSettings.recpumpOpenSettings.data.atomSize * hHttpStreamer->startSettings.streamingSettings.raveInterruptBasedSettings.dataReadyScaleFactor;
+
                     hHttpStreamer->completionStatus = BIP_Streamer_Prepare( hHttpStreamer->hStreamer, &prepareSettings );
                 }
 

@@ -19,7 +19,7 @@ bool egl_syncs_lock_init(void)
    syncs_lock = malloc(sizeof(VCOS_MUTEX_T));
    if (!syncs_lock)
       return false;
-   if (!vcos_mutex_create(syncs_lock, "egl syncs lock") == VCOS_SUCCESS)
+   if (vcos_mutex_create(syncs_lock, "egl syncs lock") != VCOS_SUCCESS)
    {
       free(syncs_lock);
       return false;

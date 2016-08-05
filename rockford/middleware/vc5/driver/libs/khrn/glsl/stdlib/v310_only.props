@@ -224,13 +224,13 @@ version31 version32:
 #
 # Synchronisation Functions
 #
-   void barrier() ;
-   void memoryBarrier() ;
-   void memoryBarrierAtomicCounter() ;
-   void memoryBarrierBuffer() ;
-   void memoryBarrierImage () ;
-   void memoryBarrierShared() ;
-   void groupMemoryBarrier () ;
+   void barrier();
+   void memoryBarrier();
+   void memoryBarrierAtomicCounter();
+   void memoryBarrierBuffer();
+   void memoryBarrierImage ();
+   void memoryBarrierShared();
+   void groupMemoryBarrier ();
 
 #
 # Global Variables
@@ -258,3 +258,5 @@ version31 version32:
    const mediump int gl_MaxAtomicCounterBufferSize;
 
    const bool gl_HelperInvocation;
+
+   in highp int __brcm_base_instance;

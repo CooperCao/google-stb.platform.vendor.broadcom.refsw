@@ -39,16 +39,6 @@
 #include "nexus_frontend_sat.h"
 
 
-#if NEXUS_FRONTEND_7364
-#include "bdsq_g1.h"
-#endif
-#if NEXUS_FRONTEND_7366
-#include "bdsq_7366.h"
-#endif
-#if NEXUS_FRONTEND_45216
-#include "bdsq_45216.h"
-#endif
-
 BDBG_MODULE(nexus_frontend_sat);
 BDBG_OBJECT_ID(NEXUS_SatDevice);
 BDBG_OBJECT_ID(NEXUS_SatChannel);
@@ -246,30 +236,35 @@ g_sds_ldpc_modes[] = {
     {&g_cr_1_3, BSAT_Mode_eDvbs2_Qpsk_1_3},
     {&g_cr_1_4, BSAT_Mode_eDvbs2_Qpsk_1_4},
     {&g_cr_2_5, BSAT_Mode_eDvbs2_Qpsk_2_5},
-    {&g_cr_3_5, BSAT_Mode_eDvbs2_Qpsk_3_5},
-    {&g_cr_2_3, BSAT_Mode_eDvbs2_Qpsk_2_3},
-    {&g_cr_3_4, BSAT_Mode_eDvbs2_Qpsk_3_4},
-    {&g_cr_4_5, BSAT_Mode_eDvbs2_Qpsk_4_5},
-    {&g_cr_5_6, BSAT_Mode_eDvbs2_Qpsk_5_6},
-    {&g_cr_8_9, BSAT_Mode_eDvbs2_Qpsk_8_9},
-    {&g_cr_9_10, BSAT_Mode_eDvbs2_Qpsk_9_10},
-    {&g_cr_3_5, BSAT_Mode_eDvbs2_8psk_3_5},
-    {&g_cr_2_3, BSAT_Mode_eDvbs2_8psk_2_3},
-    {&g_cr_3_4, BSAT_Mode_eDvbs2_8psk_3_4},
-    {&g_cr_5_6, BSAT_Mode_eDvbs2_8psk_5_6},
-    {&g_cr_8_9, BSAT_Mode_eDvbs2_8psk_8_9},
-    {&g_cr_9_10, BSAT_Mode_eDvbs2_8psk_9_10},
-    {&g_cr_2_3, BSAT_Mode_eDvbs2_16apsk_2_3},
-    {&g_cr_3_4, BSAT_Mode_eDvbs2_16apsk_3_4},
-    {&g_cr_4_5, BSAT_Mode_eDvbs2_16apsk_4_5},
-    {&g_cr_5_6, BSAT_Mode_eDvbs2_16apsk_5_6},
-    {&g_cr_8_9, BSAT_Mode_eDvbs2_16apsk_8_9},
-    {&g_cr_9_10, BSAT_Mode_eDvbs2_16apsk_9_10},
-    {&g_cr_3_4, BSAT_Mode_eDvbs2_32apsk_3_4},
-    {&g_cr_4_5, BSAT_Mode_eDvbs2_32apsk_4_5},
-    {&g_cr_5_6, BSAT_Mode_eDvbs2_32apsk_5_6},
-    {&g_cr_8_9, BSAT_Mode_eDvbs2_32apsk_8_9},
-    {&g_cr_9_10, BSAT_Mode_eDvbs2_32apsk_9_10},
+    /* Do NOT uncomment these. This is used for generic Dvbs2 tunes, and the search algorithm
+     * will use the first match on the coderate. The coderates commented out here are NOT unique,
+     * e.g. 2/3 is used by Qpsk, 8psk, and 16apsk. If specified with mode=dvbs2, it would send
+     * qpsk 2/3 to SAT, regardless of actual signal, and could fail to lock 8psk/16apsk.
+     */
+    /*{&g_cr_3_5, BSAT_Mode_eDvbs2_Qpsk_3_5},*/
+    /*{&g_cr_2_3, BSAT_Mode_eDvbs2_Qpsk_2_3},*/
+    /*{&g_cr_3_4, BSAT_Mode_eDvbs2_Qpsk_3_4},*/
+    /*{&g_cr_4_5, BSAT_Mode_eDvbs2_Qpsk_4_5},*/
+    /*{&g_cr_5_6, BSAT_Mode_eDvbs2_Qpsk_5_6},*/
+    /*{&g_cr_8_9, BSAT_Mode_eDvbs2_Qpsk_8_9},*/
+    /*{&g_cr_9_10, BSAT_Mode_eDvbs2_Qpsk_9_10},*/
+    /*{&g_cr_3_5, BSAT_Mode_eDvbs2_8psk_3_5},*/
+    /*{&g_cr_2_3, BSAT_Mode_eDvbs2_8psk_2_3},*/
+    /*{&g_cr_3_4, BSAT_Mode_eDvbs2_8psk_3_4},*/
+    /*{&g_cr_5_6, BSAT_Mode_eDvbs2_8psk_5_6},*/
+    /*{&g_cr_8_9, BSAT_Mode_eDvbs2_8psk_8_9},*/
+    /*{&g_cr_9_10, BSAT_Mode_eDvbs2_8psk_9_10},*/
+    /*{&g_cr_2_3, BSAT_Mode_eDvbs2_16apsk_2_3},*/
+    /*{&g_cr_3_4, BSAT_Mode_eDvbs2_16apsk_3_4},*/
+    /*{&g_cr_4_5, BSAT_Mode_eDvbs2_16apsk_4_5},*/
+    /*{&g_cr_5_6, BSAT_Mode_eDvbs2_16apsk_5_6},*/
+    /*{&g_cr_8_9, BSAT_Mode_eDvbs2_16apsk_8_9},*/
+    /*{&g_cr_9_10, BSAT_Mode_eDvbs2_16apsk_9_10},*/
+    /*{&g_cr_3_4, BSAT_Mode_eDvbs2_32apsk_3_4},*/
+    /*{&g_cr_4_5, BSAT_Mode_eDvbs2_32apsk_4_5},*/
+    /*{&g_cr_5_6, BSAT_Mode_eDvbs2_32apsk_5_6},*/
+    /*{&g_cr_8_9, BSAT_Mode_eDvbs2_32apsk_8_9},*/
+    /*{&g_cr_9_10, BSAT_Mode_eDvbs2_32apsk_9_10},*/
     {NULL, BSAT_Mode_eDvbs2_scan}
 },
 g_sds_qpsk_dvbs2x_modes[] = {
@@ -314,6 +309,9 @@ g_sds_32apsk_dvbs2x_modes[] = {
 },
 g_sds_dvbs2x_modes[] = {
     {NULL, BSAT_Mode_eDvbs2_scan}
+},
+g_sds_dvbs2acm_modes[] = {
+    {NULL, BSAT_Mode_eDvbs2_ACM}
 },
 g_blind_acquisition_mode[] = {
     {NULL, BSAT_Mode_eBlindScan}
@@ -1061,6 +1059,10 @@ NEXUS_Error NEXUS_Frontend_P_Sat_TuneSatellite( void *handle, const NEXUS_Fronte
     if (pSettings->shortFrames)
         acqSettings.options |= BSAT_ACQ_DVBS2_SHORT_FRAMES;
 
+#if 1
+    acqSettings.options |= BSAT_ACQ_CHAN_BOND; /* TODO: hard-coded for now */
+#endif
+
     if (pSettings->mode == NEXUS_FrontendSatelliteMode_eDvb) {
         /* Only applies to DVB-S */
         BSAT_LegacyQpskAcqSettings legacyAcqSettings;
@@ -1160,6 +1162,10 @@ NEXUS_Error NEXUS_Frontend_P_Sat_TuneSatellite( void *handle, const NEXUS_Fronte
     case NEXUS_FrontendSatelliteMode_eDvbs2x:
         BDBG_MSG(("Tune DVB-S2X"));
         acqSettings.mode = NEXUS_Frontend_P_Sat_GetMode(g_sds_dvbs2x_modes, &pSettings->codeRate);
+        break;
+    case NEXUS_FrontendSatelliteMode_eDvbs2Acm:
+        BDBG_MSG(("Tune DVB-S2 ACM"));
+        acqSettings.mode = NEXUS_Frontend_P_Sat_GetMode(g_sds_dvbs2acm_modes, &pSettings->codeRate);
         break;
     case NEXUS_FrontendSatelliteMode_eBlindAcquisition:
         BDBG_MSG(("Blind acquisition"));
@@ -1361,6 +1367,10 @@ static NEXUS_Error NEXUS_Frontend_P_Sat_GetSatelliteStatus( void *handle, NEXUS_
         pStatus->codeRate = g_cr_1_2;
         break;
 
+    case BSAT_Mode_eDvbs2x_16apsk_1_2_L:
+        pStatus->codeRate = g_cr_1_2_l;
+        break;
+
     case BSAT_Mode_eDvbs2_Qpsk_1_3:
         pStatus->codeRate = g_cr_1_3;
         break;
@@ -1378,6 +1388,11 @@ static NEXUS_Error NEXUS_Frontend_P_Sat_GetSatelliteStatus( void *handle, NEXUS_
     case BSAT_Mode_eTurbo_8psk_2_3:
     case BSAT_Mode_eDvbs2_16apsk_2_3:
         pStatus->codeRate = g_cr_2_3;
+        break;
+
+    case BSAT_Mode_eDvbs2x_16apsk_2_3_L:
+    case BSAT_Mode_eDvbs2x_32apsk_2_3_L:
+        pStatus->codeRate = g_cr_2_3_l;
         break;
 
     case BSAT_Mode_eDvbs2_Qpsk_2_5:
@@ -1398,7 +1413,12 @@ static NEXUS_Error NEXUS_Frontend_P_Sat_GetSatelliteStatus( void *handle, NEXUS_
     case BSAT_Mode_eDcii_3_5:
     case BSAT_Mode_eDvbs2_Qpsk_3_5:
     case BSAT_Mode_eDvbs2_8psk_3_5:
+    case BSAT_Mode_eDvbs2x_16apsk_3_5:
         pStatus->codeRate = g_cr_3_5;
+        break;
+
+    case BSAT_Mode_eDvbs2x_16apsk_3_5_L:
+        pStatus->codeRate = g_cr_3_5_l;
         break;
 
     case BSAT_Mode_eDcii_4_5:
@@ -1420,6 +1440,15 @@ static NEXUS_Error NEXUS_Frontend_P_Sat_GetSatelliteStatus( void *handle, NEXUS_
         pStatus->codeRate = g_cr_5_6;
         break;
 
+    case BSAT_Mode_eDvbs2x_8apsk_5_9_L:
+    case BSAT_Mode_eDvbs2x_16apsk_5_9_L:
+        pStatus->codeRate = g_cr_5_9_l;
+        break;
+
+    case BSAT_Mode_eDcii_5_11:
+        pStatus->codeRate = g_cr_5_11;
+        break;
+
     case BSAT_Mode_eDss_6_7:
         pStatus->codeRate = g_cr_6_7;
         break;
@@ -1430,8 +1459,9 @@ static NEXUS_Error NEXUS_Frontend_P_Sat_GetSatelliteStatus( void *handle, NEXUS_
         pStatus->codeRate = g_cr_7_8;
         break;
 
-    case BSAT_Mode_eDcii_5_11:
-        pStatus->codeRate = g_cr_5_11;
+    case BSAT_Mode_eDvbs2x_16apsk_7_9:
+    case BSAT_Mode_eDvbs2x_32apsk_7_9:
+        pStatus->codeRate = g_cr_7_9;
         break;
 
     case BSAT_Mode_eDvbs2_Qpsk_8_9:
@@ -1442,11 +1472,66 @@ static NEXUS_Error NEXUS_Frontend_P_Sat_GetSatelliteStatus( void *handle, NEXUS_
         pStatus->codeRate = g_cr_8_9;
         break;
 
+    case BSAT_Mode_eDvbs2x_16apsk_8_15_L:
+        pStatus->codeRate = g_cr_8_15_l;
+        break;
+
     case BSAT_Mode_eDvbs2_Qpsk_9_10:
     case BSAT_Mode_eDvbs2_8psk_9_10:
     case BSAT_Mode_eDvbs2_16apsk_9_10:
     case BSAT_Mode_eDvbs2_32apsk_9_10:
         pStatus->codeRate = g_cr_9_10;
+        break;
+
+    case BSAT_Mode_eDvbs2x_Qpsk_9_20:
+        pStatus->codeRate = g_cr_9_20;
+        break;
+
+    case BSAT_Mode_eDvbs2x_32apsk_11_15:
+        pStatus->codeRate = g_cr_11_15;
+        break;
+
+    case BSAT_Mode_eDvbs2x_Qpsk_11_20:
+        pStatus->codeRate = g_cr_11_20;
+        break;
+
+    case BSAT_Mode_eDvbs2x_8psk_13_18:
+    case BSAT_Mode_eDvbs2x_16apsk_13_18:
+        pStatus->codeRate = g_cr_13_18;
+        break;
+
+    case BSAT_Mode_eDvbs2x_Qpsk_13_45:
+        pStatus->codeRate = g_cr_13_45;
+        break;
+
+    case BSAT_Mode_eDvbs2x_8psk_23_36:
+    case BSAT_Mode_eDvbs2x_16apsk_23_36:
+        pStatus->codeRate = g_cr_23_36;
+        break;
+
+    case BSAT_Mode_eDvbs2x_8psk_25_36:
+    case BSAT_Mode_eDvbs2x_16apsk_25_36:
+        pStatus->codeRate = g_cr_25_36;
+        break;
+
+    case BSAT_Mode_eDvbs2x_16apsk_26_45:
+        pStatus->codeRate = g_cr_26_45;
+        break;
+
+    case BSAT_Mode_eDvbs2x_8apsk_26_45_L:
+        pStatus->codeRate = g_cr_26_45_l;
+        break;
+
+    case BSAT_Mode_eDvbs2x_16apsk_28_45:
+        pStatus->codeRate = g_cr_28_45;
+        break;
+
+    case BSAT_Mode_eDvbs2x_32apsk_32_45:
+        pStatus->codeRate = g_cr_32_45;
+        break;
+
+    case BSAT_Mode_eDvbs2x_16apsk_77_90:
+        pStatus->codeRate = g_cr_77_90;
         break;
 
     default:
@@ -1495,7 +1580,7 @@ static NEXUS_Error NEXUS_Frontend_P_Sat_GetSatelliteStatus( void *handle, NEXUS_
     case BSAT_Mode_eDvbs2_Qpsk_5_6:
     case BSAT_Mode_eDvbs2_Qpsk_9_10:
     case BSAT_Mode_eDvbs2_Qpsk_8_9:
-        pStatus->mode = NEXUS_FrontendSatelliteMode_eQpskLdpc;
+        pStatus->mode = NEXUS_FrontendSatelliteMode_eDvbs2Qpsk;
         break;
 
     case BSAT_Mode_eDvbs2_8psk_2_3:
@@ -1504,7 +1589,24 @@ static NEXUS_Error NEXUS_Frontend_P_Sat_GetSatelliteStatus( void *handle, NEXUS_
     case BSAT_Mode_eDvbs2_8psk_5_6:
     case BSAT_Mode_eDvbs2_8psk_8_9:
     case BSAT_Mode_eDvbs2_8psk_9_10:
-        pStatus->mode = NEXUS_FrontendSatelliteMode_e8pskLdpc;
+        pStatus->mode = NEXUS_FrontendSatelliteMode_eDvbs28psk;
+        break;
+
+    case BSAT_Mode_eDvbs2_16apsk_2_3:
+    case BSAT_Mode_eDvbs2_16apsk_3_4:
+    case BSAT_Mode_eDvbs2_16apsk_4_5:
+    case BSAT_Mode_eDvbs2_16apsk_5_6:
+    case BSAT_Mode_eDvbs2_16apsk_8_9:
+    case BSAT_Mode_eDvbs2_16apsk_9_10:
+        pStatus->mode = NEXUS_FrontendSatelliteMode_eDvbs216apsk;
+        break;
+
+    case BSAT_Mode_eDvbs2_32apsk_3_4:
+    case BSAT_Mode_eDvbs2_32apsk_4_5:
+    case BSAT_Mode_eDvbs2_32apsk_5_6:
+    case BSAT_Mode_eDvbs2_32apsk_8_9:
+    case BSAT_Mode_eDvbs2_32apsk_9_10:
+        pStatus->mode = NEXUS_FrontendSatelliteMode_eDvbs232apsk;
         break;
 
     case BSAT_Mode_eTurbo_scan:
@@ -1523,6 +1625,51 @@ static NEXUS_Error NEXUS_Frontend_P_Sat_GetSatelliteStatus( void *handle, NEXUS_
     case BSAT_Mode_eTurbo_8psk_8_9:
         pStatus->mode = NEXUS_FrontendSatelliteMode_eTurbo8psk;
         break;
+
+    case BSAT_Mode_eDvbs2x_Qpsk_13_45:
+    case BSAT_Mode_eDvbs2x_Qpsk_9_20:
+    case BSAT_Mode_eDvbs2x_Qpsk_11_20:
+        pStatus->mode = NEXUS_FrontendSatelliteMode_eDvbs2xQpsk;
+        break;
+
+    case BSAT_Mode_eDvbs2x_8apsk_5_9_L:
+    case BSAT_Mode_eDvbs2x_8apsk_26_45_L:
+        pStatus->mode = NEXUS_FrontendSatelliteMode_eDvbs2x8apsk;
+        break;
+
+    case BSAT_Mode_eDvbs2x_8psk_23_36:
+    case BSAT_Mode_eDvbs2x_8psk_25_36:
+    case BSAT_Mode_eDvbs2x_8psk_13_18:
+        pStatus->mode = NEXUS_FrontendSatelliteMode_eDvbs2x8psk;
+        break;
+
+    case BSAT_Mode_eDvbs2x_16apsk_1_2_L:
+    case BSAT_Mode_eDvbs2x_16apsk_8_15_L:
+    case BSAT_Mode_eDvbs2x_16apsk_5_9_L:
+    case BSAT_Mode_eDvbs2x_16apsk_26_45:
+    case BSAT_Mode_eDvbs2x_16apsk_3_5:
+    case BSAT_Mode_eDvbs2x_16apsk_3_5_L:
+    case BSAT_Mode_eDvbs2x_16apsk_28_45:
+    case BSAT_Mode_eDvbs2x_16apsk_23_36:
+    case BSAT_Mode_eDvbs2x_16apsk_2_3_L:
+    case BSAT_Mode_eDvbs2x_16apsk_25_36:
+    case BSAT_Mode_eDvbs2x_16apsk_13_18:
+    case BSAT_Mode_eDvbs2x_16apsk_7_9:
+    case BSAT_Mode_eDvbs2x_16apsk_77_90:
+        pStatus->mode = NEXUS_FrontendSatelliteMode_eDvbs2x16apsk;
+        break;
+
+    case BSAT_Mode_eDvbs2x_32apsk_2_3_L:
+    case BSAT_Mode_eDvbs2x_32apsk_32_45:
+    case BSAT_Mode_eDvbs2x_32apsk_11_15:
+    case BSAT_Mode_eDvbs2x_32apsk_7_9:
+        pStatus->mode = NEXUS_FrontendSatelliteMode_eDvbs2x32apsk;
+        break;
+
+    case BSAT_Mode_eDvbs2_ACM:
+        pStatus->mode = NEXUS_FrontendSatelliteMode_eDvbs2Acm;
+        break;
+
     }
 
     if (pSatChannel->lastSettings.bertEnable) {
@@ -1700,45 +1847,13 @@ static NEXUS_Error NEXUS_Frontend_P_Sat_SetDiseqcSettings(void *handle, const NE
         BDBG_MSG(("voltage: %d",pSettings->voltage == NEXUS_FrontendDiseqcVoltage_e18v ? 18 : 13));
         if (errCode) { rc = BERR_TRACE(errCode); goto err; }
 
-        switch (pSatChannel->satDevice->type.chip.familyId) {
-#if NEXUS_FRONTEND_7364
-        case 0x7364:
-            {
-                uint32_t val;
-                errCode = BDSQ_GetChannelConfig(dsqChannelHandle,BDSQ_g1_CONFIG_PRETX_DELAY_MS,&val);
-                if (errCode) { rc = BERR_TRACE(errCode); goto err; }
-                val = pSettings->preTransmitDelay;
-                errCode = BDSQ_SetChannelConfig(dsqChannelHandle,BDSQ_g1_CONFIG_PRETX_DELAY_MS,val);
-                if (errCode) { rc = BERR_TRACE(errCode); goto err; }
-            }
-            break;
-#endif
-#if NEXUS_FRONTEND_7366
-        case 0x7366:
-            {
-                uint32_t val;
-                errCode = BDSQ_GetChannelConfig(dsqChannelHandle,BDSQ_7366_CONFIG_PRETX_DELAY_MS,&val);
-                if (errCode) { rc = BERR_TRACE(errCode); goto err; }
-                val = pSettings->preTransmitDelay;
-                errCode = BDSQ_SetChannelConfig(dsqChannelHandle,BDSQ_7366_CONFIG_PRETX_DELAY_MS,val);
-                if (errCode) { rc = BERR_TRACE(errCode); goto err; }
-            }
-            break;
-#endif
-#if NEXUS_FRONTEND_45216
-        case 0x45216:
         {
             uint32_t val;
-            errCode = BDSQ_GetChannelConfig(dsqChannelHandle,BDSQ_45216_CONFIG_PRETX_DELAY_MS,&val);
+            errCode = BDSQ_GetChannelConfig(dsqChannelHandle,BDSQ_CHAN_CONFIG_PRETX_DELAY_MS,&val);
             if (errCode) { rc = BERR_TRACE(errCode); goto err; }
             val = pSettings->preTransmitDelay;
-            errCode = BDSQ_SetChannelConfig(dsqChannelHandle,BDSQ_45216_CONFIG_PRETX_DELAY_MS,val);
+            errCode = BDSQ_SetChannelConfig(dsqChannelHandle,BDSQ_CHAN_CONFIG_PRETX_DELAY_MS,val);
             if (errCode) { rc = BERR_TRACE(errCode); goto err; }
-        }
-            break;
-#endif
-        default:
-            break;
         }
 
         pSatChannel->diseqcSettings = *pSettings;
@@ -2540,4 +2655,21 @@ static NEXUS_Error NEXUS_Frontend_P_Sat_GetSignalDetectStatus (void *handle, NEX
     }
 
     return NEXUS_SUCCESS;
+}
+
+NEXUS_Error NEXUS_Frontend_P_Sat_SetChannelBondingConfig(void *handle, bool enable)
+{
+    NEXUS_SatChannel *pSatChannel = ((NEXUS_FrontendHandle)(handle))->pDeviceHandle;
+    BSAT_Dvbs2AcqSettings settings;
+    BERR_Code rc;
+
+    BSAT_GetDvbs2AcqSettings(pSatChannel->satChannel, &settings);
+    if (enable) {
+        settings.ctl &= ~BSAT_DVBS2_CTL_SEL_UPL; /* AFEC_BCH_BBHDR3.sel_upl = 0 */
+    }
+    else {
+        settings.ctl |= BSAT_DVBS2_CTL_SEL_UPL; /* AFEC_BCH_BBHDR3sel_upl = 1 */
+    }
+    rc = BSAT_SetDvbs2AcqSettings(pSatChannel->satChannel, &settings);
+    return rc;
 }

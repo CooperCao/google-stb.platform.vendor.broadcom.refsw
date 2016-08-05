@@ -56,6 +56,7 @@ extern bool gfx_args_can_pop_addr(const struct gfx_args *a);
  * arg parsed as the specified type. */
 extern float gfx_args_pop_float(struct gfx_args *a);
 extern uint32_t gfx_args_pop_uint32(struct gfx_args *a);
+extern uint64_t gfx_args_pop_uint64(struct gfx_args *a);
 extern v3d_addr_t gfx_args_pop_addr(struct gfx_args *a);
 /* m+<offset> --> mem_begin_addr + <offset>
  * +<offset> --> begin_addr + <offset> (only if is_end_addr)

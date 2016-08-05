@@ -42,4 +42,5 @@
 
 #define BDSP_ARM_IMG_DDP_ENCODE_INTER_FRAME_SIZE                     ((uint32_t)215760)
 #define BDSP_ARM_IMG_DDP_ENCODE_TABLES_SIZE                          ((uint32_t)26608)
-#define BDSP_ARM_IMG_SYSTEM_CODE_SIZE                                ((uint32_t)462952)
+#define BDSP_ARM_IMG_SYSTEM_CODE_SIZE                                ((uint32_t)438400)
+#define BDSP_ARM_IMG_HBC_MONITOR_CODE_SIZE                           ((uint32_t)79440)

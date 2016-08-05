@@ -46,6 +46,8 @@
 
 BDBG_MODULE ( BHSM );
 
+BDBG_OBJECT_ID_DECLARE( BHSM_P_Handle );
+
 BERR_Code BHSM_ProgOTPKey ( BHSM_Handle hHsm, BHSM_ProgramOtpKey_t * pConfig )
 {
 #if HSM_IS_ASKM_28NM_ZEUS_4_2
@@ -56,7 +58,9 @@ BERR_Code BHSM_ProgOTPKey ( BHSM_Handle hHsm, BHSM_ProgramOtpKey_t * pConfig )
 
     BDBG_ENTER ( BHSM_ProgOTPKey );
 
-    if ( !pConfig || !hHsm || hHsm->ulMagicNumber != BHSM_P_HANDLE_MAGIC_NUMBER )
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
+
+    if ( !pConfig )
     {
         return BERR_TRACE ( BHSM_STATUS_INPUT_PARM_ERR );
     }

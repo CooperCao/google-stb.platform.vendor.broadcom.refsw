@@ -77,8 +77,8 @@ vec4 log2(vec4 x)
 
 float exp(float x)
 {
-   const float e = 2.718281828;
-   return pow(e, x);
+   highp float log2_e = $$reinterpf(0x3fb8aa3b);
+   return $$exp2(x * log2_e);
 }
 
 
@@ -102,8 +102,8 @@ vec4 exp(vec4 x)
 
 float log(float x)
 {
-   const float recip_log2_e = 0.6931471805;
-   return $$log2(x) * recip_log2_e;
+   highp float loge_2 = $$reinterpf(0x3f317218);
+   return $$log2(x) * loge_2;
 }
 
 

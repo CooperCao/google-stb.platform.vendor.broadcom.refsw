@@ -45,6 +45,8 @@ BDBG_MODULE(bdsp_arm_img);
 
 
 extern const void * BDSP_ARM_IMG_system_code [];
+extern const void * BDSP_ARM_IMG_hbc_monitor_code [];
+
 #if 0
 /*extern const void * BDSP_IMG_system_rdbvars [];*/
 extern const void * BDSP_ARM_IMG_algolib_code[];
@@ -73,6 +75,7 @@ static void *BDSP_ARM_IMG_P_GetArray(unsigned imgId)
     {
         /* Special cases for system ID's (don't follow standard AlgoId->img convention) */
         case BDSP_ARM_SystemImgId_eSystemCode:                                  return BDSP_ARM_IMG_system_code;
+		case BDSP_ARM_SystemImgId_eHbcMonitorCode:                              return BDSP_ARM_IMG_hbc_monitor_code;
 #if 0
         /*case BDSP_SystemImgId_eSystemRdbvars:                               return BDSP_IMG_system_rdbvars;*/
         case BDSP_ARM_SystemImgId_eSyslibCode:                                  return BDSP_ARM_IMG_syslib_code;

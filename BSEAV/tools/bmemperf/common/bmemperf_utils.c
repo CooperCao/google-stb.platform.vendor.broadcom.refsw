@@ -289,8 +289,8 @@ int sendFileToBrowser(
         fwrite( contents, 1, statbuf.st_size, stdout );
     }
 
-    if (pFileNameDecoded) {free( pFileNameDecoded ); }
-    if (contents) {free( contents ); }
+    Bsysperf_Free( pFileNameDecoded );
+    Bsysperf_Free( contents );
 
     return( 0 );
 } /* sendFileToBrowser */
@@ -423,10 +423,7 @@ int readFileFromBrowser(
             PRINTF( "<h3>Output file is (%s)</h3>\n", sFilename );
         }
         /* free the malloc'ed space if it was malloc'ed successfully */
-        if (cgi_query)
-        {
-            free( cgi_query );
-        }
+        Bsysperf_Free( cgi_query );
     }
 
     return( 0 );
@@ -1054,10 +1051,7 @@ int top10_html(
                             pResponse->response.overallStats.clientOverallStats[memc].clientData[nonZeroIdx].client_id, memc,
                             pResponse->response.overallStats.clientOverallStats[memc].clientData[nonZeroIdx].block_out );
 
-                        if (background)
-                        {
-                            free( background );
-                        }
+                        Bsysperf_Free( background );
                     }
 
                     displayCount[memc]++;

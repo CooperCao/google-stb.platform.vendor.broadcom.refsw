@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -48,6 +48,7 @@
 
 
 BDBG_MODULE(BXDM_PPFRD);
+BDBG_FILE_MODULE(BXDM_PPFRD);
 
 static void BXDM_PPFRD_S_AddDeltaPTS_isr(
    BXDM_PictureProvider_Handle hXdmPP,
@@ -70,12 +71,14 @@ static void BXDM_PPFRD_S_AddDeltaPTS_isr(
          );
    }
 
-   BXVD_DBG_MSG(hXdmPP, ("%x:[%02x.xxx] BXDM_PPFRD_S_AddDeltaPTS_isr(%d.%d)[%d]",
+#if BXDM_DEBUG_LOW_PRIORITY
+   BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_eFRD, "%x:[%02x.xxx] BXDM_PPFRD_S_AddDeltaPTS_isr(%d.%d)[%d]",
                               hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                               BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                               pstDeltaPTS->uiWhole,
                               pstDeltaPTS->uiFractional,
-                              hXdmPP->stDMState.stDecode.stFRDStats.uiDeltaPTSCount));
+                              hXdmPP->stDMState.stDecode.stFRDStats.uiDeltaPTSCount );
+#endif
 
    /* Replace the old entry with the new entry */
    hXdmPP->stDMState.stDecode.stFRDStats.astDeltaPTS[hXdmPP->stDMState.stDecode.stFRDStats.uiDeltaPTSIndex] = *pstDeltaPTS;
@@ -110,11 +113,13 @@ static void BXDM_PPFRD_S_AddNumElements_isr(
       hXdmPP->stDMState.stDecode.stFRDStats.uiNumElementsRunningSum -= hXdmPP->stDMState.stDecode.stFRDStats.auiNumElements[hXdmPP->stDMState.stDecode.stFRDStats.uiNumElementsIndex];
    }
 
-   BXVD_DBG_MSG(hXdmPP, ("%x:[%02x.xxx] BXDM_PPFRD_S_AddNumElements_isr(%d)[%d]",
+#if BXDM_DEBUG_LOW_PRIORITY
+   BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_eFRD, "%x:[%02x.xxx] BXDM_PPFRD_S_AddNumElements_isr(%d)[%d]",
                               hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                               BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                               uiNumElements,
-                              hXdmPP->stDMState.stDecode.stFRDStats.uiNumPicturesCount));
+                              hXdmPP->stDMState.stDecode.stFRDStats.uiNumPicturesCount);
+#endif
 
    /* Replace the old entry with the new entry */
    hXdmPP->stDMState.stDecode.stFRDStats.auiNumElements[hXdmPP->stDMState.stDecode.stFRDStats.uiNumElementsIndex] = uiNumElements;
@@ -143,11 +148,13 @@ BERR_Code BXDM_PPFRD_P_AddPTS_isr(
    BXDM_PPFP_P_DataType stDeltaPTS;
    uint32_t i;
 
-   BXVD_DBG_MSG(hXdmPP, ("%x:[%02x.xxx] BXDM_PPFRD_P_AddPTS_isr(%d, %d)",
+#if BXDM_DEBUG_LOW_PRIORITY
+   BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_eFRD, "%x:[%02x.xxx] BXDM_PPFRD_P_AddPTS_isr(%d, %d)",
                               hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                               BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                               uiPTS,
-                              bPTSValid));
+                              bPTSValid );
+#endif
 
    if ( true == bPTSValid )
    {
@@ -189,19 +196,19 @@ BERR_Code BXDM_PPFRD_P_AddPTS_isr(
             }
             else
             {
-               BXVD_DBG_MSG(hXdmPP, ("%x:[%02x.xxx] Warning, PTS discontinuity detected (dPTS=%d).  Ignoring deltaPTS during discontinuity.",
+               BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_eFRD, "%x:[%02x.xxx] Warning, PTS discontinuity detected (dPTS=%d).  Ignoring deltaPTS during discontinuity.",
                                           hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                           BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
-                                          stDeltaPTS.uiWhole));
+                                          stDeltaPTS.uiWhole );
             }
          }
          else
          {
-            BXVD_DBG_MSG(hXdmPP, ("%x:[%02x.xxx] Warning, PTS wrap/discontinuity detected (%08x -> %08x).  Ignoring deltaPTS during wrap/discontinuity.",
+            BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_eFRD, "%x:[%02x.xxx] Warning, PTS wrap/discontinuity detected (%08x -> %08x).  Ignoring deltaPTS during wrap/discontinuity.",
                                           hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                           BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                                           hXdmPP->stDMState.stDecode.stFRDStats.uiLastPTS,
-                                          uiPTS ));
+                                          uiPTS );
          }
       }
 
@@ -393,7 +400,8 @@ BERR_Code BXDM_PPFRD_P_GetFrameRate_isr(
       }
    }
 
-   BXVD_DBG_MSG(hXdmPP, ("%x:[%02x.xxx] BXDM_PPFRD_P_GetFrameRate_isr((%d.%d)/%d = %d.%d --> %d [%d])",
+#if BXDM_DEBUG_LOW_PRIORITY
+   BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_eFRD, "%x:[%02x.xxx] BXDM_PPFRD_P_GetFrameRate_isr((%d.%d)/%d = %d.%d --> %d [%d])",
                               hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                               BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                               hXdmPP->stDMState.stDecode.stFRDStats.stDeltaPTSRunningSum.uiWhole,
@@ -402,8 +410,8 @@ BERR_Code BXDM_PPFRD_P_GetFrameRate_isr(
                               stAverageDeltaPTS.uiWhole,
                               stAverageDeltaPTS.uiFractional,
                               *peFrameRate,
-                              eFrameRateDetectionMode
-                        ));
+                              eFrameRateDetectionMode );
+#endif
 
    return BERR_SUCCESS;
 }

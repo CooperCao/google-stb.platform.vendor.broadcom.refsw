@@ -1,15 +1,8 @@
 /*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
+Broadcom Proprietary and Confidential. (c)2016 Broadcom.
 All rights reserved.
-
-Project  :  helpers
-Module   :
-
-FILE DESCRIPTION
 =============================================================================*/
-
-#ifndef GFX_UTIL_H
-#define GFX_UTIL_H
+#pragma once
 
 #include "libs/util/assert_helpers.h"
 #include <stdbool.h>
@@ -189,11 +182,13 @@ static inline int64_t gfx_smax64(int64_t x, int64_t y)
 
 static inline int32_t gfx_sclamp(int32_t x, int32_t min, int32_t max)
 {
+   assert(min <= max);
    return gfx_smin(gfx_smax(x, min), max);
 }
 
 static inline int64_t gfx_sclamp64(int64_t x, int64_t min, int64_t max)
 {
+   assert(min <= max);
    return gfx_smin64(gfx_smax64(x, min), max);
 }
 
@@ -235,6 +230,7 @@ static inline uint32_t gfx_umax3(uint32_t x, uint32_t y, uint32_t z)
 
 static inline uint32_t gfx_uclamp(uint32_t x, uint32_t min, uint32_t max)
 {
+   assert(min <= max);
    return gfx_umin(gfx_umax(x, min), max);
 }
 
@@ -258,33 +254,10 @@ static inline size_t gfx_zmax(size_t x, size_t y)
    return (x > y) ? x : y;
 }
 
-/* TODO NaN handling in gfx_fmin/gfx_fmax/gfx_fclamp/etc. At the moment, no
- * special handling. Might be nice to have eg gfx_fmin(NaN, a) == a,
- * gfx_fclamp(NaN, min, max) in [min, max], etc */
-
-static inline float gfx_fmin(float x, float y)
-{
-   return (x < y) ? x : y;
-}
-
-static inline float gfx_fmin3(float x, float y, float z)
-{
-   return gfx_fmin(gfx_fmin(x, y), z);
-}
-
-static inline float gfx_fmax(float x, float y)
-{
-   return (x > y) ? x : y;
-}
-
-static inline float gfx_fmax3(float x, float y, float z)
-{
-   return gfx_fmax(gfx_fmax(x, y), z);
-}
-
 static inline float gfx_fclamp(float x, float min, float max)
 {
-   return gfx_fmin(gfx_fmax(x, min), max);
+   assert(min <= max);
+   return fminf(fmaxf(x, min), max);
 }
 
 static inline int32_t gfx_check_srange(int32_t x, int32_t min, int32_t max)
@@ -380,6 +353,17 @@ static inline uint32_t gfx_lowest_bit(uint32_t x)
    return x & ~(x - 1);
 }
 
+#if defined(__GNUC__)
+static inline int32_t gfx_msb64(uint64_t x)
+{
+   return x ? (63 - __builtin_clzll(x)) : -1;
+}
+
+static inline int32_t gfx_msb(uint32_t x)
+{
+   return x ? (31 - __builtin_clz(x)) : -1;
+}
+#else
 static inline int32_t gfx_msb64(uint64_t x)
 {
    int32_t msb = -1;
@@ -395,6 +379,7 @@ static inline int32_t gfx_msb(uint32_t x)
 {
    return gfx_msb64(x);
 }
+#endif
 
 static inline uint32_t gfx_log2(uint32_t x)
 {
@@ -1050,28 +1035,46 @@ static inline uint32_t gfx_float_to_uint32_rtpi(float f)
 /* round to nearest. TODO round half to even? */
 static inline uint32_t gfx_float_to_uint32(float f)
 {
-   return gfx_float_to_uint32_rtni(f + 0.5f);
+   /* See http://blog.frama-c.com/index.php?post/2013/05/02/nearbyintf1 */
+   return gfx_float_to_uint32_rtni(f + 0.49999997f);
 }
 
 /* round to zero */
 static inline int32_t gfx_float_to_int32_rtz(float f)
 {
-   if (gfx_is_nan(f)) {
+   if (gfx_is_nan(f))
       return 0;
-   }
-   if (f < gfx_float_from_bits(0xcf000000)) {
-      return 1u << 31;
-   }
-   if (f > gfx_float_from_bits(0x4effffff)) {
+   if (f < gfx_float_from_bits(0xcf000000))
+      return -1 << 31;
+   if (f > gfx_float_from_bits(0x4effffff))
       return (1u << 31) - 1;
-   }
    return (int32_t)f;
 }
 
 /* round to nearest. TODO round half to even? */
 static inline int32_t gfx_float_to_int32(float f)
 {
-   return gfx_float_to_int32_rtz(f + ((f < 0.0f) ? -0.5f : 0.5f));
+   /* See http://blog.frama-c.com/index.php?post/2013/05/02/nearbyintf1 */
+   return gfx_float_to_int32_rtz(f + ((f < 0.0f) ? -0.49999997f : 0.49999997f));
+}
+
+/* round to zero */
+static inline int64_t gfx_float_to_int64_rtz(float f)
+{
+   if (gfx_is_nan(f))
+      return 0;
+   if (f < gfx_float_from_bits(0xdf000000))
+      return -1ll << 63;
+   if (f > gfx_float_from_bits(0x5effffff))
+      return (1ull << 63) - 1;
+   return (int64_t)f;
+}
+
+/* round to nearest. TODO round half to even? */
+static inline int64_t gfx_float_to_int64(float f)
+{
+   /* See http://blog.frama-c.com/index.php?post/2013/05/02/nearbyintf1 */
+   return gfx_float_to_int64_rtz(f + ((f < 0.0f) ? -0.49999997f : 0.49999997f));
 }
 
 static inline float gfx_uint64_to_float_rtz(uint64_t u)
@@ -1135,7 +1138,7 @@ static inline float gfx_unorm_to_float(uint32_t u, uint32_t num_bits)
 {
    assert(num_bits > 0);
    assert(u < (1ull << num_bits));
-   return gfx_fmin(u / (float)gfx_mask(num_bits), 1.0f); /* fmin just to be on the safe side */
+   return fminf(u / (float)gfx_mask(num_bits), 1.0f); /* fmin just to be on the safe side */
 }
 
 static inline uint32_t gfx_unorm_to_float_generic(
@@ -1513,5 +1516,3 @@ static inline float gfx_srgb_to_lin_float(float f)
 }
 
 VCOS_EXTERN_C_END
-
-#endif

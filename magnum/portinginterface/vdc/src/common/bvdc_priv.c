@@ -57,7 +57,9 @@ static const BVDC_P_MosaicCanvasCoverage s_full_CCTbl =
     /* 1    2    3    4    5    6    7    8    9   10   11   12  */
     {{100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100}};
 
-/* TODO: Get official number for class 4 */
+/* Official number for class 4
+ * http://www.sj.broadcom.com/projects/dvt/Chip_Architecture/Video/Released/BVN_Mosaic_Rules_tables.xlsx
+ */
 static const BVDC_P_MosaicCanvasCoverage sa_MosaicCoverageTble[] =
 {
     /* 1    2    3    4    5    6    7    8    9   10   11   12  */

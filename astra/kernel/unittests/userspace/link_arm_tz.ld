@@ -1,7 +1,7 @@
 OUTPUT_ARCH("arm")
 ENTRY(tz_init)
 
-_system_link_base = 0xA0000000;
+_system_link_base = 0xC0000000;
 
 SECTIONS
 {
@@ -64,6 +64,14 @@ SECTIONS
     }
     . = ALIGN(4096); /* align to page size */
     _bss_end = .;
+
+    _initramfs_start = .;
+    .initramfs :
+    {
+        *(.initramfs)
+    }
+    . = ALIGN(4096);
+    _initramfs_end = .;
 
     _kernel_img_end = .;
 

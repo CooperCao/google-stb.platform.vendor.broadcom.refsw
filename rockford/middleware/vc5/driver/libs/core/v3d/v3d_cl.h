@@ -40,7 +40,16 @@ static inline v3d_prim_type_t v3d_prim_type_from_wireframe_mode(v3d_wireframe_mo
    }
 }
 
-extern v3d_pixel_format_t v3d_raw_mode_pixel_format(v3d_rt_type_t type, v3d_rt_bpp_t bpp);
+static inline uint32_t v3d_index_type_bytes(v3d_index_type_t index_type)
+{
+   switch (index_type)
+   {
+   case V3D_INDEX_TYPE_8BIT:  return 1;
+   case V3D_INDEX_TYPE_16BIT: return 2;
+   case V3D_INDEX_TYPE_32BIT: return 4;
+   default:                   unreachable(); return 0;
+   }
+}
 
 extern void v3d_pixel_format_internal_type_and_bpp(
    v3d_rt_type_t *type, v3d_rt_bpp_t *bpp,
@@ -62,11 +71,47 @@ static inline v3d_rt_bpp_t v3d_pixel_format_internal_bpp(v3d_pixel_format_t pixe
    return bpp;
 }
 
+static inline bool v3d_rt_type_supports_4x_decimate(v3d_rt_type_t type)
+{
+   switch (type)
+   {
+   case V3D_RT_TYPE_8:
+   case V3D_RT_TYPE_16F:
+      return true;
+   case V3D_RT_TYPE_8I:
+   case V3D_RT_TYPE_8UI:
+   case V3D_RT_TYPE_16I:
+   case V3D_RT_TYPE_16UI:
+   case V3D_RT_TYPE_32I:
+   case V3D_RT_TYPE_32UI:
+   case V3D_RT_TYPE_32F:
+      return false;
+   default:
+      unreachable();
+      return false;
+   }
+}
+
+#if !V3D_HAS_NEW_TLB_CFG
+extern v3d_pixel_format_t v3d_raw_mode_pixel_format(v3d_rt_type_t type, v3d_rt_bpp_t bpp);
+
 static inline v3d_pixel_format_t v3d_pixel_format_raw_mode(v3d_pixel_format_t pixel_format)
 {
    return v3d_raw_mode_pixel_format(
       v3d_pixel_format_internal_type(pixel_format),
       v3d_pixel_format_internal_bpp(pixel_format));
+}
+#endif
+
+static inline bool v3d_pixel_format_equiv_for_store(
+   v3d_pixel_format_t a, v3d_pixel_format_t b)
+{
+   return (a == b) ||
+      /* RGBX8 and RGBA8 literally handled identically by HW when storing... */
+      ((a == V3D_PIXEL_FORMAT_SRGBX8) && (b == V3D_PIXEL_FORMAT_SRGB8_ALPHA8)) ||
+      ((a == V3D_PIXEL_FORMAT_SRGB8_ALPHA8) && (b == V3D_PIXEL_FORMAT_SRGBX8)) ||
+      ((a == V3D_PIXEL_FORMAT_RGBX8) && (b == V3D_PIXEL_FORMAT_RGBA8)) ||
+      ((a == V3D_PIXEL_FORMAT_RGBA8) && (b == V3D_PIXEL_FORMAT_RGBX8));
 }
 
 static inline bool v3d_memory_and_pixel_formats_compatible(
@@ -78,6 +123,15 @@ static inline bool v3d_memory_and_pixel_formats_compatible(
    case V3D_PIXEL_FORMAT_RGB8:
       /* 24-bit formats only compatible with raster */
       return memory_format == V3D_MEMORY_FORMAT_RASTER;
+#if V3D_HAS_NEW_TLB_CFG
+   case V3D_PIXEL_FORMAT_D32F:
+   case V3D_PIXEL_FORMAT_D24:
+   case V3D_PIXEL_FORMAT_D16:
+   case V3D_PIXEL_FORMAT_D24S8:
+   case V3D_PIXEL_FORMAT_S8:
+      /* Depth/stencil cannot be stored as raster */
+      return memory_format != V3D_MEMORY_FORMAT_RASTER;
+#endif
    default:
       /* No restrictions on other pixel formats */
       return true;
@@ -87,26 +141,31 @@ static inline bool v3d_memory_and_pixel_formats_compatible(
 void v3d_pack_clear_color(uint32_t packed[4], const uint32_t col[4],
                           v3d_rt_type_t type, v3d_rt_bpp_t bpp);
 
-static inline uint32_t v3d_cl_rcfg_clear_colors_size(
-   v3d_rt_bpp_t bpp, uint32_t pad)
+static inline uint32_t v3d_cl_rcfg_clear_colors_size(v3d_rt_bpp_t bpp)
 {
-   return V3D_CL_TILE_RENDERING_MODE_CFG_SIZE * (
-      /* Always have clear colors 1 */
-      1 +
-      /* Have clear colors 2 if >= 64 bits */
-      (((bpp == V3D_RT_BPP_64) || (bpp == V3D_RT_BPP_128)) ? 1 : 0) +
-      /* Have clear colors 3 if 128 bits or need to use the extra fields */
-      (((bpp == V3D_RT_BPP_128) || (pad == 15)) ? 1 : 0));
+   switch (bpp)
+   {
+#if V3D_HAS_NEW_TLB_CFG
+   case V3D_RT_BPP_32:  return V3D_CL_TILE_RENDERING_MODE_CFG_SIZE;
+   case V3D_RT_BPP_64:  return 2 * V3D_CL_TILE_RENDERING_MODE_CFG_SIZE;
+#else
+   /* Always have clear colors 3 */
+   case V3D_RT_BPP_32:  return 2 * V3D_CL_TILE_RENDERING_MODE_CFG_SIZE;
+   case V3D_RT_BPP_64:  return 3 * V3D_CL_TILE_RENDERING_MODE_CFG_SIZE;
+#endif
+   case V3D_RT_BPP_128: return 3 * V3D_CL_TILE_RENDERING_MODE_CFG_SIZE;
+   default:             unreachable(); return 0;
+   }
 }
 
 void v3d_cl_rcfg_clear_colors(uint8_t **cl, uint32_t rt,
    const uint32_t col[4],
-   v3d_rt_type_t type, v3d_rt_bpp_t bpp,
-   uint32_t pad,
-   uint32_t clear3_raster_padded_width_or_nonraster_height,
-   uint32_t clear3_uif_height_in_ub);
-
-extern v3d_depth_type_t v3d_depth_format_internal_type(v3d_depth_format_t depth_format);
+   v3d_rt_type_t type, v3d_rt_bpp_t bpp
+#if !V3D_HAS_NEW_TLB_CFG
+   , uint32_t raster_padded_width_or_nonraster_height,
+   uint32_t uif_height_in_ub
+#endif
+   );
 
 extern float v3d_snap_depth(float depth, v3d_depth_type_t depth_type);
 
@@ -137,29 +196,6 @@ static inline bool v3d_dither_a(v3d_dither_t dither)
    default:
       unreachable();
       return false;
-   }
-}
-
-static inline bool v3d_blend_needs_cc (v3d_blend_mul_t factor)
-{
-   switch (factor) {
-   case V3D_BLEND_MUL_ZERO          :  return false;
-   case V3D_BLEND_MUL_ONE           :  return false;
-   case V3D_BLEND_MUL_SRC           :  return false;
-   case V3D_BLEND_MUL_OM_SRC        :  return false;
-   case V3D_BLEND_MUL_DST           :  return false;
-   case V3D_BLEND_MUL_OM_DST        :  return false;
-   case V3D_BLEND_MUL_SRC_ALPHA     :  return false;
-   case V3D_BLEND_MUL_OM_SRC_ALPHA  :  return false;
-   case V3D_BLEND_MUL_DST_ALPHA     :  return false;
-   case V3D_BLEND_MUL_OM_DST_ALPHA  :  return false;
-   case V3D_BLEND_MUL_CONST         :  return true;
-   case V3D_BLEND_MUL_OM_CONST      :  return true;
-   case V3D_BLEND_MUL_CONST_ALPHA   :  return true;
-   case V3D_BLEND_MUL_OM_CONST_ALPHA:  return true;
-   case V3D_BLEND_MUL_SRC_ALPHA_SAT :  return false;
-   case V3D_BLEND_MUL_INVALID       :  return false;
-   default:                            return false;
    }
 }
 
@@ -229,8 +265,7 @@ static inline bool v3d_ldst_do_stencil(v3d_ldst_buf_t buf)
    }
 }
 
-static inline v3d_ldst_buf_t v3d_ldst_buf_depth_stencil(
-   bool do_depth, bool do_stencil)
+static inline v3d_ldst_buf_t v3d_ldst_buf_ds(bool do_depth, bool do_stencil)
 {
    if (do_depth)
       return do_stencil ? V3D_LDST_BUF_PACKED_DEPTH_STENCIL : V3D_LDST_BUF_DEPTH;
@@ -238,6 +273,13 @@ static inline v3d_ldst_buf_t v3d_ldst_buf_depth_stencil(
    return V3D_LDST_BUF_STENCIL;
 }
 
+static inline bool v3d_memory_format_is_uif(v3d_memory_format_t memory_format)
+{
+   return (memory_format == V3D_MEMORY_FORMAT_UIF_NO_XOR) ||
+          (memory_format == V3D_MEMORY_FORMAT_UIF_XOR);
+}
+
+#if !V3D_HAS_NEW_TLB_CFG
 static inline v3d_memory_format_t v3d_memory_format_from_ldst(
    v3d_ldst_memory_format_t ldst_memory_format)
 {
@@ -255,17 +297,6 @@ static inline v3d_ldst_memory_format_t v3d_memory_format_to_ldst(
    case V3D_MEMORY_FORMAT_UIF_NO_XOR:  return V3D_LDST_MEMORY_FORMAT_UIF_NO_XOR;
    case V3D_MEMORY_FORMAT_UIF_XOR:     return V3D_LDST_MEMORY_FORMAT_UIF_XOR;
    default:                            unreachable(); return V3D_LDST_MEMORY_FORMAT_INVALID;
-   }
-}
-
-static inline uint32_t v3d_index_type_bytes(v3d_index_type_t index_type)
-{
-   switch (index_type)
-   {
-   case V3D_INDEX_TYPE_8BIT:  return 1;
-   case V3D_INDEX_TYPE_16BIT: return 2;
-   case V3D_INDEX_TYPE_32BIT: return 4;
-   default:                   unreachable(); return 0;
    }
 }
 
@@ -293,22 +324,28 @@ typedef union
 
 extern const char *v3d_desc_output_format(
    v3d_ldst_buf_t buf, v3d_output_format_t output_format);
+#endif
 
-struct v3d_ldst_params
+struct v3d_tlb_ldst_params
 {
    v3d_addr_t addr;
    v3d_memory_format_t memory_format;
+#if V3D_HAS_NEW_TLB_CFG
+   v3d_pixel_format_t pixel_format;
+#else
    v3d_output_format_t output_format;
+#endif
    v3d_decimate_t decimate;
    v3d_dither_t dither; /* Only used for stores */
-   uint32_t uif_height_in_ub; /* Valid iff memory_format is UIF */
-   uint32_t raster_padded_width_dec; /* Valid iff memory_format is raster */
+   uint32_t stride; /* UIF: height in UIF-blocks. Raster: stride in V3D_HAS_NEW_TLB_CFG ? bytes : pixels. */
    bool flipy;
+   uint32_t flipy_height_px; /* Used only for y-flip */
 };
 
 #define V3D_DECIMATE_MAX_X_SCALE 2
 #define V3D_DECIMATE_MAX_Y_SCALE 2
 
+#if !V3D_HAS_NEW_TF
 static inline v3d_prim_mode_t v3d_prim_mode_remove_tf(bool *tf, v3d_prim_mode_t mode)
 {
    switch (mode)
@@ -323,7 +360,9 @@ static inline v3d_prim_mode_t v3d_prim_mode_remove_tf(bool *tf, v3d_prim_mode_t 
    default:                            *tf = false; return mode;
    }
 }
+#endif
 
+#if !V3D_HAS_NEW_TLB_CFG
 static inline bool v3d_cl_store_instr_eof(const V3D_CL_INSTR_T *i)
 {
    switch (i->opcode)
@@ -334,6 +373,7 @@ static inline bool v3d_cl_store_instr_eof(const V3D_CL_INSTR_T *i)
    default:                         unreachable(); return false;
    }
 }
+#endif
 
 #define V3D_CL_VARY_FLAGS_PER_INSTR 24
 
@@ -428,6 +468,29 @@ static inline uint32_t v3d_cl_geom_pack_to_width(v3d_cl_geom_output_pack_t pack)
       case V3D_CL_GEOM_OUTPUT_PACK_X4: return 4;
       case V3D_CL_GEOM_OUTPUT_PACK_X1: return 1;
       default: unreachable();
+   }
+}
+
+static inline uint32_t v3d_cl_per_patch_depth_to_width(uint32_t depth)
+{
+   assert(depth > 0 && depth <= 16);
+
+   uint32_t words = depth * 8;
+   if(words > 32)
+   {
+      return 1;
+   }
+   else if(words > 16)
+   {
+      return 4;
+   }
+   else if(words > 8)
+   {
+      return 8;
+   }
+   else
+   {
+      return 16;
    }
 }
 #endif

@@ -10,11 +10,9 @@ Creates GLES1.1 shaders as dataflow graphs and passes them to the compiler
 backend.
 =============================================================================*/
 
-#include "../common/khrn_int_math.h"
 #include "../glxx/glxx_int_attrib.h"
 #include "../glsl/glsl_dataflow.h"
 #include "../glsl/glsl_ir_program.h"
-#include "gl11_shaders.h"
 #include "gl11_shader.h"
 
 uint32_t gl11_get_live_attr_set(const GL11_CACHE_KEY_T *shader)
@@ -48,7 +46,7 @@ uint32_t gl11_get_live_attr_set(const GL11_CACHE_KEY_T *shader)
    return attribs_live;
 }
 
-IRShader *gl11_ir_shader_from_nodes(Dataflow **df, int count) {
+IRShader *gl11_ir_shader_from_nodes(Dataflow **df, int count, int *out_bindings) {
    IRShader *r = glsl_ir_shader_create();
 
    r->num_cfg_blocks = 1;
@@ -59,36 +57,55 @@ IRShader *gl11_ir_shader_from_nodes(Dataflow **df, int count) {
       return NULL;
    }
 
-   if (!glsl_ir_copy_block(&r->blocks[0], df, count)) {
+   Dataflow **df_squashed = malloc(count * sizeof(Dataflow *));
+   if (df_squashed == NULL) {
       glsl_ir_shader_free(r);
       return NULL;
    }
+
+   int n_outputs = 0;
+   for (int i=0; i<count; i++) {
+      if (df[i] == NULL)
+         out_bindings[i] = -1;
+      else {
+         df_squashed[n_outputs] = df[i];
+         out_bindings[i] = n_outputs++;
+      }
+   }
+
+   if (!glsl_ir_copy_block(&r->blocks[0], df_squashed, n_outputs)) {
+      free(df_squashed);
+      glsl_ir_shader_free(r);
+      return NULL;
+   }
+   free(df_squashed);
+
    r->blocks[0].successor_condition = -1;
    r->blocks[0].next_if_true  = -1;
    r->blocks[0].next_if_false = -1;
    r->blocks[0].barrier = false;
 
-   r->num_outputs = count;
-   r->outputs = malloc(count * sizeof(IROutput));
+   r->num_outputs = n_outputs;
+   r->outputs = malloc(n_outputs * sizeof(IROutput));
 
    if (r->outputs == NULL) {
       glsl_ir_shader_free(r);
       return NULL;
    }
 
-   for (int i=0; i<count; i++) {
+   for (int i=0; i<n_outputs; i++) {
       r->outputs[i].block = 0;
       r->outputs[i].output = i;
    }
+
    return r;
 }
 
-/* TODO: This link map is inefficient and hacky */
-LinkMap *gl11_link_map_from_bindings(int out_count, int in_count, int unif_count, int *unif_bindings) {
+LinkMap *gl11_link_map_from_bindings(int out_count, const int *out_bindings, int in_count, int unif_count, const int *unif_bindings) {
    LinkMap *l = glsl_link_map_alloc(in_count, out_count, unif_count, 0);
    if (l == NULL) return NULL;
 
-   for (int i=0; i<l->num_outs;     i++) l->outs[i]     = i;
+   for (int i=0; i<l->num_outs;     i++) l->outs[i]     = out_bindings[i];
    for (int i=0; i<l->num_ins;      i++) l->ins[i]      = i;
    for (int i=0; i<l->num_uniforms; i++) l->uniforms[i] = unif_bindings[i];
 

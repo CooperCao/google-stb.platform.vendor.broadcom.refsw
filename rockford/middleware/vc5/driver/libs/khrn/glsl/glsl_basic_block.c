@@ -20,7 +20,6 @@ BasicBlock *glsl_basic_block_construct()
    basic_block->branch_cond = NULL;
    basic_block->branch_target = NULL;
    basic_block->fallthrough_target = NULL;
-   basic_block->loop_index = NULL;
    basic_block->memory_head = NULL;
    basic_block->barrier = false;
    return basic_block;

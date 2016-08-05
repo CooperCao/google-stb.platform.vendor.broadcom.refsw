@@ -36,12 +36,10 @@
  * ANY LIMITED REMEDY.
  *****************************************************************************/
 
-#include <stddef.h>
-#include <stdint.h>
-#include <stdbool.h>
-
-#include <unistd.h>
+#include <stdlib.h>
+#include <stdio.h>
 
 int main(int argc, char **argv) {
-    printf("hello world\n");
+    printf("Hello world!\n");
+    return 0;
 }

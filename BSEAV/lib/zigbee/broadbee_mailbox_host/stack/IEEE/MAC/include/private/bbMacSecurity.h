@@ -70,41 +70,27 @@ typedef enum _MAC_SecurityStatus_t
     MAC_SECURITY_CONDITIONALLY_PASSED        /*!< Need to be checked additionally. */
 } MAC_SecurityStatus_t;
 
-/*************************************************************************************//**
+/************************* PROTOTYPES *********************************************************************************/
+/**//**
  * \brief   Outgoing frame security procedure.
- * \param[in]   pMpduSurr       pointer to the secured frame descriptor. It holds SecurityLevel, KeyIdMode, KeySource,
- *  KeyIndex.
- * \param[in]   secMpduLen      secured frame MPDU length, in bytes, calculated by the caller.
- * \param[out]  pKey            pointer to the buffer for the retrieved Key.
- * \return
- *      status
- * \details Possible values for the \p status parameter are the following:
- *  - UNSUPPORTED_SECURITY      The Security Enabled subfield of the Frame Control field
- *                              of the frame to be secured is inconsistent with the
- *                              \p secLevel parameter OR
- *                              macSecurityEnabled attribute is set to FALSE and the
- *                              \p secLevel is not equal to zero.
- *
- *  - FRAME_TOO_LONG            A frame resulting from processing has a length that is
- *                              greater than aMaxPHYPacketSize.
- *
- *  - COUNTER_ERROR             macFrameCounter attribute has the value 0xffffffff.
- *
- *  - UNAVAILABLE_KEY           the outgoing frame key retrieval procedure failed.
- *
- *  - SUCCESS                   the procedure finished successfully.
- *
- * \note   If the status is SUCCESS the result secured frame will be returned
- *         through in/out parameter \p pMpduSurr
+ * \param[in]   pMpduSurr       Pointer to the secured frame descriptor. It holds SecurityLevel, KeyIdMode, KeySource,
+ *  KeyIndex and all necessary parameters of the outgoing frame.
+ * \param[in]   secMpduLen      Secured frame MPDU length, in bytes, calculated by the caller.
+ * \param[out]  pKey            Pointer to the buffer allocated by the caller for the retrieved Key.
+ * \return  Status of operation, either SUCCESS if procedure finished successfully, or one of failure statuses
+ *  otherwise: UNSUPPORTED_SECURITY, FRAME_TOO_LONG, COUNTER_ERROR, UNAVAILABLE_KEY.
+ * \note    This function does not start the forward CCM* transformation. It must be done by the caller. Hence, this
+ *  function updates the local macFrameCounter because forward CCM* transformation may not return failure.
  * \par     Documentation
- *  See IEEE Std 802.15.4-2006, subclauses 7.5.8.2.1.
-*****************************************************************************************/
-MAC_Status_t MAC_SecurityOutgoing(const MacMpduSurr_t *const pMpduSurr,
-                                  const PHY_FrameLen_t secMpduLen,
-                                  MAC_SecurityKey_t pKey);
+ *  See IEEE Std 802.15.4-2006, subclause 7.5.8.2.1.
+ */
+MAC_Status_t  MAC_SecurityOutgoing(
+        const MacMpduSurr_t *const pMpduSurr,
+        const PHY_FrameLen_t secMpduLen,
+        MAC_SecurityKey_t pKey);
 
-
-/*************************************************************************************//**
+/*--------------------------------------------------------------------------------------------------------------------*/
+/**//**
  * \brief   Incoming frame security procedure.
  * \param[in/out]    pMpduSurr         pointer to the frame to be unsecured.
  * \param[out]       pSecLevel         security level.
@@ -147,19 +133,17 @@ MAC_Status_t MAC_SecurityOutgoing(const MacMpduSurr_t *const pMpduSurr,
  *                                 FrameCounter element of the DeviceDescriptor.
  *
  *  - MAC_SECURITY_ERROR           The CCM* inverse transformation process failed.
- *
- *  - SUCCESS                      The procedure finished successfully.
- *
  * \par     Documentation
- *  See IEEE Std 802.15.4-2006, subclauses 7.5.8.2.3.
-*****************************************************************************************/
-MAC_Status_t MAC_SecurityIncoming(MacMpduSurr_t                * const pMpduSurr,
-                                  MAC_KeyDescriptorId_t        * const pKeyDescrId,
-                                  MAC_DeviceDescriptorId_t     * const pDeviceDescrId,
-                                  MAC_KeyDeviceDescriptorId_t  * const pKeyDeviceDescrId);
+ *  See IEEE Std 802.15.4-2006, subclause 7.5.8.2.3.
+ */
+MAC_Status_t  MAC_SecurityIncoming(
+        const MacMpduSurr_t *const pMpduSurr,
+        MAC_KeyDescriptorsIdSet_t *const pKeyDescriptorsIdSet,
+        MAC_SecurityKey_t pKey,
+        MAC_ExtendedAddress_t *const pSourceAddress);
 
-
-/*************************************************************************************//**
+/*--------------------------------------------------------------------------------------------------------------------*/
+/**//**
  * \brief   Validation function for the security parameters of the
  *          any MAC primitives, which are supported security.
  * \param[in]   securityLevel      Security Level.
@@ -197,13 +181,12 @@ SYS_DataLength_t MAC_SecurityGetMICSize(const MAC_SecurityLevel_t securityLevel)
 /**//**
  * \brief   Converter to the bid-endian representation.
  * \param[in]    from     pointer to value, which need to be converted.
- * \param[out]   to       pointer to result value.
- * \param[in]    len      length in bytes of the from value and result value.
+ * \param[out]  dst     pointer to result value (destination).
+ * \param[in]   len     length in bytes of the from value and result value.
  * \return
  *      nothing.
  * \note   Arrays pointed with \p from and \p to must not intersect.
-*/
-void macSecurityConvertToBigEndian(void const * const from, void * const to, uint8_t len);
-
+ */
+void MAC_SecurityConvertToBigEndian(void *const dst, const void *const src, const size_t len);
 
 #endif /* _BB_MAC_SECURITY_H */

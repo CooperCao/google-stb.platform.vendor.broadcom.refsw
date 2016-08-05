@@ -121,12 +121,14 @@
 #if defined(__arc__)
 # define PACKED                 __attribute__ ((packed))
 # define UNALIGNED              _Unaligned
-#elif defined(__i386__)
+#
+#elif defined(__arm__) || defined(__i386__)
 # undef  PACKED
 # define PACKED                 __attribute__ ((packed, gcc_struct))
 # ifndef UNALIGNED
 #  define UNALIGNED
 # endif
+#
 #endif
 
 
@@ -142,10 +144,12 @@
 # define INLINE                 _Inline
 # define NOINIT                 __attribute__ ((section (".noinit")))
 # define WEAK                   __attribute__ ((weak))
-#elif defined(__i386__)
+#
+#elif defined(__arm__) || defined(__i386__)
 # define INLINE                 static inline
 # define NOINIT
 # define WEAK                   /* define if required */
+#
 #endif
 
 

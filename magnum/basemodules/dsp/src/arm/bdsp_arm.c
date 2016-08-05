@@ -272,6 +272,11 @@ BERR_Code BDSP_Arm_Initialize(BDSP_Handle handle)
         BDBG_ERR(("BDSP_Arm_StartDsp should be called only if bFwAuthEnable is true"));
         return BERR_TRACE(BERR_NOT_SUPPORTED);
     }
+	rc = BDSP_Arm_P_StartHbcMonitor(pDevice);
+	if (BERR_SUCCESS != rc) {
+			BDBG_ERR(("failed to start hbc_monitor"));
+			goto err_hbc_start;
+	}
 
 	/* Write the downloaded application code into Astra secure memory */
 	rc = BDSP_Arm_P_DownloadFwToAstra(pDevice->armDspApp.hClient,pDevice,BDSP_ARM_SystemImgId_eSystemCode);
@@ -299,6 +304,7 @@ BERR_Code BDSP_Arm_Initialize(BDSP_Handle handle)
         goto err_send_map_cmd;
     }
 
+err_hbc_start:
 err_peer_start:
 err_send_map_cmd:
 

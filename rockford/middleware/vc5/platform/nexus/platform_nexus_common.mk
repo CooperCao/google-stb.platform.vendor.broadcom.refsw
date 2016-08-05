@@ -62,7 +62,7 @@ CFLAGS += \
 
 CFLAGS += -c $(foreach dir,$(NEXUS_APP_INCLUDE_PATHS),-I$(dir)) $(foreach def,$(NEXUS_APP_DEFINES),-D"$(def)")
 
-include $(NEXUS_TOP)/../rockford/middleware/vc5/platform/platform_common.inc
+include $(V3D_DIR)/../platform/platform_common.inc
 CFLAGS += $(COMMON_PLATFORM_CFLAGS)
 
 CFLAGS += -DBSTD_CPU_ENDIAN=BSTD_ENDIAN_LITTLE
@@ -87,14 +87,26 @@ endif
 ifeq ($(NXCLIENT_SUPPORT),y)
 include $(NEXUS_TOP)/nxclient/include/nxclient.inc
 CFLAGS += $(NXCLIENT_CFLAGS)
+NXPL_PLATFORM_EXCLUSIVE := n
 else
 CFLAGS += -DSINGLE_PROCESS
 ifeq ($(NEXUS_CLIENT_SUPPORT),y)
 LDFLAGS += $(NEXUS_LDFLAGS) $(NEXUS_CLIENT_LD_LIBRARIES)
+NXPL_PLATFORM_EXCLUSIVE := n
 else
 LDFLAGS += $(NEXUS_LDFLAGS) $(NEXUS_LD_LIBRARIES)
 CFLAGS += -DNXPL_PLATFORM_EXCLUSIVE
+NXPL_PLATFORM_EXCLUSIVE := y
 endif
+endif
+
+ifeq ($(V3D_DRM_SUPPORT),y)
+BSEAVDIR := $(OBJDIR)/../../../../../BSEAV
+ifeq ($(wildcard $(BSEAVDIR)/.),)
+$(error Cannot find BSEAV output directory for DRM driver include)
+endif
+
+CFLAGS += -DUSE_DRM_MEMORY -I$(BSEAVDIR)/linux/usr/include
 endif
 
 .DEFAULT_GOAL := all

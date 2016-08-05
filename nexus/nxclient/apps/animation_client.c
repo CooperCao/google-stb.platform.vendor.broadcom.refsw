@@ -335,7 +335,7 @@ int main(int argc, const char **argv)
         if (g_queue.surface[g_queue.submit_ptr].submitted || g_queue.depth >= max_depth) {
             recycle_next(blit_client);
             if (g_queue.surface[g_queue.submit_ptr].submitted || g_queue.depth >= max_depth) {
-                rc = BKNI_WaitForEvent(recycledEvent, BKNI_INFINITE);
+                rc = BKNI_WaitForEvent(recycledEvent, 2000);
                 BDBG_ASSERT(!rc);
                 continue;
             }

@@ -9,6 +9,7 @@ FILE DESCRIPTION
 =============================================================================*/
 
 #include <stdlib.h>
+#include <string.h>
 
 #include "glsl_common.h"
 #include "glsl_dataflow_visitor.h"

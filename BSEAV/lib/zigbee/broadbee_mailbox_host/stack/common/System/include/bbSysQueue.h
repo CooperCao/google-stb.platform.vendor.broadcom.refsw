@@ -115,7 +115,6 @@ typedef SYS_QueueElement_t  SYS_QueueDescriptor_t;
 ****************************************************************************************/
 INLINE void SYS_QueueResetQueue(SYS_QueueDescriptor_t *queue)
 {
-    SYS_DbgAssert(queue, SYSQUEUE_SYSQUEUERESETQUEUE_0);
     queue->nextElement = NULL;
 }
 
@@ -127,7 +126,6 @@ INLINE void SYS_QueueResetQueue(SYS_QueueDescriptor_t *queue)
 ****************************************************************************************/
 INLINE bool SYS_QueueIsEmpty(const SYS_QueueDescriptor_t *const queue)
 {
-    SYS_DbgAssertComplex(queue, SYSQUEUE_SYSQUEUEISEMPTY_0);
     return (NULL == queue->nextElement);
 }
 
@@ -148,11 +146,7 @@ INLINE SYS_QueueElement_t *SYS_QueueGetNextQueueElement(const SYS_QueueElement_t
   \param[in] queue - pointer to queue.
   \return pointer to queue head element.
 ****************************************************************************************/
-INLINE SYS_QueueElement_t *SYS_QueueGetQueueHead(const SYS_QueueDescriptor_t *const queue)
-{
-    SYS_DbgAssert(queue, SYSQUEUE_SYSQUEUEGETQUEUEHEAD_0);
-    return SYS_QueueGetNextQueueElement(queue);
-}
+SYS_QueueElement_t *SYS_QueueGetQueueHead(const SYS_QueueDescriptor_t *const queue);
 
 /************************************************************************************//**
   \brief Gets parent element or NULL if parent is absent.
@@ -160,21 +154,8 @@ INLINE SYS_QueueElement_t *SYS_QueueGetQueueHead(const SYS_QueueDescriptor_t *co
   \param[in] queue - a pointer to queue.
   \return a pointer to the parent element.
 ****************************************************************************************/
-INLINE SYS_QueueElement_t *SYS_QueueFindParentElement(const SYS_QueueDescriptor_t *const queue,
-        const SYS_QueueElement_t *element)
-{
-    SYS_QueueElement_t *parent = (SYS_QueueElement_t *)queue;
-    SYS_QueueElement_t *iterator = SYS_QueueGetQueueHead(queue);
-
-    while (iterator || !element)
-    {
-        if (element == iterator)
-            return parent;
-        parent = iterator;
-        iterator = SYS_QueueGetNextQueueElement(iterator);
-    }
-    return NULL;
-}
+SYS_QueueElement_t *SYS_QueueFindParentElement(const SYS_QueueDescriptor_t *const queue,
+        const SYS_QueueElement_t *element);
 
 /************************************************************************************//**
   \brief Gets queue last element.
@@ -193,14 +174,7 @@ INLINE SYS_QueueElement_t *SYS_QueueGetQueueTail(const SYS_QueueDescriptor_t *co
   \param[in] after   - new queue element is put after this one.
   \param[in] element - element to put.
 ****************************************************************************************/
-INLINE void SYS_QueueInsertElement(SYS_QueueElement_t *after, SYS_QueueElement_t *element)
-{
-    SYS_DbgAssert(after, SYSQUEUE_SYSQUEUEINSERTELEMENT_0);
-    SYS_DbgAssert(element, SYSQUEUE_SYSQUEUEINSERTELEMENT_1);
-
-    element->nextElement = after->nextElement;
-    after->nextElement = element;
-}
+void SYS_QueueInsertElement(SYS_QueueElement_t *after, SYS_QueueElement_t *element);
 
 /************************************************************************************//**
   \brief Puts element to queue. The element is added to the queue head.
@@ -208,14 +182,8 @@ INLINE void SYS_QueueInsertElement(SYS_QueueElement_t *after, SYS_QueueElement_t
   \param[in] queue   - pointer to queue.
   \param[in] element - element to put to queue.
 ****************************************************************************************/
-INLINE void SYS_QueuePutQueueElementToHead(SYS_QueueDescriptor_t *queue,
-        SYS_QueueElement_t *element)
-{
-    SYS_DbgAssert(element, SYSQUEUE_SYSQUEUEPUTQUEUEELEMENTTOHEAD_0);
-    SYS_DbgAssertComplex(!SYS_QueueFindParentElement(queue, element), SYSQUEUE_SYSQUEUEPUTQUEUEELEMENTTOHEAD_1);
-
-    SYS_QueueInsertElement(queue, element);
-}
+void SYS_QueuePutQueueElementToHead(SYS_QueueDescriptor_t *queue,
+        SYS_QueueElement_t *element);
 
 /************************************************************************************//**
   \brief Puts element to queue. The element is added to the queue tail.
@@ -223,13 +191,8 @@ INLINE void SYS_QueuePutQueueElementToHead(SYS_QueueDescriptor_t *queue,
   \param[in] queue   - pointer to queue.
   \param[in] element - element to put to queue.
 ****************************************************************************************/
-INLINE void SYS_QueuePutQueueElementToTail(SYS_QueueDescriptor_t *queue,
-        SYS_QueueElement_t *element)
-{
-    SYS_DbgAssertComplex(!SYS_QueueFindParentElement(queue, element), SYSQUEUE_SYSQUEUEPUTQUEUEELEMENTTOTAIL_0);
-
-    SYS_QueueInsertElement(SYS_QueueGetQueueTail(queue), element);
-}
+void SYS_QueuePutQueueElementToTail(SYS_QueueDescriptor_t *queue,
+        SYS_QueueElement_t *element);
 
 /************************************************************************************//**
   \brief Removed queue element after given queue element.
@@ -237,19 +200,7 @@ INLINE void SYS_QueuePutQueueElementToTail(SYS_QueueDescriptor_t *queue,
   \param[in] after   - new queue element is put after this one.
   \param[in] element - element to put.
 ****************************************************************************************/
-INLINE SYS_QueueElement_t *SYS_QueueRemoveNextElement(SYS_QueueElement_t *parent)
-{
-    SYS_DbgAssert(parent,               SYSQUEUE_SYSQUEUEREMOVENEXTELEMENT_0);
-    SYS_DbgAssert(parent->nextElement,  SYSQUEUE_SYSQUEUEREMOVENEXTELEMENT_1);
-
-    /* NOTE: 'Requet' memory allocated by mailbox was used after the execution of a callback function.
-        Solution -> remove this element before callback call. */
-    SYS_DbgAssertComplex((void *)0xFDFDFDFD != parent->nextElement->nextElement, SYSQUEUE_DELETED_MEMORY_WAS_USED);
-
-    SYS_QueueElement_t *next = parent->nextElement;
-    parent->nextElement = parent->nextElement->nextElement;
-    return next;
-}
+SYS_QueueElement_t *SYS_QueueRemoveNextElement(SYS_QueueElement_t *parent);
 
 /************************************************************************************//**
   \brief Removes head queue element.
@@ -257,10 +208,7 @@ INLINE SYS_QueueElement_t *SYS_QueueRemoveNextElement(SYS_QueueElement_t *parent
   \param[in] queue   - pointer to queue.
   \returns pointer to a removed element if element is removed successfully, NULL otherwise.
 ****************************************************************************************/
-INLINE SYS_QueueElement_t *SYS_QueueRemoveHeadElement(SYS_QueueDescriptor_t *queue)
-{
-    return SYS_QueueIsEmpty(queue) ? NULL : SYS_QueueRemoveNextElement(queue);
-}
+SYS_QueueElement_t *SYS_QueueRemoveHeadElement(SYS_QueueDescriptor_t *queue);
 
 /************************************************************************************//**
   \brief Removes queue element.
@@ -269,11 +217,16 @@ INLINE SYS_QueueElement_t *SYS_QueueRemoveHeadElement(SYS_QueueDescriptor_t *que
   \param[in] element - element to delete.
   \returns pointer to a removed element if element is removed successfully, NULL otherwise.
 ****************************************************************************************/
-INLINE SYS_QueueElement_t *SYS_QueueRemoveQueueElement(SYS_QueueDescriptor_t *queue,
-        SYS_QueueElement_t *element)
-{
-    SYS_QueueElement_t *parent = SYS_QueueFindParentElement(queue, element);
-    return (parent) ? SYS_QueueRemoveNextElement(parent) : NULL;
-}
+SYS_QueueElement_t *SYS_QueueRemoveQueueElement(SYS_QueueDescriptor_t *queue,
+        SYS_QueueElement_t *element);
+
+/*
+ * Repeat pragma GCC optimize because function definitions (including inlined) turn these pragrmas off automatically
+ * when compiled by G++ but not GCC.
+ */
+#if (defined(__arm__) || defined(__i386__)) && !defined(__clang__)
+# pragma GCC optimize "short-enums"     /* Implement short enums. */
+# pragma GCC diagnostic ignored "-Wattributes"
+#endif
 
 #endif /* _BB_SYS_QUEUE_H */

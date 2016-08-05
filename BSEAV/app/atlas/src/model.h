@@ -185,6 +185,10 @@ public:
     void                                 setPipState(bool bPip);
     bool                                 getPipEnabled(void) { return(_bPipEnabled); }
     void                                 setPipEnabled(bool bEnabled) { _bPipEnabled = bEnabled; }
+    bool                                 getIpClientTranscodeEnabled(void) { return(_bipTranscodeEnabled); }
+    void                                 setIpClientTranscodeEnabled(bool bEnabled) { _bipTranscodeEnabled = bEnabled; }
+    int                                  getIpClientTranscodeProfile(void) { return(_ipTranscodeProfile); }
+    void                                 setIpClientTranscodeProfile(int xcodeProfile) { _ipTranscodeProfile = xcodeProfile; }
     bool                                 getPipSwapState(void) { return(_bPipSwapped); }
     void                                 setPipSwapState(bool bPipSwapped) { _bPipSwapped = bPipSwapped; }
     bool                                 getScanSaveOffer(void) { return(_bScanSaveOffer); }
@@ -298,6 +302,8 @@ protected:
     bool                                 _bPipEnabled;
     bool                                 _bPipSwapped;
     bool                                 _bScanSaveOffer;
+    bool                                 _bipTranscodeEnabled;
+    int                                  _ipTranscodeProfile;
     eMode                                _mode[eWindowType_Max];
     CSimpleVideoDecode *                 _pSimpleVideoDecode[eWindowType_Max];
     CSimpleAudioDecode *                 _pSimpleAudioDecode[eWindowType_Max];

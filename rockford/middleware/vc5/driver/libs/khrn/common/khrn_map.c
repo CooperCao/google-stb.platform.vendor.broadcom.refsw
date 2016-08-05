@@ -119,7 +119,7 @@ bool khrn_map_init(KHRN_MAP_T *map, uint32_t capacity)
    assert(capacity >= 8);
 
    /* Hash stuff assumes this */
-   assert(is_power_of_2(capacity));
+   assert(gfx_is_power_of_2(capacity));
 
    if (!alloc_storage(map, capacity))
       return false;

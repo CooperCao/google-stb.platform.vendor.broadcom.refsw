@@ -111,11 +111,6 @@ Macro *glsl_macro_construct_file()
    return glsl_macro_construct_builtin(MACRO_FILE, "__FILE__");
 }
 
-Macro *glsl_macro_construct_version()
-{
-   return glsl_macro_construct_builtin(MACRO_VERSION, "__VERSION__");
-}
-
 bool glsl_macro_equals(Macro *m1, Macro *m2)
 {
    assert(m1);
@@ -129,15 +124,15 @@ bool glsl_macro_equals(Macro *m1, Macro *m2)
 
 bool glsl_macro_is_builtin(Macro *macro)
 {
-   if (macro->type == MACRO_LINE ||
-       macro->type == MACRO_FILE ||
-       macro->type == MACRO_VERSION)
+   if (macro->type == MACRO_LINE || macro->type == MACRO_FILE)
       return true;
 
-   if (macro->name->type == IDENTIFIER &&
-       strlen(macro->name->data.s) >= 3 &&
-       !strncmp(macro->name->data.s, "GL_", 3))
-      return true;
+   if (macro->name->type == IDENTIFIER) {
+      if (!strncmp(macro->name->data.s, "GL_", 3))
+         return true;
+      if (!strcmp(macro->name->data.s, "__VERSION__"))
+         return true;
+   }
 
    return false;
 }
@@ -161,14 +156,14 @@ MacroList *glsl_macrolist_construct(Macro *macro, MacroList *next)
    return list;
 }
 
-MacroList *glsl_macrolist_construct_initial()
+MacroList *glsl_macrolist_construct_initial(int version)
 {
    MacroList *list = NULL;
    list = glsl_macrolist_construct(glsl_macro_construct_line(), list);
    list = glsl_macrolist_construct(glsl_macro_construct_file(), list);
-   list = glsl_macrolist_construct(glsl_macro_construct_version(), list);
    list = glsl_macrolist_construct(glsl_macro_construct_object(glsl_token_construct_identifier("GL_ES"), glsl_tokenseq_construct(glsl_token_construct_intconst(1), NULL, NULL)), list);
    list = glsl_macrolist_construct(glsl_macro_construct_object(glsl_token_construct_identifier("GL_FRAGMENT_PRECISION_HIGH"), glsl_tokenseq_construct(glsl_token_construct_intconst(1), NULL, NULL)), list);
+   list = glsl_macrolist_construct(glsl_macro_construct_object(glsl_token_construct_identifier("__VERSION__"), glsl_tokenseq_construct(glsl_token_construct_intconst(GLSL_SHADER_VERSION_NUMBER(version)), NULL, NULL)), list);
 
    /* GLSL ES 3.4 -- predefine macros for supported extensions */
    for (unsigned i = 0; i != GLSL_EXT_COUNT; ++i) {

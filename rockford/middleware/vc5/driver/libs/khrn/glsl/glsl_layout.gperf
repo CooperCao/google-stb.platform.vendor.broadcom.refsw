@@ -1,6 +1,6 @@
 %{
-   #include <glsl_common.h>
-   #include <glsl_layout.h>
+   #include <string.h>
+   #include "glsl_layout.h"
 %}
 
 %struct-type
@@ -47,3 +47,11 @@ cw,                           LQ_CW
 ccw,                          LQ_CCW
 point_mode,                   LQ_POINT_MODE
 vertices,                     LQ_VERTICES
+points,                       LQ_POINTS
+lines,                        LQ_LINES
+lines_adjacency,              LQ_LINES_ADJACENCY
+triangles_adjacency,          LQ_TRIANGLES_ADJACENCY
+invocations,                  LQ_INVOCATIONS
+line_strip,                   LQ_LINE_STRIP
+triangle_strip,               LQ_TRIANGLE_STRIP
+max_vertices,                 LQ_MAX_VERTICES

@@ -1,7 +1,7 @@
 #############################################################################
-#    (c)2009-2013 Broadcom Corporation
-# 
-# This program is the proprietary software of Broadcom Corporation and/or its licensors,
+# Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+#
+# This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
 # conditions of a separate, written license agreement executed between you and Broadcom
 # (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,21 +34,27 @@
 # ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE 
 # LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF 
 # ANY LIMITED REMEDY.
-#
-# $brcm_Workfile: $
-# $brcm_Revision: $
-# $brcm_Date: $
-# 
-# Module Description:
-# 
-# Revision History:
-# 
-# $brcm_Log: $
-# 
 #############################################################################
 use strict;
 
 package bapi_kernel_export;
+
+my $export_file = $ENV{"NEXUS_EXPORT_FILE"};
+my @export_functions;
+if ($export_file) {
+    open FILE, "<$export_file";
+    while (<FILE>) {
+      my $line = $_;
+      # Strip comments
+      $line =~ s/#.*?\n//g;
+      # Strip newline
+      chomp $line;
+      if ( length $line > 0 ) {
+         push @export_functions, $line;
+      }
+    }
+    close FILE;
+}
 
 sub generate
 {
@@ -75,7 +81,9 @@ sub generate
 	print FILE "\n";	
 
 	for $func (@funcs) {
-		print FILE "EXPORT_SYMBOL($func->{FUNCNAME});\n";
+		if (!$export_file || grep /$func->{FUNCNAME}/, @export_functions) {
+			print FILE "EXPORT_SYMBOL($func->{FUNCNAME});\n";
+		}
 	}
 	print FILE "\n\n\n";
 	close FILE;

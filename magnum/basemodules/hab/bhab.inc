@@ -85,7 +85,7 @@ BCHP_4538_VER := A0
 endif
 
 ifeq ($(BCHP_7366_VER),)
-BCHP_7366_VER := B0
+BCHP_7366_VER := C0
 endif
 
 ifeq ($(BCHP_45216_VER),)
@@ -93,7 +93,7 @@ BCHP_45216_VER := A0
 endif
 
 ifeq ($(BCHP_45308_VER),)
-BCHP_45308_VER := A0
+BCHP_45308_VER := B0
 endif
 
 BHAB_VER_LOWER ?= $(shell awk 'BEGIN{print tolower("$(BCHP_312X_VER)")}')
@@ -197,7 +197,7 @@ BHAB_SOURCES += $(MAGNUM)/basemodules/hab/src/leapctfe/3158/bhab_3158.c
 BHAB_SOURCES += $(MAGNUM)/basemodules/hab/src/leapctfe/bhab_leap_priv.c
 endif
 ifeq ($(BHAB_IMG_EXTERNAL),)
-BHAB_SOURCES += $(MAGNUM)/basemodules/hab/src/leapctfe/3158/bhab_3158_fw_a0.c
+BHAB_SOURCES += $(MAGNUM)/basemodules/hab/src/leapctfe/3158/bhab_3158_fw_$(BHAB_3158_VER_LOWER).c
 endif
 endif
 

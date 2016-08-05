@@ -73,6 +73,13 @@ static int nswTask(void *task, void *ctx) {
     return 0;
 }
 
+void TzTask::initNoTask()
+{
+    allocator.init();
+    spinlock_init("TaskTerminationLock", &termLock);
+    tasks.init();
+}
+
 void TzTask::init() {
     allocator.init();
     spinlock_init("TaskTerminationLock", &termLock);
@@ -143,7 +150,12 @@ TzTask::TzTask(TaskFunction entry, void *ctx, unsigned int priority, const char 
 
     initSignalState();
 
-    TzMem::VirtAddr stackVa = pageTable->reserveAddrRange((void *)KERNEL_STACKS_START, PAGE_SIZE_4K_BYTES, PageTable::ScanBackward);
+     /*
+     * Allocate the kernel mode stack
+     */
+    PageTable *kernPageTable = PageTable::kernelPageTable();
+
+    TzMem::VirtAddr stackVa = kernPageTable->reserveAddrRange((void *)KERNEL_STACKS_START, PAGE_SIZE_4K_BYTES, PageTable::ScanBackward);
     if (stackVa == nullptr) {
         err_msg("[stackVa 1] kernel virtual address space exhausted !\n");
         pageTable->dump();
@@ -155,10 +167,21 @@ TzTask::TzTask(TaskFunction entry, void *ctx, unsigned int priority, const char 
         return;
     }
 
-    pageTable->mapPage(stackVa, stackPa, MAIR_MEMORY, MEMORY_ACCESS_RW_KERNEL);
+    kernPageTable->mapPage(stackVa, stackPa, MAIR_MEMORY, MEMORY_ACCESS_RW_KERNEL, true, false);
+    pageTable->mapPage(stackVa, stackPa, MAIR_MEMORY, MEMORY_ACCESS_RW_KERNEL, true, true);
+    stackKernel = (uint8_t *)stackVa + PAGE_SIZE_4K_BYTES;
 
-    TzMem::VirtAddr stackStart = (uint8_t *)stackVa + PAGE_SIZE_4K_BYTES;
-    stackKernel = stackStart;
+    quickPagesMapped = false;
+    quickPages = kernPageTable->reserveAddrRange((void *)KERNEL_STACKS_START, PAGE_SIZE_4K_BYTES*2, PageTable::ScanForward);
+    if (quickPages == nullptr) {
+        err_msg("[quickPages 1] kernel virtual address space exhausted !\n");
+        pageTable->dump();
+        return;
+    }
+
+    /*
+     * Prepare TLS region
+     */
     threadInfo = nullptr;
 
     savedRegs[SAVED_REG_R0] = (unsigned long)this;
@@ -200,14 +223,6 @@ TzTask::TzTask(TaskFunction entry, void *ctx, unsigned int priority, const char 
     mmapMaxVa = nullptr;
 
     createUContext();
-
-    quickPagesMapped = false;
-    quickPages = kernPageTable->reserveAddrRange((void *)KERNEL_STACKS_START, PAGE_SIZE_4K_BYTES*2, PageTable::ScanForward);
-    if (quickPages == nullptr) {
-        err_msg("[quickPages 1] kernel virtual address space exhausted !\n");
-        pageTable->dump();
-        return;
-    }
 
     //TODO: Potential thread unsafe publication. Can we move this outside
     // the constructor ?
@@ -286,11 +301,17 @@ TzTask::TzTask(IFile *exeFile, unsigned int priority, IDirectory *workDir, const
         return;
     }
 
-    kernPageTable->mapPage(stackVa, stackPa, MAIR_MEMORY, MEMORY_ACCESS_RW_KERNEL);
-    pageTable->mapPage(stackVa, stackPa, MAIR_MEMORY, MEMORY_ACCESS_RW_KERNEL);
+    kernPageTable->mapPage(stackVa, stackPa, MAIR_MEMORY, MEMORY_ACCESS_RW_KERNEL, true, false);
+    pageTable->mapPage(stackVa, stackPa, MAIR_MEMORY, MEMORY_ACCESS_RW_KERNEL, true, true);
+    stackKernel = (uint8_t *)stackVa + PAGE_SIZE_4K_BYTES;
 
-    TzMem::VirtAddr stackStart = (uint8_t *)stackVa + PAGE_SIZE_4K_BYTES;
-    stackKernel = stackStart;
+    quickPagesMapped = false;
+    quickPages = kernPageTable->reserveAddrRange((void *)KERNEL_STACKS_START, PAGE_SIZE_4K_BYTES*2, PageTable::ScanForward);
+    if (quickPages == nullptr) {
+        err_msg("[quickPages 2] kernel virtual address space exhausted !\n");
+        pageTable->dump();
+        return;
+    }
 
     /*
      * Populate the user mode stack
@@ -310,18 +331,20 @@ TzTask::TzTask(IFile *exeFile, unsigned int priority, IDirectory *workDir, const
     /*
      * Prepare TLS region
      */
-    TzMem::PhysAddr tiPA = TzMem::allocPage(tid);
-    if (tiPA == nullptr) {
+    TzMem::VirtAddr tiVa = kernPageTable->reserveAddrRange((void *)KERNEL_STACKS_START, PAGE_SIZE_4K_BYTES, PageTable::ScanForward);
+    if (tiVa == nullptr) {
+        err_msg("No virtual address space left in kernel page table\n");
+        return;
+    }
+    TzMem::PhysAddr tiPa = TzMem::allocPage(tid);
+    if (tiPa == nullptr) {
         err_msg("system memory exhausted !\n");
         return;
     }
-    threadInfo = pageTable->reserveAddrRange(userStackVa, PAGE_SIZE_4K_BYTES, PageTable::ScanForward);
-    if (threadInfo == nullptr) {
-        err_msg("No virtual address space left in user page table\n");
-        return;
-    }
-    pageTable->mapPage(threadInfo, tiPA, MAIR_MEMORY, MEMORY_ACCESS_RW_USER);
-    threadInfo =(uint8_t *)threadInfo + THREAD_INFO_OFFSET;
+
+    kernPageTable->mapPage(tiVa, tiPa, MAIR_MEMORY, MEMORY_ACCESS_RW_USER, true, false);
+    pageTable->mapPage(tiVa, tiPa, MAIR_MEMORY, MEMORY_ACCESS_RW_USER, true, true);
+    threadInfo =(uint8_t *)tiVa + THREAD_INFO_OFFSET;
 
     savedRegs[SAVED_REG_LR] = (unsigned long)image->entry();
     savedRegs[SAVED_REG_SP] = (unsigned long)stackKernel;
@@ -361,14 +384,6 @@ TzTask::TzTask(IFile *exeFile, unsigned int priority, IDirectory *workDir, const
     threadCloned = false;
 
     createUContext();
-
-    quickPagesMapped = false;
-    quickPages = kernPageTable->reserveAddrRange((void *)KERNEL_STACKS_START, PAGE_SIZE_4K_BYTES*2, PageTable::ScanForward);
-    if (quickPages == nullptr) {
-        err_msg("[quickPages 2] kernel virtual address space exhausted !\n");
-        pageTable->dump();
-        return;
-    }
 
     //TODO: Potential thread unsafe publication. Can we move this outside
     // the constructor ?
@@ -443,28 +458,35 @@ TzTask::TzTask(TzTask& parentTask) :
         return;
     }
 
-    kernPageTable->mapPage(stackVa, stackPa, MAIR_MEMORY, MEMORY_ACCESS_RW_KERNEL);
-    pageTable->mapPage(stackVa, stackPa, MAIR_MEMORY, MEMORY_ACCESS_RW_KERNEL);
+    kernPageTable->mapPage(stackVa, stackPa, MAIR_MEMORY, MEMORY_ACCESS_RW_KERNEL, true, false);
+    pageTable->mapPage(stackVa, stackPa, MAIR_MEMORY, MEMORY_ACCESS_RW_KERNEL, true, true);
+    stackKernel = (uint8_t *)stackVa + PAGE_SIZE_4K_BYTES;
 
-    TzMem::VirtAddr stackStart = (uint8_t *)stackVa + PAGE_SIZE_4K_BYTES;
-    stackKernel = stackStart;
+    quickPagesMapped = false;
+    quickPages = kernPageTable->reserveAddrRange((void *)KERNEL_STACKS_START, PAGE_SIZE_4K_BYTES*2, PageTable::ScanForward);
+    if (quickPages == nullptr) {
+        err_msg("[quickPages 3] kernel virtual address space exhausted !\n");
+        pageTable->dump();
+        return;
+    }
 
     /*
      * Prepare TLS region
      */
-    TzMem::PhysAddr tiPA = TzMem::allocPage(tid);
-    if (tiPA == nullptr) {
+    TzMem::VirtAddr tiVa = kernPageTable->reserveAddrRange((void *)KERNEL_STACKS_START, PAGE_SIZE_4K_BYTES, PageTable::ScanForward);
+    if (tiVa == nullptr) {
+        err_msg("No virtual address space left in kernel page table\n");
+        return;
+    }
+    TzMem::PhysAddr tiPa = TzMem::allocPage(tid);
+    if (tiPa == nullptr) {
         err_msg("system memory exhausted !\n");
         return;
     }
-    TzMem::VirtAddr userStackVa = image->stackTopPageVA();
-    threadInfo = pageTable->reserveAddrRange(userStackVa, PAGE_SIZE_4K_BYTES, PageTable::ScanForward);
-    if (threadInfo == nullptr) {
-        err_msg("No virtual address space left in user page table\n");
-        return;
-    }
-    pageTable->mapPage(threadInfo, tiPA, MAIR_MEMORY, MEMORY_ACCESS_RW_USER);
-    threadInfo =(uint8_t *)threadInfo + THREAD_INFO_OFFSET;
+
+    kernPageTable->mapPage(tiVa, tiPa, MAIR_MEMORY, MEMORY_ACCESS_RW_USER, true, false);
+    pageTable->mapPage(tiVa, tiPa, MAIR_MEMORY, MEMORY_ACCESS_RW_USER, true, true);
+    threadInfo =(uint8_t *)tiVa + THREAD_INFO_OFFSET;
 
     for (int i=0; i<NUM_SAVED_CPU_REGS; i++) {
         savedRegs[i] = parentTask.savedRegs[i];
@@ -500,14 +522,6 @@ TzTask::TzTask(TzTask& parentTask) :
     threadCloned = false;
 
     createUContext();
-
-    quickPagesMapped = false;
-    quickPages = kernPageTable->reserveAddrRange((void *)KERNEL_STACKS_START, PAGE_SIZE_4K_BYTES*2, PageTable::ScanForward);
-    if (quickPages == nullptr) {
-        err_msg("[quickPages 3] kernel virtual address space exhausted !\n");
-        pageTable->dump();
-        return;
-    }
 
     //TODO: Potential thread unsafe publication. Can we move this outside
     // the constructor ?

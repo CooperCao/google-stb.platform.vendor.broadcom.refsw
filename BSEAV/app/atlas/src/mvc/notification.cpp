@@ -93,6 +93,8 @@ ENUM_TO_MSTRING_ENTRY(MString(eNotify_ShowPip).s(), "eNotify_ShowPip")          
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_SwapPip).s(), "eNotify_SwapPip")                         /* command  - swap pip/main windows */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_ClosedCaptionEnable).s(), "eNotify_ClosedCaptionEnable") /* command  - closed caption has been enabled/disabled */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_ClosedCaptionMode).s(), "eNotify_ClosedCaptionMode")     /* command  - set 608/708 closed caption mode */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_ipClientTranscodeEnable).s(), "eNotify_ipClientTranscodeEnable")     /* command  - BIP transcoding has been enabled/disabled for a given client */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_ipClientTranscodeProfile).s(), "eNotify_ipClientTranscodeProfile")    /* command - BIP transcode profile setting for a given client */
 #ifdef NETAPP_SUPPORT
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_NetworkWifiScanStart).s(), "eNotify_NetworkWifiScanStart")   /* command  - start wifi network scan */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_NetworkWifiScanStop).s(), "eNotify_NetworkWifiScanStop")     /* command  - stop wifi network scan */

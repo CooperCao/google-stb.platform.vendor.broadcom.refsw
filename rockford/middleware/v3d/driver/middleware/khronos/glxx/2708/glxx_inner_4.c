@@ -409,12 +409,6 @@ static uint32_t null_user_shader[] =
    0x009e7000,0x100249e7, // nop
 };
 
-#ifdef XXX_OFFLINE
-static GLXX_FIXABLE_ADDR_T next_user_shader;
-static GLXX_FIXABLE_ADDR_T next_user_unif;
-static GLXX_FIXABLE_ADDR_T next_vcd_addr;
-#endif
-
 /*************************************************************
  Static function forwards
  *************************************************************/
@@ -426,41 +420,6 @@ static bool create_master_cl(void);
 /*************************************************************
  Global Functions
  *************************************************************/
-
-
-#ifdef XXX_OFFLINE
-GLXX_FIXABLE_ADDR_T glxx_hw_get_next_user_shader()
-{
-   if(next_user_shader.handle == MEM_INVALID_HANDLE)
-   {
-      void * locked_addr;
-      /* Add terminating user shader */
-      GLXX_FIXABLE_ADDR_T addr;
-      if(glxx_alloc_junk_mem(&addr,sizeof(null_user_shader), 8))
-      {
-         locked_addr = (char *)mem_lock(addr.handle) + addr.offset;
-
-         next_user_shader.handle = addr.handle;
-         next_user_shader.offset = addr.offset;
-         next_user_shader.fixable_type = FIXABLE_TYPE_JUNK;
-
-         khrn_memcpy(locked_addr, null_user_shader, sizeof(null_user_shader));
-         mem_unlock(addr.handle);
-      }
-      else
-      {
-         next_user_shader.handle = MEM_INVALID_HANDLE;
-         next_user_shader.offset = 0;
-      }
-   }
-   return next_user_shader;
-}
-
-GLXX_FIXABLE_ADDR_T glxx_hw_get_next_user_unif()
-{
-   return next_user_unif;
-}
-#endif
 
 /*!
  * \brief Clears state and frame information to start a new frame.
@@ -966,12 +925,6 @@ static bool create_bin_cl(void)
    /* Ensure primitive format is reset. TODO: is this necessary? */
    add_byte(&instr, KHRN_HW_INSTR_PRIMITIVE_LIST_FORMAT); //(2)
    add_byte(&instr, 0x12);   /* 16 bit triangle */
-#endif
-
-#ifdef XXX_OFFLINE
-   next_user_shader = glxx_fixable_null();
-   next_user_unif = glxx_fixable_null();
-   next_vcd_addr = glxx_fixable_null();
 #endif
 
    return true;

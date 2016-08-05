@@ -48,7 +48,7 @@
 
 BDBG_MODULE(BHSM);
 
-
+BDBG_OBJECT_ID_DECLARE( BHSM_P_Handle );
 
 BERR_Code BHSM_SetMiscBits (
     BHSM_Handle                hHsm,
@@ -66,9 +66,7 @@ BERR_Code BHSM_SetMiscBits (
 
     BDBG_ASSERT( pMiscBits );
 
-    if( ( hHsm == NULL ) || ( hHsm->ulMagicNumber != BHSM_P_HANDLE_MAGIC_NUMBER ) ) {
-        return BERR_TRACE( BHSM_STATUS_FAILED );
-    }
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
 
     if( pMiscBits == NULL ) {
         return BERR_TRACE(  BHSM_STATUS_INPUT_PARM_ERR );
@@ -196,7 +194,9 @@ BERR_Code BHSM_SetPciMaxWindowSize (
 
     BDBG_ENTER( BHSM_SetPciMaxWindowSize );
 
-    if( ( hHsm == NULL ) || ( hHsm->ulMagicNumber != BHSM_P_HANDLE_MAGIC_NUMBER ) || ( pMaxConf == NULL ) ) {
+	BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
+
+    if( pMaxConf == NULL ) {
         return BERR_TRACE( BHSM_STATUS_FAILED );
     }
 
@@ -252,7 +252,9 @@ BERR_Code BHSM_SetArch( BHSM_Handle hHsm, BHSM_SetArchIO_t *pSetArch )
 
     BDBG_ENTER( BHSM_SetArch );
 
-    if( (hHsm == NULL) || (hHsm->ulMagicNumber != BHSM_P_HANDLE_MAGIC_NUMBER) || (pSetArch == NULL) )
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
+
+    if( pSetArch == NULL )
     {
         return  BERR_TRACE( BHSM_STATUS_FAILED );
     }
@@ -367,7 +369,9 @@ BERR_Code  BHSM_SetVichRegPar (
 
     BDBG_ENTER( BHSM_SetVichRegPar );
 
-    if( (hHsm == NULL) || (hHsm->ulMagicNumber != BHSM_P_HANDLE_MAGIC_NUMBER) || (pSetVich == NULL) )
+	BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
+
+    if( pSetVich == NULL )
     {
         return  BERR_TRACE( BHSM_STATUS_FAILED );
     }
@@ -411,7 +415,7 @@ BERR_Code  BHSM_SetVichRegPar (
     }
 
     BHSM_BspMsg_Get8( hMsg, BCMD_CommonBufferFields_eStatus, &status );
-	pSetVich->unStatus = status;
+    pSetVich->unStatus = status;
 
     switch( status )
     {
@@ -426,7 +430,7 @@ BERR_Code  BHSM_SetVichRegPar (
 			pSetVich->unStatus = 0;
             break; /* success */
 		}
-	    default:
+        default:
         {
             rc = BHSM_STATUS_BSP_ERROR;
             BDBG_ERR(("%s BSP status error. [0x%02X]", __FUNCTION__, status ));
@@ -455,7 +459,9 @@ BERR_Code  BHSM_StartAVD(
 
     BDBG_ENTER( BHSM_StartAVD );
 
-    if( (hHsm == NULL) || (hHsm->ulMagicNumber != BHSM_P_HANDLE_MAGIC_NUMBER) || (pStartAvd == NULL) )
+	BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
+
+    if( pStartAvd == NULL )
     {
         return  BERR_TRACE( BHSM_STATUS_FAILED );
     }

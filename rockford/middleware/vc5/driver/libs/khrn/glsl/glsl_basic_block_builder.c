@@ -107,7 +107,7 @@ static void block_assignment(BasicBlock *block, Expr *lvalue, int offset, Datafl
          break;
       default:
          member_scalar_count = 0;
-         UNREACHABLE();
+         unreachable();
          break;
       }
 
@@ -151,7 +151,7 @@ static void block_assignment(BasicBlock *block, Expr *lvalue, int offset, Datafl
    }
 
    default:
-      UNREACHABLE();
+      unreachable();
       break;
    }
 }
@@ -298,7 +298,6 @@ static void build_iterator_statement(builder_context_t *ctx, const NStmt *stmt)
 
    // Loop pre-condition
    basic_block_start(ctx, pre_cond_block);
-   ctx->current_basic_block->loop_index = stmt->u.iterator.loop_index; // unguarded init
    build_statement_list(ctx, stmt->u.iterator.pre_cond_stmts);
    if (stmt->u.iterator.pre_cond_expr) {
       glsl_expr_calculate_dataflow(ctx->current_basic_block, &scalar_value, stmt->u.iterator.pre_cond_expr);
@@ -328,7 +327,6 @@ static void build_iterator_statement(builder_context_t *ctx, const NStmt *stmt)
 
    // Loop increment
    basic_block_start(ctx, iter_block);
-   iter_block->loop_index = stmt->u.iterator.loop_index; // unguarded increment
    build_statement_list(ctx, stmt->u.iterator.increment);
    basic_block_end(ctx, NULL, NULL, pre_cond_block);
 
@@ -468,7 +466,7 @@ static void build_statement(builder_context_t *ctx, const NStmt *stmt)
       break;
 
    case NSTMT_FLAVOUR_COUNT:
-      UNREACHABLE();
+      unreachable();
       break;
    }
 }

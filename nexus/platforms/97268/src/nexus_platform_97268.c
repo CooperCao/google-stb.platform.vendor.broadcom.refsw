@@ -73,38 +73,30 @@ void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings,
 {
     switch(boxMode)
     {
-        case 1:
-        case 2:
-        case 1000:
-        {
-            pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].size = 128*1024*1024;
-            pSettings->heap[NEXUS_VIDEO_SECURE_HEAP].size = 64*1024 *1024;
-            pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].size = 256*1024*1024;
-            break;
-        }
-        case 3:
-        {
-            pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].size = 100*1024*1024;
-            pSettings->heap[NEXUS_VIDEO_SECURE_HEAP].size = 54*1024 *1024;
-            pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].size = 256*1024*1024;
-            break;
-        }
-        case 4:
-        {
-            pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].size = 64*1024*1024;
-            pSettings->heap[NEXUS_VIDEO_SECURE_HEAP].size = 96*1024 *1024;
-            pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].size = 64*1024*1024;
-            break;
-        }
-        default:
-        {
-            BDBG_ERR(("Box mode %d not supported",boxMode));
-            break;
-        }
+    case 1:
+    case 2:
+    case 1000:
+        pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].size = 148*1024*1024;
+        pSettings->heap[NEXUS_VIDEO_SECURE_HEAP].size = 108*1024 *1024;
+        pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].size = 512*1024*1024;
+        break;
+    case 3:
+        pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].size = 148*1024*1024;
+        pSettings->heap[NEXUS_VIDEO_SECURE_HEAP].size = 108*1024 *1024; /* CABACs(28)for 2 decoders + RAVE CDB(6+15) */
+        pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].size = 348*1024*1024; /* 1000 - 76-53 -32 -64(pic) -161(pic)-256 kernel */
+        break;
+    case 4:
+        pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].size = 148*1024*1024;
+        pSettings->heap[NEXUS_VIDEO_SECURE_HEAP].size = 90*1024 *1024; /* CABACs(28)for 2 decoders + RAVE CDB(6+15) */
+        pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].size = 64*1024*1024; /* 1000- (65+45+32+27(pic)+161(pic)+256(kernel)) */
+        break;
+    default:
+        BDBG_ERR(("Box mode %d not supported",boxMode));
+        break;
     }
 
     pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].heapType = NEXUS_HEAP_TYPE_GRAPHICS;
-
+#if 0
     /* Increase graphics heap size if we have more than 1GB of RAM */
     {
         BCHP_MemoryInfo memInfo;
@@ -114,6 +106,7 @@ void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings,
             pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].size *= 2;
         }
     }
+#endif
 }
 
 NEXUS_Error NEXUS_Platform_P_InitBoard(void)

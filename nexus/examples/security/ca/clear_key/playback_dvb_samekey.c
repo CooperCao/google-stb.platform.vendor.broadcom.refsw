@@ -74,17 +74,18 @@
 #define HSM_IS_40NM_PLUS    1
 #endif
 
-static int      security_clear_even_odd_keys_setups (NEXUS_VideoDecoderStartSettings videoProgram,
-                                                     NEXUS_AudioDecoderStartSettings audioProgram);
+static int      security_clear_even_odd_keys_setups ( NEXUS_VideoDecoderStartSettings videoProgram,
+                                                      NEXUS_AudioDecoderStartSettings audioProgram );
 
-int main (void)
+int main ( void )
 {
 #if NEXUS_HAS_PLAYBACK
     NEXUS_PlatformSettings platformSettings;
     NEXUS_PlatformConfiguration platformConfig;
     NEXUS_StcChannelHandle stcChannel;
     NEXUS_StcChannelSettings stcSettings;
-    NEXUS_PidChannelHandle videoPidChannel, audioPidChannel;
+    NEXUS_PidChannelHandle videoPidChannel,
+                    audioPidChannel;
     NEXUS_DisplayHandle display;
     NEXUS_VideoWindowHandle window;
     NEXUS_VideoDecoderHandle videoDecoder;
@@ -96,106 +97,105 @@ int main (void)
     NEXUS_PlaybackHandle playback;
     NEXUS_PlaybackSettings playbackSettings;
     NEXUS_PlaybackPidChannelSettings playbackPidSettings;
-	/* Playback from local disk is better, however, network is universal for a quick test */
+    /* Playback from local disk is better, however, network is universal for a quick test */
     /* const char *fname = "videos/spiderman_dvb_samekey.ts"; */
     const char     *fname = "/mnt/nfs/spiderman_aes.ts";
     int             timeout = 0;
 
-
-    NEXUS_Platform_GetDefaultSettings (&platformSettings);
+    NEXUS_Platform_GetDefaultSettings ( &platformSettings );
     platformSettings.openFrontend = false;
-    NEXUS_Platform_Init (&platformSettings);
+    NEXUS_Platform_Init ( &platformSettings );
 
-    BKNI_Sleep (3000);          /* allow debug to output */
+    BKNI_Sleep ( 3000 );        /* allow debug to output */
 
-    NEXUS_Platform_GetConfiguration (&platformConfig);
+    NEXUS_Platform_GetConfiguration ( &platformConfig );
 
-    playpump = NEXUS_Playpump_Open (0, NULL);
-    assert (playpump);
-    playback = NEXUS_Playback_Create ();
-    assert (playback);
+    playpump = NEXUS_Playpump_Open ( 0, NULL );
+    assert ( playpump );
+    playback = NEXUS_Playback_Create (  );
+    assert ( playback );
 
-    file = NEXUS_FilePlay_OpenPosix (fname, NULL);
-    if (!file)
+    file = NEXUS_FilePlay_OpenPosix ( fname, NULL );
+    if ( !file )
     {
-        fprintf (stderr, "can't open file:%s\n", fname);
+        fprintf ( stderr, "can't open file:%s\n", fname );
         return -1;
     }
     else
     {
-        fprintf (stderr, "file exists:%s\n", fname);
+        fprintf ( stderr, "file exists:%s\n", fname );
     }
 
-    NEXUS_StcChannel_GetDefaultSettings (0, &stcSettings);
+    NEXUS_StcChannel_GetDefaultSettings ( 0, &stcSettings );
     stcSettings.timebase = NEXUS_Timebase_e0;
     stcSettings.mode = NEXUS_StcChannelMode_eAuto;
-    stcChannel = NEXUS_StcChannel_Open (0, &stcSettings);
+    stcChannel = NEXUS_StcChannel_Open ( 0, &stcSettings );
 
-    NEXUS_Playback_GetSettings (playback, &playbackSettings);
+    NEXUS_Playback_GetSettings ( playback, &playbackSettings );
     playbackSettings.playpump = playpump;
     /* set a stream format, it could be any audio video transport type or file format, i.e NEXUS_TransportType_eMp4, NEXUS_TransportType_eAvi ... */
     playbackSettings.playpumpSettings.transportType = NEXUS_TransportType_eTs;
     playbackSettings.stcChannel = stcChannel;
-    NEXUS_Playback_SetSettings (playback, &playbackSettings);
+    NEXUS_Playback_SetSettings ( playback, &playbackSettings );
 
     /* Bring up audio decoders and outputs */
-    audioDecoder = NEXUS_AudioDecoder_Open (0, NULL);
+    audioDecoder = NEXUS_AudioDecoder_Open ( 0, NULL );
 #if NEXUS_NUM_AUDIO_DACS
-    NEXUS_AudioOutput_AddInput (NEXUS_AudioDac_GetConnector (platformConfig.outputs.audioDacs[0]),
-                                NEXUS_AudioDecoder_GetConnector (audioDecoder,
-                                                                 NEXUS_AudioDecoderConnectorType_eStereo));
+    NEXUS_AudioOutput_AddInput ( NEXUS_AudioDac_GetConnector ( platformConfig.outputs.audioDacs[0] ),
+                                 NEXUS_AudioDecoder_GetConnector ( audioDecoder,
+                                                                   NEXUS_AudioDecoderConnectorType_eStereo ) );
 #endif
 
 #if NEXUS_NUM_SPDIF_OUTPUTS
-    NEXUS_AudioOutput_AddInput (NEXUS_SpdifOutput_GetConnector (platformConfig.outputs.spdif[0]),
-                                NEXUS_AudioDecoder_GetConnector (audioDecoder,
-                                                                 NEXUS_AudioDecoderConnectorType_eStereo));
+    NEXUS_AudioOutput_AddInput ( NEXUS_SpdifOutput_GetConnector ( platformConfig.outputs.spdif[0] ),
+                                 NEXUS_AudioDecoder_GetConnector ( audioDecoder,
+                                                                   NEXUS_AudioDecoderConnectorType_eStereo ) );
 #endif
 
     /* Bring up video display and outputs */
-    display = NEXUS_Display_Open (0, NULL);
+    display = NEXUS_Display_Open ( 0, NULL );
 #if NEXUS_DTV_PLATFORM
-    NEXUS_Display_AddOutput (display, NEXUS_PanelOutput_GetConnector (platformConfig.outputs.panel[0]));
-    NEXUS_BoardCfg_ConfigurePanel (true, true, true);
+    NEXUS_Display_AddOutput ( display, NEXUS_PanelOutput_GetConnector ( platformConfig.outputs.panel[0] ) );
+    NEXUS_BoardCfg_ConfigurePanel ( true, true, true );
 #else
 #if NEXUS_NUM_COMPONENT_OUTPUTS
-    if (platformConfig.outputs.component[0])
+    if ( platformConfig.outputs.component[0] )
     {
-        NEXUS_Display_AddOutput (display, NEXUS_ComponentOutput_GetConnector (platformConfig.outputs.component[0]));
+        NEXUS_Display_AddOutput ( display, NEXUS_ComponentOutput_GetConnector ( platformConfig.outputs.component[0] ) );
     }
 #endif
 #if NEXUS_NUM_COMPOSITE_OUTPUTS
-    NEXUS_Display_AddOutput (display, NEXUS_CompositeOutput_GetConnector (platformConfig.outputs.composite[0]));
+    NEXUS_Display_AddOutput ( display, NEXUS_CompositeOutput_GetConnector ( platformConfig.outputs.composite[0] ) );
 #endif
 #if NEXUS_NUM_HDMI_OUTPUTS
-    NEXUS_Display_AddOutput (display, NEXUS_HdmiOutput_GetVideoConnector (platformConfig.outputs.hdmi[0]));
+    NEXUS_Display_AddOutput ( display, NEXUS_HdmiOutput_GetVideoConnector ( platformConfig.outputs.hdmi[0] ) );
 #endif
 #endif
-    window = NEXUS_VideoWindow_Open (display, 0);
+    window = NEXUS_VideoWindow_Open ( display, 0 );
 
     /* bring up decoder and connect to display */
-    videoDecoder = NEXUS_VideoDecoder_Open (0, NULL);   /* take default capabilities */
-    NEXUS_VideoWindow_AddInput (window, NEXUS_VideoDecoder_GetConnector (videoDecoder));
+    videoDecoder = NEXUS_VideoDecoder_Open ( 0, NULL ); /* take default capabilities */
+    NEXUS_VideoWindow_AddInput ( window, NEXUS_VideoDecoder_GetConnector ( videoDecoder ) );
 
     /* Open the audio and video pid channels */
-    NEXUS_Playback_GetDefaultPidChannelSettings (&playbackPidSettings);
+    NEXUS_Playback_GetDefaultPidChannelSettings ( &playbackPidSettings );
     playbackPidSettings.pidSettings.pidType = NEXUS_PidType_eVideo;
     playbackPidSettings.pidTypeSettings.video.codec = NEXUS_VideoCodec_eMpeg2;  /* must be told codec for correct handling */
     playbackPidSettings.pidTypeSettings.video.index = true;
     playbackPidSettings.pidTypeSettings.video.decoder = videoDecoder;
-    videoPidChannel = NEXUS_Playback_OpenPidChannel (playback, 0x11, &playbackPidSettings);
+    videoPidChannel = NEXUS_Playback_OpenPidChannel ( playback, 0x11, &playbackPidSettings );
 
-    NEXUS_Playback_GetDefaultPidChannelSettings (&playbackPidSettings);
+    NEXUS_Playback_GetDefaultPidChannelSettings ( &playbackPidSettings );
     playbackPidSettings.pidSettings.pidType = NEXUS_PidType_eAudio;
     playbackPidSettings.pidTypeSettings.audio.primary = audioDecoder;
-    audioPidChannel = NEXUS_Playback_OpenPidChannel (playback, 0x14, &playbackPidSettings);
+    audioPidChannel = NEXUS_Playback_OpenPidChannel ( playback, 0x14, &playbackPidSettings );
 
     /* Set up decoder Start structures now. We need to know the audio codec to properly set up the audio outputs. */
-    NEXUS_VideoDecoder_GetDefaultStartSettings (&videoProgram);
+    NEXUS_VideoDecoder_GetDefaultStartSettings ( &videoProgram );
     videoProgram.codec = NEXUS_VideoCodec_eMpeg2;
     videoProgram.pidChannel = videoPidChannel;
     videoProgram.stcChannel = stcChannel;
-    NEXUS_AudioDecoder_GetDefaultStartSettings (&audioProgram);
+    NEXUS_AudioDecoder_GetDefaultStartSettings ( &audioProgram );
     audioProgram.codec = NEXUS_AudioCodec_eAc3;
     audioProgram.pidChannel = audioPidChannel;
     audioProgram.stcChannel = stcChannel;
@@ -203,72 +203,72 @@ int main (void)
     /****************************************************************************************/
     /* Config CA descrambler                                                                                                                    */
     /****************************************************************************************/
-    security_clear_even_odd_keys_setups (videoProgram, audioProgram);
-    printf ("\nSecurity Config OK\n");
+    security_clear_even_odd_keys_setups ( videoProgram, audioProgram );
+    printf ( "\nSecurity Config OK\n" );
 
     /* Start decoders */
-    NEXUS_VideoDecoder_Start (videoDecoder, &videoProgram);
-    NEXUS_AudioDecoder_Start (audioDecoder, &audioProgram);
+    NEXUS_VideoDecoder_Start ( videoDecoder, &videoProgram );
+    NEXUS_AudioDecoder_Start ( audioDecoder, &audioProgram );
 
     /* Start playback */
-    NEXUS_Playback_Start (playback, file, NULL);
+    NEXUS_Playback_Start ( playback, file, NULL );
 
     /* Print status while decoding */
-    for (timeout = 100; timeout > 0; timeout--)
+    for ( timeout = 100; timeout > 0; timeout-- )
     {
         NEXUS_VideoDecoderStatus status;
         NEXUS_AudioDecoderStatus audioStatus;
         uint32_t        stc;
 
-        NEXUS_VideoDecoder_GetStatus (videoDecoder, &status);
-        NEXUS_StcChannel_GetStc (videoProgram.stcChannel, &stc);
+        NEXUS_VideoDecoder_GetStatus ( videoDecoder, &status );
+        NEXUS_StcChannel_GetStc ( videoProgram.stcChannel, &stc );
 
-        printf ("decode %.4dx%.4d, pts %#x, stc %#x (diff %d) fifo=%d%%\n",
-                status.source.width, status.source.height, status.pts, stc, status.ptsStcDifference,
-                status.fifoSize ? (status.fifoDepth * 100) / status.fifoSize : 0);
+        printf ( "decode %.4dx%.4d, pts %#x, stc %#x (diff %d) fifo=%d%%\n",
+                 status.source.width, status.source.height, status.pts, stc, status.ptsStcDifference,
+                 status.fifoSize ? ( status.fifoDepth * 100 ) / status.fifoSize : 0 );
 
-        NEXUS_AudioDecoder_GetStatus (audioDecoder, &audioStatus);
-        printf ("audio0            pts %#x, stc %#x (diff %d) fifo=%d%%\n",
-                audioStatus.pts, stc, audioStatus.ptsStcDifference,
-                audioStatus.fifoSize ? (audioStatus.fifoDepth * 100) / audioStatus.fifoSize : 0);
+        NEXUS_AudioDecoder_GetStatus ( audioDecoder, &audioStatus );
+        printf ( "audio0            pts %#x, stc %#x (diff %d) fifo=%d%%\n",
+                 audioStatus.pts, stc, audioStatus.ptsStcDifference,
+                 audioStatus.fifoSize ? ( audioStatus.fifoDepth * 100 ) / audioStatus.fifoSize : 0 );
 
-        BKNI_Sleep (1000);
+        BKNI_Sleep ( 1000 );
     }
 
     /* Playback state machine is driven from inside Nexus. */
-    printf ("Press ENTER to quit\n");
-    getchar ();
+    printf ( "Press ENTER to quit\n" );
+    getchar (  );
 
     /* Bring down system */
-    NEXUS_VideoDecoder_Stop (videoDecoder);
-    NEXUS_AudioDecoder_Stop (audioDecoder);
-    NEXUS_Playback_Stop (playback);
-    NEXUS_FilePlay_Close (file);
-    NEXUS_Playback_Destroy (playback);
-    NEXUS_Playpump_Close (playpump);
-    NEXUS_VideoInput_Shutdown (NEXUS_VideoDecoder_GetConnector (videoDecoder));
-    NEXUS_VideoDecoder_Close (videoDecoder);
+    NEXUS_VideoDecoder_Stop ( videoDecoder );
+    NEXUS_AudioDecoder_Stop ( audioDecoder );
+    NEXUS_Playback_Stop ( playback );
+    NEXUS_FilePlay_Close ( file );
+    NEXUS_Playback_Destroy ( playback );
+    NEXUS_Playpump_Close ( playpump );
+    NEXUS_VideoInput_Shutdown ( NEXUS_VideoDecoder_GetConnector ( videoDecoder ) );
+    NEXUS_VideoDecoder_Close ( videoDecoder );
 #if NEXUS_NUM_AUDIO_DACS
-    NEXUS_AudioOutput_RemoveAllInputs (NEXUS_AudioDac_GetConnector (platformConfig.outputs.audioDacs[0]));
+    NEXUS_AudioOutput_RemoveAllInputs ( NEXUS_AudioDac_GetConnector ( platformConfig.outputs.audioDacs[0] ) );
 #endif
 
 #if NEXUS_NUM_SPDIF_OUTPUTS
-    NEXUS_AudioOutput_RemoveAllInputs (NEXUS_SpdifOutput_GetConnector (platformConfig.outputs.spdif[0]));
+    NEXUS_AudioOutput_RemoveAllInputs ( NEXUS_SpdifOutput_GetConnector ( platformConfig.outputs.spdif[0] ) );
 #endif
-    NEXUS_AudioInput_Shutdown (NEXUS_AudioDecoder_GetConnector (audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
-    NEXUS_AudioDecoder_Close (audioDecoder);
-    NEXUS_Display_Close (display);
-    NEXUS_StcChannel_Close (stcChannel);
-    NEXUS_Platform_Uninit ();
+    NEXUS_AudioInput_Shutdown ( NEXUS_AudioDecoder_GetConnector
+                                ( audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo ) );
+    NEXUS_AudioDecoder_Close ( audioDecoder );
+    NEXUS_Display_Close ( display );
+    NEXUS_StcChannel_Close ( stcChannel );
+    NEXUS_Platform_Uninit (  );
 
 #endif
     return 0;
 }
 
-static int security_clear_even_odd_keys_setups (NEXUS_VideoDecoderStartSettings videoProgram,
-                                                NEXUS_AudioDecoderStartSettings audioProgram)
+static int security_clear_even_odd_keys_setups ( NEXUS_VideoDecoderStartSettings videoProgram,
+                                                 NEXUS_AudioDecoderStartSettings audioProgram )
 {
-    unsigned int    videoPID, audioPID;
     /* The encryption keys are the same for Audio/Video EVEN/ODD keys in this example.  Those
      * Keys can be different in a real application */
     static unsigned char VidEvenControlWord[] = {
@@ -300,86 +300,86 @@ static int security_clear_even_odd_keys_setups (NEXUS_VideoDecoderStartSettings 
     /* Config CA descrambler                                                                                                                    */
     /****************************************************************************************/
 
-    NEXUS_Security_GetDefaultKeySlotSettings (&keySlotSettings);
+    NEXUS_Security_GetDefaultKeySlotSettings ( &keySlotSettings );
     keySlotSettings.keySlotEngine = NEXUS_SecurityEngine_eCa;
     /* Allocate AV keyslots */
-    videoKeyHandle = NEXUS_Security_AllocateKeySlot (&keySlotSettings);
-    if (!videoKeyHandle)
+    videoKeyHandle = NEXUS_Security_AllocateKeySlot ( &keySlotSettings );
+    if ( !videoKeyHandle )
     {
-        printf ("\nAllocate CA video keyslot failed \n");
+        printf ( "\nAllocate CA video keyslot failed \n" );
         return 1;
     }
-    audioKeyHandle = NEXUS_Security_AllocateKeySlot (&keySlotSettings);
-    if (!audioKeyHandle)
+    audioKeyHandle = NEXUS_Security_AllocateKeySlot ( &keySlotSettings );
+    if ( !audioKeyHandle )
     {
-        printf ("\nAllocate CA audio keyslot failed \n");
+        printf ( "\nAllocate CA audio keyslot failed \n" );
         return 1;
     }
 
     /* Config AV algorithms */
-    NEXUS_Security_GetDefaultAlgorithmSettings (&AlgConfig);
+    NEXUS_Security_GetDefaultAlgorithmSettings ( &AlgConfig );
     AlgConfig.algorithm = NEXUS_SecurityAlgorithm_eAes;
     AlgConfig.algorithmVar = NEXUS_SecurityAlgorithmVariant_eCbc;
     AlgConfig.terminationMode = NEXUS_SecurityTerminationMode_eBlock;
 
 #if  !HSM_IS_40NM_PLUS
-    printf (" ==========HSM_IS_NOT_40NM============\n");
+    printf ( " ==========HSM_IS_NOT_40NM============\n" );
     /* ++++++++ */
     AlgConfig.ivMode = NEXUS_SecurityIVMode_eRegular;
 #endif
 
-    if (NEXUS_Security_ConfigAlgorithm (videoKeyHandle, &AlgConfig) != 0)
+    if ( NEXUS_Security_ConfigAlgorithm ( videoKeyHandle, &AlgConfig ) != 0 )
     {
-        printf ("\nConfig video CA Algorithm failed \n");
+        printf ( "\nConfig video CA Algorithm failed \n" );
         return 1;
     }
-    if (NEXUS_Security_ConfigAlgorithm (audioKeyHandle, &AlgConfig) != 0)
+    if ( NEXUS_Security_ConfigAlgorithm ( audioKeyHandle, &AlgConfig ) != 0 )
     {
-        printf ("\nConfig video CA Algorithm failed \n");
+        printf ( "\nConfig video CA Algorithm failed \n" );
         return 1;
     }
 
-    NEXUS_Security_GetDefaultClearKey (&key);
+    NEXUS_Security_GetDefaultClearKey ( &key );
 
     /* Load AV keys */
-    key.keySize = sizeof (VidEvenControlWord);
+    key.keySize = sizeof ( VidEvenControlWord );
     key.keyEntryType = NEXUS_SecurityKeyType_eEven;
     /*--------*/
 #if HSM_IS_40NM_PLUS
     key.keyIVType = NEXUS_SecurityKeyIVType_eNoIV;
 #endif
     /*--------*/
-    memcpy (key.keyData, VidEvenControlWord, sizeof (VidEvenControlWord));
-    if (NEXUS_Security_LoadClearKey (videoKeyHandle, &key) != 0)
+    memcpy ( key.keyData, VidEvenControlWord, sizeof ( VidEvenControlWord ) );
+    if ( NEXUS_Security_LoadClearKey ( videoKeyHandle, &key ) != 0 )
     {
-        printf ("\nLoad video EVEN key failed \n");
+        printf ( "\nLoad video EVEN key failed \n" );
         return 1;
     }
     key.keyEntryType = NEXUS_SecurityKeyType_eOdd;
-    memcpy (key.keyData, VidOddControlWord, sizeof (VidOddControlWord));
-    if (NEXUS_Security_LoadClearKey (videoKeyHandle, &key) != 0)
+    memcpy ( key.keyData, VidOddControlWord, sizeof ( VidOddControlWord ) );
+    if ( NEXUS_Security_LoadClearKey ( videoKeyHandle, &key ) != 0 )
     {
-        printf ("\nLoad video ODD key failed \n");
+        printf ( "\nLoad video ODD key failed \n" );
         return 1;
     }
 
     key.keyEntryType = NEXUS_SecurityKeyType_eEven;
-    memcpy (key.keyData, AudEvenControlWord, sizeof (AudEvenControlWord));
-    if (NEXUS_Security_LoadClearKey (audioKeyHandle, &key) != 0)
+    memcpy ( key.keyData, AudEvenControlWord, sizeof ( AudEvenControlWord ) );
+    if ( NEXUS_Security_LoadClearKey ( audioKeyHandle, &key ) != 0 )
     {
-        printf ("\nLoad audio EVEN key failed \n");
+        printf ( "\nLoad audio EVEN key failed \n" );
         return 1;
     }
     key.keyEntryType = NEXUS_SecurityKeyType_eOdd;
-    memcpy (key.keyData, AudOddControlWord, sizeof (AudOddControlWord));
-    if (NEXUS_Security_LoadClearKey (audioKeyHandle, &key) != 0)
+    memcpy ( key.keyData, AudOddControlWord, sizeof ( AudOddControlWord ) );
+    if ( NEXUS_Security_LoadClearKey ( audioKeyHandle, &key ) != 0 )
     {
-        printf ("\nLoad audio ODD key failed \n");
+        printf ( "\nLoad audio ODD key failed \n" );
         return 1;
     }
 
     /* Loading of IV values */
-    key.keySize = sizeof (iv);
+    key.keySize = sizeof ( iv );
 
     /*--------*/
 #if HSM_IS_40NM_PLUS
@@ -390,16 +390,16 @@ static int security_clear_even_odd_keys_setups (NEXUS_VideoDecoderStartSettings 
 #endif
     /*--------*/
 
-    memcpy (key.keyData, iv, sizeof (iv));
-    if (NEXUS_Security_LoadClearKey (videoKeyHandle, &key) != 0)
+    memcpy ( key.keyData, iv, sizeof ( iv ) );
+    if ( NEXUS_Security_LoadClearKey ( videoKeyHandle, &key ) != 0 )
     {
-        printf ("\nLoad video IV failed \n");
+        printf ( "\nLoad video IV failed \n" );
         return 1;
     }
-    memcpy (key.keyData, iv, sizeof (iv));
-    if (NEXUS_Security_LoadClearKey (audioKeyHandle, &key) != 0)
+    memcpy ( key.keyData, iv, sizeof ( iv ) );
+    if ( NEXUS_Security_LoadClearKey ( audioKeyHandle, &key ) != 0 )
     {
-        printf ("\nLoad audio IV failed \n");
+        printf ( "\nLoad audio IV failed \n" );
         return 1;
     }
 
@@ -407,44 +407,36 @@ static int security_clear_even_odd_keys_setups (NEXUS_VideoDecoderStartSettings 
     key.keyEntryType = NEXUS_SecurityKeyType_eEven;
     key.keyIVType = NEXUS_SecurityKeyIVType_eIV;
 
-    memcpy (key.keyData, iv, sizeof (iv));
-    if (NEXUS_Security_LoadClearKey (videoKeyHandle, &key) != 0)
+    memcpy ( key.keyData, iv, sizeof ( iv ) );
+    if ( NEXUS_Security_LoadClearKey ( videoKeyHandle, &key ) != 0 )
     {
-        printf ("\nLoad video IV failed \n");
+        printf ( "\nLoad video IV failed \n" );
         return 1;
     }
-    memcpy (key.keyData, iv, sizeof (iv));
-    if (NEXUS_Security_LoadClearKey (audioKeyHandle, &key) != 0)
+    memcpy ( key.keyData, iv, sizeof ( iv ) );
+    if ( NEXUS_Security_LoadClearKey ( audioKeyHandle, &key ) != 0 )
     {
-        printf ("\nLoad audio IV failed \n");
+        printf ( "\nLoad audio IV failed \n" );
         return 1;
     }
 #endif
 
     /* Add video PID channel to keyslot */
-    NEXUS_PidChannel_GetStatus (videoProgram.pidChannel, &pidStatus);
-    videoPID = pidStatus.pidChannelIndex;
-    if (NEXUS_Security_AddPidChannelToKeySlot (videoKeyHandle, videoPID) != 0)
-    {
-        printf ("\nConfigPIDPointerTable failed \n");
-        return 1;
-    }
+    NEXUS_KeySlot_AddPidChannel ( videoKeyHandle, videoProgram.pidChannel );
 
     /* Add audio PID channel to keyslot */
-    NEXUS_PidChannel_GetStatus (audioProgram.pidChannel, &pidStatus);
-    audioPID = pidStatus.pidChannelIndex;
-    NEXUS_Security_AddPidChannelToKeySlot (audioKeyHandle, audioPID);
+    NEXUS_KeySlot_AddPidChannel ( audioKeyHandle, audioProgram.pidChannel );
 
-    printf ("\nSecurity Config OK\n");
+    printf ( "\nSecurity Config OK\n" );
     return 0;
 
 }
 
 #else /* NEXUS_HAS_SECURITY */
 #include <stdio.h>
-int main (void)
+int main ( void )
 {
-    printf ("This application is not supported on this platform!\n");
+    printf ( "This application is not supported on this platform!\n" );
     return -1;
 }
 #endif

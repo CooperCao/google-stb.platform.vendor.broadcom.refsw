@@ -55,8 +55,6 @@
 #include "bbSysTypes.h"
 #include "bbSysTaskScheduler.h"
 
-#include "bbRF4CENWKRX.h"
-
 /************************* FUNCTIONS PROTOTYPES ****************************************/
 /************************************************************************************//**
  \brief RX Enable Task Handler.
@@ -65,23 +63,6 @@
  \return Nothing.
  ****************************************************************************************/
 void RF4CE_NWK_RXEnableTask(SYS_SchedulerTaskDescriptor_t *const taskDescriptor);
-
-/************************************************************************************//**
- \brief RX Enable Deferred timeout Task Handler.
-
- \param[in] taskDescriptor - pointer to the current task descriptor structure.
- \return Nothing.
- ****************************************************************************************/
-void RF4CE_NWK_RXEnableDeferredTimeoutHandler(SYS_SchedulerTaskDescriptor_t *const taskDescriptor);
-
-/************************************************************************************//**
- \brief Initiates deferred asynchronous procedure to enable/disable the receiver.
-
- \param[in] request - pointer to the structure that contains a pointer to the request structure.
- \param[in] timeout - Timeout in millisecond after which the receiver will be enabled/disabled.
- \return Nothing
- ****************************************************************************************/
-void rf4cenwkRxEnableDeferredReq(RF4CE_NWK_RXEnableReqDescr_t *request,  uint32_t timeout);
 
 /************************************************************************************//**
  \brief Cancel deffered asynchronous procedure to enable/disable the receiver.

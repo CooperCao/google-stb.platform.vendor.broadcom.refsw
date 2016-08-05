@@ -185,18 +185,6 @@ void BVDC_P_Hist_BuildRul_isr
 void BVDC_P_Hist_UpdateHistData_isr
     ( BVDC_P_Hist_Handle                hHist );
 
-/***************************************************************************
- * {private}
- *
- * BVDC_P_Hist_GetHistogramData
- *
- * called by BVDC_Window_GetLumaStatus. It returns the histogram data
- * collected by the HIST block.
- */
-void BVDC_P_Hist_GetHistogramData
-    ( const BVDC_Window_Handle          hWindow,
-      BVDC_LumaStatus                  *pLumaStatus );
-
 #ifdef __cplusplus
 }
 #endif

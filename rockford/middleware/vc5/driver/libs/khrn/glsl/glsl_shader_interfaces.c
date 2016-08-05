@@ -21,10 +21,11 @@ ShaderInterfaces *glsl_shader_interfaces_new(void)
    res->ins      = glsl_symbol_list_new();
    res->outs     = glsl_symbol_list_new();
    res->buffers  = glsl_symbol_list_new();
+   res->shared   = glsl_symbol_list_new();
    return res;
 }
 
-void glsl_shader_interfaces_update(ShaderInterfaces* shader_interfaces, Symbol* symbol)
+void glsl_shader_interfaces_update(ShaderInterfaces *shader_interfaces, Symbol *symbol)
 {
    StorageQualifier storage_qual;
    assert(symbol->flavour == SYMBOL_VAR_INSTANCE || symbol->flavour == SYMBOL_INTERFACE_BLOCK);
@@ -44,6 +45,7 @@ void glsl_shader_interfaces_update(ShaderInterfaces* shader_interfaces, Symbol* 
       case STORAGE_IN:      iface = shader_interfaces->ins;      break;
       case STORAGE_OUT:     iface = shader_interfaces->outs;     break;
       case STORAGE_BUFFER:  iface = shader_interfaces->buffers;  break;
+      case STORAGE_SHARED:  iface = shader_interfaces->shared;   break;
       default:              iface = NULL;                        break;
    }
 

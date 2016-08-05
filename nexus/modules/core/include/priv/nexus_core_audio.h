@@ -122,8 +122,8 @@ typedef struct NEXUS_AudioInputFormatData
     BAVC_AudioSamplingRate samplingRate;
 } NEXUS_AudioInputFormatData;
 
-typedef NEXUS_Error (*NEXUS_AudioInputConnectCb)(void *, struct NEXUS_AudioInputObject *);
-typedef NEXUS_Error (*NEXUS_AudioInputDisconnectCb)(void *, struct NEXUS_AudioInputObject *);
+typedef NEXUS_Error (*NEXUS_AudioInputConnectCb)(void *, NEXUS_AudioInputHandle);
+typedef NEXUS_Error (*NEXUS_AudioInputDisconnectCb)(void *, NEXUS_AudioInputHandle);
 
 /**
 Typecast to BRAP_OutputPort in audio module.
@@ -166,11 +166,9 @@ typedef enum NEXUS_AudioOutputPort
     NEXUS_AudioOutputPort_eMax
 } NEXUS_AudioOutputPort;
 
-BDBG_OBJECT_ID_DECLARE(NEXUS_AudioInput);
-
-typedef struct NEXUS_AudioInputObject
+struct NEXUS_AudioInput
 {
-    BDBG_OBJECT(NEXUS_AudioInput)
+    NEXUS_OBJECT(NEXUS_AudioInput);
     NEXUS_AudioInputFormat format;      /* Data Format */
     NEXUS_AudioInputType objectType;    /* Object type */
     void *pObjectHandle;                /* Handle of actual "input" object */
@@ -182,13 +180,17 @@ typedef struct NEXUS_AudioInputObject
     size_t port;                        /* Connector port.  Typecast to BAPE_Connector accordingly. */
     size_t inputPort;                   /* Input port.  Typecast to BAPE_InputPort accordingly. */
     const char *pName;
-} NEXUS_AudioInputObject;
+};
+
+typedef struct NEXUS_AudioInput NEXUS_AudioInputObject;
+
+NEXUS_OBJECT_CLASS_DECLARE(NEXUS_AudioInput);
 
 #define NEXUS_AUDIO_INPUT_INIT(input, inputType, handle) \
 do \
 { \
     BKNI_Memset((input), 0, sizeof(NEXUS_AudioInputObject)); \
-    BDBG_OBJECT_SET((input), NEXUS_AudioInput); \
+    NEXUS_OBJECT_SET(NEXUS_AudioInput, (input)); \
     (input)->objectType = (inputType); \
     (input)->pObjectHandle = (handle); \
     (input)->pName = ""; \
@@ -209,7 +211,6 @@ struct NEXUS_AudioOutput
 typedef struct NEXUS_AudioOutput NEXUS_AudioOutputObject;
 
 NEXUS_OBJECT_CLASS_DECLARE(NEXUS_AudioOutput);
-
 
 #define NEXUS_AUDIO_OUTPUT_INIT(output, outputType, handle) \
 do \

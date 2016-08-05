@@ -12,6 +12,7 @@ FILE DESCRIPTION
 #define GLSL_BACKEND_H
 
 #include "libs/core/v3d/v3d_limits.h"
+#include "libs/util/gfx_util/gfx_util.h"
 #include "glsl_backflow.h"
 #include "glsl_binary_shader.h"
 
@@ -44,18 +45,6 @@ FILE DESCRIPTION
 /* TMU, VPM write conflicts handled by iodeps */
 /* Conflicts between things that write to r3,r4,r5 are handled by reg_user and reg_available */
 
-#define SIGBIT_THRSW  (1<<0)
-#define SIGBIT_LDUNIF (1<<1)
-#define SIGBIT_LDTMU  (1<<2)
-#define SIGBIT_LDVARY (1<<3)
-#define SIGBIT_LDVPM  (1<<4)
-#define SIGBIT_IMMED  (1<<5)
-#define SIGBIT_LDTLB  (1<<6)
-#define SIGBIT_LDTLBU (1<<7)
-#define SIGBIT_UCB    (1<<8)
-#define SIGBIT_ROTATE (1<<9)
-#define SIGBIT_WRTMUC (1<<10)
-
 #define PHASE_UNVISITED 0
 #define PHASE_STACKED   1
 #define PHASE_COMPLETE  2
@@ -63,7 +52,11 @@ FILE DESCRIPTION
 #define REG_UNDECIDED 0
 #define REG_R(n) (1+n)
 #define REG_RF(n) (7+(n))
+#if V3D_HAS_LARGE_REGFILE
+#define REGFILE_MAX 128
+#else
 #define REGFILE_MAX 64
+#endif
 #define REG_SPECIAL(r)  (REG_RF(REGFILE_MAX) + (r))
 #define REG_FLAG_A  REG_SPECIAL(0)
 #define REG_FLAG_B  REG_SPECIAL(1)
@@ -77,17 +70,25 @@ FILE DESCRIPTION
 #define IS_MAGIC(r) ((r) >= REG_MAX    && (r) <= REG_MAGIC(42))
 #define IS_RRF(r)   (IS_R(r) || IS_RF(r))
 
+static inline unsigned get_max_regfile(unsigned threading) {
+   return gfx_umin(REGFILE_MAX / threading, 64u);
+}
+
 /* REG_MAGIC(0-5) are the accumulators */
 #define REG_MAGIC_NOP     REG_MAGIC(6)
 #define REG_MAGIC_TLB     REG_MAGIC(7)
 #define REG_MAGIC_TLBU    REG_MAGIC(8)
+#if !V3D_HAS_NEW_TMU_CFG
 #define REG_MAGIC_TMU     REG_MAGIC(9)
 #define REG_MAGIC_TMUL    REG_MAGIC(10)
+#endif
 #define REG_MAGIC_TMUD    REG_MAGIC(11)
 #define REG_MAGIC_TMUA    REG_MAGIC(12)
 #define REG_MAGIC_TMUAU   REG_MAGIC(13)
+#if !V3D_HAS_LDVPM
 #define REG_MAGIC_VPM     REG_MAGIC(14)
 #define REG_MAGIC_VPMU    REG_MAGIC(15)
+#endif
 #define REG_MAGIC_RECIP   REG_MAGIC(19)
 #define REG_MAGIC_RSQRT   REG_MAGIC(20)
 #define REG_MAGIC_EXP     REG_MAGIC(21)
@@ -266,11 +267,9 @@ extern const char *mov_excuse_strings[];
 
 typedef struct {
    bool used;
-   uint32_t op;
-   uint32_t op1;
-   uint32_t op2;
+   BackflowFlavour op;
+   SchedNodeUnpack unpack[2];
    uint32_t output;
-   uint32_t swap_mode;
    uint32_t input_a;
    uint32_t input_b;
    uint32_t cond_setf;
@@ -289,12 +288,8 @@ typedef struct _INSTR_T
 
    uint32_t sig_waddr;
 
-   struct _INSTR_T* alt_mov_i;
+   struct _INSTR_T *alt_mov_i;
 } INSTR_T;
-
-#define VARYING_DEFAULT 1
-#define VARYING_LINE_COORD 2
-#define VARYING_FLAT 3
 
 typedef struct {
    /* reg_user points to the node that wrote the value to the register.     *

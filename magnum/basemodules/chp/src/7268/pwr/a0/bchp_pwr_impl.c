@@ -535,7 +535,8 @@ static void BCHP_PWR_P_HW_CTRL_AVX_PWRDN_REQ_Control(BCHP_Handle handle, bool ac
     reg &= ~mask;
     reg |= activate?0:mask;
     BREG_Write32(handle->regHandle, BCHP_CLKGEN_CLKGEN_INST_CTRL, reg);
-    BKNI_Delay(55);
+    if(activate)
+        BKNI_Delay(55);
 }
 
 static void BCHP_PWR_P_HW_CTRL_RAAGA_PWRDN_REQ_Control(BCHP_Handle handle, bool activate)
@@ -549,7 +550,8 @@ static void BCHP_PWR_P_HW_CTRL_RAAGA_PWRDN_REQ_Control(BCHP_Handle handle, bool 
     reg &= ~mask;
     reg |= activate?0:mask;
     BREG_Write32(handle->regHandle, BCHP_CLKGEN_CLKGEN_INST_CTRL, reg);
-    BKNI_Delay(55);
+    if(activate)
+        BKNI_Delay(55);
 }
 
 static void BCHP_PWR_P_HW_CTRL_SC0_PWRDN_REQ_Control(BCHP_Handle handle, bool activate)
@@ -563,7 +565,8 @@ static void BCHP_PWR_P_HW_CTRL_SC0_PWRDN_REQ_Control(BCHP_Handle handle, bool ac
     reg &= ~mask;
     reg |= activate?0:mask;
     BREG_Write32(handle->regHandle, BCHP_CLKGEN_CLKGEN_INST_CTRL, reg);
-    BKNI_Delay(55);
+    if(activate)
+        BKNI_Delay(55);
 }
 
 static void BCHP_PWR_P_HW_CTRL_SC1_PWRDN_REQ_Control(BCHP_Handle handle, bool activate)
@@ -577,7 +580,8 @@ static void BCHP_PWR_P_HW_CTRL_SC1_PWRDN_REQ_Control(BCHP_Handle handle, bool ac
     reg &= ~mask;
     reg |= activate?0:mask;
     BREG_Write32(handle->regHandle, BCHP_CLKGEN_CLKGEN_INST_CTRL, reg);
-    BKNI_Delay(55);
+    if(activate)
+        BKNI_Delay(55);
 }
 
 static void BCHP_PWR_P_HW_CTRL_V3D_PWRDN_REQ_Control(BCHP_Handle handle, bool activate)
@@ -591,7 +595,8 @@ static void BCHP_PWR_P_HW_CTRL_V3D_PWRDN_REQ_Control(BCHP_Handle handle, bool ac
     reg &= ~mask;
     reg |= activate?0:mask;
     BREG_Write32(handle->regHandle, BCHP_CLKGEN_CLKGEN_INST_CTRL, reg);
-    BKNI_Delay(55);
+    if(activate)
+        BKNI_Delay(55);
 }
 
 static void BCHP_PWR_P_HW_CTRL_VCXO0_PWRDN_REQ_Control(BCHP_Handle handle, bool activate)
@@ -605,7 +610,8 @@ static void BCHP_PWR_P_HW_CTRL_VCXO0_PWRDN_REQ_Control(BCHP_Handle handle, bool 
     reg &= ~mask;
     reg |= activate?0:mask;
     BREG_Write32(handle->regHandle, BCHP_CLKGEN_CLKGEN_INST_CTRL, reg);
-    BKNI_Delay(55);
+    if(activate)
+        BKNI_Delay(55);
 }
 
 static void BCHP_PWR_P_HW_CTRL_VCXO1_PWRDN_REQ_Control(BCHP_Handle handle, bool activate)
@@ -619,7 +625,8 @@ static void BCHP_PWR_P_HW_CTRL_VCXO1_PWRDN_REQ_Control(BCHP_Handle handle, bool 
     reg &= ~mask;
     reg |= activate?0:mask;
     BREG_Write32(handle->regHandle, BCHP_CLKGEN_CLKGEN_INST_CTRL, reg);
-    BKNI_Delay(55);
+    if(activate)
+        BKNI_Delay(55);
 }
 
 static void BCHP_PWR_P_HW_DVPHR0_Control(BCHP_Handle handle, bool activate)
@@ -634,8 +641,7 @@ static void BCHP_PWR_P_HW_DVPHR0_Control(BCHP_Handle handle, bool activate)
     reg |= activate?0:mask;
     BREG_Write32(handle->regHandle, BCHP_CLKGEN_STB_DVP_HR_INST_CLOCK_DISABLE, reg);
     reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_STB_DVP_HR_INST_CLOCK_ENABLE);
-    mask = (BCHP_CLKGEN_STB_DVP_HR_INST_CLOCK_ENABLE_DVPHR_RBUS_CLOCK_ENABLE_MASK |
-            BCHP_CLKGEN_STB_DVP_HR_INST_CLOCK_ENABLE_DVPHR_BVB_648_CLOCK_ENABLE_MASK |
+    mask = (BCHP_CLKGEN_STB_DVP_HR_INST_CLOCK_ENABLE_DVPHR_BVB_648_CLOCK_ENABLE_MASK |
             BCHP_CLKGEN_STB_DVP_HR_INST_CLOCK_ENABLE_DVPHR_BVB_324_CLOCK_ENABLE_MASK |
             BCHP_CLKGEN_STB_DVP_HR_INST_CLOCK_ENABLE_DVPHR_54_CLOCK_ENABLE_MASK |
             BCHP_CLKGEN_STB_DVP_HR_INST_CLOCK_ENABLE_DVPHR_HD_DVI_CLOCK_ENABLE_MASK);
@@ -652,6 +658,19 @@ static void BCHP_PWR_P_HW_DVPHR0_Control(BCHP_Handle handle, bool activate)
     reg &= ~mask;
     reg |= activate?mask:0;
     BREG_Write32(handle->regHandle, BCHP_CLKGEN_STB_DVP_HR_INST_CLOCK_ENABLE2, reg);
+}
+
+static void BCHP_PWR_P_HW_DVPHR0_SECBUS_Control(BCHP_Handle handle, bool activate)
+{
+    uint32_t mask, reg;
+
+    BDBG_MSG(("HW_DVPHR0_SECBUS: %s", activate?"on":"off"));
+
+    reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_STB_DVP_HR_INST_CLOCK_ENABLE);
+    mask = BCHP_CLKGEN_STB_DVP_HR_INST_CLOCK_ENABLE_DVPHR_RBUS_CLOCK_ENABLE_MASK;
+    reg &= ~mask;
+    reg |= activate?mask:0;
+    BREG_Write32(handle->regHandle, BCHP_CLKGEN_STB_DVP_HR_INST_CLOCK_ENABLE, reg);
 }
 
 static void BCHP_PWR_P_HW_DVPHR0_SRAM_Control(BCHP_Handle handle, bool activate)
@@ -761,6 +780,44 @@ static void BCHP_PWR_P_HW_HVD0_SRAM_Control(BCHP_Handle handle, bool activate)
 
     BDBG_MSG(("HW_HVD0_SRAM: %s", activate?"on":"off"));
 
+    reg = BREG_Read32(handle->regHandle, BCHP_SUN_TOP_CTRL_SRAM_POWER_GATE_HVDP);
+    mask = BCHP_SUN_TOP_CTRL_SRAM_POWER_GATE_HVDP_SRAM_PDA_IN_HVDP_MASK;
+    reg &= ~mask;
+    reg |= activate?0:mask;
+    BREG_Write32(handle->regHandle, BCHP_SUN_TOP_CTRL_SRAM_POWER_GATE_HVDP, reg);
+    {
+        uint32_t val=0, cnt=50;
+        while(cnt--) {
+            BKNI_Delay(10);
+            reg = BREG_Read32(handle->regHandle, BCHP_SUN_TOP_CTRL_SRAM_POWER_GATE_HVDP);
+            mask = BCHP_SUN_TOP_CTRL_SRAM_POWER_GATE_HVDP_SRAM_PDA_OUT_HVDP_MASK;
+            reg &= mask;
+            val |= activate?0:mask;
+            if (val == reg)
+                break;
+        }
+        if(!cnt)
+            BDBG_ERR(("HW_HVD0_SRAM Timeout"));
+    }
+    reg = BREG_Read32(handle->regHandle, BCHP_SUN_TOP_CTRL_SRAM_POWER_GATE_HVDS);
+    mask = BCHP_SUN_TOP_CTRL_SRAM_POWER_GATE_HVDS_SRAM_PDA_IN_HVDS_MASK;
+    reg &= ~mask;
+    reg |= activate?0:mask;
+    BREG_Write32(handle->regHandle, BCHP_SUN_TOP_CTRL_SRAM_POWER_GATE_HVDS, reg);
+    {
+        uint32_t val=0, cnt=50;
+        while(cnt--) {
+            BKNI_Delay(10);
+            reg = BREG_Read32(handle->regHandle, BCHP_SUN_TOP_CTRL_SRAM_POWER_GATE_HVDS);
+            mask = BCHP_SUN_TOP_CTRL_SRAM_POWER_GATE_HVDS_SRAM_PDA_OUT_HVDS_MASK;
+            reg &= mask;
+            val |= activate?0:mask;
+            if (val == reg)
+                break;
+        }
+        if(!cnt)
+            BDBG_ERR(("HW_HVD0_SRAM Timeout"));
+    }
     reg = BREG_Read32(handle->regHandle, BCHP_SUN_TOP_CTRL_SRAM_POWER_GATE_HVD);
     mask = BCHP_SUN_TOP_CTRL_SRAM_POWER_GATE_HVD_SRAM_PDA_IN_HVD_MASK;
     reg &= ~mask;
@@ -779,60 +836,6 @@ static void BCHP_PWR_P_HW_HVD0_SRAM_Control(BCHP_Handle handle, bool activate)
         }
         if(!cnt)
             BDBG_ERR(("HW_HVD0_SRAM Timeout"));
-    }
-}
-
-static void BCHP_PWR_P_HW_HVDP0_SRAM_Control(BCHP_Handle handle, bool activate)
-{
-    uint32_t mask, reg;
-
-    BDBG_MSG(("HW_HVDP0_SRAM: %s", activate?"on":"off"));
-
-    reg = BREG_Read32(handle->regHandle, BCHP_SUN_TOP_CTRL_SRAM_POWER_GATE_HVDP);
-    mask = BCHP_SUN_TOP_CTRL_SRAM_POWER_GATE_HVDP_SRAM_PDA_IN_HVDP_MASK;
-    reg &= ~mask;
-    reg |= activate?0:mask;
-    BREG_Write32(handle->regHandle, BCHP_SUN_TOP_CTRL_SRAM_POWER_GATE_HVDP, reg);
-    {
-        uint32_t val=0, cnt=50;
-        while(cnt--) {
-            BKNI_Delay(10);
-            reg = BREG_Read32(handle->regHandle, BCHP_SUN_TOP_CTRL_SRAM_POWER_GATE_HVDP);
-            mask = BCHP_SUN_TOP_CTRL_SRAM_POWER_GATE_HVDP_SRAM_PDA_OUT_HVDP_MASK;
-            reg &= mask;
-            val |= activate?0:mask;
-            if (val == reg)
-                break;
-        }
-        if(!cnt)
-            BDBG_ERR(("HW_HVDP0_SRAM Timeout"));
-    }
-}
-
-static void BCHP_PWR_P_HW_HVDS0_SRAM_Control(BCHP_Handle handle, bool activate)
-{
-    uint32_t mask, reg;
-
-    BDBG_MSG(("HW_HVDS0_SRAM: %s", activate?"on":"off"));
-
-    reg = BREG_Read32(handle->regHandle, BCHP_SUN_TOP_CTRL_SRAM_POWER_GATE_HVDS);
-    mask = BCHP_SUN_TOP_CTRL_SRAM_POWER_GATE_HVDS_SRAM_PDA_IN_HVDS_MASK;
-    reg &= ~mask;
-    reg |= activate?0:mask;
-    BREG_Write32(handle->regHandle, BCHP_SUN_TOP_CTRL_SRAM_POWER_GATE_HVDS, reg);
-    {
-        uint32_t val=0, cnt=50;
-        while(cnt--) {
-            BKNI_Delay(10);
-            reg = BREG_Read32(handle->regHandle, BCHP_SUN_TOP_CTRL_SRAM_POWER_GATE_HVDS);
-            mask = BCHP_SUN_TOP_CTRL_SRAM_POWER_GATE_HVDS_SRAM_PDA_OUT_HVDS_MASK;
-            reg &= mask;
-            val |= activate?0:mask;
-            if (val == reg)
-                break;
-        }
-        if(!cnt)
-            BDBG_ERR(("HW_HVDS0_SRAM Timeout"));
     }
 }
 
@@ -1225,33 +1228,6 @@ static void BCHP_PWR_P_HW_V3D_CH_CTRL_CH_0_POST_DIV_HOLD_CH0_Control(BCHP_Handle
     reg &= ~mask;
     reg |= activate?0:mask;
     BREG_Write32(handle->regHandle, BCHP_CLKGEN_PLL_V3D_PLL_CHANNEL_CTRL_CH_0, reg);
-}
-
-static void BCHP_PWR_P_HW_V3D_SRAM_Control(BCHP_Handle handle, bool activate)
-{
-    uint32_t mask, reg;
-
-    BDBG_MSG(("HW_V3D_SRAM: %s", activate?"on":"off"));
-
-    reg = BREG_Read32(handle->regHandle, BCHP_SUN_TOP_CTRL_SRAM_POWER_GATE_V3D);
-    mask = BCHP_SUN_TOP_CTRL_SRAM_POWER_GATE_V3D_SRAM_PDA_IN_V3D_MASK;
-    reg &= ~mask;
-    reg |= activate?0:mask;
-    BREG_Write32(handle->regHandle, BCHP_SUN_TOP_CTRL_SRAM_POWER_GATE_V3D, reg);
-    {
-        uint32_t val=0, cnt=50;
-        while(cnt--) {
-            BKNI_Delay(10);
-            reg = BREG_Read32(handle->regHandle, BCHP_SUN_TOP_CTRL_SRAM_POWER_GATE_V3D);
-            mask = BCHP_SUN_TOP_CTRL_SRAM_POWER_GATE_V3D_SRAM_PDA_OUT_V3D_MASK;
-            reg &= mask;
-            val |= activate?0:mask;
-            if (val == reg)
-                break;
-        }
-        if(!cnt)
-            BDBG_ERR(("HW_V3D_SRAM Timeout"));
-    }
 }
 
 static void BCHP_PWR_P_HW_VCXO0_CH_CTRL_CH_0_POST_DIV_HOLD_CH0_Control(BCHP_Handle handle, bool activate)

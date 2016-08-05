@@ -11,7 +11,7 @@ highp uint packSnorm2x16(vec2 v)
 
 highp vec2 unpackSnorm2x16(highp uint p)
 {
-  vec2 v;
+  highp vec2 v;
   uvec2 u = uvec2(p & 0xFFFFu, p >> 0x10u);
    // Clamp to [-1:1]. We can't exceed 1, so only clamp below
   v[0] = max(float(int(u[0] & 0x7FFFu) - int(u[0] & 0x8000u))/ 32767.0, -1.0);
@@ -28,7 +28,7 @@ highp uint packUnorm2x16(vec2 v)
 
 highp vec2 unpackUnorm2x16(highp uint p)
 {
-  vec2 v;
+  highp vec2 v;
   v[0] = float(p &  0xFFFFu)/ 65535.0;
   v[1] = float(p >> 0x10u)  / 65535.0;
   return v;
@@ -67,7 +67,7 @@ highp uint packSnorm4x8(mediump vec4 v)
 
 mediump vec4 unpackUnorm4x8(highp uint v)
 {
-   vec4 r;
+   mediump vec4 r;
    r[0] = float( v      & 0xFFu) / 255.0;
    r[1] = float((v>>8)  & 0xFFu) / 255.0;
    r[2] = float((v>>16) & 0xFFu) / 255.0;
@@ -77,7 +77,7 @@ mediump vec4 unpackUnorm4x8(highp uint v)
 
 mediump vec4 unpackSnorm4x8(highp uint v)
 {
-   vec4 r;
+   mediump vec4 r;
    uvec4 u = uvec4(v & 0xFFu, (v>>8)&0xFFu, (v>>16)&0xFFu, (v>>24)&0xFFu);
    // Clamp to [-1:1]. We can't exceed 1, so only clamp below
    r[0] = max(float(int(u[0] & 0x7Fu) - int(u[0] & 0x80u)) / 127.0, -1.0);

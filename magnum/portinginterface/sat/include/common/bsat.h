@@ -994,6 +994,7 @@ typedef struct BSAT_StreamStatus
 #define BSAT_DVBS2_CTL_DISABLE_PSL           0x01 /* power saving loop: 0=enable, 1=disable */
 #define BSAT_DVBS2_CTL_DISABLE_FINE_FREQ_EST 0x02 /* fine freq estimation: 0=enable, 1=disable */
 #define BSAT_DVBS2_CTL_GOLD_CODE_SEEK        0x04 /* gold code seek: 0=disable, 1=enable */
+#define BSAT_DVBS2_CTL_SEL_UPL               0x08 /* set to 0 for channel bonding, otherwise set to 1 (default) */
 
 /* bit definitions for BSAT_TurboAcqSettings.ctl */
 #define BSAT_TURBO_CTL_OVERRIDE_TZSY 0x01  /* 0=use default setting for TZSY, 1=override TFEC_TZSY */

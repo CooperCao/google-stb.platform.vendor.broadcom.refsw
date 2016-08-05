@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -225,7 +225,7 @@ BERR_Code BAPE_MaiOutput_Open(
 
     BDBG_OBJECT_ASSERT(deviceHandle, BAPE_Device);
     BDBG_ASSERT(NULL != pHandle);
-    
+
     BDBG_MSG(("%s: Opening MAI Output: %u", __FUNCTION__, index));
 
     *pHandle = NULL;    /* Set up to return null handle in case of error. */
@@ -357,7 +357,7 @@ void BAPE_MaiOutput_Close(
 
     handle->deviceHandle->maiOutputs[handle->index] = NULL;
     BDBG_OBJECT_DESTROY(handle, BAPE_MaiOutput);
-    BKNI_Free(handle);    
+    BKNI_Free(handle);
 }
 
 /**************************************************************************/
@@ -383,7 +383,7 @@ BERR_Code BAPE_MaiOutput_SetSettings(
 
     BDBG_OBJECT_ASSERT(handle, BAPE_MaiOutput);
     BDBG_ASSERT(NULL != pSettings);
-    
+
     errCode = BAPE_MaiOutput_P_ApplySettings(handle, pSettings, false); /* false => don't force (only update HW for changes) */
 
     return errCode;
@@ -474,7 +474,7 @@ BERR_Code BAPE_MaiOutput_P_ResumeFromStandby(BAPE_Handle bapeHandle)
             /* Put the HW into the generic open state. */
             errCode = BAPE_MaiOutput_P_OpenHw(hMaiOutput);
             if ( errCode ) return BERR_TRACE(errCode);
-            
+
             /* Now apply changes for the settings struct. */
             errCode = BAPE_MaiOutput_P_ApplySettings(hMaiOutput, &hMaiOutput->settings, true);   /* true => force update of HW */
             if ( errCode ) return BERR_TRACE(errCode);
@@ -482,8 +482,8 @@ BERR_Code BAPE_MaiOutput_P_ResumeFromStandby(BAPE_Handle bapeHandle)
             /* Now restore the dynamic stuff from the values saved in the device struct. */
             BKNI_EnterCriticalSection();
 
-            BAPE_MaiOutput_P_SetTimingParams_isr(&hMaiOutput->outputPort, 
-                                                 hMaiOutput->sampleRate, 
+            BAPE_MaiOutput_P_SetTimingParams_isr(&hMaiOutput->outputPort,
+                                                 hMaiOutput->sampleRate,
                                                  0);    /* timebase is unused, 0 is dummy value */
 
             BAPE_MaiOutput_P_SetMclk_isr(&hMaiOutput->outputPort,
@@ -631,7 +631,6 @@ static BERR_Code BAPE_MaiOutput_P_ApplySettings(
     )
 {
     bool burstTypeChanged;
-    bool burstPaddingChanged;
     bool pcm = true;
     BSTD_UNUSED(force); /* We don't need this because all settings are always written to HW. */
 
@@ -639,18 +638,10 @@ static BERR_Code BAPE_MaiOutput_P_ApplySettings(
     BDBG_ASSERT(NULL != pSettings);
 
     burstTypeChanged = handle->settings.underflowBurst != pSettings->underflowBurst;
-    burstPaddingChanged = handle->settings.burstPadding != pSettings->burstPadding;
-
-
-    if (pSettings->burstPadding != 0 && pSettings->burstPadding != 2)
-    {
-        BDBG_ERR(("Invalid burstPadding value (%d).  Only 0 and 2 are supported",pSettings->burstPadding));
-        return BERR_TRACE(BERR_INVALID_PARAMETER);
-    }
 
     handle->settings = *pSettings;
 
-    /* Remaining fields are handled by MS regs.  Must modify those in critical section. */    
+    /* Remaining fields are handled by MS regs.  Must modify those in critical section. */
     BKNI_EnterCriticalSection();
     BAPE_MaiOutput_P_SetCbits_isr(handle);
     BKNI_LeaveCriticalSection();
@@ -672,7 +663,7 @@ static BERR_Code BAPE_MaiOutput_P_ApplySettings(
     }
 
     /* check/modify burst configuration */
-    if ( burstTypeChanged || burstPaddingChanged )
+    if ( burstTypeChanged )
     {
         BAPE_MaiOutput_P_SetBurstConfig(handle);
     }
@@ -891,7 +882,7 @@ static void BAPE_MaiOutput_P_SetCbits_IopOut_isr(BAPE_MaiOutputHandle handle)
     /* Program channel status */
     if ( handle->settings.useRawChannelStatus )
     {
-        regVal = 
+        regVal =
             (uint32_t)handle->settings.rawChannelStatus[0] |
             (((uint32_t)handle->settings.rawChannelStatus[1])<<8) |
             (((uint32_t)handle->settings.rawChannelStatus[2])<<16) |
@@ -994,12 +985,12 @@ static void BAPE_MaiOutput_P_SetMclk_IopOut_isr(BAPE_OutputPort output, BAPE_Mcl
         BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_OUT_MAI_0_MCLK_CFG_0, PLLCLKSEL, Mclk_gen4);
         break;
 #endif
-#ifdef BCHP_AUD_FMM_IOP_OUT_I2S_STEREO_0_MCLK_CFG_0_PLLCLKSEL_Mclk_gen5
+#ifdef BCHP_AUD_FMM_IOP_OUT_MAI_0_MCLK_CFG_0_PLLCLKSEL_Mclk_gen5
     case BAPE_MclkSource_eNco5:
         BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_OUT_MAI_0_MCLK_CFG_0, PLLCLKSEL, Mclk_gen5);
         break;
 #endif
-#ifdef BCHP_AUD_FMM_IOP_OUT_I2S_STEREO_0_MCLK_CFG_0_PLLCLKSEL_Mclk_gen6
+#ifdef BCHP_AUD_FMM_IOP_OUT_MAI_0_MCLK_CFG_0_PLLCLKSEL_Mclk_gen6
     case BAPE_MclkSource_eNco6:
         BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_OUT_MAI_0_MCLK_CFG_0, PLLCLKSEL, Mclk_gen6);
         break;
@@ -1062,7 +1053,7 @@ static BERR_Code BAPE_MaiOutput_P_Enable_IopOut(BAPE_OutputPort output)
     unsigned numChannelPairs = 0;
     unsigned i;
     bool hbr;
-    
+
     BDBG_OBJECT_ASSERT(output, BAPE_OutputPort);
 
     handle = output->pHandle;
@@ -1182,7 +1173,7 @@ static void BAPE_MaiOutput_P_Disable_IopOut(BAPE_OutputPort output)
     uint32_t regAddr;
     const BAPE_FMT_Descriptor *pFormat;
     unsigned i, numChannelPairs = 0;
-    
+
     BDBG_OBJECT_ASSERT(output, BAPE_OutputPort);
 
     handle = output->pHandle;
@@ -1395,7 +1386,7 @@ static BERR_Code BAPE_MaiOutput_P_Open_Legacy(BAPE_MaiOutputHandle handle)
     }
 
     BAPE_MaiOutput_P_SetBurstConfig_Legacy(handle);
-    
+
     return BERR_SUCCESS;
 }
 
@@ -1526,7 +1517,7 @@ static void BAPE_MaiOutput_P_SetCbits_Legacy_isr(BAPE_MaiOutputHandle handle)
     /* Program channel status */
     if ( handle->settings.useRawChannelStatus )
     {
-        regVal = 
+        regVal =
             (uint32_t)handle->settings.rawChannelStatus[0] |
             (((uint32_t)handle->settings.rawChannelStatus[1])<<8) |
             (((uint32_t)handle->settings.rawChannelStatus[2])<<16) |
@@ -1766,7 +1757,7 @@ static BERR_Code BAPE_MaiOutput_P_Enable_Legacy(BAPE_OutputPort output)
     bool enableNewPath=false;
     BAPE_MaiOutputDataPath newDataPath;
     BAPE_MixerGroupInputSettings dataInputSettings, burstInputSettings;
-    
+
     BDBG_OBJECT_ASSERT(output, BAPE_OutputPort);
 
     handle = output->pHandle;
@@ -2302,9 +2293,8 @@ static void BAPE_MaiOutput_P_SetCrossbar_Legacy(BAPE_MaiOutputHandle handle, BAP
 
 static BERR_Code BAPE_MaiOutput_P_SetBurstConfig_Legacy(BAPE_MaiOutputHandle handle)
 {
-    unsigned i,j;
+    unsigned i;
     uint16_t *pCached;
-    uint32_t burstPadding = handle->settings.burstPadding;
 
     if (handle->hSfifo)
     {
@@ -2321,22 +2311,10 @@ static BERR_Code BAPE_MaiOutput_P_SetBurstConfig_Legacy(BAPE_MaiOutputHandle han
 
     if ( handle->settings.underflowBurst == BAPE_SpdifBurstType_ePause )
     {
-        for ( i = 0;
-              i < (BAPE_P_MUTE_BUFFER_SIZE / (sizeof(g_pauseburst) + (sizeof(uint16_t) * burstPadding)));
-              i++ )
-        {
-            pCached[(6+burstPadding)*i] = g_pauseburst[0];
-            pCached[((6+burstPadding)*i)+1] = g_pauseburst[1];
-            pCached[((6+burstPadding)*i)+2] = g_pauseburst[2];
-            pCached[((6+burstPadding)*i)+3] = (32+(16*burstPadding)); /* size of burst */
-            pCached[((6+burstPadding)*i)+4] = g_pauseburst[4];
-            pCached[((6+burstPadding)*i)+5] = g_pauseburst[5];
-
-            for ( j = 0; j < burstPadding; j++ )
-            {
-                pCached[((6+burstPadding)*i)+6+j] = 0x0;
-            }
-        }
+        pCached[0] = g_pauseburst[0];
+        pCached[1] = g_pauseburst[1];
+        pCached[2] = g_pauseburst[2];
+        pCached[3] = g_pauseburst[3]; /* size of burst */
     }
     else if ( handle->settings.underflowBurst == BAPE_SpdifBurstType_eNull )
     {
@@ -2361,7 +2339,7 @@ static BERR_Code BAPE_MaiOutput_P_SetBurstConfig_Legacy(BAPE_MaiOutputHandle han
 #endif
 
 /***************************************************************************
-    Define stub functions for when there are no I2S outputs. 
+    Define stub functions for when there are no I2S outputs.
 ***************************************************************************/
 #else
 /* No MAI output interface.  Use Stubs. */

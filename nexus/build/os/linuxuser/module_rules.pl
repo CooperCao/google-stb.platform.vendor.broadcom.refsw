@@ -166,9 +166,18 @@ foreach $moduleUpper (@ARGV) {
             print OUTFILE "NEXUS_$moduleUpper\_OBJECTS += \$(NEXUS_OBJ_DIR)/$moduleUpper/nexus_$moduleLower\_abiverify.\$(NEXUS_OBJ_SUFFIX)\n";
             print OUTFILE "endif\n";
             print OUTFILE "\$(NEXUS_SYNCTHUNK_DIR)/nexus_$moduleLower\_abiverify.c : \$(NEXUS_SYNCTHUNK_DIR)/nexus_$moduleLower\_abiverify.h\n";
+            print OUTFILE "\$(NEXUS_SYNCTHUNK_DIR)/nexus_$moduleLower\_abiverify.c : CC_AARCH32?=arm-linux-gcc\n";
             print OUTFILE "\$(NEXUS_SYNCTHUNK_DIR)/nexus_$moduleLower\_abiverify.h : \$(wildcard \$(addsuffix /*.h,\$(NEXUS_$moduleUpper\_PUBLIC_INCLUDES))) \$(CLASS_LIST) \$(NEXUS_SYNCTHUNK_DIR)/exists\n";
             print OUTFILE "\t\@echo \"[ABI..... $moduleLower]\"\n";
             print OUTFILE "\t\$(Q_)\$(CC) -MM \$(NEXUS_CFLAGS) \$(NEXUS_CFLAGS_BPROFILE) \$(NEXUS_$moduleUpper\_CFLAGS) \$(filter-out %_init.h,\$(wildcard \$(addsuffix /*.h,\$(NEXUS_$moduleUpper\_PUBLIC_INCLUDES)))) | \$(PERL) -I \$(NEXUS_TOP)/build/tools/common -I \$(NEXUS_TOP)/build/tools/abiverify \$(NEXUS_TOP)/build/tools/abiverify/bapi_build.pl --stdin --class_list \$(CLASS_LIST) $moduleUpper \$(NEXUS_SYNCTHUNK_DIR) \$(wildcard \$(addsuffix /*.h,\$(NEXUS_$moduleUpper\_PUBLIC_INCLUDES)))\n";
+            print OUTFILE "ifeq (\$(B_REFSW_ARCH), aarch64-linux)\n";
+            print OUTFILE "ifdef QEMU_DIR\n";
+            print OUTFILE "\t\@echo \"[ABI-QEMU..... $moduleLower]\"\n";
+            print OUTFILE "\t\$(Q_)\${CC_AARCH32} -DNEXUS_P_ABI_VERIFY_MODE_PRINT=1 \$(NEXUS_CFLAGS) \$(NEXUS_$moduleUpper\_CFLAGS) \$(NEXUS_SYNCTHUNK_DIR)/nexus_$moduleLower\_abiverify.c -o \$(NEXUS_SYNCTHUNK_DIR)/nexus_$moduleLower\_abiverify_aarch32.bin\n";
+            print OUTFILE "\t\${Q_}\${QEMU_DIR}/arm-linux-user/qemu-arm -L \$(shell dirname \$(dir \$(shell which \${CC})))/arm-linux-gnueabihf/sys-root/ \$(NEXUS_SYNCTHUNK_DIR)/nexus_$moduleLower\_abiverify_aarch32.bin >\$(NEXUS_SYNCTHUNK_DIR)/nexus_$moduleLower\_abiverify_aarch32.h\n";
+            print OUTFILE "\t\$(Q_)\${CC} -DNEXUS_P_ABI_VERIFY_MODE_VERIFY=1  \$(NEXUS_CFLAGS) \$(NEXUS_$moduleUpper\_CFLAGS) \$(NEXUS_SYNCTHUNK_DIR)/nexus_$moduleLower\_abiverify.c -c -o \$(NEXUS_SYNCTHUNK_DIR)/nexus_$moduleLower\_abiverify_aarch64.o\n";
+            print OUTFILE "endif\n";
+            print OUTFILE "endif\n";
             print OUTFILE "\n";
         }
         # Module Rules

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -148,6 +148,15 @@ typedef struct AppCtx
     bool                            enablePayloadScanning;
     bool                            enableAutoPlayAfterStartingPaused;
     bool                            stressTrickModes;
+    bool                            disableDynamicTrackSelection;
+
+#define MAX_IP_NETWORK_JITTER_IN_MS 300
+    uint32_t                        maxIpNetworkJitterInMs;
+    bool                            enableLowLatencyMode;
+    int                             clockRecoveryMode;
+    int                             audioDecoderLatencyMode;
+    int                             disablePrecisionLipsync;
+    int                             stcSyncMode;
 } AppCtx;
 
 void unInitAppCtx( AppCtx *pAppCtx);

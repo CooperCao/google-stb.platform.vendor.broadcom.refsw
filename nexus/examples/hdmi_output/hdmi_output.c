@@ -197,7 +197,7 @@ static void disconnect_hdmi_audio(NEXUS_HdmiOutputHandle hdmi)
 static void connect_hdmi_audio(NEXUS_HdmiOutputHandle hdmi)
 {
     NEXUS_AudioDecoderHandle decoder;
-    NEXUS_AudioInput connector;
+    NEXUS_AudioInputHandle connector;
 
     if ( hdmiCompressedAudio )
     {
@@ -731,4 +731,3 @@ int main(int argc, char **argv)
     return 0;
 }
 #endif
-

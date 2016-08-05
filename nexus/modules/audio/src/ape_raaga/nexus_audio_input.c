@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2004-2016 Broadcom. All rights reserved.
+*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -114,17 +114,17 @@ typedef struct NEXUS_AudioInputData
     BAPE_MixerInputVolume inputVolume;
 } NEXUS_AudioInputData;
 
-static void NEXUS_AudioInput_P_ForceStopUpstream(NEXUS_AudioInput input);
-static void NEXUS_AudioInput_P_ForceStopDownstream(NEXUS_AudioInput input);
-static bool NEXUS_AudioInput_P_IsRunningUpstream(NEXUS_AudioInput input);
-static bool NEXUS_AudioInput_P_IsRunningDownstream(NEXUS_AudioInput input);
-static void NEXUS_AudioInput_P_UnlinkOutputPort(NEXUS_AudioInput input, NEXUS_AudioOutputNode *pOutputNode);
-static NEXUS_Error NEXUS_AudioInput_P_CheckOutputMixer(NEXUS_AudioInput input, NEXUS_AudioOutputNode *pOutputNode);
-static NEXUS_Error NEXUS_AudioInput_P_CheckOutputMixers(NEXUS_AudioInput input);
+static void NEXUS_AudioInput_P_ForceStopUpstream(NEXUS_AudioInputHandle input);
+static void NEXUS_AudioInput_P_ForceStopDownstream(NEXUS_AudioInputHandle input);
+static bool NEXUS_AudioInput_P_IsRunningUpstream(NEXUS_AudioInputHandle input);
+static bool NEXUS_AudioInput_P_IsRunningDownstream(NEXUS_AudioInputHandle input);
+static void NEXUS_AudioInput_P_UnlinkOutputPort(NEXUS_AudioInputHandle input, NEXUS_AudioOutputNode *pOutputNode);
+static NEXUS_Error NEXUS_AudioInput_P_CheckOutputMixer(NEXUS_AudioInputHandle input, NEXUS_AudioOutputNode *pOutputNode);
+static NEXUS_Error NEXUS_AudioInput_P_CheckOutputMixers(NEXUS_AudioInputHandle input);
 static NEXUS_AudioOutputTiming NEXUS_AudioInput_P_GetOutputTiming(NEXUS_AudioOutputHandle output);
 static bool NEXUS_AudioInput_P_MixerSettingsEqual(const BAPE_MixerSettings *pSettings1, const BAPE_MixerSettings *pSettings2);
-static void NEXUS_AudioInput_P_CheckAddCrc(NEXUS_AudioInput input, NEXUS_AudioOutputNode *pOutputNode);
-static void NEXUS_AudioInput_P_CheckRemoveCrc(NEXUS_AudioInput input, NEXUS_AudioOutputNode *pOutputNode);
+static void NEXUS_AudioInput_P_CheckAddCrc(NEXUS_AudioInputHandle input, NEXUS_AudioOutputNode *pOutputNode);
+static void NEXUS_AudioInput_P_CheckRemoveCrc(NEXUS_AudioInputHandle input, NEXUS_AudioOutputNode *pOutputNode);
 static NEXUS_AudioOutputTiming NEXUS_AudioInput_P_GetOutputTiming(NEXUS_AudioOutputHandle output)
 {
     BDBG_OBJECT_ASSERT(output, NEXUS_AudioOutput);
@@ -192,7 +192,7 @@ static bool NEXUS_AudioInput_P_MixerSettingsEqual(const BAPE_MixerSettings *pSet
 #endif
 }
 
-bool NEXUS_AudioInput_P_IsRunning(NEXUS_AudioInput input)
+bool NEXUS_AudioInput_P_IsRunning(NEXUS_AudioInputHandle input)
 {
     BDBG_OBJECT_ASSERT(input, NEXUS_AudioInput);
     if ( NEXUS_AudioInput_P_IsRunningUpstream(input) ||
@@ -203,7 +203,7 @@ bool NEXUS_AudioInput_P_IsRunning(NEXUS_AudioInput input)
     return false;
 }
 
-static bool NEXUS_AudioInput_P_IsRunningUpstream(NEXUS_AudioInput input)
+static bool NEXUS_AudioInput_P_IsRunningUpstream(NEXUS_AudioInputHandle input)
 {
     NEXUS_AudioUpstreamNode *pNode;
     NEXUS_AudioInputData *pData;
@@ -281,7 +281,7 @@ static bool NEXUS_AudioInput_P_IsRunningUpstream(NEXUS_AudioInput input)
     return running;
 }
 
-static bool NEXUS_AudioInput_P_IsRunningDownstream(NEXUS_AudioInput input)
+static bool NEXUS_AudioInput_P_IsRunningDownstream(NEXUS_AudioInputHandle input)
 {
     NEXUS_AudioDownstreamNode *pNode;
     NEXUS_AudioInputData *pData;
@@ -354,7 +354,7 @@ static bool NEXUS_AudioInput_P_IsRunningDownstream(NEXUS_AudioInput input)
     return running;
 }
 
-NEXUS_AudioInputFormat NEXUS_AudioInput_P_GetFormat_isrsafe(NEXUS_AudioInput input)
+NEXUS_AudioInputFormat NEXUS_AudioInput_P_GetFormat_isrsafe(NEXUS_AudioInputHandle input)
 {
     NEXUS_AudioUpstreamNode *pNode;
     NEXUS_AudioInputFormat format;
@@ -401,7 +401,7 @@ NEXUS_AudioInputFormat NEXUS_AudioInput_P_GetFormat_isrsafe(NEXUS_AudioInput inp
     return format;
 }
 
-static NEXUS_AudioInputData *NEXUS_AudioInput_P_CreateData(NEXUS_AudioInput input)
+static NEXUS_AudioInputData *NEXUS_AudioInput_P_CreateData(NEXUS_AudioInputHandle input)
 {
     NEXUS_AudioInputData *pData;
 
@@ -434,7 +434,7 @@ static NEXUS_AudioInputData *NEXUS_AudioInput_P_CreateData(NEXUS_AudioInput inpu
     return pData;
 }
 
-NEXUS_Error NEXUS_AudioInput_P_AddInput(NEXUS_AudioInput destination, NEXUS_AudioInput source)
+NEXUS_Error NEXUS_AudioInput_P_AddInput(NEXUS_AudioInputHandle destination, NEXUS_AudioInputHandle source)
 {
     NEXUS_AudioInputData *pDestinationData, *pSourceData;
     NEXUS_AudioDownstreamNode *pDownstream;
@@ -525,7 +525,7 @@ NEXUS_Error NEXUS_AudioInput_P_AddInput(NEXUS_AudioInput destination, NEXUS_Audi
         {
             if ( NULL == mixerSettings.master )
             {
-                addInputSettings.sampleRateMaster = (source->objectType == NEXUS_AudioInputType_ePlayback)?false:true;
+                addInputSettings.sampleRateMaster = (source->objectType == NEXUS_AudioInputType_ePlayback && source->format != NEXUS_AudioInputFormat_eCompressed)?false:true;
             }
             else
             {
@@ -550,7 +550,7 @@ NEXUS_Error NEXUS_AudioInput_P_AddInput(NEXUS_AudioInput destination, NEXUS_Audi
     return BERR_SUCCESS;
 }
 
-NEXUS_Error NEXUS_AudioInput_P_RemoveAllInputs(NEXUS_AudioInput destination)
+NEXUS_Error NEXUS_AudioInput_P_RemoveAllInputs(NEXUS_AudioInputHandle destination)
 {
     NEXUS_Error errCode;
     NEXUS_AudioUpstreamNode *pNode;
@@ -575,7 +575,7 @@ NEXUS_Error NEXUS_AudioInput_P_RemoveAllInputs(NEXUS_AudioInput destination)
     return BERR_SUCCESS;
 }
 
-NEXUS_Error NEXUS_AudioInput_P_RemoveInput(NEXUS_AudioInput destination, NEXUS_AudioInput source)
+NEXUS_Error NEXUS_AudioInput_P_RemoveInput(NEXUS_AudioInputHandle destination, NEXUS_AudioInputHandle source)
 {
     NEXUS_AudioUpstreamNode *pUpstreamNode;
     NEXUS_AudioDownstreamNode *pDownstreamNode;
@@ -662,7 +662,7 @@ NEXUS_Error NEXUS_AudioInput_P_RemoveInput(NEXUS_AudioInput destination, NEXUS_A
     return BERR_SUCCESS;
 }
 
-bool NEXUS_AudioInput_P_IsConnected(NEXUS_AudioInput destination, NEXUS_AudioInput source)
+bool NEXUS_AudioInput_P_IsConnected(NEXUS_AudioInputHandle destination, NEXUS_AudioInputHandle source)
 {
     NEXUS_AudioUpstreamNode *pUpstreamNode;
     NEXUS_AudioInputData *pDestinationData;
@@ -694,7 +694,7 @@ bool NEXUS_AudioInput_P_IsConnected(NEXUS_AudioInput destination, NEXUS_AudioInp
     return (NULL == pUpstreamNode) ? false : true;
 }
 
-static NEXUS_Error NEXUS_AudioInput_P_IterateOutputs(NEXUS_AudioInput input, NEXUS_AudioOutputList *pOutputList, int *pIndex, bool scanMixers)
+static NEXUS_Error NEXUS_AudioInput_P_IterateOutputs(NEXUS_AudioInputHandle input, NEXUS_AudioOutputList *pOutputList, int *pIndex, bool scanMixers)
 {
     int i;
     NEXUS_AudioOutputNode *pOutputNode;
@@ -760,7 +760,7 @@ done:
     return errCode;
 }
 
-NEXUS_Error NEXUS_AudioInput_P_GetOutputs(NEXUS_AudioInput input, NEXUS_AudioOutputList *pOutputList, bool directOnly)
+NEXUS_Error NEXUS_AudioInput_P_GetOutputs(NEXUS_AudioInputHandle input, NEXUS_AudioOutputList *pOutputList, bool directOnly)
 {
     int i=0;
 
@@ -775,7 +775,7 @@ NEXUS_Error NEXUS_AudioInput_P_GetOutputs(NEXUS_AudioInput input, NEXUS_AudioOut
     return NEXUS_AudioInput_P_IterateOutputs(input, pOutputList, &i, !directOnly);
 }
 
-NEXUS_Error NEXUS_AudioInput_P_SetConnectionData(NEXUS_AudioInput destination, NEXUS_AudioInput source, const void *pData, size_t dataSize)
+NEXUS_Error NEXUS_AudioInput_P_SetConnectionData(NEXUS_AudioInputHandle destination, NEXUS_AudioInputHandle source, const void *pData, size_t dataSize)
 {
     NEXUS_AudioInputData *pInputData;
     NEXUS_AudioUpstreamNode *pUpstreamNode;
@@ -826,7 +826,7 @@ NEXUS_Error NEXUS_AudioInput_P_SetConnectionData(NEXUS_AudioInput destination, N
     return BERR_SUCCESS;
 }
 
-const void *NEXUS_AudioInput_P_GetConnectionData(NEXUS_AudioInput destination, NEXUS_AudioInput source)
+const void *NEXUS_AudioInput_P_GetConnectionData(NEXUS_AudioInputHandle destination, NEXUS_AudioInputHandle source)
 {
     NEXUS_AudioInputData *pInputData;
     NEXUS_AudioUpstreamNode *pUpstreamNode;
@@ -853,7 +853,7 @@ const void *NEXUS_AudioInput_P_GetConnectionData(NEXUS_AudioInput destination, N
     return pUpstreamNode->pConnectionData;  /* Return connection data pointer - may be NULL if never set */
 }
 
-NEXUS_Error NEXUS_AudioInput_P_ConnectOutput(NEXUS_AudioInput input, NEXUS_AudioOutputHandle output)
+NEXUS_Error NEXUS_AudioInput_P_ConnectOutput(NEXUS_AudioInputHandle input, NEXUS_AudioOutputHandle output)
 {
     NEXUS_AudioInputData *pInputData;
     NEXUS_AudioOutputNode *pNode;
@@ -895,9 +895,17 @@ NEXUS_Error NEXUS_AudioInput_P_ConnectOutput(NEXUS_AudioInput input, NEXUS_Audio
     }
 #endif
 
-    if ( output->objectType == NEXUS_AudioOutputType_eDac )
+    /* Power up, if supported */
+    switch ( output->objectType )
     {
+    case NEXUS_AudioOutputType_eDac:
         NEXUS_AudioDac_P_PowerUp(output->pObjectHandle);
+        break;
+    case NEXUS_AudioOutputType_eSpdif:
+        NEXUS_SpdifOutput_P_PowerUp(output->pObjectHandle);
+        break;
+    default:
+        break;
     }
 
     pNode = BKNI_Malloc(sizeof(NEXUS_AudioOutputNode));
@@ -923,7 +931,7 @@ err_malloc:
     return errCode;
 }
 
-NEXUS_Error NEXUS_AudioInput_P_DisconnectOutput(NEXUS_AudioInput input, NEXUS_AudioOutputHandle output)
+NEXUS_Error NEXUS_AudioInput_P_DisconnectOutput(NEXUS_AudioInputHandle input, NEXUS_AudioOutputHandle output)
 {
     NEXUS_AudioInputData *pInputData;
     NEXUS_AudioOutputNode *pNode;
@@ -967,9 +975,17 @@ NEXUS_Error NEXUS_AudioInput_P_DisconnectOutput(NEXUS_AudioInput input, NEXUS_Au
         NEXUS_AudioInput_P_UnlinkOutputPort(input, pNode);
     }
 
-    if ( output->objectType == NEXUS_AudioOutputType_eDac )
+    /* Power down, if supported */
+    switch ( output->objectType )
     {
+    case NEXUS_AudioOutputType_eDac:
         NEXUS_AudioDac_P_PowerDown(output->pObjectHandle);
+        break;
+    case NEXUS_AudioOutputType_eSpdif:
+        NEXUS_SpdifOutput_P_PowerDown(output->pObjectHandle);
+        break;
+    default:
+        break;
     }
 
     BLST_Q_REMOVE(&pInputData->outputList, pNode, outputNode);
@@ -981,7 +997,7 @@ NEXUS_Error NEXUS_AudioInput_P_DisconnectOutput(NEXUS_AudioInput input, NEXUS_Au
 }
 
 void NEXUS_AudioInput_Shutdown(
-    NEXUS_AudioInput input
+    NEXUS_AudioInputHandle input
     )
 {
     NEXUS_AudioInputData *pInputData;
@@ -1132,7 +1148,7 @@ Summary:
     Prepare the input chain to start.  May build and/or validate connections.
  ***************************************************************************/
 NEXUS_Error NEXUS_AudioInput_P_PrepareToStart(
-    NEXUS_AudioInput input
+    NEXUS_AudioInputHandle input
     )
 {
     NEXUS_Error errCode;
@@ -1164,7 +1180,7 @@ NEXUS_Error NEXUS_AudioInput_P_PrepareToStart(
 }
 
 #if NEXUS_HAS_SYNC_CHANNEL
-void NEXUS_AudioInput_GetSyncSettings_priv( NEXUS_AudioInput audioInput, NEXUS_AudioInputSyncSettings *pSyncSettings )
+void NEXUS_AudioInput_GetSyncSettings_priv( NEXUS_AudioInputHandle audioInput, NEXUS_AudioInputSyncSettings *pSyncSettings )
 {
     NEXUS_ASSERT_MODULE();
     switch (audioInput->objectType)
@@ -1176,7 +1192,7 @@ void NEXUS_AudioInput_GetSyncSettings_priv( NEXUS_AudioInput audioInput, NEXUS_A
         }
         else
         {
-            BDBG_ERR(("GetSyncSettings_priv called on NEXUS_AudioInput with NULL upstream.  This likely means that you've shutdown the input before removing it from sync channel."));
+            BDBG_ERR(("GetSyncSettings_priv called on NEXUS_AudioInputHandle with NULL upstream.  This likely means that you've shutdown the input before removing it from sync channel."));
         }
         break;
     default:
@@ -1185,7 +1201,7 @@ void NEXUS_AudioInput_GetSyncSettings_priv( NEXUS_AudioInput audioInput, NEXUS_A
     }
 }
 
-NEXUS_Error NEXUS_AudioInput_SetSyncSettings_priv( NEXUS_AudioInput audioInput, const NEXUS_AudioInputSyncSettings *pSyncSettings )
+NEXUS_Error NEXUS_AudioInput_SetSyncSettings_priv( NEXUS_AudioInputHandle audioInput, const NEXUS_AudioInputSyncSettings *pSyncSettings )
 {
     NEXUS_Error rc = 0;
     NEXUS_ASSERT_MODULE();
@@ -1198,7 +1214,7 @@ NEXUS_Error NEXUS_AudioInput_SetSyncSettings_priv( NEXUS_AudioInput audioInput, 
         }
         else
         {
-            BDBG_ERR(("SetSyncSettings_priv called on NEXUS_AudioInput with NULL upstream.  This likely means that you've shutdown the input before removing it from sync channel."));
+            BDBG_ERR(("SetSyncSettings_priv called on NEXUS_AudioInputHandle with NULL upstream.  This likely means that you've shutdown the input before removing it from sync channel."));
         }
         break;
     default:
@@ -1208,7 +1224,7 @@ NEXUS_Error NEXUS_AudioInput_SetSyncSettings_priv( NEXUS_AudioInput audioInput, 
     return rc;
 }
 
-NEXUS_Error NEXUS_AudioInput_GetSyncStatus_isr( NEXUS_AudioInput audioInput, NEXUS_AudioInputSyncStatus *pSyncStatus )
+NEXUS_Error NEXUS_AudioInput_GetSyncStatus_isr( NEXUS_AudioInputHandle audioInput, NEXUS_AudioInputSyncStatus *pSyncStatus )
 {
     NEXUS_Error rc = 0;
     switch (audioInput->objectType)
@@ -1220,7 +1236,7 @@ NEXUS_Error NEXUS_AudioInput_GetSyncStatus_isr( NEXUS_AudioInput audioInput, NEX
         }
         else
         {
-            BDBG_ERR(("GetSyncStatus_isr called on NEXUS_AudioInput with NULL upstream.  This likely means that you've shutdown the input before removing it from sync channel."));
+            BDBG_ERR(("GetSyncStatus_isr called on NEXUS_AudioInputHandle with NULL upstream.  This likely means that you've shutdown the input before removing it from sync channel."));
         }
         break;
     default:
@@ -1230,7 +1246,7 @@ NEXUS_Error NEXUS_AudioInput_GetSyncStatus_isr( NEXUS_AudioInput audioInput, NEX
     return rc;
 }
 
-void * NEXUS_AudioInput_GetDecoderHandle_priv(NEXUS_AudioInput audioInput)
+void * NEXUS_AudioInput_GetDecoderHandle_priv(NEXUS_AudioInputHandle audioInput)
 {
     if (audioInput->objectType == NEXUS_AudioInputType_eDecoder)
     {
@@ -1248,12 +1264,12 @@ Summary:
     Returns the first object downstream from the current object that matches
     the specified type.  This is a depth-first search, not breadth-first.
  ***************************************************************************/
-NEXUS_AudioInput NEXUS_AudioInput_P_FindByType(
-    NEXUS_AudioInput input,
+NEXUS_AudioInputHandle NEXUS_AudioInput_P_FindByType(
+    NEXUS_AudioInputHandle input,
     NEXUS_AudioInputType type
     )
 {
-    NEXUS_AudioInput obj=NULL;
+    NEXUS_AudioInputHandle obj=NULL;
     NEXUS_AudioInputData *pData;
     NEXUS_AudioDownstreamNode *pNode;
 
@@ -1293,7 +1309,7 @@ NEXUS_AudioInput NEXUS_AudioInput_P_FindByType(
     return NULL;
 }
 
-static void NEXUS_AudioInput_P_UnlinkOutputPort(NEXUS_AudioInput input, NEXUS_AudioOutputNode *pOutputNode)
+static void NEXUS_AudioInput_P_UnlinkOutputPort(NEXUS_AudioInputHandle input, NEXUS_AudioOutputNode *pOutputNode)
 {
     NEXUS_AudioInputData *pData;
     NEXUS_AudioInputMixerNode *pMixerNode;
@@ -1363,7 +1379,7 @@ static void NEXUS_AudioInput_P_UnlinkOutputPort(NEXUS_AudioInput input, NEXUS_Au
 }
 
 NEXUS_Error NEXUS_AudioInput_P_OutputSettingsChanged(
-    NEXUS_AudioInput input,
+    NEXUS_AudioInputHandle input,
     NEXUS_AudioOutputHandle output
     )
 {
@@ -1419,7 +1435,7 @@ NEXUS_Error NEXUS_AudioInput_P_OutputSettingsChanged(
 }
 
 static void NEXUS_AudioInput_P_CheckAddCrc(
-    NEXUS_AudioInput input,
+    NEXUS_AudioInputHandle input,
     NEXUS_AudioOutputNode *pOutputNode
     )
 {
@@ -1507,7 +1523,7 @@ static void NEXUS_AudioInput_P_CheckAddCrc(
 }
 
 static void NEXUS_AudioInput_P_CheckRemoveCrc(
-    NEXUS_AudioInput input,
+    NEXUS_AudioInputHandle input,
     NEXUS_AudioOutputNode *pOutputNode
     )
 {
@@ -1546,12 +1562,13 @@ static void NEXUS_AudioInput_P_CheckRemoveCrc(
 }
 
 static NEXUS_Error NEXUS_AudioInput_P_CheckOutputMixer(
-    NEXUS_AudioInput input,
+    NEXUS_AudioInputHandle input,
     NEXUS_AudioOutputNode *pOutputNode
     )
 {
     NEXUS_AudioInputMixerNode *pMixerNode;
-    BAPE_MixerSettings mixerSettings;
+    NEXUS_AudioMixerSettings * pNexusMixerSettings = NULL;
+    BAPE_MixerSettings * pMixerSettings = NULL;
     NEXUS_AudioInputData *pData;
     NEXUS_Error errCode=0;
     NEXUS_AudioOutputTiming timing;
@@ -1594,14 +1611,30 @@ static NEXUS_Error NEXUS_AudioInput_P_CheckOutputMixer(
         return NEXUS_AudioOutput_P_SetSlaveSource(pOutputNode->pOutputConnector, pMasterNode?pMasterNode->pOutputConnector:NULL);
     }
 
+    pNexusMixerSettings = BKNI_Malloc(sizeof(NEXUS_AudioMixerSettings));
+    if ( !pNexusMixerSettings )
+    {
+        BDBG_ERR(("Unable to allocate mixer settings"));
+        errCode = BERR_TRACE(BERR_NOT_AVAILABLE);
+        goto err_mixer_settings;
+    }
+
+    pMixerSettings = BKNI_Malloc(sizeof(BAPE_MixerSettings));
+    if ( !pMixerSettings )
+    {
+        BDBG_ERR(("Could not allocate mixer settings"));
+        errCode = BERR_TRACE(BERR_NOT_AVAILABLE);
+        goto err_mixer_settings;
+    }
+
     BDBG_MSG(("Getting output mixer settings"));
-    NEXUS_AudioOutput_P_GetMixerSettings(pOutputNode->pOutputConnector, &mixerSettings);
+    NEXUS_AudioOutput_P_GetMixerSettings(pOutputNode->pOutputConnector, pMixerSettings);
     BAPE_Mixer_GetDefaultAddInputSettings(&addInputSettings);
 
     if ( pOutputNode->pMixerNode )
     {
         /* See if our settings have changed relative to the current node */
-        if ( !NEXUS_AudioInput_P_MixerSettingsEqual(&mixerSettings, &pOutputNode->pMixerNode->settings) ||
+        if ( !NEXUS_AudioInput_P_MixerSettingsEqual(pMixerSettings, &pOutputNode->pMixerNode->settings) ||
              NEXUS_AudioOutput_P_GetEqualizer(pOutputNode->pOutputConnector) != pOutputNode->pMixerNode->nexusEq )
         {
             BDBG_MSG(("Unlinking mixer output"));
@@ -1617,7 +1650,7 @@ static NEXUS_Error NEXUS_AudioInput_P_CheckOutputMixer(
               pMixerNode = BLST_Q_NEXT(pMixerNode, mixerNode) )
         {
             BDBG_MSG(("Comparing against mixer node %p", (void *)pMixerNode));
-            if ( NEXUS_AudioInput_P_MixerSettingsEqual(&mixerSettings, &pMixerNode->settings) )
+            if ( NEXUS_AudioInput_P_MixerSettingsEqual(pMixerSettings, &pMixerNode->settings) )
             {
                 if ( (pMixerNode->timing == NEXUS_AudioOutputTiming_eDac && timing == NEXUS_AudioOutputTiming_ePll) ||
                      (pMixerNode->timing == NEXUS_AudioOutputTiming_ePll && timing == NEXUS_AudioOutputTiming_eDac))
@@ -1635,7 +1668,8 @@ static NEXUS_Error NEXUS_AudioInput_P_CheckOutputMixer(
                 errCode = BAPE_Mixer_AddOutput(pMixerNode->outputMixer, (BAPE_OutputPort)pOutputNode->pOutputConnector->port);
                 if ( errCode )
                 {
-                    return BERR_TRACE(errCode);
+                    errCode = BERR_TRACE(errCode);
+                    goto err_mixer_settings;
                 }
                 NEXUS_AudioOutput_P_SetOutputFormat(pOutputNode->pOutputConnector, NEXUS_AudioInput_P_GetFormat(input));
                 pOutputNode->pMixerNode = pMixerNode;
@@ -1698,40 +1732,39 @@ static NEXUS_Error NEXUS_AudioInput_P_CheckOutputMixer(
         BDBG_MSG(("Allocating mixer"));
         if ( input->objectType == NEXUS_AudioInputType_eMixer )
         {
-            NEXUS_AudioMixerSettings nexusMixerSettings;
-            NEXUS_AudioMixer_GetSettings(input->pObjectHandle, &nexusMixerSettings);
+            NEXUS_AudioMixer_GetSettings(input->pObjectHandle, pNexusMixerSettings);
 
-            mixerSettings.format = BAPE_MixerFormat_eAuto;
-            if ( nexusMixerSettings.fixedOutputFormatEnabled )
+            pMixerSettings->format = BAPE_MixerFormat_eAuto;
+            if ( pNexusMixerSettings->fixedOutputFormatEnabled )
             {
-                switch ( nexusMixerSettings.fixedOutputFormat )
+                switch ( pNexusMixerSettings->fixedOutputFormat )
                 {
                 case NEXUS_AudioMultichannelFormat_e7_1:
-                    mixerSettings.format = BAPE_MixerFormat_ePcm7_1;
+                    pMixerSettings->format = BAPE_MixerFormat_ePcm7_1;
                     break;
                 case NEXUS_AudioMultichannelFormat_e5_1:
-                    mixerSettings.format = BAPE_MixerFormat_ePcm5_1;
+                    pMixerSettings->format = BAPE_MixerFormat_ePcm5_1;
                     break;
                 case NEXUS_AudioMultichannelFormat_eStereo:
-                    mixerSettings.format = BAPE_MixerFormat_ePcmStereo;
+                    pMixerSettings->format = BAPE_MixerFormat_ePcmStereo;
                     break;
                 default:
                 case NEXUS_AudioMultichannelFormat_eMax:
-                    mixerSettings.format = BAPE_MixerFormat_eAuto;
+                    pMixerSettings->format = BAPE_MixerFormat_eAuto;
                     break;
                 }
             }
-            pMixerNode->settings = mixerSettings;
+            pMixerNode->settings = *pMixerSettings;
             /* This is intentionally set after saving the mixer settings.  All outputs from the same mixer will receive the
                same sample rate, but we don't consider this in the NEXUS_AudioOutput_P_GetMixerSettings function */
-            mixerSettings.mixerSampleRate = nexusMixerSettings.outputSampleRate;
+            pMixerSettings->mixerSampleRate = pNexusMixerSettings->outputSampleRate;
         }
         else
         {
-            pMixerNode->settings = mixerSettings;
+            pMixerNode->settings = *pMixerSettings;
         }
 
-        errCode = BAPE_Mixer_Create(NEXUS_AUDIO_DEVICE_HANDLE, &mixerSettings, &pMixerNode->inputMixer);
+        errCode = BAPE_Mixer_Create(NEXUS_AUDIO_DEVICE_HANDLE, pMixerSettings, &pMixerNode->inputMixer);
         if ( errCode )
         {
             errCode = BERR_TRACE(errCode);
@@ -1741,21 +1774,20 @@ static NEXUS_Error NEXUS_AudioInput_P_CheckOutputMixer(
         if ( input->objectType == NEXUS_AudioInputType_eMixer )
         {
             NEXUS_AudioUpstreamNode *pUpstreamNode;
-            NEXUS_AudioMixerSettings mixerSettings;
-            NEXUS_AudioMixer_GetSettings(input->pObjectHandle, &mixerSettings);
+            NEXUS_AudioMixer_GetSettings(input->pObjectHandle, pNexusMixerSettings);
             /* Mixers add all upstream objects as inputs */
             for ( pUpstreamNode = BLST_Q_FIRST(&pData->upstreamList);
                   pUpstreamNode != NULL;
                   pUpstreamNode = BLST_Q_NEXT(pUpstreamNode, upstreamNode) )
             {
                 /* Check for the mixer's master option */
-                if ( NULL == mixerSettings.master )
+                if ( NULL == pNexusMixerSettings->master )
                 {
-                    addInputSettings.sampleRateMaster = (pUpstreamNode->pUpstreamObject->objectType == NEXUS_AudioInputType_ePlayback)?false:true;
+                    addInputSettings.sampleRateMaster = (pUpstreamNode->pUpstreamObject->objectType == NEXUS_AudioInputType_ePlayback && pUpstreamNode->pUpstreamObject->format != NEXUS_AudioInputFormat_eCompressed)?false:true;
                 }
                 else
                 {
-                    addInputSettings.sampleRateMaster = (pUpstreamNode->pUpstreamObject == mixerSettings.master) ? true : false;
+                    addInputSettings.sampleRateMaster = (pUpstreamNode->pUpstreamObject == pNexusMixerSettings->master) ? true : false;
                 }
                 BDBG_MSG(("%s - Add input %s to BAPE FMM Mixer %p", __FUNCTION__, pUpstreamNode->pUpstreamObject->pName, (void *)pMixerNode->inputMixer));
                 errCode = BAPE_Mixer_AddInput(pMixerNode->inputMixer, (BAPE_Connector)pUpstreamNode->pUpstreamObject->port, &addInputSettings);
@@ -1775,7 +1807,7 @@ static NEXUS_Error NEXUS_AudioInput_P_CheckOutputMixer(
         else
         {
             /* Non-mixers add themselves as inputs */
-            addInputSettings.sampleRateMaster = (input->objectType == NEXUS_AudioInputType_ePlayback)?false:true;
+            addInputSettings.sampleRateMaster = (input->objectType == NEXUS_AudioInputType_ePlayback && input->format != NEXUS_AudioInputFormat_eCompressed)?false:true;
             errCode = BAPE_Mixer_AddInput(pMixerNode->inputMixer, (BAPE_Connector)input->port, &addInputSettings);
             if ( errCode )
             {
@@ -1897,6 +1929,15 @@ check_vcxo_source:
         }
     }
 
+    if ( pMixerSettings )
+    {
+        BKNI_Free(pMixerSettings);
+    }
+    if ( pNexusMixerSettings )
+    {
+        BKNI_Free(pNexusMixerSettings);
+    }
+
     return BERR_SUCCESS;
 
 err_add_output:
@@ -1926,10 +1967,19 @@ err_add_input:
 err_mixer_open:
     BKNI_Free(pMixerNode);
 err_malloc:
+err_mixer_settings:
+    if ( pMixerSettings )
+    {
+        BKNI_Free(pMixerSettings);
+    }
+    if ( pNexusMixerSettings )
+    {
+        BKNI_Free(pNexusMixerSettings);
+    }
     return errCode;
 }
 
-static NEXUS_Error NEXUS_AudioInput_P_CheckOutputMixers(NEXUS_AudioInput input)
+static NEXUS_Error NEXUS_AudioInput_P_CheckOutputMixers(NEXUS_AudioInputHandle input)
 {
     NEXUS_Error errCode;
     NEXUS_AudioInputData *pData;
@@ -2017,7 +2067,7 @@ static NEXUS_Error NEXUS_AudioInput_P_CheckOutputMixers(NEXUS_AudioInput input)
 }
 
 void NEXUS_AudioInput_P_GetVolume(
-    NEXUS_AudioInput input,
+    NEXUS_AudioInputHandle input,
     BAPE_MixerInputVolume *pInputVolume    /* [out] */
     )
 {
@@ -2042,8 +2092,8 @@ void NEXUS_AudioInput_P_GetVolume(
 }
 
 static NEXUS_Error NEXUS_AudioInput_P_SetVolumeDownstream(
-    NEXUS_AudioInput previous,
-    NEXUS_AudioInput input,
+    NEXUS_AudioInputHandle previous,
+    NEXUS_AudioInputHandle input,
     const BAPE_MixerInputVolume *pInputVolume
     )
 {
@@ -2137,7 +2187,7 @@ static NEXUS_Error NEXUS_AudioInput_P_SetVolumeDownstream(
 }
 
 NEXUS_Error NEXUS_AudioInput_P_SetVolume(
-    NEXUS_AudioInput input,
+    NEXUS_AudioInputHandle input,
     const BAPE_MixerInputVolume *pInputVolume
     )
 {
@@ -2149,7 +2199,7 @@ Summary:
     Get an external input port handle
  ***************************************************************************/
 BAPE_InputPort NEXUS_AudioInput_P_GetInputPort(
-    NEXUS_AudioInput input
+    NEXUS_AudioInputHandle input
     )
 {
     BDBG_OBJECT_ASSERT(input, NEXUS_AudioInput);
@@ -2175,7 +2225,7 @@ Summary:
 Determine if this input supports dynamic format changes
  ***************************************************************************/
 bool NEXUS_AudioInput_P_SupportsFormatChanges(
-    NEXUS_AudioInput input
+    NEXUS_AudioInputHandle input
     )
 {
     BDBG_OBJECT_ASSERT(input, NEXUS_AudioInput);
@@ -2194,7 +2244,7 @@ Summary:
 Enable/Disable interrupt for dynamic format changes
  ***************************************************************************/
 NEXUS_Error NEXUS_AudioInput_P_SetFormatChangeInterrupt(
-    NEXUS_AudioInput input, NEXUS_AudioInputType clientType,
+    NEXUS_AudioInputHandle input, NEXUS_AudioInputType clientType,
     void (*pCallback_isr)(void *, int),
     void *pParam1,
     int param2
@@ -2255,7 +2305,7 @@ Summary:
 Set stc index for compressed audio DSP use
  ***************************************************************************/
 NEXUS_Error NEXUS_AudioInput_P_SetStcIndex(
-    NEXUS_AudioInput input,
+    NEXUS_AudioInputHandle input,
     unsigned stcIndex
     )
 {
@@ -2311,13 +2361,48 @@ void NEXUS_AudioInput_P_Uninit(void)
 #endif
 }
 
+NEXUS_Error NEXUS_AudioInput_GetInputStatus(
+    NEXUS_AudioInputHandle input,
+    NEXUS_AudioInputStatus *pStatus     /* [out] */
+    )
+{
+    NEXUS_Error errCode;
+    NEXUS_AudioInputPortStatus portStatus;
+    BDBG_OBJECT_ASSERT(input, NEXUS_AudioInput);
+    BDBG_ASSERT(NULL != pStatus);
+
+    BKNI_Memset(pStatus, 0, sizeof(*pStatus));
+
+    if ( NEXUS_AudioInput_P_GetInputPort(input) == NULL )
+    {
+        return BERR_TRACE(BERR_NOT_AVAILABLE);
+    }
+
+    errCode = NEXUS_AudioInput_P_GetInputPortStatus(input, &portStatus);
+    if ( errCode != NEXUS_SUCCESS )
+    {
+        return BERR_TRACE(BERR_NOT_AVAILABLE);
+    }
+
+    pStatus->valid = portStatus.signalPresent;
+    if ( pStatus->valid )
+    {
+        pStatus->codec = portStatus.codec;
+        pStatus->numPcmChannels = portStatus.numPcmChannels;
+        pStatus->sampleRate = portStatus.sampleRate;
+    }
+    return NEXUS_SUCCESS;
+}
+
 NEXUS_Error NEXUS_AudioInput_P_GetInputPortStatus(
-    NEXUS_AudioInput input,
+    NEXUS_AudioInputHandle input,
     NEXUS_AudioInputPortStatus *pStatus     /* [out] */
     )
 {
     BDBG_OBJECT_ASSERT(input, NEXUS_AudioInput);
     BDBG_ASSERT(NULL != pStatus);
+
+    BKNI_Memset(pStatus, 0, sizeof(*pStatus));
 
     switch ( input->objectType )
     {
@@ -2344,7 +2429,7 @@ NEXUS_Error NEXUS_AudioInput_P_GetInputPortStatus(
     }
 }
 
-void NEXUS_AudioInput_P_ForceStop(NEXUS_AudioInput input)
+void NEXUS_AudioInput_P_ForceStop(NEXUS_AudioInputHandle input)
 {
     NEXUS_AudioDownstreamNode *pNode;
     NEXUS_AudioInputData *pData;
@@ -2369,7 +2454,7 @@ void NEXUS_AudioInput_P_ForceStop(NEXUS_AudioInput input)
     }
 }
 
-static void NEXUS_AudioInput_P_ForceStopUpstream(NEXUS_AudioInput input)
+static void NEXUS_AudioInput_P_ForceStopUpstream(NEXUS_AudioInputHandle input)
 {
     /* Stop any upstream components first */
     NEXUS_AudioUpstreamNode *pUpNode;
@@ -2462,7 +2547,7 @@ static void NEXUS_AudioInput_P_ForceStopUpstream(NEXUS_AudioInput input)
     }
 }
 
-static void NEXUS_AudioInput_P_ForceStopDownstream(NEXUS_AudioInput input)
+static void NEXUS_AudioInput_P_ForceStopDownstream(NEXUS_AudioInputHandle input)
 {
     /* Stop any upstream components first */
     NEXUS_AudioUpstreamNode *pUpNode;
@@ -2565,7 +2650,7 @@ static void NEXUS_AudioInput_P_ForceStopDownstream(NEXUS_AudioInput input)
     }
 }
 
-static bool NEXUS_AudioInput_P_IsConnectedDownstream(NEXUS_AudioInput source, NEXUS_AudioInput sink)
+static bool NEXUS_AudioInput_P_IsConnectedDownstream(NEXUS_AudioInputHandle source, NEXUS_AudioInputHandle sink)
 {
     NEXUS_AudioDownstreamNode *pNode;
     NEXUS_AudioInputData *pData;
@@ -2603,8 +2688,8 @@ static bool NEXUS_AudioInput_P_IsConnectedDownstream(NEXUS_AudioInput source, NE
 }
 
 void NEXUS_AudioInput_IsConnectedToInput(
-    NEXUS_AudioInput input1,
-    NEXUS_AudioInput input2,
+    NEXUS_AudioInputHandle input1,
+    NEXUS_AudioInputHandle input2,
     bool *pConnected            /* [out] True if the nodes are connected in a filter graph */
     )
 {
@@ -2622,7 +2707,7 @@ void NEXUS_AudioInput_IsConnectedToInput(
 }
 
 void NEXUS_AudioInput_IsConnectedToOutput(
-    NEXUS_AudioInput input,
+    NEXUS_AudioInputHandle input,
     NEXUS_AudioOutputHandle output,
     bool *pConnected            /* [out] True if the nodes are connected in a filter graph */
     )
@@ -2652,7 +2737,7 @@ void NEXUS_AudioInput_IsConnectedToOutput(
 }
 
 void NEXUS_AudioInput_HasConnectedOutputs(
-    NEXUS_AudioInput input,
+    NEXUS_AudioInputHandle input,
     bool *pConnected            /* [out] True if one or more output is connected to this node */
     )
 {
@@ -2674,7 +2759,7 @@ void NEXUS_AudioInput_HasConnectedOutputs(
 }
 
 NEXUS_AudioMixerHandle NEXUS_AudioInput_P_LocateMixer(
-    NEXUS_AudioInput source,
+    NEXUS_AudioInputHandle source,
     NEXUS_AudioMixerHandle hLastMixerHandle
     )
 {
@@ -2710,8 +2795,8 @@ NEXUS_AudioMixerHandle NEXUS_AudioInput_P_LocateMixer(
     return NULL;
 }
 
-NEXUS_AudioInput NEXUS_AudioInput_P_LocateDownstream(
-    NEXUS_AudioInput source
+NEXUS_AudioInputHandle NEXUS_AudioInput_P_LocateDownstream(
+    NEXUS_AudioInputHandle source
     )
 {
     NEXUS_AudioDownstreamNode *pNode;
@@ -2731,7 +2816,7 @@ NEXUS_AudioInput NEXUS_AudioInput_P_LocateDownstream(
 }
 
 NEXUS_AudioOutputHandle NEXUS_AudioInput_P_LocateOutput(
-    NEXUS_AudioInput source,
+    NEXUS_AudioInputHandle source,
     NEXUS_AudioOutputHandle hLastAudioOutput
     )
 {
@@ -2759,7 +2844,7 @@ NEXUS_AudioOutputHandle NEXUS_AudioInput_P_LocateOutput(
     return NULL;
 }
 
-NEXUS_Error NEXUS_AudioInput_P_ExplictlyStartFMMMixers(NEXUS_AudioInput input)
+NEXUS_Error NEXUS_AudioInput_P_ExplictlyStartFMMMixers(NEXUS_AudioInputHandle input)
 {
     NEXUS_Error errCode = BERR_SUCCESS;
     NEXUS_AudioInputData *pData;
@@ -2794,7 +2879,7 @@ NEXUS_Error NEXUS_AudioInput_P_ExplictlyStartFMMMixers(NEXUS_AudioInput input)
 }
 
 
-void NEXUS_AudioInput_P_ExplictlyStopFMMMixers(NEXUS_AudioInput input)
+void NEXUS_AudioInput_P_ExplictlyStopFMMMixers(NEXUS_AudioInputHandle input)
 {
     NEXUS_AudioInputData *pData;
     NEXUS_AudioInputMixerNode *pMixerNode;

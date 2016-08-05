@@ -43,9 +43,7 @@
  *      Author: gambhire
  */
 
-#include <hwtimer.h>
 #include <stdint.h>
-#include <waitqueue.h>
 
 #include "arm/arm.h"
 #include "arm/gic.h"
@@ -57,22 +55,81 @@
 #include "parse_utils.h"
 
 #include "kernel.h"
+#include "platform.h"
 #include "tzmemory.h"
 #include "pgtable.h"
-#include "objalloc.h"
 #include "interrupt.h"
+#include "hwtimer.h"
 #include "tztask.h"
 #include "scheduler.h"
 #include "svcutils.h"
-#include "console.h"
 #include "clock.h"
+#include "futex.h"
+#include "console.h"
 
 #include "system.h"
 
-void System::init(void *tzDevTree) {
-    UNUSED(tzDevTree);
+extern "C" unsigned long _initramfs_start;
+extern "C" unsigned long _initramfs_end;
+
+static uint8_t tzDevTree[MAX_DT_SIZE_BYTES];
+static IDirectory *rootDir;
+
+void System::init(const void *devTree) {
+
+    // The bootstrap code has mapped device tree memory one-to-one VA and PA.
+    int rc = fdt_check_header(devTree);
+    if (rc) {
+        err_msg("Corrupted device tree at %p.\n", devTree);
+        return;
+    }
+
+    int dtSize = fdt_totalsize(devTree);
+    if (dtSize > MAX_DT_SIZE_BYTES) {
+        err_msg("Device tree is too large (size %d) . Increase MAX_DT_SIZE_BYTES\n", dtSize);
+        return;
+    }
+
+    rc = fdt_move(devTree, tzDevTree, dtSize);
+    if (rc) {
+        err_msg("Device tree could not be relocated to tzDevTree: %s\n", fdt_strerror(rc));
+        return;
+    }
+
+    PageTable::init();
+    Platform::init(tzDevTree);
+    TzMem::init(tzDevTree);
+    GIC::init(tzDevTree);
+    Interrupt::init();
+    TzTimers::init();
+    Scheduler::init();
+    TzTask::initNoTask();
+    ElfImage::init();
+    RamFS::init();
+    SysCalls::init();
+    TzClock::init();
+    Futex::init();
+    Console::init(false);
+
+    int size = (int)&_initramfs_end - (int)&_initramfs_start;
+    printf("File system start %p end %p. size %d\n", &_initramfs_start, &_initramfs_end, size);
+
+    rootDir = RamFS::load(&_initramfs_start);
+    if (rootDir == nullptr) {
+        err_msg("Could not mount Root FS\n");
+        kernelHalt("No root fs\n");
+    }
+
+    TzMem::freeInitRamFS();
+    printf("File system loaded. Freed up %d kbytes\n", size/1024);
+
+    /* Unmap the bootstrap part of the kernel */
+    PageTable::kernelPageTable()->unmapBootstrap(devTree);
+
+    PageTable::kernelPageTable()->dump();
+    printf("System init done\n");
 }
 
 IDirectory *System::root() {
-    return nullptr;
+    return rootDir;
 }

@@ -79,7 +79,7 @@ static uint32_t BMXT_RegRead32(BMXT_Handle handle, uint32_t addr)
 
     BDBG_ASSERT(addr%4==0);
     BDBG_ASSERT(addr>=R(0));
-    BDBG_ASSERT(addr<=R(BCHP_DEMOD_XPT_FE_SPID_TABLE_i_ARRAY_BASE));
+    BDBG_ASSERT(addr<=R(BCHP_DEMOD_XPT_FE_SPID_TABLE_i_ARRAY_BASE)+4*512);
 
     return BMXT_RegRead32_common(handle, addr);
 }
@@ -93,7 +93,7 @@ static void BMXT_RegWrite32(BMXT_Handle handle, uint32_t addr, uint32_t data)
 
     BDBG_ASSERT(addr%4==0);
     BDBG_ASSERT(addr>=R(0));
-    BDBG_ASSERT(addr<=R(BCHP_DEMOD_XPT_FE_SPID_TABLE_i_ARRAY_BASE));
+    BDBG_ASSERT(addr<=R(BCHP_DEMOD_XPT_FE_SPID_TABLE_i_ARRAY_BASE)+4*512);
 
     BMXT_RegWrite32_common(handle, addr, data);
     return;
@@ -176,8 +176,8 @@ static BERR_Code BMXT_Open_PreOpen(BMXT_Handle *pHandle, BCHP_Handle hChp, BREG_
     BDBG_ASSERT(mxt->platform.num[BMXT_RESOURCE_MTSIF_TX0_CTRL1] <= BMXT_MAX_NUM_MTSIF_TX);
 
     BDBG_CASSERT(sizeof(BMXT_CHIP_STR)/sizeof(*BMXT_CHIP_STR)==BMXT_Chip_eMax);
-    BDBG_MSG(("Open: %p, platform %s (%u), type %s, regbase 0x%08x",
-        (void*)mxt, BMXT_CHIP_STR[mxt->settings.chip], mxt->settings.chip, BMXT_PLATFORM_TYPE_STR[mxt->platform.type], mxt->platform.regbase));
+    BDBG_MSG(("Open: %p, platform %s (%u), rev %u, type %s, regbase 0x%08x",
+        (void*)mxt, BMXT_CHIP_STR[mxt->settings.chip], mxt->settings.chip, mxt->settings.chipRev, BMXT_PLATFORM_TYPE_STR[mxt->platform.type], mxt->platform.regbase));
     BDBG_MSG(("Open: resources: %u %u %u %u %u",
         mxt->platform.num[BMXT_RESOURCE_IB0_CTRL], mxt->platform.num[BMXT_RESOURCE_MINI_PID_PARSER0_CTRL1],
         mxt->platform.num[BMXT_RESOURCE_TSMF0_CTRL], mxt->platform.num[BMXT_RESOURCE_MTSIF_RX0_CTRL1], mxt->platform.num[BMXT_RESOURCE_MTSIF_TX0_CTRL1]));
@@ -195,6 +195,20 @@ static BERR_Code BMXT_Open_PreOpen(BMXT_Handle *pHandle, BCHP_Handle hChp, BREG_
             goto error;
         }
     }
+
+#if 0
+{
+    /* manually trigger DEMOD_XPT_FE reset on 45308. no longer needed */
+    BHAB_Handle hab = mxt->hHab;
+    uint32_t addr = 0x7020410;
+    uint32_t reg;
+    BHAB_ReadRegister(hab, addr, &reg);
+    reg |= (1 << 3);
+    BHAB_WriteRegister(hab, addr, &reg);
+    reg &= ~(1 << 3);
+    BHAB_WriteRegister(hab, addr, &reg);
+}
+#endif
 
     *pHandle = mxt;
     return rc;
@@ -497,8 +511,79 @@ BERR_Code BMXT_P_SetMtsifTxSelect(BMXT_Handle handle, unsigned parserNum, unsign
     return BERR_SUCCESS;
 }
 
+unsigned BMXT_P_GetVirtualParserNum(BMXT_Handle handle, unsigned mtsifTxSelect, unsigned parserNum)
+{
+    uint32_t addr, val;
+    unsigned virtualParserNum;
+    BDBG_ASSERT(handle->platform.regoffsets[BCHP_DEMOD_XPT_FE_MTSIF_TX0_BAND0_BAND3_ID] != BMXT_NOREG);
+
+    addr = R(BCHP_DEMOD_XPT_FE_MTSIF_TX0_BAND0_BAND3_ID) + 4*(parserNum/4) + (STEP(BMXT_RESOURCE_MTSIF_TX0_CTRL1)*mtsifTxSelect);
+    val = BMXT_RegRead32(handle, addr);
+
+    switch (parserNum%4) {
+        case 0: virtualParserNum = BCHP_GET_FIELD_DATA(val, DEMOD_XPT_FE_MTSIF_TX0_BAND0_BAND3_ID, MTSIF_BAND0_BAND_ID); break;
+        case 1: virtualParserNum = BCHP_GET_FIELD_DATA(val, DEMOD_XPT_FE_MTSIF_TX0_BAND0_BAND3_ID, MTSIF_BAND1_BAND_ID); break;
+        case 2: virtualParserNum = BCHP_GET_FIELD_DATA(val, DEMOD_XPT_FE_MTSIF_TX0_BAND0_BAND3_ID, MTSIF_BAND2_BAND_ID); break;
+        case 3: virtualParserNum = BCHP_GET_FIELD_DATA(val, DEMOD_XPT_FE_MTSIF_TX0_BAND0_BAND3_ID, MTSIF_BAND3_BAND_ID); break;
+    }
+    return virtualParserNum;
+}
+
+void BMXT_P_SetVirtualParserNum(BMXT_Handle handle, unsigned mtsifTxSelect, unsigned parserNum, unsigned virtualParserNum)
+{
+    uint32_t addr, val;
+
+    BDBG_ASSERT(handle->platform.regoffsets[BCHP_DEMOD_XPT_FE_MTSIF_TX0_BAND0_BAND3_ID] != BMXT_NOREG);
+
+    addr = R(BCHP_DEMOD_XPT_FE_MTSIF_TX0_BAND0_BAND3_ID) + 4*(parserNum/4) + (STEP(BMXT_RESOURCE_MTSIF_TX0_CTRL1)*mtsifTxSelect);
+    val = BMXT_RegRead32(handle, addr);
+    switch (parserNum%4) {
+        case 0: BCHP_SET_FIELD_DATA(val, DEMOD_XPT_FE_MTSIF_TX0_BAND0_BAND3_ID, MTSIF_BAND0_BAND_ID, virtualParserNum); break;
+        case 1: BCHP_SET_FIELD_DATA(val, DEMOD_XPT_FE_MTSIF_TX0_BAND0_BAND3_ID, MTSIF_BAND1_BAND_ID, virtualParserNum); break;
+        case 2: BCHP_SET_FIELD_DATA(val, DEMOD_XPT_FE_MTSIF_TX0_BAND0_BAND3_ID, MTSIF_BAND2_BAND_ID, virtualParserNum); break;
+        case 3: BCHP_SET_FIELD_DATA(val, DEMOD_XPT_FE_MTSIF_TX0_BAND0_BAND3_ID, MTSIF_BAND3_BAND_ID, virtualParserNum); break;
+    }
+    BMXT_RegWrite32(handle, addr, val);
+    return;
+}
+
+#define BMXT_USE_PARSER_VERSION 1
+
+void BMXT_P_ParserVersion(BMXT_Handle handle, unsigned parserNum)
+{
+    uint32_t addr, val;
+    unsigned version;
+    if (BMXT_USE_PARSER_VERSION && BMXT_IS_45308_FAMILY()) {
+        addr = R(BCHP_DEMOD_XPT_FE_MINI_PID_PARSER0_CTRL2) + (parserNum * STEP(BMXT_RESOURCE_MINI_PID_PARSER0_CTRL1));
+        val = BMXT_RegRead32(handle, addr);
+        version = BCHP_GET_FIELD_DATA(val, DEMOD_XPT_FE_MINI_PID_PARSER0_CTRL2, PARSER_VERSION);
+        BCHP_SET_FIELD_DATA(val, DEMOD_XPT_FE_MINI_PID_PARSER0_CTRL2, PARSER_VERSION, ++version);
+        BMXT_RegWrite32(handle, addr, val);
+        BDBG_MSG(("%u: PARSER_VERSION %u", parserNum, version));
+    }
+}
+
 #define PARSER_INPUT_SEL_MASK (BCHP_DEMOD_XPT_FE_MINI_PID_PARSER0_CTRL1_PARSER_INPUT_SEL_MASK >> BCHP_DEMOD_XPT_FE_MINI_PID_PARSER0_CTRL1_PARSER_INPUT_SEL_SHIFT)
 #define LEGACY_NUM_REMAP_PB 9 /* number of remappable parsers, where MTSIF_TX-level remapping is not available */
+
+#define USE_PARSER_ENABLE_WORKAROUND 0 /* disable, since it causes issues with DCBG */
+
+void BMXT_P_SetParserEnable(BMXT_Handle handle, unsigned parserNum, bool enable)
+{
+    uint32_t addr, val;
+    addr = R(BCHP_DEMOD_XPT_FE_MINI_PID_PARSER0_CTRL1) + (parserNum * STEP(BMXT_RESOURCE_MINI_PID_PARSER0_CTRL1));
+    val = BMXT_RegRead32(handle, addr);
+    BCHP_SET_FIELD_DATA(val, DEMOD_XPT_FE_MINI_PID_PARSER0_CTRL1, PARSER_ENABLE, enable ? 1 : 0);
+
+#if USE_PARSER_ENABLE_WORKAROUND
+    if ((handle->settings.chip==BMXT_Chip_e45308) && (handle->settings.chipRev<BMXT_ChipRev_eC0)) {
+        BMXT_P_ParserVersion(handle, parserNum); /* if PARSER_ENABLE = 0 before changing any settings is not possible, bump PARSER_VERSION prior to any changes */
+        BCHP_SET_FIELD_DATA(val, DEMOD_XPT_FE_MINI_PID_PARSER0_CTRL1, PARSER_ENABLE, 1); /* never disable */
+        BCHP_SET_FIELD_DATA(val, DEMOD_XPT_FE_MINI_PID_PARSER0_CTRL1, PARSER_INPUT_SEL_MSB, enable ? 0 : 1);
+    }
+#endif
+    BMXT_RegWrite32(handle, addr, val);
+}
 
 BERR_Code BMXT_GetParserConfig(BMXT_Handle handle, unsigned parserNum, BMXT_ParserConfig *pConfig)
 {
@@ -527,6 +612,15 @@ BERR_Code BMXT_GetParserConfig(BMXT_Handle handle, unsigned parserNum, BMXT_Pars
         (BCHP_GET_FIELD_DATA(Reg, DEMOD_XPT_FE_MINI_PID_PARSER0_CTRL1, PARSER_INPUT_SEL_MSB) ? (PARSER_INPUT_SEL_MASK+1) : 0);
     pConfig->Enable = BCHP_GET_FIELD_DATA(Reg, DEMOD_XPT_FE_MINI_PID_PARSER0_CTRL1, PARSER_ENABLE);
 
+#if USE_PARSER_ENABLE_WORKAROUND
+    if ((handle->settings.chip==BMXT_Chip_e45308) && (handle->settings.chipRev<BMXT_ChipRev_eC0)) {
+        if (BCHP_GET_FIELD_DATA(Reg, DEMOD_XPT_FE_MINI_PID_PARSER0_CTRL1, PARSER_INPUT_SEL_MSB)) {
+            pConfig->InputBandNumber = BCHP_GET_FIELD_DATA(Reg, DEMOD_XPT_FE_MINI_PID_PARSER0_CTRL1, PARSER_INPUT_SEL);
+            pConfig->Enable = false;
+        }
+    }
+#endif
+
     if (BMXT_IS_45308_FAMILY()) {
         RegAddr = R(BCHP_DEMOD_XPT_FE_MINI_PID_PARSER0_CTRL2) + (parserNum * STEP(BMXT_RESOURCE_MINI_PID_PARSER0_CTRL1));
         Reg = BMXT_RegRead32(handle, RegAddr);
@@ -548,16 +642,9 @@ BERR_Code BMXT_GetParserConfig(BMXT_Handle handle, unsigned parserNum, BMXT_Pars
             goto done;
         }
 
-        RegAddr = R(BCHP_DEMOD_XPT_FE_MTSIF_TX0_BAND0_BAND3_ID) + 4*(parserNum/4) + (STEP(BMXT_RESOURCE_MTSIF_TX0_CTRL1)*pConfig->mtsifTxSelect);
-        Reg = BMXT_RegRead32(handle, RegAddr);
-        switch (parserNum%4) {
-            case 0: pConfig->virtualParserNum = BCHP_GET_FIELD_DATA(Reg, DEMOD_XPT_FE_MTSIF_TX0_BAND0_BAND3_ID, MTSIF_BAND0_BAND_ID); break;
-            case 1: pConfig->virtualParserNum = BCHP_GET_FIELD_DATA(Reg, DEMOD_XPT_FE_MTSIF_TX0_BAND0_BAND3_ID, MTSIF_BAND1_BAND_ID); break;
-            case 2: pConfig->virtualParserNum = BCHP_GET_FIELD_DATA(Reg, DEMOD_XPT_FE_MTSIF_TX0_BAND0_BAND3_ID, MTSIF_BAND2_BAND_ID); break;
-            case 3: pConfig->virtualParserNum = BCHP_GET_FIELD_DATA(Reg, DEMOD_XPT_FE_MTSIF_TX0_BAND0_BAND3_ID, MTSIF_BAND3_BAND_ID); break;
-        }
+        pConfig->virtualParserNum = BMXT_P_GetVirtualParserNum(handle, pConfig->mtsifTxSelect, parserNum);
     }
-    else {
+    else { /* legacy */
         /* for PARSER-level mapping, query BAND_ID first, then query the correct PID_TABLE entry */
         if (parserNum >= LEGACY_NUM_REMAP_PB) {
             pConfig->virtualParserNum = parserNum;
@@ -600,7 +687,7 @@ BERR_Code BMXT_SetParserConfig(BMXT_Handle handle, unsigned parserNum, const BMX
 {
     uint32_t Reg, RegAddr;
     BERR_Code rc = BERR_SUCCESS;
-    bool parserEnabled;
+    bool wasEnabled;
 
     BDBG_ASSERT(handle);
     BDBG_ASSERT(pConfig);
@@ -620,7 +707,8 @@ BERR_Code BMXT_SetParserConfig(BMXT_Handle handle, unsigned parserNum, const BMX
 
     RegAddr = R(BCHP_DEMOD_XPT_FE_MINI_PID_PARSER0_CTRL1) + (parserNum * STEP(BMXT_RESOURCE_MINI_PID_PARSER0_CTRL1));
     Reg = BMXT_RegRead32(handle, RegAddr);
-    parserEnabled = BCHP_GET_FIELD_DATA(Reg, DEMOD_XPT_FE_MINI_PID_PARSER0_CTRL1, PARSER_ENABLE);
+    wasEnabled = BCHP_GET_FIELD_DATA(Reg, DEMOD_XPT_FE_MINI_PID_PARSER0_CTRL1, PARSER_ENABLE);
+    BMXT_P_SetParserEnable(handle, parserNum, false); /* disable parser before changing any settings */
 
     BCHP_SET_FIELD_DATA(Reg, DEMOD_XPT_FE_MINI_PID_PARSER0_CTRL1, PARSER_ERROR_INPUT_TEI_IGNORE, pConfig->ErrorInputIgnore);
     BCHP_SET_FIELD_DATA(Reg, DEMOD_XPT_FE_MINI_PID_PARSER0_CTRL1, PARSER_TIMESTAMP_MODE, pConfig->TsMode);
@@ -630,18 +718,6 @@ BERR_Code BMXT_SetParserConfig(BMXT_Handle handle, unsigned parserNum, const BMX
     BCHP_SET_FIELD_DATA(Reg, DEMOD_XPT_FE_MINI_PID_PARSER0_CTRL1, PARSER_PACKET_TYPE, pConfig->DssMode ? 1 : 0);
     BCHP_SET_FIELD_DATA(Reg, DEMOD_XPT_FE_MINI_PID_PARSER0_CTRL1, PARSER_INPUT_SEL_MSB, (pConfig->InputBandNumber > PARSER_INPUT_SEL_MASK) ? 1 : 0);
     BCHP_SET_FIELD_DATA(Reg, DEMOD_XPT_FE_MINI_PID_PARSER0_CTRL1, PARSER_INPUT_SEL, (pConfig->InputBandNumber & PARSER_INPUT_SEL_MASK));
-    BCHP_SET_FIELD_DATA(Reg, DEMOD_XPT_FE_MINI_PID_PARSER0_CTRL1, PARSER_ENABLE, pConfig->Enable ? 1 : 0);
-
-    /* PARSER_ENABLE workaround */
-    if ((handle->settings.chip==BMXT_Chip_e45308) && (handle->settings.chipRev<BMXT_ChipRev_eC0)) {
-        if (!pConfig->Enable) {
-            unsigned unusedInputBandNumber = 20;
-            BCHP_SET_FIELD_DATA(Reg, DEMOD_XPT_FE_MINI_PID_PARSER0_CTRL1, PARSER_ENABLE, 1);
-            BCHP_SET_FIELD_DATA(Reg, DEMOD_XPT_FE_MINI_PID_PARSER0_CTRL1, PARSER_INPUT_SEL_MSB, (unusedInputBandNumber > PARSER_INPUT_SEL_MASK) ? 1 : 0);
-            BCHP_SET_FIELD_DATA(Reg, DEMOD_XPT_FE_MINI_PID_PARSER0_CTRL1, PARSER_INPUT_SEL, (unusedInputBandNumber & PARSER_INPUT_SEL_MASK));
-        }
-    }
-
     BMXT_RegWrite32(handle, RegAddr, Reg);
 
     if (BMXT_IS_45308_FAMILY()) {
@@ -656,10 +732,10 @@ BERR_Code BMXT_SetParserConfig(BMXT_Handle handle, unsigned parserNum, const BMX
         case 0:
 #ifdef BCHP_PWR_RESOURCE_MTSIF_TX0
             if (handle->platform.type==BMXT_P_PlatformType_eReg) {
-                if (pConfig->Enable && !parserEnabled) {
+                if (pConfig->Enable && !wasEnabled) {
                     BCHP_PWR_AcquireResource(handle->hChp, BCHP_PWR_RESOURCE_MTSIF_TX0);
                 }
-                else if (!pConfig->Enable && parserEnabled) {
+                else if (!pConfig->Enable && wasEnabled) {
                     BCHP_PWR_ReleaseResource(handle->hChp, BCHP_PWR_RESOURCE_MTSIF_TX0);
                 }
             }
@@ -668,10 +744,10 @@ BERR_Code BMXT_SetParserConfig(BMXT_Handle handle, unsigned parserNum, const BMX
         case 1:
 #ifdef BCHP_PWR_RESOURCE_MTSIF_TX1
             if (handle->platform.type==BMXT_P_PlatformType_eReg) {
-                if (pConfig->Enable && !parserEnabled) {
+                if (pConfig->Enable && !wasEnabled) {
                     BCHP_PWR_AcquireResource(handle->hChp, BCHP_PWR_RESOURCE_MTSIF_TX1);
                 }
-                else if (!pConfig->Enable && parserEnabled) {
+                else if (!pConfig->Enable && wasEnabled) {
                     BCHP_PWR_ReleaseResource(handle->hChp, BCHP_PWR_RESOURCE_MTSIF_TX1);
                 }
             }
@@ -690,15 +766,7 @@ BERR_Code BMXT_SetParserConfig(BMXT_Handle handle, unsigned parserNum, const BMX
             goto done;
         }
 
-        RegAddr = R(BCHP_DEMOD_XPT_FE_MTSIF_TX0_BAND0_BAND3_ID) + 4*(parserNum/4) + (STEP(BMXT_RESOURCE_MTSIF_TX0_CTRL1)*pConfig->mtsifTxSelect);
-        Reg = BMXT_RegRead32(handle, RegAddr);
-        switch (parserNum%4) {
-            case 0: BCHP_SET_FIELD_DATA(Reg, DEMOD_XPT_FE_MTSIF_TX0_BAND0_BAND3_ID, MTSIF_BAND0_BAND_ID, pConfig->virtualParserNum); break;
-            case 1: BCHP_SET_FIELD_DATA(Reg, DEMOD_XPT_FE_MTSIF_TX0_BAND0_BAND3_ID, MTSIF_BAND1_BAND_ID, pConfig->virtualParserNum); break;
-            case 2: BCHP_SET_FIELD_DATA(Reg, DEMOD_XPT_FE_MTSIF_TX0_BAND0_BAND3_ID, MTSIF_BAND2_BAND_ID, pConfig->virtualParserNum); break;
-            case 3: BCHP_SET_FIELD_DATA(Reg, DEMOD_XPT_FE_MTSIF_TX0_BAND0_BAND3_ID, MTSIF_BAND3_BAND_ID, pConfig->virtualParserNum); break;
-        }
-        BMXT_RegWrite32(handle, RegAddr, Reg);
+        BMXT_P_SetVirtualParserNum(handle, pConfig->mtsifTxSelect, parserNum, pConfig->virtualParserNum);
         BDBG_MSG(("BAND_ID mapping: MTSIF_TX: TX%u, parser%u, addr 0x%08x", pConfig->mtsifTxSelect, parserNum, RegAddr));
     }
     else {
@@ -749,21 +817,18 @@ BERR_Code BMXT_SetParserConfig(BMXT_Handle handle, unsigned parserNum, const BMX
 }
 #endif
 
-#if 0 /* PARSER_VERSION feature disabled for now */
-    if (!rc && BMXT_IS_45308_FAMILY()) {
-        /* increment PARSER_VERSION *after* changing config, regardless of whether we enable or disable parser */
-        unsigned parserVersion;
-
-        RegAddr = R(BCHP_DEMOD_XPT_FE_MINI_PID_PARSER0_CTRL2) + (parserNum * STEP(BMXT_RESOURCE_MINI_PID_PARSER0_CTRL1));
-        Reg = BMXT_RegRead32(handle, RegAddr);
-        parserVersion = BCHP_GET_FIELD_DATA(Reg, DEMOD_XPT_FE_MINI_PID_PARSER0_CTRL2, PARSER_VERSION);
-        BCHP_SET_FIELD_DATA(Reg, DEMOD_XPT_FE_MINI_PID_PARSER0_CTRL2, PARSER_VERSION, ++parserVersion);
-        BMXT_RegWrite32(handle, RegAddr, Reg);
-
-        /* TODO: implement DROP_TILL_LAST feature, once available.
-           don't bother using DATA_RDY, since we're not that dependent on speed */
+    /* channel start or new settings while channel was running */
+    if (pConfig->Enable) {
+        BMXT_P_ParserVersion(handle, parserNum);
     }
-#endif
+
+    /* PARSER_ENABLE always done last */
+    BMXT_P_SetParserEnable(handle, parserNum, pConfig->Enable);
+
+    /* channel stop */
+    if (!pConfig->Enable && wasEnabled) {
+        BMXT_P_ParserVersion(handle, parserNum);
+    }
 
 done:
     BDBG_MSG(("SetParserConfig%u: enable%u, IB%2u, BAND_ID%2u, MTSIF%u, DSS%u", parserNum, pConfig->Enable, pConfig->InputBandNumber, pConfig->virtualParserNum, pConfig->mtsifTxSelect, pConfig->DssMode));
@@ -1193,4 +1258,58 @@ BERR_Code BMXT_Tbg_SetGlobalConfig(BMXT_Handle handle, const BMXT_Tbg_GlobalConf
     BMXT_RegWrite32(handle, R(BCHP_DEMOD_XPT_FE_TB_GLOBAL_CTRL2), reg);
 
     return BERR_SUCCESS;
+}
+
+/* DCBG helper */
+unsigned BMXT_P_GetParserInputBand(BMXT_Handle handle, unsigned parserNum)
+{
+    uint32_t val, addr, rc;
+    addr = R(BCHP_DEMOD_XPT_FE_MINI_PID_PARSER0_CTRL1) + (parserNum * STEP(BMXT_RESOURCE_MINI_PID_PARSER0_CTRL1));
+    val = BMXT_RegRead32(handle, addr);
+#if USE_PARSER_ENABLE_WORKAROUND
+    if ((handle->settings.chip==BMXT_Chip_e45308) && (handle->settings.chipRev<BMXT_ChipRev_eC0)) {
+        rc = BCHP_GET_FIELD_DATA(val, DEMOD_XPT_FE_MINI_PID_PARSER0_CTRL1, PARSER_INPUT_SEL);
+    }
+    else
+#endif
+    {
+        rc = BCHP_GET_FIELD_DATA(val, DEMOD_XPT_FE_MINI_PID_PARSER0_CTRL1, PARSER_INPUT_SEL) +
+        (BCHP_GET_FIELD_DATA(val, DEMOD_XPT_FE_MINI_PID_PARSER0_CTRL1, PARSER_INPUT_SEL_MSB) ? (PARSER_INPUT_SEL_MASK+1) : 0);
+    }
+    return rc;
+}
+
+void BMXT_P_SetParserAcceptNull(BMXT_Handle handle, unsigned parserNum, bool enable)
+{
+    uint32_t val, addr;
+    addr = R(BCHP_DEMOD_XPT_FE_MINI_PID_PARSER0_CTRL1) + (parserNum * STEP(BMXT_RESOURCE_MINI_PID_PARSER0_CTRL1));
+    val = BMXT_RegRead32(handle, addr);
+    BCHP_SET_FIELD_DATA(val, DEMOD_XPT_FE_MINI_PID_PARSER0_CTRL1, PARSER_ACCEPT_NULL_PKT_PRE_MPOD, enable ? 1 : 0);
+    BMXT_RegWrite32(handle, addr, val);
+    return;
+}
+
+void BMXT_P_RegDump(BMXT_Handle handle)
+{
+#if 0 /* generic, simple for-loop */
+    uint32_t i;
+    uint32_t start = R(BCHP_DEMOD_XPT_FE_FE_CTRL);
+    uint32_t end = R(BCHP_DEMOD_XPT_FE_SPID_TABLE_i_ARRAY_BASE); /* print upto, but not including SPID table */
+
+    for (i=start; i<end; i+=4) {
+        BKNI_Printf("%08x = %08x\n", i, BMXT_RegRead32(handle, i));
+    }
+#elif 1 /* chip-specific, manual printout */
+    void BMXT_P_RegDump_Fe(BMXT_Handle handle);
+    void BMXT_P_RegDump_Dcbg(BMXT_Handle handle);
+    void BMXT_P_RegDump_L2Intr(BMXT_Handle handle);
+
+    BMXT_P_RegDump_Fe(handle);
+    BMXT_P_RegDump_Dcbg(handle);
+    BMXT_P_RegDump_L2Intr(handle);
+#else
+    void BMXT_P_RegDump_Quick(BMXT_Handle handle);
+    BMXT_P_RegDump_Quick(handle);
+#endif
+    handle->dumpIndex++;
 }

@@ -676,7 +676,7 @@ BERR_Code BADS_Leap_SetAcquireParams(
             buf[7] = ibParams->frequencyOffset/256;  /* Carrier Range [7:0] */
 
     /*        if(ibParams->modType <= BADS_ModulationType_eAnnexAQam4096)*/
-			if(1)
+            if(1)
 
             {
                 /* set AnnexA SymbolRate */
@@ -806,7 +806,7 @@ BERR_Code BADS_Leap_Acquire(
     BERR_Code retCode = BERR_SUCCESS;
     BADS_Leap_ChannelHandle hImplChnDev;
 #if BADS_CHIP==3158
-	uint8_t buf[13] = HAB_MSG_HDR(BADS_eAcquire, 0x8, BADS_CORE_TYPE);
+    uint8_t buf[13] = HAB_MSG_HDR(BADS_eAcquire, 0x8, BADS_CORE_TYPE);
 #else
     uint8_t buf[5] = HAB_MSG_HDR(BADS_eAcquire, 0, BADS_CORE_TYPE);
 #endif
@@ -833,15 +833,15 @@ BERR_Code BADS_Leap_Acquire(
         /* Acquire */
         buf[3] = hImplChnDev->chnNo;
 #if BADS_CHIP==3158
-	buf[8] = ibParam->frequency >> 24;
-	buf[9] = ibParam->frequency >> 16;
-	buf[10] = ibParam->frequency >> 8;
-	buf[11] = ibParam->frequency;
+        buf[8] = ibParam->frequency >> 24;
+        buf[9] = ibParam->frequency >> 16;
+        buf[10] = ibParam->frequency >> 8;
+        buf[11] = ibParam->frequency;
 
-	CHK_RETCODE(retCode, BHAB_SendHabCommand(hImplChnDev->hHab, buf, 13, buf, 0, false, true, 13 ));
+        CHK_RETCODE(retCode, BHAB_SendHabCommand(hImplChnDev->hHab, buf, 13, buf, 0, false, true, 13 ));
 #else
 
-	CHK_RETCODE(retCode, BHAB_SendHabCommand(hImplChnDev->hHab, buf, 5, buf, 0, false, true, 5 ));
+        CHK_RETCODE(retCode, BHAB_SendHabCommand(hImplChnDev->hHab, buf, 5, buf, 0, false, true, 5 ));
 #endif
         CHK_RETCODE(retCode, BHAB_EnableLockInterrupt(hImplChnDev->hHab, hImplChnDev->devId, true));
     }
@@ -968,7 +968,7 @@ BERR_Code BADS_Leap_GetAsyncStatus(
         pStatus->accCleanCount = (int32_t)((buf[0x38] << 24) | (buf[0x39] << 16) | (buf[0x3a] << 8) | buf[0x3b]);
         pStatus->cleanCount = 0; /* Not supported */
 
-        BDBG_MSG(("QamLock = %d, FecLock = %d, : ElapsedTime_u32= %d ms TotalTime= %d ms", pStatus->isQamLock, pStatus->isFecLock, ((buf[0x0c] << 8) | buf[0x0d]), ((buf[0x48] << 8) | buf[0x49])));
+        BDBG_MSG(("ADS Channel %d QamLock = %d, FecLock = %d, : ElapsedTime_u32= %d ms TotalTime= %d ms", hImplChnDev->chnNo, pStatus->isQamLock, pStatus->isFecLock, ((buf[0x0c] << 8) | buf[0x0d]), ((buf[0x48] << 8) | buf[0x49])));
     }
 
 done:
@@ -1597,4 +1597,3 @@ done:
     BDBG_LEAVE(BADS_Leap_GetSpectrumAnalyzerData);
     return( retCode );
 }
-

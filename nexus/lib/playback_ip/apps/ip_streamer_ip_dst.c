@@ -455,7 +455,7 @@ openNexusIpDstWithTimeshift(
             return -1;
         }
         NEXUS_Playback_GetDefaultPidChannelSettings(&pidCfg0);
-        NEXUS_Playpump_GetAllPassPidChannelIndex(playbackSettings.playpump, (unsigned *) &pidCfg0.pidSettings.pidSettings.pidChannelIndex );
+        NEXUS_Playpump_GetAllPassPidChannelIndex(playbackSettings.playpump, &pidCfg0.pidSettings.pidSettings.pidChannelIndex );
         ipStreamerCtx->allPassPidChannel = NEXUS_Playback_OpenPidChannel(ipStreamerCtx->fileSrc->playbackHandle, 0x00, &pidCfg0);   /* PID is ignored in allPass mode */
         if (ipStreamerCtx->allPassPidChannel == NULL) {
             BDBG_ERR(("%s: NEXUS_Playback_OpenPidChannel() Failed", __FUNCTION__));

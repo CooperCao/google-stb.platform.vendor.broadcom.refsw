@@ -1,6 +1,6 @@
 #############################################################################
 #    Broadcom Proprietary and Confidential. (c)2013-2014 Broadcom. All rights reserved.
-# 
+#
 # This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
 # conditions of a separate, written license agreement executed between you and Broadcom
@@ -9,60 +9,58 @@
 # Software, and Broadcom expressly reserves all rights in and to the Software and all
 # intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
 # HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-# NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.  
-#  
+# NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+#
 # Except as expressly set forth in the Authorized License,
-#  
+#
 # 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
 # secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
 # and to use this information only in connection with your use of Broadcom integrated circuit products.
-#  
-# 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS" 
-# AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR 
-# WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO 
-# THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES 
-# OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE, 
-# LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION 
-# OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF 
+#
+# 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+# AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+# WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+# THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+# OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+# LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+# OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
 # USE OR PERFORMANCE OF THE SOFTWARE.
-# 
-# 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS 
-# LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR 
-# EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR 
-# USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF 
-# THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT 
-# ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE 
-# LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF 
+#
+# 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+# LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+# EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+# USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+# THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+# ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+# LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 # ANY LIMITED REMEDY.
 #
 #############################################################################
 
-.NOTPARALLEL:
-
 apps:
-	make -C geom_viewer
-	make -C hello_anim
-	make -C hello_cube
-	make -C hello_fbo
-	make -C hello_task
-	make -C hello_text
-	make -C hello_lod
-	make -C logo_menu
-	make -C pg
-	make -C planets
-	make -C spytool_replay
-	make -C video_texturing_decoder
+	$(MAKE) -C geom_viewer
+	$(MAKE) -C hello_anim
+	$(MAKE) -C hello_cube
+	$(MAKE) -C hello_fbo
+	$(MAKE) -C hello_task
+	$(MAKE) -C hello_text
+	$(MAKE) -C hello_lod
+	$(MAKE) -C logo_menu
+	$(MAKE) -C pg
+	$(MAKE) -C planets
+	$(MAKE) -C spytool_replay
+	$(MAKE) -C video_texturing_decoder
 
 clean:
-	make -C geom_viewer clean
-	make -C hello_anim clean
-	make -C hello_cube clean
-	make -C hello_fbo clean
-	make -C hello_task clean
-	make -C hello_text clean
-	make -C hello_lod clean
-	make -C logo_menu clean
-	make -C pg clean
-	make -C planets clean
-	make -C spytool_replay clean
-	make -C video_texturing_decoder clean
+	$(MAKE) -C geom_viewer clean
+	$(MAKE) -C hello_anim clean
+	$(MAKE) -C hello_cube clean
+	$(MAKE) -C hello_fbo clean
+	$(MAKE) -C hello_task clean
+	$(MAKE) -C hello_text clean
+	$(MAKE) -C hello_lod clean
+	$(MAKE) -C logo_menu clean
+	$(MAKE) -C pg clean
+	$(MAKE) -C planets clean
+	$(MAKE) -C spytool_replay clean
+	$(MAKE) -C video_texturing_decoder clean

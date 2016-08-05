@@ -3415,8 +3415,15 @@ static int page_file_management(
                     printf( "    pMemConfigSettings->videoEncoder[%u].used = %u;\n", venc, pSettings->videoEncoder[venc].used );
                 }
                 printf( "#endif /* if NEXUS_HAS_VIDEO_ENCODER */\n" );
+                printf( "\n" );
             }
 #endif /* if NEXUS_HAS_VIDEO_ENCODER */
+            {
+                printf( "    pMemConfigSettings->videoInputs.hdDvi = %u;\n", pSettings->videoInputs.hdDvi );
+                printf( "    pMemConfigSettings->videoInputs.ccir656 = %u;\n", pSettings->videoInputs.ccir656 );
+                printf( "\n" );
+            }
+
             for (heapIdx = 0; heapIdx<NEXUS_MAX_HEAPS; heapIdx++)
             {
                 if (g_heap_info[heapIdx].megabytes)
@@ -5868,8 +5875,8 @@ int main(
     char     stateFilenameRestored[STATE_FILE_FULL_PATH_LEN];
     char     strTemp[128];
 
-	BKNI_Init();
-	BDBG_Init();
+    BKNI_Init();
+    BDBG_Init();
 
     BKNI_Memset( &platformSettings, 0, sizeof( platformSettings ));
     BKNI_Memset( &platformStatusPrevious, 0, sizeof( platformStatusPrevious ));

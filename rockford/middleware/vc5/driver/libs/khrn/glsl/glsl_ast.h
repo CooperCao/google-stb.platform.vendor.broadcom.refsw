@@ -77,21 +77,13 @@ typedef enum
    PRIM_CONS_FROM_COMPONENT_FLOW
 } PrimConsFlavour;
 
-struct _Expr
-{
-   /*
-      flavour
+/* TODO: we construct x *= y as x = x * y but this is wrong. The following don't exist:
+      EXPR_MUL_ASSIGN,
+      EXPR_DIV_ASSIGN,
+      EXPR_ADD_ASSIGN,
+      EXPR_SUB_ASSIGN, */
 
-      Explains how this expression was constructed syntactically.
-
-      We extend the language to add intrinsics.
-
-      TODO: we construct x *= y as x = x * y but this is wrong. The following don't exist:
-         EXPR_MUL_ASSIGN,
-         EXPR_DIV_ASSIGN,
-         EXPR_ADD_ASSIGN,
-         EXPR_SUB_ASSIGN,
-   */
+struct _Expr {
    ExprFlavour flavour;
    int         line_num;     /* The source line on which the expression appeared. */
    SymbolType *type;
@@ -108,11 +100,7 @@ struct _Expr
 
       // EXPR_INSTANCE
       struct {
-         /*
-            symbol->flavour in {SYMBOL_VAR_INSTANCE,SYMBOL_PARAM_INSTANCE}
-            symbol->type is a shallow_match for type
-         */
-         Symbol *symbol;         /* The variable of which this is an instance */
+         Symbol *symbol;         /* The variable or parameter of which this is an instance */
       } instance;
 
       // EXPR_SUBSCRIPT
@@ -123,8 +111,7 @@ struct _Expr
 
       // EXPR_FUNCTION_CALL
       struct {
-         /* function->flavour == SYMBOL_FUNCTION_TYPE */
-         Symbol    *function;
+         Symbol    *function;    /* function->flavour == SYMBOL_FUNCTION_TYPE */
          ExprChain *args;        /* In order, i.e. leftmost first */
       } function_call;
 
@@ -208,25 +195,25 @@ bool glsl_is_lvalue(Expr *expr);
 MemoryQualifier glsl_get_mem_flags(Expr *expr);
 
 // On failure, these functions call glsl_compile_error() and return NULL.
-Expr *glsl_expr_construct_const_value(PrimitiveTypeIndex type_index, const_value v);
-Expr *glsl_expr_construct_instance(Symbol *symbol);
-Expr *glsl_expr_construct_subscript(Expr* aggregate, Expr* subscript);
-Expr *glsl_expr_construct_function_call(Symbol* overload_chain, ExprChain* args);
-Expr *glsl_expr_construct_method_call(Expr* aggregate, CallContext* function_ctx);
-Expr *glsl_expr_construct_constructor_call(SymbolType* type, ExprChain* args);
-Expr *glsl_expr_construct_field_selector(Expr* aggregate, const char* field);
-Expr *glsl_expr_construct_unary_op(ExprFlavour flavour, Expr* operand);
-Expr *glsl_expr_construct_binary_op_arithmetic(ExprFlavour flavour, Expr* left, Expr* right);
-Expr *glsl_expr_construct_binary_op_logical(ExprFlavour flavour, Expr* left, Expr* right);
-Expr *glsl_expr_construct_binary_op_shift(ExprFlavour flavour, Expr* left, Expr* right);
-Expr *glsl_expr_construct_binary_op_bitwise(ExprFlavour flavour, Expr* left, Expr* right);
-Expr *glsl_expr_construct_binary_op_relational(ExprFlavour flavour, Expr* left, Expr* right);
-Expr *glsl_expr_construct_binary_op_equality(ExprFlavour flavour, Expr* left, Expr* right);
-Expr *glsl_expr_construct_cond_op(Expr *cond, Expr *if_true, Expr *if_false);
-Expr *glsl_expr_construct_assign_op(Expr *lvalue, Expr *rvalue);
-Expr *glsl_expr_construct_sequence(Expr *all_these, Expr *then_this);
-Expr *glsl_expr_construct_array_length(Expr *array);
-Expr *glsl_expr_construct_intrinsic(ExprFlavour flavour, ExprChain *args);
+Expr *glsl_expr_construct_const_value(int line_num, PrimitiveTypeIndex type_index, const_value v);
+Expr *glsl_expr_construct_instance(int line_num, Symbol *symbol);
+Expr *glsl_expr_construct_subscript(int line_num, Expr *aggregate, Expr *subscript);
+Expr *glsl_expr_construct_function_call(int line_num, Symbol *overload_chain, ExprChain *args);
+Expr *glsl_expr_construct_method_call(int line_num, Expr *aggregate, CallContext *function_ctx);
+Expr *glsl_expr_construct_constructor_call(int line_num, SymbolType *type, ExprChain *args);
+Expr *glsl_expr_construct_field_selector(int line_num, Expr *aggregate, const char *field);
+Expr *glsl_expr_construct_unary_op(ExprFlavour flavour, int line_num, Expr *operand);
+Expr *glsl_expr_construct_binary_op_arithmetic(ExprFlavour flavour, int line_num, Expr *left, Expr *right);
+Expr *glsl_expr_construct_binary_op_logical   (ExprFlavour flavour, int line_num, Expr *left, Expr *right);
+Expr *glsl_expr_construct_binary_op_shift     (ExprFlavour flavour, int line_num, Expr *left, Expr *right);
+Expr *glsl_expr_construct_binary_op_bitwise   (ExprFlavour flavour, int line_num, Expr *left, Expr *right);
+Expr *glsl_expr_construct_binary_op_relational(ExprFlavour flavour, int line_num, Expr *left, Expr *right);
+Expr *glsl_expr_construct_binary_op_equality  (ExprFlavour flavour, int line_num, Expr *left, Expr *right);
+Expr *glsl_expr_construct_cond_op(int line_num, Expr *cond, Expr *if_true, Expr *if_false);
+Expr *glsl_expr_construct_assign_op(int line_num, Expr *lvalue, Expr *rvalue);
+Expr *glsl_expr_construct_sequence(int line_num, Expr *all_these, Expr *then_this);
+Expr *glsl_expr_construct_array_length(int line_num, Expr *array);
+Expr *glsl_expr_construct_intrinsic(ExprFlavour flavour, int line_num, ExprChain *args);
 
 
 //
@@ -252,6 +239,7 @@ struct _StatementChainNode
 
 StatementChain *glsl_statement_chain_create(void);
 StatementChain *glsl_statement_chain_append(StatementChain *chain, Statement *statement);
+StatementChain *glsl_statement_chain_cat(StatementChain *a, StatementChain *b);
 
 struct _Statement
 {
@@ -397,25 +385,25 @@ struct _Statement
 
 
 // On failure, these functions call glsl_compile_error() and return NULL.
-Statement *glsl_statement_construct(StatementFlavour flavour);
-Statement *glsl_statement_construct_ast(StatementChain* decls);
-Statement *glsl_statement_construct_decl_list(StatementChain* decls);
-Statement *glsl_statement_construct_function_def(Symbol* header, Statement* body);
-Statement *glsl_statement_construct_var_decl(QualList *quals, SymbolType *type, Symbol* var, Expr* initializer);
-Statement *glsl_statement_construct_compound(StatementChain* statements);
-Statement *glsl_statement_construct_expr(Expr* expr);
-Statement *glsl_statement_construct_selection(Expr* cond, Statement* if_true, Statement* if_false);
-Statement *glsl_statement_construct_iterator_for(Statement *init, Statement *cond_or_decl, Expr *loop, Statement *block);
-Statement *glsl_statement_construct_iterator_while(Statement* cond_or_decl, Statement* block);
-Statement *glsl_statement_construct_iterator_do_while(Statement* block, Expr* cond);
-Statement *glsl_statement_construct_return_expr(Expr* expr);
-Statement *glsl_statement_construct_switch(Expr* cond, StatementChain* chain);
-Statement *glsl_statement_construct_case(Expr* expr);
-Statement *glsl_statement_construct_struct_decl(SymbolType *type, QualList *quals, StatementChain *members);
-Statement *glsl_statement_construct_struct_member_decl(const char *name, ExprChain *size);
-Statement *glsl_statement_construct_precision(PrecisionQualifier prec, SymbolType *type);
-Statement *glsl_statement_construct_qualifier_default(QualList *quals);
-Statement *glsl_statement_construct_qualifier_augment(QualList *quals, SymbolList *vars);
+Statement *glsl_statement_construct(StatementFlavour flavour, int line_num);
+Statement *glsl_statement_construct_ast(int line_num, StatementChain *decls);
+Statement *glsl_statement_construct_decl_list(int line_num, StatementChain *decls);
+Statement *glsl_statement_construct_function_def(int line_num, Symbol *header, Statement *body);
+Statement *glsl_statement_construct_var_decl(int line_num, QualList *quals, SymbolType *type, Symbol *var, Expr *initializer);
+Statement *glsl_statement_construct_compound(int line_num, StatementChain *statements);
+Statement *glsl_statement_construct_expr(int line_num, Expr *expr);
+Statement *glsl_statement_construct_selection(int line_num, Expr *cond, Statement *if_true, Statement *if_false);
+Statement *glsl_statement_construct_iterator_for(int line_num, Statement *init, Statement *cond_or_decl, Expr *loop, Statement *block);
+Statement *glsl_statement_construct_iterator_while(int line_num, Statement *cond_or_decl, Statement *block);
+Statement *glsl_statement_construct_iterator_do_while(int line_num, Statement *block, Expr *cond);
+Statement *glsl_statement_construct_return_expr(int line_num, Expr *expr);
+Statement *glsl_statement_construct_switch(int line_num, Expr *cond, StatementChain *chain);
+Statement *glsl_statement_construct_case(int line_num, Expr *expr);
+Statement *glsl_statement_construct_struct_decl(int line_num, SymbolType *type, QualList *quals, StatementChain *members);
+Statement *glsl_statement_construct_struct_member_decl(int line_num, const char *name, ExprChain *size);
+Statement *glsl_statement_construct_precision(int line_num, PrecisionQualifier prec, SymbolType *type);
+Statement *glsl_statement_construct_qualifier_default(int line_num, QualList *quals);
+Statement *glsl_statement_construct_qualifier_augment(int line_num, QualList *quals, SymbolList *vars);
 
 void glsl_ast_validate(Statement *ast, ShaderFlavour flavour, int version);
 

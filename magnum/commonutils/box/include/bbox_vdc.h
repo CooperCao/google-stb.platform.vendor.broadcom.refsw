@@ -44,7 +44,6 @@
 
 #include "bstd.h"
 #include "berr_ids.h"    /* Error codes */
-#include "bbox_vdc_priv.h"
 #include "bfmt.h"
 
 #ifdef __cplusplus
@@ -73,6 +72,28 @@ extern "C" {
 /* This needs to be updated if the number of STG displays in VDC is updated. */
 #define BBOX_VDC_STG_DISPLAY_COUNT             6
 
+/***************************************************************************
+ * capability flags are or-ed during acquiring.
+ */
+typedef enum
+{
+    BBOX_Vdc_Resource_eMem0    =     (1<< 0),      /* able to access mem ctrl 0 */
+    BBOX_Vdc_Resource_eMem1    =     (1<< 1),      /* able to access mem ctrl 1 */
+    BBOX_Vdc_Resource_eMem2    =     (1<< 2),      /* able to access mem ctrl 2 */
+    BBOX_Vdc_Resource_eAllSrc  =     (1<< 3),      /* able to use by all sources */
+    BBOX_Vdc_Resource_eHd      =     (1<< 4),      /* able to handle HD size */
+    BBOX_Vdc_Resource_eMadr0   =     (1<< 5),      /* able to handle transcode 0*/
+    BBOX_Vdc_Resource_eMadr1   =     (1<< 6),      /* able to handle transcode 1*/
+    BBOX_Vdc_Resource_eMadr2   =     (1<< 7),      /* able to handle transcode 2*/
+    BBOX_Vdc_Resource_eMadr3   =     (1<< 8),      /* able to handle transcode 3*/
+    BBOX_Vdc_Resource_eMadr4   =     (1<< 9),      /* able to handle transcode 4*/
+    BBOX_Vdc_Resource_eMadr5   =     (1<<10),      /* able to handle transcode 5*/
+    BBOX_Vdc_Resource_eHdmi0   =     (1<<11),      /* able to handle HDMI output 0 */
+    BBOX_Vdc_Resource_eHdmi1   =     (1<<12),      /* able to handle HDMI output 1 */
+    BBOX_Vdc_Resource_eInvalid =     (0xffff)      /* cause acquire to fail */
+
+} BBOX_Vdc_Resource;
+
 #define BBOX_FTR_SD       (0)
 #define BBOX_FTR_HD       (BBOX_Vdc_Resource_eHd)
 #define BBOX_FTR_M0       (BBOX_Vdc_Resource_eMem0)
@@ -91,6 +112,7 @@ extern "C" {
 
 
 #define BBOX_FTR_INVALID  (BBOX_Vdc_Resource_eInvalid)
+#define BBOX_FTR_DISREGARD BBOX_VDC_DISREGARD
 #define BBOX_INVALID_NUM_MEMC 0xFFFFFFFF
 
 /* Macro for RDC memc index table entry */
@@ -160,7 +182,7 @@ typedef enum
  *  BBOX_Vdc_MosaicModeClass_eClass1: coverage for 1080p
  *  BBOX_Vdc_MosaicModeClass_eClass2: coverage for 4k
  *  BBOX_Vdc_MosaicModeClass_eClass3: coverage for 4k - 135%
- *  BBOX_Vdc_MosaicModeClass_eClass4: coverage for 4k
+ *  BBOX_Vdc_MosaicModeClass_eClass4: coverage for 4k LPDDR4
  *
  * TODO: fake PIP
  * Note: Enum names may change in the future
@@ -174,6 +196,68 @@ typedef enum
     BBOX_Vdc_MosaicModeClass_eClass4,
     BBOX_Vdc_MosaicModeClass_eDisregard = BBOX_VDC_DISREGARD
 } BBOX_Vdc_MosaicModeClass;
+
+typedef enum
+{
+    BBOX_Vdc_Display_eDisplay0 = 0,
+    BBOX_Vdc_Display_eDisplay1,
+    BBOX_Vdc_Display_eDisplay2,
+    BBOX_Vdc_Display_eDisplay3,
+    BBOX_Vdc_Display_eDisplay4,
+    BBOX_Vdc_Display_eDisplay5,
+    BBOX_Vdc_Display_eDisplay6,
+    BBOX_Vdc_Display_eDisregard = BBOX_VDC_DISREGARD
+} BBOX_Vdc_DisplayId;
+
+typedef enum
+{
+    BBOX_Vdc_StgCoreId_e0,
+    BBOX_Vdc_StgCoreId_e1,
+    BBOX_Vdc_StgCoreId_e2,
+    BBOX_Vdc_StgCoreId_e3,
+    BBOX_Vdc_StgCoreId_e4,
+    BBOX_Vdc_StgCoreId_e5,
+    BBOX_Vdc_StgCoreId_eInvalid = BBOX_FTR_INVALID
+} BBOX_Vdc_StgCoreId;
+
+typedef enum
+{
+    BBOX_Vdc_EncoderCoreId_e0,
+    BBOX_Vdc_EncoderCoreId_e1,
+    BBOX_Vdc_EncoderCoreId_eDisregard = BBOX_VDC_DISREGARD,
+    BBOX_Vdc_EncoderCoreId_eInvalid = BBOX_FTR_INVALID
+} BBOX_Vdc_EncoderCoreId;
+
+typedef enum
+{
+    BBOX_Vdc_EncoderChannelId_e0,
+    BBOX_Vdc_EncoderChannelId_e1,
+    BBOX_Vdc_EncoderChannelId_e2,
+    BBOX_Vdc_EncoderChannelId_eDisregard = BBOX_VDC_DISREGARD,
+    BBOX_Vdc_EncoderChannelId_eInvalid = BBOX_FTR_INVALID
+} BBOX_Vdc_EncoderChannelId;
+
+typedef enum
+{
+    BBOX_Vdc_Window_eVideo0 = 0,
+    BBOX_Vdc_Window_eVideo1,
+    BBOX_Vdc_Window_eGfx0,
+    BBOX_Vdc_Window_eGfx1,
+    BBOX_Vdc_Window_eGfx2,
+    BBOX_Vdc_Window_eDisregard = BBOX_VDC_DISREGARD
+} BBOX_Vdc_WindowId;
+
+typedef enum
+{
+    BBOX_Vdc_Deinterlacer_eDeinterlacer0 = 0,
+    BBOX_Vdc_Deinterlacer_eDeinterlacer1,
+    BBOX_Vdc_Deinterlacer_eDeinterlacer2,
+    BBOX_Vdc_Deinterlacer_eDeinterlacer3,
+    BBOX_Vdc_Deinterlacer_eDeinterlacer4,
+    BBOX_Vdc_Deinterlacer_eDeinterlacer5,
+    BBOX_Vdc_Deinterlacer_eDisregard = BBOX_VDC_DISREGARD,
+    BBOX_Vdc_Deinterlacer_eInvalid = BBOX_FTR_INVALID
+} BBOX_Vdc_DeinterlacerId;
 
 typedef struct
 {
@@ -202,6 +286,7 @@ Description:
     bAvailable   - specifies if source is available
     bMtgCapable  - only applies to Mpeg Feeders (MFD) and specifies if MFD
                    is MTG-capable
+    bCompressed  - applies to GFD only
     stSizeLimits - specifies the source's frame buffer size
     eColorSpace - specifies source's colorspace
     eBpp - specifies number of bits per pixel
@@ -211,6 +296,7 @@ typedef struct
 {
     bool                       bAvailable;
     bool                       bMtgCapable;
+    bool                       bCompressed;
     BBOX_Vdc_PictureSizeLimits stSizeLimits;
     BBOX_Vdc_Colorspace        eColorSpace;
     BBOX_Vdc_Bpp               eBpp;
@@ -358,7 +444,7 @@ typedef struct BBOX_Vdc_Capabilities
     BBOX_Vdc_Display_Capabilities astDisplay[BBOX_VDC_DISPLAY_COUNT];
 
     /* This specifies the capabilities available for a given source. Note that
-       only GFX and HD-DVI are have imposed VDC BOX limits. The rest are
+       only GFX and HD-DVI have imposed VDC BOX limits. The rest are
        disregarded by VDC. */
     BBOX_Vdc_Source_Capabilities astSource[BAVC_SourceId_eMax];
 

@@ -1,23 +1,46 @@
-/***************************************************************************
- *     Copyright (c) 2013-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
  *
- * Module Description:
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
  *
- * Revision History:
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
- * 
- ***************************************************************************/
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************/
+
+
+
 
 #include "bdcm_device.h"
 
@@ -38,7 +61,7 @@ struct BDCM_AdsChannel
     void *pCallbackParam[BDCM_AdsCallback_eLast];
     unsigned long ifFreq; /* IF Frequency in Hertz */
     bool autoAcquire;     /* does auto-reacuire or not*/
-    bool fastAcquire; 
+    bool fastAcquire;
     BDCM_AdsLockStatus lockStatus;    /* current lock status */
     BKNI_MutexHandle mutex;              /* mutex to protect lock status*/
     uint32_t accCorrectedCount;          /* Accumulated corrected block count. Reset on every reset status */
@@ -62,7 +85,7 @@ BERR_Code BDCM_Ads_GetChannelDefaultSettings(BDCM_AdsSettings *pSettings)
 
 BDCM_AdsChannelHandle BDCM_Ads_OpenChannel(
     void  *handle,
-    uint32_t channelNum,					                 
+    uint32_t channelNum,
     const struct BDCM_AdsSettings *pSettings
     )
 {
@@ -74,13 +97,13 @@ BDCM_AdsChannelHandle BDCM_Ads_OpenChannel(
 
     BDBG_ASSERT(pSettings);
     BDBG_ENTER(BDCM_Ads_OpenChannel);
-    
-    if(channelNum >=hDevice->maxChannels || hDevice->hAds[channelNum]) 
+
+    if(channelNum >=hDevice->maxChannels || hDevice->hAds[channelNum])
     {
          retCode = BERR_TRACE(BERR_INVALID_PARAMETER);
          BDBG_ERR(("%s either exceeded max channels or channel is already opened",__FUNCTION__));
          BDBG_ERR(("%s channelNum:maxChannels - %d:%d hDevice->hAds[%d]:%ul ",__FUNCTION__,
-                   channelNum,hDevice->maxChannels,channelNum,hDevice->hAds[channelNum]));
+                   channelNum,hDevice->maxChannels,channelNum,(unsigned int)hDevice->hAds[channelNum]));
          goto done;
     }
     /* Alloc memory from the system heap */
@@ -182,7 +205,7 @@ BERR_Code BDCM_Ads_AcquireChannel(
     CHK_RETCODE(retCode, BRPC_CallProc(hChannel->hDevice->hRpc,
                                        BRPC_ProcId_ADS_Acquire,
                                        (const uint32_t *)&Param,
-                                       sizeInLong(Param), 
+                                       sizeInLong(Param),
                                        NULL, 0, &retVal));
     CHK_RETCODE(retCode, retVal);
 done:
@@ -299,7 +322,7 @@ BERR_Code BDCM_Ads_GetChannelLockStatus(
 	BDBG_ENTER(BDCM_Ads_GetChannelLockStatus);
 	BDBG_ASSERT(hChannel);
     BDBG_ASSERT( pLockStatus );
-    
+
 #ifndef USE_RPC_GET_LOCK_STATUS
 	BKNI_AcquireMutex(hChannel->mutex);
 	*pLockStatus = hChannel->lockStatus;
@@ -312,7 +335,7 @@ BERR_Code BDCM_Ads_GetChannelLockStatus(
                                        (const uint32_t *)&Param,
                                        sizeInLong(Param),
                                        (uint32_t *)&outParam,
-                                       sizeInLong(outParam), 
+                                       sizeInLong(outParam),
                                        &retVal));
 	CHK_RETCODE(retCode, retVal);
 	*pLockStatus = (outParam.isQamLock == true) && (outParam.isFecLock == true);
@@ -324,10 +347,10 @@ done:
 
 BERR_Code BDCM_Ads_GetChannelSoftDecision(
     BDCM_AdsChannelHandle hChannel,
-    int16_t nbrToGet,                    
-    int16_t *iVal,						
-    int16_t *qVal,				
-    int16_t *nbrGotten				
+    int16_t nbrToGet,
+    int16_t *iVal,
+    int16_t *qVal,
+    int16_t *nbrGotten
     )
 {
     BERR_Code retCode = BERR_SUCCESS;
@@ -343,14 +366,14 @@ BERR_Code BDCM_Ads_GetChannelSoftDecision(
     BDBG_ASSERT(nbrGotten);
 
     BDBG_ENTER(BDCM_Ads_GetChannelSoftDecision);
-    
+
     Param.devId = hChannel->devId;
     *nbrGotten = 0;
     for(cnt = nbrToGet; cnt > 0; cnt -= MX_IQ_PER_GET)
     {
 
         CHK_RETCODE(retCode, BRPC_CallProc(hChannel->hDevice->hRpc,
-                                           BRPC_ProcId_ADS_GetSoftDecision, 
+                                           BRPC_ProcId_ADS_GetSoftDecision,
                                            (const uint32_t *)&Param,
                                            sizeInLong(Param),
                                            (uint32_t *)&outParam,
@@ -358,7 +381,7 @@ BERR_Code BDCM_Ads_GetChannelSoftDecision(
                                            &retVal));
         CHK_RETCODE(retCode, retVal);
         BDBG_MSG(("%s nbrGotten%d",__FUNCTION__,outParam.nbrGotten));
-        if(outParam.nbrGotten > (unsigned)cnt) 
+        if(outParam.nbrGotten > (unsigned)cnt)
         {
             outParam.nbrGotten = cnt;
         }
@@ -409,7 +432,7 @@ BERR_Code BDCM_Ads_ProcessChannelNotification(
 
     event_code = event>>16;
 
-    switch (event_code) 
+    switch (event_code)
     {
 	    case BRPC_Notification_Event_LockStatusChanged:
 	        lockStatus = (event & BRPC_Qam_Lock) && (event & BRPC_Fec_Lock);
@@ -436,7 +459,7 @@ BERR_Code BDCM_Ads_ProcessChannelNotification(
 
 BERR_Code BDCM_Ads_InstallChannelCallback(
     BDCM_AdsChannelHandle hChannel,
-    BDCM_AdsCallback callbackType,	
+    BDCM_AdsCallback callbackType,
     BDCM_AdsCallbackFunc pCallback,
     void *pParam
     )
@@ -444,7 +467,7 @@ BERR_Code BDCM_Ads_InstallChannelCallback(
     BERR_Code retCode = BERR_SUCCESS;
     BDBG_ENTER(BDCM_Ads_InstallChannelCallback);
     BDBG_ASSERT(hChannel);
-    
+
     switch(callbackType)
     {
         case BDCM_AdsCallback_eLockChange:

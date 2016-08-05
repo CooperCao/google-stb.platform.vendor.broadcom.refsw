@@ -451,4 +451,13 @@ INLINE void SYS_TableAgeUpdateTimeStamp(SYS_TableAgingData_t *const agingData)
     *agingData->lastTimeStamp = HAL_GetSystemTime();
 }
 
+/*
+ * Repeat pragma GCC optimize because function definitions (including inlined) turn these pragrmas off automatically
+ * when compiled by G++ but not GCC.
+ */
+#if (defined(__arm__) || defined(__i386__)) && !defined(__clang__)
+# pragma GCC optimize "short-enums"     /* Implement short enums. */
+# pragma GCC diagnostic ignored "-Wattributes"
+#endif
+
 #endif /* _BB_SYS_TABLE_H */

@@ -146,7 +146,7 @@ typedef struct NEXUS_AudioEncoder
     NEXUS_OBJECT(NEXUS_AudioEncoder);
     BAPE_EncoderHandle encoder;
     NEXUS_AudioInputObject connector;
-    NEXUS_AudioInput input;
+    NEXUS_AudioInputHandle input;
     char name[8];   /* ENCODER */
 } NEXUS_AudioEncoder;
 
@@ -274,7 +274,7 @@ typedef struct NEXUS_AudioDecoder
 
 /***************************************************************************
 Summary:
-    Make sure a NEXUS_AudioInput is suitable for DSP processing
+    Make sure a NEXUS_AudioInputHandle is suitable for DSP processing
  ***************************************************************************/
 #define NEXUS_AUDIO_INPUT_CHECK_FROM_DSP(input) \
     do {\
@@ -306,7 +306,7 @@ Summary:
     specified node will be searched.
  ***************************************************************************/
 bool NEXUS_AudioInput_P_IsRunning(
-    NEXUS_AudioInput input
+    NEXUS_AudioInputHandle input
     );
 
 /***************************************************************************
@@ -315,7 +315,7 @@ Summary:
     an input/mixer will become invalid.
  ***************************************************************************/
 NEXUS_Error NEXUS_AudioInput_P_RemoveMixerOutputs(
-    NEXUS_AudioInput input
+    NEXUS_AudioInputHandle input
     );
 
 /***************************************************************************
@@ -324,7 +324,7 @@ Summary:
     node will be searched until a format is found.
  ***************************************************************************/
 NEXUS_AudioInputFormat NEXUS_AudioInput_P_GetFormat_isrsafe(
-    NEXUS_AudioInput input
+    NEXUS_AudioInputHandle input
     );
 
 #define NEXUS_AudioInput_P_GetFormat(input) NEXUS_AudioInput_P_GetFormat_isrsafe(input)
@@ -335,22 +335,22 @@ Summary:
     many inputs are supported, etc. should be done by the caller.
  ***************************************************************************/
 NEXUS_Error NEXUS_AudioInput_P_AddInput(
-    NEXUS_AudioInput destination,
-    NEXUS_AudioInput source);
+    NEXUS_AudioInputHandle destination,
+    NEXUS_AudioInputHandle source);
 
 /***************************************************************************
 Summary:
     Remove all inputs to the specified connector.
  ***************************************************************************/
 NEXUS_Error NEXUS_AudioInput_P_RemoveAllInputs(
-    NEXUS_AudioInput destination
+    NEXUS_AudioInputHandle destination
     );
 
 /***************************************************************************
 Summary:
     Remove a single input from the specified connector.
  ***************************************************************************/
-NEXUS_Error NEXUS_AudioInput_P_RemoveInput(NEXUS_AudioInput destination, NEXUS_AudioInput source);
+NEXUS_Error NEXUS_AudioInput_P_RemoveInput(NEXUS_AudioInputHandle destination, NEXUS_AudioInputHandle source);
 
 /***************************************************************************
 Summary:
@@ -358,8 +358,8 @@ Summary:
     connector.
  ***************************************************************************/
 bool NEXUS_AudioInput_P_IsConnected(
-    NEXUS_AudioInput destination,
-    NEXUS_AudioInput source
+    NEXUS_AudioInputHandle destination,
+    NEXUS_AudioInputHandle source
     );
 
 /***************************************************************************
@@ -367,7 +367,7 @@ Summary:
     Retrieve all outputs downstream from this connector.
  ***************************************************************************/
 NEXUS_Error NEXUS_AudioInput_P_GetOutputs(
-    NEXUS_AudioInput input,
+    NEXUS_AudioInputHandle input,
     NEXUS_AudioOutputList *pOutputList,
     bool directOnly                         /* If true, only outputs connected to this channel will be returned.
                                                If false, all outputs downstream will be returned, including those
@@ -383,8 +383,8 @@ Summary:
     broken.
  ***************************************************************************/
 NEXUS_Error NEXUS_AudioInput_P_SetConnectionData(
-    NEXUS_AudioInput destination,
-    NEXUS_AudioInput source,
+    NEXUS_AudioInputHandle destination,
+    NEXUS_AudioInputHandle source,
     const void *pData,
     size_t dataSize
     );
@@ -395,8 +395,8 @@ Summary:
     and destination.  May be NULL if not previously set.
  ***************************************************************************/
 const void *NEXUS_AudioInput_P_GetConnectionData(
-    NEXUS_AudioInput destination,
-    NEXUS_AudioInput source
+    NEXUS_AudioInputHandle destination,
+    NEXUS_AudioInputHandle source
     );
 
 /***************************************************************************
@@ -404,7 +404,7 @@ Summary:
     Connect an audio output to the specified connector.
  ***************************************************************************/
 NEXUS_Error NEXUS_AudioInput_P_ConnectOutput(
-    NEXUS_AudioInput input,
+    NEXUS_AudioInputHandle input,
     NEXUS_AudioOutputHandle output
     );
 
@@ -413,7 +413,7 @@ Summary:
     Disconnect an audio output from the specified connector.
  ***************************************************************************/
 NEXUS_Error NEXUS_AudioInput_P_DisconnectOutput(
-    NEXUS_AudioInput input,
+    NEXUS_AudioInputHandle input,
     NEXUS_AudioOutputHandle output
     );
 
@@ -422,7 +422,7 @@ Summary:
     Prepare the input chain to start, building downstream connections.
  ***************************************************************************/
 NEXUS_Error NEXUS_AudioInput_P_PrepareToStart(
-    NEXUS_AudioInput input
+    NEXUS_AudioInputHandle input
     );
 
 /***************************************************************************
@@ -430,7 +430,7 @@ Summary:
     Notify the input chain of a data format change (e.g. sample rate)
  ***************************************************************************/
 NEXUS_Error NEXUS_AudioInput_P_FormatChanged(
-    NEXUS_AudioInput input,
+    NEXUS_AudioInputHandle input,
     NEXUS_AudioInputFormatData *pData
     );
 
@@ -439,8 +439,8 @@ Summary:
     Returns the first object downstream from the current object that matches
     the specified type.  This is a depth-first search, not breadth-first.
  ***************************************************************************/
-NEXUS_AudioInput NEXUS_AudioInput_P_FindByType(
-    NEXUS_AudioInput input,
+NEXUS_AudioInputHandle NEXUS_AudioInput_P_FindByType(
+    NEXUS_AudioInputHandle input,
     NEXUS_AudioInputType type
     );
 
@@ -450,7 +450,7 @@ Summary:
     accordingly.
  ***************************************************************************/
 NEXUS_Error NEXUS_AudioInput_P_OutputSettingsChanged(
-    NEXUS_AudioInput input,
+    NEXUS_AudioInputHandle input,
     NEXUS_AudioOutputHandle output
     );
 
@@ -459,7 +459,7 @@ Summary:
     Get the mixer input volume for a particular input
  ***************************************************************************/
 void NEXUS_AudioInput_P_GetVolume(
-    NEXUS_AudioInput input,
+    NEXUS_AudioInputHandle input,
     BAPE_MixerInputVolume *pInputVolume    /* [out] */
     );
 
@@ -468,7 +468,7 @@ Summary:
     Set the mixer input volume for a particular input
  ***************************************************************************/
 NEXUS_Error NEXUS_AudioInput_P_SetVolume(
-    NEXUS_AudioInput input,
+    NEXUS_AudioInputHandle input,
     const BAPE_MixerInputVolume *pInputVolume
     );
 
@@ -478,7 +478,7 @@ Summary:
  ***************************************************************************/
 NEXUS_Error NEXUS_AudioMixer_P_SetInputVolume(
     NEXUS_AudioMixerHandle handle,
-    NEXUS_AudioInput input,
+    NEXUS_AudioInputHandle input,
     const BAPE_MixerInputVolume *pInputVolume
     );
 
@@ -503,7 +503,7 @@ Summary:
     Get an external input port handle
  ***************************************************************************/
 BAPE_InputPort NEXUS_AudioInput_P_GetInputPort(
-    NEXUS_AudioInput input
+    NEXUS_AudioInputHandle input
     );
 
 /***************************************************************************
@@ -511,7 +511,7 @@ Summary:
 Determine if this input supports dynamic format changes
  ***************************************************************************/
 bool NEXUS_AudioInput_P_SupportsFormatChanges(
-    NEXUS_AudioInput input
+    NEXUS_AudioInputHandle input
     );
 
 /***************************************************************************
@@ -519,7 +519,7 @@ Summary:
 Enable/Disable interrupt for dynamic format changes
  ***************************************************************************/
 NEXUS_Error NEXUS_AudioInput_P_SetFormatChangeInterrupt(
-    NEXUS_AudioInput input, NEXUS_AudioInputType clientType,
+    NEXUS_AudioInputHandle input, NEXUS_AudioInputType clientType,
     void (*pCallback_isr)(void *, int),
     void *pParam1,
     int param2
@@ -530,7 +530,7 @@ Summary:
 Set stc index for compressed audio DSP use
  ***************************************************************************/
 NEXUS_Error NEXUS_AudioInput_P_SetStcIndex(
-    NEXUS_AudioInput input,
+    NEXUS_AudioInputHandle input,
     unsigned stcIndex
     );
 /***************************************************************************
@@ -542,7 +542,7 @@ Retrieves input status information.  This is currently only supported for
 HDMI or SPDIF inputs.
  ***************************************************************************/
 NEXUS_Error NEXUS_AudioInput_P_GetInputPortStatus(
-    NEXUS_AudioInput input,
+    NEXUS_AudioInputHandle input,
     NEXUS_AudioInputPortStatus *pStatus     /* [out] */
     );
 
@@ -554,7 +554,7 @@ Description:
 This function should only be used when the system is shutting down to
 avoid clobbering application state.
  ***************************************************************************/
-void NEXUS_AudioInput_P_ForceStop(NEXUS_AudioInput input);
+void NEXUS_AudioInput_P_ForceStop(NEXUS_AudioInputHandle input);
 
 /***************************************************************************
 Summary:
@@ -565,7 +565,7 @@ typedef struct NEXUS_AudioOutputData
 {
     BDBG_OBJECT(NEXUS_AudioOutputData)
     NEXUS_AudioOutputSettings settings;
-    NEXUS_AudioInput input;
+    NEXUS_AudioInputHandle input;
     NEXUS_AudioOutputSyncSettings syncSettings;
     NEXUS_AudioOutputStatus status;
     NEXUS_AudioEqualizerHandle equalizer;
@@ -612,6 +612,22 @@ Summary:
     Power Down the DAC
  ***************************************************************************/
 void NEXUS_AudioDac_P_PowerDown (
+    void *pHandle
+    );
+
+/***************************************************************************
+Summary:
+    Power Up SPDIF
+ ***************************************************************************/
+void NEXUS_SpdifOutput_P_PowerUp (
+    void *pHandle
+    );
+
+/***************************************************************************
+Summary:
+    Power Down SPDIF
+ ***************************************************************************/
+void NEXUS_SpdifOutput_P_PowerDown (
     void *pHandle
     );
 
@@ -683,7 +699,7 @@ Summary:
  ***************************************************************************/
 NEXUS_Error NEXUS_AudioMuxOutput_P_AddInput(
     NEXUS_AudioMuxOutputHandle handle,
-    NEXUS_AudioInput input
+    NEXUS_AudioInputHandle input
     );
 
 /***************************************************************************
@@ -692,7 +708,7 @@ Summary:
  ***************************************************************************/
 void NEXUS_AudioMuxOutput_P_RemoveInput(
     NEXUS_AudioMuxOutputHandle handle,
-    NEXUS_AudioInput input
+    NEXUS_AudioInputHandle input
     );
 #endif
 
@@ -990,7 +1006,7 @@ Summary:
     Return NULL if no mixer is found.
  ***************************************************************************/
 NEXUS_AudioMixerHandle NEXUS_AudioInput_P_LocateMixer(
-    NEXUS_AudioInput source,
+    NEXUS_AudioInputHandle source,
     NEXUS_AudioMixerHandle hLastMixerHandle
     );
 
@@ -1007,8 +1023,8 @@ NEXUS_Error NEXUS_AudioDecoder_P_IsDspMixerAttached(
 Summary:
     Iterate the connector's downstream list the next downstream object.
  ***************************************************************************/
-NEXUS_AudioInput NEXUS_AudioInput_P_LocateDownstream(
-    NEXUS_AudioInput source
+NEXUS_AudioInputHandle NEXUS_AudioInput_P_LocateDownstream(
+    NEXUS_AudioInputHandle source
     );
 
 /***************************************************************************
@@ -1016,7 +1032,7 @@ Summary:
     Iterate the objects output list.
  ***************************************************************************/
 NEXUS_AudioOutputHandle NEXUS_AudioInput_P_LocateOutput(
-    NEXUS_AudioInput source,
+    NEXUS_AudioInputHandle source,
     NEXUS_AudioOutputHandle hLastAudioOutput
     );
 
@@ -1025,7 +1041,7 @@ Summary:
     Starts all FMM mixers attached to an input
  ***************************************************************************/
 NEXUS_Error NEXUS_AudioInput_P_ExplictlyStartFMMMixers(
-    NEXUS_AudioInput input
+    NEXUS_AudioInputHandle input
     );
 
 /***************************************************************************
@@ -1033,7 +1049,7 @@ Summary:
     Stop all FMM mixers attached to an input
  ***************************************************************************/
 void NEXUS_AudioInput_P_ExplictlyStopFMMMixers(
-    NEXUS_AudioInput input
+    NEXUS_AudioInputHandle input
     );
 
 /***************************************************************************
@@ -1087,9 +1103,11 @@ NEXUS_OBJECT_CLASS_DECLARE(NEXUS_Ac3Encode);
 NEXUS_OBJECT_CLASS_DECLARE(NEXUS_AudioCapture);
 NEXUS_OBJECT_CLASS_DECLARE(NEXUS_AudioCrc);
 NEXUS_OBJECT_CLASS_DECLARE(NEXUS_AudioDecoderPrimer);
+NEXUS_OBJECT_CLASS_DECLARE(NEXUS_DolbyDigitalReencode);
 NEXUS_OBJECT_CLASS_DECLARE(NEXUS_AudioEncoder);
 NEXUS_OBJECT_CLASS_DECLARE(NEXUS_AudioEqualizer);
 NEXUS_OBJECT_CLASS_DECLARE(NEXUS_AudioEqualizerStage);
+NEXUS_OBJECT_CLASS_DECLARE(NEXUS_AudioInputCapture);
 NEXUS_OBJECT_CLASS_DECLARE(NEXUS_AudioMixer);
 NEXUS_OBJECT_CLASS_DECLARE(NEXUS_AudioMuxOutput);
 NEXUS_OBJECT_CLASS_DECLARE(NEXUS_AudioOutputGroup);

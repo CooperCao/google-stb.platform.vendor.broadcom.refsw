@@ -3,6 +3,8 @@ Broadcom Proprietary and Confidential. (c)2016 Broadcom.
 All rights reserved.
 =============================================================================*/
 
+#if KHRN_GLES31_DRIVER
+
 #include "gl_public_api.h"
 #include "../common/khrn_render_state.h"
 #include "glxx_server.h"
@@ -21,7 +23,7 @@ static bool memory_barrier(glxx_hw_render_state* rs, void* param)
    if (rs->base.has_buffer_writes && rs->server_state == state)
       glxx_hw_render_state_flush(rs);
 
-   return true;
+   return false;
 }
 
 GL_APICALL void GL_APIENTRY glMemoryBarrier(GLbitfield barriers)
@@ -45,7 +47,7 @@ GL_APICALL void GL_APIENTRY glMemoryBarrier(GLbitfield barriers)
    if ((barriers & mask) == 0)
       return;
 
-   GLXX_SERVER_STATE_T* state = GL31_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T* state = glxx_lock_server_state(OPENGL_ES_3X);
    if (!state)
       return;
 
@@ -56,7 +58,7 @@ GL_APICALL void GL_APIENTRY glMemoryBarrier(GLbitfield barriers)
    if (state->compute_render_state != NULL)
       glxx_compute_render_state_flush(state->compute_render_state);
 
-   GL31_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 // timh-todo: Implement without performing a flush.
@@ -72,7 +74,7 @@ GL_APICALL void GL_APIENTRY glMemoryBarrierByRegion(GLbitfield barriers)
       |  GL_TEXTURE_FETCH_BARRIER_BIT
       |  GL_UNIFORM_BARRIER_BIT;
 
-   GLXX_SERVER_STATE_T* state = GL31_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T* state = glxx_lock_server_state(OPENGL_ES_3X);
    if (!state)
       return;
 
@@ -84,5 +86,7 @@ GL_APICALL void GL_APIENTRY glMemoryBarrierByRegion(GLbitfield barriers)
 
    glxx_hw_render_state_foreach(memory_barrier, state);
 
-   GL31_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
+
+#endif

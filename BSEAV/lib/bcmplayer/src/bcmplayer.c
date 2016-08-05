@@ -123,17 +123,21 @@ typedef struct BNAV_sPktFifoEntry
     struct BNAV_sPktFifoEntry *next;
 } BNAV_PktFifoEntry;
 
+struct BNAV_Player_P_PtsCacheEntry {
+    uint32_t pts;
+    long index;
+    unsigned sectionCounter; /* on a PTS discontinuity, this is incremented */
+};
+
 struct BNAV_Player_P_PtsCache {
     /* PTS cache size is equal to number of pictures that can be stored in playback and video fifos.
     Worst case is very large fifo, very low bit rate stream and a high frame rate.
-    If fifos are 3 MB, stream is 1Mbps and frame rate is 60fps, pts cache size will be 1440.
-    If B_MAXIMUM_PTS_CACHE_COMPACTION is 200 msec, then the same cache only requires 120 (24 seconds / 200 msec). */
+    If fifos are 3 MB, stream is 1Mbps and frame rate is 60fps, pts cache size will be 1440. */
 #define PTS_CACHE_SIZE 600
-    struct {
-        uint32_t pts;
-        long index;
-        unsigned sectionCounter; /* on a PTS discontinuity, this is incremented */
-    } cache[PTS_CACHE_SIZE];
+/* set upper bound in case app is not calling BNAV_Player_DiscardToPts */
+#define MAX_PTS_CACHE_SIZE (600*8)
+    struct BNAV_Player_P_PtsCacheEntry *cache;
+    unsigned cacheSize;
     unsigned wptr;               /* index to write next entry to fifo */
     unsigned rptr;               /* index of oldest entry in the fifo, beginning of a "backwards search" */
     bool doBackwardPtsSearch;    /* If set search backwards instead of forwards. this means starting the search from the most recently added PTS,
@@ -313,25 +317,33 @@ void BNAV_Player_GetDefaultSettings(BNAV_Player_Settings *settings)
 
 int BNAV_Player_Open(BNAV_Player_Handle *handle, const BNAV_Player_Settings *settings)
 {
+    int rc;
     *handle = (BNAV_Player_Handle)malloc(sizeof(struct BNAV_Player_HandleImpl));
     if(*handle==NULL) {
-        return -1;
+        return BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
     }
 
     memset(*handle, 0, sizeof(**handle));
 
-    /* At this point, we are opened. If reset fails, a close must be performed. */
-    if (BNAV_Player_Reset(*handle, settings)) {
-        /* Free everything */
-        BNAV_Player_Close(*handle);
+    (*handle)->ptscache.cacheSize = PTS_CACHE_SIZE;
+    (*handle)->ptscache.cache = malloc((*handle)->ptscache.cacheSize * sizeof(struct BNAV_Player_P_PtsCacheEntry));
+    if (!(*handle)->ptscache.cache) {
+        rc = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
+        goto error;
+    }
 
-        /* NULLing this is not required, but it may help prevent some application failures */
-        *handle = NULL;
-
-        return -1;
+    rc = BNAV_Player_Reset(*handle, settings);
+    if (rc) {
+        BERR_TRACE(rc);
+        goto error;
     }
 
     return 0;
+
+error:
+    BNAV_Player_Close(*handle);
+    *handle = NULL;
+    return -1;
 }
 
 int BNAV_Player_Reset(BNAV_Player_Handle handle, const BNAV_Player_Settings *settings)
@@ -457,8 +469,12 @@ int BNAV_Player_Reset(BNAV_Player_Handle handle, const BNAV_Player_Settings *set
 
 void BNAV_Player_Close(BNAV_Player_Handle handle)
 {
-    if (handle->navCache)
+    if (handle->ptscache.cache) {
+        free(handle->ptscache.cache);
+    }
+    if (handle->navCache) {
         free(handle->navCache);
+    }
     free(handle);
 }
 
@@ -2214,8 +2230,8 @@ static long BNAV_Player_P_FindPictureIndex(BNAV_Player_Handle handle, long start
     return startIndex;
 }
 
-#define B_PTSCACHE_PREV(index) ((index)?(index)-1:PTS_CACHE_SIZE-1)
-#define B_PTSCACHE_NEXT(index) ((index)==PTS_CACHE_SIZE-1?0:(index)+1)
+#define B_PTSCACHE_PREV(handle, index) ((index)?(index)-1:((handle)->ptscache.cacheSize)-1)
+#define B_PTSCACHE_NEXT(handle, index) ((index)==((handle)->ptscache.cacheSize)-1?0:(index)+1)
 
 /* Enable this code for debug of cache entries */
 static void print_pts_cache(BNAV_Player_Handle handle)
@@ -2225,7 +2241,7 @@ static void print_pts_cache(BNAV_Player_Handle handle)
     unsigned i;
     /* dump entire PTS cache from oldest to newest */
     BKNI_Printf("PTS cache: %d..%d\n", ptscache->rptr, ptscache->wptr);
-    for (i=ptscache->rptr;i!=ptscache->wptr;i=B_PTSCACHE_NEXT(i)) {
+    for (i=ptscache->rptr;i!=ptscache->wptr;i=B_PTSCACHE_NEXT(handle, i)) {
         BKNI_Printf("%d: %#x @ %d\n", i, ptscache->cache[i].pts, ptscache->cache[i].index);
     }
 #else
@@ -2237,7 +2253,7 @@ void BNAV_Player_P_AddToPTSCache(BNAV_Player_Handle handle, uint32_t pts, long i
 {
     if (handle->ptscache.wptr != handle->ptscache.rptr) {
         /* discard if this duplicates the previous */
-        unsigned prev = B_PTSCACHE_PREV(handle->ptscache.wptr);
+        unsigned prev = B_PTSCACHE_PREV(handle, handle->ptscache.wptr);
         if (handle->ptscache.cache[prev].pts == pts) {
             return;
         }
@@ -2253,9 +2269,6 @@ it is limited by GOP size, which is practically limited by channel change time. 
 /* coded for worst case of one PTS per GOP, GOP of 2 seconds in 45Khz PTS units */
 #define B_REQUIRED_MIN_DIFF (45000*2)
 
-/* 200 msec in 45Khz PTS units */
-#define B_MAXIMUM_PTS_CACHE_COMPACTION (200*45)
-
         /* only reorder and mark discontinuities only in normal play */
         if (handle->playMode == eBpPlayNormal) {
             /* check thresholds,
@@ -2267,7 +2280,7 @@ it is limited by GOP size, which is practically limited by channel change time. 
                 while (1) {
                     handle->ptscache.cache[i] = handle->ptscache.cache[prev];
                     i = prev;
-                    prev = B_PTSCACHE_PREV(prev);
+                    prev = B_PTSCACHE_PREV(handle, prev);
                     if (prev == handle->ptscache.rptr ||
                         handle->ptscache.cache[prev].pts <= pts ||
                         handle->ptscache.cache[prev].sectionCounter != handle->ptscache.sectionCounter)
@@ -2299,44 +2312,32 @@ it is limited by GOP size, which is practically limited by channel change time. 
     handle->ptscache.cache[handle->ptscache.wptr].sectionCounter = handle->ptscache.sectionCounter;
     BDBG_MSG_PTSCACHE(("AddToPTSCache (%ld,%#lx) at %d (section %d)", index, pts, handle->ptscache.wptr, handle->ptscache.sectionCounter));
 advance:
-    handle->ptscache.wptr = B_PTSCACHE_NEXT(handle->ptscache.wptr);
+    handle->ptscache.wptr = B_PTSCACHE_NEXT(handle, handle->ptscache.wptr);
     if (handle->ptscache.wptr == handle->ptscache.rptr) {
-        /* the cache is full. instead of just throwing away the oldest, compact.
-        because the fifo depth is likely steady state, compact the entire fifo in one pass */
-        if (handle->playDir < 0) {
-            /* in reverse, just eat the next one. it is likely I frames that can't be compacted. */
-            handle->ptscache.rptr = B_PTSCACHE_NEXT(handle->ptscache.rptr);
+        /* the cache is full. try to increate the buffer. */
+        unsigned larger_size = handle->ptscache.cacheSize * 2;
+        if (larger_size > MAX_PTS_CACHE_SIZE) {
+            BDBG_ERR(("bcmplayer ptscache full at %u. Is BNAV_Player_DiscardToPts being called?", handle->ptscache.cacheSize));
         }
         else {
-            /* for forward, we compact */
-            unsigned wptr, rptr;
-            bool done = false;
-            wptr = B_PTSCACHE_PREV(handle->ptscache.wptr);
-            BDBG_MSG_PTSCACHE(("compact pts cache start: %d..%d", handle->ptscache.rptr, handle->ptscache.wptr));
-            for (rptr=B_PTSCACHE_PREV(wptr); !done; rptr=B_PTSCACHE_PREV(rptr)) {
-                /* BDBG_WRN(("  test %d %#x, %d %#x", rptr, handle->ptscache.cache[rptr].pts, wptr, handle->ptscache.cache[wptr].pts)); */
-                done = (rptr==handle->ptscache.rptr);
-                if (handle->ptscache.cache[rptr].pts < handle->ptscache.cache[wptr].pts) {
-                    unsigned diff = handle->ptscache.cache[wptr].pts - handle->ptscache.cache[rptr].pts;
-                    if (diff < B_MAXIMUM_PTS_CACHE_COMPACTION) {
-                        /* overwrite this one */
-                        continue;
-                    }
-                }
-                /* keep this one */
-                wptr = B_PTSCACHE_PREV(wptr);
-                if (wptr != rptr) {
-                    handle->ptscache.cache[wptr] = handle->ptscache.cache[rptr];
-                    /* BDBG_WRN(("  copy it %d -> %d", rptr, wptr)); */
-                }
+            struct BNAV_Player_P_PtsCacheEntry *ptr;
+            BDBG_WRN(("expanding bcmplayer ptscache from %u to %u", handle->ptscache.cacheSize, larger_size));
+            ptr = malloc(larger_size * sizeof(struct BNAV_Player_P_PtsCacheEntry));
+            if (!ptr) {
+                BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
+                /* keep going with the memory we have */
             }
-            handle->ptscache.rptr = wptr;
-            BDBG_MSG_PTSCACHE(("compact pts cache end: %d..%d", handle->ptscache.rptr, handle->ptscache.wptr));
-            print_pts_cache(handle);
-
-            /* if there is nothing to compact, just eat the next one. pts lookup error likely. */
-            if (handle->ptscache.wptr == handle->ptscache.rptr) {
-                handle->ptscache.rptr = B_PTSCACHE_NEXT(handle->ptscache.rptr);
+            else {
+                unsigned i = handle->ptscache.rptr, wptr = 0;
+                do {
+                    ptr[wptr++] = handle->ptscache.cache[i];
+                    i = B_PTSCACHE_NEXT(handle, i);
+                } while (i != handle->ptscache.wptr);
+                handle->ptscache.cacheSize = larger_size;
+                handle->ptscache.rptr = 0;
+                handle->ptscache.wptr = wptr;
+                free(handle->ptscache.cache);
+                handle->ptscache.cache = ptr;
             }
         }
     }
@@ -2389,8 +2390,8 @@ static int BNAV_Player_P_FindIndexFromPts(BNAV_Player_Handle handle, unsigned lo
     if (ptscache->doBackwardPtsSearch) {
         /* doBackwardPtsSearch probably should be deprecated. no real use case and will likely return
         bad results for streams with PTS continuities (which is most streams). */
-        startindex = B_PTSCACHE_PREV(ptscache->wptr);
-        endindex = B_PTSCACHE_NEXT(ptscache->rptr);
+        startindex = B_PTSCACHE_PREV(handle, ptscache->wptr);
+        endindex = B_PTSCACHE_NEXT(handle, ptscache->rptr);
         increment = -1;
         ptsdecreasing = (handle->playDir < 0);
     }
@@ -2409,7 +2410,7 @@ static int BNAV_Player_P_FindIndexFromPts(BNAV_Player_Handle handle, unsigned lo
     2) we pass the target PTS but already found a match <= B_REQUIRED_MIN_DIFF
     3) we search the entire cache
     */
-    for (i=startindex; i!=endindex; i=((increment>0)?B_PTSCACHE_NEXT(i):B_PTSCACHE_PREV(i))) {
+    for (i=startindex; i!=endindex; i=((increment>0)?B_PTSCACHE_NEXT(handle, i):B_PTSCACHE_PREV(handle, i))) {
         unsigned thisdiff;
         bool past = false;
 
@@ -2467,7 +2468,6 @@ long BNAV_Player_FindIndexFromPts(BNAV_Player_Handle handle, unsigned long targe
         /* if this happens, please follow these steps:
         ensure that BNAV_Player_FindIndexFromPts is only being called for the decoder's current PTS; any other use
             lacks context and is not reliable. use timestamp instead.
-        consider increasing PTS_CACHE_SIZE if you really need to cache more
         consider accepting the failure and setting your current index, not based on PTS, but based
         on your current player location (BNAV_Player_GetPosition) plus an offset based on playback/video depth.
         it will not be frame accurate, but will likely be better than reworking this algorithm. */

@@ -1256,7 +1256,7 @@ int playback_svp(int argc, char* argv[])
        if(initSecureClock(drm_context) != 0)
        {
            BDBG_ERR(("%d Failed to initiize Secure Clock, quitting....\n",__LINE__));
-           goto EXIT_ALLOC
+           goto EXIT_ALLOC;
        }
     }
 
@@ -1513,7 +1513,7 @@ int main(int argc, char* argv[])
     rc = NEXUS_Sage_GetStatus(&sageStatus);
     if (rc==NEXUS_SUCCESS)
     {
-        BDBG_ERR(("SAGE URR: %s", sageStatus.urr.secured ? "ON" : "OFF"));
+        BDBG_MSG(("SAGE URR: %s", sageStatus.urr.secured ? "ON" : "OFF"));
     }
 
     setHeapsSecure(false);

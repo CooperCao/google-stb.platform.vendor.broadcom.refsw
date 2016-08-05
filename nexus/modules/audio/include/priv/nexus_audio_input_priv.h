@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2013 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *  
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,18 +35,10 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF 
 *  ANY LIMITED REMEDY.
 * 
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * API Description:
 *   API name: AudioInput
 *   Generic API for inputs to an audio mixer.
 *
-* Revision History:
-*
-* $brcm_Log: $
-* 
 ***************************************************************************/
 #ifndef NEXUS_AUDIO_INPUT_PRIV_H__
 #define NEXUS_AUDIO_INPUT_PRIV_H__
@@ -68,12 +60,12 @@ typedef struct NEXUS_AudioInputSyncSettings
 } NEXUS_AudioInputSyncSettings;
 
 void NEXUS_AudioInput_GetSyncSettings_priv(
-    NEXUS_AudioInput audioInput,
+    NEXUS_AudioInputHandle audioInput,
     NEXUS_AudioInputSyncSettings *pSyncSettings /* [out] */
     );
     
 NEXUS_Error NEXUS_AudioInput_SetSyncSettings_priv(
-    NEXUS_AudioInput audioInput,
+    NEXUS_AudioInputHandle audioInput,
     const NEXUS_AudioInputSyncSettings *pSyncSettings
     );
     
@@ -87,16 +79,15 @@ typedef struct NEXUS_AudioInputSyncStatus
 } NEXUS_AudioInputSyncStatus;
         
 NEXUS_Error NEXUS_AudioInput_GetSyncStatus_isr(
-    NEXUS_AudioInput audioInput,
+    NEXUS_AudioInputHandle audioInput,
     NEXUS_AudioInputSyncStatus *pSyncStatus /* [out] */
     );
 
 /* TODO: maybe this goes away when sync starts accepting decoder handles */
-void * NEXUS_AudioInput_GetDecoderHandle_priv(NEXUS_AudioInput audioInput);
+void * NEXUS_AudioInput_GetDecoderHandle_priv(NEXUS_AudioInputHandle audioInput);
 
 #ifdef __cplusplus
 }
 #endif
 
 #endif /* #ifndef NEXUS_AUDIO_INPUT_PRIV_H__ */
-

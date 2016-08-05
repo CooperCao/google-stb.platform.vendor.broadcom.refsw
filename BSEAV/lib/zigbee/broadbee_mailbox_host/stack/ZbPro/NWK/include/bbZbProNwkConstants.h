@@ -169,8 +169,9 @@
 #define ZBPRO_NWK_NO_OUTGOING_COST                  0U
 
 /**//**
- * \brief Maximum value of a link cost metric.
+ * \brief link cost metrics.
  */
+#define ZBPRO_NWK_MIN_LINK_COST                     1U
 #define ZBPRO_NWK_MAX_LINK_COST                     7U
 
 /**//**
@@ -203,7 +204,7 @@
 /**//**
  * \brief Threshold value of a link cost to neighbor.
  */
-#define ZBPRO_NWKC_ROUTE_TO_NEIGHBOR_LINK_COST_THRESHOLD   3U
+#define ZBPRO_NWKC_ROUTE_TO_NEIGHBOR_LINK_COST_THRESHOLD   5U
 
 /**//**
  * \brief This field identifies the network layer protocols in use and, for

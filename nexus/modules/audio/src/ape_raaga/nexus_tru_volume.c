@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2013 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *  
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -10,7 +10,7 @@
 *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
 *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
 *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.  
-   
+*
 *  Except as expressly set forth in the Authorized License,
 *   
 *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
@@ -35,17 +35,9 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF 
 *  ANY LIMITED REMEDY.
 * 
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * API Description:
 *   API name: TruVolume
 *    Specific APIs related to SRS TruVolume (formerly Volume IQ) Audio Processing
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 
@@ -58,7 +50,7 @@ typedef struct NEXUS_TruVolume
     NEXUS_OBJECT(NEXUS_TruVolume);
     NEXUS_AudioInputObject connector;
     NEXUS_TruVolumeSettings settings;
-    NEXUS_AudioInput input;
+    NEXUS_AudioInputHandle input;
     BAPE_TruVolumeHandle apeHandle;
     char name[11];   /* TRU VOLUME */
 } NEXUS_TruVolume;
@@ -137,6 +129,7 @@ NEXUS_TruVolumeHandle NEXUS_TruVolume_Open(
     NEXUS_OBJECT_INIT(NEXUS_TruVolume, handle);
     BKNI_Snprintf(handle->name, sizeof(handle->name), "TRU VOLUME");
     NEXUS_AUDIO_INPUT_INIT(&handle->connector, NEXUS_AudioInputType_eTruVolume, handle);
+    NEXUS_OBJECT_REGISTER(NEXUS_AudioInput, &handle->connector, Open);
     handle->connector.pName = handle->name;
     handle->connector.format = NEXUS_AudioInputFormat_eNone;    /* Determined by inputs */
     BAPE_TruVolume_GetDefaultSettings(&defaults);
@@ -174,7 +167,13 @@ static void NEXUS_TruVolume_P_Finalizer(
     BKNI_Free(handle);
 }
 
-NEXUS_OBJECT_CLASS_MAKE(NEXUS_TruVolume, NEXUS_TruVolume_Close);
+static void NEXUS_TruVolume_P_Release(NEXUS_TruVolumeHandle handle)
+{
+    NEXUS_OBJECT_UNREGISTER(NEXUS_AudioInput, &handle->connector, Close);
+    return;
+}
+
+NEXUS_OBJECT_CLASS_MAKE_WITH_RELEASE(NEXUS_TruVolume, NEXUS_TruVolume_Close);
 
 void NEXUS_TruVolume_GetSettings(
     NEXUS_TruVolumeHandle handle,
@@ -264,7 +263,7 @@ NEXUS_Error NEXUS_TruVolume_SetSettings(
     return BERR_SUCCESS;
 }
 
-NEXUS_AudioInput NEXUS_TruVolume_GetConnector(
+NEXUS_AudioInputHandle NEXUS_TruVolume_GetConnector(
     NEXUS_TruVolumeHandle handle
     )
 {
@@ -274,7 +273,7 @@ NEXUS_AudioInput NEXUS_TruVolume_GetConnector(
 
 NEXUS_Error NEXUS_TruVolume_AddInput(
     NEXUS_TruVolumeHandle handle,
-    NEXUS_AudioInput input
+    NEXUS_AudioInputHandle input
     )
 {
     NEXUS_Error errCode;
@@ -303,7 +302,7 @@ NEXUS_Error NEXUS_TruVolume_AddInput(
 
 NEXUS_Error NEXUS_TruVolume_RemoveInput(
     NEXUS_TruVolumeHandle handle,
-    NEXUS_AudioInput input
+    NEXUS_AudioInputHandle input
     )
 {
     NEXUS_Error errCode;
@@ -339,4 +338,3 @@ NEXUS_Error NEXUS_TruVolume_RemoveAllInputs(
     }
     return BERR_SUCCESS;
 }
-

@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -428,11 +428,20 @@ B_PlaybackIp_LiveStreamingOpen(
             BDBG_ERR(("%s: Failed to create an event\n", __FUNCTION__));
             goto error;
         }
-        liveStreamingHandle->hDataReadyEventLocal = liveStreamingHandle->dataReadyEvent;
 
+        /* Check streamijng mode. */
         NEXUS_Recpump_GetSettings( liveStreamingHandle->recpumpHandle, &recpumpSettings );
-        recpumpSettings.data.dataReady.callback = dataReadyCallbackFromRecpump;
-        recpumpSettings.data.dataReady.context  = liveStreamingHandle->dataReadyEvent;
+        if(liveStreamingHandle->settings.streamingMethod == B_PlaybackIpStreamingMethod_eSystemTimerBased)
+        {
+            recpumpSettings.data.dataReady.callback = NULL;
+            recpumpSettings.data.dataReady.context  = NULL;
+        }
+        else     /* B_PlaybackIpStreamingMethod_eRaveInterruptBased */
+        {
+            liveStreamingHandle->hDataReadyEventLocal = liveStreamingHandle->dataReadyEvent;
+            recpumpSettings.data.dataReady.callback = dataReadyCallbackFromRecpump;
+            recpumpSettings.data.dataReady.context  = liveStreamingHandle->dataReadyEvent;
+        }
         nrc = NEXUS_Recpump_SetSettings( liveStreamingHandle->recpumpHandle, &recpumpSettings );
         if (nrc != NEXUS_SUCCESS) {
             BDBG_ERR(("%s: NEXUS_Recpump_SetSettings failed to set the dataReadyCallback", __FUNCTION__));
@@ -758,20 +767,11 @@ liveStreamingThreadFromRaveBuffer(
         liveStreamingHandle->fclear = fclear = fopen(recordFileName, "w+b");
     }
     /* setup bytes to read: account for transport timestamp & aes encryption */
-    if (liveStreamingSettings->protocol==B_PlaybackIpProtocol_eRtp || liveStreamingSettings->protocol==B_PlaybackIpProtocol_eUdp)
-    {
-        if (liveStreamingSettings->transportTimestampEnabled)
-            clearBufferSize = (TS_PKT_SIZE+4) * HTTP_AES_BLOCK_SIZE;
-        else
-            clearBufferSize = TS_PKT_SIZE * HTTP_AES_BLOCK_SIZE;
-    }
+    /* Increase clearBuffer size to 60Kbytes based on latest http/udp optimization analysis.*/
+    if (liveStreamingSettings->transportTimestampEnabled)
+        clearBufferSize = (TS_PKT_SIZE+4) * HTTP_AES_BLOCK_SIZE * 5 * 4 ;
     else
-    {
-        if (liveStreamingSettings->transportTimestampEnabled)
-            clearBufferSize = (TS_PKT_SIZE+4) * HTTP_AES_BLOCK_SIZE * 5 ;
-        else
-            clearBufferSize = TS_PKT_SIZE * HTTP_AES_BLOCK_SIZE * 5 ;
-    }
+        clearBufferSize = TS_PKT_SIZE * HTTP_AES_BLOCK_SIZE * 5 * 4;
 
 #if (NEXUS_HAS_DMA || NEXUS_HAS_XPT_DMA) && NEXUS_HAS_SECURITY
     if (liveStreamingHandle->data.pvrDecKeyHandle) {
@@ -815,13 +815,31 @@ liveStreamingThreadFromRaveBuffer(
     gettimeofday(&start, NULL);
     maxrate = 15.;
 #endif
+
     while (!liveStreamingHandle->stop) {
         if(liveStreamingHandle->settings.dataReadyTimeoutInterval == 0)
         {
             liveStreamingHandle->settings.dataReadyTimeoutInterval = LIVE_STREAMING_DATA_READY_TIMEOUT_INTERVAL;
         }
 
-        rc = BKNI_WaitForEvent(liveStreamingHandle->dataReadyEvent, liveStreamingHandle->settings.dataReadyTimeoutInterval);
+        /* New timeOutInterval is present then overwrite the legacy one with the latest. Right now this is only supported for live cases.
+           Later we can think or having only one of them.*/
+        if(liveStreamingHandle->settings.timeOutIntervalInMs) {
+            liveStreamingHandle->settings.dataReadyTimeoutInterval = liveStreamingHandle->settings.timeOutIntervalInMs;
+        }
+
+
+        if(liveStreamingHandle->settings.streamingMethod == B_PlaybackIpStreamingMethod_eSystemTimerBased)
+        {
+            usleep(liveStreamingHandle->settings.dataReadyTimeoutInterval*1000);
+            rc = BERR_TIMEOUT;
+        }
+        else /* B_PlaybackIpStreamingMethod_eRaveInterruptBased */
+        {
+            rc = BKNI_WaitForEvent(liveStreamingHandle->dataReadyEvent, liveStreamingHandle->settings.dataReadyTimeoutInterval);
+        }
+
+
         if (liveStreamingHandle->stop) {
             BDBG_MSG(("%s: app asked us to stop streaming (handle %p)", __FUNCTION__, (void *)liveStreamingHandle));
             break;

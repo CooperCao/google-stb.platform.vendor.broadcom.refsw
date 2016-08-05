@@ -1,10 +1,3 @@
-/******************************************************************************
-* SGI FREE SOFTWARE LICENSE B (Version 2.0, Sept. 18, 2008)
-* Copyright (C) September 18, 2008 Silicon Graphics, Inc. All Rights Reserved.
-* This document is licensed under the SGI Free Software B License Version
-* 2.0. For details, see http://oss.sgi.com/projects/FreeB/ .
-*******************************************************************************/
-
 /*
  * Skeleton egl.h to provide compatibility for early GLES 1.0
  * applications. Several early implementations included gl.h

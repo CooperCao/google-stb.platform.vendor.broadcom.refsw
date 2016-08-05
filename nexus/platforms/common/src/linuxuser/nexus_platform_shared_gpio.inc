@@ -113,7 +113,7 @@ static void NEXUS_Platform_P_SharedGpio_ClosePin(NEXUS_GpioModuleOsSharedBankPin
     bcmdriver_shared_gpio_control control;
 
     control.command = bcmdriver_shared_gpio_command_close_pin;
-    NEXUS_Platform_P_SharedGpio_GetPinDesc(pin, &control.data.close_pin.pin);
+    NEXUS_Platform_P_SharedGpio_GetPinDesc_isrsafe(pin, &control.data.close_pin.pin);
 
     u_rc = ioctl(g_NEXUS_driverFd, BRCM_IOCTL_SHARED_GPIO_CONTROL, &control);
     if (u_rc) { rc = NEXUS_OS_ERROR; BERR_TRACE(rc); goto err; }
@@ -147,7 +147,7 @@ static NEXUS_Error NEXUS_Platform_P_SharedGpio_ClearInterrupt_isr(NEXUS_GpioModu
     bcmdriver_shared_gpio_control control;
 
     control.command = bcmdriver_shared_gpio_command_clear_int;
-    NEXUS_Platform_P_SharedGpio_GetPinDesc(pin, &control.data.clear_int.pin);
+    NEXUS_Platform_P_SharedGpio_GetPinDesc_isrsafe(pin, &control.data.clear_int.pin);
 
     u_rc = ioctl(g_NEXUS_driverFd, BRCM_IOCTL_SHARED_GPIO_CONTROL, &control);
     if (u_rc) { rc = NEXUS_OS_ERROR; BERR_TRACE(rc); goto err; }
@@ -163,7 +163,7 @@ static NEXUS_Error NEXUS_Platform_P_SharedGpio_SetInterruptMask_isr(NEXUS_GpioMo
     bcmdriver_shared_gpio_control control;
 
     control.command = bcmdriver_shared_gpio_command_set_int_mask;
-    NEXUS_Platform_P_SharedGpio_GetPinDesc(pin, &control.data.set_int_mask.pin);
+    NEXUS_Platform_P_SharedGpio_GetPinDesc_isrsafe(pin, &control.data.set_int_mask.pin);
     control.data.set_int_mask.disable = disable ? 1 : 0;
 
     u_rc = ioctl(g_NEXUS_driverFd, BRCM_IOCTL_SHARED_GPIO_CONTROL, &control);
@@ -180,7 +180,7 @@ static NEXUS_Error NEXUS_Platform_P_SharedGpio_SetStandby(NEXUS_GpioModuleOsShar
     bcmdriver_shared_gpio_control control;
 
     control.command = bcmdriver_shared_gpio_command_set_standby;
-    NEXUS_Platform_P_SharedGpio_GetPinDesc(pin, &control.data.set_standby.pin);
+    NEXUS_Platform_P_SharedGpio_GetPinDesc_isrsafe(pin, &control.data.set_standby.pin);
     control.data.set_standby.enable = enable ? 1 : 0;
 
     u_rc = ioctl(g_NEXUS_driverFd, BRCM_IOCTL_SHARED_GPIO_CONTROL, &control);

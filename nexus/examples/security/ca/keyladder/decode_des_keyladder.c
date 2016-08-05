@@ -373,23 +373,13 @@ int main(void)
 	}
 
 
-	/* Add video PID channel to keyslot */
-	NEXUS_PidChannel_GetStatus (videoProgram.pidChannel, &pidStatus);
-	videoPID = pidStatus.pidChannelIndex;
-	if ( NEXUS_Security_AddPidChannelToKeySlot(videoKeyHandle, videoPID)!= 0 )
-	{
-		printf("\nConfigPIDPointerTable failed \n");
-		return 1;
-	}
+    /* Add video PID channel to keyslot */
+    NEXUS_KeySlot_AddPidChannel ( videoKeyHandle, videoProgram.pidChannel);
 
-	/* Add video PID channel to keyslot */
-	NEXUS_PidChannel_GetStatus (audioProgram.pidChannel, &pidStatus);
-	audioPID = pidStatus.pidChannelIndex;
-	NEXUS_Security_AddPidChannelToKeySlot(audioKeyHandle, audioPID);
-
+    /* Add video PID channel to keyslot */
+    NEXUS_KeySlot_AddPidChannel ( audioKeyHandle, audioProgram.pidChannel);
 
 	printf ("\nSecurity Config OK\n");
-
 
 
     /* Bring up video display and outputs */

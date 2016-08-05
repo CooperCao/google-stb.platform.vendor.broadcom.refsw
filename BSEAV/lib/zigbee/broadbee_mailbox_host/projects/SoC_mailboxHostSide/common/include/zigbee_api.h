@@ -395,6 +395,7 @@ typedef struct zigbeeCallback {
     void (*SYS_EventNtfy)(SYS_EventNotifyParams_t *event);
 #ifdef _ZBPRO_
     void (*ZBPRO_ZDO_MgmtNwkUpdateUnsolInd)(ZBPRO_ZDO_MgmtNwkUpdateUnsolIndParams_t *indication);
+    void (*ZBPRO_ZDO_DeviceAnnceInd)(ZBPRO_ZDO_DeviceAnnceIndParams_t *indication);
     void (*ZBPRO_ZCL_IdentifyInd)(ZBPRO_ZCL_IdentifyIndParams_t *indication);
     void (*ZBPRO_ZCL_ProfileWideCmdReportAttributesInd)(ZBPRO_ZCL_ProfileWideCmdReportAttributesIndParams_t *indication);
     void (*ZBPRO_ZCL_GroupsCmdGetGroupMembershipResponseInd)(ZBPRO_ZCL_GroupsCmdGetGroupMembershipIndParams_t *indication);
@@ -425,7 +426,8 @@ typedef struct zigbeeCallback {
 
 #define DECLARE_SERVER_INDICATION_API_FUNCTION(name, indType, respType) \
     extern void server_##name(indType *indication, int socket);         \
-    extern void server_##name##_callback(unsigned int *buf, int socket);
+    extern void server_##name##_callback(unsigned int *buf, int socket);\
+    extern void server_##name##_non_rpc(indType *indication, int socket);
 
 #define DECLARE_CLIENT_REQUEST_API_FUNCTION(name, reqType, confType)    \
     extern void name(reqType *request);                                 \
@@ -622,6 +624,7 @@ DECLARE_SERVER_REQUEST_API_FUNCTION(ZBPRO_ZDO_MgmtBindReq, ZBPRO_ZDO_MgmtBindReq
 
 DECLARE_SERVER_INDICATION_API_FUNCTION(ZBPRO_ZDO_MgmtNwkUpdateUnsolInd, ZBPRO_ZDO_MgmtNwkUpdateUnsolIndParams_t, NoAppropriateType_t)
 
+DECLARE_SERVER_INDICATION_API_FUNCTION(ZBPRO_ZDO_DeviceAnnceInd, ZBPRO_ZDO_DeviceAnnceIndParams_t, NoAppropriateType_t)
 DECLARE_SERVER_REQUEST_API_FUNCTION(ZBPRO_TC_NwkKeyUpdateReq, ZBPRO_TC_NwkKeyUpdateReqDescr_t, ZBPRO_TC_NwkKeyUpdateConfParams_t)
 
 DECLARE_SERVER_REQUEST_API_FUNCTION(ZBPRO_ZCL_SetPowerSourceReq, ZBPRO_ZCL_SetPowerSourceReqDescr_t, ZBPRO_ZCL_SetPowerSourceConfParams_t)
@@ -941,6 +944,8 @@ DECLARE_CLIENT_REQUEST_API_FUNCTION(ZBPRO_ZDO_MgmtLqiReq, ZBPRO_ZDO_MgmtLqiReqDe
 DECLARE_CLIENT_REQUEST_API_FUNCTION(ZBPRO_ZDO_MgmtBindReq, ZBPRO_ZDO_MgmtBindReqDescr_t, ZBPRO_ZDO_MgmtBindConfParams_t)
 
 DECLARE_CLIENT_INDICATION_API_FUNCTION(ZBPRO_ZDO_MgmtNwkUpdateUnsolInd, ZBPRO_ZDO_MgmtNwkUpdateUnsolIndParams_t, NoAppropriateType_t)
+
+DECLARE_CLIENT_INDICATION_API_FUNCTION(ZBPRO_ZDO_DeviceAnnceInd, ZBPRO_ZDO_DeviceAnnceIndParams_t, NoAppropriateType_t)
 
 DECLARE_CLIENT_REQUEST_API_FUNCTION(ZBPRO_TC_NwkKeyUpdateReq, ZBPRO_TC_NwkKeyUpdateReqDescr_t, ZBPRO_TC_NwkKeyUpdateConfParams_t)
 

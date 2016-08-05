@@ -50419,7 +50419,7 @@ const uint32_t BDSP_IMG_x264_encode_tables_header [2] = {sizeof(BDSP_IMG_x264_en
 const void * const BDSP_IMG_x264_encode_tables [5] = {BDSP_IMG_x264_encode_tables_header, BDSP_IMG_x264_encode_tables_array1, BDSP_IMG_x264_encode_tables_array2, BDSP_IMG_x264_encode_tables_array3, BDSP_IMG_x264_encode_tables_array4};
 const uint32_t BDSP_IMG_x264_encode_inter_frame_array1[] = {
 	0x00000000,
-	0x000025b8
+	0x000025cc
 };
 const uint32_t BDSP_IMG_x264_encode_inter_frame_header [2] = {sizeof(BDSP_IMG_x264_encode_inter_frame_array1), 1};
 const void * const BDSP_IMG_x264_encode_inter_frame [2] = {BDSP_IMG_x264_encode_inter_frame_header, BDSP_IMG_x264_encode_inter_frame_array1};

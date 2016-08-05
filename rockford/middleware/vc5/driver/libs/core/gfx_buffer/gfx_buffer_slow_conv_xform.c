@@ -11,6 +11,8 @@
 #include "libs/sim/qpu_float/qpu_float.h"
 #include "libs/util/assert_helpers.h"
 
+#include <math.h>
+
 typedef uint32_t (*XFORM_SLOT_FUNC_T)(
    uint32_t dst_slot_width, GFX_LFMT_TYPE_T dst_slot_type,
    uint32_t src_slot_bits, uint32_t src_slot_width, GFX_LFMT_TYPE_T src_slot_type,
@@ -843,9 +845,9 @@ void gfx_buffer_xform_float32_to_rgb9e5(
    uint32_t final_components[3];
 
    for (int c=0; c!=3; ++c)
-      clampeds[c] = gfx_fmax(0.0f, gfx_fmin((float)shared_exp_max, src->u->f[c]));
+      clampeds[c] = gfx_fclamp(src->u->f[c], 0.0f, (float)shared_exp_max);
 
-   max_c = gfx_fmax(gfx_fmax(clampeds[0], clampeds[1]), clampeds[2]);
+   max_c = fmaxf(fmaxf(clampeds[0], clampeds[1]), clampeds[2]);
    exp_p = gfx_smax(-(int32_t)B - 1, gfx_flog2(max_c)) + 1 + B;
    max_s = (uint32_t)((1u<<(B+N))*max_c/(1u<<(exp_p)) + 0.5f);
    assert(max_s <= (1u<<N));

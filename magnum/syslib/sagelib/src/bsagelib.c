@@ -294,6 +294,9 @@ BSAGElib_Open(
     instance->defaultClientSettings.i_sync_sage = settings->i_sync_sage;
     instance->defaultClientSettings.i_sync_hsm = settings->i_sync_hsm;
 
+    /* maintain current system Power Management mode; starts in S0 */
+    instance->currentMode = BSAGElib_eStandbyModeOn;
+
         /*acquire SAGE power resources */
 #ifdef BCHP_PWR_RESOURCE_HDMI_TX_CLK
     BCHP_PWR_AcquireResource(instance->core_handles.hChp, BCHP_PWR_RESOURCE_HDMI_TX_CLK);

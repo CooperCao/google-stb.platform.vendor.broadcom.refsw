@@ -11,6 +11,8 @@ FILE DESCRIPTION
 #ifndef GLSL_GADGETTYPE_H
 #define GLSL_GADGETTYPE_H
 
+#if !V3D_VER_AT_LEAST(3,3,0,0)
+
 #include "libs/core/lfmt/lfmt_translate_v3d.h"
 
 typedef uint16_t glsl_gadgettype_t;
@@ -66,4 +68,5 @@ static inline glsl_gadgettype_t glsl_make_tmu_swizzled_gadgettype(
       GLSL_GADGETTYPE_AUTO : GLSL_GADGETTYPE_SWAP1632;
 }
 
+#endif
 #endif

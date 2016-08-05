@@ -107,7 +107,7 @@ typedef struct NEXUS_AudioDecoderStartSettings
     NEXUS_PidChannelHandle pidChannel;  /* Input from transport */
     NEXUS_AudioCodec codec;             /* Format of data coming from the pid channel */
     NEXUS_StcChannelHandle stcChannel;  /* Connection to clock for TSM and lipsync with VideoDecoder. If NULL, decode in vsync mode. */
-    NEXUS_AudioInput input;             /* If you are decoding from a digital source such as HdmiInput or SpdifInput,
+    NEXUS_AudioInputHandle input;             /* If you are decoding from a digital source such as HdmiInput or SpdifInput,
                                            pass the connector here.  If this value is set, pidChannel must be NULL.  */
     bool targetSyncEnabled;             /* If true, normal frame sync operation will be used (default).  This flag can be set to false
                                            for certification applications that require the last frame of the input buffer to be consumed
@@ -617,6 +617,10 @@ typedef struct NEXUS_AudioDecoderStatus
             bool stereo;        /* True if stereo, false if mono */
             unsigned frameSize; /* Frame size in bytes */
         } cook;
+        struct
+        {
+            unsigned bitsPerSample; /* input bits per sample */
+        } als;
     } codecStatus;
 
     unsigned fifoDepth; /* depth in bytes of the compressed buffer */
@@ -639,28 +643,27 @@ typedef struct NEXUS_AudioDecoderStatus
 
 /***************************************************************************
 Summary:
-AC4 Presentation type
+AC4 Associate type
 ***************************************************************************/
-typedef enum NEXUS_AudioAc4PresentationType
+typedef enum NEXUS_AudioAc4AssociateType
 {
-    NEXUS_AudioAc4PresentationType_eNotSpecified,
-    NEXUS_AudioAc4PresentationType_eMainOnly,
-    NEXUS_AudioAc4PresentationType_eAssociateOnly,
-    NEXUS_AudioAc4PresentationType_eMainAndAssociate,
-    NEXUS_AudioAc4PresentationType_eCustom,
-    NEXUS_AudioAc4PresentationType_eMax
-} NEXUS_AudioAc4PresentationType;
+    NEXUS_AudioAc4AssociateType_eNotSpecified,
+    NEXUS_AudioAc4AssociateType_eVisuallyImpaired,
+    NEXUS_AudioAc4AssociateType_eHearingImpaired,
+    NEXUS_AudioAc4AssociateType_eCommentary,
+    NEXUS_AudioAc4AssociateType_eMax
+} NEXUS_AudioAc4AssociateType;
 
 /***************************************************************************
 Summary:
 AC4 Presentation Status
 ***************************************************************************/
-#define NEXUS_AUDIO_AC4_PRESENTATION_LANGUAGE_NAME_LENGTH      64
-#define NEXUS_AUDIO_AC4_PRESENTATION_NAME_LENGTH               255
+#define NEXUS_AUDIO_AC4_PRESENTATION_LANGUAGE_NAME_LENGTH      8
+#define NEXUS_AUDIO_AC4_PRESENTATION_NAME_LENGTH               36
 typedef struct NEXUS_AudioDecoderAc4PresentationStatus
 {
     unsigned id;                                                        /* Identifier for this Presentation */
-    NEXUS_AudioAc4PresentationType type;                                /* Describes the contents of the Presentation */
+    NEXUS_AudioAc4AssociateType associateType;                          /* Describes the contents of the Associate (Secondary) portion of this presenation */
     char name[NEXUS_AUDIO_AC4_PRESENTATION_NAME_LENGTH];                /* Name/Title of the Presentation */
     char language[NEXUS_AUDIO_AC4_PRESENTATION_LANGUAGE_NAME_LENGTH];   /* Language of the Presentation */
 } NEXUS_AudioDecoderAc4PresentationStatus;
@@ -931,6 +934,7 @@ typedef enum NEXUS_AudioDecoderDolbyPulseDrcMode
 {
     NEXUS_AudioDecoderDolbyPulseDrcMode_eLine,
     NEXUS_AudioDecoderDolbyPulseDrcMode_eRf,
+    NEXUS_AudioDecoderDolbyPulseDrcMode_eOff, /* Not supported for Dolby Pulse (MS10/11) */
     NEXUS_AudioDecoderDolbyPulseDrcMode_eMax
 }NEXUS_AudioDecoderDolbyPulseDrcMode;
 
@@ -974,7 +978,24 @@ typedef struct NEXUS_AudioDecoderAacSettings
     NEXUS_AudioDecoderAacDownmixMode downmixMode;   /* Downmix mode */
     NEXUS_AudioDecoderDolbyPulseDrcMode drcMode;    /* DRC mode.
                                                        Only supported for Dolby Pulse (MS10). */
+    bool ignoreEmbeddedPrl;     /* If enabled we will ignore the embedded Program Reference Level (Used in NON Dolby Pulse Only)*/
 } NEXUS_AudioDecoderAacSettings;
+
+/***************************************************************************
+Summary:
+MPEG audio decoder settings
+
+Description:
+These settings control the parameters involved in the decode of MPEG and MP3 streams.
+They only apply when the audio type is MPEG or MP3.
+***************************************************************************/
+typedef struct NEXUS_AudioDecoderMpegSettings
+{
+    int inputReferenceLevel;            /*  The input level to the decoder in dB. Valid values
+                                            are 0 to -31.
+                                            Defaults to -24 if Loundness mode ATSC is enabled and
+                                            -23 if Loudness mode EBU is enabled */
+} NEXUS_AudioDecoderMpegSettings;
 
 /***************************************************************************
 Summary:
@@ -1130,12 +1151,26 @@ typedef struct NEXUS_AudioDecoderAlsSettings
 
 /***************************************************************************
 Summary:
+    This enum describes how the decoder will select the AC4 presentation
+***************************************************************************/
+typedef enum NEXUS_AudioDecoderAc4PresentationSelectionMode
+{
+    NEXUS_AudioDecoderAc4PresentationSelectionMode_ePresentationIndex,
+    NEXUS_AudioDecoderAc4PresentationSelectionMode_eLanguageCode,
+    NEXUS_AudioDecoderAc4PresentationSelectionMode_eAssociateType,
+    NEXUS_AudioDecoderAc4PresentationSelectionMode_eMax
+} NEXUS_AudioDecoderAc4PresentationSelectionMode;
+
+/***************************************************************************
+Summary:
 AC-4 audio decoder settings
 
 Description:
 These settings control the parameters involved in the decode of AC-4.
 They only apply when the audio type is AC-4
 ***************************************************************************/
+#define NEXUS_AUDIO_AC4_LANGUAGE_NAME_LENGTH      6
+#define NEXUS_AUDIO_AC4_NUM_LANGUAGES             2
 typedef struct NEXUS_AudioDecoderAc4Settings
 {
     NEXUS_AudioDecoderDolbyDrcMode drcMode;         /* DRC (Dynamic Range Compression) Mode */
@@ -1159,6 +1194,21 @@ typedef struct NEXUS_AudioDecoderAc4Settings
     int dialogEnhancerAmount;       /* Valid values are -12 to +12, in 1dB steps. Default value is 0 */
 
     unsigned certificationMode;     /* for internal use only */
+
+    NEXUS_AudioDecoderAc4PresentationSelectionMode selectionMode;   /* Specifies how the AC4 decoder selects the default presentation -
+                                                                       By default, personalization is off, and the program index will be used */
+
+    /* optional personalization parameters - These parameters allow the user to personalize
+       how the decoder will select the presentation. These parameters can only be changed while decoding is stopped.
+       On the fly changes will not be honored until the next stop/start sequence */
+    struct {
+        char selection[NEXUS_AUDIO_AC4_LANGUAGE_NAME_LENGTH];   /* IETF BCP 47 language code. Codes that are longer than
+                                                                   6 characters should be truncated. */
+    } languagePreference[NEXUS_AUDIO_AC4_NUM_LANGUAGES];
+
+    NEXUS_AudioAc4AssociateType preferredAssociateType;
+    bool enableAssociateMixing;     /* Enable mixing of associate program */
+
 } NEXUS_AudioDecoderAc4Settings;
 
 /***************************************************************************
@@ -1174,6 +1224,8 @@ typedef struct NEXUS_AudioDecoderCodecSettings
         NEXUS_AudioDecoderDolbySettings ac3Plus;
         NEXUS_AudioDecoderAacSettings aac;
         NEXUS_AudioDecoderAacSettings aacPlus;
+        NEXUS_AudioDecoderMpegSettings mpeg;
+        NEXUS_AudioDecoderMpegSettings mp3;
         NEXUS_AudioDecoderWmaProSettings wmaPro;
         NEXUS_AudioDecoderDtsSettings dts;
         NEXUS_AudioDecoderAdpcmSettings adpcm;

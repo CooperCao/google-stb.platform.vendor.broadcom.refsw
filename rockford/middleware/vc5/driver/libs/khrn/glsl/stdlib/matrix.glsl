@@ -59,7 +59,7 @@ float determinant(mat2 x)
 
 float determinant(mat3 x)
 {
-  mat2 minor00, minor01, minor02;
+  highp mat2 minor00, minor01, minor02;
 
   minor00[0][0] = x[1][1]; minor00[0][1] = x[1][2]; minor00[1][0] = x[2][1]; minor00[1][1] = x[2][2];
   minor01[0][0] = x[1][0]; minor01[0][1] = x[1][2]; minor01[1][0] = x[2][0]; minor01[1][1] = x[2][2];
@@ -71,7 +71,7 @@ float determinant(mat3 x)
 
 float determinant(mat4 x)
 {
-  mat3 minor00, minor01, minor02, minor03;
+  highp mat3 minor00, minor01, minor02, minor03;
 
   minor00[0][0] = x[1][1]; minor00[0][1] = x[1][2]; minor00[0][2] = x[1][3];
   minor00[1][0] = x[2][1]; minor00[1][1] = x[2][2]; minor00[1][2] = x[2][3];
@@ -95,12 +95,9 @@ float determinant(mat4 x)
 
 mat2 inverse(mat2 x)
 {
-  mat2 res;
-  float det;
-
-  det = determinant(x);
-  res =  mat2(  x[1][1], -x[0][1],
-               -x[1][0],  x[0][0]);
+  highp float det = determinant(x);
+  highp mat2  res = mat2(  x[1][1], -x[0][1],
+                          -x[1][0],  x[0][0]);
 
   return (1.0/det)*res;
 }
@@ -108,32 +105,29 @@ mat2 inverse(mat2 x)
 
 mat3 inverse(mat3 x)
 {
-  mat3 res;
-  float det;
+  highp mat2 minor00 = mat2( x[1][1], x[1][2],
+                             x[2][1], x[2][2]);
+  highp mat2 minor01 = mat2( x[1][0], x[1][2],
+                             x[2][0], x[2][2]);
+  highp mat2 minor02 = mat2( x[1][0], x[1][1],
+                             x[2][0], x[2][1]);
+  highp mat2 minor10 = mat2( x[0][1], x[0][2],
+                             x[2][1], x[2][2]);
+  highp mat2 minor11 = mat2( x[0][0], x[0][2],
+                             x[2][0], x[2][2]);
+  highp mat2 minor12 = mat2( x[0][0], x[0][1],
+                             x[2][0], x[2][1]);
+  highp mat2 minor20 = mat2( x[0][1], x[0][2],
+                             x[1][1], x[1][2]);
+  highp mat2 minor21 = mat2( x[0][0], x[0][2],
+                             x[1][0], x[1][2]);
+  highp mat2 minor22 = mat2( x[0][0], x[0][1],
+                             x[1][0], x[1][1]);
 
-  mat2 minor00 = mat2( x[1][1], x[1][2],
-                       x[2][1], x[2][2]);
-  mat2 minor01 = mat2( x[1][0], x[1][2],
-                       x[2][0], x[2][2]);
-  mat2 minor02 = mat2( x[1][0], x[1][1],
-                       x[2][0], x[2][1]);
-  mat2 minor10 = mat2( x[0][1], x[0][2],
-                       x[2][1], x[2][2]);
-  mat2 minor11 = mat2( x[0][0], x[0][2],
-                       x[2][0], x[2][2]);
-  mat2 minor12 = mat2( x[0][0], x[0][1],
-                       x[2][0], x[2][1]);
-  mat2 minor20 = mat2( x[0][1], x[0][2],
-                       x[1][1], x[1][2]);
-  mat2 minor21 = mat2( x[0][0], x[0][2],
-                       x[1][0], x[1][2]);
-  mat2 minor22 = mat2( x[0][0], x[0][1],
-                       x[1][0], x[1][1]);
-
-  det = determinant(x);
-  res = mat3(  determinant(minor00), -determinant(minor10),  determinant(minor20),
-              -determinant(minor01),  determinant(minor11), -determinant(minor21),
-               determinant(minor02), -determinant(minor12),  determinant(minor22));
+  highp float det = determinant(x);
+  highp mat3  res = mat3(  determinant(minor00), -determinant(minor10),  determinant(minor20),
+                          -determinant(minor01),  determinant(minor11), -determinant(minor21),
+                           determinant(minor02), -determinant(minor12),  determinant(minor22));
 
   return (1.0/det)*res;
 }
@@ -141,66 +135,63 @@ mat3 inverse(mat3 x)
 
 mat4 inverse(mat4 x)
 {
-  mat4 res;
-  float det;
+  highp mat3 minor00 = mat3( x[1][1], x[1][2], x[1][3],
+                             x[2][1], x[2][2], x[2][3],
+                             x[3][1], x[3][2], x[3][3]);
+  highp mat3 minor01 = mat3( x[1][0], x[1][2], x[1][3],
+                             x[2][0], x[2][2], x[2][3],
+                             x[3][0], x[3][2], x[3][3]);
+  highp mat3 minor02 = mat3( x[1][0], x[1][1], x[1][3],
+                             x[2][0], x[2][1], x[2][3],
+                             x[3][0], x[3][1], x[3][3]);
+  highp mat3 minor03 = mat3( x[1][0], x[1][1], x[1][2],
+                             x[2][0], x[2][1], x[2][2],
+                             x[3][0], x[3][1], x[3][2]);
 
-  mat3 minor00 = mat3( x[1][1], x[1][2], x[1][3],
-                       x[2][1], x[2][2], x[2][3],
-                       x[3][1], x[3][2], x[3][3]);
-  mat3 minor01 = mat3( x[1][0], x[1][2], x[1][3],
-                       x[2][0], x[2][2], x[2][3],
-                       x[3][0], x[3][2], x[3][3]);
-  mat3 minor02 = mat3( x[1][0], x[1][1], x[1][3],
-                       x[2][0], x[2][1], x[2][3],
-                       x[3][0], x[3][1], x[3][3]);
-  mat3 minor03 = mat3( x[1][0], x[1][1], x[1][2],
-                       x[2][0], x[2][1], x[2][2],
-                       x[3][0], x[3][1], x[3][2]);
+  highp mat3 minor10 = mat3( x[0][1], x[0][2], x[0][3],
+                             x[2][1], x[2][2], x[2][3],
+                             x[3][1], x[3][2], x[3][3]);
+  highp mat3 minor11 = mat3( x[0][0], x[0][2], x[0][3],
+                             x[2][0], x[2][2], x[2][3],
+                             x[3][0], x[3][2], x[3][3]);
+  highp mat3 minor12 = mat3( x[0][0], x[0][1], x[0][3],
+                             x[2][0], x[2][1], x[2][3],
+                             x[3][0], x[3][1], x[3][3]);
+  highp mat3 minor13 = mat3( x[0][0], x[0][1], x[0][2],
+                             x[2][0], x[2][1], x[2][2],
+                             x[3][0], x[3][1], x[3][2]);
 
-  mat3 minor10 = mat3( x[0][1], x[0][2], x[0][3],
-                       x[2][1], x[2][2], x[2][3],
-                       x[3][1], x[3][2], x[3][3]);
-  mat3 minor11 = mat3( x[0][0], x[0][2], x[0][3],
-                       x[2][0], x[2][2], x[2][3],
-                       x[3][0], x[3][2], x[3][3]);
-  mat3 minor12 = mat3( x[0][0], x[0][1], x[0][3],
-                       x[2][0], x[2][1], x[2][3],
-                       x[3][0], x[3][1], x[3][3]);
-  mat3 minor13 = mat3( x[0][0], x[0][1], x[0][2],
-                       x[2][0], x[2][1], x[2][2],
-                       x[3][0], x[3][1], x[3][2]);
+  highp mat3 minor20 = mat3( x[0][1], x[0][2], x[0][3],
+                             x[1][1], x[1][2], x[1][3],
+                             x[3][1], x[3][2], x[3][3]);
+  highp mat3 minor21 = mat3( x[0][0], x[0][2], x[0][3],
+                             x[1][0], x[1][2], x[1][3],
+                             x[3][0], x[3][2], x[3][3]);
+  highp mat3 minor22 = mat3( x[0][0], x[0][1], x[0][3],
+                             x[1][0], x[1][1], x[1][3],
+                             x[3][0], x[3][1], x[3][3]);
+  highp mat3 minor23 = mat3( x[0][0], x[0][1], x[0][2],
+                             x[1][0], x[1][1], x[1][2],
+                             x[3][0], x[3][1], x[3][2]);
 
-  mat3 minor20 = mat3( x[0][1], x[0][2], x[0][3],
-                       x[1][1], x[1][2], x[1][3],
-                       x[3][1], x[3][2], x[3][3]);
-  mat3 minor21 = mat3( x[0][0], x[0][2], x[0][3],
-                       x[1][0], x[1][2], x[1][3],
-                       x[3][0], x[3][2], x[3][3]);
-  mat3 minor22 = mat3( x[0][0], x[0][1], x[0][3],
-                       x[1][0], x[1][1], x[1][3],
-                       x[3][0], x[3][1], x[3][3]);
-  mat3 minor23 = mat3( x[0][0], x[0][1], x[0][2],
-                       x[1][0], x[1][1], x[1][2],
-                       x[3][0], x[3][1], x[3][2]);
+  highp mat3 minor30 = mat3( x[0][1], x[0][2], x[0][3],
+                             x[1][1], x[1][2], x[1][3],
+                             x[2][1], x[2][2], x[2][3]);
+  highp mat3 minor31 = mat3( x[0][0], x[0][2], x[0][3],
+                             x[1][0], x[1][2], x[1][3],
+                             x[2][0], x[2][2], x[2][3]);
+  highp mat3 minor32 = mat3( x[0][0], x[0][1], x[0][3],
+                             x[1][0], x[1][1], x[1][3],
+                             x[2][0], x[2][1], x[2][3]);
+  highp mat3 minor33 = mat3( x[0][0], x[0][1], x[0][2],
+                             x[1][0], x[1][1], x[1][2],
+                             x[2][0], x[2][1], x[2][2]);
 
-  mat3 minor30 = mat3( x[0][1], x[0][2], x[0][3],
-                       x[1][1], x[1][2], x[1][3],
-                       x[2][1], x[2][2], x[2][3]);
-  mat3 minor31 = mat3( x[0][0], x[0][2], x[0][3],
-                       x[1][0], x[1][2], x[1][3],
-                       x[2][0], x[2][2], x[2][3]);
-  mat3 minor32 = mat3( x[0][0], x[0][1], x[0][3],
-                       x[1][0], x[1][1], x[1][3],
-                       x[2][0], x[2][1], x[2][3]);
-  mat3 minor33 = mat3( x[0][0], x[0][1], x[0][2],
-                       x[1][0], x[1][1], x[1][2],
-                       x[2][0], x[2][1], x[2][2]);
-
-  det = determinant(x);
-  res = mat4(  determinant(minor00), -determinant(minor10),  determinant(minor20), -determinant(minor30),
-              -determinant(minor01),  determinant(minor11), -determinant(minor21),  determinant(minor31),
-               determinant(minor02), -determinant(minor12),  determinant(minor22), -determinant(minor32),
-              -determinant(minor03),  determinant(minor13), -determinant(minor23),  determinant(minor33));
+  highp float det = determinant(x);
+  highp mat4  res = mat4(  determinant(minor00), -determinant(minor10),  determinant(minor20), -determinant(minor30),
+                          -determinant(minor01),  determinant(minor11), -determinant(minor21),  determinant(minor31),
+                           determinant(minor02), -determinant(minor12),  determinant(minor22), -determinant(minor32),
+                          -determinant(minor03),  determinant(minor13), -determinant(minor23),  determinant(minor33));
 
   return (1.0/det)*res;
 }

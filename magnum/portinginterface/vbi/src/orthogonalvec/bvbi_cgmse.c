@@ -88,8 +88,7 @@ BERR_Code BVBI_P_CGMSA_Enc_Program (
     uint8_t hwCoreIndex,
     bool bActive,
     BFMT_VideoFmt eVideoFormat,
-    bool bArib480p,
-    BAVC_HDMI_PixelRepetition ePixRep)
+    bool bArib480p)
 {
 /*
     Programming note: the implementation here assumes that the bitfield layout
@@ -117,7 +116,6 @@ BERR_Code BVBI_P_CGMSA_Enc_Program (
     BERR_Code eErr = BERR_SUCCESS;
 
     BDBG_ENTER(BVBI_P_CGMSA_Enc_Program);
-    BSTD_UNUSED (ePixRep);
 
     /* Figure out which encoder core to use */
     ulCoreOffset = P_GetCoreOffset_isr (is656, hwCoreIndex);
@@ -654,7 +652,6 @@ BERR_Code BVBI_P_CGMSB_Enc_Program (
     bool bActive,
     BFMT_VideoFmt eVideoFormat,
     bool bArib480p,
-    BAVC_HDMI_PixelRepetition ePixRep,
     bool bCea805dStyle)
 {
 /*
@@ -689,7 +686,6 @@ BERR_Code BVBI_P_CGMSB_Enc_Program (
     BERR_Code eErr = BERR_SUCCESS;
 
     BDBG_ENTER(BVBI_P_CGMSB_Enc_Program);
-    BSTD_UNUSED (ePixRep);
 
 #if defined(BVBI_P_CGMSAE_VER2)
     BSTD_UNUSED (bCea805dStyle);

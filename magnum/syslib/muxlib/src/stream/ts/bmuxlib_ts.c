@@ -63,6 +63,8 @@ BDBG_FILE_MODULE(BMUXLIB_TS_MSP);
 BDBG_FILE_MODULE(BMUXLIB_TS_MEMORY);
 BDBG_FILE_MODULE(BMUXLIB_TS_STATS);
 
+BDBG_OBJECT_ID(BMUXlib_TS_P_Context);
+
 static bool BMUXlib_TS_P_ValidateStartSettings(BMUXlib_TS_StartSettings *pstStartSettings, bool bUseDefaults);
 static bool BMUXlib_TS_P_ValidateMuxSettings(BMUXlib_TS_MuxSettings *pstMuxSettings, BMUXlib_TS_StartSettings *pstStartSetting, bool bUseDefaults);
 static bool BMUXlib_TS_P_ValidateSystemDataBitrate(BMUXlib_TS_MuxSettings *pstMuxSettings, const BMUXlib_TS_StartSettings *pstStartSettings, bool bUseDefaults);
@@ -628,7 +630,7 @@ BMUXlib_TS_P_AllocateMemory(
 
    BDBG_ENTER( BMUXlib_TS_P_AllocateMemory );
 
-   BDBG_ASSERT( hMuxTS );
+   BDBG_OBJECT_ASSERT( hMuxTS, BMUXlib_TS_P_Context );
    BDBG_ASSERT( hMma );
    BDBG_ASSERT( pstMemoryConfig );
 
@@ -741,6 +743,8 @@ BMUXlib_TS_P_FreeMemory(
 
    BDBG_ENTER( BMUXlib_TS_P_FreeMemory );
 
+   BDBG_OBJECT_ASSERT(hMuxTS, BMUXlib_TS_P_Context);
+
    BSTD_UNUSED( hMma );
 
    BMUXlib_TS_P_GetBufferConfigFromMemoryConfig( &hMuxTS->stCreateSettings.stMemoryConfig, &hMuxTS->stMemoryBuffers, &stMemoryConfigLocal );
@@ -795,6 +799,8 @@ BMUXlib_TS_P_ResetResources(
    unsigned i;
 
    BDBG_ENTER( BMUXlib_TS_P_ResetResources );
+
+   BDBG_OBJECT_ASSERT(hMuxTS, BMUXlib_TS_P_Context);
 
    /* Available Transport Descriptors */
    BMUXlib_List_Reset( hMuxTS->hTransportDescriptorFreeList );
@@ -909,6 +915,7 @@ BMUXlib_TS_P_AllocateResources(
    uint32_t uiSystemDataPendingListCount = 0;
 
    BDBG_ENTER( BMUXlib_TS_P_AllocateResources );
+   BDBG_OBJECT_ASSERT(hMuxTS, BMUXlib_TS_P_Context);
 
    hMuxTS->status.stMemoryConfig = *pstMemoryConfig;
    BMUXlib_TS_P_GetMemoryConfigTotal( &hMuxTS->status.stMemoryConfig, &hMuxTS->status.stMemoryConfigTotal );
@@ -1273,6 +1280,8 @@ BERR_Code
 BMUXlib_TS_P_RelocatePreQSystemData(BMUXlib_TS_Handle hMuxTS)
 {
    BERR_Code rc = BERR_SUCCESS;
+   BDBG_OBJECT_ASSERT(hMuxTS, BMUXlib_TS_P_Context);
+
    /* SW7425-3958: */
    if ( 0 != hMuxTS->status.uiSystemDataPreQCount )
    {
@@ -1305,6 +1314,8 @@ BMUXlib_TS_P_SetupMCPB(
    BERR_Code rc = BERR_SUCCESS;
    unsigned i, uiPIDIndex;
    unsigned auiNumInputsPerTransportChannelIndex[BMUXLIB_TS_MAX_TRANSPORT_INSTANCES];
+
+   BDBG_OBJECT_ASSERT(hMuxTS, BMUXlib_TS_P_Context);
 
    for ( i = 0; i < BMUXLIB_TS_MAX_TRANSPORT_INSTANCES; i++ )
    {
@@ -1813,8 +1824,7 @@ BMUXlib_TS_Create(
             sizeof( BMUXlib_TS_P_Context )
             );
 
-   /* Set Signature */
-   pMuxTS->uiSignature = BMUXLIB_TS_P_SIGNATURE_CONTEXT;
+   BDBG_OBJECT_SET(pMuxTS, BMUXlib_TS_P_Context);
 
    /* Copy user specified settings */
    BKNI_Memcpy(
@@ -1877,12 +1887,12 @@ BMUXlib_TS_Destroy(
          )
 {
    BDBG_ENTER(BMUXlib_TS_Destroy);
-   BDBG_ASSERT( hMuxTS );
+
    /* the following signifies an attempt to free up something that was either
       a) not created by Create()
       b) has already been destroyed
    */
-   BDBG_ASSERT( BMUXLIB_TS_P_SIGNATURE_CONTEXT == hMuxTS->uiSignature );
+   BDBG_OBJECT_ASSERT(hMuxTS, BMUXlib_TS_P_Context);
 
    /* SW7425-3642: Stop the mux if it hasn't already been stopped
       - this is necessary since Stop() now frees resources */
@@ -1912,7 +1922,7 @@ BMUXlib_TS_Destroy(
    }
 
    /* the following prevents accidental reuse of the context */
-   hMuxTS->uiSignature = 0;
+   BDBG_OBJECT_DESTROY(hMuxTS, BMUXlib_TS_P_Context);
    BKNI_Free ( hMuxTS );
 
    BDBG_LEAVE(BMUXlib_TS_Destroy);
@@ -2035,7 +2045,7 @@ BMUXlib_TS_SetMuxSettings(
    BMUXlib_TS_MuxSettings stSettingsCopy;
    BDBG_ENTER( BMUXlib_TS_SetMuxSettings );
 
-   BDBG_ASSERT( hMuxTS );
+   BDBG_OBJECT_ASSERT(hMuxTS, BMUXlib_TS_P_Context);
    BDBG_ASSERT( pstMuxSettings );
    BDBG_ASSERT( BMUXLIB_TS_P_SIGNATURE_MUXSETTINGS == pstMuxSettings->uiSignature );
 
@@ -2107,7 +2117,7 @@ BMUXlib_TS_GetMuxSettings(
 {
    BDBG_ENTER( BMUXlib_TS_GetMuxSettings );
 
-   BDBG_ASSERT( hMuxTS );
+   BDBG_OBJECT_ASSERT(hMuxTS, BMUXlib_TS_P_Context);
    BDBG_ASSERT( pstMuxSettings );
 
    *pstMuxSettings = hMuxTS->status.stMuxSettings;
@@ -2273,10 +2283,9 @@ BMUXlib_TS_Start(
 
    BDBG_ENTER( BMUXlib_TS_Start );
 
-   BDBG_ASSERT( hMuxTS );
+   BDBG_OBJECT_ASSERT(hMuxTS, BMUXlib_TS_P_Context);
    BDBG_ASSERT( pstStartSettings );
    BDBG_ASSERT( BMUXLIB_TS_P_SIGNATURE_STARTSETTINGS == pstStartSettings->uiSignature );
-   BDBG_ASSERT( BMUXLIB_TS_P_SIGNATURE_CONTEXT == hMuxTS->uiSignature );
 
    /* verify required settings are present ... */
    if (( NULL == pstStartSettings->transport.stDeviceInterface.fGetTransportSettings)
@@ -2866,6 +2875,7 @@ BMUXlib_TS_Finish(
 {
    BERR_Code rc = BERR_SUCCESS;
    BDBG_ENTER( BMUXlib_TS_Finish );
+   BDBG_OBJECT_ASSERT(hMuxTS, BMUXlib_TS_P_Context);
 
    rc = BMUXlib_TS_P_Finish(hMuxTS, pstFinishSettings);
 
@@ -2882,10 +2892,9 @@ BMUXlib_TS_P_Finish(
    BERR_Code rc = BERR_SUCCESS;
    BDBG_ENTER( BMUXlib_TS_P_Finish );
 
-   BDBG_ASSERT( hMuxTS );
+   BDBG_OBJECT_ASSERT(hMuxTS, BMUXlib_TS_P_Context);
    BDBG_ASSERT( pstFinishSettings );
    BDBG_ASSERT( BMUXLIB_TS_P_SIGNATURE_FINISHSETTINGS == pstFinishSettings->uiSignature );
-   BDBG_ASSERT( BMUXLIB_TS_P_SIGNATURE_CONTEXT == hMuxTS->uiSignature );
 
    switch ( BMUXLIB_TS_P_GET_MUX_STATE(hMuxTS) )
    {
@@ -2931,8 +2940,7 @@ BMUXlib_TS_Stop(
    BERR_Code rc = BERR_SUCCESS;
    BDBG_ENTER( BMUXlib_TS_Stop );
 
-   BDBG_ASSERT( hMuxTS );
-   BDBG_ASSERT( BMUXLIB_TS_P_SIGNATURE_CONTEXT == hMuxTS->uiSignature );
+   BDBG_OBJECT_ASSERT(hMuxTS, BMUXlib_TS_P_Context);
 
    switch ( BMUXLIB_TS_P_GET_MUX_STATE(hMuxTS) )
    {
@@ -3066,10 +3074,9 @@ BMUXlib_TS_AddSystemDataBuffers(
    BERR_Code rc = BERR_SUCCESS;
    BDBG_ENTER( BMUXlib_TS_AddSystemDataBuffers );
 
-   BDBG_ASSERT( hMuxTS );
    BDBG_ASSERT( puiQueuedCount );
    BDBG_ASSERT( astSystemDataBuffer );
-   BDBG_ASSERT( BMUXLIB_TS_P_SIGNATURE_CONTEXT == hMuxTS->uiSignature );
+   BDBG_OBJECT_ASSERT(hMuxTS, BMUXlib_TS_P_Context);
 
    *puiQueuedCount = 0;
    rc = BMUXlib_TS_P_ValidateSystemDataBuffers( astSystemDataBuffer, uiCount );
@@ -3212,9 +3219,8 @@ BMUXlib_TS_GetCompletedSystemDataBuffers(
 {
    BDBG_ENTER( BMUXlib_TS_GetCompletedSystemDataBuffers );
 
-   BDBG_ASSERT( hMuxTS );
+   BDBG_OBJECT_ASSERT(hMuxTS, BMUXlib_TS_P_Context);
    BDBG_ASSERT( puiCompletedCount );
-   BDBG_ASSERT( BMUXLIB_TS_P_SIGNATURE_CONTEXT == hMuxTS->uiSignature );
 
    *puiCompletedCount = BMUXLIB_TS_P_GET_SYS_DATA_COMP_CNT(hMuxTS);
    BMUXLIB_TS_P_SET_SYS_DATA_COMP_CNT(hMuxTS, 0);
@@ -3234,7 +3240,7 @@ BMUXlib_TS_GetStatus(
 {
    BDBG_ENTER( BMUXlib_TS_GetStatus );
 
-   BDBG_ASSERT( hMuxTS );
+   BDBG_OBJECT_ASSERT(hMuxTS, BMUXlib_TS_P_Context);
    BDBG_ASSERT( pstStatus );
 
    *pstStatus = hMuxTS->status.stStatus;
@@ -3255,9 +3261,8 @@ BMUXlib_TS_DoMux(
 
    BDBG_ENTER( BMUXlib_TS_DoMux );
 
-   BDBG_ASSERT( hMuxTS );
+   BDBG_OBJECT_ASSERT(hMuxTS, BMUXlib_TS_P_Context);
    BDBG_ASSERT( pstStatus );
-   BDBG_ASSERT( BMUXLIB_TS_P_SIGNATURE_CONTEXT == hMuxTS->uiSignature );
 
    BKNI_Memset( pstStatus, 0, sizeof( BMUXlib_DoMux_Status ) );
 
@@ -3572,21 +3577,21 @@ BMUXlib_TS_DoMux(
       hMuxTS->status.stEfficiencyStats.uiIndex++;
       hMuxTS->status.stEfficiencyStats.uiIndex %= BMUXLib_TS_P_STATS_MAX_MSP_COUNT;
 
-      if ( ( 0 != hMuxTS->status.stEfficiencyStats.uiTotalTimeInMs ) && ( 0 != hMuxTS->status.stEfficiencyStats.uiTotalBytes ) )
+      if ( ( 0 != hMuxTS->status.stEfficiencyStats.uiTotalTimeInMs/1000 ) && ( 0 != hMuxTS->status.stEfficiencyStats.uiTotalBytes ) )
       {
-         hMuxTS->status.stStatus.stAverageBitrate.uiVideo = ( hMuxTS->status.stEfficiencyStats.uiTotalBytesPerInput[BMUXlib_TS_P_DataType_eCDB][BMUXlib_TS_P_SourceType_eVideo] * 8 ) / hMuxTS->status.stEfficiencyStats.uiTotalTimeInMs;
-         hMuxTS->status.stStatus.stAverageBitrate.uiAudio = ( hMuxTS->status.stEfficiencyStats.uiTotalBytesPerInput[BMUXlib_TS_P_DataType_eCDB][BMUXlib_TS_P_SourceType_eAudio] * 8 ) / hMuxTS->status.stEfficiencyStats.uiTotalTimeInMs;
-         hMuxTS->status.stStatus.stAverageBitrate.uiSystemData = hMuxTS->status.stEfficiencyStats.uiTotalBytesPerSourceType[BMUXlib_TS_P_SourceType_eSystem] * 8 / hMuxTS->status.stEfficiencyStats.uiTotalTimeInMs;
-         hMuxTS->status.stStatus.stAverageBitrate.uiUserData = hMuxTS->status.stEfficiencyStats.uiTotalBytesPerSourceType[BMUXlib_TS_P_SourceType_eUserdata] * 8 / hMuxTS->status.stEfficiencyStats.uiTotalTimeInMs;
+         hMuxTS->status.stStatus.stAverageBitrate.uiVideo = ( hMuxTS->status.stEfficiencyStats.uiTotalBytesPerInput[BMUXlib_TS_P_DataType_eCDB][BMUXlib_TS_P_SourceType_eVideo] * 8 ) / (hMuxTS->status.stEfficiencyStats.uiTotalTimeInMs/1000);
+         hMuxTS->status.stStatus.stAverageBitrate.uiAudio = ( hMuxTS->status.stEfficiencyStats.uiTotalBytesPerInput[BMUXlib_TS_P_DataType_eCDB][BMUXlib_TS_P_SourceType_eAudio] * 8 ) / (hMuxTS->status.stEfficiencyStats.uiTotalTimeInMs/1000);
+         hMuxTS->status.stStatus.stAverageBitrate.uiSystemData = hMuxTS->status.stEfficiencyStats.uiTotalBytesPerSourceType[BMUXlib_TS_P_SourceType_eSystem] * 8 / (hMuxTS->status.stEfficiencyStats.uiTotalTimeInMs/1000);
+         hMuxTS->status.stStatus.stAverageBitrate.uiUserData = hMuxTS->status.stEfficiencyStats.uiTotalBytesPerSourceType[BMUXlib_TS_P_SourceType_eUserdata] * 8 / (hMuxTS->status.stEfficiencyStats.uiTotalTimeInMs/1000);
          hMuxTS->status.stStatus.uiEfficiency = (hMuxTS->status.stEfficiencyStats.uiTotalBytesPerInput[BMUXlib_TS_P_DataType_eCDB][BMUXlib_TS_P_SourceType_eVideo] + hMuxTS->status.stEfficiencyStats.uiTotalBytesPerInput[BMUXlib_TS_P_DataType_eCDB][BMUXlib_TS_P_SourceType_eAudio] + hMuxTS->status.stEfficiencyStats.uiTotalBytesPerDataType[BMUXlib_TS_P_DataType_eUserdataPTS] + hMuxTS->status.stEfficiencyStats.uiTotalBytesPerDataType[BMUXlib_TS_P_DataType_eUserdataLocal]) * 100 / hMuxTS->status.stEfficiencyStats.uiTotalBytes;
          hMuxTS->status.stStatus.uiTotalBytes = hMuxTS->status.stEfficiencyStats.uiTotalBytesWritten;
-         BDBG_MODULE_MSG( BMUXLIB_TS_STATS, ("Avg. Bitrate (kbps): V=%5u, A=%3u, S=%2u, U=%3u [%3u%%] (%d)",
-            hMuxTS->status.stStatus.stAverageBitrate.uiVideo,
-            hMuxTS->status.stStatus.stAverageBitrate.uiAudio,
-            hMuxTS->status.stStatus.stAverageBitrate.uiSystemData,
-            hMuxTS->status.stStatus.stAverageBitrate.uiUserData,
+         BDBG_MODULE_MSG( BMUXLIB_TS_STATS, ("Avg. Bitrate (kbps): V=%5u, A=%3u, S=%2u, U=%3u [%3u%%] ("BDBG_UINT64_FMT")",
+            hMuxTS->status.stStatus.stAverageBitrate.uiVideo/1000,
+            hMuxTS->status.stStatus.stAverageBitrate.uiAudio/1000,
+            hMuxTS->status.stStatus.stAverageBitrate.uiSystemData/1000,
+            hMuxTS->status.stStatus.stAverageBitrate.uiUserData/1000,
             hMuxTS->status.stStatus.uiEfficiency,
-            hMuxTS->status.stStatus.uiTotalBytes
+            BDBG_UINT64_ARG(hMuxTS->status.stStatus.uiTotalBytes)
          ) );
       }
    }

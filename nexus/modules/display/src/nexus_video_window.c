@@ -757,7 +757,7 @@ bool NEXUS_VideoWindow_IsSmoothScaling_isrsafe(NEXUS_VideoWindowHandle window)
          BBOX_Vdc_SclCapBias_eAutoDisable1080p == g_pCoreHandles->boxConfig->stVdc.astDisplay[window->display->index].astWindow[window->index].eSclCapBias);
 }
 
-#if BVDC_BUF_LOG
+#if BVDC_BUF_LOG && NEXUS_BASE_OS_linuxuser
 typedef enum NEXUS_VideoBufLog_Trigger
 {
     NEXUS_VideoBufLog_Trigger_eReset,
@@ -767,13 +767,21 @@ typedef enum NEXUS_VideoBufLog_Trigger
 } NEXUS_VideoBufLog_Trigger;
 
 static void
-NEXUS_VideoWindow_P_MultiBufLogCallBack( void *pParm1, int iParm2, void *pData )
+NEXUS_VideoWindow_P_MultiBufLogEventHandler(void *data)
 {
-    BSTD_UNUSED(pParm1);
+    BSTD_UNUSED(data);
+    NEXUS_Display_P_BufLogCapture();
+}
+
+static void
+NEXUS_VideoWindow_P_MultiBufLogCallBack_isr( void *pParm1, int iParm2, void *pData )
+{
+    NEXUS_VideoWindowHandle window = (NEXUS_VideoWindowHandle)pParm1;
+
     BSTD_UNUSED(iParm2);
     BSTD_UNUSED(pData);
 
-    BVDC_DumpBufLog();
+    BKNI_SetEvent(window->bufLogEvent);
 }
 
 NEXUS_Error
@@ -784,14 +792,11 @@ NEXUS_VideoWindow_P_EnableMultiBufLog( NEXUS_VideoWindowHandle window, NEXUS_Vid
 
     if (enable)
     {
-        BDBG_MSG(("Start Multi-buffering Log"));
-
         BVDC_SetBufLogStateAndDumpTrigger((BVDC_BufLogState)trigger,
-            NEXUS_VideoWindow_P_MultiBufLogCallBack, (void *)window, 0);
+            NEXUS_VideoWindow_P_MultiBufLogCallBack_isr, (void *)window, 0);
     }
     else
     {
-        BDBG_MSG(("Stop Multi-buffering Log"));
         BVDC_SetBufLogStateAndDumpTrigger((BVDC_BufLogState)NEXUS_VideoBufLog_Trigger_eReset,
             NULL, NULL, 0);
     }
@@ -800,8 +805,8 @@ NEXUS_VideoWindow_P_EnableMultiBufLog( NEXUS_VideoWindowHandle window, NEXUS_Vid
 
     return rc;
 }
+#endif /* BVDC_BUF_LOG && NEXUS_BASE_OS_linuxuser */
 
-#endif /* BVDC_BUF_LOG */
 
 /* we use secure picture buffers if told to, or if that's all we have */
 static bool nexus_window_p_use_secure_picbuf(NEXUS_VideoWindowHandle window, const NEXUS_VideoInput_P_Link *link)
@@ -940,7 +945,7 @@ NEXUS_VideoWindow_P_CreateVdcWindow(NEXUS_VideoWindowHandle window, const NEXUS_
 
     /* Do not apply any Nexus settings to the window here. See NEXUS_VideoWindow_P_SetVdcSettings for that code. */
 
-#if BVDC_BUF_LOG
+#if BVDC_BUF_LOG && NEXUS_BASE_OS_linuxuser
     rc = NEXUS_VideoWindow_P_EnableMultiBufLog(window, NEXUS_VideoBufLog_Trigger_eAutomatic, true);
     if (rc != NEXUS_SUCCESS) goto err_postcreate;
 #endif
@@ -971,7 +976,7 @@ NEXUS_VideoWindow_P_DestroyVdcWindow(NEXUS_VideoWindowHandle window)
 
     BDBG_ASSERT(window->vdcState.window);
 
-#if BVDC_BUF_LOG
+#if BVDC_BUF_LOG && NEXUS_BASE_OS_linuxuser
     rc = NEXUS_VideoWindow_P_EnableMultiBufLog(window, NEXUS_VideoBufLog_Trigger_eReset, false);
     if (rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc); }
 #endif
@@ -1528,6 +1533,7 @@ NEXUS_VideoWindow_Open(NEXUS_DisplayHandle display, unsigned windowIndex)
         BDBG_ERR(("window already open"));
         return NULL;
     }
+
     NEXUS_VideoWindow_P_InitState(window, windowIndex, windowIndex, display);
     window->letterBoxDetectionCallback = NEXUS_IsrCallback_Create(window, NULL);
     window->outputRectChangedCallback = NEXUS_IsrCallback_Create(window, NULL);
@@ -1548,6 +1554,15 @@ NEXUS_VideoWindow_Open(NEXUS_DisplayHandle display, unsigned windowIndex)
         goto error;
     }
 
+#if BVDC_BUF_LOG && NEXUS_BASE_OS_linuxuser
+    if (BKNI_CreateEvent(&window->bufLogEvent)) {
+        BDBG_ERR(("window buffer log event fault"));
+        goto error;
+    }
+
+    window->bufLogCallback = NEXUS_RegisterEvent(window->bufLogEvent, &NEXUS_VideoWindow_P_MultiBufLogEventHandler, window);
+#endif
+
 #if NEXUS_NUM_MOSAIC_DECODES
     BLST_S_INIT(&window->mosaic.children);
 #endif
@@ -1567,6 +1582,7 @@ NEXUS_VideoWindow_P_Release(NEXUS_VideoWindowHandle window)
     if (!window->open) {
         BDBG_ERR(("invalid window"));
     }
+
     NEXUS_OBJECT_UNREGISTER(NEXUS_VideoWindow, window, Destroy);
     BDBG_MODULE_MSG(nexus_flow_video_window, ("close %p", (void *)window));
     NEXUS_VideoWindow_RemoveAllInputs(window);
@@ -1631,6 +1647,20 @@ NEXUS_VideoWindow_P_Finalizer(NEXUS_VideoWindowHandle window)
         BKNI_DestroyEvent(window->syncLockEvent);
         window->syncLockEvent = NULL;
     }
+
+#if BVDC_BUF_LOG && NEXUS_BASE_OS_linuxuser
+    if (window->bufLogCallback)
+    {
+        NEXUS_UnregisterEvent(window->bufLogCallback);
+        window->bufLogCallback = NULL;
+    }
+    if (window->bufLogEvent)
+    {
+        BKNI_DestroyEvent(window->bufLogEvent);
+        window->bufLogEvent = NULL;
+    }
+#endif
+
     NEXUS_OBJECT_DESTROY(NEXUS_VideoWindow, window);
     window->open = false;
 }

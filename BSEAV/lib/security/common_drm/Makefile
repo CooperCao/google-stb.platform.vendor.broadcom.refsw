@@ -1,5 +1,5 @@
 ############################################################
-#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+#  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 #  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
 #  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
-#
 ############################################################
 
 ifeq ($(URSR_TOP),)
@@ -128,7 +127,11 @@ else
 PRDY_LDFLAGS += -L${URSR_TOP}/BSEAV/lib/playready/2.5/bin/${ARCH_DIR}/lib
 endif
 ifeq ($(SAGE_SUPPORT),y)
+ifeq ($(filter ${B_REFSW_ARCH}, aarch64-linux), ${B_REFSW_ARCH})
+PRDY_LDFLAGS += -lplayreadypk64_host
+else ifeq $(filter ${B_REFSW_ARCH}, arm-linux), ${B_REFSW_ARCH})
 PRDY_LDFLAGS += -lplayreadypk_host
+endif
 else
 PRDY_LDFLAGS += -lplayreadypk
 endif # end of SAGE_SUPPORT
@@ -152,7 +155,7 @@ endif
 # <drm>.inc files
 #vvvv#####################vvvvvvvvvvvvvvvvvvvvvvv#####################vvvv##
 ifeq ($(SAGE_SUPPORT),y)
-ifeq ($(findstring $(BCHP_CHIP), 7445 7366 7439 7364 7250 74371 7268 7271), $(BCHP_CHIP))
+ifeq ($(findstring $(BCHP_CHIP), 7445 7366 7439 7364 7250 74371 7268 7271 7260), $(BCHP_CHIP))
 include config/config_zeus4x.inc
 else ifeq ($(findstring $(BCHP_CHIP), 7435 7584 75845), $(BCHP_CHIP))
 include config/config_zeus30.inc
@@ -525,6 +528,7 @@ endif
 
 copy: all
 	install -m 0755 ${COMMON_DRM_TOP}/lib/${CMNDRM_DIR}/libcmndrm.so $(NEXUS_BIN_DIR); \
+	install -m 0755 ${COMMON_DRM_TOP}/lib/${CMNDRM_DIR}/libcmndrm64.so $(NEXUS_BIN_DIR); \
 	if [ -e ${COMMON_DRM_OBJ_ROOT}/libcmndrmprdy.so ]; then \
 		install -m 0755 ${COMMON_DRM_OBJ_ROOT}/libcmndrmprdy.so $(NEXUS_BIN_DIR); \
 	fi; \

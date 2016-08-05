@@ -142,8 +142,27 @@ typedef struct NxClient_AudioSettings {
     int32_t leftVolume; /* the units depend on the value of volumeType. See docs for NEXUS_AudioVolumeType. */
     int32_t rightVolume; /* the units depend on the value of volumeType. See docs for NEXUS_AudioVolumeType. */
     bool muted;
+    int32_t loopbackVolumeMatrix[NEXUS_AudioChannel_eMax][NEXUS_AudioChannel_eMax]; /* For a multichannel mixer, if we have one
+                                           or more PcmPlayback/FMM (loopback) inputs, apply these mixing coefficients.
+                                           This can be used to mix across channel pairs, including subtraction.
+                                           Common use case would be to map stereo into multichannel in a variety
+                                           of different ways. For example, if content is mono, choose where that should
+                                           be routed into the multichannel domain.
+                                           Some example matrices:
+                                           1. L->L, R->R (default)
+                                              coeff[i][i] = NEXUS_AUDIO_VOLUME_LINEAR_NORMAL, zero all others
+                                           2. L->C
+                                              coeff[NEXUS_AudioChannel_eCenter][NEXUS_AudioChannel_eLeft] = NEXUS_AUDIO_VOLUME_LINEAR_NORMAL
+                                           3. (L/2+R/2)->C, L-3(L+R)/8, R-3(L+R)/8 (upmix L and R to center, subtract 3/8 from L and R)
+                                              coeff[NEXUS_AudioChannel_eLeft][NEXUS_AudioChannel_eLeft] = NEXUS_AUDIO_VOLUME_LINEAR_NORMAL - 3*NEXUS_AUDIO_VOLUME_LINEAR_NORMAL/8
+                                              coeff[NEXUS_AudioChannel_eLeft][NEXUS_AudioChannel_eRight] = -3*NEXUS_AUDIO_VOLUME_LINEAR_NORMAL/8
+                                              coeff[NEXUS_AudioChannel_eRight][NEXUS_AudioChannel_eLeft] = -3*NEXUS_AUDIO_VOLUME_LINEAR_NORMAL/8
+                                              coeff[NEXUS_AudioChannel_eRight][NEXUS_AudioChannel_eRight] = NEXUS_AUDIO_VOLUME_LINEAR_NORMAL - 3*NEXUS_AUDIO_VOLUME_LINEAR_NORMAL/8
+                                              coeff[NEXUS_AudioChannel_eCenter][NEXUS_AudioChannel_eLeft] = NEXUS_AUDIO_VOLUME_LINEAR_NORMAL/2
+                                              coeff[NEXUS_AudioChannel_eCenter][NEXUS_AudioChannel_eRight] = NEXUS_AUDIO_VOLUME_LINEAR_NORMAL/2
+                                              */
 
-    NxClient_AudioOutputSettings hdmi, spdif, dac;
+    NxClient_AudioOutputSettings hdmi, spdif, dac, rfm;
 } NxClient_AudioSettings;
 
 void NxClient_GetAudioSettings(
@@ -185,7 +204,7 @@ typedef struct NxClient_AudioStatus {
         NxClient_AudioOutputMode outputMode; /* Actual format. Never eAuto. */
         NEXUS_AudioChannelMode channelMode;  /* for NxClient_AudioOutputMode_ePcm */
         NEXUS_AudioCodec outputCodec;        /* if compressed output, which codec is being sent. if pcm, ePcm. */
-    } hdmi, spdif, dac;
+    } hdmi, spdif, dac, rfm;
     struct {
         bool ddre;
         bool mixer; /* applies to dolbySettings */
@@ -227,6 +246,13 @@ typedef struct NxClient_GraphicsSettings
     uint8_t alpha;                                 /* GFD alpha, from 0 (transparent) to 0xFF (opaque). Applied in addition to per-pixel alpha. */
 } NxClient_GraphicsSettings;
 
+typedef enum NxClient_SlaveDisplayMode
+{
+    NxClient_SlaveDisplayMode_eReplicated, /* replicate graphics and video from main display */
+    NxClient_SlaveDisplayMode_eGraphics, /* show special graphic on slave display. see NxClient_SetSlaveDisplayGraphics. */
+    NxClient_SlaveDisplayMode_eMax
+} NxClient_SlaveDisplayMode;
+
 /**
 Summary:
 Global display settings
@@ -249,6 +275,7 @@ typedef struct NxClient_DisplaySettings
     bool secure;
 
     struct {
+        NxClient_SlaveDisplayMode mode;
         NEXUS_VideoFormat format;
         NEXUS_DisplayAspectRatio aspectRatio;
         NEXUS_Pixel backgroundColor; /* surface compositor background color. fills graphics plane where no client surface is visible. */
@@ -276,6 +303,7 @@ typedef struct NxClient_DisplaySettings
     struct {
         bool enabled;
         bool mpaaDecimationEnabled;
+        bool sdDisplay; /* Connect component to SD display instead of HD display. If HD display is 4K, this allows component to still carry video. */
     } componentPreferences;
     struct {
         bool enabled;
@@ -289,6 +317,15 @@ void NxClient_GetDisplaySettings(
 
 NEXUS_Error NxClient_SetDisplaySettings(
     const NxClient_DisplaySettings *pSettings
+    );
+
+/**
+If NxClient_DisplaySettings.slaveDisplay[].mode == NxClient_SlaveDisplayMode_eGraphics, this surface is displayed
+instead of replicating from the main display. Set the mode first, then the surface.
+**/
+NEXUS_Error NxClient_SetSlaveDisplayGraphics(
+    unsigned slaveDisplay, /* 0 = SD, 1 = miracast */
+    NEXUS_SurfaceHandle surface /* will be copied */
     );
 
 typedef struct NxClient_DisplayStatus

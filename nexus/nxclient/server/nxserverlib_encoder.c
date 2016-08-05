@@ -83,6 +83,7 @@ static bool is_local_display(nxserver_t server, unsigned display)
         if (session && IS_SESSION_DISPLAY_ENABLED(server->settings.session[session->index])) {
             for (j=0;j<NXCLIENT_MAX_DISPLAYS;j++) {
                 if (!session->display[j].display) break;
+                if (j > 0 && server->settings.transcode == nxserver_transcode_sd) continue;
                 if (session->display[j].global_index == display) {
                     return true;
                 }
@@ -113,17 +114,26 @@ void video_encoder_get_status(const struct encoder_resource *r, struct video_enc
     pstatus->displayIndex = get_transcode_display_index(r->session->server, r->index);
 }
 
-static NEXUS_Error video_encoder_acquire_stc_channel(struct b_connect * connect, unsigned index, NEXUS_SimpleEncoderServerSettings *pSettings)
+static bool valid_encoder_timebase(NEXUS_Timebase timebase)
+{
+    /* must be valid result from Open, and not timebase 0. */
+    return timebase && timebase != NEXUS_Timebase_eInvalid;
+}
+
+static NEXUS_Error video_encoder_acquire_stc_channel(struct b_connect * connect, NEXUS_SimpleEncoderServerSettings *pSettings)
 {
     struct b_stc_caps stcreq;
     NEXUS_StcChannelSettings settings;
-    NEXUS_TransportCapabilities cap;
+    NEXUS_Error rc;
 
-    NEXUS_GetTransportCapabilities(&cap);
-    if (index >= cap.numTimebases) {
-        return BERR_TRACE(NEXUS_NOT_AVAILABLE);
+    if (valid_encoder_timebase(pSettings->timebase)) {
+        BDBG_ERR(("leaking timebase %lu", pSettings->timebase));
     }
-    pSettings->timebase = NEXUS_Timebase_e0 + cap.numTimebases - 1  - index;
+    pSettings->timebase = NEXUS_Timebase_Open(NEXUS_ANY_ID);
+    if (!valid_encoder_timebase(pSettings->timebase)) {
+        rc = BERR_TRACE(NEXUS_NOT_AVAILABLE);
+        goto err_open_timebase;
+    }
     pSettings->nonRealTime = nxserver_p_connect_is_nonrealtime_encode(connect);
 
     /* For real-time transcode, the encoder has its own StcChannel while video/audio decoders share.
@@ -145,7 +155,8 @@ static NEXUS_Error video_encoder_acquire_stc_channel(struct b_connect * connect,
     /* encoders do not share stc indices (even amongst themselves) */
     settings.stcIndex = stc_index_acquire(connect, &stcreq);
     if (settings.stcIndex == -1) {
-        return BERR_TRACE(NEXUS_NOT_AVAILABLE);
+        rc = BERR_TRACE(NEXUS_NOT_AVAILABLE);
+        goto err_stc_index_acquire;
     }
     BDBG_MSG_TRACE(("SEN%u acquired STC%u", index, settings.stcIndex));
     /* all STC's for transcode must use the same timebase. alloc in reverse order based on encoder index. */
@@ -154,11 +165,19 @@ static NEXUS_Error video_encoder_acquire_stc_channel(struct b_connect * connect,
     settings.pcrBits = NEXUS_StcChannel_PcrBits_eFull42;/* ViCE2 requires 42-bit STC broadcast */
     pSettings->stcChannelTranscode = NEXUS_StcChannel_Open(NEXUS_ANY_ID, &settings);
     if (!pSettings->stcChannelTranscode) {
-        stc_index_release(connect, settings.stcIndex);
-        return BERR_TRACE(NEXUS_NOT_AVAILABLE);
+        rc = BERR_TRACE(NEXUS_NOT_AVAILABLE);
+        goto err_stc_channel_open;
     }
 
     return 0;
+
+err_stc_channel_open:
+    stc_index_release(connect, settings.stcIndex);
+err_stc_index_acquire:
+    NEXUS_Timebase_Close(pSettings->timebase);
+    pSettings->timebase = NEXUS_Timebase_eInvalid;
+err_open_timebase:
+    return rc;
 }
 
 static void video_encoder_release_stc_channel(struct b_connect * connect, unsigned index, NEXUS_SimpleEncoderServerSettings *pSettings)
@@ -175,6 +194,10 @@ static void video_encoder_release_stc_channel(struct b_connect * connect, unsign
         BDBG_MSG_TRACE(("SEN%u released STC%u", index, settings.stcIndex));
         NEXUS_StcChannel_Close(pSettings->stcChannelTranscode);
         pSettings->stcChannelTranscode = NULL;
+    }
+    if (valid_encoder_timebase(pSettings->timebase)) {
+        NEXUS_Timebase_Close(pSettings->timebase);
+        pSettings->timebase = NEXUS_Timebase_eInvalid;
     }
 }
 
@@ -304,6 +327,9 @@ struct encoder_resource *video_encoder_create(bool video_only, struct b_session 
     BDBG_WRN(("VCE encoder %d using display %d", index, displayIndex));
 #endif
 #endif
+
+    nxserver_p_disable_local_display(session->server, displayIndex);
+
     r->settings.headless = (session->server->session[0]->display[0].display == NULL);
     if (transcode) {
         r->settings.transcodeDisplayIndex = displayIndex;
@@ -382,6 +408,7 @@ void video_encoder_destroy(struct encoder_resource *r)
     if (r->settings.displayEncode.display) {
         nxserver_p_close_encoder_display(r->settings.displayEncode.display);
     }
+    nxserver_p_reenable_local_display(r->session->server);
     if (r->settings.audioMuxOutput) {
         NEXUS_AudioMuxOutput_Destroy(r->settings.audioMuxOutput);
     }
@@ -422,6 +449,10 @@ int acquire_video_encoders(struct b_connect *connect)
         if (get_req_index(req, get_encoder_req_id, connect->settings.simpleEncoder[i].id, &index)) {
             return BERR_TRACE(NEXUS_INVALID_PARAMETER);
         }
+        if (req->handles.simpleEncoder[index].r) {
+            BDBG_ERR(("already connected to %p", (void*)req->handles.simpleEncoder[index].r->connect));
+            return BERR_TRACE(NEXUS_NOT_AVAILABLE);
+        }
 
         if (!connect->settings.simpleEncoder[i].display) {
             struct b_req *req;
@@ -445,7 +476,7 @@ int acquire_video_encoders(struct b_connect *connect)
             audio_get_encode_resources(session->main_audio, &r->settings.mixer, &r->settings.displayEncode.masterAudio, &r->settings.displayEncode.slaveAudio);
         }
 
-        rc = video_encoder_acquire_stc_channel(connect, r->index, &r->settings);
+        rc = video_encoder_acquire_stc_channel(connect, &r->settings);
         if (rc) return BERR_TRACE(rc);
 
         rc = NEXUS_SimpleEncoder_SetServerSettings(session->encoder.server, req->handles.simpleEncoder[index].handle, &r->settings);

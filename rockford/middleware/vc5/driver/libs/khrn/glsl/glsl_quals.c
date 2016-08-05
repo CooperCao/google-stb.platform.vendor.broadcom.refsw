@@ -11,6 +11,8 @@ All rights reserved.
 #include "glsl_intern.h"                  /* Ditto */
 #include "glsl_layout.h"
 
+#include "../glxx/glxx_int_config.h"
+
 QualList *qual_list_new(Qualifier *head) {
    QualList *ret = malloc_fast(sizeof(QualList));
    QualListNode *n = malloc_fast(sizeof(QualListNode));
@@ -88,7 +90,7 @@ static TypeQualifier aq_to_tq(AuxiliaryQualifier a) {
    if (a == AUXILIARY_CENTROID)    return TYPE_QUAL_CENTROID;
    else if (a == AUXILIARY_PATCH)  return TYPE_QUAL_PATCH;
    else if (a == AUXILIARY_SAMPLE) return TYPE_QUAL_SAMPLE;
-   else UNREACHABLE();             return TYPE_QUAL_NONE;
+   else unreachable();             return TYPE_QUAL_NONE;
 }
 
 static bool is_valid_es3_flavour(QualFlavour f) {
@@ -328,7 +330,6 @@ void qualifiers_process_default(QualList *l, SymbolTable *table, LayoutQualifier
 
    if (sq == STORAGE_IN) {
       bool seen_local_size = false;
-      bool seen_early_fragment_tests = false;
       unsigned local_size[3] = { 1, 1, 1};
 
       for (QualListNode *n = l->head; n; n=n->next) {
@@ -337,15 +338,11 @@ void qualifiers_process_default(QualList *l, SymbolTable *table, LayoutQualifier
                if (idn->l->id == LQ_SIZE_X) { seen_local_size = true; local_size[0] = idn->l->argument; }
                if (idn->l->id == LQ_SIZE_Y) { seen_local_size = true; local_size[1] = idn->l->argument; }
                if (idn->l->id == LQ_SIZE_Z) { seen_local_size = true; local_size[2] = idn->l->argument; }
-               if (idn->l->id == LQ_EARLY_FRAGMENT_TESTS) seen_early_fragment_tests = true;
             }
          }
       }
 
       if (seen_local_size) {
-         if (g_ShaderFlavour != SHADER_COMPUTE)
-            glsl_compile_error(ERROR_CUSTOM, 15, g_LineNumber, "Workgroup size declaration only valid in compute shader");
-
          const char *name = glsl_intern("gl_WorkGroupSize", false);
          Symbol *existing = glsl_symbol_table_lookup(table, name);
          if (existing != NULL) {
@@ -376,11 +373,6 @@ void qualifiers_process_default(QualList *l, SymbolTable *table, LayoutQualifier
             glsl_symbol_construct_var_instance(s, name, &primitiveTypes[PRIM_UVEC3], &q, v, NULL);
             glsl_symbol_table_insert(table, s);
          }
-      }
-
-      if (seen_early_fragment_tests) {
-         if (g_ShaderFlavour != SHADER_FRAGMENT)
-            glsl_compile_error(ERROR_CUSTOM, 15, g_LineNumber, "early_fragment_tests only valid in fragment shader");
       }
    }
 }

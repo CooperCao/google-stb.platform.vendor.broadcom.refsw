@@ -67,7 +67,6 @@ struct NEXUS_Transport_P_State g_NEXUS_Transport_P_State;
 #if BXPT_NUM_REMULTIPLEXORS
 extern NEXUS_RemuxHandle g_remux[BXPT_NUM_REMULTIPLEXORS];
 #endif
-BDBG_OBJECT_ID(NEXUS_Rave);
 
 #if BXPT_HAS_DPCR_INTEGRATOR_WORKAROUND
 static NEXUS_ThreadHandle dpcr_integrator_workaround_thread;
@@ -303,7 +302,6 @@ static void NEXUS_Transport_P_PacketFound_isr(void *context, int param)
     BSTD_UNUSED(context);
     BSTD_UNUSED(param);
     BXPT_Wakeup_ClearInterruptToPMU_isr(pTransport->xpt);
-    NEXUS_IsrCallback_Fire_isr(pTransport->wakeup.wakeupCallback);
 }
 #endif
 void NEXUS_TransportModule_GetDefaultInternalSettings(NEXUS_TransportModuleInternalSettings *pSettings)
@@ -501,10 +499,12 @@ static void NEXUS_TransportModule_P_Print(void)
                 sourceTypeStr = "MTSIF";
                 sourceIndex = (unsigned long)pb->settings.sourceTypeSettings.mtsif;
                 break;
+            #if NEXUS_TRANSPORT_EXTENSION_TSMF
             case NEXUS_ParserBandSourceType_eTsmf:
                 sourceTypeStr = "TSMF";
                 sourceIndex = (unsigned long)pb->settings.sourceTypeSettings.tsmf;
                 break;
+            #endif
             default:
                 sourceTypeStr = "error";
                 sourceIndex = pb->settings.sourceType;
@@ -628,7 +628,7 @@ NEXUS_ModuleHandle NEXUS_TransportModule_PreInit( const NEXUS_TransportModuleInt
 
     /* init global module data */
     BKNI_Memset(&g_NEXUS_Transport_P_State, 0, sizeof(g_NEXUS_Transport_P_State));
-#if NEXUS_HAS_TSMF
+#if NEXUS_TRANSPORT_EXTENSION_TSMF
     BKNI_Memset(&g_NEXUS_Tsmf_P_State, 0, sizeof(g_NEXUS_Tsmf_P_State));
 #endif
 
@@ -851,8 +851,6 @@ NEXUS_Error NEXUS_TransportModule_PostInit_priv(RaveChannelOpenCB rave_regver)
     /* Create a callback for packet wakeup interrupt */
     rc = BINT_CreateCallback(&pTransport->wakeup.intPacketFoundCallback, g_pCoreHandles->bint, BCHP_INT_ID_PKT_DETECT, NEXUS_Transport_P_PacketFound_isr, NULL, 0);
     if (rc) {rc = BERR_TRACE(rc); goto done;}
-    pTransport->wakeup.wakeupCallback = NEXUS_IsrCallback_Create(pTransport, NULL);
-    if (rc) {rc = BERR_TRACE(rc); goto done;}
 #endif
 
     timer_start();
@@ -901,9 +899,6 @@ void NEXUS_TransportModule_Uninit(void)
 
 #if BXPT_HAS_WAKEUP_PKT_SUPPORT
     BINT_DestroyCallback(pTransport->wakeup.intPacketFoundCallback);
-    if(pTransport->wakeup.wakeupCallback) {
-        NEXUS_IsrCallback_Destroy(pTransport->wakeup.wakeupCallback);
-    }
     BKNI_Free(pTransport->wakeup.settings);
 #endif
 
@@ -1076,50 +1071,6 @@ bool NEXUS_TransportModule_P_IsMtsifEncrypted(void)
     return BXPT_IsMtsifDecryptionEnabled(pTransport->xpt, 0); /* assume that either all MTSIF channels are encrypted or all clear */
 #else
     return false;
-#endif
-}
-
-/* This function is dangerous and not meant for general use. It is needed for
-test code that needs the XPT handle. It must be extern'd. */
-void b_get_xpt(BXPT_Handle *xpt)
-{
-    *xpt = pTransport->xpt;
-}
-
-void NEXUS_Transport_P_IncPowerDown(bool powered)
-{
-#if 0
-    bool currentState = pTransport->powerCount;
-
-    /* transport module must reference count so we don't call BXPT_P_CanPowerDown excessively */
-    if (powered) {
-        pTransport->powerCount++;
-    }
-    else if (pTransport->powerCount) {
-        pTransport->powerCount--;
-    }
-    else {
-        BDBG_ERR(("Invalid transport power count"));
-    }
-
-    if (currentState != (bool)pTransport->powerCount) {
-        if (pTransport->powerCount) {
-            /* powering up can be done immediately */
-            NEXUS_PowerManagement_SetCoreState(NEXUS_PowerManagementCore_eTransport, true);
-        }
-        else {
-            /* powering down can only be done after checks */
-            if (BXPT_P_CanPowerDown(pTransport->xpt)) {
-                NEXUS_PowerManagement_SetCoreState(NEXUS_PowerManagementCore_eTransport, false);
-            }
-            else {
-                /* If this fails, the nexus or XPT PI code must be reworked. */
-                BDBG_ERR(("Unable to power down transport"));
-            }
-        }
-    }
-#else
-    BSTD_UNUSED(powered);
 #endif
 }
 
@@ -1309,7 +1260,6 @@ NEXUS_Error NEXUS_TransportWakeup_SetSettings(const NEXUS_TransportWakeupSetting
         BINT_DisableCallback(pTransport->wakeup.intPacketFoundCallback);
     }
 
-    NEXUS_IsrCallback_Set(pTransport->wakeup.wakeupCallback, &pSettings->wakeupCallback);
     *pTransport->wakeup.settings = *pSettings;
 #else
     BSTD_UNUSED(pSettings);

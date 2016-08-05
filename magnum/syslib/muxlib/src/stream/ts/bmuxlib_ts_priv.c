@@ -66,7 +66,7 @@ const BMUXlib_TS_P_PESHeader s_stDefaultPESHeader =
   0xE0, /* Stream ID */
   0x00, 0x00, /* Packet Length */
   0x80, 0x00, /* Extension w/ PTS+DTS invalid */
-  0x0A, /* PES Header Data Length */
+  0x00, /* PES Header Data Length */
   0xFF, /* PTS[32:30] */
   0xFF, 0xFF, /* PTS[29:15] */
   0xFF, 0xFF, /* PTS[14:00] */
@@ -882,6 +882,7 @@ typedef struct BMUXlib_P_PESInfo
       bool bFrameSizeValid;
 
       bool bRAI;
+      bool bPESPacking;
 } BMUXlib_P_PESInfo;
 
 const BMUXlib_TS_P_SourceType BMUXLIB_TS_P_InputDescriptorTypeLUT[BMUXlib_Input_Type_eMax] =
@@ -895,7 +896,8 @@ BMUXlib_TS_P_PopulatePESInfoFromInputDescriptor(
          const BMUXlib_Input_Descriptor *pstDescriptor,
          BMUXlib_P_PESInfo *pstPESInfo,
          bool bSupportTTS,
-         bool bUsePtsAsESCR
+         bool bUsePtsAsESCR,
+         bool bPESPacking
         )
 {
    BDBG_ASSERT( pstDescriptor );
@@ -937,16 +939,18 @@ BMUXlib_TS_P_PopulatePESInfoFromInputDescriptor(
 
             pstPESInfo->bFrameSizeValid = true;
             pstPESInfo->uiFrameSize = BMUXLIB_INPUT_DESCRIPTOR_FRAMESIZE( pstDescriptor );
-            /* We add 13 bytes to payload size to account for the PES Header */
-            pstPESInfo->uiFrameSize += BMUXLIB_TS_P_PES_HEADER_PAYLOAD_SIZE;
          }
          break;
 
       case BMUXlib_TS_P_SourceType_eAudio:
          pstPESInfo->bFrameSizeValid = true;
          pstPESInfo->uiFrameSize = BMUXLIB_INPUT_DESCRIPTOR_FRAMESIZE( pstDescriptor );
-         /* We add 13 bytes to payload size to account for the Optional PES Header */
-         pstPESInfo->uiFrameSize += BMUXLIB_TS_P_PES_HEADER_PAYLOAD_SIZE;
+
+         if ( ( true == bPESPacking )
+              && ( 0 != BMUXLIB_INPUT_DESCRIPTOR_BURSTSIZE( pstDescriptor ) ) )
+         {
+            pstPESInfo->uiFrameSize = BMUXLIB_INPUT_DESCRIPTOR_BURSTSIZE( pstDescriptor );
+         }
          break;
 
       default:
@@ -1136,7 +1140,6 @@ BMUXlib_TS_P_InsertPESHeader(
                );
 
       /* Set PTS */
-      /* TODO: Optimize by not sending PTS portion of PES Header if PTS doesn't exist */
       if ( true == pstPESInfo->bPTSValid )
       {
          BMUXlib_TS_P_PESHeader_SetPTS(
@@ -1146,7 +1149,6 @@ BMUXlib_TS_P_InsertPESHeader(
       }
 
       /* Set DTS */
-      /* TODO: Optimize by not sending DTS portion of PES Header if DTS doesn't exist */
       if ( ( true == pstPESInfo->bDTSValid )
            && ( true == pstPESInfo->bPTSValid )
            && ( pstPESInfo->uiPTS != pstPESInfo->uiDTS )
@@ -1164,7 +1166,7 @@ BMUXlib_TS_P_InsertPESHeader(
       {
          BMUXlib_TS_P_PESHeader_SetLength(
                   pstCurrentPESHeader->data,
-                  pstPESInfo->uiFrameSize
+                  pstPESInfo->uiFrameSize + BMUXLIB_TS_P_PES_HEADER_MIN_PAYLOAD_SIZE + BMUXlib_TS_P_PESHeader_GetHeaderLength(pstCurrentPESHeader->data)
                   );
       }
 
@@ -1210,7 +1212,7 @@ BMUXlib_TS_P_InsertPESHeader(
          pstCurrentTransportDescriptorMetaData->hBufferBaseBlock = hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].hBlock;
          pstCurrentTransportDescriptor->uiBufferOffset = (uint8_t *) pstCurrentTransportDescriptorMetaData->pBufferAddress - (uint8_t *) hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].pBuffer;
          pstCurrentTransportDescriptor->uiBufferOffset += hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].uiBufferOffset;
-         pstCurrentTransportDescriptor->uiBufferLength = sizeof( BMUXlib_TS_P_PESHeader );
+         pstCurrentTransportDescriptor->uiBufferLength = BMUXlib_TS_P_PESHeader_MINSIZE + BMUXlib_TS_P_PESHeader_GetHeaderLength(pstCurrentPESHeader->data);
 
          /* Set ESCR */
          pstCurrentTransportDescriptor->stTsMuxDescriptorConfig.bNextPacketPacingTimestampValid = pstPESInfo->bESCRValid;
@@ -1244,8 +1246,6 @@ BMUXlib_TS_P_InsertPESHeader(
                pstCurrentTransportDescriptorMetaData->stDtsInfo.uiDtsIn27Mhz = pstPESInfo->uiPTS * 300;
             }
 
-            BDBG_ASSERT( pstCurrentTransportDescriptor->stTsMuxDescriptorConfig.bNextPacketPacingTimestampValid == pstCurrentTransportDescriptorMetaData->stDtsInfo.bValid );
-
             if ( pstPESInfo->iSHR > 0 )
             {
                pstCurrentTransportDescriptor->stTsMuxDescriptorConfig.uiPacket2PacketTimestampDelta = uiTempPacket2PacketTimestampDelta >> pstPESInfo->iSHR;
@@ -1277,15 +1277,11 @@ BMUXlib_TS_P_InsertPESHeader(
                   }
                }
 
-               /* SW7425-659: The frame size includes the PES header payload size, which we DO NOT want
-                * to include for the purposes of calculating the ending ESCR since we want the ending ESCR
-                * to be the same as what the encoder expects to be the end of the frame.  I.e. including
-                * the PES header payload size may incorrectly make the ending ESCR larger than the next
-                * frame's ESCR. So the ending ESCR value is really the time we need to finish sending the
+               /* SW7425-659: The ending ESCR value is really the time we need to finish sending the
                 * last bit of this frame such that endingESCR(n) <= ESCR(n+1)
                 */
                uiTotalTicks = pstPESInfo->uiTicksPerBit;
-               uiTotalTicks *= ( ( pstPESInfo->uiFrameSize - BMUXLIB_TS_P_PES_HEADER_PAYLOAD_SIZE ) * 8);
+               uiTotalTicks *= ( pstPESInfo->uiFrameSize * 8);
 
                if ( pstPESInfo->iSHR > 0 )
                {
@@ -2391,7 +2387,8 @@ BMUXlib_TS_P_ProcessSystemData(
                pstCurrentTransportDescriptorMetaData->uiSourceDescriptorCount = 1;
             }
          } /* end: while system data to schedule */
-         /* Set next ESCR and calculate relevant PCRBase/Extension */
+         /* Update the current ESCR to the next PCR's ESCR and calculate relevant PCRBase/Extension
+            (this will become the PCR that gets inserted next) */
          hMuxTS->status.stPCRInfo.uiESCR = hMuxTS->status.stPCRInfo.uiNextESCR;
          hMuxTS->status.stPCRInfo.uiBase = BMUXLIB_TS_P_GET_PCR_BASE(hMuxTS->status.stPCRInfo.uiESCR);
          hMuxTS->status.stPCRInfo.uiExtension = BMUXLIB_TS_P_GET_PCR_EXT(hMuxTS->status.stPCRInfo.uiESCR);
@@ -2484,7 +2481,7 @@ BMUXlib_TS_P_ProcessNewBuffers(
          BMUXlib_InputGroup_Settings stSettings;
          BMUXlib_InputGroup_GetSettings(hMuxTS->status.hInputGroup, &stSettings);
 
-         if ( true == hMuxTS->status.stStartSettings.bSupportTTS )
+         if ( ( true == hMuxTS->status.stStartSettings.bSupportTTS ) || ( true == hMuxTS->status.stStartSettings.bInsertPtsOnlyOnFirstKeyFrameOfSegment ) )
          {
             /* SW7425-659: To ensure MUX_TIMESTAMP_UPDATE is sent synchronously with bitrate changes, we need
              * to wait for all inputs before processing any inputs to prevent out of order ESCR processing
@@ -2494,8 +2491,11 @@ BMUXlib_TS_P_ProcessNewBuffers(
          }
          else
          {
+            /* If NRT and not all inputs ready, then we wait until they are ...  */
             stSettings.bWaitForAllInputs = ( true == hMuxTS->status.stStartSettings.bNonRealTimeMode ) && ( false == hMuxTS->status.bAllInputsReady );
+            /* NOTE: for real-time mode, we DO NOT want to wait until all inputs are ready before proceeding */
          }
+         hMuxTS->status.bWaitForAllInputs = stSettings.bWaitForAllInputs;
 
          rc = BMUXlib_InputGroup_SetSettings(hMuxTS->status.hInputGroup, &stSettings);
          if (rc != BERR_SUCCESS)
@@ -2510,6 +2510,8 @@ BMUXlib_TS_P_ProcessNewBuffers(
          }
       }
 
+      /* NOTE: if we are waiting for all inputs (e.g. NRT mode) then when an input is selected, it will be guaranteed
+         to have the lowest timing (ESCR or DTS) */
       if ( NULL != hSelectedInput )
       {
          BMUXlib_Input_Descriptor stDescriptor;
@@ -2532,56 +2534,55 @@ BMUXlib_TS_P_ProcessNewBuffers(
 
          /* NOTE: The following processing order relies on the fact that the first descriptor with
           * a valid ESCR *and* PTS is either an Audio or Video descriptor. */
-
-         /* We want to initialize the first PCR value and ESCR based on the first A/V buffer we're muxing */
-         if ( BMUXLIB_TS_P_INPUT_DESCRIPTOR_IS_ESCR_VALID( &stDescriptor, ( BMUXlib_TS_InterleaveMode_ePTS == hMuxTS->status.stStartSettings.eInterleaveMode ) ) )
+         if (false == hMuxTS->status.stPCRInfo.bInitialized)
          {
-            if ( ( false == hMuxTS->status.stPCRInfo.bInitialized )
-                 && ( BMUXLIB_INPUT_DESCRIPTOR_IS_PTS_VALID( &stDescriptor ) )
-               )
+            /* determine the earliest ESCR seen, and hence determine the target ESCR (adjusted with pre-offset) ... */
+            if (BMUXLIB_TS_P_INPUT_DESCRIPTOR_IS_ESCR_VALID(&stDescriptor, (BMUXlib_TS_InterleaveMode_ePTS == hMuxTS->status.stStartSettings.eInterleaveMode)))
             {
-               /* SW7435-1829: We are using the ESCR/PTS of the first input descriptor to seed the PCR value */
-               uint32_t uiTargetESCR = BMUXLIB_TS_P_INPUT_DESCRIPTOR_ESCR( &stDescriptor, ( BMUXlib_TS_InterleaveMode_ePTS == hMuxTS->status.stStartSettings.eInterleaveMode ) );
-               uint64_t uiTargetPTSin27Mhz = BMUXLIB_INPUT_DESCRIPTOR_PTS( &stDescriptor ) * 300;
-
+               /* NOTE: need both PTS and ESCR to be valid to record the earliest timing for PCR seeding */
+               uint32_t uiCurrentESCR = BMUXLIB_TS_P_INPUT_DESCRIPTOR_ESCR( &stDescriptor, ( BMUXlib_TS_InterleaveMode_ePTS == hMuxTS->status.stStartSettings.eInterleaveMode ) );
                /* determine the desired "pre-offset" prior to the first media
-                  set the PCRs to go out 3 PCR intervals prior to the first media, unless this exceeds 1 MSP
-                  (we'd run out of storage if we exceed 1 service period)
+                  set the PCRs to go out at least 3 PCR intervals prior to the first media
                   NOTE: This is done to ensure we have at least 2 PCRs *prior* to the media to allow time
                   for decoder lock to PCRs (if this is not the case, the first GOP will likely be lost) */
-               uint32_t uiMaxDiff = 3 * hMuxTS->status.stPCRInfo.uiIntervalIn27Mhz;
-               if (uiMaxDiff > (BMUXLIB_TS_P_SCALE_MS_TO_27MHZ * hMuxTS->status.stStartSettings.uiServicePeriod))
-                  uiMaxDiff = (BMUXLIB_TS_P_SCALE_MS_TO_27MHZ * hMuxTS->status.stStartSettings.uiServicePeriod);
+               uint32_t uiPreOffset = BMUXLIB_TS_P_PCR_ROLLBACK_INTERVALS * hMuxTS->status.stPCRInfo.uiIntervalIn27Mhz;
+               bool bPTSValid = BMUXLIB_INPUT_DESCRIPTOR_IS_PTS_VALID( &stDescriptor);
+               uint32_t uiTargetESCR = uiCurrentESCR - uiPreOffset; /* adjusted ESCR; i.e. rolled back by the required "pre-offset" */
 
-               /* We compute the final target ESCR by subtracting the "pre-offset" */
-               uiTargetESCR -= uiMaxDiff;
-
+               if (false == hMuxTS->status.stStartSettings.bNonRealTimeMode)
                {
-                  /* determine the distance (offset) between the PTS and the Target ESCR (modulo-32-bits) */
-                  uint32_t uiOffset = (uint32_t)(uiTargetPTSin27Mhz & 0xFFFFFFFF) - uiTargetESCR;
-
-                  hMuxTS->status.stPCRInfo.uiESCR = BMUXLIB_TS_P_MOD300_WRAP(uiTargetPTSin27Mhz - uiOffset);
+                  /* verify that the target ESCR has not rolled back past the current pacing counter */
+                  if ((int32_t)(uiTargetESCR - hMuxTS->status.stTransportStatus.uiESCR) < 0)
+                  {
+                     /* if so, use the pacing counter to seed the PCR (i.e. it goes out immediately */
+                     BDBG_WRN(("Pre-offset for ESCR is prior to pacing counter; using pacing counter as the target ESCR"));
+                     uiTargetESCR = hMuxTS->status.stTransportStatus.uiESCR;
+                  }
                }
 
-               BDBG_MODULE_MSG(BMUXLIB_TS_PCR, ("Using initial ESCR/PTS (%08x/%03x%08x) --> %03x%08x",
-                  BMUXLIB_TS_P_INPUT_DESCRIPTOR_ESCR( &stDescriptor, ( BMUXlib_TS_InterleaveMode_ePTS == hMuxTS->status.stStartSettings.eInterleaveMode ) ),
-                  (uint32_t) (uiTargetPTSin27Mhz >> 32), (uint32_t) (uiTargetPTSin27Mhz & 0xFFFFFFFF),
-                  (uint32_t) (hMuxTS->status.stPCRInfo.uiESCR >> 32), (uint32_t) (hMuxTS->status.stPCRInfo.uiESCR & 0xFFFFFFFF)));
+               /* if current ESCR < earliest ESCR seen so far ... */
+               /* NOTE: This must be true for NRT mode (since the first descriptor of the selected input
+                  is the earliest ESCR seen) */
+               if ((false == hMuxTS->status.stPCRInfo.bEarliestESCRValid)
+                  || ((int32_t)(uiTargetESCR - hMuxTS->status.stPCRInfo.uiEarliestESCR) < 0))
+               {
+                  /* record this adjusted ESCR as the ealiest */
+                  hMuxTS->status.stPCRInfo.uiEarliestESCR = uiTargetESCR;
+                  hMuxTS->status.stPCRInfo.bEarliestESCRValid = true;
 
-               hMuxTS->status.stPCRInfo.uiBase = BMUXLIB_TS_P_GET_PCR_BASE(hMuxTS->status.stPCRInfo.uiESCR);
-               hMuxTS->status.stPCRInfo.uiExtension = BMUXLIB_TS_P_GET_PCR_EXT(hMuxTS->status.stPCRInfo.uiESCR);
-               hMuxTS->status.stPCRInfo.bInitialized = true;
-
-               BDBG_MODULE_MSG(BMUXLIB_TS_PCR, ("Initial PCR Base/Extension: "BDBG_UINT64_FMT"/%02x", BDBG_UINT64_ARG(hMuxTS->status.stPCRInfo.uiBase), hMuxTS->status.stPCRInfo.uiExtension));
-            }
-
-            if ( false == hMuxTS->status.bFirstESCRValid )
-            {
-               /* TODO: We should probably wait for ALL inputs to ensure the smallest ESCR is chosen */
-               hMuxTS->status.uiFirstESCR = BMUXLIB_TS_P_INPUT_DESCRIPTOR_ESCR( &stDescriptor, ( BMUXlib_TS_InterleaveMode_ePTS == hMuxTS->status.stStartSettings.eInterleaveMode ) );
-               hMuxTS->status.bFirstESCRValid = true;
-            }
-         } /* end: if ESCR valid */
+                  /* also need to record the PTS corresponding to this ESCR (needed to set the PCR) */
+                  hMuxTS->status.stPCRInfo.uiEarliestPTS =  BMUXLIB_INPUT_DESCRIPTOR_PTS(&stDescriptor);
+                  hMuxTS->status.stPCRInfo.bEarliestPTSValid =  bPTSValid;
+                  BDBG_MODULE_MSG(BMUXLIB_TS_PCR, ("Updating Earliest Timing: ESCR (adjusted) = %x, PTS = "BDBG_UINT64_FMT" (valid=%d)",
+                        uiTargetESCR, BDBG_UINT64_ARG(hMuxTS->status.stPCRInfo.uiEarliestPTS), hMuxTS->status.stPCRInfo.bEarliestPTSValid));
+               }
+               else
+               {
+                  BDBG_MODULE_MSG(BMUXLIB_TS_PCR, ("Ignoring Later Timing: ESCR (adjusted) = %x", uiTargetESCR));
+               }
+            } /* end: if descriptor ESCR valid */
+            BMUXlib_TS_P_SeedPCR(hMuxTS);
+         } /* end PCR not set */
 
          /* SW7425-75: Ignore metadata */
          if ( BMUXLIB_INPUT_DESCRIPTOR_IS_METADATA( &stDescriptor ) )
@@ -2795,6 +2796,11 @@ BMUXlib_TS_P_ProcessNewBuffers(
             }
             else
             {
+               if ( BMUXLIB_INPUT_DESCRIPTOR_IS_SEGMENTSTART( &stDescriptor ) )
+               {
+                  hMuxTS->status.uiCurrentSegmentCount++;
+               }
+
                if ( BMUXLIB_INPUT_DESCRIPTOR_IS_FRAMESTART( &stDescriptor ) )
                {
                   BMUXlib_P_PESInfo stPESInfo;
@@ -2803,7 +2809,8 @@ BMUXlib_TS_P_ProcessNewBuffers(
                            &stDescriptor,
                            &stPESInfo,
                            hMuxTS->status.stStartSettings.bSupportTTS,
-                           ( BMUXlib_TS_InterleaveMode_ePTS == hMuxTS->status.stStartSettings.eInterleaveMode )
+                           ( BMUXlib_TS_InterleaveMode_ePTS == hMuxTS->status.stStartSettings.eInterleaveMode ),
+                           ( BMUXlib_Input_Type_eAudio == BMUXLIB_INPUT_DESCRIPTOR_TYPE( &stDescriptor ) ) ? hMuxTS->status.stStartSettings.audio[hMuxTS->status.stInputMetaData[pInputMetadata->uiInputIndex].uiPIDIndex].bEnablePESPacking : false
                            );
 
                   stPESInfo.uiTransportChannelIndex = pInputMetadata->uiTransportChannelIndex;
@@ -2811,29 +2818,49 @@ BMUXlib_TS_P_ProcessNewBuffers(
 
                   stPESInfo.uiPESStreamID = pInputMetadata->uiPESStreamID;
 
-                  /* Check to see if the following resources are available for inserting the PES header
-                   *    1) Transport Descriptor
-                   *    2) PES Header
-                   */
-                  if ( BERR_SUCCESS != BMUXlib_TS_P_InsertPESHeader(
-                           hMuxTS,
-                           &stPESInfo
-                           )
+                  if ( true == hMuxTS->status.stStartSettings.bInsertPtsOnlyOnFirstKeyFrameOfSegment )
+                  {
+                     if ( ( false == BMUXLIB_INPUT_DESCRIPTOR_IS_KEYFRAME( &stDescriptor ) ) /* Do not sent a PTS/DTS if this PES is not a key frame */
+                          || ( hMuxTS->status.uiCurrentSegmentCount == pInputMetadata->uiCurrentSegmentCount ) ) /* Do not send a PTS/DTS if we've already send a PTS/DTS for the current segment */
+                     {
+                        stPESInfo.bPTSValid = false;
+                        stPESInfo.bDTSValid = false;
+                     }
+                     else
+                     {
+                        pInputMetadata->uiCurrentSegmentCount = hMuxTS->status.uiCurrentSegmentCount;
+                     }
+                  }
+
+                  if ( ( BMUXlib_Input_Type_eVideo == BMUXLIB_INPUT_DESCRIPTOR_TYPE( &stDescriptor ) )
+                       || ( false == hMuxTS->status.stStartSettings.audio[hMuxTS->status.stInputMetaData[pInputMetadata->uiInputIndex].uiPIDIndex].bEnablePESPacking )
+                       || ( BMUXLIB_INPUT_DESCRIPTOR_IS_BURSTSTART( &stDescriptor ) )
                      )
                   {
-                     BDBG_ERR(("PES descriptors not available.  Will be processed next time."));
-                     BMUXlib_InputGroup_ActivateInput(hMuxTS->status.hInputGroup, hSelectedInput, false);
-
-                     if ( true == hMuxTS->status.stStartSettings.bSupportTTS )
+                     /* Check to see if the following resources are available for inserting the PES header
+                      *    1) Transport Descriptor
+                      *    2) PES Header
+                      */
+                     if ( BERR_SUCCESS != BMUXlib_TS_P_InsertPESHeader(
+                              hMuxTS,
+                              &stPESInfo
+                              )
+                        )
                      {
-                        /* SW7425-659: Since MUX_TIMESTAMP_UPDATE BTP/BPP requires descriptors to be processed in ESCR sequential
-                         * order, if an input is stalled, we don't want to process any inputs.
-                         */
+                        BDBG_ERR(("PES descriptors not available.  Will be processed next time."));
+                        BMUXlib_InputGroup_ActivateInput(hMuxTS->status.hInputGroup, hSelectedInput, false);
 
-                        break;
+                        if ( true == hMuxTS->status.stStartSettings.bSupportTTS )
+                        {
+                           /* SW7425-659: Since MUX_TIMESTAMP_UPDATE BTP/BPP requires descriptors to be processed in ESCR sequential
+                            * order, if an input is stalled, we don't want to process any inputs.
+                            */
+
+                           break;
+                        }
+
+                        continue;
                      }
-
-                     continue;
                   }
 
                   bProcessUserdata = BMUXlib_TS_P_Userdata_FindTargetPTS(hMuxTS, pInputMetadata, &stDescriptor);
@@ -3039,6 +3066,11 @@ BMUXlib_TS_P_ProcessNewBuffers(
       else
       {
          /* no input ready to process */
+         /* determine if time to seed PCR yet ... */
+         if (false == hMuxTS->status.stPCRInfo.bInitialized)
+         {
+            BMUXlib_TS_P_SeedPCR(hMuxTS);
+         }
          break;
       }
    } /* end: while descriptors to process */
@@ -3046,6 +3078,70 @@ BMUXlib_TS_P_ProcessNewBuffers(
    BDBG_LEAVE( BMUXlib_TS_P_ProcessNewBuffers );
 
    return BERR_TRACE( BERR_SUCCESS );
+}
+
+/* Determine if its time to seed the PCR yet, and if so seed the
+   PCR based on the earliest ESCR seen on all inputs */
+void BMUXlib_TS_P_SeedPCR(BMUXlib_TS_Handle hMuxTS)
+{
+   BDBG_ENTER(BMUXlib_TS_P_SeedPCR);
+   /* can't set any timing if earliest ESCR has not yet been determined:
+      NOTE: for NRT mode we expect that the earliest ESCR is always set to the first
+            descriptor of the first input delected, since we waited for all inputs */
+   if (hMuxTS->status.stPCRInfo.bEarliestESCRValid)
+   {
+      int32_t iESCRDistanceToPacing = hMuxTS->status.stPCRInfo.uiEarliestESCR - hMuxTS->status.stTransportStatus.uiESCR;
+      if (false == hMuxTS->status.stStartSettings.bNonRealTimeMode)
+      {
+         BDBG_MODULE_MSG(BMUXLIB_TS_PCR, ("Distance to Pacing Count = %x (Pacing = %x, Earliest ESCR (adjusted) = %x)",
+            iESCRDistanceToPacing, hMuxTS->status.stTransportStatus.uiESCR, hMuxTS->status.stPCRInfo.uiEarliestESCR));
+         if (iESCRDistanceToPacing < 0)
+         {
+            BDBG_WRN(("PCR seeding missed pacing counter"));
+         }
+      }
+
+      /* NOTE: We need to always detect NRT mode here, since this _may_ be used for seeding the pacing counter,
+         so we cannot use the distance to pacing counter as the criteria for seeding the PCR */
+      if ((hMuxTS->status.stPCRInfo.bEarliestPTSValid)
+         && ((true == hMuxTS->status.stStartSettings.bNonRealTimeMode)
+             || (true == hMuxTS->status.bWaitForAllInputs)  /* waiting for all inputs (we already know the earliest input) */
+             || (iESCRDistanceToPacing <= (int32_t)(BMUXLIB_TS_P_SCALE_MS_TO_27MHZ * (hMuxTS->status.stStartSettings.uiServicePeriod+hMuxTS->status.stStartSettings.uiServiceLatencyTolerance))))) /* can't wait any longer! */
+      {
+         uint32_t uiOffset;
+         uint64_t uiTargetPTSin27Mhz = hMuxTS->status.stPCRInfo.uiEarliestPTS  * 300;
+         /* Seed the PCR with the earliest adjusted ESCR seen */
+         uint32_t uiTargetESCR = hMuxTS->status.stPCRInfo.uiEarliestESCR;
+
+         /* determine the distance (offset) between the PTS and the Target ESCR (modulo-32-bits) */
+         uiOffset = (uint32_t)(uiTargetPTSin27Mhz & 0xFFFFFFFF) - uiTargetESCR;
+         hMuxTS->status.stPCRInfo.uiESCR = BMUXLIB_TS_P_MOD300_WRAP(uiTargetPTSin27Mhz - uiOffset);
+
+         BDBG_MODULE_MSG(BMUXLIB_TS_PCR, ("Using initial ESCR/PTS (%08x/%03x%08x) --> %03x%08x",
+            uiTargetESCR,
+            (uint32_t) (uiTargetPTSin27Mhz >> 32), (uint32_t) (uiTargetPTSin27Mhz & 0xFFFFFFFF),
+            (uint32_t) (hMuxTS->status.stPCRInfo.uiESCR >> 32), (uint32_t) (hMuxTS->status.stPCRInfo.uiESCR & 0xFFFFFFFF)));
+
+         hMuxTS->status.stPCRInfo.uiBase = BMUXLIB_TS_P_GET_PCR_BASE(hMuxTS->status.stPCRInfo.uiESCR);
+         hMuxTS->status.stPCRInfo.uiExtension = BMUXLIB_TS_P_GET_PCR_EXT(hMuxTS->status.stPCRInfo.uiESCR);
+         hMuxTS->status.stPCRInfo.bInitialized = true;
+
+         BDBG_MODULE_MSG(BMUXLIB_TS_PCR, ("Initial PCR Base/Extension: "BDBG_UINT64_FMT"/%02x", BDBG_UINT64_ARG(hMuxTS->status.stPCRInfo.uiBase), hMuxTS->status.stPCRInfo.uiExtension));
+      }
+      /* else do nothing (not time to set the PCR yet) */
+
+      if ((true == hMuxTS->status.stStartSettings.bNonRealTimeMode)
+            && (false == hMuxTS->status.bFirstESCRValid))
+      {
+            /* Set the first ESCR for Seeding the NRT pacing counter.
+               This will set the NRT pacing counter to either the PCR's ESCR (if the descriptor had a valid ESCR and PTS)
+               OR to the current ESCR rolled back by the pre-offset (if it did not have a valid ESCR/PTS) */
+            hMuxTS->status.uiFirstESCR = hMuxTS->status.stPCRInfo.uiEarliestESCR;
+            hMuxTS->status.bFirstESCRValid  = true;
+            BDBG_MODULE_MSG(BMUXLIB_TS_PCR, ("Setting NRT pacing counter to Adjusted ESCR: 0x%08x", hMuxTS->status.uiFirstESCR));
+      }
+   } /* end: earliest ESCR valid */
+   BDBG_LEAVE(BMUXlib_TS_P_SeedPCR);
 }
 
 BERR_Code
@@ -3325,56 +3421,73 @@ BMUXlib_TS_P_ScheduleProcessedBuffers(
                ));
 
 #if BMUXLIB_TS_P_DUMP_TRANSPORT_DESC
-               if ( NULL == hMuxTS->status.stOutput.stTransport[uiTransportChannelIndex].stDebug.hPESDumpFile )
                {
-                  char fname[256];
-#if BMUXLIB_TS_P_TEST_MODE
-                  /* don't use handle in filename if in test mode ... it will change run-to-run
-                     making it impossible to automate usage of the resulting file */
-                  sprintf(fname, "BMUXlib_TRANSPORT_DESC_%02d.csv", uiTransportChannelIndex);
+#if BMUXLIB_TS_P_DUMP_TRANSPORT_DESC_PER_CHANNEL
+                  uint32_t uiFileIndex = uiTransportChannelIndex;
 #else
-                  sprintf(fname, "BMUXlib_TRANSPORT_DESC_%02d_%08x.csv", uiTransportChannelIndex, (unsigned) hMuxTS);
+                  uint32_t uiFileIndex = 0;
 #endif
-                  hMuxTS->status.stOutput.stTransport[uiTransportChannelIndex].stDebug.hDescDumpFile = fopen(fname, "wb");
-                  if ( NULL == hMuxTS->status.stOutput.stTransport[uiTransportChannelIndex].stDebug.hDescDumpFile )
+                  if ( NULL == hMuxTS->status.stOutput.stTransport[uiFileIndex].stDebug.hDescDumpFile )
                   {
-                     BDBG_ERR(("Error Creating Transport Descriptor Dump File (%s)", fname));
-                  }
-                  else
-                  {
-                     BDBG_WRN(("Creating Transport Descriptor Dump File (%s)", fname));
-                  }
-               }
+                     char fname[256];
+#if BMUXLIB_TS_P_TEST_MODE
+                     /* don't use handle in filename if in test mode ... it will change run-to-run
+                        making it impossible to automate usage of the resulting file */
+#if BMUXLIB_TS_P_DUMP_TRANSPORT_DESC_PER_CHANNEL
+                     sprintf(fname, "BMUXlib_TRANSPORT_DESC_%02d.csv", uiFileIndex);
+#else
+                     sprintf(fname, "BMUXlib_TRANSPORT_DESC.csv");
+#endif
 
-               if ( NULL != hMuxTS->status.stOutput.stTransport[uiTransportChannelIndex].stDebug.hDescDumpFile )
-               {
-                  if ( false == hMuxTS->status.stOutput.stTransport[uiTransportChannelIndex].stDebug.bPrintedHeader )
+#else /* Not test mode */
+#if BMUXLIB_TS_P_DUMP_TRANSPORT_DESC_PER_CHANNEL
+                     sprintf(fname, "BMUXlib_TRANSPORT_DESC_%02d_%08x.csv", uiFileIndex, (unsigned) hMuxTS);
+#else
+                     sprintf(fname, "BMUXlib_TRANSPORT_DESC_%08x.csv", (unsigned) hMuxTS);
+#endif
+
+#endif
+                     hMuxTS->status.stOutput.stTransport[uiFileIndex].stDebug.hDescDumpFile = fopen(fname, "wb");
+                     if ( NULL == hMuxTS->status.stOutput.stTransport[uiFileIndex].stDebug.hDescDumpFile )
+                     {
+                        BDBG_ERR(("Error Creating Transport Descriptor Dump File (%s)", fname));
+                     }
+                     else
+                     {
+                        BDBG_WRN(("Creating Transport Descriptor Dump File (%s)", fname));
+                     }
+                  }
+
+                  if ( NULL != hMuxTS->status.stOutput.stTransport[uiFileIndex].stDebug.hDescDumpFile )
                   {
-                     fprintf( hMuxTS->status.stOutput.stTransport[uiTransportChannelIndex].stDebug.hDescDumpFile,
-                              "channel,count,pacing(27Mhz),address,length,escr(27Mhz),escr valid,pkt2pkt,pk2pkt valid,rai,queued,pending,delayed\n"
+                     if ( false == hMuxTS->status.stOutput.stTransport[uiFileIndex].stDebug.bPrintedHeader )
+                     {
+                        fprintf( hMuxTS->status.stOutput.stTransport[uiFileIndex].stDebug.hDescDumpFile,
+                                 "channel,count,pacing(27Mhz),offset,length,escr(27Mhz),escr valid,pkt2pkt,pk2pkt valid,rai,queued,pending,delayed\n"
+                                 );
+
+                        hMuxTS->status.stOutput.stTransport[uiFileIndex].stDebug.bPrintedHeader = true;
+                     }
+
+                     fprintf( hMuxTS->status.stOutput.stTransport[uiFileIndex].stDebug.hDescDumpFile,
+                              "%10u,%10u,%10u,"BDBG_UINT64_FMT",%10u,%10u,%d,%10u,%d,%d,%d,%d,%d\n",
+                              uiTransportChannelIndex,
+                              hMuxTS->status.stOutput.stTransport[uiTransportChannelIndex].uiDescriptorsSent,
+                              hMuxTS->status.stTransportStatus.uiESCR,
+                              BDBG_UINT64_ARG(hMuxTS->astTransportDescriptorTemp[i].uiBufferOffset),
+                              hMuxTS->astTransportDescriptorTemp[i].uiBufferLength,
+                              hMuxTS->astTransportDescriptorTemp[i].stTsMuxDescriptorConfig.uiNextPacketPacingTimestamp,
+                              hMuxTS->astTransportDescriptorTemp[i].stTsMuxDescriptorConfig.bNextPacketPacingTimestampValid,
+                              hMuxTS->astTransportDescriptorTemp[i].stTsMuxDescriptorConfig.uiPacket2PacketTimestampDelta,
+                              hMuxTS->astTransportDescriptorTemp[i].stTsMuxDescriptorConfig.bPacket2PacketTimestampDeltaValid,
+                              hMuxTS->astTransportDescriptorTemp[i].stTsMuxDescriptorConfig.bRandomAccessIndication,
+                              uiTotalQueued,
+                              hMuxTS->status.stOutput.stTransport[uiTransportChannelIndex].uiDescriptorsQueued,
+                              uiTotalDescriptorsToQueue - uiTotalQueued
                               );
-
-                     hMuxTS->status.stOutput.stTransport[uiTransportChannelIndex].stDebug.bPrintedHeader = true;
                   }
-
-                  fprintf( hMuxTS->status.stOutput.stTransport[uiTransportChannelIndex].stDebug.hDescDumpFile,
-                           "%10u,%10u,%10u,%p,%10u,%10u,%d,%10u,%d,%d,%d,%d,%d\n",
-                           uiTransportChannelIndex,
-                           hMuxTS->status.stOutput.stTransport[uiTransportChannelIndex].uiDescriptorsSent,
-                           hMuxTS->status.stTransportStatus.uiESCR,
-                           hMuxTS->astTransportDescriptorTemp[i].pBufferAddress,
-                           hMuxTS->astTransportDescriptorTemp[i].uiBufferLength,
-                           hMuxTS->astTransportDescriptorTemp[i].stTsMuxDescriptorConfig.uiNextPacketPacingTimestamp,
-                           hMuxTS->astTransportDescriptorTemp[i].stTsMuxDescriptorConfig.bNextPacketPacingTimestampValid,
-                           hMuxTS->astTransportDescriptorTemp[i].stTsMuxDescriptorConfig.uiPacket2PacketTimestampDelta,
-                           hMuxTS->astTransportDescriptorTemp[i].stTsMuxDescriptorConfig.bPacket2PacketTimestampDeltaValid,
-                           hMuxTS->astTransportDescriptorTemp[i].stTsMuxDescriptorConfig.bRandomAccessIndication,
-                           uiTotalQueued,
-                           hMuxTS->status.stOutput.stTransport[uiTransportChannelIndex].uiDescriptorsQueued,
-                           uiTotalDescriptorsToQueue - uiTotalQueued
-                           );
                }
-#endif
+#endif /* Dump transport desc */
 #if BMUXLIB_TS_P_DUMP_TRANSPORT_PES
                if ( NULL == hMuxTS->status.stOutput.stTransport[uiTransportChannelIndex].stDebug.hPESDumpFile )
                {
@@ -3385,18 +3498,46 @@ BMUXlib_TS_P_ScheduleProcessedBuffers(
                   {
                      BDBG_ERR(("Error Creating Transport PES/TS Dump File (%s)", fname));
                   }
+                  else
+                  {
+                     BDBG_WRN(("Creating Transport PES/TS Dump File (%s)", fname));
+                  }
                }
 
                if ( NULL != hMuxTS->status.stOutput.stTransport[uiTransportChannelIndex].stDebug.hPESDumpFile )
                {
-                  fwrite( hMuxTS->astTransportDescriptorTemp[i].pBufferAddress,
+                  if (NULL != hMuxTS->astTransportDescriptorMetaDataTemp[i].pBufferAddress)
+                  {
+                     /* can write this data directly from the buffer */
+                     BDBG_ASSERT(0 == hMuxTS->astTransportDescriptorMetaDataTemp[i].uiBufferBaseOffset);
+                     fwrite(hMuxTS->astTransportDescriptorMetaDataTemp[i].pBufferAddress,
                            1,
                            hMuxTS->astTransportDescriptorTemp[i].uiBufferLength,
                            hMuxTS->status.stOutput.stTransport[uiTransportChannelIndex].stDebug.hPESDumpFile
                            );
+                  }
+                  else
+                  {
+                     /* need to lock the buffer and use the offset to determine the address to write */
+                     uint8_t *pAddress = BMMA_Lock(hMuxTS->astTransportDescriptorMetaDataTemp[i].hBufferBaseBlock);
+                     BDBG_ASSERT(NULL == hMuxTS->astTransportDescriptorMetaDataTemp[i].pBufferAddress);
+                     if (NULL != pAddress)
+                     {
+                        fwrite(pAddress + (hMuxTS->astTransportDescriptorTemp[i].uiBufferOffset-hMuxTS->astTransportDescriptorMetaDataTemp[i].uiBufferBaseOffset),
+                           1,
+                           hMuxTS->astTransportDescriptorTemp[i].uiBufferLength,
+                           hMuxTS->status.stOutput.stTransport[uiTransportChannelIndex].stDebug.hPESDumpFile
+                           );
+                        BMMA_Unlock(hMuxTS->astTransportDescriptorMetaDataTemp[i].hBufferBaseBlock, pAddress);
+                     }
+                     else
+                     {
+                        BDBG_WRN(("Transport PES Dump: Unable to lock buffer %p", (void *)hMuxTS->astTransportDescriptorMetaDataTemp[i].hBufferBaseBlock));
+                     }
+                  }
                }
 #endif
-            }
+            } /* end: for queued descriptors */
             BDBG_MSG(("TRANSPORT[%d] <-- %d", uiTransportChannelIndex,  (int)uiTotalQueued));
          }
       }

@@ -1,23 +1,40 @@
-/***************************************************************************
- *     Copyright (c) 2003-2015 Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
  *
- * File Description: ELF relocation functionality for VDEC ARC images.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * Revision History:
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
- *
- ***************************************************************************/
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
 
 /************************* Module Overview ********************************
 <verbatim>
@@ -128,9 +145,9 @@ typedef struct
 static BERR_Code BXVD_P_Relf_ReadHeaders(BXVD_Handle hXvd, ElfInfo *info);
 
 static uint8_t   *BXVD_P_Relf_ReadSection(BXVD_Handle hXvd,
-					  ElfInfo *info,
+                                          ElfInfo *info,
                                           int32_t MemBlk,
-					  int32_t index);
+                                          int32_t index);
 
 static void      BXVD_P_Relf_RelocateSections(ElfInfo *info);
 static void      BXVD_P_Relf_RelocateSymbols(ElfInfo *info);
@@ -155,19 +172,19 @@ static BERR_Code BXVD_P_Relf_ReadInput(ElfInfo *info,
  * identified as bottlenecks during execution profiling.
  */
 
-/* Get a 32 bit value and swap it if necessary.	*/
+/* Get a 32 bit value and swap it if necessary. */
 #define BXVD_P_Relf_Get32(swap, n)      \
 do {                                    \
       if (swap)                         \
       {                                 \
          n = ((n & 0xFF000000) >> 24) | \
-	     ((n & 0x00FF0000) >>  8) | \
-	     ((n & 0x0000FF00) <<  8) | \
-             ((n & 0x000000FF) << 24);  \
+            ((n & 0x00FF0000) >>  8) |  \
+            ((n & 0x0000FF00) <<  8) |  \
+            ((n & 0x000000FF) << 24);   \
       }                                 \
 } while(0)
 
-/* Get a 16 bit value and swap it if necessary.	*/
+/* Get a 16 bit value and swap it if necessary. */
 #define BXVD_P_Relf_Get16(swap, n)                      \
 do {                                                    \
       if (swap)                                         \
@@ -179,23 +196,23 @@ do {                                                    \
 /* Release a previously allocated section. */
 /* LSRAM start address. Nothing >= this address is processed */
 #if BXVD_USE_UNCACHED_MEMORY
-#define BXVD_P_Relf_ReleaseSection(hXvd, info, index)			\
+#define BXVD_P_Relf_ReleaseSection(hXvd, info, index)           \
 do {                                                                    \
       if (info->section_data[index])                                    \
       {                                                                 \
-         info->section_data[index	] = 0;                          \
+         info->section_data[index   ] = 0;                          \
          info->uncached_section_data[index] = 0;                        \
-      }	                                                                \
+      }                                                                 \
 } while(0)
 #else
 
-#define BXVD_P_Relf_ReleaseSection(hXvd, info, index)			\
+#define BXVD_P_Relf_ReleaseSection(hXvd, info, index)           \
 do {                                                                    \
       if (info->section_data[index])                                    \
       {                                                                 \
-         info->section_data[index	] = 0;                          \
+         info->section_data[index   ] = 0;                          \
          info->uncached_section_data[index] = 0;                        \
-      }	                                                                \
+      }                                                                 \
 } while(0)
 #endif
 
@@ -350,7 +367,7 @@ BERR_Code BXVD_P_Relf_RelocateELF(BXVD_Handle hXvd,
    BDBG_MSG(("Reading ELF image headers"));
    if ( BXVD_P_Relf_ReadHeaders(hXvd, info) != 0 )
    {
-      BDBG_ERR(("failed reading header information\n"));
+      BDBG_ERR(("failed reading header information"));
       BKNI_Free(info);
       return BERR_TRACE(BXVD_ERR_RELF_BAD_HEADER);
    }
@@ -362,7 +379,7 @@ BERR_Code BXVD_P_Relf_RelocateELF(BXVD_Handle hXvd,
    BXVD_P_Relf_RelocateSymbols (info);
 
    /* Do part 2 of the relocation: relocate and emit each loadable
-    *	PROGBITS section.
+    *   PROGBITS section.
     */
    for (i = 1; i < info->header.e_shnum; i++)
    {
@@ -409,7 +426,7 @@ BERR_Code BXVD_P_Relf_RelocateELF(BXVD_Handle hXvd,
       }
 
       /* See if we can find a relocation section for this program section.  If
-       *	there isn't one then we don't need to modify this section.
+       *    there isn't one then we don't need to modify this section.
        */
       r = BXVD_P_Relf_FindRelocSection(info, i);
       if (r)
@@ -851,7 +868,7 @@ static uint8_t *BXVD_P_Relf_ReadSection( BXVD_Handle hXvd,
    {
       uint8_t    *data;
       int32_t    count;        /* Entries in RELA section         */
-      int32_t    type;         /* RELA entry type           	     */
+      int32_t    type;         /* RELA entry type                    */
       int32_t    sym;          /* RELA entry symbol index         */
       int32_t    i;
       uint32_t   offset;
@@ -877,14 +894,14 @@ static uint8_t *BXVD_P_Relf_ReadSection( BXVD_Handle hXvd,
 
          /* Compute the offset into the 'prog' section at which
           * the fixup occurs.  We also need to know the new
-          *	 (relocated) PC of this location, as well as a pointer
-          *	 to the actual data to be changed.
+          *  (relocated) PC of this location, as well as a pointer
+          *  to the actual data to be changed.
           */
          offset = entry->r_offset - prog->sh_addr;
-         data  	 = info->section_data    [ prog_index ] + offset;
-         new_pc = 	info->new_section_base[ prog_index ] + offset;
+         data    = info->section_data    [ prog_index ] + offset;
+         new_pc =   info->new_section_base[ prog_index ] + offset;
 
-         /*	 Determine which symbol is being referenced. */
+         /*  Determine which symbol is being referenced. */
          symbol = info->symtab + sym;
 
          BXVD_P_Relf_Fixup(data,

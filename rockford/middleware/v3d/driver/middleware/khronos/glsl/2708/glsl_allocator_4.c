@@ -2795,34 +2795,10 @@ static uint32_t generate(uint32_t *output)
    uint32_t xxx_anop_count = 0, xxx_mnop_count = 0, xxx_amov_count = 0, xxx_mmov_count = 0;
 
 #ifdef KHRN_FORCE_SINGLE_TEXTURE_UNIT
-	*(output++) = 0x00000001; *(output++) = 0xe0020927; /* mov tmurs, 0x1 */
+   *(output++) = 0x00000001; *(output++) = 0xe0020927; /* mov tmurs, 0x1 */
    *(output++) = 0x009e7000; *(output++) = 0x100009e7; /* nop */
    *(output++) = 0x009e7000; *(output++) = 0x100009e7; /* nop */
    *(output++) = 0x009e7000; *(output++) = 0x100009e7; /* nop */
-#endif
-
-#ifdef XXX_OFFLINE
-   if (shader_type & GLSL_BACKEND_TYPE_OFFLINE_VERTEX)
-   {
-
-      *(output++) = 0x15827d80; *(output++) = 0x100207e7; /* mov ra31, unif */
-      *(umap++) = BACKEND_UNIFORM; *(umap++) = BACKEND_UNIFORM_VDR_ADDR_START;
-
-      *(output++) = 0x15827d80; *(output++) = 0x100217e7; /* mov rb31, unif */
-      *(umap++) = BACKEND_UNIFORM; *(umap++) = BACKEND_UNIFORM_VDW_ADDR_START;
-
-      /* start of loop */
-
-      *(output++) = 0x15827d80; *(output++) = 0x10020c67; /*:label mov vr_setup, unif */
-      *(umap++) = BACKEND_UNIFORM; *(umap++) = BACKEND_UNIFORM_VDR_SETUP0;
-
-      *(output++) = 0x15827d80; *(output++) = 0x10020c67; /* mov vr_setup, unif */
-      *(umap++) = BACKEND_UNIFORM; *(umap++) = BACKEND_UNIFORM_VDR_SETUP1;
-
-      *(output++) = 0x157e7d80; *(output++) = 0x10020ca7; /* mov vr_addr, ra31 */
-
-      *(output++) = 0x15ca7d80; *(output++) = 0x100009e7; /* mov -, vr_wait */
-   }
 #endif
 
    if (shader_type & GLSL_BACKEND_TYPE_FRAGMENT)
@@ -3113,63 +3089,6 @@ static uint32_t generate(uint32_t *output)
       }
    }
 
-   /* DEBUG */
-   /*if (shader_type & GLSL_BACKEND_TYPE_FRAGMENT)
-   {
-      extern uint32_t xxx_shader;
-      uint32_t total = (output - output_start)/2;
-      printf("shader%4d -- add:%3d mul:%3d amov:%3d mmov:%3d anop:%3d mnop:%3d instr:%3d\n",
-         xxx_shader,
-         total-xxx_amov_count-xxx_anop_count,
-         total-xxx_mmov_count-xxx_mnop_count,
-         xxx_amov_count, xxx_mmov_count, xxx_anop_count, xxx_mnop_count,
-         total);
-   }*/
-
-#ifdef XXX_OFFLINE
-   if (shader_type & GLSL_BACKEND_TYPE_OFFLINE_VERTEX)
-   {
-      uint32_t jump;
-
-      *(output++) = 0x0d7e0dc0; *(output++) = 0x100229e7; /* sub.setf -, ra31, unif */
-      *(umap++) = BACKEND_UNIFORM; *(umap++) = BACKEND_UNIFORM_VDR_ADDR_END;
-
-      *(output++) = 0x957e0dbf; *(output++) = 0x10024831; /* mov r0, ra31; mov vw_setup, unif */
-      *(umap++) = BACKEND_UNIFORM; *(umap++) = BACKEND_UNIFORM_VDW_SETUP0;
-
-      /*
-         jump back over everything so far
-            except the first two instructions
-            plus an extra four instructions (the branch instruction itself plus 3 delay slots)
-      */
-      jump = (uint32_t)output_start - (uint32_t)output - 2*8;
-      *(output++) = jump; *(output++) = 0xf06809e7; /* brr.anyn -,r:label */
-
-      *(output++) = 0x9581fff6; *(output++) = 0x10024871; /* mov r1, rb31; mov vw_setup, unif */
-      *(umap++) = BACKEND_UNIFORM; *(umap++) = BACKEND_UNIFORM_VDW_SETUP1;
-
-      *(output++) = 0x8c81f1bf; *(output++) = 0x100247f2; /* add ra31, r0, unif; mov vw_addr, rb31 */
-      *(umap++) = BACKEND_UNIFORM; *(umap++) = BACKEND_UNIFORM_VDR_ADDR_INCR;
-
-      *(output++) = 0x8c8323bf; *(output++) = 0x100217e7; /* add rb31, r1, unif; mov -, vw_wait */
-      *(umap++) = BACKEND_UNIFORM; *(umap++) = BACKEND_UNIFORM_VDW_ADDR_INCR;
-
-      /* end of loop */
-
-      *(output++) = 0x15827d80; *(output++) = 0x100207e7; /* mov ra31, unif */
-      *(umap++) = BACKEND_UNIFORM; *(umap++) = BACKEND_UNIFORM_NEXT_USER_SHADER;
-
-      *(output++) = 0x009e7000; *(output++) = 0x100009e7; /* nop */
-      *(output++) = 0x00000000; *(output++) = 0xf0f7e9e7; /* bra -, ra31 */
-
-      *(output++) = 0x15827d80; *(output++) = 0x10020a27; /* mov unif_addr, unif */
-      *(umap++) = BACKEND_UNIFORM; *(umap++) = BACKEND_UNIFORM_NEXT_USER_UNIF;
-
-      *(output++) = 0x009e7000; *(output++) = 0x100009e7; /* nop */
-      *(output++) = 0x009e7000; *(output++) = 0x100009e7; /* nop */
-   }
-#endif
-
    vcos_assert(current_tex_param[0] == BACKEND_UNIFORM_TEX_PARAM0 && current_tex_param[1] == BACKEND_UNIFORM_TEX_PARAM0);
    uniform_count = (umap - uniform_map) / 2;
 
@@ -3459,16 +3378,6 @@ bool glsl_allocator_init(uint32_t type, bool is_threaded, uint32_t num_attribute
       a_scheduler_node[15] = NULL;
       b_scheduler_node[15] = NULL;
    }
-#ifdef XXX_OFFLINE
-   else if (type & GLSL_BACKEND_TYPE_OFFLINE_VERTEX)
-   {
-      a_is_available[31] = false;  /* used for read pointer */
-      b_is_available[31] = false;  /* used for write pointer */
-
-      a_scheduler_node[31] = NULL;
-      b_scheduler_node[31] = NULL;
-   }
-#endif
 
    vcos_assert(!is_threaded || type & GLSL_BACKEND_TYPE_FRAGMENT);
    shader_type = type;
@@ -3961,7 +3870,6 @@ bool glsl_allocator_finish()
    if ((line_capture_fragment) && (shader_type & GLSL_BACKEND_TYPE_FRAGMENT)) glsl_allocator_dump();
    if ((line_capture_vertex) && (shader_type & GLSL_BACKEND_TYPE_VERTEX)) glsl_allocator_dump();
    if ((line_capture_coord) && (shader_type & GLSL_BACKEND_TYPE_COORD)) glsl_allocator_dump();
-   /*if (shader_type & GLSL_BACKEND_TYPE_OFFLINE_VERTEX) glsl_qdisasm_py_dump(generated_instruction_count, generated_instructions); */
    /*if (shader_type & GLSL_BACKEND_TYPE_VERTEX_OR_COORD)glsl_qdisasm_py_dump(generated_instruction_count,generated_instructions); */
    /*if (shader_type & GLSL_BACKEND_TYPE_FRAGMENT)glsl_qdisasm_py_dump(generated_instruction_count,generated_instructions); */
 

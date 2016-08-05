@@ -254,14 +254,8 @@ TokenSeq *glsl_expand(TokenSeq *ts, bool recursive)
             case MACRO_FILE:
                ts = glsl_tokenseq_construct(glsl_token_construct_intconst(g_FileNumber), NULL, ts->next);
                break;
-            case MACRO_VERSION:
-            {
-               int version = GLSL_SHADER_VERSION_NUMBER(g_ShaderVersion);
-               ts = glsl_tokenseq_construct(glsl_token_construct_intconst(version), NULL, ts->next);
-               break;
-            }
             default:
-               UNREACHABLE();
+               unreachable();
                break;
             }
          }

@@ -1,8 +1,8 @@
 static void packSnorm2x16__const_highp_uint__const_vec2(const_uint* result, const_vec2* v)
 {
-   const_float pone = float_to_bits(1.0);
-   const_float mone = float_to_bits(-1.0);
-   const_float max  = float_to_bits(32767.0);
+   const_float pone = CONST_FLOAT_ONE;
+   const_float mone = CONST_FLOAT_MINUS_ONE;
+   const_float max  = gfx_float_to_bits(32767.0);
    const_float clamped, multiplied, rounded;
 
    clamp__const_float__const_float__const_float__const_float(&clamped, &(*v)[0], &mone, &pone);
@@ -18,9 +18,9 @@ static void packSnorm2x16__const_highp_uint__const_vec2(const_uint* result, cons
 
 static void unpackSnorm2x16__const_highp_vec2__const_highp_uint(const_vec2* result, const_uint* p)
 {
-   const_float  pone = float_to_bits(1.0);
-   const_float  mone = float_to_bits(-1.0);
-   const_float  max  = float_to_bits(32767.0);
+   const_float  pone = CONST_FLOAT_ONE;
+   const_float  mone = CONST_FLOAT_MINUS_ONE;
+   const_float  max  = gfx_float_to_bits(32767.0);
    const_signed lo   = *p & 0xFFFF;
    const_signed hi   = *p >> 0x10;
    const_float  flo  = const_float_from_int((lo & 0x7FFF) - (lo & 0x8000));
@@ -38,9 +38,9 @@ static void unpackSnorm2x16__const_highp_vec2__const_highp_uint(const_vec2* resu
 
 static void packUnorm2x16__const_highp_uint__const_vec2(const_uint* result, const_vec2* v)
 {
-   const_float one = float_to_bits(1.0);
-   const_float zero = float_to_bits(0.0);
-   const_float max  = float_to_bits(65535.0);
+   const_float one  = CONST_FLOAT_ONE;
+   const_float zero = CONST_FLOAT_ZERO;
+   const_float max  = gfx_float_to_bits(65535.0);
    const_float clamped, multiplied, rounded;
 
    clamp__const_float__const_float__const_float__const_float(&clamped, &(*v)[0], &zero, &one);
@@ -56,7 +56,7 @@ static void packUnorm2x16__const_highp_uint__const_vec2(const_uint* result, cons
 
 static void unpackUnorm2x16__const_highp_vec2__const_highp_uint(const_vec2* result, const_uint* p)
 {
-   const_float max  = float_to_bits(65535.0);
+   const_float max  = gfx_float_to_bits(65535.0);
    const_float low  = const_float_from_uint(*p & 0xFFFF);
    const_float high = const_float_from_uint(*p >> 0x10);
 
@@ -77,9 +77,9 @@ static void unpackHalf2x16__const_mediump_vec2__const_highp_uint(const_vec2* res
 
 static void packUnorm4x8__const_highp_uint__const_mediump_vec4(const_uint *result, const_vec4 *v)
 {
-   const_float one = float_to_bits(1.0);
-   const_float zero = float_to_bits(0.0);
-   const_float max  = float_to_bits(255.0);
+   const_float one  = CONST_FLOAT_ONE;
+   const_float zero = CONST_FLOAT_ZERO;
+   const_float max  = gfx_float_to_bits(255.0);
    const_float clamped, multiplied, rounded;
 
    clamp__const_float__const_float__const_float__const_float(&clamped, &(*v)[0], &zero, &one);
@@ -105,9 +105,9 @@ static void packUnorm4x8__const_highp_uint__const_mediump_vec4(const_uint *resul
 
 static void packSnorm4x8__const_highp_uint__const_mediump_vec4(const_uint *result, const_vec4 *v)
 {
-   const_float pone = float_to_bits(1.0);
-   const_float mone = float_to_bits(-1.0);
-   const_float max  = float_to_bits(127.0);
+   const_float pone = CONST_FLOAT_ONE;
+   const_float mone = CONST_FLOAT_MINUS_ONE;
+   const_float max  = gfx_float_to_bits(127.0);
    const_float clamped, multiplied, rounded;
 
    clamp__const_float__const_float__const_float__const_float(&clamped, &(*v)[0], &mone, &pone);
@@ -133,7 +133,7 @@ static void packSnorm4x8__const_highp_uint__const_mediump_vec4(const_uint *resul
 
 static void unpackUnorm4x8__const_mediump_vec4__const_highp_uint(const_vec4 *result, const_uint *v)
 {
-   const_float max  = float_to_bits(255.0);
+   const_float max  = gfx_float_to_bits(255.0);
    const_float a = const_float_from_uint((*v      ) & 0xFF);
    const_float b = const_float_from_uint((*v >> 8 ) & 0xFF);
    const_float c = const_float_from_uint((*v >> 16) & 0xFF);
@@ -147,9 +147,9 @@ static void unpackUnorm4x8__const_mediump_vec4__const_highp_uint(const_vec4 *res
 
 static void unpackSnorm4x8__const_mediump_vec4__const_highp_uint(const_vec4 *result, const_uint *v)
 {
-   const_float  pone = float_to_bits(1.0);
-   const_float  mone = float_to_bits(-1.0);
-   const_float  max  = float_to_bits(127.0);
+   const_float  pone = CONST_FLOAT_ONE;
+   const_float  mone = CONST_FLOAT_MINUS_ONE;
+   const_float  max  = gfx_float_to_bits(127.0);
    const_signed a   =  *v        & 0xFF;
    const_signed b   = (*v >> 8 ) & 0xFF;
    const_signed c   = (*v >> 16) & 0xFF;

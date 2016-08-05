@@ -65,7 +65,7 @@ SECTIONS
     . = ALIGN(4096); /* align to page size */
     _bss_end = .;
 
-     _initramfs_start = .;
+    _initramfs_start = .;
     .initramfs :
     {
         *(.initramfs)

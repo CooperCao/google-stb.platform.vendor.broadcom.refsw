@@ -55,11 +55,10 @@
 
 
 /************************* INCLUDES *****************************************************/
-#include "private/bbMacPibDefs.h"       /* MAC-PIB internals definitions. */
-#include "private/bbMacMpdu.h"          /* MAC MPDU definitions. */
-#include "private/bbMacCfgFsm.h"        /* MAC layer FSMs integral description. */
-#include "bbHalRadio.h"                 /* Hardware Radio interface. */
-
+#include "private/bbMacPibDefs.h"
+#include "private/bbMacMpdu.h"
+#include "private/bbMacCfgFsm.h"
+#include "bbPhySapForMAC.h"
 
 /************************* DEFINITIONS **************************************************/
 /**//**
@@ -81,34 +80,6 @@ typedef struct _MacMemoryQueueDescr_t
 #define MAC_MEMORY_PENDING_DEST_ADDR_HASH_SET_SIZE      (1 << (sizeof(MacAddrHash_t) * 8))
 
 SYS_DbgAssertStatic(256 == MAC_MEMORY_PENDING_DEST_ADDR_HASH_SET_SIZE);
-
-
-#if defined(_MAC_CONTEXT_ZBPRO_)
-/**//**
- * \brief   Structure for the MLME-ASSOCIATE.request Processor extended state.
- */
-typedef struct _MacFeAssocExtState_t
-{
-    /* 64-bit data. */
-    MAC_ExtendedAddress_t   coordExtendedAddress;       /*!< Extended address of coordinator that issued the Association
-                                                            Response. */
-    /* 16-bit data. */
-    MAC_ShortAddress_t      assocShortAddress;          /*!< Short address assigned to this device in the Association
-                                                            Response. */
-    /* 8-bit data. */
-    MAC_Status_t            associationStatus;          /*!< Status returned in the received Association Response. Value
-                                                            is valid only if assocRespReceived equals TRUE. */
-
-    Bool8_t                 dataReqConfirmed;           /*!< TRUE if Data Request was already confirmed while waiting
-                                                            for Association Response indication. Initially set to
-                                                            FALSE. */
-
-    Bool8_t                 assocRespReceived;          /*!< TRUE if Association Response was already received, and it
-                                                            coincides with the MLME-ASSOCIATE.request parameters, while
-                                                            waiting for Data Response confirmation. Initially set to
-                                                            FALSE. */
-} MacFeAssocExtState_t;
-#endif /* _MAC_CONTEXT_ZBPRO_ */
 
 
 #if !defined(_MAC_CONTEXT_RF4CE_CONTROLLER_)
@@ -191,7 +162,7 @@ typedef struct _MacMemoryFeData_t
 
 #if defined(_MAC_CONTEXT_ZBPRO_)
     /* Array / 16x8-bit data. */
-    Octet_t                        macPibBeaconPayloadZBPRO[MAC_ATTR_MAXALLOWED_VALUE_BEACON_PAYLOAD_LENGTH_ZBPRO];
+    PHY_Octet_t                     macPibBeaconPayloadZBPRO[MAC_ATTR_MAXALLOWED_VALUE_BEACON_PAYLOAD_LENGTH_ZBPRO];
                                                                                 /*!< Value of the macBeaconPayload
                                                                                     attribute of the ZigBee PRO
                                                                                     MAC Context. */
@@ -199,7 +170,7 @@ typedef struct _MacMemoryFeData_t
 
 #if defined(_MAC_CONTEXT_RF4CE_TARGET_)
     /* Array / 4x8-bit data. */
-    Octet_t                        macPibBeaconPayloadRF4CE[MAC_ATTR_MAXALLOWED_VALUE_BEACON_PAYLOAD_LENGTH_RF4CE];
+    PHY_Octet_t                     macPibBeaconPayloadRF4CE[MAC_ATTR_MAXALLOWED_VALUE_BEACON_PAYLOAD_LENGTH_RF4CE];
                                                                                 /*!< Value of the macBeaconPayload
                                                                                     attribute of the RF4CE-Target
                                                                                     MAC Context. */
@@ -225,6 +196,9 @@ typedef struct _MacMemoryFeData_t
     /* Structured data. */
     MacPibZBPRO_t                  macPibZBPRO;                                 /*!< ZigBee PRO specific part of the
                                                                                     MAC-PIB. */
+
+    MacPibSecurity_t               macPibSecurity;                              /*!< MAC Security specific part of the
+                                                                                    MAC-PIB. */
 #endif
 
 #if !defined(_MAC_CONTEXT_RF4CE_CONTROLLER_) || defined(_MAC_CONTEXT_ZBPRO_)
@@ -233,12 +207,6 @@ typedef struct _MacMemoryFeData_t
      * time. */
 
     union {
-
-# if defined(_MAC_CONTEXT_ZBPRO_)
-        /* Structured data. */
-        MacFeAssocExtState_t       macFeAssocExtState;      /*!< Currently active MLME-ASSOCIATE.request processor
-                                                                extended state. */
-# endif
 
 # if !defined(_MAC_CONTEXT_RF4CE_CONTROLLER_)
         /* Structured data. */
@@ -391,15 +359,12 @@ typedef struct _MacMemoryFeData_t
  * \brief   Reference to the attributes storage of the MAC-PIB ZigBee PRO specific part.
  */
 # define MAC_MEMORY_PIB_ZBPRO()                         (macMemoryFeData.macPibZBPRO)
-#endif /* _MAC_CONTEXT_ZBPRO_ */
 
-
-#if defined(_MAC_CONTEXT_ZBPRO_)
 /**//**
- * \brief   Reference to the currently active MLME-ASSOCIATE.request processor extended state.
+ * \brief   Reference to the attributes storage of the MAC-PIB Security specific part.
  */
-# define MAC_MEMORY_FE_ASSOC_EXT_STATE()                (macMemoryFeData.macFeAssocExtState)
-#endif
+# define MAC_MEMORY_PIB_SECURITY()                      (macMemoryFeData.macPibSecurity)
+#endif /* _MAC_CONTEXT_ZBPRO_ */
 
 
 #if !defined(_MAC_CONTEXT_RF4CE_CONTROLLER_)
@@ -634,29 +599,6 @@ MAC_PRIVATE bool macMemoryMainReqQueueIsNotEmpty(void);
  * \param[in]   __givenContextId    Identifier of the specified MAC Context.
 *****************************************************************************************/
 MAC_PRIVATE void macMemoryPibReset(MAC_WITHIN_GIVEN_CONTEXT);
-
-
-#if defined(_MAC_CONTEXT_ZBPRO_)
-# include "private/bbMacSecurityDefs.h"
-// FIXME: These variables shall be integrated into the MAC-FE memory structure.
-extern MAC_DeviceTableEntries_t macDeviceTableEntries;
-extern MM_ChunkId_t idMacDeviceTableLink;
-
-extern MAC_SecurityLevelTableEntries_t macSecurityLevelTableEntries;
-extern MM_ChunkId_t idMacSecurityLevelTableLink;
-
-extern MAC_KeyTableEntries_t macKeyTableEntries;
-extern MM_ChunkId_t idMacKeyTableLink;
-
-extern MAC_FrameCounter_t macFrameCounter;
-extern MAC_SecurityLevel_t macAutoRequestSecurityLevel;
-extern MAC_KeyIdMode_t macAutoRequestIdMode;
-extern MAC_KeySource_t macAutoRequestKeySource;
-extern MAC_KeyIndex_t macAutoRequestKeyIndex;
-extern MAC_KeySource_t macDefaultKeySource;
-extern MAC_ExtendedAddress_t macPANCoordExtendedAddress;
-extern MAC_ShortAddress_t macPANCoordShortAddress;
-#endif
 
 
 #endif /* _BB_MAC_MEMORY_H */

@@ -138,6 +138,7 @@ struct util_opts_t {
     bool startPaused;
     bool avc51;
     bool graphics;
+    bool gfx_bar;
     bool customFileIo;
     bool playbackMonitor;
     bool avd_crc;

@@ -61,6 +61,8 @@ extern "C" {
 */
 #define BMUXLIB_INPUT_DESCRIPTOR_TYPE(x)           ((x)->eType)
 #define BMUXLIB_INPUT_DESCRIPTOR_FRAMESIZE(x)      ((x)->uiFrameSize)
+#define BMUXLIB_INPUT_DESCRIPTOR_BURSTSIZE(x)      ((x)->uiBurstSize)
+#define BMUXLIB_INPUT_DESCRIPTOR_IS_BURSTSTART(x)  (0 != (x)->uiBurstSize)
 
 #define BMUXLIB_INPUT_DESCRIPTOR_FLAGS(x)          ((x)->descriptor.pstCommon->uiFlags)
 #define BMUXLIB_INPUT_DESCRIPTOR_OFFSET(x)         ((x)->descriptor.pstCommon->uiOffset)
@@ -92,6 +94,7 @@ extern "C" {
 #define BMUXLIB_INPUT_DESCRIPTOR_IS_EMPTYFRAME(x)  (0 != (((x)->descriptor.pstCommon->uiFlags) & BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_EMPTY_FRAME))
 #define BMUXLIB_INPUT_DESCRIPTOR_IS_FRAMEEND(x)    (0 != (((x)->descriptor.pstCommon->uiFlags) & BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_FRAME_END))
 #define BMUXLIB_INPUT_DESCRIPTOR_IS_EOC(x)         (0 != (((x)->descriptor.pstCommon->uiFlags) & BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_EOC))
+#define BMUXLIB_INPUT_DESCRIPTOR_IS_SEGMENTSTART(x) (0 != (((x)->descriptor.pstCommon->uiFlags) & BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_SEGMENT_START))
 
 #define BMUXLIB_INPUT_DESCRIPTOR_IS_METADATA(x)    (0 != (((x)->descriptor.pstCommon->uiFlags) & BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_METADATA))
 
@@ -145,6 +148,7 @@ typedef struct BMUXlib_Input_Descriptor
 
       BMMA_Block_Handle hBlock;
       size_t uiFrameSize;                 /* Only valid if BMUXlib_Input_CreateSettings.eBurstMode == BMUXlib_Input_BurstMode_eFrame */
+      size_t uiBurstSize;                 /* Only valid if BMUXlib_Input_CreateSettings.eBurstMode == BMUXlib_Input_BurstMode_eFrame */
 } BMUXlib_Input_Descriptor;
 
 typedef enum BMUXlib_Input_BurstMode
@@ -176,6 +180,9 @@ typedef struct BMUXlib_Input_CreateSettings
 
 
    BMUXlib_Input_BurstMode eBurstMode;
+   unsigned uiBurstMaxLength;               /* Maximum burst length (in bytes). 0 = Default (64KB) */
+   unsigned uiBurstMaxDuration;             /* Maximum burst duration (in ms). 0 = Default (700ms) */
+
    bool bFilterUntilMetadataSeen;         /* If true, all input descriptors will be filtered until the first
                                            * metadata descriptor is seen.  This is to handle scenarios where
                                            * the the input has stale data leftover from a previous encoder that

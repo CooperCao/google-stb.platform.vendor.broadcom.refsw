@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -53,6 +53,7 @@
 #include "b_playback_ip_priv.h"
 #include "b_playback_ip_utils.h"
 #include "b_playback_ip_lm_helper.h"
+#include "b_playback_ip_psi.h"
 #include <sys/ioctl.h>
 #include <net/if.h>
 
@@ -436,12 +437,27 @@ B_PlaybackIp_FeedRtpPacketsToPlaypump(
                 BDBG_MSG(("Nothing to FEED at this time, item_cnt %d\n", item_cnt));
                 break;
             }
+            if (playback_ip->startSettings.monitorPsi) {
+                B_PlaybackIp_ParseAndProcessPsiState(playback_ip, playback_ip->buffer, playback_ip->byte_count);
+            }
+#define TOSS_START_DATA (1)
+#if TOSS_START_DATA
+            static int tossfirst = 500 * 1024;
+            if (tossfirst > 0){
+                BDBG_LOG(("%s:tossfirst=%d  playback_ip->byte_count=%lu", __FUNCTION__,tossfirst, playback_ip->byte_count));
+                tossfirst -= playback_ip->byte_count;
+            }
+            else {
+#endif
             /* enough has been accumulated, release buffer to playback */
             if (NEXUS_Playpump_ReadComplete(playback_ip->nexusHandles.playpump, 0, playback_ip->byte_count)) {
                 /* don't treat this as an error: it can occur when the playpump overflows and is subsequently flushed */
                 BDBG_WRN(("Returned error from NEXUS_Playpump_ReadComplete()!"));
             }
             BDBG_MSG(("%s: fed %lu byte to Playpump, item cnt %d\n", __FUNCTION__, playback_ip->byte_count, item_cnt));
+#ifdef TOSS_START_DATA
+            }
+#endif
             /* write data to file */
             if (playback_ip->enableRecording && playback_ip->fclear) {
                 fwrite(playback_ip->buffer, 1, playback_ip->byte_count, playback_ip->fclear);
@@ -502,6 +518,13 @@ void B_PlaybackIp_RtpProcessing(
     static int fileNameSuffix = 0;
 
     BDBG_MSG(("Entered %s()\n", __FUNCTION__));
+
+    if (playback_ip->startSettings.monitorPsi) {
+        if ( (playback_ip->pPsiState = B_PlaybackIp_CreatePsiState(playback_ip)) == NULL ) {
+            BDBG_ERR(("%s: B_PlaybackIp_CreatePsiState() Failed to allocate memory for psiState", __FUNCTION__));
+            goto error;
+        }
+    }
 
     /* check if playpump & decoder are setup */
     if (B_PlaybackIp_UtilsWaitForPlaypumpDecoderSetup(playback_ip))
@@ -589,6 +612,8 @@ void B_PlaybackIp_RtpProcessing(
     } /* while */
 
 error:
+    if (playback_ip->pPsiState) { B_PlaybackIp_DestroyPsiState(playback_ip->pPsiState); }
+
     if (playback_ip->settings.ipMode == B_PlaybackIpClockRecoveryMode_ePushWithTtsNoSyncSlip
         || playback_ip->settings.ipMode == B_PlaybackIpClockRecoveryMode_ePushWithPcrNoSyncSlip) {
         B_PlaybackIp_TtsThrottle_Stop(playback_ip->ttsThrottle);

@@ -47,6 +47,7 @@
 #define B_NEXUS_COMPAT_TYPE_HANDLE(handle) handle
 #define B_NEXUS_COMPAT_TYPE_MEMORY(ptr) ptr
 #define B_NEXUS_COMPAT_TYPE_MISC(type,alias) type
+#define VERIFY_POINTER(type, field, sub_type) BDBG_CASSERT(sizeof(sub_type)==sizeof(void *));
 
 #if 0
 #define VERIFY_BEGIN(x)    static void verify(void) {
@@ -71,12 +72,20 @@
 #endif
 
 #else
+#if 1
 #define VERIFY_BEGIN(x)    static void verify(void) {printf("%-40s,%8s,%8s,%20s\n","field","offset","size","type");
 #define VERIFY_END(x)      return;}
 #define VERIFY_FIELD(type, field, sub_type) printf("%-40s,%8d,%8d,%20s\n",#type "." #field, offsetof(type, field), B_SIZEOF(type, field), #sub_type);
 #define VERIFY_STRUCT(type) printf("%-40s,,%8d,\n",#type, sizeof(type));
 #define VERIFY_PLAIN_TYPE(type, field, sub_type)
 #define VERIFY_FAKE_HANDLE(type, field, sub_type)
+#else
+#define VERIFY_FIELD(type, field, sub_type) printf("VERIFY_FIELD(%s,%s,%u,%u,%s)\n", #type, #field, offsetof(type, field), B_SIZEOF(type, field), #sub_type);
+#define VERIFY_BEGIN(x)    static void verify(void) {printf("VERIFY_BEGIN(x)\n");
+#define VERIFY_STRUCT(type)
+#define VERIFY_PLAIN_TYPE(type, field, sub_type)
+#define VERIFY_END(x)      printf("VERIFY_END(x);}\n");return;}
+#endif
 #endif
 
 

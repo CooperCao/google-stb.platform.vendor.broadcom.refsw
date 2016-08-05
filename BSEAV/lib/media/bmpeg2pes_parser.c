@@ -1,24 +1,44 @@
 /***************************************************************************
- *     Copyright (c) 2007-2011, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ *  Copyright (C) 2007-2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ *  Except as expressly set forth in the Authorized License,
+ *
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
  *
  * Module Description:
  *
  * MPEG-2 PES Parser/Demux library
- * 
- * Revision History:
  *
- * $brcm_Log: $
- * 
  *******************************************************************************/
 #include "bstd.h"
 #include "bmpeg2pes_parser.h"
@@ -253,6 +273,7 @@ b_mpeg2pes_parser_hdr(bmpeg2pes_parser *pes, batom_cursor *cursor)
 		flags |= word&BMPEG2PES_DATA_ALIGMENT;
 
 		off = 0;
+		flags &= ~(BMPEG2PES_PTS_VALID | BMPEG2PES_DTS_VALID);
 		if (B_GET_BIT(word, 15)) {
 			uint32_t pts;
 			uint32_t pts_word;
@@ -268,8 +289,21 @@ b_mpeg2pes_parser_hdr(bmpeg2pes_parser *pes, batom_cursor *cursor)
 			off = 5;
 			pes->info.pts = pts;
 		}
-		else
-		  flags &= ~BMPEG2PES_PTS_VALID;
+        if (B_GET_BIT(word, 14)) {
+            uint32_t dts;
+            uint32_t dts_word;
+            dts_word = batom_cursor_byte(cursor);
+            dts =
+                /* dts_32_30 */(B_GET_BITS(dts_word, 3, 1)<<29);
+            dts_word = batom_cursor_uint32_be(cursor);
+
+            dts |=
+                /* dts_29_15 */(B_GET_BITS(dts_word, 31, 17)<<14) |
+                /* dts_14_1 */B_GET_BITS(dts_word, 15, 2);
+            flags |= BMPEG2PES_DTS_VALID;
+            off += 5;
+            pes->info.dts = dts;
+        }
 
 		word =  word&0xFF; /* PES_header_data_length */
 		if(word<off) {
@@ -361,6 +395,7 @@ bmpeg2pes_parser_feed(bmpeg2pes_parser *pes, unsigned ts_flags, batom_accum_t sr
 			if(len>0) {
 				batom_cursor_from_accum(&cursor, pes_header);
 				pes->packet(pes->packet_cnxt, pes_header, &cursor, len, &pes->info);
+                pes->info.flags = 0;
 			}
 			batom_accum_clear(pes_header);
 			pes->info.data_offset += len;

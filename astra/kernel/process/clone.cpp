@@ -204,7 +204,7 @@ TzTask::TzTask(TzTask& parentTask, unsigned long flags, void *stack, void *ptid,
 
     TzMem::VirtAddr stackVa = kernPageTable->reserveAddrRange((void *)KERNEL_STACKS_START, PAGE_SIZE_4K_BYTES, PageTable::ScanBackward);
     if (stackVa == nullptr) {
-        err_msg("[stackVa 3] kernel virtual address space exhausted !\n");
+        err_msg("[stackVa 4] kernel virtual address space exhausted !\n");
         pageTable->dump();
         return;
     }
@@ -214,11 +214,17 @@ TzTask::TzTask(TzTask& parentTask, unsigned long flags, void *stack, void *ptid,
         return;
     }
 
-    kernPageTable->mapPage(stackVa, stackPa, MAIR_MEMORY, MEMORY_ACCESS_RW_KERNEL);
-    pageTable->mapPage(stackVa, stackPa, MAIR_MEMORY, MEMORY_ACCESS_RW_KERNEL);
+    kernPageTable->mapPage(stackVa, stackPa, MAIR_MEMORY, MEMORY_ACCESS_RW_KERNEL, true, false);
+    pageTable->mapPage(stackVa, stackPa, MAIR_MEMORY, MEMORY_ACCESS_RW_KERNEL, true, true);
+    stackKernel = (uint8_t *)stackVa + PAGE_SIZE_4K_BYTES;
 
-    TzMem::VirtAddr stackStart = (uint8_t *)stackVa + PAGE_SIZE_4K_BYTES;
-    stackKernel = stackStart;
+    quickPagesMapped = false;
+    quickPages = kernPageTable->reserveAddrRange((void *)KERNEL_STACKS_START, PAGE_SIZE_4K_BYTES*2, PageTable::ScanForward);
+    if (quickPages == nullptr) {
+        err_msg("[quickPages 4] kernel virtual address space exhausted !\n");
+        pageTable->dump();
+        return;
+    }
 
     /*
      * Prepare TLS region
@@ -265,160 +271,4 @@ TzTask::TzTask(TzTask& parentTask, unsigned long flags, void *stack, void *ptid,
     //TODO: Potential thread unsafe publication. Can we move this outside
     // the constructor ?
     tasks.pushBack(this);
-
 }
-
-#if 0
-
-TzTask::TzTask(const TzTask& parentTask, unsigned long flags, void *stack, void *ptid, void *ctid) :
-    taskClock(this), uid(parentTask.uid), gid(parentTask.gid) {
-
-    kernPageTable = PageTable::kernelPageTable();
-
-    tid = nextTaskId();
-
-    image = new ElfImage(nextTaskId, parentTask.image);
-    if (image == nullptr) {
-        state = Defunct;
-        err_msg("Could not allocate elf image\n");
-        return;
-    }
-    if (image->status != ElfImage::Valid) {
-        state = Defunct;
-        err_msg("Could not load elf image. status %d\n", image->status);
-        return;
-    }
-
-    if (flags & CLONE_VM) {
-        pageTable = parentTask.pageTable;
-    }
-    else {
-        pageTable = &image->userPageTable;
-    }
-
-    mode = Mode::User;
-    state = State::Defunct;
-
-    this->priority = parentTask.priority + 1;
-    totalRunTime = 0;
-    lastScheduledAt = 0;
-    startedAt = TzHwCounter::timeNow();
-
-    wqState.task = this;
-    wqState.wq = nullptr;
-    wqState.prev = nullptr;
-    wqState.next = nullptr;
-
-    /* Initialize thread local storage */
-    for (int i=0; i<MAX_NUM_TLS_ENTRIES; i++) {
-        memset(&tlsEntry[i], 0, sizeof(struct user_desc));
-        tlsEntry[i].entry_number = -1;
-    }
-
-    if (flags & CLONE_CHILD_CLEARTID) {
-        clearChildTid = (int *)ctid;
-        *clearChildTid = tid;
-    }
-    if (flags & CLONE_CHILD_SETTID) {
-        setChildTid = (int *)ctid;
-        *setChildTid = tid;
-    }
-
-
-    if (flags & CLONE_FILES) {
-        files = parentTask.files;
-        filesCloned = true;
-    }
-    else {
-        inheritFileTable(parentTask);
-    }
-
-    /* Initialize the current working directory */
-    currWorkDir = parentTask.currWorkDir;
-
-    if (flags & CLONE_SIGHAND) {
-        signals = parentTask.signals;
-        signalsCloned = true;
-    }
-    else {
-        inheritSignalState(parentTask);
-    }
-
-    /*
-     * Allocate the kernel mode stack
-     */
-    PageTable *kernPageTable = PageTable::kernelPageTable();
-
-    TzMem::VirtAddr stackVa = kernPageTable->reserveAddrRange((void *)KERNEL_STACKS_START, PAGE_SIZE_4K_BYTES, PageTable::ScanBackward);
-    if (stackVa == nullptr) {
-        err_msg("[stackVa 3] kernel virtual address space exhausted !\n");
-        pageTable->dump();
-        return;
-    }
-    TzMem::PhysAddr stackPa = TzMem::allocPage(KERNEL_PID);
-    if (stackPa == nullptr) {
-        err_msg("system memory exhausted !\n");
-        return;
-    }
-
-    kernPageTable->mapPage(stackVa, stackPa, MAIR_MEMORY, MEMORY_ACCESS_RW_KERNEL);
-    pageTable->mapPage(stackVa, stackPa, MAIR_MEMORY, MEMORY_ACCESS_RW_KERNEL);
-
-    TzMem::VirtAddr stackStart = (uint8_t *)stackVa + PAGE_SIZE_4K_BYTES;
-    stackKernel = stackStart;
-
-    /*
-     * Prepare TLS region
-     */
-    TzMem::PhysAddr tiPA = TzMem::allocPage(tid);
-    if (tiPA == nullptr) {
-        err_msg("system memory exhausted !\n");
-        return;
-    }
-
-    TzMem::VirtAddr userStackVa = image->stackTopPageVA();
-
-    threadInfo = pageTable->reserveAddrRange(userStackVa, PAGE_SIZE_4K_BYTES, PageTable::ScanDirection::ScanForward);
-    if (threadInfo == nullptr) {
-        err_msg("No virtual address space left in user page table\n");
-        return;
-    }
-    pageTable->mapPage(threadInfo, tiPA, MAIR_MEMORY, MEMORY_ACCESS_RW_USER);
-    threadInfo =(uint8_t *)threadInfo + THREAD_INFO_OFFSET;
-
-    for (int i=0; i<NUM_SAVED_CPU_REGS; i++) {
-        savedRegs[i] = parentTask.savedRegs[i];
-    }
-    savedRegs[SAVED_REG_R0] = 0;
-    savedRegs[SAVED_REG_SP] = (unsigned long)stackKernel;
-    savedRegBase = &savedRegs[NUM_SAVED_CPU_REGS];
-
-    spinlock_init("task.lock", &lock);
-
-    state = State::Ready;
-    for (int i=0; i<7; i++)
-        taskName[i] = parentTask.taskName[i];
-    taskName[0] = 'c';
-    taskName[7] = 0;
-    sprintf(taskName, "c%d", tid);
-
-    children.init();
-    parentTask.children.pushBack(this);
-    termCode = 0;
-    termSignal = -1;
-    childTermQueue.init();
-
-    sleepUntil = 0;
-    sleepTimer = INVALID_TIMER;
-
-    brkStart = parentTask.brkStart;
-    brkCurr = parentTask.brkCurr;;
-    brkMax = parentTask.brkMax;
-    mmapMaxVa = parentTask.mmapMaxVa;
-
-    //TODO: Potential thread unsafe publication. Can we move this outside
-    // the constructor ?
-    tasks.pushBack(this);
-}
-
-#endif

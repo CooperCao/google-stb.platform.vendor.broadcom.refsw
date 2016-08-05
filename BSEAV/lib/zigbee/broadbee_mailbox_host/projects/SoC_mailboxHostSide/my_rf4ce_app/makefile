@@ -84,6 +84,9 @@ COMMON_OBJS = \
     $(OBJDIR)/bbSysPayload.o
 endif
 
+COMMON_OBJS += \
+    $(OBJDIR)/zigbee_dbg.o
+
 RF4CE_APP_OBJS = \
     $(OBJDIR)/my_rf4ce_app.o \
     $(COMMON_OBJS)
@@ -108,6 +111,14 @@ RF4CE_UNPAIR_OBJS = \
     $(OBJDIR)/rf4ce_unpair.o \
     $(COMMON_OBJS)
 
+RF4CE_SET_FA_ATTRIBUTES_OBJS = \
+    $(OBJDIR)/rf4ce_set_fa_attributes.o \
+    $(COMMON_OBJS)
+
+RF4CE_GET_FA_ATTRIBUTES_OBJS = \
+    $(OBJDIR)/rf4ce_get_fa_attributes.o \
+    $(COMMON_OBJS)
+
 RF4CE_SET_FA_THRESHOLD_OBJS = \
     $(OBJDIR)/rf4ce_set_fa_threshold.o \
     $(COMMON_OBJS)
@@ -122,6 +133,11 @@ RF4CE_SET_DISCOVERY_LQI_THRESHOLD_OBJS = \
 
 RF4CE_SET_CHANNEL_OBJS = \
     $(OBJDIR)/rf4ce_set_single_channel.o \
+    $(COMMON_OBJS)
+
+BROADBEE_OBJS = \
+    $(OBJDIR)/broadbee.o \
+    $(OBJDIR)/bbRF4CEPMProfiles.o \
     $(COMMON_OBJS)
 
 RF4CE_PHY_TEST_OBJS = \
@@ -142,9 +158,7 @@ STACK_PATH = $(PRJ_PATH)../../stack
 INC_PATHS := $(shell ls -d ./include $(STACK_PATH)/*/include $(STACK_PATH)/*/*/include $(STACK_PATH)/*/*/*/include 2>/dev/null)
 #INC_PATHS += $(STACK_PATH)
 
-ifneq ($(BYPASS_RPC),y)
 INC_PATHS += $(PRJ_PATH)/rpc/include
-endif
 INC_PATHS += $(PRJ_PATH)/rf4ce_registration/include
 INC_PATHS += $(PRJ_PATH)/ha_registration/include
 INC_PATHS += $(PRJ_PATH)/common/include
@@ -236,7 +250,11 @@ LDFLAGS += -L../obj.$(NEXUS_PLATFORM) -L../rf4ce_registration -lzigbee -lsqlite3
 endif
 
 all:   prebuild $(OBJDIR)
-	@$(MAKE) $(OBJDIR)/my_rf4ce_app $(OBJDIR)/rf4ce_reset_app $(OBJDIR)/rf4ce_pair_app $(OBJDIR)/rf4ce_unpair_app $(OBJDIR)/rf4ce_reset_and_pair_app $(OBJDIR)/zrc2_pair_app $(OBJDIR)/rf4ce_set_discovery_lqi_threshold_app $(OBJDIR)/rf4ce_set_fa_threshold_app $(OBJDIR)/rf4ce_get_fa_threshold_app $(OBJDIR)/rf4ce_set_channel_app $(OBJDIR)/rf4ce_phy_test_app
+ifeq ($(BYPASS_RPC),y)
+	@$(MAKE) $(OBJDIR)/my_rf4ce_app $(OBJDIR)/rf4ce_reset_app $(OBJDIR)/rf4ce_pair_app $(OBJDIR)/rf4ce_unpair_app $(OBJDIR)/rf4ce_reset_and_pair_app $(OBJDIR)/rf4ce_set_discovery_lqi_threshold_app $(OBJDIR)/rf4ce_set_fa_attributes_app $(OBJDIR)/rf4ce_get_fa_attributes_app $(OBJDIR)/rf4ce_set_fa_threshold_app $(OBJDIR)/rf4ce_get_fa_threshold_app $(OBJDIR)/rf4ce_set_channel_app $(OBJDIR)/broadbee $(OBJDIR)/rf4ce_phy_test_app
+else
+	@$(MAKE) $(OBJDIR)/my_rf4ce_app $(OBJDIR)/rf4ce_reset_app $(OBJDIR)/rf4ce_pair_app $(OBJDIR)/rf4ce_unpair_app $(OBJDIR)/rf4ce_reset_and_pair_app $(OBJDIR)/zrc2_pair_app $(OBJDIR)/rf4ce_set_discovery_lqi_threshold_app $(OBJDIR)/rf4ce_set_fa_attributes_app $(OBJDIR)/rf4ce_get_fa_attributes_app $(OBJDIR)/rf4ce_set_fa_threshold_app $(OBJDIR)/rf4ce_get_fa_threshold_app $(OBJDIR)/rf4ce_set_channel_app $(OBJDIR)/broadbee $(OBJDIR)/rf4ce_phy_test_app
+endif
 
 #	$(LD) $(OBJS) -lpthread
 
@@ -267,6 +285,12 @@ $(OBJDIR)/rf4ce_unpair_app: $(RF4CE_UNPAIR_OBJS)
 $(OBJDIR)/zrc2_pair_app: $(ZRC2_PAIR_OBJS)
 	$(CC) $^ -lpthread -o $@ $(LDFLAGS)
 
+$(OBJDIR)/rf4ce_set_fa_attributes_app: $(RF4CE_SET_FA_ATTRIBUTES_OBJS)
+	$(CC) $^ -lpthread -o $@ $(LDFLAGS)
+
+$(OBJDIR)/rf4ce_get_fa_attributes_app: $(RF4CE_GET_FA_ATTRIBUTES_OBJS)
+	$(CC) $^ -lpthread -o $@ $(LDFLAGS)
+
 $(OBJDIR)/rf4ce_set_fa_threshold_app: $(RF4CE_SET_FA_THRESHOLD_OBJS)
 	$(CC) $^ -lpthread -o $@ $(LDFLAGS)
 
@@ -279,12 +303,25 @@ $(OBJDIR)/rf4ce_set_discovery_lqi_threshold_app: $(RF4CE_SET_DISCOVERY_LQI_THRES
 $(OBJDIR)/rf4ce_set_channel_app: $(RF4CE_SET_CHANNEL_OBJS)
 	$(CC) $^ -lpthread -o $@ $(LDFLAGS)
 
+$(OBJDIR)/broadbee: $(BROADBEE_OBJS)
+	$(CC) $^ -lpthread -o $@ $(LDFLAGS)
+
 $(OBJDIR)/rf4ce_phy_test_app: $(RF4CE_PHY_TEST_OBJS)
 	$(CC) $^ -lpthread -o $@ $(LDFLAGS)
 
 prebuild:
 	@rm -rf ./bbMailClientTable.c
-	#@cp ../../../stack/common/Mailbox/src/bbMailService.c ./bbMailService.c
+	@rm -rf ./bbMailService.c
+	@cp ../../../stack/common/Mailbox/src/bbMailService.c ./bbMailService.c
+	@sed 's/\.function[ ].*= (MailPublicFunction_t)function_name/\.function      = 0/g' ../../../stack/common/Mailbox/src/bbMailService.c > ./bbMailService.c
+	@echo "" >> ./bbMailService.c
+	@echo "void mailClientInit() {}" >> ./bbMailService.c
+	@echo "void mailServerInit() {}" >> ./bbMailService.c
+	@echo "void mailAdapterInit() {}" >> ./bbMailService.c
+	@echo "void Mail_TestEngineSendHello() {}" >> ./bbMailService.c
+	@echo "void mailClientSerialize(const uint16_t fId, uint8_t *const req) {}" >> ./bbMailService.c
+	@echo "MailPendingAPICall_t *mailClientFindEmptyPendingTableEntry(void) { return NULL; }" >> ./bbMailService.c
+
 	#@sed   's/SERVER_TABLE_ENTRY(\([a-zA-Z_0-9\.]*\), *\([a-zA-Z_0-9\.]*\), *\([a-zA-Z_0-9\.]*\), *\([a-zA-Z_0-9\.]*\), *\([a-zA-Z_0-9\.]*\))/SERVER_TABLE_ENTRY(\1, \2, \3, \4, 0)/' ../../../stack/common/Mailbox/src/bbMailServerTable.c > ./bbMailServerTable.c.bak
 	#@sed   's/SERVER_TABLE_ENTRY(\([a-zA-Z_0-9\.]*\), *\([a-zA-Z_0-9\.]*\), *\([a-zA-Z_0-9\.]*\), *\([a-zA-Z_0-9\.]*\), *\([a-zA-Z_0-9\.]*\), *\([a-zA-Z_0-9\.]*\))/SERVER_TABLE_ENTRY(\1, \2, \3, \4, 0, \6)/' ./bbMailServerTable.c.bak > ./bbMailServerTable.c
 	@rm -rf ./bbMailServerTable.c.bak
@@ -320,11 +357,9 @@ $(OBJDIR)/%.o: ../common/src/%.c
 	@echo --- C99: $@
 	$(SILENT)$(CC) $(CFLAGS) $^ -c -o $@
 
-#ifneq ($(BYPASS_RPC),y)
 $(OBJDIR)/%.o: ../rpc/src/%.c
 	@echo --- C99: $@
 	$(SILENT)$(CC) $(CFLAGS) $^ -c -o $@
-#endif
 
 $(OBJDIR)/%.o: ../../../stack/common/System/src/%.c
 	@echo --- C99: $@

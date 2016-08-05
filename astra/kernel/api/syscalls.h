@@ -399,8 +399,12 @@
 #define EXT_cache_clean         0xf0003
 #define EXT_set_thread_area     0xf0004
 #define EXT_get_thread_area     0xf0005
+#define EXT_tracelog_inval      0xf0006
+#define EXT_tracelog_start      0xf0007
+#define EXT_tracelog_stop       0xf0008
+#define EXT_tracelog_add        0xf0009
 
-#define EXT_SYS_CALL_LAST       0xf0006
+#define EXT_SYS_CALL_LAST       0xf000a
 #define NUM_EXT_SYS_CALLS       (EXT_SYS_CALL_LAST - EXT_SYS_CALL_BASE)
 
 #endif /* API_SYSCALLS_H_ */

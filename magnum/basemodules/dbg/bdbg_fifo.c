@@ -57,25 +57,25 @@
 #endif
 
 BDBG_P_INLINE void 
-BDBG_P_Atomic_Set(BDBG_P_Atomic *a, long val) {
+BDBG_P_Atomic_Set_isrsafe(BDBG_P_Atomic *a, long val) {
 	a->atomic = val;
     return;
 }
 
 BDBG_P_INLINE long 
-BDBG_P_Atomic_Get(const BDBG_P_Atomic *a) {
+BDBG_P_Atomic_Get_isrsafe(const BDBG_P_Atomic *a) {
 	return a->atomic;
 }
 
 BDBG_P_INLINE long
-BDBG_P_Atomic_AddReturnOld(BDBG_P_Atomic *a, long val)
+BDBG_P_Atomic_AddReturnOld_isrsafe(BDBG_P_Atomic *a, long val)
 {
 	unsigned long result;
 #if BDBG_P_LOG_SUPPORTED && defined(__mips__)
 	unsigned long temp;
 	__asm__ __volatile__(
 		"	.set	mips32					\n"
-		"1:	ll	%1, %2		# BDBG_P_Atomic_AddReturn \n"
+		"1:	ll	%1, %2		# BDBG_P_Atomic_AddReturnOld_isrsafe \n"
 		"	addu	%0, %1, %3				\n"
 		"	sc	%0, %2					\n"
 		"	beqz	%0, 1b					\n"
@@ -90,7 +90,7 @@ BDBG_P_Atomic_AddReturnOld(BDBG_P_Atomic *a, long val)
     __asm__ __volatile__ ("dmb" : : : "memory");
 
    __asm__ __volatile__(
-        "1:     ldrex   %0, [%5]  @ BDBG_P_Atomic_AddReturn \n"
+        "1:     ldrex   %0, [%5]  @ BDBG_P_Atomic_AddReturn_Old_isrsafe \n"
         "       add     %1, %0, %4                          \n"
         "       strex   %2, %1, [%5]                        \n"
         "       teq     %2, #0                              \n"
@@ -217,12 +217,12 @@ BDBG_Fifo_Create(BDBG_Fifo_Handle *pFifo, const BDBG_Fifo_CreateSettings *create
     fifo->nelements = nelements;
     fifo->element_size = element_size;
 
-    BDBG_P_Atomic_Set(&fifo->write_counter, 0);
+    BDBG_P_Atomic_Set_isrsafe(&fifo->write_counter, 0);
     for(i=0;i<fifo->nelements;i++) {
         BDBG_P_Atomic *atomic;
 
         atomic = (void *)((uint8_t *)fifo->buffer + i*fifo->element_size);
-        BDBG_P_Atomic_Set(atomic, BDBG_P_LOG_TAG_EMPTY);
+        BDBG_P_Atomic_Set_isrsafe(atomic, BDBG_P_LOG_TAG_EMPTY);
     }
     *pFifo = fifo;
     return BERR_SUCCESS;
@@ -252,7 +252,7 @@ BDBG_Fifo_Destroy(BDBG_Fifo_Handle fifo)
 
 
 static void *
-BDBG_Fifo_P_GetElementPointer(BDBG_Fifo_CHandle fifo, unsigned long counter)
+BDBG_Fifo_P_GetElementPointer_isrsafe(BDBG_Fifo_CHandle fifo, unsigned long counter)
 {
     unsigned offset;
     void *buf;
@@ -265,7 +265,7 @@ BDBG_Fifo_P_GetElementPointer(BDBG_Fifo_CHandle fifo, unsigned long counter)
 
 
 void *
-BDBG_Fifo_GetBuffer(BDBG_Fifo_Handle fifo, BDBG_Fifo_Token *token)
+BDBG_Fifo_GetBuffer_isrsafe(BDBG_Fifo_Handle fifo, BDBG_Fifo_Token *token)
 {
     void *buf;
 #if 0
@@ -274,9 +274,9 @@ BDBG_Fifo_GetBuffer(BDBG_Fifo_Handle fifo, BDBG_Fifo_Token *token)
     BDBG_ASSERT(token);
 #endif
     if(fifo->enabled) {
-        buf = BDBG_Fifo_P_GetElementPointer(fifo, BDBG_P_Atomic_AddReturnOld(&fifo->write_counter, 1));
+        buf = BDBG_Fifo_P_GetElementPointer_isrsafe(fifo, BDBG_P_Atomic_AddReturnOld_isrsafe(&fifo->write_counter, 1));
         token->marker = buf;
-        BDBG_P_Atomic_Set(token->marker, BDBG_P_LOG_TAG_EMPTY);
+        BDBG_P_Atomic_Set_isrsafe(token->marker, BDBG_P_LOG_TAG_EMPTY);
         return (uint8_t *)buf + sizeof(token->marker);
     } else {
         return NULL;
@@ -284,9 +284,9 @@ BDBG_Fifo_GetBuffer(BDBG_Fifo_Handle fifo, BDBG_Fifo_Token *token)
 }
 
 void 
-BDBG_Fifo_CommitBuffer(const BDBG_Fifo_Token *token)
+BDBG_Fifo_CommitBuffer_isrsafe(const BDBG_Fifo_Token *token)
 {
-    BDBG_P_Atomic_Set(token->marker, BDBG_P_LOG_TAG_COMPLETED);
+    BDBG_P_Atomic_Set_isrsafe(token->marker, BDBG_P_LOG_TAG_COMPLETED);
     return;
 }
 
@@ -330,15 +330,15 @@ BDBG_FifoReader_Read(BDBG_FifoReader_Handle fifo, void *buffer, size_t buffer_si
     BDBG_ASSERT(buffer);
     element_size = fifo->writer->element_size - sizeof(BDBG_P_Atomic);
     if(buffer_size < element_size) { return BERR_TRACE(BERR_INVALID_PARAMETER); }
-    distance = BDBG_P_Atomic_Get(&fifo->writer->write_counter)-fifo->read_counter;
+    distance = BDBG_P_Atomic_Get_isrsafe(&fifo->writer->write_counter)-fifo->read_counter;
     if(distance == 0) {
         return BERR_FIFO_NO_DATA;
     }
     if(distance < 0 || distance >= (long)fifo->writer->nelements) {
         return BERR_FIFO_OVERFLOW;
     }
-    marker = BDBG_Fifo_P_GetElementPointer(fifo->writer, fifo->read_counter);
-    if(BDBG_P_Atomic_Get(marker)!=BDBG_P_LOG_TAG_COMPLETED) {
+    marker = BDBG_Fifo_P_GetElementPointer_isrsafe(fifo->writer, fifo->read_counter);
+    if(BDBG_P_Atomic_Get_isrsafe(marker)!=BDBG_P_LOG_TAG_COMPLETED) {
         if(distance==1) {
             return BERR_FIFO_BUSY;
         } else {
@@ -347,7 +347,7 @@ BDBG_FifoReader_Read(BDBG_FifoReader_Handle fifo, void *buffer, size_t buffer_si
     }
     BKNI_Memcpy(buffer, marker+1, element_size);
     /* verify pointer after copying data */
-    distance = BDBG_P_Atomic_Get(&fifo->writer->write_counter)-fifo->read_counter;
+    distance = BDBG_P_Atomic_Get_isrsafe(&fifo->writer->write_counter)-fifo->read_counter;
     if(distance < 0 || distance >= (long)fifo->writer->nelements) {
         return BERR_FIFO_OVERFLOW;
     }
@@ -363,7 +363,7 @@ BDBG_FifoReader_Resync(BDBG_FifoReader_Handle fifo)
 
     BDBG_OBJECT_ASSERT(fifo, BDBG_FifoReader);
     /* BDBG_OBJECT_ASSERT(fifo->writer, BDBG_Fifo); */
-    write_counter = BDBG_P_Atomic_Get(&fifo->writer->write_counter);
+    write_counter = BDBG_P_Atomic_Get_isrsafe(&fifo->writer->write_counter);
     distance = write_counter-fifo->read_counter;
     if(distance == 0) {
         /* do nothing */
@@ -371,8 +371,8 @@ BDBG_FifoReader_Resync(BDBG_FifoReader_Handle fifo)
         fifo->read_counter = write_counter;
     } else {
         BDBG_P_Atomic *marker;
-        marker = BDBG_Fifo_P_GetElementPointer(fifo->writer, fifo->read_counter);
-        if(BDBG_P_Atomic_Get(marker)==BDBG_P_LOG_TAG_ALLOCATED) {
+        marker = BDBG_Fifo_P_GetElementPointer_isrsafe(fifo->writer, fifo->read_counter);
+        if(BDBG_P_Atomic_Get_isrsafe(marker)==BDBG_P_LOG_TAG_ALLOCATED) {
             fifo->read_counter++;
         }
     }

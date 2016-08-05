@@ -629,27 +629,9 @@ NEXUS_PictureCtrl_ConfigDisplayLumaStatistics(
     NEXUS_DisplayHandle display,
     const NEXUS_ClipRect *pRect)
 {
-    BVDC_LumaSettings lumaSettings;
-    BERR_Code rc = BERR_SUCCESS;
-
-    BDBG_OBJECT_ASSERT(display, NEXUS_Display);
-
-    if (g_NEXUS_DisplayModule_State.pqDisabled) {
-        return 0;
-    }
-
-    BVDC_Compositor_GetLumaStatsConfiguration(display->compositor, &lumaSettings);
-
-    lumaSettings.stRegion.ulLeft = pRect->left;
-    lumaSettings.stRegion.ulTop = pRect->top;
-    lumaSettings.stRegion.ulRight = pRect->right;
-    lumaSettings.stRegion.ulBottom = pRect->bottom;
-
-    rc = BVDC_Compositor_SetLumaStatsConfiguration(display->compositor, &lumaSettings);
-    if (rc) return BERR_TRACE(rc);
-
-    rc = BVDC_ApplyChanges(g_NEXUS_DisplayModule_State.vdc);
-    if (rc) return BERR_TRACE(rc);
+    BSTD_UNUSED(display);
+    BSTD_UNUSED(pRect);
+    BDBG_MSG(("Function no longer supported"));
     return NEXUS_SUCCESS;
 }
 
@@ -658,26 +640,9 @@ NEXUS_PictureCtrl_GetDisplayLumaStatistics(
     NEXUS_DisplayHandle display,
     NEXUS_LumaStatistics *pLumaStat)
 {
-    BVDC_LumaStatus lumaStatus;
-    BERR_Code rc = BERR_SUCCESS;
-
-    BKNI_Memset(pLumaStat, 0, sizeof(*pLumaStat));
-    BDBG_OBJECT_ASSERT(display, NEXUS_Display);
-
-    if (g_NEXUS_DisplayModule_State.pqDisabled) {
-        return 0;
-    }
-
-    /* Get luma sum */
-    rc = BVDC_Compositor_GetLumaStatus(display->compositor, &lumaStatus);
-    if (rc) return BERR_TRACE(rc);
-
-    /* Calculate APL from luma sum and region */
-    pLumaStat->average = lumaStatus.ulSum / lumaStatus.ulPixelCnt;
-    pLumaStat->min = lumaStatus.ulMin;
-    pLumaStat->max = lumaStatus.ulMax;
-    BKNI_Memcpy(pLumaStat->histogram, lumaStatus.aulHistogram, NEXUS_LUMA_HISTOGRAM_COUNT * 4);
-    BKNI_Memcpy(pLumaStat->levelStats, lumaStatus.aulLevelStats, NEXUS_LUMA_HISTOGRAM_LEVELS * sizeof(uint32_t));
+    BSTD_UNUSED(display);
+    BSTD_UNUSED(pLumaStat);
+    BDBG_MSG(("Function no longer supported"));
     return NEXUS_SUCCESS;
 }
 
@@ -691,35 +656,9 @@ NEXUS_PictureCtrl_ConfigWindowLumaStatistics(
     NEXUS_VideoWindowHandle window,
     const NEXUS_ClipRect *pRect)
 {
-    BVDC_Window_Handle  windowVDC;
-    BVDC_LumaSettings lumaSettings;
-    BERR_Code rc = BERR_SUCCESS;
-
-    BDBG_OBJECT_ASSERT(window, NEXUS_VideoWindow);
-
-    windowVDC = window->vdcState.window;
-    if (NULL == windowVDC)
-    {
-        BDBG_ERR(("Window not connnected"));
-        return BERR_TRACE(NEXUS_UNKNOWN);
-    }
-    if (g_NEXUS_DisplayModule_State.pqDisabled) {
-        return 0;
-    }
-
-    rc = BVDC_Window_GetLumaStatsConfiguration(windowVDC, &lumaSettings);
-    if (rc) return BERR_TRACE(rc);
-
-    lumaSettings.stRegion.ulLeft = pRect->left;
-    lumaSettings.stRegion.ulTop = pRect->top;
-    lumaSettings.stRegion.ulRight = pRect->right;
-    lumaSettings.stRegion.ulBottom = pRect->bottom;
-
-    rc = BVDC_Window_SetLumaStatsConfiguration(windowVDC, &lumaSettings);
-    if (rc) return BERR_TRACE(rc);
-
-    rc = BVDC_ApplyChanges(g_NEXUS_DisplayModule_State.vdc);
-    if (rc) return BERR_TRACE(rc);
+    BSTD_UNUSED(window);
+    BSTD_UNUSED(pRect);
+    BDBG_MSG(("Function no longer supported"));
     return NEXUS_SUCCESS;
 }
 
@@ -732,34 +671,9 @@ NEXUS_PictureCtrl_GetWindowLumaStatistics(
     NEXUS_VideoWindowHandle window,
     NEXUS_LumaStatistics *pLumaStat)
 {
-    BVDC_Window_Handle  windowVDC;
-    BVDC_LumaStatus lumaStatus;
-    BERR_Code rc = BERR_SUCCESS;
-
-    BDBG_OBJECT_ASSERT(window, NEXUS_VideoWindow);
-
-    BKNI_Memset(pLumaStat, 0, sizeof(*pLumaStat));
-    windowVDC = window->vdcState.window;
-    if (NULL == windowVDC)
-    {
-        BDBG_ERR(("VideoWindow must have VideoInput connected to get luma statistics"));
-        return NEXUS_UNKNOWN;
-    }
-    if (g_NEXUS_DisplayModule_State.pqDisabled) {
-        return 0;
-    }
-
-    /* Get luma sum */
-    rc = BVDC_Window_GetLumaStatus(windowVDC, &lumaStatus);
-    if (rc) return BERR_TRACE(rc);
-
-    /* Calculate APL from luma sum and region */
-    pLumaStat->average = lumaStatus.ulSum / lumaStatus.ulPixelCnt;
-    pLumaStat->min = lumaStatus.ulMin;
-    pLumaStat->max = lumaStatus.ulMax;
-    BKNI_Memcpy(pLumaStat->histogram, lumaStatus.aulHistogram, NEXUS_LUMA_HISTOGRAM_COUNT * sizeof(uint32_t));
-    BKNI_Memcpy(pLumaStat->levelStats, lumaStatus.aulLevelStats, NEXUS_LUMA_HISTOGRAM_LEVELS * sizeof(uint32_t));
-
+    BSTD_UNUSED(window);
+    BSTD_UNUSED(pLumaStat);
+    BDBG_MSG(("Function no longer supported"));
     return NEXUS_SUCCESS;
 }
 

@@ -699,3 +699,16 @@ NEXUS_Error NxClient_LoadHdcpKeys( NxClient_HdcpType hdcpType, NEXUS_MemoryBlock
     UNLOCK();
     return rc;
 }
+
+NEXUS_Error NxClient_SetSlaveDisplayGraphics( unsigned slaveDisplay, NEXUS_SurfaceHandle surface )
+{
+    NEXUS_Error rc;
+    nxclient_p_general_param param;
+    nxclient_p_general_output output;
+    param.set_slave_display_graphics.slaveDisplay = slaveDisplay;
+    param.set_slave_display_graphics.surface = surface;
+    LOCK();
+    rc = nxclient_p_general(nxclient_state.client[nxclient_ipc_thread_restricted].nxclient_ipc, nxclient_p_general_param_type_set_slave_display_graphics, &param, &output);
+    UNLOCK();
+    return rc;
+}

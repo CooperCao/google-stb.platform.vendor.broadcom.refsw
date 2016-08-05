@@ -1,22 +1,42 @@
 /***************************************************************************
- *     Copyright (c) 2004-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * Module Description:
  *   See Module Overview below
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  ***************************************************************************/
 #include "bstd.h"
@@ -125,8 +145,8 @@ BERR_Code BXVD_P_SendDecoderCommand(
 
    /* write the command parameters to the AVC  */
    BKNI_Memcpy((void*)(hXvd->stDecoderContext.ulCmdBufferAddr),
-	       (void*)(pCmd),
-	       sizeof(BXVD_Cmd));
+               (void*)(pCmd),
+               sizeof(BXVD_Cmd));
 
    BMMA_FlushCache(hXvd->hFWMemBlock, (void*)(hXvd->stDecoderContext.ulCmdBufferAddr), sizeof(BXVD_Cmd));
 
@@ -149,7 +169,7 @@ BERR_Code BXVD_P_SendDecoderCommand(
       uInBox = BXVD_Reg_Read32(hXvd, hXvd->stPlatformInfo.stReg.uiDecode_OuterCPU2HostMailbox);
 
       if (uInBox !=0)
-	 break;
+         break;
    }
 
    BXVD_DBG_MSG(hXvd, ("Decoder:%d, mbx:%08x", uInstance, uInBox));
@@ -262,8 +282,8 @@ BERR_Code BXVD_P_SendDecoderCommand(
 
 /***************************************************************************
  *  {secret}
- *	BXVD_P_HostCmdSendInit
- *	Command causes the AVC decoder to initialize.
+ *  BXVD_P_HostCmdSendInit
+ *  Command causes the AVC decoder to initialize.
  *  All internal state and any partially completed operations
  *  will be lost.
  ***************************************************************************/
@@ -278,7 +298,7 @@ BERR_Code BXVD_P_HostCmdSendInit
    BXVD_Rsp             *pRsp;
    BERR_Code            eStatus = BERR_SUCCESS; /* Status return */
 
-   BXVD_Cmd_Initialize *pInit;		       /* Pointer to command */
+   BXVD_Cmd_Initialize *pInit;             /* Pointer to command */
    BXVD_Rsp_Initialize *pInitRsp;              /* Pointer to response */
 
    /* Clear out the context and set defaults. */
@@ -330,9 +350,9 @@ BERR_Code BXVD_P_HostCmdSendInit
    BXVD_DBG_MSG(hXvd, (" memc_sentinel_reg_start: %08x", pInit->memc_sentinel_reg_start));
 
    eStatus = BERR_TRACE(BXVD_P_SendDecoderCommand(hXvd,
-						  uDecoderInstance,
-						  pCmd,
-						  pRsp,
+                                                  uDecoderInstance,
+                                                  pCmd,
+                                                  pRsp,
                                                   FW_CMD_TIMEOUT_NORMAL));
 
    BXVD_DBG_MSG(hXvd, ("BXVD_RSP_INITIALIZE:"));
@@ -415,9 +435,9 @@ BERR_Code BXVD_P_HostCmdSendConfig
    BXVD_DBG_MSG(hXvd, (" interrupt_mask_1: 0x%08x", pCfgCmd->interrupt_mask_1));
 
    eStatus = BERR_TRACE(BXVD_P_SendDecoderCommand(hXvd,
-						  hXvd->uDecoderInstance,
-						  pCmd,
-						  pRsp,
+                                                  hXvd->uDecoderInstance,
+                                                  pCmd,
+                                                  pRsp,
                                                   FW_CMD_TIMEOUT_NORMAL));
 
    BXVD_DBG_MSG(hXvd, ("BXVD_RSP_CONFIG:"));
@@ -429,12 +449,12 @@ BERR_Code BXVD_P_HostCmdSendConfig
 
 /***************************************************************************
  *  {secret}
- *	BXVD_P_HostCmdSendDecChannelOpen
+ *  BXVD_P_HostCmdSendDecChannelOpen
  ***************************************************************************/
 BERR_Code BXVD_P_HostCmdSendDecChannelOpen
 (
-	BXVD_Handle         hXvd,
-	BXVD_ChannelHandle  hXvdCh,
+    BXVD_Handle         hXvd,
+    BXVD_ChannelHandle  hXvdCh,
         bool                bStillPictureMode,
         uint32_t            uiMaxResolution,
         BXVD_P_DecodeFWMemSize  *pstDecodeFWMemSize,
@@ -445,8 +465,8 @@ BERR_Code BXVD_P_HostCmdSendDecChannelOpen
    BXVD_Rsp             *pRsp;
 
    BERR_Code        eStatus = BERR_SUCCESS;/* Status return       */
-   BXVD_Cmd_ChannelOpen	*pChOpen;	/* Pointer to command  */
-   BXVD_Rsp_ChannelOpen	*pChOpenRsp;	/* Pointer to response */
+   BXVD_Cmd_ChannelOpen *pChOpen;   /* Pointer to command  */
+   BXVD_Rsp_ChannelOpen *pChOpenRsp;    /* Pointer to response */
 
 #if !BXVD_P_FW_HIM_API
    uint32_t            uiStatusBlkAddr;
@@ -619,7 +639,7 @@ BERR_Code BXVD_P_HostCmdSendDecChannelOpen
 
 /***************************************************************************
  *  {secret}
- *	BXVD_P_HostCmdSendDecChannelClose
+ *  BXVD_P_HostCmdSendDecChannelClose
  ***************************************************************************/
 BERR_Code BXVD_P_HostCmdSendDecChannelClose
 (
@@ -632,7 +652,7 @@ BERR_Code BXVD_P_HostCmdSendDecChannelClose
 
    BERR_Code        eStatus  = BERR_SUCCESS; /* Status return */
 
-   BXVD_Cmd_ChannelClose *pChClose;	     /* Pointer to command  */
+   BXVD_Cmd_ChannelClose *pChClose;      /* Pointer to command  */
 
 #if BDBG_DEBUG_BUILD
    BXVD_Rsp_ChannelClose *pChCloseRsp;      /* Pointer to response */
@@ -657,9 +677,9 @@ BERR_Code BXVD_P_HostCmdSendDecChannelClose
    BXVD_DBG_MSG(hXvd, (" channel_number: %d", pChClose->channel_number));
 
    eStatus = BERR_TRACE(BXVD_P_SendDecoderCommand(hXvd,
-						  hXvd->uDecoderInstance,
-						  pCmd,
-						  pRsp,
+                                                  hXvd->uDecoderInstance,
+                                                  pCmd,
+                                                  pRsp,
                                                   FW_CMD_TIMEOUT_NORMAL));
 
    BXVD_DBG_MSG(hXvd, ("BXVD_RSP_CHANNELCLOSE:"));
@@ -673,7 +693,7 @@ BERR_Code BXVD_P_HostCmdSendDecChannelClose
 
 /***************************************************************************
  *  {secret}
- *	BXVD_P_HostCmdSendDecChannelOpen
+ *  BXVD_P_HostCmdSendDecChannelOpen
  ***************************************************************************/
 BERR_Code BXVD_P_HostCmdSendDecChannelStart
 (
@@ -690,10 +710,10 @@ BERR_Code BXVD_P_HostCmdSendDecChannelStart
    BXVD_Rsp             *pRsp;
 
    BERR_Code        eStatus = BERR_SUCCESS;/* Status return       */
-   BXVD_Cmd_ChannelStart	*pChStart;	/* Pointer to command  */
+   BXVD_Cmd_ChannelStart    *pChStart;  /* Pointer to command  */
 
 #if BDBG_DEBUG_BUILD
-   BXVD_Rsp_ChannelStart	*pChStartRsp;	/* Pointer to response */
+   BXVD_Rsp_ChannelStart    *pChStartRsp;   /* Pointer to response */
 
    pChStartRsp = &hXvd->FWRsp.channelStart;
 #endif
@@ -746,12 +766,12 @@ BERR_Code BXVD_P_HostCmdSendDecChannelStart
 
 /***************************************************************************
  *  {secret}
- *	BXVD_P_HostCmdSendDecChannelStop
+ *  BXVD_P_HostCmdSendDecChannelStop
  ***************************************************************************/
 BERR_Code BXVD_P_HostCmdSendDecChannelStop
 (
-	BXVD_Handle        hXvd,
-	uint32_t           ulChannelNum
+    BXVD_Handle        hXvd,
+    uint32_t           ulChannelNum
 )
 {
    BXVD_Cmd             *pCmd;
@@ -759,7 +779,7 @@ BERR_Code BXVD_P_HostCmdSendDecChannelStop
 
    BERR_Code        eStatus  = BERR_SUCCESS; /* Status return */
 
-   BXVD_Cmd_ChannelStop *pChStop;	     /* Pointer to command  */
+   BXVD_Cmd_ChannelStop *pChStop;        /* Pointer to command  */
 
 #if BDBG_DEBUG_BUILD
    BXVD_Rsp_ChannelStop *pChStopRsp;      /* Pointer to response */
@@ -785,9 +805,9 @@ BERR_Code BXVD_P_HostCmdSendDecChannelStop
    BXVD_DBG_MSG(hXvd, (" channel_number: %d", pChStop->channel_number));
 
    eStatus = BERR_TRACE(BXVD_P_SendDecoderCommand(hXvd,
-						  hXvd->uDecoderInstance,
-						  pCmd,
-						  pRsp,
+                                                  hXvd->uDecoderInstance,
+                                                  pCmd,
+                                                  pRsp,
                                                   FW_CMD_TIMEOUT_NORMAL));
 
    BXVD_DBG_MSG(hXvd, ("BXVD_RSP_CHANNELSTOP:"));
@@ -798,8 +818,8 @@ BERR_Code BXVD_P_HostCmdSendDecChannelStop
 }
 
 /***************************************************************************
- *	{secret}
- *	BXVD_P_HostCmdSetSkipPictureMode
+ *  {secret}
+ *  BXVD_P_HostCmdSetSkipPictureMode
  ***************************************************************************/
 BERR_Code BXVD_P_HostCmdSetSkipPictureMode
 (
@@ -836,19 +856,19 @@ BERR_Code BXVD_P_HostCmdSetSkipPictureMode
    switch(eSkipMode)
    {
       case BXVD_SkipMode_eDecode_I_Only:
-	 pChanSpeed->speed = VDEC_SPEED_IONLY;
-	 break;
+         pChanSpeed->speed = VDEC_SPEED_IONLY;
+         break;
       case BXVD_SkipMode_eDecode_IP_Only:
-	 pChanSpeed->speed = VDEC_SPEED_IPONLY;
-	 break;
+         pChanSpeed->speed = VDEC_SPEED_IPONLY;
+         break;
       case BXVD_SkipMode_eDecode_IPB:
-	 pChanSpeed->speed = VDEC_SPEED_NORMAL;
-	 break;
+         pChanSpeed->speed = VDEC_SPEED_NORMAL;
+         break;
       case BXVD_SkipMode_eDecode_Ref_Only:
-	 pChanSpeed->speed = VDEC_SPEED_REFONLY;
-	 break;
+         pChanSpeed->speed = VDEC_SPEED_REFONLY;
+         break;
       default:
-	 return BERR_TRACE(BERR_INVALID_PARAMETER);
+         return BERR_TRACE(BERR_INVALID_PARAMETER);
    };
 
    BXVD_DBG_MSG(hXvd, ("BXVD_CMD_CHANNELSPEED:"));
@@ -857,9 +877,9 @@ BERR_Code BXVD_P_HostCmdSetSkipPictureMode
    BXVD_DBG_MSG(hXvd, (" speed: %d", pChanSpeed->speed));
 
    eStatus = BERR_TRACE(BXVD_P_SendDecoderCommand(hXvd,
-						  hXvd->uDecoderInstance,
-						  pCmd,
-						  pRsp,
+                                                  hXvd->uDecoderInstance,
+                                                  pCmd,
+                                                  pRsp,
                                                   FW_CMD_TIMEOUT_NORMAL));
 
    BXVD_DBG_MSG(hXvd, ("BXVD_RSP_CHANNELSPEED:"));
@@ -922,9 +942,9 @@ BERR_Code BXVD_P_HostCmdDbgLogControl
    BXVD_DBG_MSG(hXvd, (" dbglog_mem_size: %08x", pDbgLog->dbglog_memory_size));
 
    eStatus = BERR_TRACE(BXVD_P_SendDecoderCommand(hXvd,
-						  hXvd->uDecoderInstance,
-						  pCmd,
-						  pRsp,
+                                                  hXvd->uDecoderInstance,
+                                                  pCmd,
+                                                  pRsp,
                                                   FW_CMD_TIMEOUT_NORMAL));
 
    BXVD_DBG_MSG(hXvd, ("BXVD_RSP_DbgLogControl"));
@@ -1001,9 +1021,9 @@ BERR_Code BXVD_P_HostCmdDbgLogCommand
    BXVD_DBG_MSG(hXvd, (" logCmd: %s", &pDbgCmd->logCmd[0]));
 
    eStatus = BERR_TRACE(BXVD_P_SendDecoderCommand(hXvd,
-						  hXvd->uDecoderInstance,
-						  pCmd,
-						  pRsp,
+                                                  hXvd->uDecoderInstance,
+                                                  pCmd,
+                                                  pRsp,
                                                   FW_CMD_TIMEOUT_DEBUGCMD));
 
    BXVD_DBG_MSG(hXvd, ("BXVD_RSP_DbgLogCommand"));
@@ -1012,5 +1032,85 @@ BERR_Code BXVD_P_HostCmdDbgLogCommand
 
    return BERR_TRACE(eStatus);
 }
+
+#if BXVD_P_ENABLE_DRAM_PREF_INFO
+/***************************************************************************
+ *  Summary
+ *
+ *     BXVD_P_HostCmdDramPerf: Send dram performace capture command.
+ *
+ *  Description
+ *
+ *     The decoder will enable and capture DRAM performance data and store
+ *     PPB,
+ *
+ ***************************************************************************/
+BERR_Code BXVD_P_HostCmdDramPerf
+(
+   BXVD_Handle    hXvd,
+   unsigned int   uiDDRStatCtrlReg,
+   unsigned int   uiDDRStatCtrlVal,
+   unsigned int   uiDDRStatCtrlEnableMask,
+   unsigned int   uiDDRStatTimerReg,
+   unsigned int   uiClientRead,
+   unsigned int   uiCas,
+   unsigned int   uiIntraPenality,
+   unsigned int   uiPostPenality
+)
+{
+   BERR_Code         eStatus = BERR_SUCCESS;
+   BXVD_Cmd          *pCmd;
+   BXVD_Rsp          *pRsp;
+
+   BXVD_Cmd_DramPerf *pDramPerf;
+#if BDBG_DEBUG_BUILD
+   BXVD_Rsp_DramPerf *pDramPerfRsp;
+
+   pDramPerfRsp = &hXvd->FWRsp.dramPerf;
+#endif
+
+   /* Clear out the context and set defaults. */
+   pCmd = &hXvd->FWCmd.cmd;
+   pRsp = &hXvd->FWRsp.rsp;
+   BKNI_Memset((void*)pCmd, BXVD_P_MEM_ZERO, sizeof(BXVD_Cmd));
+   BKNI_Memset((void*)pRsp, BXVD_P_MEM_ZERO, sizeof(BXVD_Rsp));
+
+   pDramPerf = &hXvd->FWCmd.dramPerf;
+
+   pDramPerf->command = BXVD_CMD_DRAMPERF;
+   pDramPerf->ddr_stat_ctrl_reg = uiDDRStatCtrlReg;
+   pDramPerf->ddr_stat_ctrl_val = uiDDRStatCtrlVal;
+   pDramPerf->ddr_stat_ctrl_enable = uiDDRStatCtrlEnableMask;
+
+   pDramPerf->ddr_stat_timer_reg = uiDDRStatTimerReg;
+
+   pDramPerf->client_read = uiClientRead;
+   pDramPerf->cas = uiCas;
+   pDramPerf->intra_penalty = uiIntraPenality;
+   pDramPerf->post_penalty = uiPostPenality;
+
+   BXVD_DBG_MSG(hXvd, ("BXVD_CMD_DramPerf:"));
+   BXVD_DBG_MSG(hXvd, (" ddr_stat_ctrl_reg: %08x", pDramPerf->ddr_stat_ctrl_reg));
+   BXVD_DBG_MSG(hXvd, (" ddr_stat_ctrl_val: %08x", pDramPerf->ddr_stat_ctrl_val));
+   BXVD_DBG_MSG(hXvd, (" ddr_stat_ctrl_enable: %08x", pDramPerf->ddr_stat_ctrl_enable));
+   BXVD_DBG_MSG(hXvd, (" ddr_stat_timer_reg: %08x", pDramPerf->ddr_stat_timer_reg));
+   BXVD_DBG_MSG(hXvd, (" client_read: %08x", pDramPerf->client_read));
+   BXVD_DBG_MSG(hXvd, (" cas: %08x", pDramPerf->cas));
+   BXVD_DBG_MSG(hXvd, (" intra_penalty: %08x", pDramPerf->intra_penalty));
+   BXVD_DBG_MSG(hXvd, (" post_penalty: %08x", pDramPerf->post_penalty));
+
+   eStatus = BERR_TRACE(BXVD_P_SendDecoderCommand(hXvd,
+                                                  hXvd->uDecoderInstance,
+                                                  pCmd,
+                                                  pRsp,
+                                                  FW_CMD_TIMEOUT_NORMAL));
+
+   BXVD_DBG_MSG(hXvd, ("BXVD_RSP_DramPerf"));
+   BXVD_DBG_MSG(hXvd, (" command: %#x", pDramPerfRsp->command));
+   BXVD_DBG_MSG(hXvd, (" status: %#x", pDramPerfRsp->status));
+
+   return BERR_TRACE(eStatus);
+}
+#endif
 
 /* End of File */

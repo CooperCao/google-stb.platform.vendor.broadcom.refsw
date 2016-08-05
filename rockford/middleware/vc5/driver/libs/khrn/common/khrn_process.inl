@@ -6,11 +6,6 @@ All rights reserved.
 #include "khrn_options.h"
 #include "libs/platform/v3d_scheduler.h"
 
-static inline int khrn_get_v3d_version(void)
-{
-   return v3d_scheduler_get_v3d_ver();
-}
-
 static inline uint32_t khrn_get_num_render_subjobs(void)
 {
    assert(khrn_options.render_subjobs != 0);

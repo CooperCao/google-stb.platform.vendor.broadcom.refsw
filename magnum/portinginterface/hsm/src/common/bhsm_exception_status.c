@@ -46,6 +46,8 @@
 
 BDBG_MODULE(BHSM);
 
+BDBG_OBJECT_ID_DECLARE( BHSM_P_Handle );
+
 #define UINT64_WORD_HI(a) ((uint32_t)((a)>>32))
 #define UINT64_WORD_LO(a) ((uint32_t)((a)&0xFFFFFFFF))
 
@@ -65,7 +67,9 @@ BERR_Code  BHSM_GetExceptionStatus(
 
     BDBG_ENTER( BHSM_GetExceptionStatus );
 
-    if( ( hHsm == NULL ) || ( hHsm->ulMagicNumber != BHSM_P_HANDLE_MAGIC_NUMBER ) || ( pRequest == false ) || ( pStatus == false ) )
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
+
+    if( ( pRequest == false ) || ( pStatus == false ) )
     {
         return  BERR_TRACE( BHSM_STATUS_INPUT_PARM_ERR );
     }

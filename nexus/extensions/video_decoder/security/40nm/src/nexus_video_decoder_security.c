@@ -224,7 +224,7 @@ void NEXUS_VideoDecoder_P_GetSecurityCallbacks( BXVD_Settings *pSettings/*out*/,
     gVideoDecoderSecurityContext[deviceId].deviceID = deviceId;
     pSettings->pAVDBootCallback = secureFirmwareVideoDecoder;
     pSettings->pAVDBootCallbackData = &gVideoDecoderSecurityContext[deviceId];
-#if (BCHP_CHIP!=7445)&& (BCHP_CHIP!=7252) && (BCHP_CHIP!=7439) && (BCHP_CHIP!=74371)
+#if (BCHP_CHIP!=7445)&& (BCHP_CHIP!=7252) && (BCHP_CHIP!=7439) && (BCHP_CHIP!=74371) && (BCHP_CHIP!=7250)
    #if defined(NEXUS_HAS_SECURITY) && defined(NEXUS_ENABLE_VICH)
     pSettings->pAVDResetCallback = NEXUS_VideoDecoder_P_AVDResetCallback;
     pSettings->pAVDResetCallbackData = &gVideoDecoderSecurityContext[deviceId];
@@ -306,7 +306,9 @@ NEXUS_Error verifyFirmwareVideoDecoder( BAFL_FirmwareInfo *pstArc, unsigned int 
             NEXUS_FlushCache( (const void*)(pstArc->stCode.pStartAddress), pstArc->stCode.uiSize );
 
             LOCK_SECURITY();
-            rc = NEXUS_Security_RegionVerifyEnable_priv ( regionId, pstArc->stCode.pStartAddress, pstArc->stCode.uiSize );
+            rc = NEXUS_Security_RegionVerifyEnable_priv( regionId,
+                                                         NEXUS_AddrToOffset( pstArc->stCode.pStartAddress ),
+                                                         pstArc->stCode.uiSize );
             UNLOCK_SECURITY();
             if( rc != NEXUS_SUCCESS ) { return BERR_TRACE(rc); } /*Failed to verify video decoder region */
 
@@ -334,7 +336,18 @@ static NEXUS_Error getRegionId( NEXUS_SecurityRegverRegionID *pRegionId, unsigne
         {
             switch( arch )
             {
-               #ifndef NEXUS_VIDEO_DECODER_SECURITY_NO_SVD
+               #ifdef NEXUS_VIDEO_DECODER_SECURITY_NO_SVD
+                case 0:
+                {
+                    *pRegionId = NEXUS_SecurityRegverRegionID_eAvd0Outer;
+                    break;
+                }
+                case 1:
+                {
+                    *pRegionId = NEXUS_SecurityRegverRegionID_eAvd0Inner;
+                    break;
+                }
+               #else
                 case 0:
                 {
                     #if NEXUS_ZEUS_VERSION >= NEXUS_ZEUS_VERSION_CALC(4,2)
@@ -360,17 +373,6 @@ static NEXUS_Error getRegionId( NEXUS_SecurityRegverRegionID *pRegionId, unsigne
                     #else
                     *pRegionId = NEXUS_SecurityRegverRegionID_eSvd0Bl;
                     #endif
-                    break;
-                }
-               #else
-                case 0:
-                {
-                    *pRegionId = NEXUS_SecurityRegverRegionID_eAvd0Outer;
-                    break;
-                }
-                case 1:
-                {
-                    *pRegionId = NEXUS_SecurityRegverRegionID_eAvd0Inner;
                     break;
                 }
                #endif

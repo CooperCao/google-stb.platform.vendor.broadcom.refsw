@@ -11,7 +11,8 @@ FILE DESCRIPTION
 #ifndef GLSL_ALLOC_TRACKER_H_INCLUDED
 #define GLSL_ALLOC_TRACKER_H_INCLUDED
 
-#include "../common/khrn_int_common.h"
+#include <stddef.h>
+#include <stdbool.h>
 
 typedef struct glsl_alloc_tracker_s glsl_alloc_tracker_t;
 

@@ -280,20 +280,6 @@ BDBG_MODULE(interruptinterface_7271);
 #define BINT_P_TIMER_CASES \
     case BCHP_TIMER_TIMER_IS:
 
-#define BINT_P_V3D_CTL_INT_STATUS 0x00
-#define BINT_P_V3D_CTL_INT_MASK   0x0C
-#define BINT_P_V3D_CTL_INT_CASES \
-    case BCHP_V3D_CTL_0_INT_STS:
-
-#define BCHP_INT_ID_V3D_INTR              BCHP_INT_ID_CREATE(BCHP_V3D_CTL_0_INT_STS, 0)
-
-#define BINT_P_V3D_HUB_CTL_INT_STATUS 0x00
-#define BINT_P_V3D_HUB_CTL_INT_MASK   0x0C
-#define BINT_P_V3D_HUB_CTL_INT_CASES \
-    case BCHP_V3D_HUB_CTL_INT_STS:
-
-#define BCHP_INT_ID_V3D_HUB_INTR          BCHP_INT_ID_CREATE(BCHP_V3D_HUB_CTL_INT_STS, 0)
-
 #define BINT_P_STAT_TIMER_TICKS_PER_USEC 27
 
 
@@ -347,6 +333,7 @@ static const BINT_P_IntMap bint_7271[] =
     BINT_MAP(2, UPG_MAIN, "", UPG_MAIN_IRQ_CPU_STATUS, REGULAR, SOME, 0x3 ),
     BINT_MAP(2, UPG_MAIN_AON, "", UPG_MAIN_AON_IRQ_CPU_STATUS, REGULAR, SOME, 0x3f ),
     /*BINT_MAP(2, UPG_SPI, "", UPG_SPI_AON_IRQ_CPU_STATUS, REGULAR, SOME, 0x1 ),*/
+    BINT_MAP(2, UPG_SC, "", SCIRQ0_SCIRQEN, REGULAR, ALL, 0),
     BINT_MAP(2, UPG_TMR, "", TIMER_TIMER_IS, REGULAR, ALL, 0),
     BINT_MAP(2, V3D, "_INT", V3D_CTL_0_INT_STS, REGULAR, NONE, 0),
     BINT_MAP(2, V3D_HUB, "_INT", V3D_HUB_CTL_INT_STS, REGULAR, NONE, 0),
@@ -487,10 +474,6 @@ static void BINT_P_7271_ClearInt( BREG_Handle regHandle, uint32_t baseAddr, int 
             /* Write 0 to clear the int bit. Writing 1's are ingored. */
             BREG_Write32( regHandle, baseAddr + BINT_P_PCROFFSET_STATUS, ~( 1ul << shift ) );
             break;
-       BINT_P_V3D_CTL_INT_CASES
-       BINT_P_V3D_HUB_CTL_INT_CASES
-            /* Has to cleared at the source */
-            break;
         default:
             /* Other types of interrupts do not support clearing of interrupts (condition must be cleared) */
             break;
@@ -547,10 +530,6 @@ static void BINT_P_7271_SetMask( BREG_Handle regHandle, uint32_t baseAddr, int s
         intEnable = BREG_Read32( regHandle, baseAddr + BINT_P_PCROFFSET_ENABLE );
         intEnable &= ~( 1ul << shift );
         BREG_Write32( regHandle, baseAddr + BINT_P_PCROFFSET_ENABLE, intEnable);
-        break;
-    BINT_P_V3D_CTL_INT_CASES
-    BINT_P_V3D_HUB_CTL_INT_CASES
-        /* Dont support setting the v3d L2 via this interface */
         break;
     default:
        BDBG_ERR(("NOT SUPPORTED baseAddr 0x%08x ,regHandle %p,  shift %d",
@@ -611,10 +590,6 @@ static void BINT_P_7271_ClearMask( BREG_Handle regHandle, uint32_t baseAddr, int
         intEnable |= ( 1ul << shift );
         BREG_Write32( regHandle, baseAddr + BINT_P_PCROFFSET_ENABLE, intEnable);
         break;
-    BINT_P_V3D_CTL_INT_CASES
-    BINT_P_V3D_HUB_CTL_INT_CASES
-        /* Dont support setting the v3d L2 via this interface */
-        break;
     default:
         /* Unhandled interrupt base address */
         BDBG_ASSERT( false );
@@ -642,22 +617,6 @@ static uint32_t BINT_P_7271_ReadStatus( BREG_Handle regHandle, uint32_t baseAddr
         return BREG_Read32( regHandle, baseAddr + BINT_P_UPGSC_ENABLE );
     BINT_P_PCROFFSET_CASES
         return BREG_Read32( regHandle, baseAddr + BINT_P_PCROFFSET_STATUS );
-    BINT_P_V3D_CTL_INT_CASES
-        {
-            uint32_t flags;
-            flags  = BREG_Read32( regHandle, baseAddr + BINT_P_V3D_CTL_INT_MASK );
-            flags &= BREG_Read32( regHandle, baseAddr + BINT_P_V3D_CTL_INT_STATUS );
-            return flags;
-        }
-        break;
-    BINT_P_V3D_HUB_CTL_INT_CASES
-        {
-            uint32_t flags;
-            flags  = BREG_Read32( regHandle, baseAddr + BINT_P_V3D_HUB_CTL_INT_MASK );
-            flags &= BREG_Read32( regHandle, baseAddr + BINT_P_V3D_HUB_CTL_INT_STATUS );
-            return flags;
-        }
-        break;
     default:
         /* Unhandled interrupt base address */
         BDBG_ASSERT( false );

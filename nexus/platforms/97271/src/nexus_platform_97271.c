@@ -41,6 +41,8 @@
 
 BDBG_MODULE(nexus_platform_97271);
 
+#define MB (1024 * 1024)
+
 static void nexus_p_modifyDefaultMemoryConfigurationSettings( NEXUS_MemoryConfigurationSettings *pSettings )
 {
 #if NEXUS_HAS_VIDEO_DECODER
@@ -75,24 +77,23 @@ void NEXUS_Platform_P_SetSpecificOps(struct NEXUS_PlatformSpecificOps *pOps)
 
 void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings, unsigned boxMode)
 {
-    pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].heapType = NEXUS_HEAP_TYPE_GRAPHICS;
     /* box mode specifc custom heaps */
     switch(boxMode)
     {
     case 1:
     case 2:
     case 1000:
-        pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].size = 128*1024*1024;
-        pSettings->heap[NEXUS_VIDEO_SECURE_HEAP].size = 60*1024 *1024; /* CABACs(28)for 2 decoders + RAVE CDB(6+15) */
+        pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].size = 148*1024*1024;
+        pSettings->heap[NEXUS_VIDEO_SECURE_HEAP].size = 108*1024 *1024;
         pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].size = 512*1024*1024;
         break;
     case 3:
-        pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].size = 100*1024*1024;
-        pSettings->heap[NEXUS_VIDEO_SECURE_HEAP].size = 53*1024 *1024; /* CABACs(28)for 2 decoders + RAVE CDB(6+15) */
+        pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].size = 148*1024*1024;
+        pSettings->heap[NEXUS_VIDEO_SECURE_HEAP].size = 108*1024 *1024; /* CABACs(28)for 2 decoders + RAVE CDB(6+15) */
         pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].size = 348*1024*1024; /* 1000 - 76-53 -32 -64(pic) -161(pic)-256 kernel */
         break;
     case 4:
-        pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].size = 65*1024*1024;
+        pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].size = 148*1024*1024;
         pSettings->heap[NEXUS_VIDEO_SECURE_HEAP].size = 90*1024 *1024; /* CABACs(28)for 2 decoders + RAVE CDB(6+15) */
         pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].size = 64*1024*1024; /* 1000- (65+45+32+27(pic)+161(pic)+256(kernel)) */
         break;
@@ -100,6 +101,8 @@ void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings,
         BDBG_ERR(("Box mode %d not supported",boxMode));
         break;
     }
+
+    pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].heapType = NEXUS_HEAP_TYPE_GRAPHICS;
 
     return;
 }
@@ -122,6 +125,18 @@ NEXUS_Error NEXUS_Platform_P_InitBoard(void)
     {
         case 1:
             board = "SV";
+            break;
+        case 2:
+            board = "USFF";
+            break;
+        case 3:
+            board = "DV";
+            break;
+        case 4:
+            board = "HB";
+            break;
+        case 5:
+            board = "VMS";
             break;
         default:
             BDBG_WRN(("Board is major %d",platformStatus.boardId.major));

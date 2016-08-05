@@ -335,19 +335,12 @@ static void BVDC_P_Hist_BuildCfgRul_isr
         bInterlaced = hWindow->hCompositor->stCurInfo.pFmtInfo->bInterlaced;
     }
 
-    if(hWindow->stCurInfo.bLumaRectUserSet)
-    {
-        stUsrClipRect = pCurInfo->stLumaRect.stRegion;
-    }
-    else
-    {
-        /* If usr region is not set, HIST can be enabled by dynamic contrast */
-        /* therefore, use default clipping of 0, meaning full source size */
-        stUsrClipRect.ulLeft   = 0;
-        stUsrClipRect.ulRight  = 0;
-        stUsrClipRect.ulTop    = 0;
-        stUsrClipRect.ulBottom = 0;
-    }
+    /* If usr region is not set, HIST can be enabled by dynamic contrast */
+    /* therefore, use default clipping of 0, meaning full source size */
+    stUsrClipRect.ulLeft   = 0;
+    stUsrClipRect.ulRight  = 0;
+    stUsrClipRect.ulTop    = 0;
+    stUsrClipRect.ulBottom = 0;
     BVDC_P_CalculateRect_isr(&stUsrClipRect, ulWidth, ulHeight, bInterlaced, &stHistoRect);
 
     for(id = 0; id < BVDC_LUMA_HISTOGRAM_LEVELS; id++)
@@ -356,15 +349,9 @@ static void BVDC_P_Hist_BuildCfgRul_isr
             stHistoRect.ulWidth /100) * stHistoRect.ulHeight / 100);
     }
 
-    if(hWindow->stCurInfo.bLumaRectUserSet)
-    {
-        BDBG_MSG(("ClipRect: (%4d, %4d, %4d, %4d)", stUsrClipRect.ulLeft,
-            stUsrClipRect.ulRight, stUsrClipRect.ulTop, stUsrClipRect.ulBottom));
-    }
     BVDC_P_PRINT_RECT("HistoRect", &stHistoRect, false);
-    BDBG_MSG(("HistEnable = %s, UserCfg = %s, HistAtSrc = %s, Hist Size: %d, Interlace = %s",
+    BDBG_MSG(("HistEnable = %s, HistAtSrc = %s, Hist Size: %d, Interlace = %s",
         pCurInfo->bHistEnable ? "true" :"false",
-        hWindow->stCurInfo.bLumaRectUserSet ? "true" : "false",
         hWindow->stCurInfo.bHistAtSrc ? "true" : "false",
         pNumBin->ulHistSize,
         bInterlaced ? "true" : "false"));
@@ -556,37 +543,4 @@ void BVDC_P_Hist_UpdateHistData_isr
 }
 
 #endif  /* #if (BVDC_P_SUPPORT_HIST_VER >= BVDC_P_SUPPORT_HIST_VER_2) */
-
-void BVDC_P_Hist_GetHistogramData
-    ( const BVDC_Window_Handle          hWindow,
-      BVDC_LumaStatus                  *pLumaStatus )
-{
-    BVDC_Source_Handle            hSource;
-
-    BDBG_ENTER(BVDC_P_Hist_GetHistogramData);
-    BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
-    BDBG_OBJECT_ASSERT(hWindow->stCurResource.hHist, BVDC_HST);
-    hSource = hWindow->stCurInfo.hSource;
-    BDBG_OBJECT_ASSERT(hSource, BVDC_SRC);
-
-    BKNI_EnterCriticalSection();
-
-    if(pLumaStatus)
-    {
-        if(hSource->stCurInfo.eMuteMode == BVDC_MuteMode_eDisable)
-        {
-            *pLumaStatus = hWindow->stCurResource.hHist->stHistData;
-        }
-        else
-        {
-            *pLumaStatus = hWindow->stCurResource.hHist->stFreezedHistData;
-        }
-    }
-
-    BKNI_LeaveCriticalSection();
-    BDBG_LEAVE(BVDC_P_Hist_GetHistogramData);
-
-    return;
-}
-
 /* End of file. */

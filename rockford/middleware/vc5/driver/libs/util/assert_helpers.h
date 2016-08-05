@@ -66,6 +66,12 @@ All rights reserved.
 #define verif(COND) assert(COND)
 #endif
 
+#ifdef NDEBUG
+#define assume(COND) do { if(!(COND)) { builtin_unreachable(); } } while(0)
+#else
+#define assume(COND) assert(COND)
+#endif
+
 /** static_assert */
 
 #if defined(static_assert) || (defined(__cplusplus) && \

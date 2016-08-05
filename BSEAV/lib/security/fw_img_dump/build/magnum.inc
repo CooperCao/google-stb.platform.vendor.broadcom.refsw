@@ -66,7 +66,7 @@ include $(foreach module, ${BASEMODULES}, ${MAGNUM_DIR}/basemodules/${module}/b$
 #############################################################################
 # commonutils (add to MAGNUM_SOURCES and MAGNUM_INCLUDES)
 
-COMMONUTILS = afl lst img avc fmt pxl udp box
+COMMONUTILS = afl lst img avc fmt pxl udp box xdm
 
 include $(foreach module, ${COMMONUTILS}, ${MAGNUM_DIR}/commonutils/${module}/b${module}.inc)
 

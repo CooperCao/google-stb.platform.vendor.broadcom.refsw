@@ -58,6 +58,7 @@ if ($module eq "CORE") {
     # these functions from nexus_base_*.h aren't C parser friendly, but are still 
     # of value to export for kernel driver code
     my @export_funcs = ("NEXUS_AddrToOffset",
+        "NEXUS_GetAddrType",
         "NEXUS_OffsetToCachedAddr",
         "NEXUS_OffsetToUncachedAddr",
         "NEXUS_Thread_Create",

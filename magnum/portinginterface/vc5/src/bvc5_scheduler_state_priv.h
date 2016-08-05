@@ -49,9 +49,13 @@
  */
 typedef struct BVC5_P_SchedulerState
 {
-   uint32_t           uiClientHandlesCapacity;  /* How big is client handle array (will grow, not shrink)               */
-   BVC5_ClientHandle *phClientHandles;          /* Array of client handles used in round-robin                          */
-   uint32_t           uiClientOffset;           /* Which client is considered first in the schedule                     */
+   uint32_t           uiClientsCapacity;     /* How big is client handle array (will grow, not shrink) */
+   BVC5_ClientHandle *phClients;             /* Array of client handles used in round-robin            */
+   uint32_t           uiCurrentClient;       /* The client who is offered work first                   */
+
+   bool               bHoldingPower;         /* Is the scheduler holding power/clocks on?              */
+
+   struct BVC5_P_ClientMap *hClientMap;      /* Copy of the client map for our convenience             */
 } BVC5_P_SchedulerState;
 
 /***************************************************************************/
@@ -62,7 +66,8 @@ typedef struct BVC5_P_SchedulerState
 
  */
 BERR_Code BVC5_P_SchedulerStateConstruct(
-   BVC5_P_SchedulerState *phSchedulerState
+   BVC5_P_SchedulerState *psState,
+   BVC5_ClientMapHandle   hClientMap
 );
 
 /***************************************************************************/
@@ -73,7 +78,7 @@ BERR_Code BVC5_P_SchedulerStateConstruct(
 
  */
 BERR_Code BVC5_P_SchedulerStateDestruct(
-   BVC5_P_SchedulerState *hSchedulerState
+   BVC5_P_SchedulerState *psState
 );
 
 /***************************************************************************/
@@ -84,19 +89,45 @@ BERR_Code BVC5_P_SchedulerStateDestruct(
 
  */
 BERR_Code BVC5_P_SchedulerStateRegisterClient(
-   BVC5_P_SchedulerState *psSchedulerState,
+   BVC5_P_SchedulerState *psState,
    uint32_t               uiNumClients
 );
 
 /***************************************************************************/
 
-/* BVC5_P_SchedulerStateResetFirst
+/* BVC5_P_SchedulerStateGatherClients
 
-   Removes client from the scheduler state e.g. on process termination
+   Build and return the list of clients starting with the preferred client
 
  */
-BERR_Code BVC5_P_SchedulerStateResetFirst(
-   BVC5_P_SchedulerState *psSchedulerState
+BVC5_ClientHandle *BVC5_P_SchedulerStateGatherClients(
+   BVC5_P_SchedulerState *psState
+);
+
+/* BVC5_P_SchedulerStateBegin
+
+   Set up current client requirements and initialise power release count
+ */
+void BVC5_P_SchedulerStateSetClientWanted(
+   BVC5_P_SchedulerState *psState
+);
+
+/* BVC5_P_SchedulerStateNextClient
+
+   Move to the next client if the current client has had all its requirements met
+ */
+void BVC5_P_SchedulerStateNextClient(
+   BVC5_P_SchedulerState *psState
+);
+
+/* BVC5_P_SchedulerStateGetClient
+
+   Get the nth client where 0 is the current client
+
+ */
+BVC5_ClientHandle BVC5_P_SchedulerStateGetClient(
+   BVC5_P_SchedulerState *psState,
+   uint32_t               uiClient
 );
 
 #endif /* BVC5_SCHEDULER_STATE_H__ */

@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2012 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *  
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,18 +35,10 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF 
 *  ANY LIMITED REMEDY.
 * 
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * API Description:
 *   API name: AudioInput
 *   Generic API for inputs to an audio mixer.
 *
-* Revision History:
-*
-* $brcm_Log: $
-* 
 ***************************************************************************/
 #ifndef NEXUS_AUDIO_INPUT_H__
 #define NEXUS_AUDIO_INPUT_H__
@@ -60,13 +52,25 @@ extern "C" {
 
 /***************************************************************************
 Summary:
+Input Status Information
+ ***************************************************************************/
+typedef struct NEXUS_AudioInputStatus
+{
+    bool valid;                 /* If true, a signal is present, and status is valid */
+    NEXUS_AudioCodec codec;     /* Stream Codec */
+    unsigned numPcmChannels;    /* Number of PCM channels if codec == NEXUS_AudioCodec_ePcm */
+    unsigned sampleRate;        /* Sample Rate in Hz */
+} NEXUS_AudioInputStatus;
+
+/***************************************************************************
+Summary:
 Shutdown the connector for an audio input/processing object.
 
 Description:
 This must be called before the corresponding object is closed.
  ***************************************************************************/
 void NEXUS_AudioInput_Shutdown(
-    NEXUS_AudioInput input
+    NEXUS_AudioInputHandle input
     );
 
 /***************************************************************************
@@ -80,8 +84,8 @@ also return true even if there are nodes between the two provided in this
 call. 
  ***************************************************************************/
 void NEXUS_AudioInput_IsConnectedToInput(
-    NEXUS_AudioInput input1,
-    NEXUS_AudioInput input2,
+    NEXUS_AudioInputHandle input1,
+    NEXUS_AudioInputHandle input2,
     bool *pConnected            /* [out] True if the nodes are connected in a filter graph */
     );
 
@@ -95,7 +99,7 @@ in a filter graph.  It will also return true even if there are nodes between
 input and output.
  ***************************************************************************/
 void NEXUS_AudioInput_IsConnectedToOutput(
-    NEXUS_AudioInput input,
+    NEXUS_AudioInputHandle input,
     NEXUS_AudioOutputHandle output,
     bool *pConnected            /* [out] True if the nodes are connected in a filter graph */
     );
@@ -110,8 +114,18 @@ in a filter graph.  It will also return true even if there are nodes between
 input and output.
  ***************************************************************************/
 void NEXUS_AudioInput_HasConnectedOutputs(
-    NEXUS_AudioInput input,
+    NEXUS_AudioInputHandle input,
     bool *pConnected            /* [out] True if one or more output is connected to this node */
+    );
+
+/***************************************************************************
+Summary:
+  Get the status of an Audio Input.
+
+ ***************************************************************************/
+NEXUS_Error NEXUS_AudioInput_GetInputStatus(
+    NEXUS_AudioInputHandle input,
+    NEXUS_AudioInputStatus *pStatus     /* [out] */
     );
 
 #ifdef __cplusplus
@@ -119,4 +133,3 @@ void NEXUS_AudioInput_HasConnectedOutputs(
 #endif
 
 #endif /* #ifndef NEXUS_AUDIO_INPUT_H__ */
-

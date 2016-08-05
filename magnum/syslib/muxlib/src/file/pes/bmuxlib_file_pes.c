@@ -48,6 +48,8 @@ BDBG_MODULE(BMUXLIB_FILE_PES);
 BDBG_FILE_MODULE(BMUX_PES_FINISH);
 BDBG_FILE_MODULE(BMUX_PES_MEMORY);
 
+BDBG_OBJECT_ID(BMUXlib_File_PES_P_Context);
+
 #ifdef BMUXLIB_PES_P_TEST_MODE
 #include <stdio.h>
 #endif
@@ -133,9 +135,8 @@ BERR_Code BMUXlib_File_PES_Create(BMUXlib_File_PES_Handle *phPESMux, const BMUXl
    if (NULL != hMux)
    {
       BKNI_Memset( hMux, 0, sizeof(struct BMUXlib_File_PES_P_Context) );
+      BDBG_OBJECT_SET(hMux, BMUXlib_File_PES_P_Context);
 
-      /* fill in the signature in the context */
-      hMux->uiSignature = BMUXLIB_FILE_PES_P_SIGNATURE_CONTEXT;
       *phPESMux = hMux;
       rc = BERR_SUCCESS;
    } /* hMux != NULL */
@@ -166,15 +167,14 @@ void BMUXlib_File_PES_Destroy(BMUXlib_File_PES_Handle hPESMux)
 {
    BDBG_ENTER(BMUXlib_File_PES_Destroy);
 
-   BDBG_ASSERT(hPESMux != NULL);
-
    BDBG_MSG(("====Destroying PES Mux===="));
 
    /* the following signifies an attempt to free up something that was either
       a) not created by Create()
       b) has already been destroyed
    */
-   BDBG_ASSERT(BMUXLIB_FILE_PES_P_SIGNATURE_CONTEXT == hPESMux->uiSignature);
+   BDBG_OBJECT_ASSERT(hPESMux, BMUXlib_File_PES_P_Context);
+   BDBG_OBJECT_DESTROY(hPESMux, BMUXlib_File_PES_P_Context);
 
    /* free the context ... */
    BKNI_Free(hPESMux);
@@ -244,8 +244,7 @@ BERR_Code BMUXlib_File_PES_Start(BMUXlib_File_PES_Handle hPESMux, const BMUXlib_
 
    BDBG_ENTER(BMUXlib_File_PES_Start);
 
-   BDBG_ASSERT(hPESMux != NULL);
-   BDBG_ASSERT(BMUXLIB_FILE_PES_P_SIGNATURE_CONTEXT == hPESMux->uiSignature);
+   BDBG_OBJECT_ASSERT(hPESMux, BMUXlib_File_PES_P_Context);
    BDBG_ASSERT(pStartSettings != NULL);
    BDBG_ASSERT(BMUXLIB_FILE_PES_P_SIGNATURE_STARTSETTINGS == pStartSettings->uiSignature);
 
@@ -344,8 +343,7 @@ BERR_Code BMUXlib_File_PES_Finish(BMUXlib_File_PES_Handle hPESMux, const BMUXlib
 
    BDBG_ENTER(BMUXlib_File_PES_Finish);
 
-   BDBG_ASSERT(hPESMux != NULL);
-   BDBG_ASSERT(BMUXLIB_FILE_PES_P_SIGNATURE_CONTEXT == hPESMux->uiSignature);
+   BDBG_OBJECT_ASSERT(hPESMux, BMUXlib_File_PES_P_Context);
    BDBG_ASSERT(pFinishSettings != NULL);
    BDBG_ASSERT(BMUXLIB_FILE_PES_P_SIGNATURE_FINISHSETTINGS == pFinishSettings->uiSignature);
 
@@ -416,8 +414,7 @@ BERR_Code BMUXlib_File_PES_Stop(BMUXlib_File_PES_Handle hPESMux)
    BERR_Code rc = BERR_SUCCESS;
    BDBG_ENTER(BMUXlib_File_PES_Stop);
 
-   BDBG_ASSERT(hPESMux != NULL);
-   BDBG_ASSERT(BMUXLIB_FILE_PES_P_SIGNATURE_CONTEXT == hPESMux->uiSignature);
+   BDBG_OBJECT_ASSERT(hPESMux, BMUXlib_File_PES_P_Context);
 
    BDBG_MSG(("====Stopping PES Mux===="));
 
@@ -479,9 +476,8 @@ BERR_Code BMUXlib_File_PES_DoMux(BMUXlib_File_PES_Handle hPESMux, BMUXlib_DoMux_
 
    BDBG_ENTER(BMUXlib_File_PES_DoMux);
 
-   BDBG_ASSERT(hPESMux != NULL);
    BDBG_ASSERT(pStatus != NULL);
-   BDBG_ASSERT(BMUXLIB_FILE_PES_P_SIGNATURE_CONTEXT == hPESMux->uiSignature);
+   BDBG_OBJECT_ASSERT(hPESMux, BMUXlib_File_PES_P_Context);
 
    switch (BMUXLIB_FILE_PES_P_GET_MUX_STATE(hPESMux))
    {

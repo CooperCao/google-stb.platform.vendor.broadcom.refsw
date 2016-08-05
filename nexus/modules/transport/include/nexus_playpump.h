@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2013 Broadcom Corporation
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,17 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
  **************************************************************************/
 #ifndef NEXUS_PLAYPUMP_H__
 #define NEXUS_PLAYPUMP_H__
@@ -160,36 +149,41 @@ typedef struct NEXUS_PlaypumpSettings
                                                    This must be set to false for trick modes. Default is false. */
 
     /* Type of original transport stream */
-    NEXUS_PlaypumpMode mode;                    /* Method of pushing data into playpump. This setting determines the format of data the app will feed to playpump. */
+    NEXUS_PlaypumpMode mode;                    /* Method of pushing data into playpump. This setting determines the format of data the app
+                                                   will feed to playpump. */
     NEXUS_CallbackDesc dataCallback;            /* Callback when space becomes available. User should call NEXUS_Playpump_GetBuffer.
                                                    You will not receive another callback until NEXUS_Playpump_GetBuffer is called. */
     NEXUS_CallbackDesc errorCallback;           /* Callback called when error was detected in ptocessing of the stream data */
     NEXUS_CallbackDesc ccError;                 /* Continuity Count Error - raised when continuity counter of next packet does not have the next counter value.
-                                                   continuityCountEnabled must be set to true. See NEXUS_PidChannelStatus.continuityCountErrors to get a count of errors per pid. */
+                                                   continuityCountEnabled must be set to true. See NEXUS_PidChannelStatus.continuityCountErrors
+                                                   to get a count of errors per pid. */
     NEXUS_CallbackDesc teiError;                /* Transport Error Indicator - error status from a demodulator */
 
-    int playRate;                               /* Rate in units of NEXUS_NORMAL_PLAY_SPEED. It's used for certain type of streams to control the direction of presentation time. */
+    int playRate;                               /* Rate in units of NEXUS_NORMAL_PLAY_SPEED. It's used for certain type of streams to control the
+                                                   direction of presentation time. */
 
     NEXUS_DmaHandle securityDma;                /* deprecated */
     NEXUS_DmaDataFormat securityDmaDataFormat;  /* deprecated */
     NEXUS_KeySlotHandle securityContext;        /* used for DRM */
 
-    unsigned maxDataRate;                       /* Maximum data rate for the playback parser band in units of bits per second. Default is typically 108000000 (i.e. 108 Mbps).
-                                                   If you increase this, you need to analyze total transport bandwidth and overall system bandwidth. */
+    unsigned maxDataRate;                       /* Maximum data rate for the playback parser band in units of bits per second. Default is typically
+                                                   108000000 (i.e. 108 Mbps). If you increase this, you need to analyze total transport bandwidth and
+                                                   overall system bandwidth. */
     bool blindSync;                             /* Force transport to not look for sync bytes. */
 
     /* all pass settings */
-    bool allPass;                               /* If true, NEXUS_Playpump_OpenPidChannel's pid param is ignored and the resulting pid channel can be used for all-pass record.
-                                                   Also set acceptNullPackets to true if you want to capture the entire stream.
-                                                   When opening the allPass pid channel, set NEXUS_PlaypumpOpenPidChannelSettings.pidSettings.pidChannelIndex to the HwPidChannel obtained 
-                                                   from NEXUS_ParserBand_GetAllPassPidChannelIndex(). */
+    bool allPass;                               /* If true, NEXUS_Playpump_OpenPidChannel's pid param is ignored and the resulting pid channel can be
+                                                   used for all-pass record. Also set acceptNullPackets to true if you want to capture the entire stream.
+                                                   When opening the allPass pid channel, set NEXUS_PlaypumpOpenPidChannelSettings.pidSettings.pidChannelIndex
+                                                   to the HwPidChannel obtained from NEXUS_Playpump_GetAllPassPidChannelIndex(). */
     bool acceptNullPackets;                     /* If true and allPass is true, NULL packets are not discarded. */
 
     bool dataNotCpuAccessible;                  /* deprecated, please use NEXUS_PlaypumpOpenSettings.dataNotCpuAccessible instead */
 
     struct {
         NEXUS_TransportTimestampType type;      /* The type of timestamping in this stream. */
-        uint16_t pcrPacingPid;                  /* Some chips can pace playback using a PCR pid. Set timestamp.pcrPacingPid to a non-zero value and set timestamp.pacing = true. */
+        uint16_t pcrPacingPid;                  /* Some chips can pace playback using a PCR pid. Set timestamp.pcrPacingPid to a non-zero value and set
+                                                   timestamp.pacing = true. */
 
         bool pacing;                            /* If true, pace this stream using embedded timestamp information or using pcr-based pacing.
                                                    For timestamp-based pacing, set timestampType as well.
@@ -212,7 +206,8 @@ typedef struct NEXUS_PlaypumpOpenPidChannelSettings
 {
     NEXUS_PidChannelSettings pidSettings;
     NEXUS_PidType pidType;
-    bool allowTimestampReordering;                     /* For some media formats it's required to reorder timestamps prior to sending data to the decoders, this flag controls whether playpump would reourder timestamps */
+    bool allowTimestampReordering; /* For some media formats it's required to reorder timestamps prior to sending data to the decoders,
+                                      this flag controls whether playpump would reourder timestamps */
     union
     {
         struct
@@ -421,7 +416,8 @@ typedef struct NEXUS_PlaypumpStatus
     unsigned resyncEvents;       /* count of resync handled in the stream, updated only for stream processed in SW */
     unsigned streamErrors;       /* count of other errors found in the stream, updated only for stream processed in SW */
     NEXUS_PtsType mediaPtsType;    /* Type of the current PTS, updated only for stream processed in SW */
-    uint32_t mediaPts;    /* if playpump does inline media streeam conversion (i.e. AVI to PES), then this is the last known PTS (in units of 45KHz) for the first converted pid (track) */
+    uint32_t mediaPts;    /* if playpump does inline media streeam conversion (i.e. AVI to PES), then this is the last known PTS
+                             (in units of 45KHz) for the first converted pid (track) */
 } NEXUS_PlaypumpStatus;
 
 /**

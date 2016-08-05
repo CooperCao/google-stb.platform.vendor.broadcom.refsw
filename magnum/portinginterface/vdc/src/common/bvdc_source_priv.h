@@ -106,8 +106,12 @@ extern "C" {
  * callbacks would easily run over the double-buffer slave RULs once for
  * progressive format;
  */
-#define BVDC_P_SRC_GET_NEXT_SLAVE_RUL_IDX(pSource) \
-    ((pSource)->ulSlaveRulIdx = (((pSource)->ulSlaveRulIdx + 1) & 3))
+#define BVDC_P_SRC_GET_NEXT_SLAVE_RUL_IDX(hSource) \
+{ \
+    uint32_t tmp = ((hSource)->ulSlaveRulIdx + 1) & 3; \
+    ((hSource)->ulSlaveRulIdx = ((tmp == 1)||(tmp == 2)) ? \
+        tmp : 0); \
+}
 
 /* Src uses all T/B/F slots. */
 #define BVDC_P_SRC_MAX_SLOT_COUNT \

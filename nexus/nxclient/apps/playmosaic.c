@@ -47,6 +47,7 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include "namevalue.h"
+#include <math.h>
 
 BDBG_MODULE(playmosaic);
 
@@ -232,6 +233,21 @@ static void *standby_monitor(void *context)
     return NULL;
 }
 
+static void b_adjust_mosaic(unsigned coveragePixelsPerMosaic, NEXUS_Rect *pRect)
+{
+    unsigned desiredPixelsPerMosaic = pRect->width * pRect->height;
+
+    /* and now see if we owe or get a refund */
+    if (desiredPixelsPerMosaic > coveragePixelsPerMosaic) {
+        /* an integer impl is possible, but I'm keeping it simple by using float. */
+        float reductionInPixels = (float)(coveragePixelsPerMosaic) / desiredPixelsPerMosaic;
+        /* now here's where is need a square root, but it's not based on # of mosaics. */
+        float reductionPerDimension = sqrt(reductionInPixels);
+        pRect->width  *= reductionPerDimension;
+        pRect->height *= reductionPerDimension;
+    }
+}
+
 int main(int argc, const char **argv)
 {
     NxClient_JoinSettings joinSettings;
@@ -263,6 +279,8 @@ int main(int argc, const char **argv)
     struct nxapps_cmdline cmdline;
     int n;
     pthread_t standby_thread_id;
+    NEXUS_DisplayMaxMosaicCoverage maxCoverage;
+    unsigned coveragePixelsPerMosaic;
 
     memset(file, 0, sizeof(file));
     g_app.num_mosaics = MAX_MOSAICS;
@@ -365,45 +383,32 @@ int main(int argc, const char **argv)
         num_tiles++;
     }
 
+    NEXUS_Display_GetMaxMosaicCoverage(0, g_app.num_mosaics, &maxCoverage);
+    /* it's the per window coverage that actually matters. not obvious. */
+    coveragePixelsPerMosaic = virtualDisplay.width * virtualDisplay.height * maxCoverage.maxCoverage / (g_app.num_mosaics* 100);
     {
-        NEXUS_DisplayMaxMosaicCoverage maxCoverage;
-        unsigned coverage = 0;
-        NEXUS_Display_GetMaxMosaicCoverage(0, g_app.num_mosaics, &maxCoverage);
         for (i=0;i<g_app.num_mosaics;i++) {
             if (mosaic_pip) {
                 g_app.mosaic[i].rect.width = (i == 0) ? virtualDisplay.width : virtualDisplay.width/2;
                 g_app.mosaic[i].rect.height = (i == 0) ? virtualDisplay.height : virtualDisplay.height/2;
+                b_adjust_mosaic(coveragePixelsPerMosaic, &g_app.mosaic[i].rect);
                 g_app.mosaic[i].rect.x = (i == 0) ? 0 : g_app.mosaic[i].rect.width;
                 g_app.mosaic[i].rect.y = (i == 0) ? 0 : g_app.mosaic[i].rect.height;
                 g_app.mosaic[i].zorder = i;
             }
             else {
-                unsigned max_height;
-                g_app.mosaic[i].rect.width = virtualDisplay.width / (num_tiles / 2);
-                g_app.mosaic[i].rect.height = virtualDisplay.height / 2;
-                g_app.mosaic[i].rect.x = g_app.mosaic[i].rect.width * (i % (num_tiles/2));
-                g_app.mosaic[i].rect.y = g_app.mosaic[i].rect.height * (i / (num_tiles/2));
+                unsigned max_height, average_width, average_height;
+                average_width = g_app.mosaic[i].rect.width = virtualDisplay.width / (num_tiles / 2);
+                average_height = g_app.mosaic[i].rect.height = virtualDisplay.height / 2;
+                b_adjust_mosaic(coveragePixelsPerMosaic, &g_app.mosaic[i].rect);
+                g_app.mosaic[i].rect.x = average_width * (i % (num_tiles/2))+(average_width - g_app.mosaic[i].rect.width)/2;
+                g_app.mosaic[i].rect.y = average_height * (i / (num_tiles/2))+(average_height - g_app.mosaic[i].rect.height)/2;
                 /* RTS restriction is (essentially) width>=height. Applying 3/4 allows 16:9 HD and 4:3 SD to meet the requirement. */
                 max_height = g_app.mosaic[i].rect.width*3/4;
                 if (g_app.mosaic[i].rect.height > max_height) {
                     g_app.mosaic[i].rect.y += (g_app.mosaic[i].rect.height - max_height) / 2;
                     g_app.mosaic[i].rect.height = max_height;
                 }
-            }
-            coverage += g_app.mosaic[i].rect.width * g_app.mosaic[i].rect.height;
-        }
-        /* convert from pixels to percent */
-        coverage = coverage * 100 / (virtualDisplay.width * virtualDisplay.height);
-        if (coverage > maxCoverage.maxCoverage) {
-            unsigned shrink = (coverage - maxCoverage.maxCoverage) * 100 / coverage;
-            BDBG_WRN(("shrink by %u%% to fit %u%% coverage within %u%% max coverage", shrink, coverage, maxCoverage.maxCoverage));
-            for (i=0;i<g_app.num_mosaics;i++) {
-                uint16_t width  = g_app.mosaic[i].rect.width * (100-shrink)/100;
-                uint16_t height = g_app.mosaic[i].rect.height * (100-shrink)/100;
-                g_app.mosaic[i].rect.x     += (g_app.mosaic[i].rect.width - width) / 2;
-                g_app.mosaic[i].rect.y     += (g_app.mosaic[i].rect.height - height) / 2;
-                g_app.mosaic[i].rect.width  = width;
-                g_app.mosaic[i].rect.height = height;
             }
         }
     }
@@ -501,6 +506,7 @@ int main(int argc, const char **argv)
         for (i=0; i<g_app.num_mosaics ; i++) {
             g_app.mosaic[i].rect.width = virtualDisplay.width / g_app.num_mosaics;
             g_app.mosaic[i].rect.height = virtualDisplay.height / 4;
+            b_adjust_mosaic(coveragePixelsPerMosaic, &g_app.mosaic[i].rect);
             g_app.mosaic[i].rect.x = i* (virtualDisplay.width / g_app.num_mosaics);
             g_app.mosaic[i].rect.y = virtualDisplay.height * 3 / 4;
 
@@ -515,11 +521,13 @@ int main(int argc, const char **argv)
         BKNI_Sleep(1000);
         largeRect.width   = virtualDisplay.width * 2/ g_app.num_mosaics;
         largeRect.height = virtualDisplay.height * 2 / g_app.num_mosaics;
+        b_adjust_mosaic(coveragePixelsPerMosaic, &largeRect);
         largeRect.x      = (virtualDisplay.width - largeRect.width) /2 ;
         largeRect.y      = (virtualDisplay.height * 3 /4 - largeRect.height) /2 ;
 
         while (1) {
             for (i=0; i<g_app.num_mosaics ; i++) {
+                unsigned j;
                 smallRect.x      = g_app.mosaic[i].rect.x;
                 smallRect.y      = g_app.mosaic[i].rect.y;
                 smallRect.width  = g_app.mosaic[i].rect.width;
@@ -538,9 +546,10 @@ int main(int argc, const char **argv)
 
                 BDBG_WRN(("toggle to window %d in %d seconds", (i+1)%g_app.num_mosaics, toggle_time));
                 fflush(stdout);
-                BKNI_Sleep(toggle_time * 1000);
-
-                if (b_check_timeout()) break;
+                for (j=0;j<toggle_time*10;j++) {
+                    BKNI_Sleep(100);
+                    if (b_check_timeout()) break;
+                }
 
                 NEXUS_SurfaceClient_GetSettings(g_app.mosaic[i].video_sc, &settings);
                 for (k=0 ; k<steps ; k++ ) {

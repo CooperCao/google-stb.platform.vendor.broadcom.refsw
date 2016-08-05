@@ -241,7 +241,7 @@ void CTunerOfdm::getProperties(
         CHECK_NEXUS_ERROR_GOTO("unable to request ofdm async status", ret, nerror, error);
 
         /* TTTTTTTTTTTTTTTTTTTTTTTT fine tune this timeout! */
-        berror = B_Event_Wait(getStatusEvent(), 500);
+        berror = B_Event_Wait(getStatusEvent(), GET_INT(_pCfg, TUNE_OFDM_STATUS_TIMEOUT));
         CHECK_BOS_WARN_GOTO("unable to request OFDM tuner status", ret, berror, error);
 
         nerror = NEXUS_Frontend_GetOfdmAsyncStatus(getFrontend(), &nStatus);

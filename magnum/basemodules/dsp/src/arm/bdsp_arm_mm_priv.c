@@ -481,8 +481,21 @@ BERR_Code BDSP_Arm_P_AllocateInitMemory (
         goto err_updating_maptableaddr_map_table;
     }
 
+    /* Allocate memory for the Hbc Info */
+    pBaseAddr = BDSP_MEM_P_AllocateAlignedMemory(pDevice->memHandle, sizeof(BDSP_Arm_P_HbcInfo),2, 0);
+    if(NULL == pBaseAddr)
+    {
+        BDBG_ERR(("BDSP_Arm_P_AllocateInitMemory: Unable to Allocate memory for BDSP_Arm_P_HbcInfo!!"));
+        err = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+        goto err_alloc_hbcinfo;
+    }
+    pDevice->psHbcInfo = pBaseAddr;
+	pDevice->psHbcInfo->hbcValid = 0;
+	pDevice->psHbcInfo->hbc = 0;
+
     goto alloc_init_mem_sucess;
 
+err_alloc_hbcinfo:
 err_updating_maptableaddr_map_table:
     BDSP_MEM_P_FreeMemory(pDevice->memHandle,pDevice->memInfo.sMapTable.pBaseAddr);
 err_alloc_MapTable:
@@ -532,6 +545,8 @@ BERR_Code BDSP_Arm_P_FreeInitMemory(
         BDBG_ERR(("Unable to Delete the Entry of Map Table from the Device Memory Map List...Anyways going ahead and deleting it"));
     }
     BDSP_MEM_P_FreeMemory(pDevice->memHandle,pDevice->memInfo.sMapTable.pBaseAddr);
+
+	BDSP_MEM_P_FreeMemory(pDevice->memHandle,pDevice->psHbcInfo);
 
     BDBG_LEAVE(BDSP_Arm_P_FreeInitMemory);
     return err;

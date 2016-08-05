@@ -96,6 +96,12 @@ static int astra_mdev_open(
         LOGE("Failed to open inode!");
         return err;
     }
+
+    /* alloc client array */
+    file->private_data = kzalloc(
+        sizeof(struct astra_client *) * ASTRA_CLIENT_NUM_MAX,
+        GFP_KERNEL);
+
     return 0;
 }
 
@@ -103,12 +109,20 @@ static int astra_mdev_release(
     struct inode *ignored,
     struct file *file)
 {
-    struct astra_client *pClient =
-        (struct astra_client *)file->private_data;
+    struct astra_client **pClients;
+    int i;
 
-    if (pClient) {
-        _astra_user_client_close(pClient);
+    /* close all clients */
+    pClients = (struct astra_client **)file->private_data;
+    for (i = 0; i < ASTRA_CLIENT_NUM_MAX; i++) {
+        if (pClients[i]) {
+            _astra_user_client_close(pClients[i]);
+        }
     }
+
+    /* free client array */
+    kfree(file->private_data);
+
     return 0;
 }
 
@@ -1252,7 +1266,7 @@ struct astra_peer *_astra_peer_open(
     const char *pName)
 {
     struct astra_peer *pPeer;
-    int err, i;
+    int err, i, attempts;
 
     if (!ASTRA_UAPP_VALID(pUapp)) {
         LOGE("Invalid astra userapp handle");
@@ -1292,38 +1306,47 @@ struct astra_peer *_astra_peer_open(
     spin_unlock(&pUapp->lock);
 
     /* get tzioc peer id */
-    err = _tzioc_peer_getid(
-        pUapp->pClient->pTzClient,
-        pName);
+    attempts = ASTRA_GETID_ATTEMPTS;
+    do {
+        err = _tzioc_peer_getid(
+            pUapp->pClient->pTzClient,
+            pName);
 
-    if (err) {
-        LOGE("Failed to get tzioc peer id");
-        goto ERR_EXIT;
-    }
+        if (err) {
+            LOGE("Failed to get tzioc peer id");
+            goto ERR_EXIT;
+        }
 
-    /* wait for tzioc peer id */
-    pPeer->tzGetIdWait = true;
-    err = wait_event_interruptible_timeout(
-        pPeer->wq,
-        !pPeer->tzGetIdWait,
-        msecs_to_jiffies(ASTRA_TIMEOUT_MSEC));
+        /* wait for tzioc peer id */
+        pPeer->tzGetIdWait = true;
+        err = wait_event_interruptible_timeout(
+            pPeer->wq,
+            !pPeer->tzGetIdWait,
+            msecs_to_jiffies(ASTRA_TIMEOUT_MSEC));
 
-    if (!ASTRA_PEER_VALID(pPeer)) {
-        LOGE("Astra peer has been destoyed");
-        return NULL;
-    }
+        if (!ASTRA_PEER_VALID(pPeer)) {
+            LOGE("Astra peer has been destoyed");
+            return NULL;
+        }
 
-    if (err == 0 || err == -ERESTARTSYS) {
-        LOGE("Failed to wait for tzioc peer id");
-        goto ERR_EXIT;
-    }
+        if (err == 0 || err == -ERESTARTSYS) {
+            LOGE("Failed to wait for tzioc peer id");
+            goto ERR_EXIT;
+        }
 
-    if (pPeer->tzRetVal) {
-        LOGE("Failed to get tzioc peer id from secure world");
-        goto ERR_EXIT;
-    }
+        if (pPeer->tzRetVal == 0) {
+            pPeer->tzGotId = true;
+            break;
+        }
+        else if (pPeer->tzRetVal != -ENOENT) {
+            LOGE("Failed to get tzioc peer id from secure world");
+            goto ERR_EXIT;
+        }
 
-    pPeer->tzGotId = true;
+        LOGW("Failed to get tzioc peer id from secure world, try again");
+
+    } while (--attempts);
+
     return pPeer;
 
  ERR_EXIT:

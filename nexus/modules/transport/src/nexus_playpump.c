@@ -767,8 +767,6 @@ static NEXUS_Error NEXUS_Playpump_Start_priv(NEXUS_PlaypumpHandle p, bool muxInp
     BKNI_Memset(&p->state, 0, sizeof(p->state)); /* wipe-out all temporary state */
     BKNI_Memset(&cfg, 0, sizeof(cfg));
 
-    NEXUS_Transport_P_IncPowerDown(true);
-
     rc = NEXUS_Playpump_P_SetParserBand(p, &p->settings);
     if(rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc);goto err_parser_band;}
 
@@ -1037,7 +1035,6 @@ error_started:
         if (rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc);}
     }
 err_parser_band:
-    NEXUS_Transport_P_IncPowerDown(false);
 err_state:
 error:
     BDBG_ASSERT(rc);
@@ -1121,8 +1118,6 @@ void NEXUS_Playpump_Stop(NEXUS_PlaypumpHandle p)
         NEXUS_CancelTimer(p->throttle_timer);
         p->throttle_timer = NULL;
     }
-
-    NEXUS_Transport_P_IncPowerDown(false);
 
     if(NEXUS_GetEnv("profile_playpump")) {
         NEXUS_Profile_Stop("NEXUS_Playpump");
@@ -1518,7 +1513,7 @@ NEXUS_Playpump_P_OpenPidChannel_MuxImpl(NEXUS_PlaypumpHandle p, unsigned pid, co
 
     /* detect if user tries to open the same pid (track) twice  */
     for(play_pid=BLST_S_FIRST(&p->pid_list);play_pid;play_pid=BLST_S_NEXT(play_pid,link)) {
-        if(play_pid->pid == pid && (pSettings->pidSettings.pidChannelIndex == -1 || pSettings->pidSettings.pidChannelIndex == play_pid->settings.pidSettings.pidChannelIndex) && (play_pid->packetizer.cfg.preserveCC == (pSettings_priv?pSettings_priv->preserveCC:false))) {
+        if(play_pid->pid == pid && (pSettings->pidSettings.pidChannelIndex == (unsigned)-1 || pSettings->pidSettings.pidChannelIndex == play_pid->settings.pidSettings.pidChannelIndex) && (play_pid->packetizer.cfg.preserveCC == (pSettings_priv?pSettings_priv->preserveCC:false))) {
             pidChannel = NEXUS_PidChannel_P_Create(play_pid->pid_channel);
             return pidChannel;
         }

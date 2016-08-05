@@ -66,6 +66,7 @@ typedef struct BEGL_SchedInterface
    int                (*MakeFenceForJobs)(void *session, const struct bcm_sched_dependencies *completed_deps, const struct bcm_sched_dependencies *finalised_deps, bool force_create);
    int                (*MakeFenceForAnyNonFinalizedJob)(void *session);
    void               (*MakeFence)(void *context, int *fence);
+   BEGL_SchedStatus   (*KeepFence)(void *context, int fence);
    void               (*WaitFence)(void *context, int fence);
    BEGL_FenceStatus   (*WaitFenceTimeout)(void *context, int fence, uint32_t timeoutms);
    void               (*SignalFence)(void *context, int fence);
@@ -88,6 +89,8 @@ typedef struct BEGL_SchedInterface
    BEGL_SchedStatus   (*GetEventDataFieldInfo)(void *context, void *session, uint32_t event, uint32_t field, struct bcm_sched_event_field_desc *field_desc);
    BEGL_SchedStatus   (*SetEventCollection)(void *context, void *session, BEGL_SchedEventState state);
    uint32_t           (*GetEventData)(void *context, void *session, uint32_t event_buffer_bytes, void *event_buffer, uint32_t *overflowed, uint64_t *timebase_us);
+
+   void               (*SetMMUContext)(void *context, uint64_t physAddr, uint32_t maxVirtAddr, int64_t unsecureBinTranslation, int64_t secureBinTranslation, uint64_t platformToken);
 
    void                 *context;
    BEGL_MemoryInterface *memIface;

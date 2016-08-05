@@ -17,10 +17,8 @@ typedef enum
 {
    OPENGL_ES_NONE = 0,
    OPENGL_ES_11   = 1 << 0,
-   OPENGL_ES_30   = 1 << 1,
-   OPENGL_ES_31   = 1 << 2,
-   OPENGL_ES_32   = 1 << 3,
-   OPENGL_ES_ANY  = OPENGL_ES_11 | OPENGL_ES_30 | OPENGL_ES_31 | OPENGL_ES_32,
+   OPENGL_ES_3X   = 1 << 1,
+   OPENGL_ES_ANY  = OPENGL_ES_11 | OPENGL_ES_3X,
 }
 gl_api_t;
 

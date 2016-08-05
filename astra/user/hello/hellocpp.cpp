@@ -48,7 +48,7 @@ public:
         a = 1;
         b = 'H';
 
-        printf("\nHello world! (from global object constructor, %c%d)\n", b, a);
+        printf( "Hello world! (from global object constructor, %c%d)", b, a);
         cout << endl
              << "Hello world! (to cout from global object constructor, "
              << b << a

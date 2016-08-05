@@ -233,7 +233,6 @@ All rights reserved.
 //EnumValCase(EGL_CONTEXT_OPENGL_CORE_PROFILE_BIT_KHR, 1);  // Duplicate value
 //EnumValCase(EGL_CONTEXT_OPENGL_COMPATIBILITY_PROFILE_BIT_KHR, 2);// Duplicate value
 //EnumValCase(EGL_OPENGL_ES3_BIT_KHR, 64);                  // Duplicate value
-  EnumValCase(EGL_CONTEXT_OPENGL_NO_ERROR_KHR, 12723);
 //EnumValCase(EGL_GL_COLORSPACE_SRGB_KHR, 12425);           // Duplicate value
 //EnumValCase(EGL_GL_COLORSPACE_LINEAR_KHR, 12426);         // Duplicate value
   EnumValCase(EGL_NATIVE_PIXMAP_KHR, 12464);
@@ -278,3 +277,4 @@ All rights reserved.
   EnumValCase(EGL_CONTEXT_OPENGL_RESET_NOTIFICATION_STRATEGY_EXT, 12600);
 //EnumValCase(EGL_PLATFORM_X11_EXT, 12757);                 // Duplicate value
 //EnumValCase(EGL_PLATFORM_X11_SCREEN_EXT, 12758);          // Duplicate value
+  EnumValCase(EGL_PROTECTED_CONTENT_EXT, 12992);

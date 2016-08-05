@@ -215,7 +215,7 @@ enum HAL_Symbol__Match_Channel_t {
     HAL_SYMBOL_MATCH__CHANNEL_4     = 4,    /*!< Channel #4: Unused. May be assigned on particular platform. */
     HAL_SYMBOL_MATCH__CHANNEL_5     = 5,    /*!< Channel #5: Unused. May be assigned on particular platform. */
     HAL_SYMBOL_MATCH__MRTS_TIMEOUT  = 6,    /*!< Channel #6: Timeout/delay timer for MAC RTS Flowcharts. */
-    HAL_SYMBOL_MATCH__CHANNEL_7     = 7,    /*!< Channel #7: Unused. May be assigned on particular platform. */
+    HAL_SYMBOL_MATCH__PHY_CONFIRM   = 7,    /*!< Channel #7: Trigger for issuing postponed confirmation from PHY. */
 };
 
 /**//**
@@ -321,6 +321,7 @@ extern void HAL_Symbol_Match__MFE_Expired(void);        /*!< Channel #0: Timeout
 extern void HAL_Symbol_Match__MFE_Timeout(void);        /*!< Channel #1: Timeout/delay timer for MAC-FE FSMs. */
 extern void HAL_Symbol_Match__MLE_TrxOff(void);         /*!< Channel #2: Timed transceiver switching off timer. */
 extern void HAL_Symbol_Match__MRTS_Timeout(void);       /*!< Channel #6: Timeout/delay timer for MAC RTS Flowcharts. */
+extern void HAL_Symbol_Match__PHY_Confirm(void);        /*!< Channel #7: Trigger for issuing confirmation from PHY. */
 /**@}*/
 
 #endif /* _BB_HAL_SYM_TMR_H */

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -284,6 +284,9 @@ struct b_session {
         NEXUS_SimpleVideoDecoderServerHandle server;
     } video;
     struct {
+        NEXUS_DisplayHandle display;
+    } component;
+    struct {
         NEXUS_SimpleEncoderServerHandle server;
         /* streaming */
         struct encoder_resource *encoder;
@@ -297,6 +300,7 @@ struct b_session {
         NEXUS_VideoWindowHandle parentWindow[NEXUS_NUM_VIDEO_WINDOWS];
         NEXUS_VideoFormatInfo formatInfo;
         nxclient_t crc_client;
+        NEXUS_SurfaceHandle graphic; /* for NxClient_SlaveDisplayMode_eGraphics */
     } display[NXCLIENT_MAX_DISPLAYS];
     NxClient_PictureQualitySettings pictureQualitySettings;
 #if NEXUS_HAS_HDMI_OUTPUT
@@ -320,16 +324,16 @@ struct b_session {
         enum nxserver_hdcp_state {
             nxserver_hdcp_not_pending,                   /* no hdcp authentication in progress */
             nxserver_hdcp_begin,                         /* start hdcp auth disable */
-            nxserver_hdcp_pending_status_disable,        /* wait for hdcp auth disable success */
             nxserver_hdcp_pending_status_start,          /* wait for hdcp auth start success, to read authentication status */
-            nxserver_hdcp_pending_disable,               /* wait for hdcp auth disable success */
             nxserver_hdcp_pending_start_retry,           /* wait for hdcp auth disable success, retrying */
+            nxserver_hdcp_pending_start_wait,            /* relying on HdmiOutput keep alive timer to restart authentication */
             nxserver_hdcp_pending_start,                 /* wait for hdcp auth disable success */
             nxserver_hdcp_success,                       /* hdcp authentication completed */
             nxserver_hdcp_max
         } version_state;
         NEXUS_HdmiOutputHdcpVersion downstream_version;
         bool mute;
+        unsigned wait_cnt;
     } hdcp;
     struct {
         struct {
@@ -352,7 +356,7 @@ struct b_session {
 
 #if NEXUS_HAS_INPUT_ROUTER
     struct {
-        NEXUS_IrInputHandle irInput;
+        NEXUS_IrInputHandle irInput[NXSERVER_IR_INPUTS];
         NEXUS_InputRouterHandle router;
 #if NEXUS_HAS_KEYPAD
         NEXUS_KeypadHandle keypad;
@@ -397,6 +401,7 @@ struct b_server {
     NEXUS_PlatformSettings platformSettings;
     NEXUS_PlatformConfiguration platformConfig;
     NEXUS_PlatformStatus platformStatus;
+    NEXUS_PlatformCapabilities platformCap;
     struct b_session *session[NXCLIENT_MAX_SESSIONS];
     unsigned global_display_index;
 
@@ -427,6 +432,11 @@ struct b_server {
     struct {
         bool allow_decode;
     } externalApp;
+    struct {
+        struct b_session *session;
+        unsigned local_display_index;
+        NEXUS_DisplaySettings settings;
+    } disabled_local_display;
 };
 
 struct b_client_standby_ack
@@ -490,7 +500,8 @@ int acquire_video_decoders(struct b_connect *connect, bool grab);
 void release_video_decoders(struct b_connect *connect);
 bool lacks_video(struct b_connect *connect);
 void uninit_session_video(struct b_session *session);
-void nxserverlib_video_disconnect_sd_display(struct b_session *session);
+void nxserverlib_video_disconnect_display(nxserver_t server, NEXUS_DisplayHandle display);
+void nxserverlib_video_close_windows(struct b_session *session, unsigned local_display_index);
 int video_init(nxserver_t server);
 void video_uninit(void);
 int video_get_stc_index(struct b_connect *connect);
@@ -504,6 +515,7 @@ void nxserverlib_p_clear_video_cache(void);
 nxserverlib_audio.c API
 ************/
 int bserver_set_audio_config(struct b_audio_resource *ar);
+int bserver_set_audio_mixer_config(struct b_audio_resource *ar);
 void bserver_acquire_audio_mixers(struct b_audio_resource *r, bool start);
 #if NEXUS_HAS_HDMI_OUTPUT
 int bserver_hdmi_edid_audio_config(struct b_session *session, const NEXUS_HdmiOutputStatus *pStatus);
@@ -558,6 +570,8 @@ void inc_id(nxserver_t server, enum b_resource r);
 bool is_transcode_connect(const struct b_connect *connect);
 bool is_transcode_audiodec_request(const struct b_connect *connect);
 bool nxserver_p_video_only_display(struct b_session *session, unsigned displayIndex);
+int nxserver_p_reenable_local_display(nxserver_t server);
+void nxserver_p_disable_local_display(nxserver_t server, unsigned displayIndex);
 
 typedef unsigned (*get_connect_id_func)(const NxClient_ConnectSettings *pSettings, unsigned i);
 unsigned get_videodecoder_connect_id(const NxClient_ConnectSettings *pSettings, unsigned i);
@@ -581,5 +595,6 @@ void stc_pool_uninit(nxserver_t server);
 void stc_index_request_init(struct b_connect * connect, struct b_stc_caps * pStcReq);
 int stc_index_acquire(struct b_connect * connect, const struct b_stc_caps * pStcReq);
 void stc_index_release(struct b_connect * connect, int index);
+void nxserver_p_reserve_timebase(NEXUS_Timebase timebase);
 
 #endif /* NXSERVERLIB_IMPL_H__ */

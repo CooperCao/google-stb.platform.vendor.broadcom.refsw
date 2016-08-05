@@ -96,6 +96,7 @@ static void nxserverlib_p_input_callback(void *context, int param)
 {
     struct b_session *session = context;
     NEXUS_InputRouterCode code;
+    unsigned i;
 
     while(1)
     {
@@ -104,7 +105,9 @@ static void nxserverlib_p_input_callback(void *context, int param)
         switch (param)
         {
             case NEXUS_InputRouterDevice_eIrInput:
-                if (get_ir_event(session->input.irInput, session->server->settings.session[session->index].ir_input_mode, &code)) foundCode = true;
+                for (i=0;i<NXSERVER_IR_INPUTS;i++) {
+                    if (get_ir_event(session->input.irInput[i], session->server->settings.session[session->index].ir_input.mode[i], &code)) foundCode = true;
+                }
                 break;
 #if NEXUS_HAS_KEYPAD
             case NEXUS_InputRouterDevice_eKeypad:
@@ -142,22 +145,24 @@ int nxserverlib_send_input(nxclient_t client, unsigned inputClientId, const NEXU
 int init_input_devices(struct b_session *session)
 {
     nxserver_t server = session->server;
+    unsigned i;
 
     session->input.router = NEXUS_InputRouter_Create(session->index);
     if (!session->input.router) return BERR_TRACE(NEXUS_UNKNOWN);
 
-    if (server->settings.session[session->index].ir_input_mode != NEXUS_IrInputMode_eMax)
-    {
-        NEXUS_IrInputSettings irSettings;
+    for (i=0;i<NXSERVER_IR_INPUTS;i++) {
+        if (server->settings.session[session->index].ir_input.mode[i] != NEXUS_IrInputMode_eMax) {
+            NEXUS_IrInputSettings irSettings;
 
-        NEXUS_IrInput_GetDefaultSettings(&irSettings);
-        irSettings.mode = server->settings.session[session->index].ir_input_mode;
-        irSettings.dataReady.callback = nxserverlib_p_input_callback;
-        irSettings.dataReady.context = session;
-        irSettings.dataReady.param = NEXUS_InputRouterDevice_eIrInput;
-        /* board must be wired for second channel: irSettings.channel_number = session->index; */
-        session->input.irInput = NEXUS_IrInput_Open(session->index, &irSettings);
-        if (!session->input.irInput) {BERR_TRACE(NEXUS_UNKNOWN);} /* keep going */
+            NEXUS_IrInput_GetDefaultSettings(&irSettings);
+            irSettings.mode = server->settings.session[session->index].ir_input.mode[i];
+            irSettings.channel_number = i; /* TODO: depends on interrupt device, which is hidden in nexus */
+            irSettings.dataReady.callback = nxserverlib_p_input_callback;
+            irSettings.dataReady.context = session;
+            irSettings.dataReady.param = NEXUS_InputRouterDevice_eIrInput;
+            session->input.irInput[i] = NEXUS_IrInput_Open(NEXUS_ANY_ID, &irSettings);
+            if (!session->input.irInput[i]) {BERR_TRACE(NEXUS_UNKNOWN);} /* keep going */
+        }
     }
 
 #if NEXUS_HAS_KEYPAD
@@ -185,13 +190,16 @@ int init_input_devices(struct b_session *session)
 }
 void uninit_input_devices(struct b_session *session)
 {
+    unsigned i;
     if (session->input.router) {
         NEXUS_InputRouter_Destroy(session->input.router);
         session->input.router = NULL;
     }
-    if (session->input.irInput) {
-        NEXUS_IrInput_Close(session->input.irInput);
-        session->input.irInput = NULL;
+    for (i=0;i<NXSERVER_IR_INPUTS;i++) {
+        if (session->input.irInput[i]) {
+            NEXUS_IrInput_Close(session->input.irInput[i]);
+            session->input.irInput[i] = NULL;
+        }
     }
 #if NEXUS_HAS_KEYPAD
     if (session->input.keypad) {

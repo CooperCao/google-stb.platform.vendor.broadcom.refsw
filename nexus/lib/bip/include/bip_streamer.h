@@ -1,43 +1,39 @@
 /******************************************************************************
-(c) 2007-2015 Broadcom Corporation
-
-This program is the proprietary software of Broadcom Corporation and/or its
-licensors, and may only be used, duplicated, modified or distributed pursuant
-to the terms and conditions of a separate, written license agreement executed
-between you and Broadcom (an "Authorized License").  Except as set forth in
-an Authorized License, Broadcom grants no license (express or implied), right
-to use, or waiver of any kind with respect to the Software, and Broadcom
-expressly reserves all rights in and to the Software and all intellectual
-property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-
-Except as expressly set forth in the Authorized License,
-
-1. This program, including its structure, sequence and organization,
-   constitutes the valuable trade secrets of Broadcom, and you shall use all
-   reasonable efforts to protect the confidentiality thereof, and to use
-   this information only in connection with your use of Broadcom integrated
-   circuit products.
-
-2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-   AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-   WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
-   TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
-   WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
-   PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
-   ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
-   THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
-
-3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-   LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
-   OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
-   YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
-   ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
-   OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
-   IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
-   ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
-
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
 ****************************************************************************/
 
 #ifndef BIP_STREAMER_H
@@ -474,6 +470,36 @@ BIP_Status BIP_Streamer_SetTranscodeHandles(
     BIP_TranscodeNexusHandles   *pTranscodeNexusHandles
     );
 
+
+typedef enum BIP_StreamingMethod
+{
+    BIP_StreamingMethod_eRaveInterruptBased,  /*!< This indicates streaming will be driven by rave interrupts.*/
+    BIP_StreamingMethod_eSystemTimerBased,    /*!< This indicates streaming will be driven by system timer at a periodic interval.*/
+    BIP_LiveStreaminType_eMax
+}BIP_StreamingMethod;
+
+typedef struct BIP_StreamingMethodRaveInterruptBasedSettings
+{
+      unsigned dataReadyScaleFactor;            /*!< This will determine the recpump dataReadyThreshold.
+                                                     For example if this is 16 , then dataReadyThreshold will be 16*recpumpOpenSettings.data.atomSize.
+                                                     so if atomsize is 4096 then, 65Kbytes */
+
+      unsigned timeOutIntervalInMs;             /*!< This specifies the timeOutInterval in milliseconds.
+                                                     This specifies the worst case time to call the Data read
+                                                     function when there is no callback from rave over this duration.
+                                                     For http case we would like to set this to a higher value if we want to read bigger
+                                                     chunk(which eventually will reduce the interrupt).
+                                                     For example if read chunk size is 65Kbytes then for a 20Mbitsps stream we won't get any interrupt for approx 26.3 msec.
+                                                     So this should be set at higher value than that.*/
+} BIP_StreamingMethodRaveInterruptBasedSettings;
+
+
+typedef struct BIP_StreamingMethodSystemTimerBasedSettings
+{
+    unsigned  timeOutIntervalInMs;              /*!< This specifies the duration after which data read call will be initiated periodically.
+                                                     For udp case we found that data read at an interval of 5msec provides the best output.*/
+}BIP_StreamingMethodSystemTimerBasedSettings;
+
 /**
 Summary:
 API to prepare the streamer for streaming.
@@ -531,12 +557,26 @@ typedef struct BIP_StreamerStartSettings
     /* TODO: Add Function pointer to send function */
     unsigned unused;
 
+    BIP_StreamingMethod     streamingMethod;
+    unsigned                timeOutIntervalInMs;    /*!< This specifies the timeOutInterval in milliseconds.
+                                                       For RaveInterruptBasedStreaming : this specifies the worst case time to call the Data read
+                                                       function when there is no callback from rave over this duration.
+                                                       For http case we would like to set this to a higher value if we want to read bigger
+                                                       chunk(which eventually will reduce the interrupt).
+                                                       For example if read chunk size is 65Kbytes then for a 20Mbitsps stream we won't get any interrupt for approx 26.3 msec.
+                                                       So this should be set at higher value than that.
+
+                                                       For SystemTimerBasedStreaming : this specifies the duration after which data read call will be initiated periodically.
+                                                       For udp case we found that data read at an interval of 5msec provides the best output.*/
 } BIP_StreamerStartSettings;
+
 BIP_SETTINGS_ID_DECLARE(BIP_StreamerStartSettings );
 
-#define BIP_Streamer_GetDefaultStartSettings(pSettings)                       \
-        BIP_SETTINGS_GET_DEFAULT_BEGIN(pSettings, BIP_StreamerStartSettings ) \
-        /* Set non-zero defaults explicitly. */                               \
+#define BIP_Streamer_GetDefaultStartSettings(pSettings)                         \
+        BIP_SETTINGS_GET_DEFAULT_BEGIN(pSettings, BIP_StreamerStartSettings )   \
+        /* Set non-zero defaults explicitly. */                                 \
+        (pSettings)->streamingMethod = BIP_StreamingMethod_eRaveInterruptBased; \
+        (pSettings)->timeOutIntervalInMs = 5;                                   \
         BIP_SETTINGS_GET_DEFAULT_END
 
 BIP_Status BIP_Streamer_Start(

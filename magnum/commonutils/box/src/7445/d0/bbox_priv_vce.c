@@ -140,6 +140,20 @@ const BBOX_Vce_Capabilities BBOX_P_Vce_CapabilitiesLUT[] =
          BBOX_VCE_CHANNEL_INFO_1080p30( 1, 0x1, 1 ),
       },
    },
+   /* Box Mode: 17 (1080p30x4) */
+   { 17,
+      { /* Instance Array */
+         BBOX_VCE_CHANNEL_INFO_1080p30( 0, 0x3, 1 ),
+         BBOX_VCE_CHANNEL_INFO_1080p30( 1, 0x3, 2 ),
+      },
+   },
+   /* Box Mode: 18 (1080p30x3) */
+   { 18,
+      { /* Instance Array */
+         BBOX_VCE_CHANNEL_INFO_1080p30( 0, 0x3, 1 ),
+         BBOX_VCE_CHANNEL_INFO_1080p60( 1, 0x1, 1 ),
+      },
+   },
    /* Box Mode: 1000 (1080p30x4) */
    { 1000,
       { /* Instance Array */

@@ -12,7 +12,6 @@ FILE DESCRIPTION
 #define GLSL_GLOBALS_H
 
 #include "glsl_compiler.h"
-#include "glsl_shader_interfaces.h"
 
 //
 // Global variable declarations.
@@ -31,9 +30,6 @@ extern ShaderFlavour g_ShaderFlavour;
 extern int g_LineNumber;
 #define LINE_NUMBER_UNDEFINED -1
 extern int g_FileNumber;
-
-// The symbols in the symbol table that are sources for the dataflow graph.
-extern ShaderInterfaces* g_ShaderInterfaces;
 
 // Whether the parser is currently in global scope.
 extern bool g_InGlobalScope;

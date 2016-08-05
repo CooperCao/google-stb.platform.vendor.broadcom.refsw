@@ -237,7 +237,7 @@ void BVC5_P_DebugDump(
     BKNI_Printf("Binner PrevAddr   = %#x\n",hVC5->psCoreStates[uiCoreIndex].sBinnerState.uiPrevAddr);
     BKNI_Printf("Render PrevAddr   = %#x\n",hVC5->psCoreStates[uiCoreIndex].sRenderState.uiPrevAddr);
     BKNI_Printf("NextClientId      = %d\n", hVC5->uiNextClientId);
-    BKNI_Printf("ClientOffset      = %d\n", hVC5->sSchedulerState.uiClientOffset);
+    BKNI_Printf("CurrentClient     = %d\n", hVC5->sSchedulerState.uiCurrentClient);
     BKNI_Printf("PerfMonitoring    = %d\n", hVC5->sPerfCounters.bCountersActive ? 1 : 0);
     BKNI_Printf("ActiveHwCounters  = %d\n", hVC5->sPerfCounters.uiActiveHwCounters);
 
@@ -354,14 +354,21 @@ void BVC5_P_DebugDump(
        BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_QPS_SQCNTL)
        );
 
+#ifdef BCHP_V3D_MMU_0_CTRL
+    BKNI_Printf(
+       "MMU_CTRL        %08X,  MMU_PTPABASE  %08X\n",
+       BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_MMU_0_CTRL),
+       BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_MMU_0_PT_PA_BASE)
+       );
+#endif
+
     BKNI_Printf(
        "TFUCS           %08X,  TFUSU         %08X\n"
        "TFUICFG         %08X,  TFUIIA        %08X,  TFUICA     %08X,  TFUIIS     %08X\n"
        "TFUIOA          %08X,  TFUIOS        %08X\n"
        "TFUCOEF0        %08X,  TFUCOEF1      %08X,  TFUCOEF2   %08X,  TFUCOEF3   %08X\n"
        "TFUCRC          %08X,  TFUINT_STS    %08X,  TFUINT_MSK_STS  %08X\n"
-       "TFUSYNC         %08X\n"
-       "\n",
+       "TFUSYNC         %08X\n",
        BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_TFU_TFUCS),            BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_TFU_TFUSU),
        BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_TFU_TFUICFG),          BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_TFU_TFUIIA),
        BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_TFU_TFUICA),           BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_TFU_TFUIIS),
@@ -371,6 +378,15 @@ void BVC5_P_DebugDump(
        BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_TFU_TFUCRC),           BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_TFU_TFUINT_STS),
        BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_TFU_TFUINT_MSK_STS),   BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_TFU_TFUSYNC)
        );
+
+#ifdef BCHP_V3D_MMU_T_CTRL
+    BKNI_Printf(
+       "MMUT_CTRL       %08X,  MMUT_PTPABASE %08X\n",
+       BVC5_P_ReadNonCoreRegister(hVC5, BCHP_V3D_MMU_T_CTRL),
+       BVC5_P_ReadNonCoreRegister(hVC5, BCHP_V3D_MMU_T_PT_PA_BASE)
+       );
+#endif
+
 
     BKNI_Printf("\n***********************************************************\n");
 

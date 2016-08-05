@@ -26,7 +26,7 @@ OpenGL ES 3.0 vertex array object
 static void glxx_vao_term(void *v, size_t size)
 {
    GLXX_VAO_T *vao = v;
-   UNUSED(size);
+   vcos_unused(size);
 
    KHRN_MEM_ASSIGN(vao->element_array_binding.obj, NULL);
    for (int i = 0; i < GLXX_CONFIG_MAX_VERTEX_ATTRIB_BINDINGS; i++)
@@ -52,18 +52,20 @@ static void vao_enable(GLXX_SERVER_STATE_T *state, GLXX_VAO_T *vao)
 
    for (int i = 0; i < GLXX_CONFIG_MAX_VERTEX_ATTRIBS; i++)
    {
-      vao->attrib_config[i].type = GL_FLOAT;
-      vao->attrib_config[i].norm = 0;
-      vao->attrib_config[i].size = 4;
-      vao->attrib_config[i].enabled = false;
-      vao->attrib_config[i].total_size = 16;
-      vao->attrib_config[i].is_int = false;
-      vao->attrib_config[i].vbo_index = i;
-      vao->attrib_config[i].relative_offset = 0;
-
-      vao->attrib_config[i].stride = 16;
-      vao->attrib_config[i].original_stride = 0;
-      vao->attrib_config[i].pointer = NULL;
+      GLXX_ATTRIB_CONFIG_T* attrib = &vao->attrib_config[i];
+      attrib->gl_type = GL_FLOAT;
+      attrib->v3d_type = V3D_ATTR_TYPE_FLOAT;
+      attrib->is_signed = false;
+      attrib->norm = 0;
+      attrib->size = 4;
+      attrib->enabled = false;
+      attrib->total_size = 16;
+      attrib->is_int = false;
+      attrib->vbo_index = i;
+      attrib->relative_offset = 0;
+      attrib->stride = 16;
+      attrib->original_stride = 0;
+      attrib->pointer = NULL;
    }
 
    for (int i = 0; i < GLXX_CONFIG_MAX_VERTEX_ATTRIB_BINDINGS; i++)
@@ -143,7 +145,7 @@ void glxx_vao_uninitialise(GLXX_SERVER_STATE_T *state)
 
 void glintBindVertexArray(GLuint array)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
    if (!state)
       return;
 
@@ -163,7 +165,7 @@ void glintBindVertexArray(GLuint array)
    KHRN_MEM_ASSIGN(state->vao.bound, vao);
 
 end:
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 static void vao_delete_server_state(GLXX_SERVER_STATE_T *state, GLXX_VAO_T *vao)
@@ -175,7 +177,7 @@ static void vao_delete_server_state(GLXX_SERVER_STATE_T *state, GLXX_VAO_T *vao)
 
 void glintDeleteVertexArrays(GLsizei n, const GLuint* arrays)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
    if (!state)
       return;
 
@@ -211,12 +213,12 @@ void glintDeleteVertexArrays(GLsizei n, const GLuint* arrays)
       }
    }
 
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 void glintGenVertexArrays(GLsizei n, GLuint* arrays)
 {
-   GLXX_SERVER_STATE_T *state = GL30_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
    if (!state)
       return;
 
@@ -241,7 +243,7 @@ void glintGenVertexArrays(GLsizei n, GLuint* arrays)
       }
    }
 
-   GL30_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GLboolean glintIsVertexArray(GLuint array)
@@ -250,7 +252,7 @@ GLboolean glintIsVertexArray(GLuint array)
    GLboolean result = GL_FALSE;
    GLXX_SERVER_STATE_T *state;
 
-   state = GL30_LOCK_SERVER_STATE();
+   state = glxx_lock_server_state(OPENGL_ES_3X);
    if (!state) return GL_FALSE;
 
    vao = glxx_get_vao(state, array);
@@ -260,7 +262,7 @@ GLboolean glintIsVertexArray(GLuint array)
       result = array != 0 && vao->enabled;
    }
 
-   GL30_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
    return result;
 }
 

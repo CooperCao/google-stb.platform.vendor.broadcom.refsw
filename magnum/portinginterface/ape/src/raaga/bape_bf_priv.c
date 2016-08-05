@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,10 +34,7 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * Module Description: Destination FIFO Interfaces
- *
- ***************************************************************************/
+ *****************************************************************************/
 
 #include "bstd.h"
 #include "bkni.h"
@@ -118,7 +115,7 @@ static void BAPE_Sfifo_P_SetGroup(BAPE_Handle handle, uint32_t sfifoId, uint32_t
 }
 
 BERR_Code BAPE_SfifoGroup_P_Create(
-    BAPE_Handle deviceHandle,           
+    BAPE_Handle deviceHandle,
     const BAPE_SfifoGroupCreateSettings *pSettings,
     BAPE_SfifoGroupHandle *pHandle  /* [out] */
     )
@@ -268,7 +265,7 @@ BERR_Code BAPE_SfifoGroup_P_SetSettings(
 
 BERR_Code BAPE_SfifoGroup_P_Start(
     BAPE_SfifoGroupHandle handle,
-    bool enableOnly                 /* If true, a separate call to BAPE_SfifoGroup_P_Run_isr is required to 
+    bool enableOnly                 /* If true, a separate call to BAPE_SfifoGroup_P_Run_isr is required to
                                     start data flow.  If false, data flow will start immediately. */
     )
 {
@@ -338,7 +335,7 @@ BERR_Code BAPE_SfifoGroup_P_Start(
         }
         else
         {
-            regVal |= BCHP_FIELD_DATA(AUD_FMM_BF_CTRL_SOURCECH_CFGi, BUFFER_PAIR_ENABLE, 1);            
+            regVal |= BCHP_FIELD_DATA(AUD_FMM_BF_CTRL_SOURCECH_CFGi, BUFFER_PAIR_ENABLE, 1);
         }
         BREG_Write32(deviceHandle->regHandle, regAddr, regVal);
 
@@ -500,15 +497,15 @@ BERR_Code BAPE_SfifoGroup_P_Start(
                         BCHP_MASK (AUD_FMM_BF_CTRL_ADAPTRATE_0_CFG, ADAPTIVE_RATE_ENABLE)|
                         BCHP_MASK (AUD_FMM_BF_CTRL_ADAPTRATE_0_CFG, ADAPTIVE_RATE_MASTER_ENABLE));
 
-            regVal |= (BCHP_FIELD_DATA (AUD_FMM_BF_CTRL_ADAPTRATE_0_CFG, ADAPTIVE_SFIFO_SEL, handle->sfifoIds[i]));         
+            regVal |= (BCHP_FIELD_DATA (AUD_FMM_BF_CTRL_ADAPTRATE_0_CFG, ADAPTIVE_SFIFO_SEL, handle->sfifoIds[i]));
             /* TODO: hardcoding window width field to 8 ie actual window width of 256. This has to be changed later
                to be taken from application */
             regVal |= (BCHP_FIELD_DATA (AUD_FMM_BF_CTRL_ADAPTRATE_0_CFG, TRIWINDOW_WIDTH_SEL, 8));
-            /* Earlier, for a decode channel FW was setting the enable flag. 
-            Now we're doing AdaptRate control for PCM channels also. So let the 
-            PI set this flag always */                
+            /* Earlier, for a decode channel FW was setting the enable flag.
+            Now we're doing AdaptRate control for PCM channels also. So let the
+            PI set this flag always */
             regVal |= (BCHP_FIELD_DATA (AUD_FMM_BF_CTRL_ADAPTRATE_0_CFG, ADAPTIVE_RATE_ENABLE, 1));
-            regVal |= (BCHP_FIELD_DATA (AUD_FMM_BF_CTRL_ADAPTRATE_0_CFG, ADAPTIVE_RATE_MASTER_ENABLE, 1));                
+            regVal |= (BCHP_FIELD_DATA (AUD_FMM_BF_CTRL_ADAPTRATE_0_CFG, ADAPTIVE_RATE_MASTER_ENABLE, 1));
 #ifndef BCHP_AUD_FMM_BF_CTRL_ADAPTRATE_THRESHOLD_0
             regVal &= ~BCHP_MASK(AUD_FMM_BF_CTRL_ADAPTRATE_0_CFG, ADAPTIVE_RATE_THRESHOLD);
             regVal |= BCHP_FIELD_DATA(AUD_FMM_BF_CTRL_ADAPTRATE_0_CFG, ADAPTIVE_RATE_THRESHOLD, 0xffff);
@@ -534,15 +531,15 @@ BERR_Code BAPE_SfifoGroup_P_Start(
                         BCHP_MASK (AUD_FMM_BF_CTRL_ADAPTRATE_CFGi, AUTOMATIC_RATE_ENABLE)|
                         BCHP_MASK (AUD_FMM_BF_CTRL_ADAPTRATE_CFGi, ADAPTIVE_RATE_MASTER_ENABLE));
 
-            regVal |= (BCHP_FIELD_DATA (AUD_FMM_BF_CTRL_ADAPTRATE_CFGi, ADAPTIVE_SFIFO_SEL, handle->sfifoIds[i]));         
+            regVal |= (BCHP_FIELD_DATA (AUD_FMM_BF_CTRL_ADAPTRATE_CFGi, ADAPTIVE_SFIFO_SEL, handle->sfifoIds[i]));
             /* TODO: hardcoding window width field to 8 ie actual window width of 256. This has to be changed later
                to be taken from application */
             regVal |= (BCHP_FIELD_DATA (AUD_FMM_BF_CTRL_ADAPTRATE_CFGi, TRIWINDOW_WIDTH_SEL, 8));
-            /* Earlier, for a decode channel FW was setting the enable flag. 
-            Now we're doing AdaptRate control for PCM channels also. So let the 
-            PI set this flag always */                
+            /* Earlier, for a decode channel FW was setting the enable flag.
+            Now we're doing AdaptRate control for PCM channels also. So let the
+            PI set this flag always */
             regVal |= (BCHP_FIELD_DATA (AUD_FMM_BF_CTRL_ADAPTRATE_CFGi, AUTOMATIC_RATE_ENABLE, 1));
-            regVal |= (BCHP_FIELD_DATA (AUD_FMM_BF_CTRL_ADAPTRATE_CFGi, ADAPTIVE_RATE_MASTER_ENABLE, 1));                
+            regVal |= (BCHP_FIELD_DATA (AUD_FMM_BF_CTRL_ADAPTRATE_CFGi, ADAPTIVE_RATE_MASTER_ENABLE, 1));
             BREG_Write32_isr(deviceHandle->regHandle, regAddr, regVal);
 
 #ifdef BCHP_AUD_FMM_BF_CTRL_ADAPTRATE_THRESHOLDi_ARRAY_BASE
@@ -553,7 +550,7 @@ BERR_Code BAPE_SfifoGroup_P_Start(
             BREG_Write32_isr(deviceHandle->regHandle, regAddr, regVal);
 #endif
             regAddr = BCHP_AUD_FMM_BF_CTRL_ADAPTRATE_REPEATDROP_WRCNTi_ARRAY_BASE + ((BCHP_AUD_FMM_BF_CTRL_ADAPTRATE_REPEATDROP_WRCNTi_ARRAY_ELEMENT_SIZE/8)*handle->adaptRateIds[i]);
-            BREG_Write32_isr(deviceHandle->regHandle, regAddr, 0);            
+            BREG_Write32_isr(deviceHandle->regHandle, regAddr, 0);
 #endif
 
             BAPE_SfifoGroup_P_SetSampleRate_isr(handle, handle->settings.defaultSampleRate);
@@ -589,7 +586,7 @@ void BAPE_SfifoGroup_P_Stop(
 #ifdef BCHP_AUD_FMM_BF_CTRL_ADAPTRATE_0_CFG
         /* Workaround for HWAIO-20 (SW7425-681) - Program WRCNT to 0 prior to clearing master enable bit. */
         for ( i = 0; i < handle->numChannelPairs; i++ )
-        {            
+        {
             regAddr = BCHP_AUD_FMM_BF_CTRL_ADAPTRATE_REPEATDROP_WRCNT_0 + ((BCHP_AUD_FMM_BF_CTRL_ADAPTRATE_REPEATDROP_WRCNT_1 - BCHP_AUD_FMM_BF_CTRL_ADAPTRATE_REPEATDROP_WRCNT_0)*handle->adaptRateIds[i]);
             BREG_Write32(deviceHandle->regHandle, regAddr, 0);
         }
@@ -607,7 +604,7 @@ void BAPE_SfifoGroup_P_Stop(
 #else
         /* Workaround for HWAIO-20 (SW7425-681) - Program WRCNT to 0 prior to clearing master enable bit. */
         for ( i = 0; i < handle->numChannelPairs; i++ )
-        {            
+        {
             regAddr = BCHP_AUD_FMM_BF_CTRL_ADAPTRATE_REPEATDROP_WRCNTi_ARRAY_BASE + ((BCHP_AUD_FMM_BF_CTRL_ADAPTRATE_REPEATDROP_WRCNTi_ARRAY_ELEMENT_SIZE/8)*handle->adaptRateIds[i]);
             BREG_Write32(deviceHandle->regHandle, regAddr, 0);
         }
@@ -621,7 +618,7 @@ void BAPE_SfifoGroup_P_Stop(
                         BCHP_MASK (AUD_FMM_BF_CTRL_ADAPTRATE_CFGi, ADAPTIVE_RATE_MASTER_ENABLE));
             BREG_Write32_isr(deviceHandle->regHandle, regAddr, regVal);
             BKNI_LeaveCriticalSection();
-        }        
+        }
 #endif
     }
     for ( i = 0; i < handle->numChannelPairs; i++ )
@@ -658,7 +655,7 @@ void BAPE_SfifoGroup_P_Stop(
         regVal &= ~BCHP_MASK(AUD_FMM_BF_CTRL_SOURCECH_CFGi, SOURCEFIFO_ENABLE);
         BREG_Write32(deviceHandle->regHandle, regAddr, regVal);
 
-        /* Wait for the source channel to stop */            
+        /* Wait for the source channel to stop */
         for ( timeout = 1000; timeout > 0; timeout-- )
         {
             regVal = BREG_Read32(deviceHandle->regHandle, BCHP_AUD_FMM_BF_CTRL_SOURCECH_GROUP_ENABLE);
@@ -751,9 +748,31 @@ void BAPE_SfifoGroup_P_Halt_isr(
     BDBG_OBJECT_ASSERT(deviceHandle, BAPE_Device);
     for ( i = 0; i < handle->numChannelPairs; i++ )
     {
+        uint32_t sfifo;
+        unsigned timeout;
+        uint32_t regVal;
+
+        sfifo = handle->sfifoIds[i];
+
         BDBG_MSG(("Disabling PLAY_RUN for SFIFO %u", handle->sfifoIds[i]));
         regAddr = BCHP_AUD_FMM_BF_CTRL_SOURCECH_CTRLi_ARRAY_BASE + (4*handle->sfifoIds[i]);
         BREG_Write32(deviceHandle->regHandle, regAddr, 0);
+
+        /* Wait for group flow to stop */
+        for ( timeout = 1000; timeout > 0; timeout-- )
+        {
+            regVal = BREG_Read32(deviceHandle->regHandle, BCHP_AUD_FMM_BF_CTRL_SOURCECH_GROUP_FLOWON);
+            if ( 0 == (regVal & (1<<sfifo)) )
+            {
+                break;
+            }
+            BKNI_Delay(1000); /* 1 millisecond */
+        }
+        if ( 0 == timeout )
+        {
+            regVal = BREG_Read32(deviceHandle->regHandle, BCHP_AUD_FMM_BF_CTRL_SOURCECH_GROUP_FLOWON);
+            BDBG_WRN(("Timeout waiting for SFIFO %u flow to stop [0x%08x]", sfifo, regVal));
+        }
     }
 }
 
@@ -876,7 +895,7 @@ BERR_Code BAPE_SfifoGroup_P_GetBuffer(
 
     /* TODO: Handle non-interleaved and multichannel */
     pBuffers->interleaved = handle->settings.interleaveData;
-    if (pBuffers->interleaved) 
+    if (pBuffers->interleaved)
     {
         pBuffers->numBuffers = handle->numChannelPairs;
     }
@@ -885,7 +904,7 @@ BERR_Code BAPE_SfifoGroup_P_GetBuffer(
         pBuffers->numBuffers = handle->numChannelPairs * 2;
     }
 
-    for (chPair = 0; chPair < handle->numChannelPairs; chPair++) 
+    for (chPair = 0; chPair < handle->numChannelPairs; chPair++)
     {
         if (pBuffers->interleaved)
         {
@@ -916,7 +935,7 @@ BERR_Code BAPE_SfifoGroup_P_GetBuffer(
 }
 
 static BERR_Code BAPE_Sfifo_P_GetBuffer(
-    BAPE_SfifoGroupHandle handle,   
+    BAPE_SfifoGroupHandle handle,
     BAPE_BufferDescriptor *pBuffers,
     unsigned chPair,                /*0,1,2,3*/
     unsigned bufferNum              /*0,1*/
@@ -943,7 +962,7 @@ static BERR_Code BAPE_Sfifo_P_GetBuffer(
     wraddr = BCHP_GET_FIELD_DATA(wr, AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_0_WRADDR, RINGBUF_WRADDR);
 #endif
 
-    if (bufferNum == 0) 
+    if (bufferNum == 0)
     {
         errCode = BMEM_ConvertOffsetToAddress(handle->deviceHandle->memHandle, wraddr, &pBuffers->buffers[BAPE_Channel_eLeft].pBuffer);
         if ( errCode )
@@ -956,7 +975,7 @@ static BERR_Code BAPE_Sfifo_P_GetBuffer(
             errCode = BERR_TRACE(errCode);
         }
     }
-    else if (bufferNum == 1) 
+    else if (bufferNum == 1)
     {
         errCode = BMEM_ConvertOffsetToAddress(handle->deviceHandle->memHandle, wraddr, &pBuffers->buffers[BAPE_Channel_eRight].pBuffer);
         if ( errCode )
@@ -981,13 +1000,13 @@ static BERR_Code BAPE_Sfifo_P_GetBuffer(
     }
     else    /* equal */
     {
-        if ( 
+        if (
 #ifdef BCHP_AUD_FMM_BF_CTRL_RINGBUF_0_RDADDR
              BCHP_GET_FIELD_DATA(rd, AUD_FMM_BF_CTRL_RINGBUF_0_RDADDR, RINGBUF_RDADDR_WRAP) ==
-             BCHP_GET_FIELD_DATA(wr, AUD_FMM_BF_CTRL_RINGBUF_0_WRADDR, RINGBUF_WRADDR_WRAP) 
+             BCHP_GET_FIELD_DATA(wr, AUD_FMM_BF_CTRL_RINGBUF_0_WRADDR, RINGBUF_WRADDR_WRAP)
 #else
              BCHP_GET_FIELD_DATA(rd, AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_0_RDADDR, RINGBUF_RDADDR_WRAP) ==
-             BCHP_GET_FIELD_DATA(wr, AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_0_WRADDR, RINGBUF_WRADDR_WRAP) 
+             BCHP_GET_FIELD_DATA(wr, AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_0_WRADDR, RINGBUF_WRADDR_WRAP)
 #endif
            )
         {
@@ -1063,7 +1082,7 @@ BERR_Code BAPE_SfifoGroup_P_CommitData(
     BDBG_ASSERT(handle->allocated);
 
     /* TODO: Handle multichannel and non-interleaved */
-    for (chPair = 0; chPair < handle->numChannelPairs; chPair++) 
+    for (chPair = 0; chPair < handle->numChannelPairs; chPair++)
     {
         if (handle->settings.interleaveData)
         {
@@ -1091,11 +1110,11 @@ BERR_Code BAPE_SfifoGroup_P_CommitData(
     return BERR_SUCCESS;
 }
 
-static BERR_Code BAPE_Sfifo_P_CommitData (BAPE_SfifoGroupHandle handle,                                                    
+static BERR_Code BAPE_Sfifo_P_CommitData (BAPE_SfifoGroupHandle handle,
     unsigned numBytes,                   /* Number of bytes written into the buffer */
     unsigned chPair,                     /*0,1,2,3*/
     unsigned bufferNum                   /*0,1*/
-    )                                                                                
+    )
 {
 
     uint32_t rd,wr,base,sfifoId,rdaddr,wraddr;
@@ -1127,13 +1146,13 @@ static BERR_Code BAPE_Sfifo_P_CommitData (BAPE_SfifoGroupHandle handle,
         }
         else if ( wraddr + numBytes == rdaddr )
         {
-            if ( 
+            if (
 #ifdef BCHP_AUD_FMM_BF_CTRL_RINGBUF_0_RDADDR
                  BCHP_GET_FIELD_DATA(rd, AUD_FMM_BF_CTRL_RINGBUF_0_RDADDR, RINGBUF_RDADDR_WRAP) ==
-                 BCHP_GET_FIELD_DATA(wr, AUD_FMM_BF_CTRL_RINGBUF_0_WRADDR, RINGBUF_WRADDR_WRAP) 
+                 BCHP_GET_FIELD_DATA(wr, AUD_FMM_BF_CTRL_RINGBUF_0_WRADDR, RINGBUF_WRADDR_WRAP)
 #else
                  BCHP_GET_FIELD_DATA(rd, AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_0_RDADDR, RINGBUF_RDADDR_WRAP) ==
-                 BCHP_GET_FIELD_DATA(wr, AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_0_WRADDR, RINGBUF_WRADDR_WRAP) 
+                 BCHP_GET_FIELD_DATA(wr, AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_0_WRADDR, RINGBUF_WRADDR_WRAP)
 #endif
                 )
             {
@@ -1183,7 +1202,7 @@ static BERR_Code BAPE_Sfifo_P_CommitData (BAPE_SfifoGroupHandle handle,
 BERR_Code BAPE_SfifoGroup_P_Flush(
     BAPE_SfifoGroupHandle handle
     )
-{   
+{
     unsigned bufferNum;
 
     BDBG_ASSERT(NULL != handle);
@@ -1192,9 +1211,9 @@ BERR_Code BAPE_SfifoGroup_P_Flush(
     /* TODO: Handle multichannel */
 
     /* Flush by making write pointer equal to read pointer */
-    if (handle->settings.interleaveData) 
+    if (handle->settings.interleaveData)
     {
-        for (bufferNum = 0; bufferNum < handle->numChannelPairs; bufferNum++) 
+        for (bufferNum = 0; bufferNum < handle->numChannelPairs; bufferNum++)
         {
             BREG_Write32(handle->deviceHandle->regHandle,
                          BAPE_P_SFIFO_TO_WRADDR_REG(handle->sfifoIds[bufferNum]),
@@ -1204,7 +1223,7 @@ BERR_Code BAPE_SfifoGroup_P_Flush(
     }
     else
     {
-        for (bufferNum = 0; bufferNum < handle->numChannelPairs; bufferNum++) 
+        for (bufferNum = 0; bufferNum < handle->numChannelPairs; bufferNum++)
         {
             BREG_Write32(handle->deviceHandle->regHandle,
                          BAPE_P_SFIFO_TO_WRADDR_REG(handle->sfifoIds[bufferNum]),
@@ -1234,7 +1253,7 @@ BERR_Code BAPE_SfifoGroup_P_GetQueuedBytes(
     BDBG_ASSERT(NULL != pQueuedBytes);
 
     /* TODO: Handle non-interleaved and multichannel */
-    for (chPair = 0; chPair < handle->numChannelPairs; chPair++) 
+    for (chPair = 0; chPair < handle->numChannelPairs; chPair++)
     {
         if (handle->settings.interleaveData)
         {
@@ -1264,7 +1283,7 @@ BERR_Code BAPE_SfifoGroup_P_GetQueuedBytes(
 }
 
 static BERR_Code BAPE_Sfifo_P_GetQueuedBytes(
-    BAPE_SfifoGroupHandle handle, 
+    BAPE_SfifoGroupHandle handle,
     unsigned *pQueuedBytes,
     unsigned chPair,       /*0,1,2,3*/
     unsigned bufferNum     /*0,1*/
@@ -1297,13 +1316,13 @@ static BERR_Code BAPE_Sfifo_P_GetQueuedBytes(
     }
     else    /* equal */
     {
-        if ( 
+        if (
 #ifdef BCHP_AUD_FMM_BF_CTRL_RINGBUF_0_RDADDR
              BCHP_GET_FIELD_DATA(rd, AUD_FMM_BF_CTRL_RINGBUF_0_RDADDR, RINGBUF_RDADDR_WRAP) ==
-             BCHP_GET_FIELD_DATA(wr, AUD_FMM_BF_CTRL_RINGBUF_0_WRADDR, RINGBUF_WRADDR_WRAP) 
+             BCHP_GET_FIELD_DATA(wr, AUD_FMM_BF_CTRL_RINGBUF_0_WRADDR, RINGBUF_WRADDR_WRAP)
 #else
              BCHP_GET_FIELD_DATA(rd, AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_0_RDADDR, RINGBUF_RDADDR_WRAP) ==
-             BCHP_GET_FIELD_DATA(wr, AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_0_WRADDR, RINGBUF_WRADDR_WRAP) 
+             BCHP_GET_FIELD_DATA(wr, AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_0_WRADDR, RINGBUF_WRADDR_WRAP)
 #endif
             )
         {
@@ -1321,6 +1340,29 @@ static BERR_Code BAPE_Sfifo_P_GetQueuedBytes(
     return BERR_SUCCESS;
 }
 
+
+void BAPE_SfifoGroup_P_GetReadAddress(
+    BAPE_SfifoGroupHandle handle,
+    unsigned chPair,       /*0,1,2,3*/
+    unsigned bufferNum,     /*0,1*/
+    uint32_t *pReadPtr
+    )
+{
+    uint32_t read,sfifoId;
+
+    BDBG_ASSERT(NULL != handle);
+    BDBG_ASSERT(handle->allocated);
+    BDBG_ASSERT(NULL != pReadPtr);
+
+    sfifoId = handle->sfifoIds[chPair];
+    read = BREG_Read32(handle->deviceHandle->regHandle, BAPE_P_SFIFO_TO_RDADDR_REG(sfifoId) + (bufferNum * BAPE_P_RINGBUFFER_STRIDE));
+
+#ifdef BCHP_AUD_FMM_BF_CTRL_RINGBUF_0_RDADDR
+    *pReadPtr = BCHP_GET_FIELD_DATA(read, AUD_FMM_BF_CTRL_RINGBUF_0_RDADDR, RINGBUF_RDADDR);
+#else
+    *pReadPtr = BCHP_GET_FIELD_DATA(read, AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_0_RDADDR, RINGBUF_RDADDR);
+#endif
+}
 
 BERR_Code BAPE_SfifoGroup_P_SetFreemarkInterrupt(
     BAPE_SfifoGroupHandle handle,
@@ -1559,7 +1601,7 @@ static void BAPE_DfifoGroup_P_ApplySettings(
         uint32_t base, end, watermark;
 #ifdef BCHP_AUD_FMM_BF_CTRL_DESTCH_CFG0
         regAddr = BCHP_AUD_FMM_BF_CTRL_DESTCH_CFG0;
-        regMask = 
+        regMask =
         BCHP_MASK(AUD_FMM_BF_CTRL_DESTCH_CFG0, CAPTURE_ENABLE)|
         BCHP_MASK(AUD_FMM_BF_CTRL_DESTCH_CFG0, BUFFER_PAIR_ENABLE)|
         BCHP_MASK(AUD_FMM_BF_CTRL_DESTCH_CFG0, DESTFIFO_SIZE_DOUBLE)|
@@ -1570,8 +1612,9 @@ static void BAPE_DfifoGroup_P_ApplySettings(
         BCHP_MASK(AUD_FMM_BF_CTRL_DESTCH_CFG0, NOT_PAUSE_WHEN_FULL)|
         BCHP_MASK(AUD_FMM_BF_CTRL_DESTCH_CFG0, FCI_CAP_ID)|
         BCHP_MASK(AUD_FMM_BF_CTRL_DESTCH_CFG0, PROCESS_ID_HIGH)|
+        BCHP_MASK(AUD_FMM_BF_CTRL_DESTCH_CFG0, REVERSE_ENDIAN)|
         BCHP_MASK(AUD_FMM_BF_CTRL_DESTCH_CFG0, PROCESS_SEQ_ID_VALID);
-        regData = 
+        regData =
         BCHP_FIELD_DATA(AUD_FMM_BF_CTRL_DESTCH_CFG0, BUFFER_PAIR_ENABLE, (handle->settings.interleaveData)?0:1) |
         BCHP_FIELD_DATA(AUD_FMM_BF_CTRL_DESTCH_CFG0, DESTFIFO_SIZE_DOUBLE, (handle->settings.interleaveData)?1:0) |
         BCHP_FIELD_DATA(AUD_FMM_BF_CTRL_DESTCH_CFG0, CAPTURE_TO_SOURCEFIFO, (captureToSfifo)?1:0) |
@@ -1579,6 +1622,7 @@ static void BAPE_DfifoGroup_P_ApplySettings(
         BCHP_FIELD_DATA(AUD_FMM_BF_CTRL_DESTCH_CFG0, SOURCE_FIFO_ID, sfifoId) |
         BCHP_FIELD_DATA(AUD_FMM_BF_CTRL_DESTCH_CFG0, FCI_CAP_ID, fciId) |
         BCHP_FIELD_DATA(AUD_FMM_BF_CTRL_DESTCH_CFG0, PROCESS_ID_HIGH, (handle->settings.highPriority)?1:0) |
+        BCHP_FIELD_DATA(AUD_FMM_BF_CTRL_DESTCH_CFG0, REVERSE_ENDIAN, (handle->settings.reverseEndian)?1:0) |
         BCHP_FIELD_DATA(AUD_FMM_BF_CTRL_DESTCH_CFG0, PROCESS_SEQ_ID_VALID, 1);
 #if BAPE_CHIP_DFIFO_SUPPORTS_16BIT_CAPTURE
         regMask |= BCHP_MASK(AUD_FMM_BF_CTRL_DESTCH_CFGi, CAPTURE_MODE);
@@ -1606,7 +1650,7 @@ static void BAPE_DfifoGroup_P_ApplySettings(
         #endif
         regAddr = BCHP_AUD_FMM_BF_CTRL_DESTCH_CFGi_ARRAY_BASE;
         regAddr += handle->dfifoIds[i]*(BCHP_AUD_FMM_BF_CTRL_DESTCH_CFGi_ARRAY_ELEMENT_SIZE/8);
-        regMask = 
+        regMask =
         BCHP_MASK(AUD_FMM_BF_CTRL_DESTCH_CFGi, CAPTURE_ENABLE)|
         BCHP_MASK(AUD_FMM_BF_CTRL_DESTCH_CFGi, BUFFER_PAIR_ENABLE)|
         BCHP_MASK(AUD_FMM_BF_CTRL_DESTCH_CFGi, DESTFIFO_SIZE_DOUBLE)|
@@ -1617,8 +1661,9 @@ static void BAPE_DfifoGroup_P_ApplySettings(
         BCHP_MASK(AUD_FMM_BF_CTRL_DESTCH_CFGi, NOT_PAUSE_WHEN_FULL)|
         BCHP_MASK(AUD_FMM_BF_CTRL_DESTCH_CFGi, FCI_CAP_ID)|
         BCHP_MASK(AUD_FMM_BF_CTRL_DESTCH_CFGi, PROCESS_ID_HIGH)|
+        BCHP_MASK(AUD_FMM_BF_CTRL_DESTCH_CFGi, REVERSE_ENDIAN)|
         BCHP_MASK(AUD_FMM_BF_CTRL_DESTCH_CFGi, PROCESS_SEQ_ID_VALID);
-        regData = 
+        regData =
         BCHP_FIELD_DATA(AUD_FMM_BF_CTRL_DESTCH_CFGi, BUFFER_PAIR_ENABLE, (handle->settings.interleaveData)?0:1) |
         BCHP_FIELD_DATA(AUD_FMM_BF_CTRL_DESTCH_CFGi, DESTFIFO_SIZE_DOUBLE, (handle->settings.interleaveData)?1:0) |
         BCHP_FIELD_DATA(AUD_FMM_BF_CTRL_DESTCH_CFGi, CAPTURE_TO_SOURCEFIFO, (captureToSfifo)?1:0) |
@@ -1626,7 +1671,8 @@ static void BAPE_DfifoGroup_P_ApplySettings(
         BCHP_FIELD_DATA(AUD_FMM_BF_CTRL_DESTCH_CFGi, SOURCE_FIFO_ID, sfifoId) |
         BCHP_FIELD_DATA(AUD_FMM_BF_CTRL_DESTCH_CFGi, FCI_CAP_ID, fciId) |
         BCHP_FIELD_DATA(AUD_FMM_BF_CTRL_DESTCH_CFGi, PROCESS_ID_HIGH, (handle->settings.highPriority)?1:0) |
-        BCHP_FIELD_DATA(AUD_FMM_BF_CTRL_DESTCH_CFGi, PROCESS_SEQ_ID_VALID, 1);    
+        BCHP_FIELD_DATA(AUD_FMM_BF_CTRL_DESTCH_CFGi, REVERSE_ENDIAN, (handle->settings.reverseEndian)?1:0) |
+        BCHP_FIELD_DATA(AUD_FMM_BF_CTRL_DESTCH_CFGi, PROCESS_SEQ_ID_VALID, 1);
 #if BAPE_CHIP_DFIFO_SUPPORTS_16BIT_CAPTURE
         regMask |= BCHP_MASK(AUD_FMM_BF_CTRL_DESTCH_CFGi, CAPTURE_MODE);
         if ( handle->settings.dataWidth == 16 )
@@ -1640,7 +1686,7 @@ static void BAPE_DfifoGroup_P_ApplySettings(
 #endif
 #endif
 
-        /* configure channel based on above settings */    
+        /* configure channel based on above settings */
         regVal = BREG_Read32(regHandle, regAddr);
         regVal = (regVal & ~regMask) | regData;
         BREG_Write32(regHandle, regAddr, regVal);
@@ -1702,22 +1748,22 @@ static void BAPE_DfifoGroup_P_SetCaptureEnable(
 #ifdef BCHP_AUD_FMM_BF_CTRL_DESTCH_CFG0
     baseAddr = BCHP_AUD_FMM_BF_CTRL_DESTCH_CFG0;
     stride = 0;
-    mask = 
+    mask =
     BCHP_MASK(AUD_FMM_BF_CTRL_DESTCH_CFG0, CAPTURE_ENABLE)|
     BCHP_MASK(AUD_FMM_BF_CTRL_DESTCH_CFG0, PROCESS_SEQ_ID_VALID);
-    data = 
+    data =
     BCHP_FIELD_DATA(AUD_FMM_BF_CTRL_DESTCH_CFG0, CAPTURE_ENABLE, value)|
     BCHP_FIELD_DATA(AUD_FMM_BF_CTRL_DESTCH_CFG0, PROCESS_SEQ_ID_VALID, value);
 #else
     baseAddr = BCHP_AUD_FMM_BF_CTRL_DESTCH_CFGi_ARRAY_BASE;
     stride = BCHP_AUD_FMM_BF_CTRL_DESTCH_CFGi_ARRAY_ELEMENT_SIZE/8;
-    mask = 
+    mask =
     BCHP_MASK(AUD_FMM_BF_CTRL_DESTCH_CFGi, CAPTURE_ENABLE)|
     BCHP_MASK(AUD_FMM_BF_CTRL_DESTCH_CFGi, PROCESS_SEQ_ID_VALID);
-    data = 
+    data =
     BCHP_FIELD_DATA(AUD_FMM_BF_CTRL_DESTCH_CFGi, CAPTURE_ENABLE, value)|
     BCHP_FIELD_DATA(AUD_FMM_BF_CTRL_DESTCH_CFGi, PROCESS_SEQ_ID_VALID, value);
-#endif    
+#endif
 
     for ( i = 0; i < handle->numChannelPairs; i++ )
     {
@@ -1746,7 +1792,7 @@ static void BAPE_DfifoGroup_P_SetCaptureRun_isr(
 #else
     baseAddr = BCHP_AUD_FMM_BF_CTRL_DESTCH_CTRLi_ARRAY_BASE;
     stride = BCHP_AUD_FMM_BF_CTRL_DESTCH_CTRLi_ARRAY_ELEMENT_SIZE/8;
-#endif    
+#endif
 
     for ( i = 0; i < handle->numChannelPairs; i++ )
     {
@@ -1756,7 +1802,7 @@ static void BAPE_DfifoGroup_P_SetCaptureRun_isr(
 
 BERR_Code BAPE_DfifoGroup_P_Start(
     BAPE_DfifoGroupHandle handle,
-    bool enableOnly                 /* If true, a separate call to BAPE_DfifoGroup_P_Run_isr is required to 
+    bool enableOnly                 /* If true, a separate call to BAPE_DfifoGroup_P_Run_isr is required to
                                     start data flow.  If false, data flow will start immediately. */
     )
 {
@@ -1892,30 +1938,30 @@ BERR_Code BAPE_DfifoGroup_P_GetBuffer(
         wr = ptrs[2*i].wr;
         base = ptrs[2*i].base;
 
-        /* Same toggle bit means no wrap.  Opposite toggle bits means wrap. */    
+        /* Same toggle bit means no wrap.  Opposite toggle bits means wrap. */
 #ifdef BCHP_AUD_FMM_BF_CTRL_RINGBUF_0_RDADDR
-        wrap = BCHP_GET_FIELD_DATA(rd, AUD_FMM_BF_CTRL_RINGBUF_0_RDADDR, RINGBUF_RDADDR_WRAP) ^ 
+        wrap = BCHP_GET_FIELD_DATA(rd, AUD_FMM_BF_CTRL_RINGBUF_0_RDADDR, RINGBUF_RDADDR_WRAP) ^
                BCHP_GET_FIELD_DATA(wr, AUD_FMM_BF_CTRL_RINGBUF_0_WRADDR, RINGBUF_WRADDR_WRAP);
 
         /* Mask off toggle bits */
         rd = BCHP_GET_FIELD_DATA(rd, AUD_FMM_BF_CTRL_RINGBUF_0_RDADDR, RINGBUF_RDADDR);
         wr = BCHP_GET_FIELD_DATA(wr, AUD_FMM_BF_CTRL_RINGBUF_0_WRADDR, RINGBUF_WRADDR);
 #else
-        wrap = BCHP_GET_FIELD_DATA(rd, AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_0_RDADDR, RINGBUF_RDADDR_WRAP) ^ 
+        wrap = BCHP_GET_FIELD_DATA(rd, AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_0_RDADDR, RINGBUF_RDADDR_WRAP) ^
                BCHP_GET_FIELD_DATA(wr, AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_0_WRADDR, RINGBUF_WRADDR_WRAP);
 
         /* Mask off toggle bits */
         rd = BCHP_GET_FIELD_DATA(rd, AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_0_RDADDR, RINGBUF_RDADDR);
         wr = BCHP_GET_FIELD_DATA(wr, AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_0_WRADDR, RINGBUF_WRADDR);
 #endif
-    
+
         /* Get base address to read from */
         errCode = BMEM_Heap_ConvertOffsetToAddress(handle->deviceHandle->memHandle, rd, &pBuffers->buffers[2*i].pBuffer);
         if ( errCode )
         {
             return BERR_TRACE(errCode);
         }
-    
+
         /* Compute size of contiguous space */
         if ( wrap )
         {
@@ -1926,7 +1972,7 @@ BERR_Code BAPE_DfifoGroup_P_GetBuffer(
         {
             bufferSize = (wr - rd);
         }
-        
+
         if ( bufferSize < minBufferSize )
         {
             minBufferSize = bufferSize;
@@ -1937,32 +1983,32 @@ BERR_Code BAPE_DfifoGroup_P_GetBuffer(
             rd = ptrs[(2*i)+1].rd;
             wr = ptrs[(2*i)+1].wr;
             base = ptrs[(2*i)+1].base;
-    
+
 #ifdef BCHP_AUD_FMM_BF_CTRL_RINGBUF_0_RDADDR
-            /* Same toggle bit means no wrap.  Opposite toggle bits means wrap. */    
-            wrap = BCHP_GET_FIELD_DATA(rd, AUD_FMM_BF_CTRL_RINGBUF_0_RDADDR, RINGBUF_RDADDR_WRAP) ^ 
+            /* Same toggle bit means no wrap.  Opposite toggle bits means wrap. */
+            wrap = BCHP_GET_FIELD_DATA(rd, AUD_FMM_BF_CTRL_RINGBUF_0_RDADDR, RINGBUF_RDADDR_WRAP) ^
                    BCHP_GET_FIELD_DATA(wr, AUD_FMM_BF_CTRL_RINGBUF_0_WRADDR, RINGBUF_WRADDR_WRAP);
-    
+
             /* Mask off toggle bits */
             rd = BCHP_GET_FIELD_DATA(rd, AUD_FMM_BF_CTRL_RINGBUF_0_RDADDR, RINGBUF_RDADDR);
             wr = BCHP_GET_FIELD_DATA(wr, AUD_FMM_BF_CTRL_RINGBUF_0_WRADDR, RINGBUF_WRADDR);
 #else
-            /* Same toggle bit means no wrap.  Opposite toggle bits means wrap. */    
-            wrap = BCHP_GET_FIELD_DATA(rd, AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_0_RDADDR, RINGBUF_RDADDR_WRAP) ^ 
+            /* Same toggle bit means no wrap.  Opposite toggle bits means wrap. */
+            wrap = BCHP_GET_FIELD_DATA(rd, AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_0_RDADDR, RINGBUF_RDADDR_WRAP) ^
                    BCHP_GET_FIELD_DATA(wr, AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_0_WRADDR, RINGBUF_WRADDR_WRAP);
 
             /* Mask off toggle bits */
             rd = BCHP_GET_FIELD_DATA(rd, AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_0_RDADDR, RINGBUF_RDADDR);
             wr = BCHP_GET_FIELD_DATA(wr, AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_0_WRADDR, RINGBUF_WRADDR);
 #endif
-    
+
             /* Get base address to read from */
             errCode = BMEM_Heap_ConvertOffsetToAddress(handle->deviceHandle->memHandle, rd, &pBuffers->buffers[(2*i)+1].pBuffer);
             if ( errCode )
             {
                 return BERR_TRACE(errCode);
             }
-    
+
             /* Compute size of contiguous space */
             if ( wrap )
             {
@@ -1973,14 +2019,14 @@ BERR_Code BAPE_DfifoGroup_P_GetBuffer(
             {
                 bufferSize = (wr - rd);
             }
-    
+
             if ( bufferSize < minBufferSize )
             {
                 minBufferSize = bufferSize;
             }
         }
     }
-    
+
     pBuffers->bufferSize = minBufferSize;
     pBuffers->wrapBufferSize = wrapBufferSize;
     return BERR_SUCCESS;
@@ -2011,25 +2057,25 @@ BERR_Code BAPE_DfifoGroup_P_CommitData_isr(
         rd = BREG_Read32_isr(handle->deviceHandle->regHandle, BAPE_P_DFIFO_TO_RDADDR_REG(handle->dfifoIds[i]));
         wr = BREG_Read32_isr(handle->deviceHandle->regHandle, BAPE_P_DFIFO_TO_WRADDR_REG(handle->dfifoIds[i]));
         base = BREG_Read32_isr(handle->deviceHandle->regHandle, BAPE_P_DFIFO_TO_BASEADDR_REG(handle->dfifoIds[i]));
-    
+
 #ifdef BCHP_AUD_FMM_BF_CTRL_RINGBUF_0_RDADDR
-        /* Same toggle bit means no wrap.  Opposite toggle bits means wrap. */    
-        wrap = BCHP_GET_FIELD_DATA(rd, AUD_FMM_BF_CTRL_RINGBUF_0_RDADDR, RINGBUF_RDADDR_WRAP) ^ 
+        /* Same toggle bit means no wrap.  Opposite toggle bits means wrap. */
+        wrap = BCHP_GET_FIELD_DATA(rd, AUD_FMM_BF_CTRL_RINGBUF_0_RDADDR, RINGBUF_RDADDR_WRAP) ^
                BCHP_GET_FIELD_DATA(wr, AUD_FMM_BF_CTRL_RINGBUF_0_WRADDR, RINGBUF_WRADDR_WRAP);
-    
+
         /* Mask off toggle bits */
         rdaddr = BCHP_GET_FIELD_DATA(rd, AUD_FMM_BF_CTRL_RINGBUF_0_RDADDR, RINGBUF_RDADDR);
         wraddr = BCHP_GET_FIELD_DATA(wr, AUD_FMM_BF_CTRL_RINGBUF_0_WRADDR, RINGBUF_WRADDR);
 #else
-        /* Same toggle bit means no wrap.  Opposite toggle bits means wrap. */    
-        wrap = BCHP_GET_FIELD_DATA(rd, AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_0_RDADDR, RINGBUF_RDADDR_WRAP) ^ 
+        /* Same toggle bit means no wrap.  Opposite toggle bits means wrap. */
+        wrap = BCHP_GET_FIELD_DATA(rd, AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_0_RDADDR, RINGBUF_RDADDR_WRAP) ^
                BCHP_GET_FIELD_DATA(wr, AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_0_WRADDR, RINGBUF_WRADDR_WRAP);
 
         /* Mask off toggle bits */
         rdaddr = BCHP_GET_FIELD_DATA(rd, AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_0_RDADDR, RINGBUF_RDADDR);
         wraddr = BCHP_GET_FIELD_DATA(wr, AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_0_WRADDR, RINGBUF_WRADDR);
 #endif
-    
+
         /* Check for potential overflow */
         if ( wrap )
         {
@@ -2049,7 +2095,7 @@ BERR_Code BAPE_DfifoGroup_P_CommitData_isr(
                 return BERR_TRACE(BERR_INVALID_PARAMETER);
             }
         }
-    
+
         /* Update read pointer */
         prevReadAddr = rdaddr;
         rdaddr += numBytes;
@@ -2070,7 +2116,7 @@ BERR_Code BAPE_DfifoGroup_P_CommitData_isr(
         }
         rdaddr |= wrapBit;
         rdaddrRegs[2*i] = rdaddr;
-        
+
         if ( handle->settings.interleaveData == false )
         {
             /* Read registers */
@@ -2079,21 +2125,21 @@ BERR_Code BAPE_DfifoGroup_P_CommitData_isr(
             base = BREG_Read32_isr(handle->deviceHandle->regHandle, BAPE_P_DFIFO_TO_BASEADDR_REG(handle->dfifoIds[i])+BAPE_P_RINGBUFFER_STRIDE);
 
 #ifdef BCHP_AUD_FMM_BF_CTRL_RINGBUF_0_RDADDR
-            /* Same toggle bit means no wrap.  Opposite toggle bits means wrap. */    
-            wrap = BCHP_GET_FIELD_DATA(rd, AUD_FMM_BF_CTRL_RINGBUF_0_RDADDR, RINGBUF_RDADDR_WRAP) ^ 
+            /* Same toggle bit means no wrap.  Opposite toggle bits means wrap. */
+            wrap = BCHP_GET_FIELD_DATA(rd, AUD_FMM_BF_CTRL_RINGBUF_0_RDADDR, RINGBUF_RDADDR_WRAP) ^
                    BCHP_GET_FIELD_DATA(wr, AUD_FMM_BF_CTRL_RINGBUF_0_WRADDR, RINGBUF_WRADDR_WRAP);
 
             /* Mask off toggle bits */
             rdaddr = BCHP_GET_FIELD_DATA(rd, AUD_FMM_BF_CTRL_RINGBUF_0_RDADDR, RINGBUF_RDADDR);
             wraddr = BCHP_GET_FIELD_DATA(wr, AUD_FMM_BF_CTRL_RINGBUF_0_WRADDR, RINGBUF_WRADDR);
 #else
-            /* Same toggle bit means no wrap.  Opposite toggle bits means wrap. */    
-            wrap = BCHP_GET_FIELD_DATA(rd, AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_0_RDADDR, RINGBUF_RDADDR_WRAP) ^ 
+            /* Same toggle bit means no wrap.  Opposite toggle bits means wrap. */
+            wrap = BCHP_GET_FIELD_DATA(rd, AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_0_RDADDR, RINGBUF_RDADDR_WRAP) ^
                    BCHP_GET_FIELD_DATA(wr, AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_0_WRADDR, RINGBUF_WRADDR_WRAP);
 
             /* Mask off toggle bits */
             rdaddr = BCHP_GET_FIELD_DATA(rd, AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_0_RDADDR, RINGBUF_RDADDR);
-            wraddr = BCHP_GET_FIELD_DATA(wr, AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_0_WRADDR, RINGBUF_WRADDR);            
+            wraddr = BCHP_GET_FIELD_DATA(wr, AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_0_WRADDR, RINGBUF_WRADDR);
 #endif
 
             /* Check for potential overflow */
@@ -2166,10 +2212,10 @@ BERR_Code BAPE_DfifoGroup_P_Flush_isr(
     regVal = BREG_Read32_isr(handle->deviceHandle->regHandle, regAddr);
 #ifdef BCHP_AUD_FMM_BF_CTRL_RINGBUF_0_RDADDR
     wrap = regVal & BCHP_MASK(AUD_FMM_BF_CTRL_RINGBUF_0_RDADDR, RINGBUF_RDADDR_WRAP);
-    offset = (regVal & BCHP_MASK(AUD_FMM_BF_CTRL_RINGBUF_0_RDADDR, RINGBUF_RDADDR)) - handle->settings.bufferInfo[0].base;    
+    offset = (regVal & BCHP_MASK(AUD_FMM_BF_CTRL_RINGBUF_0_RDADDR, RINGBUF_RDADDR)) - handle->settings.bufferInfo[0].base;
 #else
     wrap = regVal & BCHP_MASK(AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_0_RDADDR, RINGBUF_RDADDR_WRAP);
-    offset = (regVal & BCHP_MASK(AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_0_RDADDR, RINGBUF_RDADDR)) - handle->settings.bufferInfo[0].base;    
+    offset = (regVal & BCHP_MASK(AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_0_RDADDR, RINGBUF_RDADDR)) - handle->settings.bufferInfo[0].base;
 #endif
     for ( i = 0; i < handle->numChannelPairs; i++ )
     {
@@ -2214,14 +2260,14 @@ void BAPE_DfifoGroup_P_RearmFullmarkInterrupt_isr(
 #ifdef BCHP_AUD_FMM_BF_CTRL_REARM_FREEFULL_MARK
     /* Clear the ESR status */
     regVal = BCHP_FIELD_DATA(AUD_FMM_BF_ESR2_H_STATUS_CLEAR, DEST_RINGBUF_0_EXCEED_FULLMARK, 1) << handle->dfifoIds[0];
-    BREG_Write32_isr(handle->deviceHandle->regHandle, BCHP_AUD_FMM_BF_ESR2_H_STATUS_CLEAR, regVal);        
+    BREG_Write32_isr(handle->deviceHandle->regHandle, BCHP_AUD_FMM_BF_ESR2_H_STATUS_CLEAR, regVal);
     /* Rearm */
     regVal = (1<<BCHP_SHIFT(AUD_FMM_BF_CTRL_REARM_FREEFULL_MARK, REARM_FULLMARK))<<handle->dfifoIds[0];
     BREG_Write32_isr(handle->deviceHandle->regHandle, BCHP_AUD_FMM_BF_CTRL_REARM_FREEFULL_MARK, regVal);
 #else
     /* Clear the ESR status */
     regVal = BCHP_FIELD_DATA(AUD_FMM_BF_ESR_ESR4_STATUS_CLEAR, DEST_RINGBUF_0_EXCEED_FULLMARK, 1) << handle->dfifoIds[0];
-    BREG_Write32_isr(handle->deviceHandle->regHandle, BCHP_AUD_FMM_BF_ESR_ESR4_STATUS_CLEAR, regVal);        
+    BREG_Write32_isr(handle->deviceHandle->regHandle, BCHP_AUD_FMM_BF_ESR_ESR4_STATUS_CLEAR, regVal);
     /* Rearm */
     regVal = (1<<BCHP_SHIFT(AUD_FMM_BF_CTRL_REARM_FULL_MARK, REARM_FULLMARK))<<handle->dfifoIds[0];
     BREG_Write32_isr(handle->deviceHandle->regHandle, BCHP_AUD_FMM_BF_CTRL_REARM_FULL_MARK, regVal);
@@ -2330,7 +2376,7 @@ void BAPE_FciSplitterGroup_P_GetDefaultCreateSettings(
     )
 {
     BDBG_ASSERT(NULL != pSettings);
-    BKNI_Memset(pSettings, 0, sizeof(pSettings));
+    BKNI_Memset(pSettings, 0, sizeof(BAPE_FciSplitterGroupCreateSettings));
     pSettings->numChannelPairs = 1;
 }
 
@@ -2341,7 +2387,6 @@ BERR_Code BAPE_FciSplitterGroup_P_Create(
     )
 {
     unsigned i;
-    BERR_Code errCode;
     BAPE_FciSplitterGroupHandle handle=NULL;
 
     BDBG_OBJECT_ASSERT(deviceHandle, BAPE_Device);
@@ -2376,8 +2421,6 @@ BERR_Code BAPE_FciSplitterGroup_P_Create(
     BKNI_Memset(handle->fciSpIds, 0xff, sizeof(handle->fciSpIds));
     *pHandle = handle;
     return BERR_SUCCESS;
-
-    return errCode;
 }
 
 void BAPE_FciSplitterGroup_P_Destroy(
@@ -2495,7 +2538,6 @@ static void BAPE_FciSplitterGroup_P_FreeInputResources(BAPE_FciSplitterGroupHand
     /* Release Resources */
     BAPE_P_FreeFmmResource(handle->deviceHandle, BAPE_FmmResourceType_eFciSplitter, handle->numChannelPairs, handle->fciSpIds[0]);
     BKNI_Memset(handle->fciSpIds, 0xff, sizeof(handle->fciSpIds));
-
 }
 
 BERR_Code BAPE_FciSplitterGroup_P_Start(
@@ -2513,7 +2555,7 @@ BERR_Code BAPE_FciSplitterGroup_P_Start(
         BAPE_FciSplitterGroup_P_Stop(handle);
     }
 
-    BDBG_MODULE_MSG(bape_fcisp, ("%s", __FUNCTION__));
+    BDBG_MODULE_MSG(bape_fcisp, ("%s %p", __FUNCTION__, (void*)handle));
 
     connected = BAPE_FciSplitterGroup_P_GetConnectedOutputGroupIndexes(handle);
     if ( !connected )
@@ -2553,7 +2595,7 @@ void BAPE_FciSplitterGroup_P_Stop(
         return;
     }
 
-    BDBG_MODULE_MSG(bape_fcisp, ("%s", __FUNCTION__));
+    BDBG_MODULE_MSG(bape_fcisp, ("%s %p", __FUNCTION__, (void*)handle));
 
     BAPE_FciSplitterGroup_P_StopOutputGroups(handle);
 
@@ -2654,6 +2696,8 @@ void BAPE_FciSplitterOutputGroup_P_Destroy(
     BDBG_ASSERT(handle->allocated);
     BDBG_OBJECT_ASSERT(handle->deviceHandle, BAPE_Device);
 
+    BDBG_MODULE_MSG(bape_fcisp, ("Destroy Fci Splitter Output Group %p, %lu ch pairs", (void*)handle, (unsigned long)handle->numChannelPairs));
+
     BAPE_FciSplitterOutputGroup_P_Stop(handle);
 
     /* Release Resources */
@@ -2695,15 +2739,14 @@ static BERR_Code BAPE_FciSplitterOutputGroup_P_Start(
     deviceHandle = handle->deviceHandle;
     BDBG_OBJECT_ASSERT(deviceHandle, BAPE_Device);
 
-    BDBG_MODULE_MSG(bape_fcisp, ("%s", __FUNCTION__));
-
     if ( handle->numChannelPairs != handle->spHandle->numChannelPairs )
     {
-        BDBG_MODULE_WRN(bape_fcisp, ("%s: output group and fci splitter must have the same number of channel pairs.", __FUNCTION__));
-        BDBG_MODULE_WRN(bape_fcisp, ("%s: output group numChPairs %lu, fci splitter numChPairs %lu", __FUNCTION__, (unsigned long)handle->numChannelPairs, (unsigned long)handle->spHandle->numChannelPairs));
-        /*return BERR_TRACE(BERR_UNKNOWN);*/
+        BDBG_MODULE_MSG(bape_fcisp, ("%s: output group and fci splitter must have the same number of channel pairs.", __FUNCTION__));
+        BDBG_MODULE_MSG(bape_fcisp, ("%s: output group numChPairs %lu, fci splitter numChPairs %lu", __FUNCTION__, (unsigned long)handle->numChannelPairs, (unsigned long)handle->spHandle->numChannelPairs));
         return BERR_SUCCESS;
     }
+
+    BDBG_MODULE_MSG(bape_fcisp, ("Stop Fci Splitter Output Group %p, %lu ch pairs", (void*)handle, (unsigned long)handle->numChannelPairs));
 
     BAPE_FciSplitter_P_SetOutputGroupInputs(deviceHandle, handle->fciSpOutIds[0], handle->spHandle->fciSpIds[0], handle->numChannelPairs);
     BAPE_FciSplitter_P_EnableOutputGroup(deviceHandle, handle->fciSpOutIds[0], handle->numChannelPairs, 1);
@@ -2727,7 +2770,7 @@ static void BAPE_FciSplitterOutputGroup_P_Stop(
     deviceHandle = handle->deviceHandle;
     BDBG_OBJECT_ASSERT(deviceHandle, BAPE_Device);
 
-    BDBG_MODULE_MSG(bape_fcisp, ("%s", __FUNCTION__));
+    BDBG_MODULE_MSG(bape_fcisp, ("Stop Fci Splitter Output Group %p, %lu ch pairs", (void*)handle, (unsigned long)handle->numChannelPairs));
 
     BAPE_FciSplitter_P_EnableOutputGroup(deviceHandle, handle->fciSpOutIds[0], handle->numChannelPairs, 0);
 
@@ -2874,8 +2917,8 @@ static void BAPE_FciSplitter_P_EnableOutputGroup(BAPE_Handle handle, uint32_t fc
     unsigned i;
 
     BDBG_OBJECT_ASSERT(handle, BAPE_Device);
-    BDBG_ASSERT(fciSpOutput < BAPE_CHIP_MAX_FCI_SPLITTER_OUTPUTS);
-    BDBG_ASSERT(count < BAPE_CHIP_MAX_FCI_SPLITTERS);
+    BDBG_ASSERT((fciSpOutput+count) <= BAPE_CHIP_MAX_FCI_SPLITTER_OUTPUTS);
+    BDBG_ASSERT(count <= BAPE_CHIP_MAX_FCI_SPLITTERS);
 
     BAPE_Reg_P_InitFieldList(handle, &fieldList);
     for ( i = 0; i < count; i++ )

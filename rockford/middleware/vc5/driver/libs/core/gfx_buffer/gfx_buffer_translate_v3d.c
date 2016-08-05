@@ -1,34 +1,33 @@
 /*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
+Broadcom Proprietary and Confidential. (c)2016 Broadcom.
 All rights reserved.
-
-Project  :  helpers
-Module   :
-
-FILE DESCRIPTION
 =============================================================================*/
 
 #include "gfx_buffer_translate_v3d.h"
 #include "libs/core/lfmt/lfmt_translate_v3d.h"
+#include "libs/core/v3d/v3d_tlb_decimate.h"
 
-static v3d_memory_format_t translate_memory_format_with_bd(
-   const GFX_BUFFER_DESC_T *desc, uint32_t plane_i,
-   unsigned slice,
-   const GFX_LFMT_BASE_DETAIL_T *bd)
+v3d_memory_format_t gfx_buffer_translate_memory_format(
+   const GFX_BUFFER_DESC_T *desc, uint32_t plane_i)
 {
    const GFX_BUFFER_DESC_PLANE_T *p = &desc->planes[plane_i];
-   assert((gfx_lfmt_is_2d(p->lfmt) && slice == 0)||
-               (gfx_lfmt_is_3d(p->lfmt)));
+   assert(gfx_lfmt_is_2d(p->lfmt) || gfx_lfmt_is_3d(p->lfmt)); /* TLB can load/store a slice of a 3D image */
    switch (gfx_lfmt_get_swizzling(&p->lfmt))
    {
-   case GFX_LFMT_SWIZZLING_RSO:      return V3D_MEMORY_FORMAT_RASTER;
-   case GFX_LFMT_SWIZZLING_UIF:      return V3D_MEMORY_FORMAT_UIF_NO_XOR;
-   case GFX_LFMT_SWIZZLING_UIF_XOR:  return V3D_MEMORY_FORMAT_UIF_XOR;
+   case GFX_LFMT_SWIZZLING_RSO:     return V3D_MEMORY_FORMAT_RASTER;
+   case GFX_LFMT_SWIZZLING_UIF:     return V3D_MEMORY_FORMAT_UIF_NO_XOR;
+   case GFX_LFMT_SWIZZLING_UIF_XOR: return V3D_MEMORY_FORMAT_UIF_XOR;
    case GFX_LFMT_SWIZZLING_LT:
+   {
+#ifndef NDEBUG
+      GFX_LFMT_BASE_DETAIL_T bd;
+      gfx_lfmt_base_detail(&bd, p->lfmt);
+#endif
       assert(
-         (desc->height <= gfx_lfmt_ut_h_2d(bd)) ||
+         (desc->height <= gfx_lfmt_ut_h_2d(&bd)) ||
          (gfx_buffer_lt_width_in_ut(desc, plane_i) == 1));
       return V3D_MEMORY_FORMAT_LINEARTILE;
+   }
    case GFX_LFMT_SWIZZLING_UBLINEAR:
       switch (gfx_buffer_ublinear_width_in_ub(desc, plane_i))
       {
@@ -42,91 +41,63 @@ static v3d_memory_format_t translate_memory_format_with_bd(
    }
 }
 
-v3d_memory_format_t gfx_buffer_translate_memory_format(
-   const GFX_BUFFER_DESC_T *desc, uint32_t plane_i, unsigned slice)
-{
-   GFX_LFMT_BASE_DETAIL_T bd;
-   gfx_lfmt_base_detail(&bd, desc->planes[plane_i].lfmt);
-   return translate_memory_format_with_bd(desc, plane_i, slice, &bd);
-}
-
-void gfx_buffer_translate_rcfg_color(
-   GFX_BUFFER_RCFG_COLOR_TRANSLATION_T *t,
-   const GFX_BUFFER_DESC_T *desc, uint32_t plane_i,
-   unsigned slice,
-   uint32_t frame_width, uint32_t frame_height)
+void gfx_buffer_translate_tlb_ldst(struct v3d_tlb_ldst_params *ls,
+   v3d_addr_t base_addr, const GFX_BUFFER_DESC_T *desc, uint32_t plane_i, uint32_t slice, bool color,
+   bool tlb_ms, bool ext_ms, v3d_dither_t dither)
 {
    const GFX_BUFFER_DESC_PLANE_T *p = &desc->planes[plane_i];
-   GFX_LFMT_BASE_DETAIL_T bd;
-   bool raster;
-   uint32_t raster_padded_width;
-   uint32_t uif_height_in_ub;
 
-   assert((gfx_lfmt_is_2d(p->lfmt) && slice==0)||
-               (gfx_lfmt_is_3d(p->lfmt)));
+   assert(slice < desc->depth);
+   ls->addr = base_addr + p->offset + (slice * p->slice_pitch);
 
-   gfx_lfmt_base_detail(&bd, p->lfmt);
-   raster = gfx_lfmt_is_rso(p->lfmt);
-   raster_padded_width = gfx_buffer_maybe_rso_padded_width(desc, plane_i);
-   uif_height_in_ub = gfx_buffer_maybe_uif_height_in_ub(desc, plane_i);
-
-   t->memory_format = translate_memory_format_with_bd(desc, plane_i, slice, &bd);
-   t->pixel_format = gfx_lfmt_translate_pixel_format(p->lfmt);
-   t->internal_type = v3d_pixel_format_internal_type(t->pixel_format);
-   t->internal_bpp = v3d_pixel_format_internal_bpp(t->pixel_format);
-   assert(gfx_lfmt_yflip_consistent(p->lfmt));
-   t->flipy = !!gfx_lfmt_get_yflip(&p->lfmt);
-
-   t->pad = 0;
-   t->addr_offset = 0;
-
-   assert(desc->height >= frame_height);
-   if (gfx_lfmt_is_3d(p->lfmt))
-      assert(!t->flipy);
-
-   if (t->flipy)
-   {
-      assert((desc->height % bd.block_h) == 0);
-      if (raster)
-         /* Must pass address of y=0 row to hardware */
-         t->addr_offset = ((desc->height / bd.block_h) - 1) * p->pitch;
-      else if (desc->height != frame_height)
-         /* Provide desc->height to hardware explicitly (see below) */
-         t->pad = 15;
-   }
-
-   /* Try to encode pitch in pad field... */
-   if (t->pad != 15)
-   {
-      if (raster)
-      {
-         assert(raster_padded_width != 0);
-         assert(raster_padded_width >= frame_width);
-         t->pad = gfx_umin(gfx_msb(gfx_lowest_bit(raster_padded_width)), 14);
-         if ((1u << t->pad) <= (raster_padded_width - frame_width))
-            t->pad = 15;
-         else
-            assert(gfx_uround_up_p2(frame_width, 1u << t->pad) ==
-               raster_padded_width);
-      }
-      else if (gfx_lfmt_is_uif_family(p->lfmt))
-         t->pad = gfx_umin(15,
-            uif_height_in_ub - gfx_udiv_round_up(frame_height, gfx_lfmt_ub_h_2d(
-                  &bd, gfx_lfmt_get_swizzling(&p->lfmt))));
-   }
-
-   if (t->pad == 15)
-   {
-      t->clear3_raster_padded_width_or_nonraster_height =
-         raster ? raster_padded_width : desc->height;
-      t->clear3_uif_height_in_ub = uif_height_in_ub;
-   }
+   ls->memory_format = gfx_buffer_translate_memory_format(desc, plane_i);
+#if V3D_HAS_NEW_TLB_CFG
+   ls->pixel_format = gfx_lfmt_translate_pixel_format(p->lfmt);
+#else
+   if (color)
+      ls->output_format.pixel = gfx_lfmt_translate_pixel_format(p->lfmt);
+   else if ((p->lfmt & GFX_LFMT_FORMAT_MASK) == GFX_LFMT_S8_UINT)
+      ls->output_format.depth = V3D_DEPTH_FORMAT_INVALID;
    else
+      ls->output_format.depth = gfx_lfmt_translate_depth_format(p->lfmt);
+#endif
+
+   if (ext_ms)
    {
-      /* These fields should be ignored by hardware -- just stick 0s in */
-      t->clear3_raster_padded_width_or_nonraster_height = 0;
-      t->clear3_uif_height_in_ub = 0;
+      assert(tlb_ms);
+      ls->decimate = V3D_DECIMATE_ALL_SAMPLES;
    }
+#if V3D_HAS_NEW_TLB_CFG
+   else if (tlb_ms && color && v3d_rt_type_supports_4x_decimate(v3d_pixel_format_internal_type(ls->pixel_format)))
+#else
+   else if (tlb_ms && color && v3d_rt_type_supports_4x_decimate(v3d_pixel_format_internal_type(ls->output_format.pixel)))
+#endif
+      ls->decimate = V3D_DECIMATE_4X;
+   else
+      ls->decimate = V3D_DECIMATE_SAMPLE0;
+   ls->dither = dither;
+
+   ls->stride = gfx_lfmt_is_rso(p->lfmt) ?
+#if V3D_HAS_NEW_TLB_CFG
+      p->pitch
+#else
+      gfx_buffer_rso_padded_width(desc, plane_i)
+#endif
+      : gfx_buffer_maybe_uif_height_in_ub(desc, plane_i);
+
+   assert(gfx_lfmt_yflip_consistent(p->lfmt));
+   ls->flipy = !!gfx_lfmt_get_yflip(&p->lfmt);
+   if (ls->flipy)
+   {
+      GFX_LFMT_BASE_DETAIL_T bd;
+      gfx_lfmt_base_detail(&bd, p->lfmt);
+      assert((desc->height % bd.block_h) == 0);
+      if (gfx_lfmt_is_rso(p->lfmt))
+         /* Must pass address of y=0 row to hardware */
+         ls->addr += ((desc->height / bd.block_h) - 1) * p->pitch;
+   }
+   uint32_t w_px;
+   v3d_tlb_pixel_from_decimated_coords(&w_px, &ls->flipy_height_px, desc->width, desc->height, tlb_ms ? 4 : 1, ls->decimate);
 }
 
 static v3d_tfu_iformat_t buffer_desc_to_tfu_iformat(const GFX_BUFFER_DESC_T *desc,
@@ -152,7 +123,7 @@ static v3d_tfu_iformat_t buffer_desc_to_tfu_iformat(const GFX_BUFFER_DESC_T *des
       break;
    default:
       tfu_iformat = v3d_tfu_iformat_from_memory_format(
-         gfx_buffer_translate_memory_format(desc, plane_idx, 0));
+         gfx_buffer_translate_memory_format(desc, plane_idx));
       break;
    }
 
@@ -215,7 +186,7 @@ v3d_tfu_oformat_t gfx_buffer_desc_get_tfu_oformat_and_height_pad_in_ub(
    unsigned plane_index
    )
 {
-   v3d_memory_format_t mem_format = gfx_buffer_translate_memory_format(desc, plane_index, 0);
+   v3d_memory_format_t mem_format = gfx_buffer_translate_memory_format(desc, plane_index);
    v3d_tfu_oformat_t oformat = v3d_tfu_oformat_from_memory_format(mem_format);
 
    uint32_t pad = 0;

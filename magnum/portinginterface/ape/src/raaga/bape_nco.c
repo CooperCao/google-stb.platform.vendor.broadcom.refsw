@@ -1,23 +1,40 @@
-/***************************************************************************
- *     Copyright (c) 2006-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
  *
- * Module Description: Audio Decoder Interface
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * Revision History:
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
- * 
- ***************************************************************************/
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
 
 #include "bstd.h"
 #include "bkni.h"
@@ -55,7 +72,7 @@ BDBG_MODULE(bape_nco);
 static void BAPE_Nco_UpdateDividers_isr(BAPE_Handle handle, BAPE_Nco nco, uint32_t sampleInc, uint32_t  numerator, uint32_t denominator, uint32_t phaseInc, BAVC_Timebase outputTimebase)
 {
     uint32_t regAddr, regVal;
-    
+
     regAddr = BCHP_AUD_FMM_OP_MCLKGEN_MCLK_GEN_0_CONTROL + (BAPE_NCO_STRIDE * nco);
     regVal = BREG_Read32_isr(handle->regHandle, regAddr);
     regVal &= ~BCHP_MASK(AUD_FMM_OP_MCLKGEN_MCLK_GEN_0_CONTROL, TIMEBASE);
@@ -134,7 +151,7 @@ static void BAPE_Nco_UpdateDividers_isr(BAPE_Handle handle, BAPE_Nco nco, uint32
 static void BAPE_Nco_UpdateDividers_isr(BAPE_Handle handle, BAPE_Nco nco, uint32_t sampleInc, uint32_t  numerator, uint32_t denominator, uint32_t phaseInc, BAVC_Timebase outputTimebase)
 {
     uint32_t regAddr, regVal;
-    
+
     regAddr = BCHP_AUD_FMM_IOP_NCO_0_MCLK_GEN_0_CONTROL + (BAPE_NCO_STRIDE * nco);
     regVal = BREG_Read32_isr(handle->regHandle, regAddr);
     regVal &= ~BCHP_MASK(AUD_FMM_IOP_NCO_0_MCLK_GEN_0_CONTROL, TIMEBASE);
@@ -255,27 +272,34 @@ static BERR_Code BAPE_P_SetNcoFreq_isr( BAPE_Handle handle, BAPE_Nco nco, unsign
     unsigned ncoIndex = nco - BAPE_Nco_e0;
     int i;
 
+    /* The following table prioritizes faster mclk rates over slower, allowing for base rates to also support 4x multiples. */
     struct ncoInfo {
             unsigned baseFs; int oversample; long ncoFreq; int sampleInc; long numerator; int denominator; int phaseInc;
-    } ncoInfo[] = 
+    } ncoInfo[] =
     {       /* Multiples of 32 KHz */
+            {  32000,              512,        16384000,          1,           1327,           2048,          0x136B06  },
             {  32000,              256,         8192000,          3,            303,           1024,          0x09b583  },
-            {  64000,              128,         8192000,          3,            303,           1024,          0x09b583  },
+            {  32000,              128,         4096000,          6,            606,           1024,          0x04DAC1  },
             {  64000,              256,        16384000,          1,           1327,           2048,          0x136B06  },
+            {  64000,              128,         8192000,          3,            303,           1024,          0x09b583  },
             { 128000,              128,        16384000,          1,           1327,           2048,          0x136B06  },
             { 128000,              256,        32768000,          0,           3375,           4096,          0x26D60D  },
 
             /* Multiples of 44.1 KHz */
+            {  44100,              512,        22579200,          1,            307,           1568,          0x1AC2B2  },
             {  44100,              256,        11289600,          2,            307,            784,          0x0d6159  },
-            {  88200,              128,        11289600,          2,            307,            784,          0x0d6159  },
+            {  44100,              128,        5644800,           4,            307,            392,          0x06B0AC  },
             {  88200,              256,        22579200,          1,            307,           1568,          0x1AC2B2  },
+            {  88200,              128,        11289600,          2,            307,            784,          0x0d6159  },
             { 176400,              128,        22579200,          1,            307,           1568,          0x1AC2B2  },
             { 176400,              256,        45158400,          0,           1875,           3136,          0x358564  },
-                                                                                           
+
             /* Multiples of 48 KHz */
+            {  48000,              512,        24576000,          1,            101,           1024,          0x1D208A  },
             {  48000,              256,        12288000,          2,            101,            512,          0x0e9045  },
-            {  96000,              128,        12288000,          2,            101,            512,          0x0e9045  },
+            {  48000,              128,        6144000,           4,            101,            256,          0x074822  },
             {  96000,              256,        24576000,          1,            101,           1024,          0x1D208A  },
+            {  96000,              128,        12288000,          2,            101,            512,          0x0e9045  },
             { 192000,              128,        24576000,          1,            101,           1024,          0x1D208A  },
             { 192000,              256,        49152000,          0,           1125,           2048,          0x3A4114  },
     };
@@ -309,6 +333,28 @@ static BERR_Code BAPE_P_SetNcoFreq_isr( BAPE_Handle handle, BAPE_Nco nco, unsign
     handle->audioNcos[ncoIndex].timebase         = outputTimebase;
 
     if (pOversample ) *pOversample = ncoInfo[i].oversample;   /* pass oversample factor back to caller. */
+
+    return BERR_SUCCESS;
+}
+
+BERR_Code BAPE_P_GetNcoConfiguration(BAPE_Handle handle, BAPE_Nco nco, BAPE_NcoConfiguration * pConfig)
+{
+    unsigned ncoIndex = nco - BAPE_Nco_e0;
+
+    BDBG_OBJECT_ASSERT(handle, BAPE_Device);
+    BDBG_ASSERT( pConfig != NULL );
+
+    BKNI_Memset(pConfig, 0, sizeof(*pConfig));
+
+    if ( ncoIndex >= BAPE_CHIP_MAX_NCOS )
+    {
+        BDBG_ASSERT(ncoIndex < BAPE_CHIP_MAX_NCOS);
+        return BERR_TRACE(BERR_INVALID_PARAMETER);
+    }
+
+    pConfig->baseFs = handle->audioNcos[ncoIndex].baseSampleRate;
+    pConfig->frequency = handle->audioNcos[ncoIndex].ncoFreq;
+    pConfig->timebase = handle->audioNcos[ncoIndex].timebase;
 
     return BERR_SUCCESS;
 }
@@ -418,7 +464,7 @@ BERR_Code BAPE_P_UpdateNco_isr(BAPE_Handle handle, BAPE_Nco nco)
     {
         uint32_t oversample;
 
-        BDBG_MSG(("Updating NCO %u for base sample rate of %u Hz", nco, baseRate));
+        BDBG_MSG(("Updating NCO %u for base sample rate of %u Hz, timebase %u", nco, baseRate, outputTimebase));
         errCode = BAPE_P_SetNcoFreq_isr( handle, nco, baseRate, &oversample, outputTimebase );
         if ( errCode )
         {
@@ -538,7 +584,7 @@ BERR_Code BAPE_Nco_P_ResumeFromStandby(BAPE_Handle bapeHandle)
 
 
 /***************************************************************************
-    Define stub functions for when there are no NCOs. 
+    Define stub functions for when there are no NCOs.
 ***************************************************************************/
 #else /* BAPE_CHIP_MAX_NCOS > 0 */
     /* No NCOs, just use stubbed out functions. */
@@ -552,6 +598,3 @@ BERR_Code BAPE_Nco_P_ResumeFromStandby(BAPE_Handle bapeHandle)
 }
 
 #endif /* BAPE_CHIP_MAX_NCOS > 0 */
-
-
-

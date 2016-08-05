@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2013 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,8 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  **************************************************************************/
 #ifndef NEXUS_TRANSPORT_PRIV_H__
 #define NEXUS_TRANSPORT_PRIV_H__
@@ -54,6 +46,10 @@
 #include "nexus_parser_band.h"
 #include "nexus_recpump.h"
 #include "nexus_playpump.h"
+
+#if NEXUS_TRANSPORT_EXTENSION_TSMF
+#include "nexus_tsmf.h"
+#endif
 
 #ifdef __cplusplus
 extern "C"
@@ -95,7 +91,9 @@ struct NEXUS_MtsifParserBandSettings {
         bool valid;
         unsigned hwIndex;
         bool pending; /* if true, the following settings have changed */
+#if NEXUS_TRANSPORT_EXTENSION_TSMF
         NEXUS_TsmfSettings settings;
+#endif
     } tsmf;
 };
 

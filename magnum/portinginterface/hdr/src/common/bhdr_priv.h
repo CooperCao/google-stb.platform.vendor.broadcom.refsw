@@ -89,14 +89,6 @@ extern "C" {
 
 #define BHDR_P_MAX_SYMBOL_LOSS_COUNT      (3)
 
-#if (HDMI_RX_GEN == 7445)
-#define BHDR_P_HDMI_SYS_CLK_RATE 324000000
-#elif ((HDMI_RX_GEN == 7422) || (HDMI_RX_GEN == 3548))
-#define BHDR_P_HDMI_SYS_CLK_RATE 259200000
-#else
-#error "Unknown Chip"
-#endif
-
 #define	MAKE_INTR_ENUM(IntName)	BHDR_INTR_e##IntName
 #define	MAKE_INTR_NAME(IntName)	"BHDR_" #IntName
 
@@ -113,10 +105,6 @@ typedef enum
 	BHDR_P_TIMER_eDviHdmiModeChange
 } BHDR_P_TIMER ;
 
-
-#if (HDMI_RX_GEN == 3548)
-/* no translation needed */
-#elif (HDMI_RX_GEN == 7422) || (HDMI_RX_GEN == 7445)
 
 #define BCHP_INT_ID_HDMI_RX_INTR2_0_SET_AV_MUTE                       BCHP_INT_ID_SET_AV_MUTE
 #define BCHP_INT_ID_HDMI_RX_INTR2_0_AV_MUTE_UPDATE                    BCHP_INT_ID_AV_MUTE_UPDATE
@@ -143,7 +131,6 @@ typedef enum
 #endif
 #define BCHP_INT_ID_HDMI_RX_INTR2_0_FORMAT_DETECT_COUNT_SATURATED     BCHP_INT_ID_FORMAT_DETECT_COUNT_SATURATED
 #define BCHP_INT_ID_HDMI_RX_INTR2_0_ERROR_INTERRUPT                   BCHP_INT_ID_ERROR_INTERRUPT
-#endif
 
 /******************************************************************************
 Summary:
@@ -177,24 +164,6 @@ typedef enum
 	/* 15 */ MAKE_INTR_ENUM(PACKET_SYNC_ERROR),
 	/* 16 */ MAKE_INTR_ENUM(LAYOUT_UPDATE),
 	/* 17 */ MAKE_INTR_ENUM(AUDIO_TYPE_CHANGE),
-
-#if (HDMI_RX_GEN == 3548) && (BCHP_VER >= BCHP_VER_B0)
-	/* 18 */ MAKE_INTR_ENUM(RGB_UNDER_RANGE),
-
-#if 0
-	/* 19 */ MAKE_INTR_ENUM(Reserved19),
-#endif
-	/* 20 */ MAKE_INTR_ENUM(AUDIO_FIFO_OVER_FLOW),
-	/* 21 */ MAKE_INTR_ENUM(AUDIO_FIFO_UNDER_FLOW),
-
-#if 0
-	/* 22 */ MAKE_INTR_ENUM(Reserved22),
-	/* 23 */ MAKE_INTR_ENUM(Reserved23),
-	/* 24 */ MAKE_INTR_ENUM(Reserved24),
-	/* 25 */ MAKE_INTR_ENUM(Reserved25),
-	/* 26 */ MAKE_INTR_ENUM(Reserved26),
-#endif
-#endif
 
 	/* 27 */ MAKE_INTR_ENUM(VSYNC_LEAD_EDGE),
 	/* 28 */ MAKE_INTR_ENUM(VERTICAL_BLANK_END),

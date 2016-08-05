@@ -10,6 +10,7 @@ FILE DESCRIPTION
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "glsl_alloc_tracker.h"
 #include "glsl_arenamem.h"

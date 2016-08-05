@@ -222,12 +222,12 @@ enum tfu_output_byte_format {
 /*
  * TFU Job Structure
  *
- * Upon job submission, the contents of this strucutre are
+ * Upon job submission, the contents of this structure are
  * submitted to the TFU's APB registers, where they will
  * enter a 32-deep command fifo.
  *
  * TFUDRV_FIXME: Replace bus addresses with bcm_mem
- * - address fields are bus addresses for the TFU periphperal
+ * - address fields are bus addresses for the TFU peripheral
  * - Width and Height must be < 16384
  * - Output must be 128-byte aligned
  * - Input has no alignment constraints
@@ -243,6 +243,7 @@ struct bcm_tfu_job {
       unsigned int chroma_stride;
       unsigned int address;
       unsigned int chroma_address;
+      unsigned int uplane_address;
       uint64_t flags;
    } input;
 

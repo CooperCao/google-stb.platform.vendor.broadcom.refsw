@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2012 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *  
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,18 +35,10 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF 
 *  ANY LIMITED REMEDY.
 * 
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * API Description:
 *   API name: DolbyVolume
 *    Specific APIs related to Dolby Volume Audio Processing
 *
-* Revision History:
-*
-* $brcm_Log: $
-* 
 ***************************************************************************/
 
 #ifndef NEXUS_DOLBY_VOLUME_H__
@@ -152,7 +144,7 @@ NEXUS_Error NEXUS_DolbyVolume_SetSettings(
 Summary:
     Get the audio connector for a DolbyVolume stage
 ***************************************************************************/
-NEXUS_AudioInput NEXUS_DolbyVolume_GetConnector(
+NEXUS_AudioInputHandle NEXUS_DolbyVolume_GetConnector(
     NEXUS_DolbyVolumeHandle handle
     );
 
@@ -162,7 +154,7 @@ Add an input to this processing stage
 ***************************************************************************/
 NEXUS_Error NEXUS_DolbyVolume_AddInput(
     NEXUS_DolbyVolumeHandle handle,
-    NEXUS_AudioInput input
+    NEXUS_AudioInputHandle input
     );
 
 /***************************************************************************
@@ -171,7 +163,7 @@ Remove an input from this processing stage
 ***************************************************************************/
 NEXUS_Error NEXUS_DolbyVolume_RemoveInput(
     NEXUS_DolbyVolumeHandle handle,
-    NEXUS_AudioInput input
+    NEXUS_AudioInputHandle input
     );
 
 /***************************************************************************
@@ -237,7 +229,7 @@ NEXUS_Error NEXUS_DolbyVolume258_SetSettings(
 Summary:
     Get the audio connector for a DolbyVolume258 stage
 ***************************************************************************/
-NEXUS_AudioInput NEXUS_DolbyVolume258_GetConnector(
+NEXUS_AudioInputHandle NEXUS_DolbyVolume258_GetConnector(
     NEXUS_DolbyVolume258Handle handle
     );
 
@@ -247,7 +239,7 @@ Add an input to this processing stage
 ***************************************************************************/
 NEXUS_Error NEXUS_DolbyVolume258_AddInput(
     NEXUS_DolbyVolume258Handle handle,
-    NEXUS_AudioInput input
+    NEXUS_AudioInputHandle input
     );
 
 /***************************************************************************
@@ -256,7 +248,7 @@ Remove an input from this processing stage
 ***************************************************************************/
 NEXUS_Error NEXUS_DolbyVolume258_RemoveInput(
     NEXUS_DolbyVolume258Handle handle,
-    NEXUS_AudioInput input
+    NEXUS_AudioInputHandle input
     );
 
 /***************************************************************************
@@ -272,4 +264,3 @@ NEXUS_Error NEXUS_DolbyVolume258_RemoveAllInputs(
 #endif
 
 #endif /* #ifndef NEXUS_DOLBY_VOLUME_H__ */
-

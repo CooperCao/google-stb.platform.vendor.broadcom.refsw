@@ -291,6 +291,7 @@ typedef struct BXPT_P_PcrHandle_Impl
     unsigned PcrCount;
     int64_t PcrThreshold;
 #endif
+    bool pidChnlConfigured;
 }
 BXPT_P_PcrHandle_Impl;
 

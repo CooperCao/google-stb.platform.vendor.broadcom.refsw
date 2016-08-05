@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -975,7 +975,7 @@ static BERR_Code BAPE_Decoder_P_ValidateDecodeSettings(
     else if ( numFound > 0 )
     {
         unsigned i;
-        BDBG_MSG(("\nFound %d mux outputs downstream\n", numFound));
+        BDBG_MSG(("Found %d mux outputs downstream", numFound));
         for ( i=0; i<numFound; i++ )
         {
             BLST_S_INSERT_HEAD(&handle->muxOutputList, (BAPE_MuxOutput*)pNodes[i]->pHandle, decoderListNode);
@@ -1342,6 +1342,7 @@ static BERR_Code BAPE_Decoder_P_Start(
         }
         else
         {
+            dfifoSettings.reverseEndian = true; /* data from input needs to be endian swapped for dsp */
             dfifoSettings.interleaveData = true;
             dfifoSettings.dataWidth = 16;
         }
@@ -2120,6 +2121,11 @@ static void BAPE_Decoder_P_Stop(
     if ( handle->startSettings.inputPort )
     {
         BDBG_ASSERT(NULL != handle->startSettings.inputPort->disable);
+        if ( handle->fciSpOutput )
+        {
+            BAPE_FciSplitterOutputGroup_P_Destroy(handle->fciSpOutput);
+            handle->fciSpOutput = NULL;
+        }
         handle->startSettings.inputPort->disable(handle->startSettings.inputPort);
         BAPE_DfifoGroup_P_Stop(handle->inputDfifoGroup);
     }
@@ -2133,17 +2139,12 @@ static void BAPE_Decoder_P_Stop(
 
     BAPE_PathNode_P_StopPaths(&handle->node);
 
-    if ( handle->startSettings.inputPort  )
+    if ( handle->startSettings.inputPort )
     {
-        BAPE_P_FreeBuffers(handle->deviceHandle, handle->pInputBuffers);
+        BAPE_InputPort_P_DetachConsumer(handle->startSettings.inputPort, &handle->node);
         BAPE_DfifoGroup_P_Destroy(handle->inputDfifoGroup);
         handle->inputDfifoGroup = NULL;
-        BAPE_InputPort_P_DetachConsumer(handle->startSettings.inputPort, &handle->node);
-        if ( handle->fciSpOutput )
-        {
-            BAPE_FciSplitterOutputGroup_P_Destroy(handle->fciSpOutput);
-            handle->fciSpOutput = NULL;
-        }
+        BAPE_P_FreeBuffers(handle->deviceHandle, handle->pInputBuffers);
     }
 
     BAPE_Decoder_P_UnlinkStages(handle);
@@ -2668,19 +2669,27 @@ BERR_Code BAPE_Decoder_SetTsmSettings_isr(
         uint32_t pathDelay = 0;
         BDSP_AudioTaskTsmSettings tsmSettings;
         BDSP_AudioStage_GetTsmSettings_isr(handle->hPrimaryStage, &tsmSettings);
-        BAPE_DSP_P_SET_VARIABLE(tsmSettings, ui32STCAddr, BDSP_RAAGA_REGSET_ADDR_FOR_DSP( BAPE_CHIP_GET_STC_ADDRESS(handle->startSettings.stcIndex))) ;
-        BAPE_DSP_P_SET_VARIABLE(tsmSettings, eTsmEnable, pSettings->tsmEnabled?BDSP_eTsmBool_True:BDSP_eTsmBool_False);
-        BAPE_DSP_P_SET_VARIABLE(tsmSettings, eAstmEnable, pSettings->astmEnabled?BDSP_eTsmBool_True:BDSP_eTsmBool_False);
-        BAPE_DSP_P_SET_VARIABLE(tsmSettings, ePlayBackOn, pSettings->playback?BDSP_eTsmBool_True:BDSP_eTsmBool_False);
-        BAPE_DSP_P_SET_VARIABLE(tsmSettings, ui32AVOffset, pSettings->ptsOffset);
-        BAPE_DSP_P_SET_VARIABLE(tsmSettings, i32TSMDiscardThreshold, pSettings->thresholds.discard*45);
-        BAPE_DSP_P_SET_VARIABLE(tsmSettings, i32TSMGrossThreshold, pSettings->thresholds.grossAdjustment*45);
-        BAPE_DSP_P_SET_VARIABLE(tsmSettings, i32TSMSmoothThreshold, pSettings->thresholds.smoothTrack*45);
-        BAPE_DSP_P_SET_VARIABLE(tsmSettings, i32TSMSyncLimitThreshold, pSettings->thresholds.syncLimit*45);
-        BDBG_MSG(("BAPE_Decoder_SetTsmSettings_isr: eSTCValid = %u", tsmSettings.eSTCValid));
-        if ( handle->startSettings.nonRealTime )
+        if ( handle->startSettings.inputPort )
         {
-            BAPE_DSP_P_SET_VARIABLE(tsmSettings, ui32SwSTCOffset, pSettings->stcOffset);
+            BAPE_DSP_P_SET_VARIABLE(tsmSettings, eTsmEnable, BDSP_eTsmBool_False);
+            BAPE_DSP_P_SET_VARIABLE(tsmSettings, eAstmEnable, BDSP_eTsmBool_False);
+        }
+        else
+        {
+            BAPE_DSP_P_SET_VARIABLE(tsmSettings, ui32STCAddr, BDSP_RAAGA_REGSET_ADDR_FOR_DSP( BAPE_CHIP_GET_STC_ADDRESS(handle->startSettings.stcIndex))) ;
+            BAPE_DSP_P_SET_VARIABLE(tsmSettings, eTsmEnable, pSettings->tsmEnabled?BDSP_eTsmBool_True:BDSP_eTsmBool_False);
+            BAPE_DSP_P_SET_VARIABLE(tsmSettings, eAstmEnable, pSettings->astmEnabled?BDSP_eTsmBool_True:BDSP_eTsmBool_False);
+            BAPE_DSP_P_SET_VARIABLE(tsmSettings, ePlayBackOn, pSettings->playback?BDSP_eTsmBool_True:BDSP_eTsmBool_False);
+            BAPE_DSP_P_SET_VARIABLE(tsmSettings, ui32AVOffset, pSettings->ptsOffset);
+            BAPE_DSP_P_SET_VARIABLE(tsmSettings, i32TSMDiscardThreshold, pSettings->thresholds.discard*45);
+            BAPE_DSP_P_SET_VARIABLE(tsmSettings, i32TSMGrossThreshold, pSettings->thresholds.grossAdjustment*45);
+            BAPE_DSP_P_SET_VARIABLE(tsmSettings, i32TSMSmoothThreshold, pSettings->thresholds.smoothTrack*45);
+            BAPE_DSP_P_SET_VARIABLE(tsmSettings, i32TSMSyncLimitThreshold, pSettings->thresholds.syncLimit*45);
+            BDBG_MSG(("BAPE_Decoder_SetTsmSettings_isr: eSTCValid = %u", tsmSettings.eSTCValid));
+            if ( handle->startSettings.nonRealTime )
+            {
+                BAPE_DSP_P_SET_VARIABLE(tsmSettings, ui32SwSTCOffset, pSettings->stcOffset);
+            }
         }
         errCode = BAPE_Decoder_P_GetPathDelay_isrsafe(handle, &pathDelay);
         if ( errCode )
@@ -3114,12 +3123,24 @@ BERR_Code BAPE_Decoder_SetInterruptHandlers(
         interrupts.tsmPass.pParam1 = handle;
         interrupts.sampleRateChange.pCallback_isr = BAPE_Decoder_P_SampleRateChange_isr;
         interrupts.sampleRateChange.pParam1 = handle;
-        interrupts.lock.pCallback_isr = pInterrupts->lock.pCallback_isr;
-        interrupts.lock.pParam1 = pInterrupts->lock.pParam1;
-        interrupts.lock.param2 = pInterrupts->lock.param2;
-        interrupts.unlock.pCallback_isr = pInterrupts->unlock.pCallback_isr;
-        interrupts.unlock.pParam1 = pInterrupts->unlock.pParam1;
-        interrupts.unlock.param2 = pInterrupts->unlock.param2;
+        if ( handle->startSettings.inputPort )
+        {
+            interrupts.lock.pCallback_isr = NULL;
+            interrupts.lock.pParam1 = NULL;
+            interrupts.lock.param2 = 0;
+            interrupts.unlock.pCallback_isr = NULL;
+            interrupts.unlock.pParam1 = NULL;
+            interrupts.unlock.param2 = 0;
+        }
+        else
+        {
+            interrupts.lock.pCallback_isr = pInterrupts->lock.pCallback_isr;
+            interrupts.lock.pParam1 = pInterrupts->lock.pParam1;
+            interrupts.lock.param2 = pInterrupts->lock.param2;
+            interrupts.unlock.pCallback_isr = pInterrupts->unlock.pCallback_isr;
+            interrupts.unlock.pParam1 = pInterrupts->unlock.pParam1;
+            interrupts.unlock.param2 = pInterrupts->unlock.param2;
+        }
         interrupts.modeChange.pCallback_isr = BAPE_Decoder_P_ModeChange_isr;
         interrupts.modeChange.pParam1 = handle;
         interrupts.bitrateChange.pCallback_isr = BAPE_Decoder_P_BitrateChange_isr;
@@ -3550,12 +3571,12 @@ static BERR_Code BAPE_Decoder_P_ApplyFramesyncSettings(BAPE_DecoderHandle handle
         return BERR_TRACE(errCode);
     }
 
-    datasyncSettings.eEnableTargetSync = handle->startSettings.targetSyncEnabled?BDSP_AF_P_eEnable:BDSP_AF_P_eDisable;
-    datasyncSettings.eForceCompleteFirstFrame = handle->startSettings.forceCompleteFirstFrame?BDSP_AF_P_eEnable:BDSP_AF_P_eDisable;
+    datasyncSettings.eFrameSyncType = BDSP_Raaga_Audio_DatasyncType_eNone;
     if ( handle->startSettings.inputPort )
     {
         /* Setup input port specifics */
-        datasyncSettings.eEnablePESBasedFrameSync = BDSP_AF_P_eEnable;
+        datasyncSettings.eEnableTargetSync = BDSP_AF_P_eDisable;
+        datasyncSettings.eForceCompleteFirstFrame = BDSP_AF_P_eEnable;
         switch ( handle->startSettings.inputPort->type )
         {
         case BAPE_InputPortType_eI2s:
@@ -3568,8 +3589,8 @@ static BERR_Code BAPE_Decoder_P_ApplyFramesyncSettings(BAPE_DecoderHandle handle
             datasyncSettings.eAudioIpSourceType = BDSP_Audio_AudioInputSource_eCapPortSpdif;
             datasyncSettings.uAudioIpSourceDetail.ui32MaiCtrlStatusRegAddr = BDSP_RAAGA_REGSET_ADDR_FOR_DSP((BCHP_PHYSICAL_OFFSET + BCHP_SPDIF_RCVR_CTRL_STATUS));
             break;
-#endif
-#if defined BCHP_AUD_FMM_IOP_IN_SPDIF_0_STATUS
+
+#elif defined BCHP_AUD_FMM_IOP_IN_SPDIF_0_STATUS
         case BAPE_InputPortType_eSpdif:
             datasyncSettings.eAudioIpSourceType = BDSP_Audio_AudioInputSource_eCapPortSpdif;
             datasyncSettings.uAudioIpSourceDetail.ui32MaiCtrlStatusRegAddr = BDSP_RAAGA_REGSET_ADDR_FOR_DSP((BCHP_PHYSICAL_OFFSET + BCHP_AUD_FMM_IOP_IN_SPDIF_0_STATUS));
@@ -3580,8 +3601,7 @@ static BERR_Code BAPE_Decoder_P_ApplyFramesyncSettings(BAPE_DecoderHandle handle
             datasyncSettings.eAudioIpSourceType = BDSP_Audio_AudioInputSource_eCapPortHdmi;
             datasyncSettings.uAudioIpSourceDetail.ui32MaiCtrlStatusRegAddr = BDSP_RAAGA_REGSET_ADDR_FOR_DSP((BCHP_PHYSICAL_OFFSET + BCHP_HDMI_RCVR_CTRL_MAI_FORMAT));
             break;
-#endif
-#if defined BCHP_AUD_FMM_IOP_IN_HDMI_0_MAI_FORMAT
+#elif defined BCHP_AUD_FMM_IOP_IN_HDMI_0_MAI_FORMAT
         case BAPE_InputPortType_eMai:
             datasyncSettings.eAudioIpSourceType = BDSP_Audio_AudioInputSource_eCapPortHdmi;
             datasyncSettings.uAudioIpSourceDetail.ui32MaiCtrlStatusRegAddr = BDSP_RAAGA_REGSET_ADDR_FOR_DSP((BCHP_PHYSICAL_OFFSET + BCHP_AUD_FMM_IOP_IN_HDMI_0_MAI_FORMAT));
@@ -3591,6 +3611,25 @@ static BERR_Code BAPE_Decoder_P_ApplyFramesyncSettings(BAPE_DecoderHandle handle
             BDBG_ERR(("Input %s is not supported.", handle->startSettings.inputPort->pName));
             return BERR_TRACE(BERR_NOT_SUPPORTED);
         }
+
+        switch ( handle->startSettings.codec )
+        {
+        case BAVC_AudioCompressionStd_eAc3:
+        case BAVC_AudioCompressionStd_eAc3Plus:
+        case BAVC_AudioCompressionStd_eAacAdts:
+        case BAVC_AudioCompressionStd_eAacLoas:
+        case BAVC_AudioCompressionStd_eAacPlusAdts:
+        case BAVC_AudioCompressionStd_eAacPlusLoas:
+            datasyncSettings.eFrameSyncType = BDSP_Raaga_Audio_DatasyncType_eSpdif;
+            break;
+        default:
+            break;
+        }
+    }
+    else
+    {
+        datasyncSettings.eEnableTargetSync = handle->startSettings.targetSyncEnabled ? BDSP_AF_P_eEnable : BDSP_AF_P_eDisable;
+        datasyncSettings.eForceCompleteFirstFrame = handle->startSettings.forceCompleteFirstFrame?BDSP_AF_P_eEnable:BDSP_AF_P_eDisable;
     }
 
     /* Codec-Specific Settings (currently only for WMA) */
@@ -3822,11 +3861,22 @@ BERR_Code BAPE_Decoder_P_GetPathDelay_isrsafe(
     BERR_Code errCode;
     BDSP_CTB_Output bdspDelay;
     BDSP_CTB_Input  ctbInput;
+    BDSP_AudioTaskDatasyncSettings datasyncSettings;
 
     BDBG_OBJECT_ASSERT(handle, BAPE_Decoder);
 
+
     ctbInput.audioTaskDelayMode = handle->pathDelayMode;
     ctbInput.realtimeMode = handle->startSettings.nonRealTime;
+    errCode = BDSP_AudioStage_GetDatasyncSettings_isr(handle->hPrimaryStage, &datasyncSettings);
+    if ( errCode != BERR_SUCCESS )
+    {
+        ctbInput.eAudioIpSourceType = BDSP_Audio_AudioInputSource_eInvalid;
+    }
+    else
+    {
+        ctbInput.eAudioIpSourceType = datasyncSettings.eAudioIpSourceType;
+    }
 
     errCode = BDSP_Raaga_GetAudioDelay_isrsafe(&ctbInput, handle->hPrimaryStage, &bdspDelay);
     if ( errCode )

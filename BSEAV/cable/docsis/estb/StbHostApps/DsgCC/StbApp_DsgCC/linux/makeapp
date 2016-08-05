@@ -652,7 +652,8 @@ if [ $target == check ] ; then
 fi
 
 rm -f ${TARGETDIR}/$target
-make --makefile=${BUILD_DIR}/Makefile --directory=$TARGETDIR -w ${TARGETDIR}/MergedNonVolDefaults.h $target
+#make --makefile=${BUILD_DIR}/Makefile --directory=$TARGETDIR -w ${TARGETDIR}/MergedNonVolDefaults.h $target
+${MAKE:-make} --makefile=${BUILD_DIR}/Makefile --directory=$TARGETDIR -w ${TARGETDIR}/MergedNonVolDefaults.h $target
 if [ $? != 0 ] ; then
    failure
    exit

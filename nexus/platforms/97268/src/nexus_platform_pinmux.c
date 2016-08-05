@@ -70,16 +70,17 @@ void NEXUS_Platform_P_EnableSageDebugPinmux(void)
     }
 
     NEXUS_Platform_GetStatus(&platformStatus);
-    BDBG_MSG(("Selecting SAGE pin Mux for board ID %d",platformStatus.boardId.major));
+    BDBG_MSG(("Selecting SAGE pin mux for board ID %d",platformStatus.boardId.major));
 
     switch (platformStatus.boardId.major) {
 
         default:
         {
-            BDBG_WRN(("Pin mux for board type %d hasn't been verified, defaulting to SV configuration",platformStatus.boardId.major));
-            /* Intentional fall through to next case statement. */
+            /* USFF, VMS and HB boards don't have anything other than UART 0 headers */
+            BDBG_MSG(("Unknown or no SAGE UART available on board type %d.",platformStatus.boardId.major));
+            break;
         }
-        case 0:  /* SV board */
+        case 1:  /* SV board */
         {
             /* BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_1
              * GPIO_05    : ALT_TP_IN_04

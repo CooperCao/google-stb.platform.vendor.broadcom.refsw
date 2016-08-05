@@ -52,7 +52,7 @@ OS_SEM free_sem;
 #endif
 #define PRINTF_BUF_SIZE 2048
 
-#if MIPS_BSU_HEAP_ADDR == 0
+#if (MIPS_BSU_HEAP_ADDR == 0) && defined(UCOS)
 static int init=0;
 #endif
 

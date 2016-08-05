@@ -60,7 +60,7 @@
 #endif
 
 BDBG_MODULE(BVDC_SRC);
-BDBG_FILE_MODULE(repeatpolarity);
+BDBG_FILE_MODULE(BVDC_REPEATPOLARITY);
 BDBG_FILE_MODULE(BVDC_WIN_BUF);
 BDBG_OBJECT_ID(BVDC_SRC);
 
@@ -391,13 +391,13 @@ BERR_Code BVDC_P_Source_Create
             }
         }
 
+        eStatus = BRDC_Slots_Create(hVdc->hRdc, pSource->ahSlot, pSource->ulSlotUsed);
+        if(BERR_SUCCESS != eStatus)
+        {
+            goto BVDC_P_Source_Create_Done;
+        }
         for(i = 0; i < pSource->ulSlotUsed; i++)
         {
-            eStatus = BRDC_Slot_Create(hVdc->hRdc, &pSource->ahSlot[i]);
-            if(BERR_SUCCESS != eStatus)
-            {
-                goto BVDC_P_Source_Create_Done;
-            }
             BRDC_Slot_UpdateLastRulStatus_isr(pSource->ahSlot[i], pSource->ahList[i], true);
             /* Slot's force trigger reg addr. */
             eStatus = BRDC_Slot_GetId(pSource->ahSlot[i], &eSlotId);
@@ -413,6 +413,7 @@ BERR_Code BVDC_P_Source_Create
             {
                 BRDC_Slot_Settings  stSlotSettings;
 
+                BRDC_Slot_GetConfiguration(pSource->ahSlot[i], &stSlotSettings);
                 stSlotSettings.bHighPriority = true;
                 eStatus = BRDC_Slot_SetConfiguration(pSource->ahSlot[i], &stSlotSettings);
                 if(BERR_SUCCESS != eStatus)
@@ -434,8 +435,8 @@ BERR_Code BVDC_P_Source_Create
                 {
                     pSource->eCombTrigger = BRDC_Trigger_eComboTrig0 + pSource->eId;
 
-                    /* Only need top/bottom slave slots and lists */
-                    for(i = 0; i < 2 * BVDC_P_MAX_MULTI_RUL_BUFFER_COUNT; i++)
+                    /* Only need 3 slave lists and one slave slot*/
+                    for(i = 0; i < BVDC_P_MAX_MULTI_SLAVE_RUL_BUFFER_COUNT; i++)
                     {
                         eStatus = BRDC_List_Create(hVdc->hRdc, BVDC_P_MAX_ENTRY_PER_MPEG_RUL,
                             &pSource->ahListSlave[i]);
@@ -454,7 +455,6 @@ BERR_Code BVDC_P_Source_Create
                     pSource->eCombTrigger = BRDC_Trigger_UNKNOWN;
                 }
                 BDBG_MSG(("Src[%d] use combo trigger %d", pSource->eId, pSource->eCombTrigger));
-
             }
         }
     }
@@ -488,7 +488,7 @@ BERR_Code BVDC_P_Source_Create
         pTrig1Info = BRDC_Trigger_GetInfo(hVdc->hRdc, s_aSrcParams[eSourceId].aeTrigger[1]);
 
         BDBG_ASSERT(pTrig0Info && pTrig1Info);
-        BDBG_MSG(("\tTrigger lost detection for source[%d]: %s, %s",
+        BDBG_MSG(("    Trigger lost detection for source[%d]: %s, %s",
             pSource->eId, pTrig0Info->pchTrigName, pTrig0Info->pchTrigName));
 
         /* Make need to update table due to source enum update. */
@@ -523,7 +523,7 @@ BERR_Code BVDC_P_Source_Create
         if(0 == pSource->ulScratchPolReg) {
             BDBG_ERR(("out of scratch registers for source [%d]!", eSourceId));
         }
-        BDBG_MODULE_MSG(repeatpolarity, ("Allocated src[%d] scratch register %#x to hold REPEAT_POLARITY swap flag",
+        BDBG_MODULE_MSG(BVDC_REPEATPOLARITY, ("Allocated src[%d] scratch register %#x to hold REPEAT_POLARITY swap flag",
             eSourceId, pSource->ulScratchPolReg));
 #endif
         BVDC_P_Feeder_Create(&pSource->hMpegFeeder, hVdc->hRdc, hVdc->hRegister,
@@ -605,7 +605,7 @@ BVDC_P_Source_Create_Done:
             if(NULL != pSource->ahSlot[i])
                 BRDC_Slot_Destroy(pSource->ahSlot[i]);
         }
-        for(i = 0; i < 2 * BVDC_P_MAX_MULTI_RUL_BUFFER_COUNT; i++)
+        for(i = 0; i < BVDC_P_MAX_MULTI_SLAVE_RUL_BUFFER_COUNT; i++)
         {
             if(NULL != pSource->ahListSlave[i])
                 BRDC_List_Destroy(pSource->ahListSlave[i]);
@@ -665,7 +665,7 @@ void BVDC_P_Source_Destroy
     if(hSource->hMpegFeeder)
     {
 #if BVDC_P_SUPPORT_STG
-        BDBG_MODULE_MSG(repeatpolarity, ("free src[%d] REPEAT_POLARITY scratch register %#x ",
+        BDBG_MODULE_MSG(BVDC_REPEATPOLARITY, ("free src[%d] REPEAT_POLARITY scratch register %#x ",
                     hSource->eId, hSource->ulScratchPolReg));
         BRDC_FreeScratchReg(hSource->hVdc->hRdc, hSource->ulScratchPolReg);
 #endif
@@ -713,7 +713,7 @@ void BVDC_P_Source_Destroy
             {
                 if(NULL != hSource->hSlotSlave)
                     BRDC_Slot_Destroy(hSource->hSlotSlave);
-                for(i = 0; i < 2 * BVDC_P_MAX_MULTI_RUL_BUFFER_COUNT; i++)
+                for(i = 0; i < BVDC_P_MAX_MULTI_SLAVE_RUL_BUFFER_COUNT; i++)
                 {
                     if(NULL != hSource->ahListSlave[i])
                         BRDC_List_Destroy(hSource->ahListSlave[i]);
@@ -941,9 +941,8 @@ void BVDC_P_Source_Init
         {
             /* Initialized rul indexing. */
             hSource->aulRulIdx[i] = 0;
-            BRDC_Slot_SetList_isr(hSource->ahSlot[i],
-                hSource->ahList[i * BVDC_P_MAX_MULTI_RUL_BUFFER_COUNT]);
         }
+        BRDC_Slots_SetList_isr(hSource->ahSlot, hSource->ahList[0], hSource->ulSlotUsed);
     }
 
     /* Initialize specific source. */
@@ -1213,8 +1212,11 @@ void BVDC_P_Source_ApplyChanges_isr
 
         if(BVDC_P_SRC_IS_VIDEO(hSource->eId) && !BVDC_P_SRC_IS_VFD(hSource->eId))
         {
+            BVDC_P_Source_CleanupSlots_isr(hSource);
             for(i = 0; i < hSource->ulSlotUsed; i++)
             {
+                BRDC_Slot_ExecuteOnTrigger_isr(hSource->ahSlot[i],
+                    BRDC_Trigger_UNKNOWN, true);
                 BRDC_Slot_Disable_isr(hSource->ahSlot[i]);
             }
         }
@@ -1227,6 +1229,17 @@ void BVDC_P_Source_ApplyChanges_isr
             {
                 BINT_DisableCallback_isr(hSource->ahCallback[i]);
                 BINT_ClearCallback_isr(hSource->ahCallback[i]);
+            }
+
+            if(hSource->hTrigger0Cb)
+            {
+                BINT_DisableCallback_isr(hSource->hTrigger0Cb);
+                BINT_ClearCallback_isr(hSource->hTrigger0Cb);
+            }
+            if(hSource->hTrigger1Cb)
+            {
+                BINT_DisableCallback_isr(hSource->hTrigger1Cb);
+                BINT_ClearCallback_isr(hSource->hTrigger1Cb);
             }
         }
 
@@ -1459,28 +1472,28 @@ void BVDC_P_Source_CleanupSlots_isr
 ( BVDC_Source_Handle               hSource )
 {
     uint32_t i;
-    BRDC_Slot_Handle hSlot;
     BRDC_List_Handle hList;
 
     BDBG_ENTER(BVDC_P_Source_CleanupSlots_isr);
     BDBG_OBJECT_ASSERT(hSource, BVDC_SRC);
+    BVDC_P_SRC_NEXT_RUL(hSource, BAVC_Polarity_eBotField);
+    hList = BVDC_P_SRC_GET_LIST(hSource, BAVC_Polarity_eBotField);
 
-    for(i = 0; i < hSource->ulSlotUsed; i++)
-    {
-        BVDC_P_SRC_NEXT_RUL(hSource, i);
-        hSlot = BVDC_P_SRC_GET_SLOT(hSource, i);
-        hList = BVDC_P_SRC_GET_LIST(hSource, i);
-
-        /* turn off slots exec tracking to not to lose the critical RUL
-        in the source slots before the cleanup; */
-        BRDC_Slot_UpdateLastRulStatus_isr(hSlot, hList, false);
-
-        BRDC_List_SetNumEntries_isr(hList, 0);
-        BVDC_P_BuildNoOpsRul_isr(hList);
-        BRDC_Slot_SetList_isr(hSlot, hList);
-        /* reenable tracking */
-        BRDC_Slot_UpdateLastRulStatus_isr(hSlot, hList, true);
+    /* turn off slots exec tracking to not to lose the critical RUL
+    in the source slots before the cleanup; */
+    for(i = 0; i < hSource->ulSlotUsed; i++) {
+        BRDC_Slot_UpdateLastRulStatus_isr(hSource->ahSlot[i], hList, false);
     }
+
+    BRDC_List_SetNumEntries_isr(hList, 0);
+    BVDC_P_BuildNoOpsRul_isr(hList);
+    BRDC_Slots_SetList_isr(hSource->ahSlot, hList, hSource->ulSlotUsed);
+
+    /* reenable tracking */
+    for(i = 0; i < hSource->ulSlotUsed; i++) {
+        BRDC_Slot_UpdateLastRulStatus_isr(hSource->ahSlot[i], hList, true);
+    }
+
     BDBG_LEAVE(BVDC_P_Source_CleanupSlots_isr);
     return;
 }
@@ -2593,6 +2606,7 @@ typedef struct {
 /* this table must match the order of BAVC_FrameRateCode enum */
 static const BVDC_P_RefreshRateEntry s_aSrcRefreshRate[] =
 {
+    BVDC_P_MAKE_VRR(eUnknown, 60.000, e60 ),
     BVDC_P_MAKE_VRR(e23_976, 23.976, e59_94 ),
     BVDC_P_MAKE_VRR(e24, 24.000, e60 ),
     BVDC_P_MAKE_VRR(e25, 25.000, e50 ),
@@ -2624,13 +2638,14 @@ uint32_t BVDC_P_Source_RefreshRate_FromFrameRateCode_isrsafe
     ( BAVC_FrameRateCode               eFrameRateCode )
 {
     /* this assert could detect adding to BAVC_FrameRateCode enum */
-    BDBG_ASSERT(sizeof(s_aSrcRefreshRate)/sizeof(BVDC_P_RefreshRateEntry) == BAVC_FrameRateCode_eMax-1);
+    BDBG_ASSERT(sizeof(s_aSrcRefreshRate)/sizeof(BVDC_P_RefreshRateEntry) == BAVC_FrameRateCode_eMax);
     if ((eFrameRateCode == BAVC_FrameRateCode_eUnknown || eFrameRateCode >= BAVC_FrameRateCode_eMax))
     {
-        BDBG_MSG(("Unknown eFrameRateCode %d", eFrameRateCode));
+        BDBG_MSG(("Unknown eFrameRateCode %d. Setting refresh rate to 60 Hz.", eFrameRateCode));
         return s_aSrcRefreshRate[BAVC_FrameRateCode_e60].ulRefreshRate;
     }
-    return s_aSrcRefreshRate[eFrameRateCode-1].ulRefreshRate;
+
+    return s_aSrcRefreshRate[eFrameRateCode].ulRefreshRate;
 }
 
 /***************************************************************************
@@ -2648,7 +2663,8 @@ BAVC_FrameRateCode BVDC_P_Source_RefreshRateCode_FromRefreshRate_isrsafe
             return s_aSrcRefreshRate[i].eFrameRateCode;
         }
     }
-    BDBG_WRN(("Unknown vert refresh rate %d", ulVertRefreshRate));
+    BDBG_WRN(("Unknown vertical refresh rate %d. Returning unknown frame rate code.", ulVertRefreshRate));
+
     return BAVC_FrameRateCode_eUnknown;
 }
 
@@ -2666,7 +2682,7 @@ BAVC_FrameRateCode BVDC_P_Source_MtgRefreshRate_FromFrameRateCode_isrsafe
     }
     else
     {
-        return s_aSrcRefreshRate[eFrameRateCode-1].eMtgRefreshCode;
+        return s_aSrcRefreshRate[eFrameRateCode].eMtgRefreshCode;
     }
 }
 

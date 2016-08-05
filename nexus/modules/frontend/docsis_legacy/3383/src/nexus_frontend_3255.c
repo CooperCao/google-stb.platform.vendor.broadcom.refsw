@@ -1,54 +1,41 @@
-/***************************************************************************
-*     (c)2004-2013 Broadcom Corporation
-*
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
-*  and may only be used, duplicated, modified or distributed pursuant to the terms and
-*  conditions of a separate, written license agreement executed between you and Broadcom
-*  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
-*  no license (express or implied), right to use, or waiver of any kind with respect to the
-*  Software, and Broadcom expressly reserves all rights in and to the Software and all
-*  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-*  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-*  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-*  Except as expressly set forth in the Authorized License,
-*
-*  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
-*  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
-*  and to use this information only in connection with your use of Broadcom integrated circuit products.
-*
-*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
-*  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
-*  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
-*  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
-*  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
-*  USE OR PERFORMANCE OF THE SOFTWARE.
-*
-*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
-*  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
-*  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
-*  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
-*  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
-*  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
-*  ANY LIMITED REMEDY.
-*
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* API Description:
-*   API name: Frontend 3255
-*    APIs to open, close, and setup initial settings for a BCM3255
-*    Frontend Device.
-*
-* Revision History:
-*
-* $brcm_Log: $
-*
-***************************************************************************/
+/******************************************************************************
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ *  Except as expressly set forth in the Authorized License,
+ *
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+
+ ******************************************************************************/
 
 #include "nexus_frontend_module.h"
 #include "nexus_platform_features.h"
@@ -384,7 +371,7 @@ static NEXUS_Error NEXUS_Frontend_P_3255UsChannelTune(
     default:
         return BERR_NOT_SUPPORTED;
     }
-
+#if NEXUS_PLATFORM_DOCSIS_OOB_SUPPORT
     rc = BAUS_SetOperationMode(deviceHandle->aus, mode);
     if (rc!=BERR_SUCCESS) { return BERR_TRACE(rc);}
 
@@ -398,7 +385,7 @@ static NEXUS_Error NEXUS_Frontend_P_3255UsChannelTune(
         rc = BAUS_SetPowerLevel(deviceHandle->aus, pSettings->powerLevel);
         if (rc!=BERR_SUCCESS) { return BERR_TRACE(rc);}
     }
-
+#endif
     channelHandle->last_aus = *pSettings;
     return BERR_SUCCESS;
 
@@ -407,6 +394,7 @@ static NEXUS_Error NEXUS_Frontend_P_Get3255UsChannelStatus(
     void *handle,
     NEXUS_FrontendUpstreamStatus *pStatus)
 {
+#if defined(NEXUS_PLATFORM_DOCSIS_OOB_SUPPORT)
     BERR_Code  rc;
     struct BAUS_Status st;
     NEXUS_3255ChannelHandle channelHandle = (NEXUS_3255ChannelHandle)handle;
@@ -445,6 +433,11 @@ static NEXUS_Error NEXUS_Frontend_P_Get3255UsChannelStatus(
     pStatus->sysXtalFreq = st.sysXtalFreq;
 
     return NEXUS_SUCCESS;
+#else
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(pStatus);
+    return NEXUS_NOT_SUPPORTED;
+#endif
 }
 #endif
 
@@ -761,6 +754,7 @@ NEXUS_Error NEXUS_Frontend_P_3255_GetFastStatus(
     }
     else
     {
+#if NEXUS_PLATFORM_DOCSIS_OOB_SUPPORT
         if(deviceHandle->channelCapabilities[chn_num].channelType == NEXUS_3255ChannelType_eOutOfBand)
         {
             if(channelHandle->tune_started)
@@ -775,6 +769,7 @@ NEXUS_Error NEXUS_Frontend_P_3255_GetFastStatus(
             }
         }
         else
+#endif
         {
             BDBG_ERR(("getFastStatus not supported for channel type %u",deviceHandle->channelCapabilities[chn_num].channelType));
             rc = NEXUS_NOT_SUPPORTED;
@@ -960,7 +955,7 @@ static NEXUS_Error NEXUS_Frontend_P_Init3255DeviceRPC(NEXUS_3255DeviceHandle dev
     socketSettings.timeout = 3000; /*3000ms for reliable connection*/
     errCode = BRPC_Open_SocketImpl(&deviceHandle->rpc_handle, &socketSettings);
     if ( errCode != BERR_SUCCESS ) return NEXUS_UNKNOWN;
-    BDBG_WRN(("Device Handle %x, RPC handle %x", deviceHandle, deviceHandle->rpc_handle));
+    BDBG_WRN(("Device Handle %p, RPC handle %p", (void *)deviceHandle, (void *)deviceHandle->rpc_handle));
     return NEXUS_SUCCESS;
 }
 
@@ -972,7 +967,7 @@ static NEXUS_3255ChannelHandle NEXUS_Frontend_P_Get3255ChannelHandle(
     bool foundChannelHandle=false;
     NEXUS_3255ChannelHandle channelHandle;
 
-    BDBG_MSG(("deviceHandle->numOfQamFrontends %u deviceHandle %x",i,deviceHandle));
+    BDBG_MSG(("deviceHandle->numOfQamFrontends %u deviceHandle %p",i, (void*)deviceHandle));
     for(i=0;i< deviceHandle->numOfQamFrontends && deviceHandle->frontendHandle[i];i++)
     {
         channelHandle = deviceHandle->frontendHandle[i]->pDeviceHandle;
@@ -1004,7 +999,7 @@ static void NEXUS_Frontend_P_Process3255DeviceRpcNotification(
     NEXUS_3255DeviceHandle deviceHandle = (NEXUS_3255DeviceHandle)arg;
     NEXUS_3255ChannelHandle channelHandle;
     BDBG_OBJECT_ASSERT(deviceHandle, NEXUS_3255Device);
-    BDBG_MSG(("NEXUS_Frontend_P_3255DeviceProcessNotification deviceId %x event %u deviceHandle %x",device_id,event,deviceHandle));
+    BDBG_MSG(("NEXUS_Frontend_P_3255DeviceProcessNotification deviceId %x event %u deviceHandle %p",device_id,event,(void *)deviceHandle));
     deviceHandle->rpc_notification_count++;
 
     switch (device_id)
@@ -1610,7 +1605,7 @@ static NEXUS_Error NEXUS_Frontend_P_3255Standby(void *handle, bool enabled, cons
     BERR_Code retVal;
     BSTD_UNUSED(enabled);
 
-    BDBG_WRN(("Channel Handle %x ,Device Handle %x, RPC handle %x", channelHandle, deviceHandle, deviceHandle->rpc_handle));
+    BDBG_WRN(("Channel Handle %p , Device Handle %p, RPC handle %p", (void *)channelHandle, (void *)deviceHandle, (void *)deviceHandle->rpc_handle));
 
     BDBG_ASSERT( deviceHandle->rpc_handle);
 
@@ -1808,9 +1803,12 @@ NEXUS_3255DeviceHandle NEXUS_Frontend_Open3255Device(
      */
     BSTD_UNUSED(index);
 
-    pFrontendDevice = BKNI_Malloc(sizeof(*pFrontendDevice));
-    if (NULL == pFrontendDevice) {BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY); goto err_malloc;}
-    BKNI_Memset(pFrontendDevice, 0, sizeof(*pFrontendDevice));
+	pFrontendDevice = NEXUS_FrontendDevice_P_Create();
+	if (NULL == pFrontendDevice)
+	{
+		errCode = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
+		goto err_malloc;;
+	}
 
     deviceHandle = BKNI_Malloc(sizeof(NEXUS_3255Device));
     if ( NULL == deviceHandle )
@@ -1826,7 +1824,7 @@ NEXUS_3255DeviceHandle NEXUS_Frontend_Open3255Device(
     deviceHandle->pGenericDeviceHandle = pFrontendDevice;
     pFrontendDevice->pDevice = (void *) deviceHandle;
     if (NEXUS_Frontend_P_Init3255DeviceRPC(deviceHandle) ) goto err_rpc;
-    BDBG_WRN(("Device Handle %x, RPC handle %x", deviceHandle, deviceHandle->rpc_handle));
+    BDBG_WRN(("Device Handle %p, RPC handle %p", (void *)deviceHandle, (void *)deviceHandle->rpc_handle));
     errCode = BADS_3255_GetDefaultSettings( &ads_cfg, NULL);
     if ( errCode != BERR_SUCCESS ) goto err_init;
 
@@ -2037,8 +2035,8 @@ oob_done:
             goto err_init;
     }
 
-    BDBG_WRN(("Device Handle %x, RPC handle %x", deviceHandle, deviceHandle->rpc_handle));
-    BDBG_MSG(("NEXUS_Frontend_Open3255Device %x>>>",deviceHandle));
+    BDBG_WRN(("Device Handle %p, RPC handle %p", (void *)deviceHandle, (void *)deviceHandle->rpc_handle));
+    BDBG_MSG(("NEXUS_Frontend_Open3255Device %p>>>", (void *)deviceHandle));
     return deviceHandle;
 
 err_init:
@@ -2236,6 +2234,7 @@ void NEXUS_Frontend_GetDefault3255ChannelSettings(
 
 static NEXUS_Error NEXUS_Frontend_P_3255TransmitDebugPacket(void* handle, NEXUS_FrontendDebugPacketType type,const uint8_t *pBuffer, size_t size)
 {
+#if NEXUS_PLATFORM_DOCSIS_OOB_SUPPORT
 	NEXUS_3255ChannelHandle channelHandle = (NEXUS_3255ChannelHandle)handle;
 	NEXUS_3255DeviceHandle deviceHandle = channelHandle->deviceHandle;
 	NEXUS_Error rc = NEXUS_SUCCESS;
@@ -2257,6 +2256,13 @@ static NEXUS_Error NEXUS_Frontend_P_3255TransmitDebugPacket(void* handle, NEXUS_
 		rc = (retCode = BERR_OUT_OF_DEVICE_MEMORY)? NEXUS_OUT_OF_DEVICE_MEMORY : NEXUS_INVALID_PARAMETER;
 	}
 	return rc;
+#else
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(type);
+    BSTD_UNUSED(pBuffer);
+    BSTD_UNUSED(size);
+    return NEXUS_NOT_SUPPORTED;
+#endif
 }
 
 NEXUS_FrontendHandle NEXUS_Frontend_Open3255Channel(
@@ -2285,7 +2291,7 @@ NEXUS_FrontendHandle NEXUS_Frontend_Open3255Channel(
     BKNI_Memset((void *)channelHandle,0,sizeof(NEXUS_3255Channel));
     BKNI_Memcpy((void *)&channelHandle->channelSettings,(void*)pSettings,sizeof(*pSettings));
     channelHandle->deviceHandle = deviceHandle;
-    BDBG_WRN(("Handle %x, Device Handle %x num %x", channelHandle, channelHandle->deviceHandle, chn_num));
+    BDBG_WRN(("Handle %p, Device Handle %p num %x", (void *)channelHandle, (void *)channelHandle->deviceHandle, chn_num));
     deviceHandle->frontendHandle[deviceHandle->numOfFrontends] = frontendHandle = NEXUS_Frontend_P_Create(channelHandle);
     /* Establish device capabilities */
     if ( deviceHandle->channelCapabilities[pSettings->channelNumber].channelType == NEXUS_3255ChannelType_eInBand)

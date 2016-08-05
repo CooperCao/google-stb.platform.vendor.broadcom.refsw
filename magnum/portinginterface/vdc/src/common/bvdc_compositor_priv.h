@@ -269,8 +269,6 @@ typedef struct
     uint8_t                           ucGreen;
     uint8_t                           ucBlue;
     const BFMT_VideoInfo             *pFmtInfo;
-    bool                              bLumaRectUserSet;
-    BVDC_LumaSettings                 stLumaRect;
     BVDC_ColorClipSettings            stColorClipSettings;
     BFMT_Orientation                  eOrientation;
 

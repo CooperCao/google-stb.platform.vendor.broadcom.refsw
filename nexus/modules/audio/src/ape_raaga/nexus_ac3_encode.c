@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2012 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  * 
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF 
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- * 
  * Module Description:
- * 
- * Revision History:
- * 
- * $brcm_Log: $
  * 
  *****************************************************************************/
 
@@ -185,7 +177,7 @@ NEXUS_Error NEXUS_Ac3Encode_SetSettings(
 Summary:
     Get the audio connector for an AC3 Encode stage
 ***************************************************************************/
-NEXUS_AudioInput NEXUS_Ac3Encode_GetConnector( /* attr{shutdown=NEXUS_AudioInput_Shutdown} */
+NEXUS_AudioInputHandle NEXUS_Ac3Encode_GetConnector( /* attr{shutdown=NEXUS_AudioInput_Shutdown} */
     NEXUS_Ac3EncodeHandle handle
     )
 {
@@ -199,7 +191,7 @@ Add an input to this processing stage
 ***************************************************************************/
 NEXUS_Error NEXUS_Ac3Encode_AddInput(
     NEXUS_Ac3EncodeHandle handle,
-    NEXUS_AudioInput input
+    NEXUS_AudioInputHandle input
     )
 {
     NEXUS_Error errCode;
@@ -219,7 +211,7 @@ Remove an input from this processing stage
 ***************************************************************************/
 NEXUS_Error NEXUS_Ac3Encode_RemoveInput(
     NEXUS_Ac3EncodeHandle handle,
-    NEXUS_AudioInput input
+    NEXUS_AudioInputHandle input
     )
 {
     NEXUS_Error errCode;
@@ -252,4 +244,3 @@ NEXUS_Error NEXUS_Ac3Encode_RemoveAllInputs(
     }
     return BERR_SUCCESS;
 }
-

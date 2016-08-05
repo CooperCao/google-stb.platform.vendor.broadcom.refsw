@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -432,10 +432,13 @@ static BIP_Status openAndAddPidChannelToTrackList(
         hTrackEntry = B_Os_Calloc( 1, sizeof(BIP_PlayerTrackListEntry));
         BIP_CHECK_GOTO( (hTrackEntry), ( "Failed to allocate memory (%zu bytes) for TrackEntry Object", sizeof(BIP_PlayerTrackListEntry) ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, bipStatus );
 
+        hTrackEntry->trackId = trackId;
+        hTrackEntry->settings = *pSettings;
+
         /* If caller wants to open an allPass channel, get the hw index associated w/ the all pass channel. */
         if ( hPlayer->playerSettings.playbackSettings.playpumpSettings.allPass )
         {
-            nrc = NEXUS_Playpump_GetAllPassPidChannelIndex(hPlayer->hPlaypump, (unsigned *)&pSettings->pidSettings.pidSettings.pidSettings.pidChannelIndex);
+            nrc = NEXUS_Playpump_GetAllPassPidChannelIndex(hPlayer->hPlaypump, &hTrackEntry->settings.pidSettings.pidSettings.pidSettings.pidChannelIndex);
             BIP_CHECK_GOTO(( nrc == NEXUS_SUCCESS ), ( "NEXUS_Playpump_GetAllPassPidChannelIndex Failed" ), error, BIP_ERR_NEXUS, bipStatus );
         }
 
@@ -450,8 +453,6 @@ static BIP_Status openAndAddPidChannelToTrackList(
             BIP_CHECK_GOTO(( hTrackEntry->hPidChannel ), ( "NEXUS_Playback_OpenPidChannel Failed" ), error, BIP_ERR_NEXUS, bipStatus );
         }
 
-        hTrackEntry->trackId = trackId;
-        hTrackEntry->settings = *pSettings;
         *phPidChannel = hTrackEntry->hPidChannel;
         BLST_Q_INSERT_TAIL( &hPlayer->trackListHead, hTrackEntry, trackListNext );
         BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer %p: Added track entry=%p: (trackId 0x%x), returning hPidChannel=%p" BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hTrackEntry, trackId, (void *)*phPidChannel));
@@ -2870,11 +2871,21 @@ static BIP_Status prepareForPullMode(
             settings.modeSettings.Auto.transportType = hPlayer->streamInfo.transportType;
         }
 
-        if (hPlayer->audioTrackId != UINT_MAX && hPlayer->audioTrackId == hPlayer->streamInfo.mpeg2Ts.pcrPid)
+        if (hPlayer->audioTrackId != UINT_MAX &&
+                (hPlayer->audioTrackId == hPlayer->streamInfo.mpeg2Ts.pcrPid ||
+                hPlayer->playerProtocol == BIP_PlayerProtocol_eSimpleUdp || hPlayer->playerProtocol == BIP_PlayerProtocol_eRtp) )
         {
             /*
-             * We use audio master mode if a audioTrackId matches the PCR Pid.
-             * This is typically the case for Music Channels w/ Video Stills where we would want to stay in Audio Master mode in all cases.
+             * We use audio master mode in following cases when audio track is present in the stream:
+             *
+             *  - if a audioTrackId matches the PCR Pid. This is typically the case for Music Channels
+             *    w/ Video Stills where we would want to stay in Audio Master mode in all cases.
+             *
+             *  - if playerProtocol for this stream happens to be UDP or RTP. Note here that we are in the
+             *    pull clock recovery mode logic (which typically is not applicable for UDP/RTP protocols).
+             *    So app must have over-ridden clock recovery mode to ePull in the BIP_Player_Prepare().
+             *    App will do that when it is receiving UDP/RTP stream in a very low jitter environment
+             *    and wants to do low-latency decode & display.
              */
             BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p: AudioTrackId(0x%x) matches the PcrTrackId(0x%x), using STC Channel in audioMasterAutoMode"
                       BIP_MSG_PRE_ARG, (void *)hPlayer, hPlayer->audioTrackId, hPlayer->streamInfo.mpeg2Ts.pcrPid ));

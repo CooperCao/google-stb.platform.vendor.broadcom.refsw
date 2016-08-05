@@ -53,7 +53,7 @@ typedef struct NEXUS_Platform_P_SharedGpioState
 } NEXUS_Platform_P_SharedGpioState;
 
 b_shared_gpio_irq_type NEXUS_Platform_P_SharedGpio_NexusInterruptTypeToDriver(NEXUS_GpioInterrupt nexusType);
-void NEXUS_Platform_P_SharedGpio_GetPinDesc(NEXUS_GpioModuleOsSharedBankPinHandle nexusPin, b_shared_gpio_pin_desc * pinDesc);
+void NEXUS_Platform_P_SharedGpio_GetPinDesc_isrsafe(NEXUS_GpioModuleOsSharedBankPinHandle nexusPin, b_shared_gpio_pin_desc * pinDesc);
 void NEXUS_Platform_P_SharedGpio_DriverInterruptStatusToNexus_isr(const b_shared_gpio_int_status * pDriver, NEXUS_GpioModuleOsSharedBankInterruptStatus * pNexus);
 
 #endif /* NEXUS_PLATFORM_GPIO_COMMON_H */

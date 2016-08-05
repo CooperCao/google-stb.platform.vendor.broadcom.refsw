@@ -22,6 +22,7 @@ struct v3d_bcfg
    uint32_t tile_alloc_bs;
    v3d_addr_t tile_state_addr;
 
+   uint32_t frame_num_layers;
    uint32_t frame_w_in_tiles;
    uint32_t frame_h_in_tiles;
    bool ms_mode;

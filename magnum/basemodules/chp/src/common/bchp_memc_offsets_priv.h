@@ -46,18 +46,8 @@
 /* All SOCs have the same MEMC_0 offset. */
 #define BCHP_P_MEMC_0_OFFSET               0x00000000
 
-#if BCHP_CHIP == 7340 || \
-    BCHP_CHIP == 7342 || BCHP_CHIP == 7420
-#define BCHP_P_MEMC_1_OFFSET               0x60000000
-#endif
-
 #if BCHP_CHIP == 7422 || BCHP_CHIP == 7425 || BCHP_CHIP == 7435
 #define BCHP_P_MEMC_1_OFFSET               0x90000000
-#endif
-
-#if BCHP_CHIP == 7400
-#define BCHP_P_MEMC_1_OFFSET               0x60000000
-#define BCHP_P_MEMC_2_OFFSET               0x70000000
 #endif
 
 #if ((BCHP_CHIP == 7366) && (BCHP_VER >= BCHP_VER_B0))
@@ -78,12 +68,6 @@
 /* MEMC2 addr space: 0x8000_0000 ~ 0xbFFF_FFFF */
 #define BCHP_P_MEMC_1_OFFSET               0x40000000
 #define BCHP_P_MEMC_2_OFFSET               0x80000000
-#endif
-
-#if BCHP_CHIP == 7145
-/* MEMC0 addr space: 0x0000_0000 ~ 0x7FFF_FFFF */
-/* MEMC1 addr space: 0x8000_0000 ~ 0xBFFF_FFFF */
-#define BCHP_P_MEMC_1_OFFSET               0x80000000
 #endif
 
 #endif /* BCHP_MEMC_OFFSETS_PRIV_H__ */

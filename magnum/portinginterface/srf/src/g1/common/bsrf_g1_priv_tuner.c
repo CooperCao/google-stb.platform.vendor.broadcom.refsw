@@ -59,12 +59,12 @@ static const int16_t aciCoeff[BSRF_NUM_ACI_COEFF_TAPS] =
    1685, 1231, -3230, -1275, 10347, 17674
 };
 
-static const int16_t iEquCoeff[BSRF_NUM_IQEQ_COEFF_TAPS] =
+static int16_t iEquCoeff[BSRF_NUM_IQEQ_COEFF_TAPS] =
 {
    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 };
 
-static const int16_t qEquCoeff[BSRF_NUM_IQEQ_COEFF_TAPS] =
+static int16_t qEquCoeff[BSRF_NUM_IQEQ_COEFF_TAPS] =
 {
    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 };
@@ -75,6 +75,7 @@ static const int16_t qEquCoeff[BSRF_NUM_IQEQ_COEFF_TAPS] =
 ******************************************************************************/
 BERR_Code BSRF_g1_Tuner_P_Init(BSRF_ChannelHandle h)
 {
+   BSRF_IqEqSettings iqeqSettings;
    uint32_t val;
    uint32_t bbAgcThresh = 0xE8000;
    uint8_t bbAgcBandwidth = 12;
@@ -87,27 +88,26 @@ BERR_Code BSRF_g1_Tuner_P_Init(BSRF_ChannelHandle h)
    for (i = 0; i < BSRF_NUM_ACI_COEFF_TAPS; i++)
       BSRF_P_WriteRegister(h, BCHP_SRFE_TABLE_ACI_DATAi_ARRAY_BASE+4*i, aciCoeff[i] & 0xFFFF);
 
-   /* load IQ imbalance equ coeffs */
-   for (i = 0; i < BSRF_NUM_IQEQ_COEFF_TAPS; i++)
-   {
-      BSRF_P_WriteRegister(h, BCHP_SRFE_TABLE_IQEQ_I_DATAi_ARRAY_BASE+4*i, iEquCoeff[i] & 0xFFFF);
-      BSRF_P_WriteRegister(h, BCHP_SRFE_TABLE_IQEQ_Q_DATAi_ARRAY_BASE+4*i, qEquCoeff[i] & 0xFFFF);
-   }
+   /* load default IQ imbalance equ coeffs */
+   BSRF_g1_Tuner_P_SetIqEqCoeff(h, iEquCoeff, qEquCoeff);
 
-   /* setup IQ imbalance equ */
-   val = 0x03040040 | ((iqImbBandwidth & 0xF) << 12) | (iqImbBandwidth & 0xF);
-   BSRF_P_WriteRegister(h, BCHP_SRFE_FE_IQ_IMB_CTRL, val);  /* winfrz=1, cal=1, phs_byp_nrm=1, amp_byp_nrm=1 */
+   /* set IQ imbalance equ settings */
+   iqeqSettings.bBypass = false;
+   iqeqSettings.bFreeze = false;
+   iqeqSettings.bandwidth = 6;
+   iqeqSettings.delay = 0;
+   BSRF_g1_Tuner_P_SetIqEqSettings(h, iqeqSettings);
 
    /* setup bbagc */
    val = 0xB0000000 | (bbAgcBandwidth << 20) | (bbAgcThresh & 0xFFFFF);
    BSRF_P_WriteRegister(h, BCHP_SRFE_FE_AGC_CTRL, val);  /* frz=1, byp=1, select aci output */
 
    /* setup dco */
-   val = 0x00000000 | (dcoBandwidth & 0x1F);    /* winfrz=0 */
+   val = 0x00000400 | (dcoBandwidth & 0x1F);    /* winfrz=1 */
    BSRF_P_WriteRegister(h, BCHP_SRFE_FE_DCO_CTRL, val);
 
    /* setup notch */
-   val = 0x00000000 | (notchBandwidth & 0x1F);  /* winfrz=0 */
+   val = 0x00000400 | (notchBandwidth & 0x1F);  /* winfrz=1 */
    BSRF_P_WriteRegister(h, BCHP_SRFE_FE_NOTCH_CTRL, val);
 
    /* set default center freq */
@@ -170,6 +170,52 @@ BERR_Code BSRF_g1_Tuner_P_SetNotchFcw(BSRF_ChannelHandle h, int32_t freqHz)
    /* program fcw */
    if (freqHz < 0) Q_lo = -Q_lo;
    BSRF_P_WriteRegister(h, BCHP_SRFE_FE_FCW, Q_lo);
+
+   return BERR_SUCCESS;
+}
+
+
+/******************************************************************************
+ BSRF_g1_Tuner_P_SetIqEqCoeff
+******************************************************************************/
+BERR_Code BSRF_g1_Tuner_P_SetIqEqCoeff(BSRF_ChannelHandle h, int16_t *iTaps, int16_t *qTaps)
+{
+   uint8_t i;
+
+   /* program IQ imbalance equalization taps */
+   for (i = 0; i < BSRF_NUM_IQEQ_COEFF_TAPS; i++)
+   {
+      BSRF_P_WriteRegister(h, BCHP_SRFE_TABLE_IQEQ_I_DATAi_ARRAY_BASE+4*i, iTaps[i]);
+      BSRF_P_WriteRegister(h, BCHP_SRFE_TABLE_IQEQ_Q_DATAi_ARRAY_BASE+4*i, qTaps[i]);
+   }
+
+   return BERR_SUCCESS;
+}
+
+
+/******************************************************************************
+ BSRF_g1_Tuner_P_ConfigIqEq
+******************************************************************************/
+BERR_Code BSRF_g1_Tuner_P_SetIqEqSettings(BSRF_ChannelHandle h, BSRF_IqEqSettings settings)
+{
+   uint32_t val;
+
+   /* setup IQ imbalance equ */
+   val = 0x03040040 | ((settings.bandwidth & 0xF) << 12) | (settings.bandwidth & 0xF);
+   BSRF_P_WriteRegister(h, BCHP_SRFE_FE_IQ_IMB_CTRL, val);  /* winfrz=1, cal=1, phs_byp_nrm=1, amp_byp_nrm=1 */
+
+   if (settings.bBypass)
+      BSRF_P_OrRegister(h, BCHP_SRFE_FE_IQ_IMB_CTRL, 0x00020020);
+   else
+      BSRF_P_AndRegister(h, BCHP_SRFE_FE_IQ_IMB_CTRL, ~0x00020020);
+
+   if (settings.bFreeze)
+      BSRF_P_OrRegister(h, BCHP_SRFE_FE_IQ_IMB_CTRL, 0x00010010);
+   else
+      BSRF_P_AndRegister(h, BCHP_SRFE_FE_IQ_IMB_CTRL, ~0x00010010);
+
+   /* IQ imbalance equalization delay */
+   BSRF_P_WriteRegister(h, BCHP_SRFE_FE_IQ_EQ_DLY, settings.delay & 0xF);
 
    return BERR_SUCCESS;
 }

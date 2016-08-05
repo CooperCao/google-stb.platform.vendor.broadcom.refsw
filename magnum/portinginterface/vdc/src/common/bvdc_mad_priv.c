@@ -225,6 +225,10 @@ BERR_Code BVDC_P_Mad_Create
 
     BDBG_ASSERT(phMad);
 
+    /* Acertain that VDC MAD enum and count complies to BOX's */
+    BDBG_CASSERT(BBOX_VDC_DEINTERLACER_COUNT >= BVDC_P_SUPPORT_MAD);
+    BDBG_CASSERT(BBOX_Vdc_Deinterlacer_eDeinterlacer1 == (BBOX_Vdc_DeinterlacerId)BVDC_P_MadId_eMad1);
+
     /* (1) Alloc the context. */
     pMad = (BVDC_P_MadContext*)
         (BKNI_Malloc(sizeof(BVDC_P_MadContext)));

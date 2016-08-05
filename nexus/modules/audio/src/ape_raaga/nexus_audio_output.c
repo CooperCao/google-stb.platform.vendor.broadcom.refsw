@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -417,7 +417,7 @@ See Also:
  ***************************************************************************/
 NEXUS_Error NEXUS_AudioOutput_AddInput(
     NEXUS_AudioOutputHandle output,
-    NEXUS_AudioInput input
+    NEXUS_AudioInputHandle input
     )
 {
     NEXUS_Error errCode;
@@ -478,7 +478,7 @@ See Also:
  ***************************************************************************/
 NEXUS_Error NEXUS_AudioOutput_RemoveInput(
     NEXUS_AudioOutputHandle output,
-    NEXUS_AudioInput input
+    NEXUS_AudioInputHandle input
     )
 {
     NEXUS_Error errCode;
@@ -772,6 +772,7 @@ NEXUS_Error NEXUS_AudioOutput_P_SetSlaveSource(
 NEXUS_AudioOutputData *NEXUS_AudioOutput_P_CreateData(NEXUS_AudioOutputHandle output)
 {
     NEXUS_AudioOutputData *pData;
+
     if ( NULL == output->pMixerData )
     {
         output->pMixerData = pData = BKNI_Malloc(sizeof(NEXUS_AudioOutputData));
@@ -1261,6 +1262,22 @@ NEXUS_Error NEXUS_AudioOutput_CreateClockConfig(
      char outputName[32];
      NEXUS_Error errCode = BERR_SUCCESS;
      NEXUS_AudioOutputClockSource suggestions[NEXUS_AUDIO_MAX_TIMEBASES];
+
+     #if NEXUS_NUM_AUDIO_DUMMY_OUTPUTS
+        BDBG_CASSERT((int)NEXUS_MAX_AUDIO_DUMMY_OUTPUTS>=(int)NEXUS_NUM_AUDIO_DUMMY_OUTPUTS);
+     #endif
+     #if NEXUS_NUM_SPDIF_OUTPUTS
+        BDBG_CASSERT((int)NEXUS_MAX_AUDIO_SPDIF_OUTPUTS>=(int)NEXUS_NUM_SPDIF_OUTPUTS);
+     #endif
+     #if NEXUS_NUM_DAC_OUTPUTS
+        BDBG_CASSERT((int)NEXUS_MAX_AUDIO_DAC_OUTPUTS>=(int)NEXUS_NUM_DAC_OUTPUTS);
+     #endif
+     #if NEXUS_NUM_I2S_OUTPUTS
+        BDBG_CASSERT((int)NEXUS_MAX_AUDIO_I2S_OUTPUTS>=(int)NEXUS_NUM_I2S_OUTPUTS);
+     #endif
+     #if NEXUS_NUM_HDMI_OUTPUTS
+        BDBG_CASSERT((int)NEXUS_MAX_AUDIO_HDMI_OUTPUTS>=(int)NEXUS_NUM_HDMI_OUTPUTS);
+     #endif
 
      NEXUS_GetAudioCapabilities(&capabilities);
 

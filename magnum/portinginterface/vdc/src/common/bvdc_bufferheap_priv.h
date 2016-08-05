@@ -230,9 +230,6 @@ BERR_Code BVDC_P_BufferHeap_Create
 BERR_Code BVDC_P_BufferHeap_Destroy
     ( BVDC_P_BufferHeap_Handle         hBufferHeap );
 
-void BVDC_P_BufferHeap_Init
-    ( BVDC_P_BufferHeap_Handle         hBufferHeap );
-
 BERR_Code BVDC_P_BufferHeap_AllocateBuffers_isr
     ( BVDC_P_BufferHeap_Handle         hBufferHeap,
       BVDC_P_HeapNodePtr               apHeapNode[],

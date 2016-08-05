@@ -148,6 +148,7 @@ static void nexus_surface_compositor_p_initialize_compositor_display(struct NEXU
     cmpDisplay->composited = NULL;
     cmpDisplay->submitted = NULL;
     cmpDisplay->displaying = NULL;
+    cmpDisplay->lastComposited = NULL;
     cmpDisplay->master_framebuffer = NULL;
     cmpDisplay->generation = 1;
     cmpDisplay->slave.dirty = false;
@@ -597,7 +598,6 @@ static void nexus_surfacemp_p_release_all_display_framebuffers(NEXUS_SurfaceComp
 
 static NEXUS_Error nexus_p_switch_secure(NEXUS_SurfaceCompositorHandle server, bool secure)
 {
-    NEXUS_SurfaceClientHandle client;
     int rc;
     struct NEXUS_SurfaceCompositorDisplay *cmpDisplay = server->display[0];
 
@@ -611,13 +611,24 @@ static NEXUS_Error nexus_p_switch_secure(NEXUS_SurfaceCompositorHandle server, b
     }
     NEXUS_Graphics2D_Close(server->gfx);
     server->gfx = NULL;
+    server->state.blitter.active = false;
+    server->state.blitter.delayed = false;
     rc = nexus_p_open_blitter(server, secure);
     if (rc) return BERR_TRACE(rc);
-    for (client=BLST_Q_FIRST(&server->clients); client; client = BLST_Q_NEXT(client, link)) {
-        NEXUS_SurfaceClient_Clear(client);
-    }
-
     return NEXUS_SUCCESS;
+}
+
+static void nexus_p_post_switch_secure(NEXUS_SurfaceCompositorHandle server)
+{
+    NEXUS_SurfaceClientHandle client;
+    for (client=BLST_Q_FIRST(&server->clients); client; client = BLST_Q_NEXT(client, link)) {
+        if (client->state.client_type == client_type_set) {
+            /* force a new copy into secure or unsecure memory */
+            BKNI_Memset(&client->set.serverCreateSettings, 0, sizeof(client->set.serverCreateSettings));
+            NEXUS_SurfaceClient_P_CopySetSurface(client, client->set.surface.surface);
+            client->set.updating = false;
+        }
+    }
 }
 
 static NEXUS_Error nexus_surface_compositor_p_update_display( NEXUS_SurfaceCompositorHandle server, const NEXUS_SurfaceCompositorSettings *pSettings )
@@ -626,12 +637,14 @@ static NEXUS_Error nexus_surface_compositor_p_update_display( NEXUS_SurfaceCompo
     NEXUS_GraphicsSettings graphicsSettings;
     NEXUS_Error rc;
     bool secureFramebuffer;
+    bool switch_secure;
 
     BDBG_ASSERT(!server->state.active);
 
     secureFramebuffer = nexus_p_is_secure_heap(pSettings->display[0].framebuffer.heap);
+    switch_secure = secureFramebuffer != server->secureFramebuffer;
 
-    if (secureFramebuffer != server->secureFramebuffer) {
+    if (switch_secure) {
         rc = nexus_p_switch_secure(server, secureFramebuffer);
         if (rc) {BERR_TRACE(rc); goto err_switch_secure;}
     }
@@ -841,6 +854,10 @@ static NEXUS_Error nexus_surface_compositor_p_update_display( NEXUS_SurfaceCompo
         rc = BERR_TRACE(rc);
         /* TODO: does not unwind server->settings. */
         goto err_verify_tunnel;
+    }
+
+    if (switch_secure) {
+        nexus_p_post_switch_secure(server);
     }
 
     nexus_p_surface_compositor_update_all_clients(server, NEXUS_P_SURFACECLIENT_UPDATE_DISPLAY);

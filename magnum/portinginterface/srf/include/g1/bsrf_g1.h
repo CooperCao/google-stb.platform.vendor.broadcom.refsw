@@ -78,6 +78,8 @@
 #define BSRF_SetAntennaDetectThreshold BSRF_g1_P_SetAntennaDetectThreshold
 #define BSRF_GetAntennaDetectThreshold BSRF_g1_P_GetAntennaDetectThreshold
 #define BSRF_GetAntennaStatus          BSRF_g1_P_GetAntennaStatus
+#define BSRF_PowerUpAntennaSense       BSRF_g1_Ana_P_PowerUpAntennaSense
+#define BSRF_PowerDownAntennaSense     BSRF_g1_Ana_P_PowerDownAntennaSense
 #define BSRF_Tune                      BSRF_g1_P_Tune
 #define BSRF_GetTunerStatus            BSRF_g1_P_GetTunerStatus
 #define BSRF_ResetClipCount            BSRF_g1_P_ResetClipCount
@@ -91,7 +93,8 @@
 #define BSRF_RunDataCapture            BSRF_g1_P_RunDataCapture
 #define BSRF_DeleteAgcLutCodes         BSRF_g1_P_DeleteAgcLutCodes
 #define BSRF_ConfigOutputClockPhase    BSRF_g1_P_ConfigOutputClockPhase
-
+#define BSRF_SetIqEqCoeff              BSRF_g1_P_SetIqEqCoeff
+#define BSRF_SetIqEqSettings           BSRF_g1_P_SetIqEqSettings
 
 #endif
 

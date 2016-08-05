@@ -194,10 +194,12 @@ BERR_Code BSAT_g1_P_AfecOnHpLock_isr(BSAT_ChannelHandle h)
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
    BERR_Code retCode;
 
+#if 0 /* keep SDS_CG_PMCG_CTL.xpt_bclk_en to its default value (=1) */
    if (hChn->acqSettings.options & BSAT_ACQ_CHAN_BOND)
    {
       BSAT_g1_P_OrRegister_isrsafe(h, BCHP_SDS_CG_PMCG_CTL, BCHP_SDS_CG_0_PMCG_CTL_xpt_bclk_en_MASK);
    }
+#endif
 
    if (hChn->dvbs2ScanState & BSAT_DVBS2_SCAN_STATE_ENABLED)
       BSAT_g1_P_AfecInitEqTaps_isr(h);
@@ -279,12 +281,15 @@ BERR_Code BSAT_g1_P_AfecAcquire1_isr(BSAT_ChannelHandle h)
    BSAT_g1_P_AndRegister_isrsafe(h, BCHP_SDS_EQ_EQMISCCTL, 0xFFFFFBFF); /* disable CMA */
    BSAT_g1_P_ReadModifyWriteRegister_isrsafe(h, BCHP_SDS_EQ_EQFFECTL, 0xFFFF00FF, 0x0200); /* unfreze other taps */
 
+#if 0
    if (hChn->bEnableFineFreqEst == false)
    {
+      /* the next 3 lines are already done, so can we remove them? */
       BSAT_g1_P_OrRegister_isrsafe(h, BCHP_SDS_HP_HPOVERRIDE, 0x0000000F); /* override front carrier loop */
       BSAT_g1_P_AndRegister_isrsafe(h, BCHP_SDS_CL_CLCTL1, 0xFFFFFFEF);    /* disable front carrier loop */
       BSAT_g1_P_OrRegister_isrsafe(h, BCHP_SDS_CL_CLCTL2, 0x00000004);     /* freeze front carrier loop */
    }
+#endif
    BSAT_g1_P_OrRegister_isrsafe(h, BCHP_SDS_HP_HPOVERRIDE, BCHP_SDS_HP_0_HPOVERRIDE_SNOREOV_MASK); /* override SNORE reset */
 
    BSAT_CHK_RETCODE(BSAT_g1_P_AfecSetVlcGain_isr(h));
@@ -564,7 +569,7 @@ BERR_Code BSAT_g1_P_AfecOnStableLock_isr(BSAT_ChannelHandle h)
    }
 
    if (hChn->configParam[BSAT_g1_CONFIG_TRK_DAFE_CTL])
-      BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_CL_CLDAFECTL, hChn->configParam[BSAT_g1_CONFIG_TRK_DAFE_CTL] & BSAT_g1_CONFIG_DAFE_CTL_CLDAFECTL);
+      BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_CL_CLDAFECTL, hChn->configParam[BSAT_g1_CONFIG_TRK_DAFE_CTL]);
    else if (hChn->bEnableFineFreqEst == false)
    {
       /* narrow DAFE loop bw for pilot off */
@@ -808,8 +813,10 @@ void BSAT_g1_P_AfecInitEqTaps_isr(BSAT_ChannelHandle h)
             val = 0x25;
          else if (BSAT_MODE_IS_DVBS2_8PSK(mode) || BSAT_MODE_IS_DVBS2X_8APSK(mode))
             val = 0x36;
+#if 0
          else if (BSAT_MODE_IS_DVBS2X_16APSK(mode) || BSAT_MODE_IS_DVBS2X_32APSK(mode) || BSAT_MODE_IS_DVBS2_32APSK(mode))
             val = 0x78;
+#endif
          else
             val = 0x38;
       }
@@ -896,8 +903,15 @@ BERR_Code BSAT_g1_P_AfecConfigEq_isr(BSAT_ChannelHandle h)
       val |= (hChn->configParam[BSAT_g1_CONFIG_EQ_CTL] & (BSAT_g1_CONFIG_EQ_CTL_ACQ_FFE_MU_MASK | BSAT_g1_CONFIG_EQ_CTL_ACQ_FFE_MAIN_MU_MASK)) << 8;
       BDBG_WRN(("override eq mu 0x%08X\n", val & 0xFF000000));
    }
-   else if (BSAT_g1_P_AfecIsPilot_isr(h) == false)
-      val |= 0x77000000; /* pilot off */
+   else if (BSAT_g1_P_AfecIsPilot_isr(h) == false) /* XF: TBD for ACM mode */
+   {
+      /* pilot off */
+      if (BSAT_MODE_IS_DVBS2_16APSK(hChn->actualMode) || BSAT_MODE_IS_DVBS2_32APSK(hChn->actualMode) ||
+          BSAT_MODE_IS_DVBS2X_16APSK(hChn->actualMode) || BSAT_MODE_IS_DVBS2X_32APSK(hChn->actualMode))
+         val |= 0x55000000; /* XF: may need to optimize more */
+      else
+         val |= 0x33000000;
+   }
    else
       val |= 0x22000000; /* pilot on */
    val |= 0x00060720;
@@ -1687,19 +1701,23 @@ BERR_Code BSAT_g1_P_AfecConfig_isr(BSAT_ChannelHandle h)
 
    BSAT_CHK_RETCODE(BSAT_g1_P_AfecSetMpcfg_isr(h));
 
-   BSAT_g1_P_AndRegister_isrsafe(h, BCHP_AFEC_BCH_BBHDR3, ~(BCHP_AFEC_0_BCH_BBHDR3_sel_stream_id_MASK | BCHP_AFEC_0_BCH_BBHDR3_use_prev_on_illegal_MASK));
-   BSAT_g1_P_OrRegister_isrsafe(h, BCHP_AFEC_BCH_BBHDR3, BCHP_AFEC_0_BCH_BBHDR3_sel_upl_MASK);
+   val = BSAT_g1_P_ReadRegister_isrsafe(h, BCHP_AFEC_BCH_BBHDR3);
+   BCHP_SET_FIELD_DATA(val, AFEC_0_BCH_BBHDR3, sel_upl, (hChn->dvbs2Settings.ctl & BSAT_DVBS2_CTL_SEL_UPL) ? 1 : 0);
    if (hChn->acqSettings.mode == BSAT_Mode_eDvbs2_ACM)
    {
       /* ACM */
-      BSAT_g1_P_ReadModifyWriteRegister_isrsafe(h, BCHP_AFEC_BCH_BBHDR3, ~(BCHP_AFEC_0_BCH_BBHDR3_sel_stream_id_MASK | BCHP_AFEC_0_BCH_BBHDR3_use_prev_on_illegal_MASK), BCHP_AFEC_0_BCH_BBHDR3_sel_upl_MASK);
+      BCHP_SET_FIELD_DATA(val, AFEC_0_BCH_BBHDR3, sel_upl, 0);
+      BCHP_SET_FIELD_DATA(val, AFEC_0_BCH_BBHDR3, use_prev_on_illegal, 0);
+      BCHP_SET_FIELD_DATA(val, AFEC_0_BCH_BBHDR3, sel_stream_id, 0);
    }
    else
    {
       /* CCM */
-      BSAT_g1_P_ReadModifyWriteRegister_isrsafe(h, BCHP_AFEC_BCH_BBHDR3, ~BCHP_AFEC_0_BCH_BBHDR3_sel_stream_id_MASK,
-         BCHP_AFEC_0_BCH_BBHDR3_sel_upl_SHIFT | BCHP_AFEC_0_BCH_BBHDR3_use_prev_on_illegal_MASK | (1 << BCHP_AFEC_0_BCH_BBHDR3_sel_stream_id_SHIFT));
+      BCHP_SET_FIELD_DATA(val, AFEC_0_BCH_BBHDR3, use_prev_on_illegal, 1);
+      BCHP_SET_FIELD_DATA(val, AFEC_0_BCH_BBHDR3, sel_stream_id, 1);
    }
+   BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_AFEC_BCH_BBHDR3, val);
+
    BSAT_g1_P_ToggleBit_isrsafe(h, BCHP_AFEC_CNTR_CTRL, 0x00000006); /* clear counters */
    BSAT_g1_P_ToggleBit_isrsafe(h, BCHP_AFEC_RST, 0x100); /* reset data path */
 

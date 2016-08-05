@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -57,7 +57,7 @@ extern "C" {
 
 /* rave */
 #define BXPT_NUM_RAVE_CHANNELS              1
-#if ( (BCHP_CHIP == 7271) || (BCHP_CHIP == 7268) )
+#if ( (BCHP_CHIP == 7271) || (BCHP_CHIP == 7268) || (BCHP_CHIP == 7260) )
     #define BXPT_NUM_SCD                        32
     #define BXPT_NUM_TPIT_PIDS                  32
     #define BXPT_NUM_TPIT                       8
@@ -78,7 +78,7 @@ extern "C" {
 #define BXPT_HAS_PCR_PACING                 1
 
 /* pcr */
-#if ( (BCHP_CHIP == 7271) || (BCHP_CHIP == 7268) )
+#if ( (BCHP_CHIP == 7271) || (BCHP_CHIP == 7268) || (BCHP_CHIP == 7260) )
     #define BXPT_NUM_PCRS                       6
 #else
     #define BXPT_NUM_PCRS                       14
@@ -88,7 +88,7 @@ extern "C" {
 #define STC_FREE_RUNNING                    15 /* TODO: add BXPT_ prefix or privatize */
 
 /* psub */
-#if ( (BCHP_CHIP == 7271) || (BCHP_CHIP == 7268) )
+#if ( (BCHP_CHIP == 7271) || (BCHP_CHIP == 7268) || (BCHP_CHIP == 7260) )
     #define BXPT_NUM_PACKETSUBS                 8
 #else
     #define BXPT_NUM_PACKETSUBS                 16
@@ -120,7 +120,7 @@ extern "C" {
 #define BXPT_NUM_CAP_FILTERS                5
 
 /* mesg */
-#if ( (BCHP_CHIP == 7271) || (BCHP_CHIP == 7268) )
+#if ( (BCHP_CHIP == 7271) || (BCHP_CHIP == 7268) || (BCHP_CHIP == 7260))
     #define BXPT_NUM_MESG_BUFFERS                 128
     #define BXPT_NUM_MESSAGE_CAPABLE_PID_CHANNELS 384
 #else
@@ -159,7 +159,7 @@ In the math below, the arrays are 0-based.
 
 /* frontend */
 #define BXPT_NUM_REMAPPABLE_FE_PARSERS       16
-#if ( (BCHP_CHIP == 7271) || (BCHP_CHIP == 7268) )
+#if ( (BCHP_CHIP == 7271) || (BCHP_CHIP == 7268) || (BCHP_CHIP == 7260) )
     #define BXPT_NUM_PID_PARSERS                 16
     #define BXPT_P_PID_TABLE_SIZE                512
     #define BXPT_NUM_PID_CHANNELS                384    /* Leave 128 for MEMDMA */
@@ -186,10 +186,14 @@ In the math below, the arrays are 0-based.
 #define BXPT_HAS_STC_TRIG_TYPE          0
 #define BXPT_HAS_16BYTE_ES_COUNT        0
 #define BXPT_NUM_TBG                    0
-#elif ( (BCHP_CHIP == 7271) || (BCHP_CHIP == 7268) )
+#elif ( (BCHP_CHIP == 7271) || (BCHP_CHIP == 7268) || (BCHP_CHIP == 7260) )
 #define BXPT_NUM_RAVE_CONTEXTS              24
 #define BXPT_NUM_MTSIF                  4
-#define BXPT_NUM_STCS                   6
+#if (BCHP_CHIP == 7271 && BCHP_VER >= BCHP_VER_B0)
+    #define BXPT_NUM_STCS                   8
+#else
+    #define BXPT_NUM_STCS                   6
+#endif
 #define BXPT_P_HAS_0_238_PPM_RESOLUTION 1
 #define BXPT_MAX_EXTERNAL_TRIGS         6
 #define BXPT_HAS_STC_TRIG_TYPE          1
@@ -237,7 +241,7 @@ In the math below, the arrays are 0-based.
 #if ( (BCHP_CHIP==7364) || (BCHP_CHIP==7250) )
 #define BXPT_NUM_STC_SNAPSHOTS          12
 #define BXPT_HAS_STC_SNAPSHOT_XBAR 1
-#elif ( (BCHP_CHIP == 7271) || (BCHP_CHIP == 7268) )
+#elif ( (BCHP_CHIP == 7271) || (BCHP_CHIP == 7268) || (BCHP_CHIP == 7260) )
     #define BXPT_NUM_STC_SNAPSHOTS          6
     #define BXPT_HAS_STC_SNAPSHOT_XBAR      1
 #else

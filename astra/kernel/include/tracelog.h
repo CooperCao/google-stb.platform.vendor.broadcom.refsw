@@ -47,31 +47,27 @@ class TraceLog {
 public:
     static void init(void);
 
-    inline static void startTrace(void) {
-        if (commandReg)
-            REG_WR(commandReg, 1);
-    }
-
-    inline static void stopTrace(void)  {
-        if (commandReg)
-            REG_WR(commandReg, 4);
-    }
-
-    inline static void resetTrace(void)  {
-        if (commandReg)
-            REG_WR(commandReg, 8);
-    }
-
-    inline static void addTrace(uint32_t event, uint32_t index = 0) {
-        if (sentinelBase && index < sentinelSize)
-            REG_WR(sentinelBase + index * 4, event);
-    }
-
     static int peerUp(void);
     static int peerDown(void);
 
-    static void flushTrace(void);
-    static void dumpTrace(void);
+    inline static void start(void) {
+        if (enabled)
+            REG_WR(commandReg, 1);
+    }
+
+    inline static void stop(void)  {
+        if (enabled)
+            REG_WR(commandReg, 4);
+    }
+
+    inline static void add(uint32_t event, uint32_t index = 0) {
+        if (enabled &&
+            index < sentinelSize)
+            REG_WR(sentinelBase + index * 4, event);
+    }
+
+    static void inval(void);
+    static void dump(void);
 
 public:
     TraceLog() = delete;

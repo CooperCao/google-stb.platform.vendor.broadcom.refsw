@@ -10,13 +10,11 @@ Creates GLES1.1 shaders as dataflow graphs and passes them to the compiler
 backend.
 =============================================================================*/
 
-#include "../common/khrn_int_math.h"      /* For SQRT_2 */
+#include "gl11_shader.h"
 #include "../glsl/glsl_dataflow.h"
 #include "../glxx/glxx_shader_ops.h"
-#include "gl11_shader.h"
 #include "../glxx/glxx_server.h"   /* For STATE_OFFSET */
-
-#include "gl11_shaders.h"
+#include "../common/khrn_int_math.h"      /* For SQRT_2 */
 
 const GLXX_VEC4_T *texenv_src(uint32_t           src,
                               const GLXX_VEC4_T *texture,
@@ -31,7 +29,7 @@ const GLXX_VEC4_T *texenv_src(uint32_t           src,
    case GL11_SRC_F: return primary_color;
    case GL11_SRC_P: return previous;
    default:
-      UNREACHABLE();
+      unreachable();
       return NULL;
    }
 }
@@ -56,7 +54,7 @@ static void texenv_op(GLXX_VEC4_T *result, uint32_t op, const GLXX_VEC4_T *color
       glxx_v_rep4(&accum, glxx_sub(glxx_cfloat(1.0f), color->w));
       break;
    default:
-      UNREACHABLE();
+      unreachable();
       break;
    }
    *result = accum;
@@ -107,7 +105,7 @@ static void texture_combine(GLXX_VEC4_T       *result,
       break;
    }
    default:
-      UNREACHABLE();
+      unreachable();
       break;
    }
    *result = accum;
@@ -163,7 +161,7 @@ static bool need_clamp_below(uint32_t combine)
    case GL11_COMB_DOTA:
       return true;
    default:
-      UNREACHABLE();
+      unreachable();
       return 0;
    }
 }
@@ -182,7 +180,7 @@ static bool need_clamp_above(uint32_t combine)
    case GL11_COMB_DOTA:
       return true;
    default:
-      UNREACHABLE();
+      unreachable();
       return 0;
    }
 }
@@ -335,7 +333,7 @@ static void fog(GLXX_VEC4_T *result, const GLXX_VEC4_T *varying, uint32_t fog_mo
       f = glxx_exp2(glxx_mul(fog->coeff_exp2, cc));
       break;
    default:
-      UNREACHABLE();
+      unreachable();
       break;
    }
 
@@ -452,7 +450,7 @@ static Dataflow *alpha_test(uint32_t test, Dataflow *a, Dataflow *b)
    case GL11_AFUNC_ALWAYS:
       return glxx_cbool(true);
    default:
-      UNREACHABLE();
+      unreachable();
       return NULL;
    }
 }
@@ -510,7 +508,7 @@ static void apply_logic_op(GLXX_VEC4_T *result, const GLXX_VEC4_T *col_in, uint3
          out[i] = glxx_cint(255); break;
       case GL11_LOGIC_COPY:      /* Should have been handled already */
       default:
-         UNREACHABLE();
+         unreachable();
          break;
       }
    }
@@ -586,13 +584,10 @@ void gl11_get_fshader(const GL11_CACHE_KEY_T *v, IRShader **sh_out, LinkMap **lm
    const uint32_t alpha_func = v->fragment & GL11_AFUNC_M;
    const uint32_t user_clip  = v->fragment & GL11_UCLIP_M;
    const uint32_t logic_op   = v->fragment & GL11_LOGIC_M;
-   GLXX_VEC4_T color;
    GLXX_VEC4_T varying[GL11_NUM_VARYINGS];
-   Dataflow *discard;
    Dataflow *point_x     = glxx_fragment_get(DATAFLOW_GET_POINT_COORD_X);
    Dataflow *point_y     = glxx_fragment_get(DATAFLOW_GET_POINT_COORD_Y);
    Dataflow *line_coord  = glxx_fragment_get(DATAFLOW_GET_LINE_COORD);
-   int i;
 
    struct builtin_unifs_s unif;
    int unif_count = sizeof(struct builtin_unifs_s)/sizeof(uint32_t);
@@ -602,14 +597,14 @@ void gl11_get_fshader(const GL11_CACHE_KEY_T *v, IRShader **sh_out, LinkMap **lm
    Dataflow *out_nodes[DF_BLOB_FRAGMENT_COUNT];
    memset(out_nodes, 0, sizeof(Dataflow *) * DF_BLOB_FRAGMENT_COUNT);
 
-   for (i=0; i<GL11_NUM_VARYINGS; i++)
+   for (int i=0; i<GL11_NUM_VARYINGS; i++)
       glxx_v_vec4(&varying[i], frag_vary(4*i), frag_vary(4*i+1), frag_vary(4*i+2), frag_vary(4*i+3));
 
    construct_builtins(&unif, unif_bindings);
 
    /* Start generating code */
 
-   color = varying[GL11_VARYING_COLOR];
+   GLXX_VEC4_T color = varying[GL11_VARYING_COLOR];
    if (v->vertex & GL11_TWOSIDE)
       glxx_v_cond4(&color, glxx_fragment_get(DATAFLOW_FRAG_GET_FF), &color, &varying[GL11_VARYING_BACK_COLOR]);
 
@@ -617,7 +612,7 @@ void gl11_get_fshader(const GL11_CACHE_KEY_T *v, IRShader **sh_out, LinkMap **lm
    if (fog_mode)
       fog(&color, varying, fog_mode, &color, &unif.fog_params);
 
-   discard = glxx_cbool(false);
+   Dataflow *discard = glxx_cbool(false);
    if (v->fragment & GL11_POINTSMOOTH)
    {
       Dataflow *point_discard;
@@ -652,6 +647,7 @@ void gl11_get_fshader(const GL11_CACHE_KEY_T *v, IRShader **sh_out, LinkMap **lm
    out_nodes[DF_FNODE_DISCARD] = discard;
    varying[GL11_VARYING_COLOR] = color;
 
-   *sh_out = gl11_ir_shader_from_nodes(out_nodes, DF_BLOB_FRAGMENT_COUNT);
-   *lm_out = gl11_link_map_from_bindings(DF_BLOB_FRAGMENT_COUNT, 4*GL11_NUM_VARYINGS, unif_count, unif_bindings);
+   int out_bindings[DF_BLOB_FRAGMENT_COUNT];
+   *sh_out = gl11_ir_shader_from_nodes(out_nodes, DF_BLOB_FRAGMENT_COUNT, out_bindings);
+   *lm_out = gl11_link_map_from_bindings(DF_BLOB_FRAGMENT_COUNT, out_bindings, 4*GL11_NUM_VARYINGS, unif_count, unif_bindings);
 }

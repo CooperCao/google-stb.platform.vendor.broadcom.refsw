@@ -99,6 +99,7 @@ typedef struct _ZbProNwkOutputServiceData_t
     struct
     {
         uint8_t                     rDiscEnabled : 1;       /* If route discovery is enabled. */
+        uint8_t                     rDiscForce   : 1;       /* If route discovery shall be started immediately */
         uint8_t                     secured      : 1;       /* If output packet was encrypted. */
         uint8_t                     isLoopback   : 1;       /* If shall be delivered to himself is set to True. */
     };

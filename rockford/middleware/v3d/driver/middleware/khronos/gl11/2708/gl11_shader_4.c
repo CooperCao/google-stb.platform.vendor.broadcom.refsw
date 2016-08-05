@@ -1055,9 +1055,6 @@ bool gl11_hw_emit_shaders(GL11_CACHE_KEY_T *v, GLXX_LINK_RESULT_DATA_T *data, ui
    result &= glxx_schedule(last_vpm_write, GLSL_BACKEND_TYPE_VERTEX, &data->mh_vcode, &data->mh_vuniform_map, NULL, NULL, NULL);
 
    data->has_point_size = vcard->point_size != NULL;
-#ifdef XXX_OFFLINE
-   data->use_offline = false;
-#endif
 
    glsl_fastmem_term();
 

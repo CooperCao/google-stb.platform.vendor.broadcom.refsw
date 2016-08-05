@@ -45,14 +45,13 @@
 
 BDBG_MODULE(nexus_dolby_digital_reencode);
 
-BDBG_OBJECT_ID(NEXUS_DolbyDigitalReencode);
 typedef struct NEXUS_DolbyDigitalReencode
 {
-    BDBG_OBJECT(NEXUS_DolbyDigitalReencode)
-    NEXUS_AudioInputObject connector;
+    NEXUS_OBJECT(NEXUS_DolbyDigitalReencode);
+    /*NEXUS_AudioInputObject connector;*/
     NEXUS_DolbyDigitalReencodeSettings settings;
     NEXUS_AudioInputObject connectors[NEXUS_AudioConnectorType_eMax];
-    NEXUS_AudioInput input;
+    NEXUS_AudioInputHandle input;
     BAPE_DolbyDigitalReencodeHandle apeHandle;
     char name[5];   /* DDRE */
 } NEXUS_DolbyDigitalReencode;
@@ -116,6 +115,8 @@ NEXUS_DolbyDigitalReencodeHandle NEXUS_DolbyDigitalReencode_Open(
         goto err_malloc;
     }
     BKNI_Memset(handle, 0, sizeof(NEXUS_DolbyDigitalReencode));
+    NEXUS_OBJECT_INIT(NEXUS_DolbyDigitalReencode, handle);
+    BKNI_Snprintf(handle->name, sizeof(handle->name), "DDRE");
 
     BAPE_DolbyDigitalReencode_GetDefaultSettings(&piSettings);
     if ( g_NEXUS_audioModuleData.armHandle && !NEXUS_GetEnv("disable_arm_audio") )
@@ -146,14 +147,14 @@ NEXUS_DolbyDigitalReencodeHandle NEXUS_DolbyDigitalReencode_Open(
         goto err_ape_handle;
     }
 
-    BDBG_OBJECT_SET(handle, NEXUS_DolbyDigitalReencode);
-    BKNI_Snprintf(handle->name, sizeof(handle->name), "DDRE");
     NEXUS_AUDIO_INPUT_INIT(&handle->connectors[NEXUS_AudioConnectorType_eStereo], NEXUS_AudioInputType_eDolbyDigitalReencode, handle);
+    NEXUS_OBJECT_REGISTER(NEXUS_AudioInput, &handle->connectors[NEXUS_AudioConnectorType_eStereo], Open);
     handle->connectors[NEXUS_AudioConnectorType_eStereo].pName = handle->name;
     handle->connectors[NEXUS_AudioConnectorType_eStereo].format = NEXUS_AudioInputFormat_ePcmStereo;
     BAPE_DolbyDigitalReencode_GetConnector(handle->apeHandle, BAPE_ConnectorFormat_eStereo, &connector);
     handle->connectors[NEXUS_AudioConnectorType_eStereo].port = (size_t)connector;
     NEXUS_AUDIO_INPUT_INIT(&handle->connectors[NEXUS_AudioConnectorType_eMultichannel], NEXUS_AudioInputType_eDolbyDigitalReencode, handle);
+    NEXUS_OBJECT_REGISTER(NEXUS_AudioInput, &handle->connectors[NEXUS_AudioConnectorType_eMultichannel], Open);
     handle->connectors[NEXUS_AudioConnectorType_eMultichannel].pName = handle->name;
     if ( pSettings->multichannelFormat == NEXUS_AudioMultichannelFormat_e7_1 )
     {
@@ -166,6 +167,7 @@ NEXUS_DolbyDigitalReencodeHandle NEXUS_DolbyDigitalReencode_Open(
     BAPE_DolbyDigitalReencode_GetConnector(handle->apeHandle, BAPE_ConnectorFormat_eMultichannel, &connector);
     handle->connectors[NEXUS_AudioConnectorType_eMultichannel].port = (size_t)connector;
     NEXUS_AUDIO_INPUT_INIT(&handle->connectors[NEXUS_AudioConnectorType_eCompressed], NEXUS_AudioInputType_eDolbyDigitalReencode, handle);
+    NEXUS_OBJECT_REGISTER(NEXUS_AudioInput, &handle->connectors[NEXUS_AudioConnectorType_eCompressed], Open);
     handle->connectors[NEXUS_AudioConnectorType_eCompressed].pName = handle->name;
     handle->connectors[NEXUS_AudioConnectorType_eCompressed].format = NEXUS_AudioInputFormat_eCompressed;
     BAPE_DolbyDigitalReencode_GetConnector(handle->apeHandle, BAPE_ConnectorFormat_eCompressed, &connector);
@@ -173,6 +175,7 @@ NEXUS_DolbyDigitalReencodeHandle NEXUS_DolbyDigitalReencode_Open(
     if ( BAPE_GetDolbyMSVersion() == BAPE_DolbyMSVersion_eMS12 )
     {
         NEXUS_AUDIO_INPUT_INIT(&handle->connectors[NEXUS_AudioConnectorType_eCompressed4x], NEXUS_AudioInputType_eDolbyDigitalReencode, handle);
+        NEXUS_OBJECT_REGISTER(NEXUS_AudioInput, &handle->connectors[NEXUS_AudioConnectorType_eCompressed4x], Open);
         handle->connectors[NEXUS_AudioConnectorType_eCompressed4x].pName = handle->name;
         handle->connectors[NEXUS_AudioConnectorType_eCompressed4x].format = NEXUS_AudioInputFormat_eCompressed;
         BAPE_DolbyDigitalReencode_GetConnector(handle->apeHandle, BAPE_ConnectorFormat_eCompressed4x, &connector);
@@ -197,12 +200,12 @@ err_malloc:
     return NULL;
 }
 
-void NEXUS_DolbyDigitalReencode_Close(
+static void NEXUS_DolbyDigitalReencode_P_Finalizer(
     NEXUS_DolbyDigitalReencodeHandle handle
     )
 {
     unsigned i;
-    BDBG_OBJECT_ASSERT(handle, NEXUS_DolbyDigitalReencode);
+    NEXUS_OBJECT_ASSERT(NEXUS_DolbyDigitalReencode, handle);
     for ( i = 0; i < NEXUS_AudioConnectorType_eMax; i++ )
     {
         switch ( i )
@@ -211,11 +214,13 @@ void NEXUS_DolbyDigitalReencode_Close(
         case NEXUS_AudioConnectorType_eMultichannel:
         case NEXUS_AudioConnectorType_eCompressed:
             NEXUS_AudioInput_Shutdown(&handle->connectors[i]);
+            NEXUS_OBJECT_UNREGISTER(NEXUS_AudioInput, &handle->connectors[i], Close);
             break;
         case NEXUS_AudioConnectorType_eCompressed4x:
             if ( BAPE_GetDolbyMSVersion() == BAPE_DolbyMSVersion_eMS12 )
             {
                 NEXUS_AudioInput_Shutdown(&handle->connectors[i]);
+                NEXUS_OBJECT_UNREGISTER(NEXUS_AudioInput, &handle->connectors[i], Close);
             }
             break;
         default:
@@ -223,9 +228,36 @@ void NEXUS_DolbyDigitalReencode_Close(
         }
     }
     BAPE_DolbyDigitalReencode_Destroy(handle->apeHandle);
-    BDBG_OBJECT_DESTROY(handle, NEXUS_DolbyDigitalReencode);
+    NEXUS_OBJECT_DESTROY(NEXUS_DolbyDigitalReencode, handle);
     BKNI_Free(handle);
 }
+
+static void NEXUS_DolbyDigitalReencode_P_Release(NEXUS_DolbyDigitalReencodeHandle handle)
+{
+    unsigned i;
+    for ( i = 0; i < NEXUS_AudioConnectorType_eMax; i++ )
+    {
+        switch ( i )
+        {
+        case NEXUS_AudioConnectorType_eStereo:
+        case NEXUS_AudioConnectorType_eMultichannel:
+        case NEXUS_AudioConnectorType_eCompressed:
+            NEXUS_OBJECT_UNREGISTER(NEXUS_AudioInput, &handle->connectors[i], Close);
+            break;
+        case NEXUS_AudioConnectorType_eCompressed4x:
+            if ( BAPE_GetDolbyMSVersion() == BAPE_DolbyMSVersion_eMS12 )
+            {
+                NEXUS_OBJECT_UNREGISTER(NEXUS_AudioInput, &handle->connectors[i], Close);
+            }
+            break;
+        default:
+            break;
+        }
+    }
+    return;
+}
+
+NEXUS_OBJECT_CLASS_MAKE_WITH_RELEASE(NEXUS_DolbyDigitalReencode, NEXUS_DolbyDigitalReencode_Close);
 
 void NEXUS_DolbyDigitalReencode_GetSettings(
     NEXUS_DolbyDigitalReencodeHandle handle,
@@ -279,7 +311,7 @@ NEXUS_Error NEXUS_DolbyDigitalReencode_SetSettings(
     return BERR_SUCCESS;
 }
 
-NEXUS_AudioInput NEXUS_DolbyDigitalReencode_GetConnector( /* attr{shutdown=NEXUS_AudioInput_Shutdown} */
+NEXUS_AudioInputHandle NEXUS_DolbyDigitalReencode_GetConnector( /* attr{shutdown=NEXUS_AudioInput_Shutdown} */
     NEXUS_DolbyDigitalReencodeHandle handle,
     NEXUS_AudioConnectorType connectorType
     )
@@ -331,7 +363,7 @@ NEXUS_AudioInput NEXUS_DolbyDigitalReencode_GetConnector( /* attr{shutdown=NEXUS
 
 NEXUS_Error NEXUS_DolbyDigitalReencode_AddInput(
     NEXUS_DolbyDigitalReencodeHandle handle,
-    NEXUS_AudioInput input
+    NEXUS_AudioInputHandle input
     )
 {
     BERR_Code errCode;
@@ -405,7 +437,7 @@ err_ape:
 
 NEXUS_Error NEXUS_DolbyDigitalReencode_RemoveInput(
     NEXUS_DolbyDigitalReencodeHandle handle,
-    NEXUS_AudioInput input
+    NEXUS_AudioInputHandle input
     )
 {
     BDBG_OBJECT_ASSERT(handle, NEXUS_DolbyDigitalReencode);

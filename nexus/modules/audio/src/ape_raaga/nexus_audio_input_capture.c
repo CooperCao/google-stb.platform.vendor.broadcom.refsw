@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2013 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *  
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,17 +35,9 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF 
 *  ANY LIMITED REMEDY.
 * 
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * API Description:
 *   API name: Audio Module
 *    Module includes
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 
@@ -56,10 +48,9 @@ BDBG_MODULE(nexus_audio_input_capture);
 
 #if NEXUS_NUM_AUDIO_INPUT_CAPTURES
 
-BDBG_OBJECT_ID(NEXUS_AudioInputCapture);
 typedef struct NEXUS_AudioInputCapture
 {
-    BDBG_OBJECT(NEXUS_AudioInputCapture)
+    NEXUS_OBJECT(NEXUS_AudioInputCapture);
     NEXUS_AudioInputObject connector;
     BAPE_InputCaptureHandle apeHandle;
     NEXUS_AudioInputCaptureStartSettings startSettings;
@@ -157,11 +148,12 @@ NEXUS_AudioInputCaptureHandle NEXUS_AudioInputCapture_Open(
     }
 
 
-    BDBG_OBJECT_SET(handle, NEXUS_AudioInputCapture);
+    NEXUS_OBJECT_INIT(NEXUS_AudioInputCapture, handle);
     handle->index = index;
     handle->opened = true;
     BKNI_Snprintf(handle->name, sizeof(handle->name), "INPUT CAPTURE %d", index);
     NEXUS_AUDIO_INPUT_INIT(&handle->connector, NEXUS_AudioInputType_eInputCapture, handle);
+    NEXUS_OBJECT_REGISTER(NEXUS_AudioInput, &handle->connector, Open);
     handle->connector.pName = handle->name;
 
     BAPE_InputCapture_GetDefaultOpenSettings(&openSettings);
@@ -343,15 +335,12 @@ err_ape_open:
     return NULL;
 }
 
-/***************************************************************************
-Summary:
-Close an AudioInputCapture handle
-***************************************************************************/
-void NEXUS_AudioInputCapture_Close(
+static void NEXUS_AudioInputCapture_P_Finalizer(
     NEXUS_AudioInputCaptureHandle handle
     )
 {
-    BDBG_OBJECT_ASSERT(handle, NEXUS_AudioInputCapture);
+    NEXUS_OBJECT_ASSERT(NEXUS_AudioInputCapture, handle);
+    NEXUS_AudioInput_Shutdown(&handle->connector);
     if ( handle->running )
     {
         NEXUS_AudioInputCapture_Stop(handle);
@@ -374,8 +363,17 @@ void NEXUS_AudioInputCapture_Close(
     {
         BKNI_Free(handle->procHandle);
     }
+    NEXUS_OBJECT_DESTROY(NEXUS_AudioInputCapture, handle);
     BKNI_Memset(handle, 0, sizeof(NEXUS_AudioInputCapture));    /* Destroys magic numbers and marks as free */
 }
+
+static void NEXUS_AudioInputCapture_P_Release(NEXUS_AudioInputCaptureHandle handle)
+{
+    NEXUS_OBJECT_UNREGISTER(NEXUS_AudioInput, &handle->connector, Close);
+    return;
+}
+
+NEXUS_OBJECT_CLASS_MAKE_WITH_RELEASE(NEXUS_AudioInputCapture, NEXUS_AudioInputCapture_Close);
 
 /***************************************************************************
 Summary:
@@ -645,7 +643,7 @@ NEXUS_Error NEXUS_AudioInputCapture_GetStatus(
     return BERR_SUCCESS;
 }
 
-NEXUS_AudioInput NEXUS_AudioInputCapture_GetConnector(
+NEXUS_AudioInputHandle NEXUS_AudioInputCapture_GetConnector(
     NEXUS_AudioInputCaptureHandle handle
     )
 {
@@ -940,7 +938,7 @@ NEXUS_Error NEXUS_AudioInputCapture_GetStatus(
     return BERR_TRACE(BERR_NOT_SUPPORTED);
 }
 
-NEXUS_AudioInput NEXUS_AudioInputCapture_GetConnector(
+NEXUS_AudioInputHandle NEXUS_AudioInputCapture_GetConnector(
     NEXUS_AudioInputCaptureHandle handle
     )
 {

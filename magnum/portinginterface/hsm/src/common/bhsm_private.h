@@ -190,8 +190,10 @@ See Also:
 BHSM_Open()
 
 ****************************************************************************/
- typedef struct BHSM_P_Handle
+typedef struct BHSM_P_Handle
 {
+    BDBG_OBJECT( BHSM_P_Handle )
+
     uint32_t                  ulMagicNumber; /* Must be  BHSM_P_HANDLE_MAGIC_NUMBER */
 
     BHSM_Settings          currentSettings;   /* current settings */

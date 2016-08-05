@@ -12,6 +12,16 @@ endif
 
 $(info === Building V3D driver ===)
 
+FLEXGTEQ_20535 := $(shell expr `flex --version | awk 'BEGIN { FS = "\\\.|\\\ " } { printf("%d%2.2d%2.2d\n", $$2, $$3, $$4) }'` \>= 20535)
+ifneq ("$(FLEXGTEQ_20535)", "1")
+$(error flex >= 2.5.35 must be available on build machine)
+endif
+
+BISONGTEQ_20401 := $(shell expr `bison --version | head -1 | awk 'BEGIN { FS = "\\\.|\\\ " } { printf("%d%2.2d%2.2d\n", $$4, $$5, $$6) }'` \>= 20401)
+ifneq ("$(BISONGTEQ_20401)", "1")
+$(error bison >= 2.4.1 must be available on build machine)
+endif
+
 ifndef B_REFSW_ARCH
 B_REFSW_ARCH = mipsel-linux
 endif
@@ -38,7 +48,17 @@ endif
 CFLAGS += \
 	-fpic -DPIC \
 	-I. \
-	-I./interface/vcos/pthreads \
+	-I./interface/vcos/pthreads
+
+ifeq ($(VC5_GPUMON_HOOK),)
+CFLAGS += \
+	-I./../../vc5/tools/gpumon_hook
+else
+CFLAGS += \
+	-I$(VC5_GPUMON_HOOK)
+endif
+
+CFLAGS += \
 	-DKHAPI="__attribute__((visibility(\"default\")))" \
 	-DSPAPI="__attribute__((visibility(\"default\")))" \
 	-DFASTMEM_USE_MALLOC \

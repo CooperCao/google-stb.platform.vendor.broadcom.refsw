@@ -11,31 +11,6 @@ Miscellaneous glxx functions
 #include "glxx_utils.h"
 #include "libs/core/lfmt/lfmt_translate_v3d.h"
 
-unsigned int glxx_get_type_size(GLenum type, int count)
-{
-   switch (type) {
-   case GL_BYTE:
-   case GL_UNSIGNED_BYTE:
-      return 1 * count;
-   case GL_SHORT:
-   case GL_UNSIGNED_SHORT:
-   case GL_HALF_FLOAT_OES:
-   case GL_HALF_FLOAT:
-      return 2 * count;
-   case GL_FIXED:
-   case GL_FLOAT:
-   case GL_INT:
-   case GL_UNSIGNED_INT:
-      return 4 * count;
-   case GL_INT_2_10_10_10_REV:
-   case GL_UNSIGNED_INT_2_10_10_10_REV:
-      return 4;
-   default:
-      UNREACHABLE();
-      return 0;
-   }
-}
-
 bool glxx_is_color_renderable_internalformat(GLenum internalformat)
 {
    //  An internal format is color-renderable
@@ -183,7 +158,7 @@ glxx_ms_mode glxx_samples_to_ms_mode(unsigned samples)
    else if (samples <= GLXX_4X_MS)
       ms_mode = GLXX_4X_MS;
    else
-      UNREACHABLE();
+      unreachable();
    return ms_mode;
 }
 
@@ -199,7 +174,7 @@ unsigned glxx_ms_mode_get_scale(glxx_ms_mode ms_mode)
          scale = 2;
          break;
       default:
-         UNREACHABLE();
+         unreachable();
    }
    return scale;
 }
@@ -249,6 +224,9 @@ bool glxx_is_color_renderable_from_api_fmt(GFX_LFMT_T fmt)
    case GFX_LFMT_R16_G16_B16_A16_FLOAT:
    case GFX_LFMT_R16_G16_FLOAT:
    case GFX_LFMT_R16_FLOAT:
+#endif
+#if GL_EXT_texture_format_BGRA8888
+   case GFX_LFMT_B8_G8_R8_A8_UNORM:
 #endif
       res = true;
       break;

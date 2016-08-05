@@ -13,14 +13,36 @@ from parsers import parse_source, parse_props, parse_table
 def print_helpers(outf):
     print_banner(outf, ["Static helper functions used by the API"])
     print >>outf, """\
-static bool select_from_props(int stdlib_props, int input_props) {
+static uint64_t get_version_mask(int version) {
+   switch(version) {
+   case GLSL_SHADER_VERSION(1,0,1):  return GLSL_STDLIB_PROPERTY_VERSION1;
+   case GLSL_SHADER_VERSION(3,0,1):  return GLSL_STDLIB_PROPERTY_VERSION3;
+   case GLSL_SHADER_VERSION(3,10,1): return GLSL_STDLIB_PROPERTY_VERSION31;
+   case GLSL_SHADER_VERSION(3,20,1): return GLSL_STDLIB_PROPERTY_VERSION32;
+   default: unreachable();           return 0;
+   }
+}
+
+static uint64_t get_flavour_mask(ShaderFlavour flavour) {
+   switch(flavour) {
+   case SHADER_VERTEX:          return GLSL_STDLIB_PROPERTY_VERTEX;
+   case SHADER_TESS_CONTROL:    return GLSL_STDLIB_PROPERTY_TESS_C;
+   case SHADER_TESS_EVALUATION: return GLSL_STDLIB_PROPERTY_TESS_E;
+   case SHADER_GEOMETRY:        return GLSL_STDLIB_PROPERTY_GEOMETRY;
+   case SHADER_FRAGMENT:        return GLSL_STDLIB_PROPERTY_FRAGMENT;
+   case SHADER_COMPUTE:         return GLSL_STDLIB_PROPERTY_COMPUTE;
+   default: unreachable();      return 0;
+   }
+}
+
+static bool select_from_props(uint64_t stdlib_props, uint64_t input_props) {
     int v_mask = GLSL_STDLIB_PROPERTY_VERSIONS_ALL | GLSL_STDLIB_PROPERTY_EXTENSIONS_ALL;
     int s_mask = GLSL_STDLIB_PROPERTY_STAGES_ALL;
 
     return (stdlib_props & input_props & v_mask) != 0 && (stdlib_props & input_props & s_mask) != 0;
 }
 
-static void correct_overloads_for_mask(int mask) {
+static void correct_overloads_for_mask(uint64_t mask) {
    for(int i=0; i<GLSL_STDLIB_FUNCTION_COUNT; i++) {
       if(select_from_props(glsl_stdlib_function_properties[i], mask)) {
          Symbol *overload = glsl_stdlib_functions[i].u.function_instance.next_overload;
@@ -47,15 +69,21 @@ extern const char *glsl_stdlib_function_bodies[GLSL_STDLIB_FUNCTION_COUNT];
 extern const char *glsl_stdlib_setup;
 
 /* These are the properties set on the standard functions (e.g. fragment-only etc) */
-extern const int   glsl_stdlib_function_properties[GLSL_STDLIB_FUNCTION_COUNT];
+extern const uint64_t glsl_stdlib_function_properties[GLSL_STDLIB_FUNCTION_COUNT];
 
 /* Initialization functions. The masks indicate properties that must _not_ be set for an entry
    to be added to the symbol table. */
 void glsl_stdlib_init(void);
-void glsl_stdlib_populate_symbol_table_with_functions(SymbolTable *symbol_table, int mask);
-void glsl_stdlib_populate_symbol_table_with_variables(SymbolTable *symbol_table, int mask);
-void glsl_stdlib_populate_symbol_table_with_types    (SymbolTable *symbol_table, int mask);
+void glsl_stdlib_populate_symbol_table_with_functions(SymbolTable *symbol_table, uint64_t mask);
+void glsl_stdlib_populate_symbol_table_with_variables(SymbolTable *symbol_table, uint64_t mask);
+void glsl_stdlib_populate_symbol_table_with_types    (SymbolTable *symbol_table, uint64_t mask);
 void glsl_stdlib_populate_scalar_value_map(Map *map);
+
+/* Sort the stdlib symbols by storage qual into interfaces */
+void glsl_stdlib_interfaces_update(ShaderInterfaces *interfaces, uint64_t property_mask);
+
+/* Get the property mask for symbols based on shader's version and flavour */
+uint64_t glsl_stdlib_get_property_mask(ShaderFlavour flavour, int version);
 
 /* Query functions */
 const Symbol *glsl_stdlib_get_function(glsl_stdlib_function_index_t index);
@@ -72,7 +100,7 @@ void glsl_stdlib_init() {
    glsl_stdlib_functions = malloc_fast(sizeof(*glsl_stdlib_functions) * GLSL_STDLIB_FUNCTION_COUNT);
 }
 
-void glsl_stdlib_populate_symbol_table_with_functions(SymbolTable *symbol_table, int property_mask) {
+void glsl_stdlib_populate_symbol_table_with_functions(SymbolTable *symbol_table, uint64_t property_mask) {
    glsl_stdlib_init_functions();
    correct_overloads_for_mask(property_mask);
    for(int i=0; i<GLSL_STDLIB_FUNCTION_COUNT; i++) {
@@ -82,18 +110,16 @@ void glsl_stdlib_populate_symbol_table_with_functions(SymbolTable *symbol_table,
    }
 }
 
-void glsl_stdlib_populate_symbol_table_with_variables(SymbolTable *symbol_table, int property_mask) {
+void glsl_stdlib_populate_symbol_table_with_variables(SymbolTable *symbol_table, uint64_t property_mask) {
    glsl_stdlib_init_variables();
    for(int i=0; i<GLSL_STDLIB_VARIABLE_COUNT; i++) {
       if(select_from_props(glsl_stdlib_variable_properties[i], property_mask)) {
-         Symbol *symbol = &glsl_stdlib_variables[i];
-         glsl_symbol_table_insert(symbol_table, symbol);
-         glsl_shader_interfaces_update(g_ShaderInterfaces, symbol);
+         glsl_symbol_table_insert(symbol_table, &glsl_stdlib_variables[i]);
       }
    }
 }
 
-void glsl_stdlib_populate_symbol_table_with_types(SymbolTable *symbol_table, int property_mask) {
+void glsl_stdlib_populate_symbol_table_with_types(SymbolTable *symbol_table, uint64_t property_mask) {
    glsl_stdlib_init_types();
    for (int i=0; i<GLSL_STDLIB_TYPE_COUNT; i++) {
       if (select_from_props(glsl_stdlib_type_properties[i], property_mask)) {
@@ -106,6 +132,19 @@ void glsl_stdlib_populate_symbol_table_with_types(SymbolTable *symbol_table, int
 void glsl_stdlib_populate_scalar_value_map(Map *map) {
    glsl_stdlib_fill_scalar_value_map(map);
 }
+
+void glsl_stdlib_interfaces_update(ShaderInterfaces *interfaces, uint64_t property_mask) {
+   for(int i=0; i<GLSL_STDLIB_VARIABLE_COUNT; i++) {
+      if(select_from_props(glsl_stdlib_variable_properties[i], property_mask)) {
+         glsl_shader_interfaces_update(interfaces, &glsl_stdlib_variables[i]);
+      }
+   }
+}
+
+uint64_t glsl_stdlib_get_property_mask(ShaderFlavour flavour, int version) {
+   return get_version_mask(version) | get_flavour_mask(flavour);
+}
+
 const Symbol *glsl_stdlib_get_function(glsl_stdlib_function_index_t index) {
    return &glsl_stdlib_functions[index];
 }
@@ -172,7 +211,21 @@ def output_sources(outf, functions):
 
 stage_props = {"VERTEX", "TESS_E", "TESS_C", "GEOMETRY", "FRAGMENT", "COMPUTE"}
 version_props = {"VERSION1", "VERSION3", "VERSION31", "VERSION32"}
-extension_props = { "GL_OES_EGL_IMAGE_EXTERNAL", "GL_BRCM_TEXTURE_1D", "GL_BRCM_SAMPLER_FETCH", "GL_EXT_SHADER_TEXTURE_LOD", "GL_OES_STANDARD_DERIVATIVES", "GL_EXT_SHADER_INTEGER_MIX", "GL_OES_TEXTURE_CUBE_MAP_ARRAY", "GL_OES_TEXTURE_STORAGE_MULTISAMPLE_2D_ARRAY", "GL_OES_TESSELLATION_SHADER"}
+extension_props = { "GL_OES_EGL_IMAGE_EXTERNAL",
+                    "GL_BRCM_TEXTURE_1D",
+                    "GL_BRCM_SAMPLER_FETCH",
+                    "GL_BRCM_TEXTURE_GATHER_LOD",
+                    "GL_EXT_SHADER_TEXTURE_LOD",
+                    "GL_OES_STANDARD_DERIVATIVES",
+                    "GL_EXT_SHADER_INTEGER_MIX",
+                    "GL_OES_TEXTURE_CUBE_MAP_ARRAY",
+                    "GL_OES_TEXTURE_STORAGE_MULTISAMPLE_2D_ARRAY",
+                    "GL_OES_SHADER_IMAGE_ATOMIC",
+                    "GL_OES_GPU_SHADER5",
+                    "GL_OES_SAMPLE_VARIABLES",
+                    "GL_OES_TESSELLATION_SHADER",
+                    "GL_OES_GEOMETRY_SHADER",
+                    "GL_EXT_PRIMITIVE_BOUNDING_BOX"}
 
 def get_prop_enum(index, props):
     s_props = set()
@@ -195,13 +248,13 @@ def get_prop_enum(index, props):
 def output_properties(outf, functions, variables, structs, arrays, props):
     prop_enum = (lambda x, lookup: get_prop_enum(lookup(x), props))
 
-    print_array(outf, "const int", "glsl_stdlib_function_properties", "GLSL_STDLIB_FUNCTION_COUNT",
+    print_array(outf, "const uint64_t", "glsl_stdlib_function_properties", "GLSL_STDLIB_FUNCTION_COUNT",
                 [prop_enum(fn,fn_index) for fn in functions])
 
-    print_array(outf, "const int", "glsl_stdlib_variable_properties", "GLSL_STDLIB_VARIABLE_COUNT",
+    print_array(outf, "const uint64_t", "glsl_stdlib_variable_properties", "GLSL_STDLIB_VARIABLE_COUNT",
                 [prop_enum(var,var_index) for var in variables])
 
-    print_array(outf, "const int", "glsl_stdlib_type_properties", "GLSL_STDLIB_TYPE_COUNT",
+    print_array(outf, "const uint64_t", "glsl_stdlib_type_properties", "GLSL_STDLIB_TYPE_COUNT",
                 [prop_enum((s,), compoundtypeindex) for s,b in structs] +
                 [prop_enum( a,   compoundtypeindex) for a   in arrays ])
 
@@ -216,7 +269,7 @@ def output_properties_define(outf, props):
     extension_list.sort()
     props_list = list(stage_props) + list(version_props) + extension_list + misc_list
 
-    print_defines(outf,[("GLSL_STDLIB_PROPERTY_%s" % p, "(1<<%d)" % i) for i,p in enumerate(props_list)])
+    print_defines(outf,[("GLSL_STDLIB_PROPERTY_%s" % p, "(1ull<<%d)" % i) for i,p in enumerate(props_list)])
     print_defines(outf, [("GLSL_STDLIB_PROPERTY_STAGES_ALL", "( " + " | ".join(["GLSL_STDLIB_PROPERTY_%s" % p for p in stage_props]) + " )")])
     print_defines(outf, [("GLSL_STDLIB_PROPERTY_VERSIONS_ALL", "( " + " | ".join(["GLSL_STDLIB_PROPERTY_%s" % p for p in version_props]) + " )")])
     print_defines(outf, [("GLSL_STDLIB_PROPERTY_EXTENSIONS_ALL", "( " + " | ".join(["GLSL_STDLIB_PROPERTY_%s" % p for p in extension_props]) + " )")])
@@ -609,9 +662,10 @@ def output_var_struct(outf, var, primtypemap, structmap, struct=None):
     outf.write("                       .pq        = PREC_"      + type_precision(var_type).upper()    + ",\n")
     outf.write("                       .mq        = "           + mem_quals(memory_qualifiers(var_type)) + " };\n")
 
-    outf.write("      const_value *compile_time_value = NULL;\n")
-    if is_const:
-        outf.write("         compile_time_value = malloc_fast(%d * sizeof(const_value));\n" % (len(rhs_values)))
+    if not is_const:
+        outf.write("      const_value *compile_time_value = NULL;\n")
+    else:
+        outf.write("      const_value *compile_time_value = malloc_fast(%d * sizeof(const_value));\n" % (len(rhs_values)))
         for i, v in enumerate(rhs_values):
             v = v.strip().rstrip()
             outf.write("      compile_time_value[%d] = %s;\n" % (i, v))
@@ -741,7 +795,7 @@ if __name__ == "__main__":
     with open(os.path.join(output_dir,"glsl_stdlib.auto.h"), "w") as outf:
         print_inclusion_guard_start(outf, "glsl_stdlib.auto.h")
         print_disclaimer(outf)
-        print_includes(outf, ["glsl_symbols.h", "glsl_symbol_table.h"])
+        print_includes(outf, ["glsl_symbols.h", "glsl_symbol_table.h", "glsl_shader_interfaces.h"])
         output_functions_enum(outf, glsl_functions)
         output_variables_enum(outf, glsl_variables)
         output_properties_define(outf, properties)
@@ -754,8 +808,9 @@ if __name__ == "__main__":
         print_includes(outf, ["stdlib.h", "stdio.h"], system=True)
         print_includes(outf, ["glsl_ast.h",             "glsl_compiler.h",    "glsl_common.h",
                               "glsl_const_operators.h", "glsl_fastmem.h",     "glsl_globals.h",
-                              "glsl_intern.h",          "glsl_stdlib.auto.h",
-                              "glsl_primitive_types.auto.h", "glsl_symbol_table.h"])
+                              "glsl_intern.h",          "glsl_symbol_table.h","glsl_stdlib.auto.h",
+                              "glsl_primitive_types.auto.h", "../glxx/glxx_int_config.h",
+                              "GLES3/gl32.h", "GLES3/gl3ext_brcm.h", "libs/util/gfx_util/gfx_util.h"])
         output_sigs_enum     (outf, sigs)
         output_types_enum    (outf, glsl_structs, arrays, constants)
         output_params_enum   (outf, params)

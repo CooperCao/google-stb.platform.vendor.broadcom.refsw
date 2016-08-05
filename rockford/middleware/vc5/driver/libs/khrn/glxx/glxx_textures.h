@@ -18,6 +18,7 @@ typedef struct
    GLXX_TEXTURE_T *m_2d;
    GLXX_TEXTURE_T *m_external;
    GLXX_TEXTURE_T *m_cube;
+   GLXX_TEXTURE_T *m_cube_array;
    GLXX_TEXTURE_T *m_3d;
    GLXX_TEXTURE_T *m_2darray;
    GLXX_TEXTURE_T *m_1d;

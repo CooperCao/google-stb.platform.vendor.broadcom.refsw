@@ -278,7 +278,7 @@ NEXUS_AudioConnectorType
 Summary:
     Get an audio connector for use in the audio mixer
 ***************************************************************************/
-NEXUS_AudioInput NEXUS_AudioDecoder_GetConnector(
+NEXUS_AudioInputHandle NEXUS_AudioDecoder_GetConnector(
     NEXUS_AudioDecoderHandle handle,
     NEXUS_AudioConnectorType type
     );

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -66,6 +66,7 @@ static void printUsage(
     printf(
             "  -enableTimeshifting #   Set to indicate URL Playback is from a source that is timeshifting before streaming out the content. \n"
             "  -timeshiftBufferMaxDurationInMs #   Set to max duration of timeshift buffer (required if enabledTimeshift is set: defaults to 1hour). \n"
+            "  -disableDynamicTrackSelection   #   If set, disables track monitoring, otherwise, player monitors track changes & re-configure AV Decoders upon track changes (PIDS and/or Codecs) \n"
           );
 
     printf("  -displayformat   #   {ntsc,pal,pal_m,pal_n,pal_nc,576i,1080i,1080i50,720p,720p24,720p25,720p30,720p50,480p,576p,1080p,1080p24,1080p25,1080p30,1080p50,1080p60,720p3D,1080p3D,3840x2160p24,3840x2160p25,3840x2160p30,3840x2160p50,3840x2160p60,4096x2160p24,4096x2160p25,4096x2160p30,4096x2160p50,4096x2160p60}\n");
@@ -78,7 +79,18 @@ static void printUsage(
             "  -usePlayback    #   Allows user to force usage of Nexus Playback\n"
             "  -enablePayloadScanning    #   Enables ES level Media Probe\n"
             "  -enableAutoPlayAfterStartingPaused #   If startPaused option is set & then immediately start playing after starting the Player\n"
-            );
+          );
+    printf("\n");
+    printf(
+            "  -enableLowLatencyMode        #   If set, low latency AV Decode settings are enabled\n"
+            "  -maxIpNetworkJitterInMs      #   Set max jitter for the IP network (if known), defaults to 300msec \n"
+            "  -clockRecoveryMode           #   see BIP_PlayerClockRecoveryMode_eXXXX, default is selected by BIP Player. \n"
+            "  -audioDecoderLatencyMode     #   0=Normal, 1, 2, 3=Lowest/Variable  see NEXUS_AudioDecoderLatencyMode)\n"
+          );
+    printf(
+            "  -disablePrecisionLipsync     #   1=disable(default for low-latency mode), 0=enable Precise Sync, see NEXUS_SyncChannelSettings.enablePrecisionLipsync \n"
+            "  -stcSyncMode                 #   0=disable, 1, 2, 3=Enabled, see NEXUS_SimpleStcChannelSettings.sync for mode details, default is picked by NEXUS SimpleStc Channel \n"
+          );
     exit(0);
 } /* printUsage */
 
@@ -188,6 +200,34 @@ BIP_Status parseOptions(
         {
             pAppCtx->stressTrickModes = true;
         }
+        else if ( !strcmp(argv[i], "-disableDynamicTrackSelection") )
+        {
+            pAppCtx->disableDynamicTrackSelection = true;
+        }
+        else if ( !strcmp(argv[i], "-enableLowLatencyMode") )
+        {
+            pAppCtx->enableLowLatencyMode =  true;
+        }
+        else if(!strcmp(argv[i], "-clockRecoveryMode"))
+        {
+            pAppCtx->clockRecoveryMode = strtoul(argv[++i], NULL, 0);
+        }
+        else if(!strcmp(argv[i], "-audioDecoderLatencyMode"))
+        {
+            pAppCtx->audioDecoderLatencyMode = strtoul(argv[++i], NULL, 0);
+        }
+        else if ( !strcmp(argv[i], "-maxIpNetworkJitterInMs") )
+        {
+            pAppCtx->maxIpNetworkJitterInMs = strtoul(argv[++i], NULL, 0);;
+        }
+        else if ( !strcmp(argv[i], "-disablePrecisionLipsync") )
+        {
+            pAppCtx->disablePrecisionLipsync = strtoul(argv[++i], NULL, 0);
+        }
+        else if ( !strcmp(argv[i], "-stcSyncMode") )
+        {
+            pAppCtx->stcSyncMode = strtoul(argv[++i], NULL, 0);
+        }
         else
         {
             printf("Error: incorrect or unsupported option: %s\n", argv[i]);
@@ -198,6 +238,20 @@ BIP_Status parseOptions(
     if (pAppCtx->jumpOffsetInMs == 0) pAppCtx->jumpOffsetInMs = JUMP_OFFSET_IN_MS;
     if (pAppCtx->enableTimeshifting && !pAppCtx->timeshiftBufferMaxDurationInMs) { BDBG_ERR((BIP_MSG_PRE_FMT "%s enableTimeshifting option requires app to also specify timeshiftBufferMaxDurationInMs" BIP_MSG_PRE_ARG, argv[0])); printUsage(argv[0]);}
     if (!pAppCtx->timeshiftBufferMaxDurationInMs) { pAppCtx->timeshiftBufferMaxDurationInMs = 3600000; }
+
+    if (pAppCtx->enableLowLatencyMode)
+    {
+        if (pAppCtx->clockRecoveryMode == BIP_PlayerClockRecoveryMode_eInvalid) pAppCtx->clockRecoveryMode = BIP_PlayerClockRecoveryMode_ePull;
+        if (pAppCtx->audioDecoderLatencyMode == -1) pAppCtx->audioDecoderLatencyMode = NEXUS_AudioDecoderLatencyMode_eLowest;
+        if (pAppCtx->disablePrecisionLipsync == -1) pAppCtx->disablePrecisionLipsync = true;
+        /* TODO & Note: currently pAppCtx->stcSyncMode is left to default value of -1, which keeps it on, otherwise, this directly affects the TSM. */
+
+        BDBG_LOG(( BIP_MSG_PRE_FMT "LowLatencyMode Enabled: jitter=%u clockRecoveryMode=%s audioDecoderLatencyMode=%d disablePrecisionLipsync=%d stcSyncMode=%d"
+                    BIP_MSG_PRE_ARG, pAppCtx->maxIpNetworkJitterInMs, BIP_ToStr_BIP_PlayerClockRecoveryMode(pAppCtx->clockRecoveryMode),
+                    pAppCtx->audioDecoderLatencyMode, pAppCtx->disablePrecisionLipsync, pAppCtx->stcSyncMode
+                 ));
+    }
+
     bipStatus = BIP_SUCCESS;
     BDBG_LOG(( BIP_MSG_PRE_FMT "interface=%s, jumpOffsetInMs=%d url=%s dtcpIpKeyFormat=%s" BIP_MSG_PRE_ARG,
                 BIP_String_GetString( pAppCtx->hInterfaceName ),
@@ -244,6 +298,13 @@ AppCtx *initAppCtx( void )
     pAppCtx->ac3ServiceType = BIP_MediaInfoAudioAc3Bsmod_eMax;
 
     pAppCtx->displayFormat = NEXUS_VideoFormat_eNtsc;
+
+    pAppCtx->maxIpNetworkJitterInMs = MAX_IP_NETWORK_JITTER_IN_MS;
+    pAppCtx->audioDecoderLatencyMode = -1;
+    pAppCtx->disablePrecisionLipsync = -1;
+    pAppCtx->enableLowLatencyMode = false;
+    pAppCtx->stcSyncMode = -1;
+
 error:
     return pAppCtx;
 } /* initAppCtx */

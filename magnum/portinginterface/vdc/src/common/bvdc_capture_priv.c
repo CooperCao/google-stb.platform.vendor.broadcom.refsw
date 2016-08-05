@@ -470,7 +470,7 @@ static BERR_Code BVDC_P_Capture_SetPictureRect_isr
     }
 
     /* SW7445-2893/SW7445-2936 padding one line to delay eop. */
-#if (BVDC_P_SUPPORT_VIDEO_TESTFEATURE1_CAP_DCXM)
+#if (BVDC_P_DCXM_CAP_PADDING_WORKAROUND)
     if(!pPicture->bMosaicMode && pPicture->bEnableDcxm)
     {
         ulCapInHeight += BVDC_P_DCXM_CAP_PADDING_WORKAROUND;

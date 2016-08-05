@@ -55,6 +55,8 @@
 #include "blst_squeue.h"
 #include "nexus_frontend_extension_api.h"
 #include "priv/nexus_frontend_standby_priv.h"
+
+#include "nexus_frontend_channelbonding.h"
 #if NEXUS_HAS_MXT
 #include "bmxt.h"
 #endif
@@ -309,9 +311,12 @@ typedef struct NEXUS_FrontendDeviceMtsifConfig {
 } NEXUS_FrontendDeviceMtsifConfig;
 
 typedef struct NEXUS_FrontendDevice {
+    NEXUS_OBJECT(NEXUS_FrontendDevice);
     BLST_D_ENTRY(NEXUS_FrontendDevice) link; /* This is used to create link devices using NEXUS_FrontendDevice_Link. */
     BLST_D_ENTRY(NEXUS_FrontendDevice) node; /* This is used to create g_frontendDeviceList using g_frontendList in NEXUS_FrontendModule_Standby_priv() */
     BLST_D_HEAD(deviceChildList, NEXUS_FrontendDevice) deviceChildList;
+
+    unsigned tripwire;
 
     unsigned familyId; /* Chip's family Id. In hex, e.g. 0x3128. */
     void *pDevice;     /* Chip specific device handle. */
@@ -366,6 +371,8 @@ typedef struct NEXUS_FrontendDevice {
     } nonblocking;
 } NEXUS_FrontendDevice;
 
+NEXUS_OBJECT_CLASS_DECLARE(NEXUS_FrontendDevice);
+
 typedef struct NEXUS_FrontendDeviceList{
     BLST_D_HEAD(nexus_device_list, NEXUS_FrontendDevice) deviceList;
 }NEXUS_FrontendDeviceList;
@@ -385,6 +392,8 @@ NEXUS_Error NEXUS_FrontendDevice_P_SetAmplifierStatus(NEXUS_FrontendDeviceHandle
 #endif
 NEXUS_Error NEXUS_Frontend_P_CheckDeviceOpen(NEXUS_FrontendHandle handle);
 NEXUS_Error NEXUS_FrontendDevice_P_CheckOpen(NEXUS_FrontendDeviceHandle handle);
+
+typedef struct NEXUS_FrontendChannelBonding *NEXUS_FrontendChannelBondingHandle;
 
 /***************************************************************************
  * Handle for a generic frontend object
@@ -413,13 +422,15 @@ typedef struct NEXUS_Frontend
     } mtsif;
     NEXUS_FrontendCapabilities capabilities;
     NEXUS_FrontendUserParameters userParameters;
+    NEXUS_FrontendChannelBondingHandle chbond;
+    struct NEXUS_Frontend* bondingMaster;
     void        (*close)(NEXUS_FrontendHandle handle);
     NEXUS_Error (*registerExtension)(NEXUS_FrontendHandle parentHandle, NEXUS_FrontendHandle extensionHandle);
 
     NEXUS_Error (*tuneAnalog)(void *handle, const NEXUS_FrontendAnalogSettings *pSettings);
     NEXUS_Error (*getAnalogStatus)(void *handle, NEXUS_FrontendAnalogStatus *pStatus);
     NEXUS_VideoInput (*getAnalogVideoConnector)(void *handle);
-    NEXUS_AudioInput (*getAnalogAudioConnector)(void *handle);
+    NEXUS_AudioInputHandle (*getAnalogAudioConnector)(void *handle);
     NEXUS_Error (*tuneOutOfBand)(void *handle, const NEXUS_FrontendOutOfBandSettings *pSettings);
     NEXUS_Error (*getOutOfBandStatus)(void *handle, NEXUS_FrontendOutOfBandStatus *pStatus);
     NEXUS_Error (*tuneQam)(void *handle, const NEXUS_FrontendQamSettings *pSettings);
@@ -582,9 +593,16 @@ NEXUS_Tuner *NEXUS_Tuner_P_CreateFromBTNR(
 #include "bifd.h"
 typedef struct NEXUS_Ifd
 {
+    NEXUS_OBJECT(NEXUS_Ifd);
     BIFD_Handle ifdHandle;
 } NEXUS_Ifd;
+#else
+typedef struct NEXUS_Ifd
+{
+    NEXUS_OBJECT(NEXUS_Ifd);
+} NEXUS_Ifd;
 #endif
+NEXUS_OBJECT_CLASS_DECLARE(NEXUS_Ifd);
 
 /***************************************************************************
  * Generic Frontend Card handle
@@ -615,6 +633,7 @@ NEXUS_OBJECT_CLASS_DECLARE(NEXUS_FrontendCard);
  * Frontend Private Routines
  ***************************************************************************/
 void NEXUS_Frontend_P_Init(void);
+NEXUS_FrontendDeviceHandle NEXUS_FrontendDevice_P_Create(void);
 NEXUS_FrontendHandle NEXUS_Frontend_P_Create(void *pDeviceHandle);
 void NEXUS_Frontend_P_Destroy(NEXUS_FrontendHandle handle);
 void NEXUS_Ifd_P_GetDefaultSettings(NEXUS_IfdSettings *pSettings);
@@ -628,4 +647,3 @@ void NEXUS_FrontendModule_P_Print(void);
 #endif
 
 #endif /* #ifndef NEXUS_FRONTEND_MODULE_H__ */
-

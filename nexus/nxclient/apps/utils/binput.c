@@ -63,30 +63,31 @@ enum binput_script
 struct keymap {
     unsigned ir_input_a;
     unsigned ir_cir_nec;
+    unsigned ir_input_gisat;
     unsigned keyboard;
     const char *script;
 } g_input_keymap[binput_script_max] = {
-                       /* ir_a, cir_nec     keyboard */
-    /* unknown */      {0,      0,          0,                      ""},
-    /* play */         {0x5038, 0xe21dff00, 25  /* P */,            "play"},
-    /* pause */        {0x1f,   0xe31cff00, 119 /* PAUSE/BREAK */,  "pause"},
-    /* fast_forward */ {0x201d, 0xa659ff00, 33  /* F */,            "ff"},
-    /* rewind */       {0x101e, 0xe619ff00, 19  /* R */,            "rew"},
-    /* stop */         {0x4039, 0xa35cff00, 57  /* SPACE */,        "stop"},
-    /* clear */        {0xd012, 0xb24dff00, 111 /* DELETE */,       "clear"},
-    /* back */         {0x303a, 0xf906ff00, 14  /* BACKSPACE */,    "back"},
-    /* up */           {0x9034, 0xb14eff00, 103,                    "u"},
-    /* down */         {0x8035, 0xf30cff00, 108,                    "d"},
-    /* right */        {0x6037, 0xb649ff00, 106,                    "r"},
-    /* left */         {0x7036, 0xf40bff00, 105,                    "l"},
-    /* select */       {0xe011, 0xf708ff00, 28  /* RETURN */,       "select"},
-    /* power */        {0x600A, 0xf50aff00, 142 /* SLEEP */,        "power"},
-    /* chan_up */      {0, 0xf609ff00, 0,                           "chan_up"},
-    /* chan_down */    {0, 0xf20dff00, 0,                           "chan_down"},
+                       /* ir_a, cir_nec,    gisat, 	keyboard */
+    /* unknown */      {0,      0,          0,		0,                      ""},
+    /* play */         {0x5038, 0xe21dff00, 0xb2e,	25  /* P */,            "play"},
+    /* pause */        {0x1f,   0xe31cff00, 0xd2c,	119 /* PAUSE/BREAK */,  "pause"},
+    /* fast_forward */ {0x201d, 0xa659ff00, 0x128,	33  /* F */,            "ff"},
+    /* rewind */       {0x101e, 0xe619ff00, 0x229,	19  /* R */,            "rew"},
+    /* stop */         {0x4039, 0xa35cff00, 0xe2d,	57  /* SPACE */,        "stop"},
+    /* clear */        {0xd012, 0xb24dff00, 0xf30,	111 /* DELETE */,       "clear"},
+    /* back */         {0x303a, 0xf906ff00, 0xf16,	14  /* BACKSPACE */,    "back"},
+    /* up */           {0x9034, 0xb14eff00, 0xf23,	103,                    "u"},
+    /* down */         {0x8035, 0xf30cff00, 0xa20,	108,                    "d"},
+    /* right */        {0x6037, 0xb649ff00, 0x301,	106,                    "r"},
+    /* left */         {0x7036, 0xf40bff00, 0x11d,	105,                    "l"},
+    /* select */       {0xe011, 0xf708ff00, 0x21c,	28  /* RETURN */,       "select"},
+    /* power */        {0x600A, 0xf50aff00, 0xa06,	142 /* SLEEP */,        "power"},
+    /* chan_up */      {0, 0xf609ff00, 	    0xe0b,	0,                      "chan_up"},
+    /* chan_down */    {0, 0xf20dff00, 	    0x510,	0,                      "chan_down"},
 
     /* script commands */
-                       {0, 0, 0,                                    "repeat"},
-                       {0, 0, 0,                                    "sleep"} /* TODO: hardcoded 1 second */
+                       {0, 0, 0, 0,                                    "repeat"},
+                       {0, 0, 0, 0,                                    "sleep"} /* TODO: hardcoded 1 second */
 };
 
 #if NEXUS_HAS_IR_INPUT
@@ -101,6 +102,9 @@ b_remote_key b_get_remote_key(NEXUS_IrInputMode irInput, unsigned code)
             break;
         case NEXUS_IrInputMode_eRemoteA:
             if (g_input_keymap[key].ir_input_a == code) return key;
+            break;
+        case NEXUS_IrInputMode_eCirGISat:
+            if (g_input_keymap[key].ir_input_gisat == code) return key;
             break;
         default:
             BERR_TRACE(NEXUS_INVALID_PARAMETER);

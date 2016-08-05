@@ -106,7 +106,8 @@ NEXUS_FRONTEND_SOURCES := $(NEXUS_TOP)/modules/frontend/common/src/nexus_amplifi
                           $(NEXUS_TOP)/modules/frontend/common/src/nexus_ifd.c \
                           $(NEXUS_TOP)/modules/frontend/common/src/nexus_tuner.c \
                           $(NEXUS_TOP)/modules/frontend/common/src/nexus_frontend_card.c \
-                          $(NEXUS_TOP)/modules/frontend/common/src/nexus_frontend_card_priv.c
+                          $(NEXUS_TOP)/modules/frontend/common/src/nexus_frontend_card_priv.c \
+                          $(NEXUS_TOP)/modules/frontend/common/src/nexus_frontend_channelbonding.c
 
 #######################
 # Module Dependencies #
@@ -836,6 +837,12 @@ NEXUS_FRONTEND_DEFINES += NEXUS_FRONTEND_3128
 endif
 
 ifdef NEXUS_FRONTEND_3158
+ifdef NEXUS_FRONTEND_3158_VER
+BCHP_3158_VER := $(shell awk 'BEGIN{print tolower("$(NEXUS_FRONTEND_3158_VER)")}')
+else
+BCHP_3158_VER := a0
+endif
+
 NEXUS_FRONTEND_DEFINES += NEXUS_HAS_FRONTEND_CTFE_IMG
 BADS_3158_SUPPORT := y
 BHAB_3158_SUPPORT := y

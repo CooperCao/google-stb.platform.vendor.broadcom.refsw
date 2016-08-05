@@ -1,24 +1,40 @@
-/***************************************************************************
- *     Copyright (c) 2006-2012, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
  *
- * Module Description: SPDIF Audio Input Interface
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * Revision History:
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
- * 
- ***************************************************************************/
-
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
 #include "bape.h"
 #include "bape_priv.h"
 
@@ -634,18 +650,8 @@ static BERR_Code BAPE_SpdifInput_P_OpenHw(BAPE_SpdifInputHandle handle)
 
     BAPE_Reg_P_InitFieldList(hApe, &regFieldList);
 
-    if( BAPE_FMT_P_IsLinearPcm_isrsafe(&handle->inputPort.format) )
-    {            
-        /* Set the output format ena to PCM */
-        BAPE_Reg_P_AddEnumToFieldList(&regFieldList, BAPE_P_SPDIF_RX_CONFIG_REGNAME, OUT_FORMAT_ENA, PCM);
-        handle->outFormatEna = BAPE_P_BCHP_ENUM(BAPE_P_SPDIF_RX_CONFIG_REGNAME, OUT_FORMAT_ENA, PCM);  /* Remember OUT_FORMAT_ENA setting. */
-    }
-    else
-    {
-        /* Set the output format ena to PES */
-        BAPE_Reg_P_AddEnumToFieldList(&regFieldList, BAPE_P_SPDIF_RX_CONFIG_REGNAME, OUT_FORMAT_ENA, PES);
-        handle->outFormatEna = BAPE_P_BCHP_ENUM(BAPE_P_SPDIF_RX_CONFIG_REGNAME, OUT_FORMAT_ENA, PES);  /* Remember OUT_FORMAT_ENA setting. */
-    }
+    BAPE_Reg_P_AddEnumToFieldList(&regFieldList, BAPE_P_SPDIF_RX_CONFIG_REGNAME, OUT_FORMAT_ENA, ALL);
+    handle->outFormatEna = BAPE_P_BCHP_ENUM(BAPE_P_SPDIF_RX_CONFIG_REGNAME, OUT_FORMAT_ENA, ALL);  /* Remember OUT_FORMAT_ENA setting. */
 
     BAPE_Reg_P_AddEnumToFieldList(&regFieldList, BAPE_P_SPDIF_RX_CONFIG_REGNAME, ALLOW_NZ_STUFFING, Nonzero_OK);
 
@@ -1034,7 +1040,7 @@ static void BAPE_SpdifInput_P_DetectInputChange_isr (BAPE_SpdifInputHandle    ha
 
     if (BKNI_Memcmp_isr(pNewFormatDetectionStatus, pOldFormatDetectionStatus, sizeof (*pNewFormatDetectionStatus)) != 0)
     {
-	    BAPE_FMT_Descriptor format;
+        BAPE_FMT_Descriptor format;
 
         BAPE_InputPort_P_GetFormat_isr(&handle->inputPort, &format);
         BAPE_SpdifInput_P_UpdateFormat_isr (handle, pNewFormatDetectionStatus, &format);
@@ -1058,10 +1064,10 @@ static void BAPE_SpdifInput_P_DetectInputChange_isr (BAPE_SpdifInputHandle    ha
 
         /* Done with the important stuff,  now print out each of the fields and indicate whether they've changed. */
         #define BAPE_PRINT_CHANGE(name, pfmt, old, new)                                  \
-        	(  (old) != (new)   	 											         \
-        		? 	   BDBG_MSG(("%s: " pfmt " -> " pfmt , name,	 (old),	 (new )))    \
-        		: 	   BDBG_MSG(("%s: " pfmt, name, (new) ))			        	     \
-        	)
+            (  (old) != (new)                                                            \
+                ?      BDBG_MSG(("%s: " pfmt " -> " pfmt , name,     (old),  (new )))    \
+                :      BDBG_MSG(("%s: " pfmt, name, (new) ))                             \
+            )
 
         BDBG_MSG(("--------SPDIF Input Format Change Detection ---- begin ----"));
 
@@ -1093,29 +1099,9 @@ static void BAPE_SpdifInput_P_SetReceiverOutputFormat_isr (BAPE_SpdifInputHandle
 
     BKNI_ASSERT_ISR_CONTEXT();
     BDBG_OBJECT_ASSERT(handle, BAPE_SpdifInput);
+    BSTD_UNUSED(pFormatDetectionStatus);
 
-    outFormatEna =  BAPE_P_BCHP_ENUM(BAPE_P_SPDIF_RX_CONFIG_REGNAME, OUT_FORMAT_ENA, PCM);
-
-    if ( pFormatDetectionStatus->compressed)
-    {
-        BAPE_PathNode * pConsumer;
-
-        /* TODO: Need to revisit compressed capture in the context of FCI splitting
-           As of today, this code is broken if we have consumer of different types. Second consumer wins. */
-        for ( pConsumer = BLST_S_FIRST(&handle->inputPort.consumerList);
-            pConsumer != NULL;
-            pConsumer = BLST_S_NEXT(pConsumer, consumerNode) )
-        {
-            if ( pConsumer && pConsumer->type == BAPE_PathNodeType_eInputCapture )
-            {
-                outFormatEna =  BAPE_P_BCHP_ENUM(BAPE_P_SPDIF_RX_CONFIG_REGNAME, OUT_FORMAT_ENA, COMP);
-            }
-            else
-            {
-                outFormatEna =  BAPE_P_BCHP_ENUM(BAPE_P_SPDIF_RX_CONFIG_REGNAME, OUT_FORMAT_ENA, PES);
-            }
-        }
-    }
+    outFormatEna =  BAPE_P_BCHP_ENUM(BAPE_P_SPDIF_RX_CONFIG_REGNAME, OUT_FORMAT_ENA, ALL);
 
     if ( outFormatEna != handle->outFormatEna )
     {

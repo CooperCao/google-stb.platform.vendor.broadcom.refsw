@@ -3628,20 +3628,32 @@ static bool determine_capture_params(char *procname, char *capname, size_t bufle
 static void gpumon_initialize()
 {
    static bool alreadyInited = false;
+   static bool alreadyLoaded = false;
 
    if (alreadyInited)
+   {
+      if (!alreadyLoaded)
+      {
+         if (fill_real_func_table(&sRealFuncs))
+            alreadyLoaded = true;
+      }
       return;
+   }
 
    alreadyInited = true;
 
    memset(&sRealFuncs, 0, sizeof(REAL_GL_API_TABLE));
 
    // Fill the table
-   if (!fill_real_func_table(&sRealFuncs))
+   if (!alreadyLoaded)
    {
-      ALOGD("GPUMonitor disabled\n");
-      sOrphaned = true;
-      return;
+      if (!fill_real_func_table(&sRealFuncs))
+      {
+         ALOGE("GPUMonitor disabled\n");
+         sOrphaned = true;
+         return;
+      }
+      alreadyLoaded = true;
    }
 
    // Initialise perf counter and event monitor extensions

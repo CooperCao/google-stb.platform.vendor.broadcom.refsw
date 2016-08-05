@@ -66,9 +66,20 @@ IR_PROGRAM_T *glsl_ir_program_create() {
    init_vary_map(&ret->tf_vary_map);
 
    ret->early_fragment_tests = false;
+   ret->varyings_per_sample  = false;
    for(int i=0; i<V3D_MAX_VARYING_COMPONENTS; i++) {
       init_varying_info(&ret->varying[i]);
    }
+
+   ret->tess_vertices   = 0;
+   ret->tess_mode       = TESS_INVALID;
+   ret->tess_spacing    = TESS_SPACING_INVALID;
+   ret->tess_point_mode = false;
+   ret->tess_cw         = false;
+
+   ret->gs_out           = GS_OUT_INVALID;
+   ret->gs_n_invocations = 0;
+
    return ret;
 }
 

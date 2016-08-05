@@ -360,6 +360,8 @@ typedef struct BHDM_P_Handle
 	BKNI_EventHandle BHDM_EventRAM ;   /* debugging events */
 	BKNI_EventHandle BHDM_EventFIFO ;  /* debugging events */
 	BHDM_Settings DeviceSettings ;
+	bool bForcePacketUpdates ;   /* enables Packet updates when true */
+
 	BHDM_Status DeviceStatus ;
 
 	/* moved from Device Settings */
@@ -425,6 +427,7 @@ typedef struct BHDM_P_Handle
 
 	BHDM_HDCP_OPTIONS HdcpOptions  ;
 	bool bHdcpAnRequest ;
+	bool bHdcpValidBksv ;
 	bool bAutoRiPjCheckingEnabled  ;
 	uint8_t AbortHdcpAuthRequest ;
 

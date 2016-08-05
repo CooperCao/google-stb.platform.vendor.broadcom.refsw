@@ -102,7 +102,6 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
         uint32_t reg;
 
         reg = BREG_Read32(hReg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_21);
-        BDBG_ERR(("BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_21: %08x",reg));
         reg &= ~(
                  BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_21, gpio_110)
                  );
@@ -117,7 +116,6 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
         uint32_t reg;
 
         reg = BREG_Read32(hReg, BCHP_AON_PIN_CTRL_PIN_MUX_CTRL_0);
-        BDBG_ERR(("BCHP_AON_PIN_CTRL_PIN_MUX_CTRL_0: %08x",reg));
         reg &= ~(
                  BCHP_MASK(AON_PIN_CTRL_PIN_MUX_CTRL_0, aon_gpio_06)
                  );
@@ -127,7 +125,6 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
         BREG_Write32(hReg, BCHP_AON_PIN_CTRL_PIN_MUX_CTRL_0, reg);
 
         reg = BREG_Read32(hReg, BCHP_AON_PIN_CTRL_PIN_MUX_CTRL_1);
-        BDBG_ERR(("BCHP_AON_PIN_CTRL_PIN_MUX_CTRL_1: %08x",reg));
         reg &= ~(
                  BCHP_MASK(AON_PIN_CTRL_PIN_MUX_CTRL_1, aon_gpio_13) |
                  BCHP_MASK(AON_PIN_CTRL_PIN_MUX_CTRL_1, aon_gpio_14) |
@@ -141,7 +138,6 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
         BREG_Write32(hReg, BCHP_AON_PIN_CTRL_PIN_MUX_CTRL_1, reg);
 
         reg = BREG_Read32(hReg, BCHP_AON_PIN_CTRL_PIN_MUX_CTRL_2);
-        BDBG_ERR(("BCHP_AON_PIN_CTRL_PIN_MUX_CTRL_2: %08x",reg));
         reg &= ~(
                  BCHP_MASK(AON_PIN_CTRL_PIN_MUX_CTRL_2, aon_gpio_16)
                  );
@@ -397,7 +393,7 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
                     BDBG_ERR(("Unable to open %x demod %d (as frontend[%d])",probeResults.chip.familyId,i,i));
                     continue;
                 }
-                BDBG_MSG(("%xfe: %d(%d):%p",probeResults.chip.familyId,i,i,pConfig->frontend[i]));
+                BDBG_MSG(("%xfe: %d(%d):%p",probeResults.chip.familyId,i,i,(void *)pConfig->frontend[i]));
             }
         } else {
             BDBG_ERR(("No frontend found."));
@@ -475,7 +471,7 @@ static bool NEXUS_Platform_P_Is4538(NEXUS_I2cHandle i2cDevice, uint16_t i2cAddr)
     uint8_t subAddr;
 
     i2cHandle = NEXUS_I2c_GetRegHandle(i2cDevice, NULL);
-    BDBG_MSG(("i2c handle: %p, i2caddr: 0x%x",i2cHandle,i2cAddr));
+    BDBG_MSG(("i2c handle: %p, i2caddr: 0x%x",(void *)i2cHandle,i2cAddr));
     buf[0]= 0x0;
     subAddr = 0x1;
     BREG_I2C_WriteNoAddr(i2cHandle, i2cAddr, (uint8_t *)&subAddr, 1);

@@ -23,6 +23,8 @@ typedef struct
 
    unsigned num_array_elems;  /* for GL_TEXTURE_1D_ARRAY or TEXTURE_2D_ARRAY
                                  is the number of elements in the array;
+                                 for GL_TEXTURE_CUBE_MAP_ARRAY is the number
+                                 of elements in the array * 6,
                                  for GL_TEXTURE_CUBE_MAP is 6,
                                  1 for anything else */
    unsigned num_mip_levels;

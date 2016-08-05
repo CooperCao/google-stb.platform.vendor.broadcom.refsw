@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,6 +34,7 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
+ *
  * Module Description:
  *
  **************************************************************************/
@@ -43,6 +44,7 @@
 #include "priv/nexus_stc_channel_priv.h"
 #include "nexus_transport_capabilities.h"
 #include "priv/nexus_pid_channel_priv.h"
+#include "priv/nexus_rave_priv.h"
 #include "priv/nexus_core.h"
 #include "priv/nexus_core_img_id.h"
 #include "priv/nexus_core_img.h"
@@ -269,10 +271,11 @@ static void NEXUS_VideoDecoderModule_P_Print_Avd(void)
                 unsigned itbDepth, itbSize;
                 NEXUS_Error rc;
                 long ptsOffset;
-
+                unsigned refreshRate;
                 #if !BDBG_NO_LOG
                 static const char *g_decodeModeStr[NEXUS_VideoDecoderDecodeMode_eMax] = {"All", "IP", "I"};
                 #endif
+
                 rc = NEXUS_VideoDecoder_GetStatus(videoDecoder, &status);
                 if (rc) continue;
                 NEXUS_VideoDecoder_GetTrickState(videoDecoder, &trickState);
@@ -296,8 +299,9 @@ static void NEXUS_VideoDecoderModule_P_Print_Avd(void)
                 else {
                     BKNI_Snprintf(str, sizeof(str), "nexus[%u]", videoDecoder->parentIndex);
                 }
-                BDBG_LOG((" ch%u(%p): %s videoInput=%p max=%ux%u", j, (void *)videoDecoder->dec, str, (void*)(&videoDecoder->input),
-                    videoDecoder->settings.maxWidth, videoDecoder->settings.maxHeight));
+                BDBG_LOG((" ch%u(%p): %s videoInput=%p max=%ux%up%u %u bit", j, (void *)videoDecoder->dec, str, (void*)(&videoDecoder->input),
+                    videoDecoder->settings.maxWidth, videoDecoder->settings.maxHeight,
+                    (videoDecoder->memconfig.refreshRate+500)/1000, videoDecoder->settings.colorDepth));
                 if (videoDecoder->started) {
                     BDBG_LOG(("  started: codec=%d, pid=%#x, pidCh=%p, stcCh=%p",
                        videoDecoder->startSettings.codec, pidChannelStatus.pid, (void *)videoDecoder->startSettings.pidChannel, (void *)videoDecoder->startSettings.stcChannel));
@@ -322,14 +326,11 @@ static void NEXUS_VideoDecoderModule_P_Print_Avd(void)
                         trickState.hostTrickModesEnabled?'y':'n',
                         trickState.stcTrickEnabled?'y':'n',
                         trickState.topFieldOnly?'y':'n'));
-                    if ( status.source.width != status.coded.width ||
-                         status.source.height != status.coded.height ) {
-                        BDBG_LOG(("  Dimensions: Source %ux%u Coded %ux%u",
-                                  status.source.width, status.source.height,
-                                  status.coded.width, status.coded.height));
-                    }
-                    else {
-                        BDBG_LOG(("  Dimensions: Source %ux%u", status.source.width, status.source.height));
+                    refreshRate = (NEXUS_P_RefreshRate_FromFrameRate_isrsafe(status.frameRate)+500) / 1000;
+                    BDBG_LOG(("  Source: %ux%u%c%u %u bit", status.source.width, status.source.height,
+                        status.interlaced?'i':'p', refreshRate, videoDecoder->streamInfo.colorDepth));
+                    if ( status.source.width && (status.source.width != status.coded.width || status.source.height != status.coded.height)) {
+                        BDBG_LOG(("  Coded: %ux%u", status.coded.width, status.coded.height));
                     }
                 }
             }
@@ -481,6 +482,7 @@ static NEXUS_Error NEXUS_VideoDecoderModule_P_PostInit(void)
             g_pCoreHandles->bint, &xvdSettings);
         if (rc) {rc=BERR_TRACE(rc); goto error;}
         vDevice->index = i;
+        BXVD_GetHardwareCapabilities(vDevice->xvd, &vDevice->cap);
 
         /* register event for task-time execution of xvd watchdog. the watchdog event and isr is device-level, even
         though the BXVD_Interrupt is channel-level. */
@@ -695,6 +697,7 @@ NEXUS_Error NEXUS_VideoDecoder_P_Init_Generic(NEXUS_VideoDecoderHandle videoDeco
     NEXUS_VideoFormat_GetInfo(g_NEXUS_videoDecoderModuleSettings.memory[videoDecoder->parentIndex].maxFormat, &videoFormatInfo);
     videoDecoder->memconfig.maxWidth = videoFormatInfo.width;
     videoDecoder->memconfig.maxHeight = videoFormatInfo.height;
+    videoDecoder->memconfig.refreshRate = videoFormatInfo.verticalFreq * 10;
 
     if (!videoDecoder->mosaicMode && !pOpenSettings->openSettings.fifoSize && videoDecoder->memconfig.maxWidth > 1920) {
         /* default to larger CDB for 4K2K, same ITB */
@@ -874,17 +877,14 @@ NEXUS_VideoDecoderHandle NEXUS_VideoDecoder_P_Open(int parentIndex, unsigned ind
 
     /* set supportedCodecs[] based on module supportedCodecs[] and XVD's report of HW capabilities */
     {
-        BXVD_HardwareCapabilities cap;
         NEXUS_VideoCodec i;
-        rc = BXVD_GetHardwareCapabilities(videoDecoder->device->xvd, &cap);
-        if (rc) { rc = BERR_TRACE(rc); goto error; }
         for (i=0;i<NEXUS_VideoCodec_eMax;i++) {
             BAVC_VideoCompressionStd xvdCodec = NEXUS_P_VideoCodec_ToMagnum(i, NEXUS_TransportType_eTs);
             if (i == NEXUS_VideoCodec_eH264_Mvc || i == NEXUS_VideoCodec_eH264_Svc) {
                 /* don't propagate MVC/SVC from init-time to run-time settings. require app to set. */
                 raveSettings.supportedCodecs[i] = false;
             }
-            else if (g_NEXUS_videoDecoderModuleSettings.memory[videoDecoder->parentIndex].supportedCodecs[i] && cap.bCodecSupported[xvdCodec]) {
+            else if (g_NEXUS_videoDecoderModuleSettings.memory[videoDecoder->parentIndex].supportedCodecs[i] && videoDecoder->device->cap.bCodecSupported[xvdCodec]) {
                 raveSettings.supportedCodecs[i] = true;
             }
             else {
@@ -1871,6 +1871,8 @@ NEXUS_Error NEXUS_VideoDecoder_P_OpenChannel(NEXUS_VideoDecoderHandle videoDecod
     if (rc) {rc=BERR_TRACE(rc); goto error;}
     rc = BXVD_InstallInterruptCallback(videoDecoder->dec, BXVD_Interrupt_eFirstPTSPassed, NEXUS_VideoDecoder_P_FirstPtsPassed_isr, videoDecoder, 0);
     if (rc) {rc=BERR_TRACE(rc); goto error;}
+    rc = BXVD_InstallInterruptCallback(videoDecoder->dec, BXVD_Interrupt_eTSMPassInASTMMode, NEXUS_VideoDecoder_P_TsmPass_isr, videoDecoder, 0);
+    if (rc) {rc=BERR_TRACE(rc); goto error;}
     rc = BXVD_InstallInterruptCallback(videoDecoder->dec, BXVD_Interrupt_ePtsStcOffset, NEXUS_VideoDecoder_P_PtsStcOffset_isr, videoDecoder, 0);
     if (rc) {rc=BERR_TRACE(rc); goto error;}
     rc = BXVD_InstallInterruptCallback(videoDecoder->dec, BXVD_Interrupt_eDecodeError, NEXUS_VideoDecoder_P_DecodeError_isr, videoDecoder, 0);
@@ -2588,6 +2590,17 @@ static void NEXUS_VideoDecoder_P_CheckStatus(void *context)
             }
         }
     }
+
+    /* detect 1080p60 content on a 1080p30 channel */
+    if (g_NEXUS_videoDecoderModuleSettings.memory[videoDecoder->parentIndex].maxFormat == NEXUS_VideoFormat_e1080p30hz) {
+        /* for interlaced, use same info as NEXUS_VideoDecoderStatus.interlaced */
+        if (videoDecoder->last_field.ulSourceHorizontalSize >= 1080 && videoDecoder->last_field.bStreamProgressive) {
+            unsigned refreshRate = NEXUS_P_RefreshRate_FromFrameRate_isrsafe(videoDecoder->last_field.eFrameRateCode);
+            if (refreshRate >= 59940) {
+                BDBG_WRN(("decoder %u has 1080p60 source which exceeds its 1080p30 capability", videoDecoder->index));
+            }
+        }
+    }
 }
 #endif
 
@@ -3009,6 +3022,7 @@ NEXUS_Error NEXUS_VideoDecoder_P_Start_Generic_Body(NEXUS_VideoDecoderHandle vid
         raveSettings.disableReordering = (pStartSettings->timestampMode == NEXUS_VideoDecoderTimestampMode_eDecode);
         raveSettings.numOutputBytesEnabled = true; /* rave will poll every 250 msec. this is no worse than SW rave, so we enable always. */
         raveSettings.nonRealTime = pStartSettings->nonRealTime;
+        raveSettings.includeRepeatedItbStartCodes = videoDecoder->device->cap.bIncludeRepeatedItbStartCodes;
     #if NEXUS_OTFPVR
         if(otfPvr) {
             raveSettings.otfPvr = true;
@@ -3696,6 +3710,14 @@ void NEXUS_VideoDecoder_P_Flush_Avd(NEXUS_VideoDecoderHandle videoDecoder)
     if (!videoDecoder->started) return;
     BDBG_ASSERT(videoDecoder->dec);
 
+    if ( videoDecoder->startSettings.appDisplayManagement )
+    {
+        /* Synchronize with isr */
+        BKNI_EnterCriticalSection();
+        videoDecoder->externalTsm.stopped = true;
+        BKNI_LeaveCriticalSection();
+    }
+
     BDBG_MSG(("flush"));
     rc = BXVD_DisableForFlush(videoDecoder->dec);
     if (rc) {rc=BERR_TRACE(rc);} /* fall through */
@@ -3741,6 +3763,11 @@ void NEXUS_VideoDecoder_P_Flush_Avd(NEXUS_VideoDecoderHandle videoDecoder)
     videoDecoder->maxFrameRepeat.pictureDisplayCount = 0;
     BKNI_Memset(&videoDecoder->status, 0, sizeof(videoDecoder->status));
     NEXUS_VideoDecoder_P_FlushFifoEmpty(videoDecoder);
+
+    if ( videoDecoder->startSettings.appDisplayManagement )
+    {
+        videoDecoder->externalTsm.stopped = false;
+    }
 }
 
 NEXUS_Error NEXUS_VideoDecoder_P_GetStreamInformation_Avd(NEXUS_VideoDecoderHandle videoDecoder, NEXUS_VideoDecoderStreamInformation *pStreamInformation)
@@ -3974,6 +4001,7 @@ NEXUS_RaveHandle NEXUS_VideoDecoder_DetachRaveContext( NEXUS_VideoDecoderHandle 
 {
     BDBG_OBJECT_ASSERT(videoDecoder, NEXUS_VideoDecoder);
     if (!videoDecoder->raveDetached) {
+        NEXUS_OBJECT_REGISTER(NEXUS_Rave, videoDecoder->rave, Acquire);
         videoDecoder->raveDetached = true;
         return videoDecoder->rave;
     }
@@ -3987,6 +4015,7 @@ NEXUS_RaveHandle NEXUS_VideoDecoder_DetachEnhancementRaveContext( NEXUS_VideoDec
 {
     BDBG_OBJECT_ASSERT(videoDecoder, NEXUS_VideoDecoder);
     if (!videoDecoder->enhancementRaveDetached) {
+        NEXUS_OBJECT_REGISTER(NEXUS_Rave, videoDecoder->enhancementRave, Acquire);
         videoDecoder->enhancementRaveDetached = true;
         return videoDecoder->enhancementRave;
     }
@@ -4000,10 +4029,12 @@ NEXUS_Error NEXUS_VideoDecoder_AttachRaveContext( NEXUS_VideoDecoderHandle video
 {
     BDBG_OBJECT_ASSERT(videoDecoder, NEXUS_VideoDecoder);
     if (videoDecoder->raveDetached && rave == videoDecoder->rave) {
+        NEXUS_OBJECT_UNREGISTER(NEXUS_Rave, videoDecoder->rave, Release);
         videoDecoder->raveDetached = false;
         return 0;
     }
     else if (videoDecoder->enhancementRaveDetached && rave == videoDecoder->enhancementRave) {
+        NEXUS_OBJECT_UNREGISTER(NEXUS_Rave, videoDecoder->enhancementRave, Release);
         videoDecoder->enhancementRaveDetached = false;
         return 0;
     }
@@ -4123,7 +4154,6 @@ NEXUS_Error NEXUS_VideoDecoder_P_SetLowLatencySettings(NEXUS_VideoDecoderHandle 
 
 static void get_stc_count(NEXUS_VideoDecoderCapabilities *pCapabilities)
 {
-    BXVD_HardwareCapabilities xvdCaps;
     unsigned stcCount = 0xffffffff;
     unsigned i;
 
@@ -4131,10 +4161,9 @@ static void get_stc_count(NEXUS_VideoDecoderCapabilities *pCapabilities)
     {
         if (g_NEXUS_videoDecoderXvdDevices[i].xvd)
         {
-            BXVD_GetHardwareCapabilities(g_NEXUS_videoDecoderXvdDevices[i].xvd, &xvdCaps);
-            if (xvdCaps.uiSTC_Count < stcCount)
+            if (g_NEXUS_videoDecoderXvdDevices[i].cap.uiSTC_Count < stcCount)
             {
-                stcCount = xvdCaps.uiSTC_Count;
+                stcCount = g_NEXUS_videoDecoderXvdDevices[i].cap.uiSTC_Count;
             }
         }
     }
@@ -4847,6 +4876,12 @@ static NEXUS_Error NEXUS_VideoDecoder_P_GetDecodedFrame(
             NEXUS_VideoFrameRate nxFrameRate;
             NEXUS_P_FrameRate_FromRefreshRate_isrsafe((1000 * UnifiedPicture->stFrameRate.stRate.uiNumerator) / UnifiedPicture->stFrameRate.stRate.uiDenominator, &nxFrameRate);
             videoDecoder->last_field.eFrameRateCode = nxFrameRate;
+        }
+
+        {
+            BXVD_PictureParameterInfo info;
+            BXVD_SetPictureParameterInfo_isrsafe(&info, &videoDecoder->last_field, UnifiedPicture);
+            NEXUS_VideoDecoder_P_PictureParams_isr(videoDecoder, 0, &info);
         }
     }
     else

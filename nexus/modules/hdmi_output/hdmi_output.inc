@@ -94,18 +94,12 @@ NEXUS_HDMI_OUTPUT_MAGNUM_MODULES =  \
 #
 # HDCP (same logic exists in hdmi_input.inc)
 #
-# <default>             ==> enable 1.x and 2.x if HW supports and SAGE available, except for 65nm which requires protected HSM source
-# NEXUS_HDCP_SUPPORT=y  ==> enable 1.x and 2.x if HW supports and SAGE available
+# NEXUS_HDCP_SUPPORT=y  ==> enable 1.x and 2.x if HW supports and SAGE available (default)
 # NEXUS_HDCP_SUPPORT=1x ==> enable 1.x only
 # NEXUS_HDCP_SUPPORT=n  ==> no HDCP
 #
 ifeq ($(filter y 1x n,$(NEXUS_HDCP_SUPPORT)),)
-# CHIP_GEOMETRY is defined in security.inc
-ifeq ($(CHIP_GEOMETRY),65nm)
-NEXUS_HDCP_SUPPORT := n
-else
 NEXUS_HDCP_SUPPORT := y
-endif
 endif
 
 ifeq ($(findstring SECURITY, $(NEXUS_MODULES)),SECURITY)

@@ -66,7 +66,8 @@ typedef struct _ZBPRO_NWK_RouteDiscoveryReqParams_t
     ZBPRO_NWK_AddrMode_t    dstAddrMode;
     ZBPRO_NWK_NwkAddr_t     dstAddr;
     uint8_t                 radius;
-    bool                    noRouteCache;
+    Bool8_t                 noRouteCache;
+    Bool8_t                 canBeDelayed; // if true then NWK will waiting for empty discovery entry.
 } ZBPRO_NWK_RouteDiscoveryReqParams_t;
 
 /**//**
@@ -87,7 +88,7 @@ typedef struct _ZBPRO_NWK_RouteDiscoveryReqDescr_t  ZBPRO_NWK_RouteDiscoveryReqD
  * \brief NLME-ROUTE-DISCOVERY.confirm primitive callback function type
  */
 typedef void (*ZBPRO_NWK_RouteDiscoveryConfCallback_t)(ZBPRO_NWK_RouteDiscoveryReqDescr_t   *reqDescr,
-                                                       const ZBPRO_NWK_RouteDiscoveryConfParams_t *conf);
+                                                       ZBPRO_NWK_RouteDiscoveryConfParams_t *conf);
 
 /**//**
  * \brief NLME-ROUTE-DISCOVERY.request descriptor data type.

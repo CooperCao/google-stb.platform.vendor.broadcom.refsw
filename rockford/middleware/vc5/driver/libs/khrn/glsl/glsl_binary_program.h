@@ -23,7 +23,6 @@ typedef struct {
    BINARY_SHADER_T *fshader;
    BINARY_SHADER_T *vstages[SHADER_FLAVOUR_COUNT][MODE_COUNT];
    GLSL_VARY_MAP_T  vary_map;
-   bool             has_point_size;
 } BINARY_PROGRAM_T;
 
 

@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2013 Broadcom Corporation
+*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,17 +35,9 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * API Description:
 *   API name: Gpio
 *    Specific APIs related to Gpio Control.
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 #ifndef NEXUS_GPIO_H__
@@ -81,11 +73,11 @@ GPIO type values must be matched against the GPIO types implemented in the chip-
 ***************************************************************************/
 typedef enum NEXUS_GpioType
 {
-    NEXUS_GpioType_eStandard,
-    NEXUS_GpioType_eSpecial,
-    NEXUS_GpioType_eTvMicro,
-    NEXUS_GpioType_eAonStandard,
-    NEXUS_GpioType_eAonSpecial,
+    NEXUS_GpioType_eStandard,    /* GPIO */
+    NEXUS_GpioType_eSpecial,     /* SGPIO */
+    NEXUS_GpioType_eTvMicro,     /* unused */
+    NEXUS_GpioType_eAonStandard, /* AON_GPIO */
+    NEXUS_GpioType_eAonSpecial,  /* AON_SGPIO */
     NEXUS_GpioType_eMax
 } NEXUS_GpioType;
 

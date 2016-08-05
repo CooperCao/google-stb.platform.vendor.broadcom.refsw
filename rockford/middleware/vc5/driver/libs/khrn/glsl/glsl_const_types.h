@@ -11,23 +11,24 @@ FILE DESCRIPTION
 #ifndef GLSL_CONST_TYPES_H
 #define GLSL_CONST_TYPES_H
 
-#include "../common/khrn_int_util.h"   // Shouldn't be here, but needed for other things. Fix later
-#include "libs/sim/qpu_float/qpu_float.h"
-#include "libs/util/gfx_util/gfx_util.h"
+#include <stdint.h>
 
-typedef uint32_t const_value;  // for internal representation of constant values
+#include "libs/sim/qpu_float/qpu_float.h"
+
+typedef uint32_t const_value;     // for internal representation of constant values
 
 typedef uint32_t const_unsigned;  // for internal representation of unsigned values
 typedef int32_t  const_signed;    // for internal use whenever signed values are needed
 
-#define CONST_BOOL_TRUE 1
+#define CONST_BOOL_TRUE  1
 #define CONST_BOOL_FALSE 0
 
-#define CONST_INT_SIGN_BIT 0x80000000
+#define CONST_INT_SIGN_BIT     0x80000000
 
 #define CONST_FLOAT_MINUS_ONE  0xbf800000
 #define CONST_FLOAT_TWO        0x40000000
 #define CONST_FLOAT_ONE        0x3f800000
+#define CONST_FLOAT_HALF       0x3f000000
 #define CONST_FLOAT_ZERO       0x00000000
 #define CONST_FLOAT_MINUS_ZERO 0x80000000
 

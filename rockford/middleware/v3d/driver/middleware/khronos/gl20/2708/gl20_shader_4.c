@@ -77,9 +77,6 @@ static bool gl20_hw_emit_shaders(GL20_LINK_RESULT_T *link_result, GLXX_LINK_RESU
    uint32_t vary_count = 0;
    bool result = true;
    bool has_point_size;
-#ifdef XXX_OFFLINE
-   bool use_offline;
-#endif
    uint32_t fragment_shader_type = GLSL_BACKEND_TYPE_FRAGMENT;
    bool *texture_rb_swap = NULL;
 
@@ -104,52 +101,24 @@ static bool gl20_hw_emit_shaders(GL20_LINK_RESULT_T *link_result, GLXX_LINK_RESU
    }
    data->num_varyings = vary_count;
 
-   /*{
-      printf("***Shader %08x is program %d\n", simpenrose_hw_addr(mem_lock(data->mh_fcode)), xxx_shader);
-      mem_unlock(data->mh_fcode);
-   }*/
+   /* coordinate shader */
+   last_vpm_read = fetch_all_es20_attributes(attrib, key->attribs, link_result->cattribs_live, data->cattribs_order);
+   glsl_dataflow_copy(5, shaded, (Dataflow **)link_result->nodes+5, base, attrib, 4*GLXX_CONFIG_MAX_VERTEX_ATTRIBS, DATAFLOW_ATTRIBUTE, texture_rb_swap);
+   has_point_size = key->primitive_type == 0 && shaded[4] != NULL;
+   point_size = has_point_size ? shaded[4] : NULL;
+   last_vpm_write = glxx_vertex_backend(shaded[0], shaded[1], shaded[2], shaded[3], point_size, true, false, NULL, NULL, 0, key->egl_output);
+   glxx_iodep(last_vpm_write, last_vpm_read);
+   result &= glxx_schedule(last_vpm_write, GLSL_BACKEND_TYPE_COORD, &data->mh_ccode, &data->mh_cuniform_map, NULL, NULL, NULL);
 
-#ifdef XXX_OFFLINE
-   use_offline = false;   /* TODO */
-   if (use_offline)
-   {
-      /* offline vertex shader */
-      last_vpm_read = fetch_all_es20_attributes(attrib, key->attribs, link_result->vattribs_live, data->vattribs_order);
-      glsl_dataflow_copy(5+link_result->vary_count, shaded, (Dataflow **)link_result->nodes+5, base, attrib, 4*GLXX_CONFIG_MAX_VERTEX_ATTRIBS, DATAFLOW_ATTRIBUTE, texture_rb_swap);
-      has_point_size = key->primitive_type == 0 && shaded[4] != NULL;
-      point_size = has_point_size ? shaded[4] : NULL;
-      last_vpm_write = glxx_vertex_backend(shaded[0], shaded[1], shaded[2], shaded[3], point_size, true, true, shaded+5, vary_map, vary_count, key->egl_output);
-      glxx_iodep(last_vpm_write, last_vpm_read);
-      result &= glxx_schedule(last_vpm_write, GLSL_BACKEND_TYPE_OFFLINE_VERTEX, &data->mh_vcode, &data->mh_vuniform_map, NULL, NULL, NULL);
-   }
-   else
-#endif
-   {
-      /* coordinate shader */
-      last_vpm_read = fetch_all_es20_attributes(attrib, key->attribs, link_result->cattribs_live, data->cattribs_order);
-      glsl_dataflow_copy(5, shaded, (Dataflow **)link_result->nodes+5, base, attrib, 4*GLXX_CONFIG_MAX_VERTEX_ATTRIBS, DATAFLOW_ATTRIBUTE, texture_rb_swap);
-      has_point_size = key->primitive_type == 0 && shaded[4] != NULL;
-      point_size = has_point_size ? shaded[4] : NULL;
-      last_vpm_write = glxx_vertex_backend(shaded[0], shaded[1], shaded[2], shaded[3], point_size, true, false, NULL, NULL, 0, key->egl_output);
-      glxx_iodep(last_vpm_write, last_vpm_read);
-      result &= glxx_schedule(last_vpm_write, GLSL_BACKEND_TYPE_COORD, &data->mh_ccode, &data->mh_cuniform_map, NULL, NULL, NULL);
+   /* vertex shader */
+   last_vpm_read = fetch_all_es20_attributes(attrib, key->attribs, link_result->vattribs_live, data->vattribs_order);
+   glsl_dataflow_copy(5+link_result->vary_count, shaded, (Dataflow **)link_result->nodes+5, base, attrib, 4*GLXX_CONFIG_MAX_VERTEX_ATTRIBS, DATAFLOW_ATTRIBUTE, texture_rb_swap);
+   point_size = has_point_size ? shaded[4] : NULL;
+   last_vpm_write = glxx_vertex_backend(shaded[0], shaded[1], shaded[2], shaded[3], point_size, false, true, shaded+5, vary_map, vary_count, key->egl_output);
+   glxx_iodep(last_vpm_write, last_vpm_read);
+   result &= glxx_schedule(last_vpm_write, GLSL_BACKEND_TYPE_VERTEX, &data->mh_vcode, &data->mh_vuniform_map, NULL, NULL, NULL);
 
-      //if (xxx_shader == 122) glsl_allocator_dump();
-
-      /* vertex shader */
-      last_vpm_read = fetch_all_es20_attributes(attrib, key->attribs, link_result->vattribs_live, data->vattribs_order);
-      glsl_dataflow_copy(5+link_result->vary_count, shaded, (Dataflow **)link_result->nodes+5, base, attrib, 4*GLXX_CONFIG_MAX_VERTEX_ATTRIBS, DATAFLOW_ATTRIBUTE, texture_rb_swap);
-      point_size = has_point_size ? shaded[4] : NULL;
-      last_vpm_write = glxx_vertex_backend(shaded[0], shaded[1], shaded[2], shaded[3], point_size, false, true, shaded+5, vary_map, vary_count, key->egl_output);
-      glxx_iodep(last_vpm_write, last_vpm_read);
-      result &= glxx_schedule(last_vpm_write, GLSL_BACKEND_TYPE_VERTEX, &data->mh_vcode, &data->mh_vuniform_map, NULL, NULL, NULL);
-
-      //if (xxx_shader == 72) glsl_allocator_dump();
-   }
    data->has_point_size = has_point_size;
-#ifdef XXX_OFFLINE
-   data->use_offline = use_offline;
-#endif
 
    return result;
 }
@@ -455,25 +424,15 @@ bool gl20_link_result_get_shaders(
    *vunifmap_out = link_result->cache[i].data.mh_vuniform_map;
    *funifmap_out = link_result->cache[i].data.mh_funiform_map;
 
-#ifdef XXX_OFFLINE
-   if (link_result->cache[i].data.use_offline)
-   {
-      shader_out->flags |= 1 << 3;        /* Shaded coordinates have a clipping header */
+   /* store copy of handle in here, so can properly copy shader record */
+   shader_out->cshader = (uint32_t)link_result->cache[i].data.mh_ccode;
 
-      shader_out->cshader = (uint32_t)MEM_INVALID_HANDLE;
-   }
-   else
-#endif
-   {
-      /* store copy of handle in here, so can properly copy shader record */
-      shader_out->cshader = (uint32_t)link_result->cache[i].data.mh_ccode;
+   glxx_big_mem_insert(&shader_out->cshader, link_result->cache[i].data.mh_ccode, 0);
 
-      glxx_big_mem_insert(&shader_out->cshader, link_result->cache[i].data.mh_ccode, 0);
+   /* check big_mem_insert didn't change our handle copies */
+   vcos_assert(shader_out->cshader == (uint32_t) link_result->cache[i].data.mh_ccode);
 
-      /* check big_mem_insert didn't change our handle copies */
-      vcos_assert(shader_out->cshader == (uint32_t) link_result->cache[i].data.mh_ccode);
+   *cunifmap_out = link_result->cache[i].data.mh_cuniform_map;
 
-      *cunifmap_out = link_result->cache[i].data.mh_cuniform_map;
-   }
    return true;
 }

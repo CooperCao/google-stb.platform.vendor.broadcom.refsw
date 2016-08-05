@@ -145,12 +145,22 @@ BERR_Code BSAT_45308_P_Close(BSAT_Handle h)
 BERR_Code BSAT_45308_P_GetTotalChannels(BSAT_Handle h, uint32_t *totalChannels)
 {
    BSAT_45308_P_Handle *pDevImpl = (BSAT_45308_P_Handle *)(h->pImpl);
-   uint32_t product_id, chip_id, n, retries;
-   BERR_Code retCode;
+   uint32_t product_id, family_id, chip_id, n, retries;
+   BERR_Code retCode = BERR_SUCCESS;
 
    for (retries = 0; retries < 10; retries++)
    {
       retCode = BHAB_ReadRegister(pDevImpl->hHab,  BCHP_TM_PRODUCT_ID, &product_id);
+      if (retCode == BERR_SUCCESS)
+         break;
+   }
+
+   if (retCode)
+      goto done;
+
+   for (retries = 0; retries < 10; retries++)
+   {
+      retCode = BHAB_ReadRegister(pDevImpl->hHab,  BCHP_TM_FAMILY_ID, &family_id);
       if (retCode == BERR_SUCCESS)
          break;
    }
@@ -165,10 +175,13 @@ BERR_Code BSAT_45308_P_GetTotalChannels(BSAT_Handle h, uint32_t *totalChannels)
          *totalChannels = 4;
       else if (n == 0x06)
          *totalChannels = 6;
-      else /* assume 45208 if product_id=0 */
+      else if ((family_id & 0xFFFFFF00) == 0x04530200)
+         *totalChannels = 2;
+      else
          *totalChannels = 8;
    }
 
+   done:
    return retCode;
 }
 
@@ -1872,8 +1885,8 @@ BERR_Code BSAT_45308_P_EnableChannelInterrupt(
    uint32_t mask         /* [in] specifies which channel interrupt(s) to enable/disable */
 )
 {
+   BERR_Code retCode = BERR_SUCCESS;
    BSAT_45308_P_Handle *pImpl = (BSAT_45308_P_Handle *)(h->pDevice->pImpl);
-   BERR_Code retCode;
    uint32_t irq_mask, shift, clearReg, maskClearReg, maskSetReg;
 
    if (h->channel == 10)

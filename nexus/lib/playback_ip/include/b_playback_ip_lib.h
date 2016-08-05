@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -1495,6 +1495,14 @@ typedef struct B_PlaybackIpLiveStreamingPatPmtData {
     size_t pmtBufferSize;
 } B_PlaybackIpLiveStreamingPatPmtData;
 
+typedef enum B_PlaybackIpStreamingMethod
+{
+    B_PlaybackIpStreamingMethod_eRaveInterruptBased,  /*!< This indicates streaming will be driven by rave interrupts.*/
+    B_PlaybackIpStreamingMethod_eSystemTimerBased,    /*!< This indicates streaming will be driven by system timer at a periodic interval.*/
+    B_PlaybackIpStreamingMethod_eMax
+} B_PlaybackIpStreamingMethod;
+
+
 /* For Streaming from a Live (QAM/VSM/IP) or File (local disk) sources */
 typedef struct B_PlaybackIpLiveStreamingOpenSettings
 {
@@ -1526,6 +1534,18 @@ typedef struct B_PlaybackIpLiveStreamingOpenSettings
     unsigned ipTtl; /* Time To Live (TTL) for IPv4 */
     B_PlaybackIpLiveStreamingPatPmtData psiTables;
     bool dontCloseSocket;
+
+    B_PlaybackIpStreamingMethod streamingMethod;
+    unsigned timeOutIntervalInMs;                   /*!< This specifies the timeOutInterval in milliseconds.
+                                                       For RaveInterruptBasedStreaming : this specifies the worst case time to call the Data read
+                                                       function when there is no callback from rave over this duration.
+                                                       For http case we would like to set this to a higher value if we want to read bigger
+                                                       chunk(which eventually will reduce the interrupt).
+                                                       For example if read chunk size is 65Kbytes then for a 20Mbitsps stream we won't get any interrupt for approx 26.3 msec.
+                                                       So this should be set at higher value than that.
+
+                                                       For SystemTimerBasedStreaming : this specifies the duration after which data read call will be initiated periodically.
+                                                       For udp case we found that data read at an interval of 5msec provides the best output.*/
 } B_PlaybackIpLiveStreamingOpenSettings;
 
 /* Settings that can be updated when live streaming start is already called */

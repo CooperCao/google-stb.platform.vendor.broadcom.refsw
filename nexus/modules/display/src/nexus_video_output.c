@@ -1201,7 +1201,7 @@ NEXUS_VideoOutput_P_ApplyHdmiSettings(void *output, NEXUS_DisplayHandle display,
 
     if (display->hdmi.rateChangeCb_isr == NULL)
     {
-        BDBG_WRN(("HDMI output is disconnected from display. Settings not applied to HDMI device")) ;
+        BDBG_MSG(("HDMI output is disconnected from display. Settings not applied to HDMI device")) ;
         return NEXUS_SUCCESS;
     }
     BDBG_ASSERT(display->hdmi.outputNotify == hdmiOutput);

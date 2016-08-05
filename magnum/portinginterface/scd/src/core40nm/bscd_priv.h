@@ -66,7 +66,7 @@ typedef struct
 } BSCD_P_DFSmartCardStruct;
 
 
-#if (BCHP_CHIP==7366)&&(BCHP_VER>A0) || (BCHP_CHIP==7364)|| (BCHP_CHIP==7586)|| (BCHP_CHIP==7271) || (BCHP_CHIP==7268)
+#if (BCHP_CHIP==7366)&&(BCHP_VER>A0) || (BCHP_CHIP==7364)|| (BCHP_CHIP==7586)|| (BCHP_CHIP==7271) || (BCHP_CHIP==7268) || (BCHP_CHIP==7260)
 #define SMARTCARD_32_BIT_REGISTER
 #endif
 
@@ -727,7 +727,7 @@ BERR_Code BSCD_Channel_P_ConfigTimer_generic(
         bool outOfCriticalSection
 );
 
-BERR_Code BSCD_Channel_P_ConfigTimer_isr(
+BERR_Code BSCD_Channel_P_ConfigTimer_isrsafe(
         BSCD_ChannelHandle   in_channelHandle,
         BSCD_Timer                  *inp_timer,
         BSCD_TimerValue             *inp_unCount

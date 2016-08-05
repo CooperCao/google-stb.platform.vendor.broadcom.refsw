@@ -454,6 +454,24 @@ BERR_Code BDSP_AudioStage_GetDatasyncSettings(
     }
 }
 
+BERR_Code BDSP_AudioStage_GetDatasyncSettings_isr(
+    BDSP_StageHandle stage,
+    BDSP_AudioTaskDatasyncSettings *pDatasyncSettings         /* [out] */
+    )
+{
+    BDBG_OBJECT_ASSERT(stage, BDSP_Stage);
+    BDBG_ASSERT(NULL != pDatasyncSettings);
+
+    if ( stage->getDatasyncSettings_isr )
+    {
+        return stage->getDatasyncSettings_isr(stage->pStageHandle, pDatasyncSettings);
+    }
+    else
+    {
+        return BERR_TRACE(BERR_NOT_SUPPORTED);
+    }
+}
+
 BERR_Code BDSP_AudioStage_SetDatasyncSettings(
     BDSP_StageHandle stage,
     const BDSP_AudioTaskDatasyncSettings *pDatasyncSettings

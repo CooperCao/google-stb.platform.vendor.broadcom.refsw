@@ -309,6 +309,24 @@ error:
     return NULL;
 }
 
+NEXUS_FrontendDeviceHandle NEXUS_FrontendDevice_P_Create(void)
+{
+    NEXUS_FrontendDeviceHandle handle;
+
+    handle = BKNI_Malloc(sizeof(NEXUS_FrontendDevice));
+    if (!handle) {
+        BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
+        return NULL;
+    }
+
+    NEXUS_OBJECT_INIT(NEXUS_FrontendDevice, handle);
+    NEXUS_OBJECT_REGISTER(NEXUS_FrontendDevice, handle, Create);
+    handle->tripwire = 0x54329876;
+    BDBG_MSG(("Creating device handle %p...", (void *)handle));
+
+    return handle;
+}
+
 NEXUS_FrontendHandle NEXUS_Frontend_Acquire( const NEXUS_FrontendAcquireSettings *pSettings )
 {
     NEXUS_FrontendHandle frontend;
@@ -704,15 +722,16 @@ NEXUS_Error NEXUS_Frontend_P_InitMtsifConfig(NEXUS_FrontendDeviceMtsifConfig *pC
     BMXT_ParserConfig parserConfig;
     unsigned i;
     NEXUS_Error rc;
-    BMXT_Handle mxt = pConfig->mxt;
 
-    if (mxt==NULL) {
+    if (pConfig->mxt==NULL) {
         return BERR_TRACE(NEXUS_NOT_INITIALIZED);
     }
     /* TODO: we could move BMXT_Open() here as well, but some platforms (e.g. 7366) would need to pass in an extra BREG handle to this function */
 
-    BKNI_Memset(pConfig, 0, sizeof(NEXUS_FrontendDeviceMtsifConfig));
-    pConfig->mxt = mxt;
+    if (pConfig->numDemodIb || pConfig->numDemodPb) {
+        BDBG_WRN(("Unexpected non-zero members in MTSIF config")); /* this is a helpful warning to indicate that platform frontend code is not memset'ing the NEXUS_FrontendDeviceMtsifConfig's parent struct to 0 */
+    }
+
     pConfig->numDemodIb = BMXT_GetNumResources(mxtSettings->chip, mxtSettings->chipRev, BMXT_ResourceType_eInputBand);
     pConfig->numDemodPb = BMXT_GetNumResources(mxtSettings->chip, mxtSettings->chipRev, BMXT_ResourceType_eParser);
 
@@ -736,7 +755,7 @@ NEXUS_Error NEXUS_Frontend_P_InitMtsifConfig(NEXUS_FrontendDeviceMtsifConfig *pC
     return NEXUS_SUCCESS;
 }
 
-#if NEXUS_HAS_TSMF
+#if NEXUS_TRANSPORT_EXTENSION_TSMF
 static NEXUS_Error NEXUS_Frontend_P_SetTsmfInput(void *mxt, unsigned tsmfInput, unsigned tsmfIndex, const NEXUS_TsmfSettings *tsmfSettings)
 {
     NEXUS_Error rc;
@@ -1032,7 +1051,7 @@ apply_settings:
             setTimer = true;
         }
 
-#if NEXUS_HAS_TSMF
+#if NEXUS_TRANSPORT_EXTENSION_TSMF
         if (!mtsifConnections[i].tsmf.valid) continue;
         /* set input: connect this frontend to all (could be more than one) TSMF whose input matches this frontend */
         NEXUS_Frontend_P_SetTsmfInput(mxt, demodIb, mtsifConnections[i].tsmf.hwIndex, &mtsifConnections[i].tsmf.settings);
@@ -1286,6 +1305,13 @@ NEXUS_Error NEXUS_Frontend_ReadRegister(NEXUS_FrontendHandle handle, unsigned ad
     }
 }
 
+NEXUS_FrontendDeviceHandle NEXUS_FrontendDevice_OpenStub( unsigned index )
+{
+    BSTD_UNUSED(index);
+    BERR_TRACE(NEXUS_NOT_SUPPORTED);
+    return NULL;
+}
+
 NEXUS_FrontendHandle NEXUS_Frontend_OpenStub( unsigned index )
 {
     BSTD_UNUSED(index);
@@ -1506,7 +1532,20 @@ void NEXUS_FrontendDevice_Unlink(NEXUS_FrontendDeviceHandle parentHandle,NEXUS_F
     }
 }
 
-void  NEXUS_FrontendDevice_Close(NEXUS_FrontendDeviceHandle handle)
+static void NEXUS_FrontendDevice_P_Release(NEXUS_FrontendDeviceHandle handle)
+{
+    if (handle->tripwire == 0x54329876) {
+        BDBG_MSG(("Released device handle %p is fine...", (void *)handle));
+    } else {
+        BDBG_WRN(("device handle %p might have been corrupted...", (void *)handle));
+    }
+
+    NEXUS_OBJECT_UNREGISTER(NEXUS_FrontendDevice, handle, Destroy);
+}
+
+NEXUS_OBJECT_CLASS_MAKE_WITH_RELEASE(NEXUS_FrontendDevice, NEXUS_FrontendDevice_Close);
+
+static void  NEXUS_FrontendDevice_P_Finalizer(NEXUS_FrontendDeviceHandle handle)
 {
     BDBG_ASSERT(NULL != handle);
 
@@ -1783,6 +1822,16 @@ void NEXUS_FrontendModule_P_Print(void)
                 }
             }
         }
+#if 0 /* MXT regdump */
+{
+        void BMXT_P_RegDump(BMXT_Handle handle);
+        if (deviceHandle) {
+            BMXT_Handle mxt = deviceHandle->mtsifConfig.mxt;
+            BMXT_P_RegDump(mxt);
+            goto done;
+        }
+}
+#endif
         BDBG_MODULE_LOG(nexus_frontend_proc, ("frontend %2d: %p:%p, acquired %c", index, (void *)frontend, (void *)deviceHandle, frontend->acquired?'y':'n'));
         NEXUS_Frontend_GetCapabilities(frontend, &frontendCapabilities);
         if (frontend->acquired && frontendCapabilities.qam) {
@@ -1924,6 +1973,21 @@ NEXUS_Error NEXUS_FrontendDevice_Probe(const NEXUS_FrontendDeviceOpenSettings *p
 {
     NEXUS_Error rc = NEXUS_SUCCESS;
     unsigned chipId=0;
+    NEXUS_GpioHandle gpioHandle = NULL;
+
+    if (pSettings->reset.enable) {
+        NEXUS_GpioSettings gpioSettings;
+        BDBG_MSG(("Setting GPIO %d high",pSettings->reset.pin));
+        NEXUS_Gpio_GetDefaultSettings(pSettings->reset.type, &gpioSettings);
+        gpioSettings.mode = NEXUS_GpioMode_eOutputPushPull;
+        gpioSettings.value = pSettings->reset.value;
+        gpioSettings.interruptMode = NEXUS_GpioInterrupt_eDisabled;
+        gpioSettings.interrupt.callback = NULL;
+        gpioHandle = NEXUS_Gpio_Open(pSettings->reset.type, pSettings->reset.pin, &gpioSettings);
+        BDBG_ASSERT(NULL != gpioHandle);
+
+        BKNI_Sleep(500);
+    }
 
     /* Read chipId based on i2c (if provided), SPI (if provided), or chip ID (if neither provided).
      * For i2c/spi, read two bytes. If the resulting id is below the lowest known frontend, read one more byte,
@@ -2013,6 +2077,10 @@ NEXUS_Error NEXUS_FrontendDevice_Probe(const NEXUS_FrontendDeviceOpenSettings *p
         chipId = 0;
     pResults->chip.familyId = chipId;
 
+    if (pSettings->reset.enable) {
+        if (gpioHandle)
+            NEXUS_Gpio_Close(gpioHandle);
+    }
     return rc;
 }
 
@@ -2037,6 +2105,11 @@ NEXUS_FrontendDeviceHandle NEXUS_FrontendDevice_Open(unsigned index, const NEXUS
                 return g_frontends[i].openDevice(index, pSettings);
             }
         }
+    }
+    {
+        unsigned familyId = probe.chip.familyId;
+        if (familyId == 0x45316) familyId = 0x45308;
+        BDBG_WRN(("Detected frontend %x does not have an entry in the frontend table. Was Nexus built with NEXUS_FRONTEND_%x=y set?", familyId, familyId));
     }
     BERR_TRACE(NEXUS_NOT_SUPPORTED);
     return NULL;

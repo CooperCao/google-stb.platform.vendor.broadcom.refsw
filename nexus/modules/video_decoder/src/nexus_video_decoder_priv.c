@@ -380,7 +380,7 @@ NEXUS_VideoDecoder_P_DataReady_Generic_Epilogue_isr(NEXUS_VideoDecoderHandle vid
     return;
 }
 
-static NEXUS_VideoDecoderHandle nexus_p_find_mosaic_channel(struct NEXUS_VideoDecoderDevice *device, unsigned mosaicIndex)
+static NEXUS_VideoDecoderHandle nexus_p_find_mosaic_channel_isr(struct NEXUS_VideoDecoderDevice *device, unsigned mosaicIndex)
 {
     unsigned i;
     NEXUS_VideoDecoderHandle videoDecoder;
@@ -390,7 +390,7 @@ static NEXUS_VideoDecoderHandle nexus_p_find_mosaic_channel(struct NEXUS_VideoDe
     }
     if (device->slaveLinkedDevice) {
         BDBG_ASSERT(!device->slaveLinkedDevice->slaveLinkedDevice); /* assert one level of recursion */
-        videoDecoder = nexus_p_find_mosaic_channel(device->slaveLinkedDevice, mosaicIndex);
+        videoDecoder = nexus_p_find_mosaic_channel_isr(device->slaveLinkedDevice, mosaicIndex);
         if (videoDecoder && videoDecoder->linkedDevice == device) return videoDecoder;
     }
 
@@ -425,7 +425,7 @@ NEXUS_VideoDecoder_P_DataReady_isr(void *data, int unused, void *field)
         for (pNext = pFieldData; pNext; pNext = pNext->pNext) {
             NEXUS_VideoDecoderHandle v;
             /* pNext->ulChannelId is uiVDCRectangleNum, which is assigned to videoDecoder->mosaicIndex at start time */
-            v = nexus_p_find_mosaic_channel(videoDecoder->device, pNext->ulChannelId);
+            v = nexus_p_find_mosaic_channel_isr(videoDecoder->device, pNext->ulChannelId);
             if (v) {
                 NEXUS_VideoDecoder_P_DataReady_Generic_Prologue_isr(v, pNext);
             }
@@ -557,6 +557,35 @@ NEXUS_VideoDecoder_P_PtsError_isr(void *data, int unused, void *pts_info)
     videoDecoder->pts_error_cnt++;
 
     NEXUS_IsrCallback_Fire_isr(videoDecoder->ptsErrorCallback);
+}
+
+void
+NEXUS_VideoDecoder_P_TsmPass_isr(void *data, int unused, void *pts_info)
+{
+    BAVC_PTSInfo pts;
+    BXVD_PTSInfo * xvdPts = pts_info;
+    NEXUS_VideoDecoderHandle videoDecoder = (NEXUS_VideoDecoderHandle)data;
+
+    BSTD_UNUSED(unused);
+    BDBG_OBJECT_ASSERT(videoDecoder, NEXUS_VideoDecoder);
+
+    pts.ui32CurrentPTS = xvdPts->ui32RunningPTS;
+    pts.uiDecodedFrameCount = xvdPts->uiPicturesDecodedCount;
+    pts.uiDroppedFrameCount = xvdPts->uiDisplayManagerDroppedCount;
+    NEXUS_VIDEO_DECODER_P_XVD_PTS_INFO_TO_AVC_PTS_INFO(&pts, xvdPts);
+    BDBG_MSG(("video:%d TSM pass %#x", (unsigned)videoDecoder->mfdIndex, pts.ui32CurrentPTS));
+
+#if NEXUS_HAS_ASTM
+    if (videoDecoder->astm.settings.enableAstm && !videoDecoder->astm.settings.enableTsm)
+    {
+        videoDecoder->astm.status.pts = pts.ui32CurrentPTS;
+
+        if (videoDecoder->astm.settings.tsmPass_isr)
+        {
+            videoDecoder->astm.settings.tsmPass_isr(videoDecoder->astm.settings.callbackContext, 0);
+        }
+    }
+#endif
 }
 
 void
@@ -1780,8 +1809,16 @@ NEXUS_Error NEXUS_VideoDecoder_SetAstmSettings_priv_Avd(NEXUS_VideoDecoderHandle
     BDBG_OBJECT_ASSERT(videoDecoder, NEXUS_VideoDecoder);
     NEXUS_ASSERT_MODULE();
 
+    BKNI_EnterCriticalSection();
+    if (videoDecoder->astm.settings.enableAstm != pAstmSettings->enableAstm)
+    {
+        rc = BXVD_EnableInterrupt_isr(videoDecoder->dec, BXVD_Interrupt_eTSMPassInASTMMode, pAstmSettings->enableAstm);
+        if (rc) {rc=BERR_TRACE(rc); /* continue */ }
+    }
+
     /* copy settings as-is, this way ASTM will always get what it set */
     videoDecoder->astm.settings = *pAstmSettings;
+    BKNI_LeaveCriticalSection();
 
     /* if ASTM is internally permitted, apply settings */
     rc = NEXUS_VideoDecoder_P_SetTsm(videoDecoder);

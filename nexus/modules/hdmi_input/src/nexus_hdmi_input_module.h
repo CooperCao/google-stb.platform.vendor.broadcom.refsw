@@ -75,6 +75,7 @@
 
 #if NEXUS_HAS_SAGE && defined(NEXUS_HAS_HDCP_2X_RX_SUPPORT)
 #include "bhdcplib.h"
+#include "bhdcplib_hdcp2x.h"
 #include "bsagelib_client.h"
 #include "bsagelib_management.h"
 #endif
@@ -183,24 +184,28 @@ typedef struct NEXUS_HdmiInputMemoryBlock {
     void *buf;
 } NEXUS_HdmiInputMemoryBlock;
 
+#define NEXUS_HDMI_INPUT_SAGE_INDICATION_QUEUE_SIZE 5
+typedef struct NEXUS_HdmiInputIndicationData
+{
+    BHDCPlib_SageIndicationData sageIndication;
+    BHDCPlib_Handle hHDCPlib;
+} NEXUS_HdmiInputIndicationData;
+
 typedef struct NEXUS_HdmiInput_SageData
 {
     BSAGElib_ClientHandle sagelibClientHandle;
     BKNI_EventHandle eventWatchdogRecv;
     NEXUS_EventCallbackHandle eventWatchdogRecvCallback;
-    BSAGElib_ManagementInterface sagelibManagementInterface;
+    BKNI_EventHandle eventTATerminated;
+    NEXUS_EventCallbackHandle eventTATerminatedCallback;
 
     BKNI_EventHandle eventResponseRecv;
     BKNI_EventHandle eventIndicationRecv;
     NEXUS_EventCallbackHandle eventIndicationRecvCallback;
     uint32_t async_id;
-    struct
-    {
-        BSAGElib_RpcRemoteHandle sageRpcHandle;
-        BHDCPlib_Handle hHDCPlib;
-        uint32_t indication_id;
-        uint32_t value;
-    } indicationData;
+	NEXUS_HdmiInputIndicationData indicationData[NEXUS_HDMI_INPUT_SAGE_INDICATION_QUEUE_SIZE];
+	unsigned indicationReadPtr;
+	unsigned indicationWritePtr;
 } NEXUS_HdmiInput_SageData;
 
 extern NEXUS_HdmiInput_SageData g_NEXUS_hdmiInputSageData;
@@ -208,13 +213,6 @@ extern NEXUS_HdmiInputMemoryBlock g_hdmiInputTABlock;
 
 #endif
 
-
-#if (HDMI_RX_GEN == 35230)
-void NEXUS_HdmiInputTvm_P_HotPlugDisable(void) ;
-void NEXUS_HdmiInputTvm_P_HotPlugEnable(void) ;
-void NEXUS_HdmiInputTvm_P_EdidRam_LoadData(const uint8_t *dataBytes, uint16_t numEdidBytes) ;
-void NEXUS_HdmiInputTvm_P_EdidRam_Enable(void) ;
-#endif
 
 void NEXUS_HdmiInput_P_VideoFormatChange_isr(void *context, int param2, void *data);
 void NEXUS_HdmiInput_P_PacketChange_isr(void *context, int param2, void *data);

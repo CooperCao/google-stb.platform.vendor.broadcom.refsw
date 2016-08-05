@@ -111,7 +111,6 @@ static struct {
     BLST_S_HEAD(NEXUS_Security_P_KeySlotList_t, NEXUS_KeySlot) keyslotList; /* cannot contain any "generic" keyslots */
 } g_security;
 
-static BCMD_XptSecKeySlot_e      mapNexus2Hsm_KeyslotType( NEXUS_SecurityKeySlotType nexusType, NEXUS_SecurityEngine engine );
 static BCMD_XptM2MSecCryptoAlg_e mapNexus2Hsm_Algorithm( NEXUS_SecurityAlgorithm algorithm );
 static BCMD_KeyDestEntryType_e   mapNexus2Hsm_keyEntryType( NEXUS_SecurityKeyType keytype );
 static BCMD_KeyDestIVType_e      mapNexus2Hsm_ivType( NEXUS_SecurityKeyIVType keyIVtype );
@@ -156,8 +155,9 @@ void NEXUS_GetSecurityCapabilities( NEXUS_SecurityCapabilities *pCaps )
     if( rc != BERR_SUCCESS ) { (void)BERR_TRACE( NEXUS_INVALID_PARAMETER ); return; }
 
     pCaps->version.zeus = NEXUS_ZEUS_VERSION_CALC ( NEXUS_SECURITY_ZEUS_VERSION_MAJOR, NEXUS_SECURITY_ZEUS_VERSION_MINOR );
-    pCaps->version.firmware =  ( ( ( hsmCaps.version.firmware.bseck.major & 0xFF ) << 16 )
-                                |  ( hsmCaps.version.firmware.bseck.minor & 0xFF ) );
+    pCaps->version.firmware = NEXUS_BFW_VERSION_CALC( hsmCaps.version.firmware.bseck.major,
+                                                      hsmCaps.version.firmware.bseck.minor,
+                                                      hsmCaps.version.firmware.bseck.subMinor );
 
     numTypes = hsmCaps.keyslotTypes.numKeySlotTypes;
     numTypes = MIN( numTypes , sizeof( pCaps->keySlotTableSettings.numKeySlotsForType ) );
@@ -327,6 +327,11 @@ static NEXUS_Error secureFirmwareRave( void )
     NEXUS_SecurityRegionConfiguration regionConfig;
     void *pRaveFirmware = NULL;
     unsigned raveFirmwareSize = 0;
+    NEXUS_Addr regionAddress = 0;
+   #if NEXUS_REGION_VERIFICATION_DUMP_FIRMWARE || NEXUS_REGION_VERIFICATION_DUMP_FIRMWARE_RAW /*dump binaries */
+    void *pRaveFirmwareDeviceMem = NULL;
+   #endif
+
     BDBG_ENTER(secureFirmwareRave);
 
     NEXUS_Security_RegionGetDefaultConfig_priv( NEXUS_SecurityRegverRegionID_eRave, &regionConfig );
@@ -337,7 +342,20 @@ static NEXUS_Error secureFirmwareRave( void )
     /* locate Rave Firmware. */
     NEXUS_TransportModule_GetRaveFirmware_isrsafe( &pRaveFirmware, &raveFirmwareSize );
 
-    rc = NEXUS_Security_RegionVerifyEnable_priv( NEXUS_SecurityRegverRegionID_eRave, pRaveFirmware, raveFirmwareSize );
+   #if NEXUS_REGION_VERIFICATION_DUMP_FIRMWARE || NEXUS_REGION_VERIFICATION_DUMP_FIRMWARE_RAW /*dump binaries */
+    rc = NEXUS_Memory_Allocate( raveFirmwareSize, NULL, &pRaveFirmwareDeviceMem );
+    if( rc ) { return BERR_TRACE(rc); }
+
+    BKNI_Memcpy( pRaveFirmwareDeviceMem, pRaveFirmware, raveFirmwareSize );
+    regionAddress =  NEXUS_AddrToOffset( pRaveFirmwareDeviceMem );
+   #endif
+
+    rc = NEXUS_Security_RegionVerifyEnable_priv( NEXUS_SecurityRegverRegionID_eRave,
+                                                 regionAddress,
+                                                 raveFirmwareSize );
+   #if NEXUS_REGION_VERIFICATION_DUMP_FIRMWARE || NEXUS_REGION_VERIFICATION_DUMP_FIRMWARE_RAW
+    NEXUS_Memory_Free( &pRaveFirmwareDeviceMem );
+   #endif
     if (rc) { return BERR_TRACE(rc); }
 
     BDBG_LEAVE(secureFirmwareRave);
@@ -375,7 +393,10 @@ NEXUS_ModuleHandle NEXUS_SecurityModule_Init(const NEXUS_SecurityModuleInternalS
 
     BLST_S_INIT( &g_security.keyslotList );
 
-    rc = NEXUS_Security_RegionVerification_Init_priv( );
+    rc = NEXUS_Security_RegionVerification_Init_priv( ); /* region verification private interface. */
+    if (rc) { rc = BERR_TRACE(rc); goto err_init; }
+
+    rc = NEXUS_RegionVerify_Init( );                     /* region verification public interface. */
     if (rc) { rc = BERR_TRACE(rc); goto err_init; }
 
     if (pModuleSettings->callTransportPostInit) {
@@ -440,6 +461,8 @@ void NEXUS_SecurityModule_Uninit(void)
     NEXUS_LockModule();
 
     NEXUS_SecurityModule_Sweep_priv();
+
+    NEXUS_RegionVerify_Uninit( );
 
     NEXUS_Security_RegionVerification_UnInit_priv( );
 
@@ -916,7 +939,7 @@ static NEXUS_SecurityKeySlotType mapHsm2Nexus_keySlotType( BCMD_XptSecKeySlot_e 
 
 
 /* Map the NEXUS keyslot type to a HSM keyslot type. */
-static BCMD_XptSecKeySlot_e mapNexus2Hsm_KeyslotType( NEXUS_SecurityKeySlotType nexusType, /* the Nexus keyslot type */
+BCMD_XptSecKeySlot_e NEXUS_SECURITY_P_mapNexus2Hsm_KeyslotType( NEXUS_SecurityKeySlotType nexusType, /* the Nexus keyslot type */
                                                       NEXUS_SecurityEngine engine )        /* the engine */
 {
     switch( nexusType )
@@ -1886,7 +1909,7 @@ NEXUS_KeySlotHandle NEXUS_Security_AllocateKeySlot(const NEXUS_SecurityKeySlotSe
     switch (pSettings->keySlotEngine)
     {
         case NEXUS_SecurityEngine_eM2m:
-            type = mapNexus2Hsm_KeyslotType( pSettings->keySlotType, pSettings->keySlotEngine );
+            type = NEXUS_SECURITY_P_mapNexus2Hsm_KeyslotType( pSettings->keySlotType, pSettings->keySlotEngine );
 
            #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,0)
             if ( ( type != BCMD_XptSecKeySlot_eType0 ) &&
@@ -1905,7 +1928,7 @@ NEXUS_KeySlotHandle NEXUS_Security_AllocateKeySlot(const NEXUS_SecurityKeySlotSe
 
         case NEXUS_SecurityEngine_eCaCp:
         case NEXUS_SecurityEngine_eCa:
-            type = mapNexus2Hsm_KeyslotType( pSettings->keySlotType, pSettings->keySlotEngine );
+            type = NEXUS_SECURITY_P_mapNexus2Hsm_KeyslotType( pSettings->keySlotType, pSettings->keySlotEngine );
 
             rc = NEXUS_Security_AllocateKeySlotForType( &keyHandle, pSettings, type );
             if( rc != NEXUS_SUCCESS ) { rc = BERR_TRACE( rc ); goto err_alloc; }
@@ -2265,6 +2288,9 @@ NEXUS_Error NEXUS_SecurityModule_Standby_priv(bool enabled, const NEXUS_StandbyS
 
             /* Reinitialise Region Verification module. */
             rc = NEXUS_Security_RegionVerification_Init_priv( );
+            if (rc) { return BERR_TRACE(rc); }
+
+            rc = NEXUS_RegionVerify_Init( );
             if (rc) { return BERR_TRACE(rc); }
         }
 

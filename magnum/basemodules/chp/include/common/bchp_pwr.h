@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2007-2010 Broadcom Corporation
+*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * Module Description:
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 
@@ -58,6 +50,10 @@
 
 #ifdef __cplusplus
 extern "C" {
+#endif
+
+#if 0
+#define BCHP_PWR_TRACK 1
 #endif
 
 /***************************************************************************
@@ -91,8 +87,12 @@ Description:
 See Also:
 	BCHP_PWR_Resource_Release
 **************************************************************************/
+#if BCHP_PWR_TRACK
+#define BCHP_PWR_AcquireResource(handle, resourceId)  BCHP_PWR_AcquireResource_tagged(handle, resourceId, __FILE__, __LINE__)
+BERR_Code BCHP_PWR_AcquireResource_tagged(BCHP_Handle handle, BCHP_PWR_ResourceId resourceId, const char *file, unsigned line);
+#else
 BERR_Code BCHP_PWR_AcquireResource(BCHP_Handle handle, BCHP_PWR_ResourceId resourceId);
-
+#endif
 
 /***************************************************************************
 Summary:
@@ -114,8 +114,12 @@ Description:
 See Also:
 	BCHP_PWR_Resource_Acquire
 **************************************************************************/
+#if BCHP_PWR_TRACK
+#define BCHP_PWR_ReleaseResource(handle, resourceId)  BCHP_PWR_ReleaseResource_tagged(handle, resourceId, __FILE__, __LINE__)
+BERR_Code BCHP_PWR_ReleaseResource_tagged(BCHP_Handle handle, BCHP_PWR_ResourceId resourceId, const char *file, unsigned line);
+#else
 BERR_Code BCHP_PWR_ReleaseResource(BCHP_Handle handle, BCHP_PWR_ResourceId resourceId);
-
+#endif
 
 /***************************************************************************
 Summary:
@@ -274,11 +278,22 @@ Description:
     Not all resources have the capability to get/set clock rate. Check the
     return code whether rate was set successfully or not.
 **************************************************************************/
+#if BCHP_PWR_TRACK
+#define BCHP_PWR_SetClockRate(handle, resourceId, clkRate)  BCHP_PWR_SetClockRate_tagged(handle, resourceId, clkRate, __FILE__, __LINE__)
+BERR_Code BCHP_PWR_SetClockRate_tagged(
+        BCHP_Handle handle,
+        BCHP_PWR_ResourceId resourceId,
+        unsigned clkRate,
+        const char *file,
+        unsigned line
+        );
+#else
 BERR_Code BCHP_PWR_SetClockRate(
         BCHP_Handle handle,
         BCHP_PWR_ResourceId resourceId,
         unsigned clkRate
         );
+#endif
 
 #ifdef __cplusplus
 } /* extern "C" */

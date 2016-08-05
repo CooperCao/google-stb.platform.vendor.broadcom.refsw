@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -35,7 +35,6 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *****************************************************************************/
-
 #include "bape.h"
 #include "bape_priv.h"
 #include "bdsp_raaga.h"
@@ -100,7 +99,7 @@ static const BAPE_CodecAttributes g_codecAttributes[] =
     {BAVC_AudioCompressionStd_eWmaStdTs,    BDSP_Algorithm_eWmaStdDecode,         BDSP_Algorithm_eMax,                  BDSP_Algorithm_eMax,              "WMA Std TS",   BAPE_MultichannelFormat_e2_0, false, true,  false,         false,  false,   false,   false},
     {BAVC_AudioCompressionStd_eWmaPro,      BDSP_Algorithm_eWmaProDecode,         BDSP_Algorithm_eMax,                  BDSP_Algorithm_eMax,              "WMA Pro",      BAPE_MultichannelFormat_e5_1, true,  false, false,         true,   false,   false,   false},
     {BAVC_AudioCompressionStd_eMlp,         BDSP_Algorithm_eMlpDecode,            BDSP_Algorithm_eMlpPassthrough,       BDSP_Algorithm_eMax,              "MLP",          BAPE_MultichannelFormat_e7_1, true,  true,  true,          true,   false,   false,   true},
-    {BAVC_AudioCompressionStd_ePcm,         BDSP_Algorithm_ePcmDecode,            BDSP_Algorithm_eMax,                  BDSP_Algorithm_eMax,              "PCM",          BAPE_MultichannelFormat_e2_0, false, true,  false,         false,  false,   false,   false},
+    {BAVC_AudioCompressionStd_ePcm,         BDSP_Algorithm_ePcmDecode,            BDSP_Algorithm_eMax,                  BDSP_Algorithm_eMax,              "PCM",          BAPE_MultichannelFormat_e7_1, false, true,  false,         false,  false,   false,   false},
     {BAVC_AudioCompressionStd_ePcmWav,      BDSP_Algorithm_ePcmWavDecode,         BDSP_Algorithm_eMax,                  BDSP_Algorithm_eMax,              "PCM WAV",      BAPE_MultichannelFormat_e7_1, false, true,  false,         false,  true,    false,   false},
     {BAVC_AudioCompressionStd_eLpcmDvd,     BDSP_Algorithm_eLpcmDvdDecode,        BDSP_Algorithm_eMax,                  BDSP_Algorithm_eMax,              "LPCM DVD",     BAPE_MultichannelFormat_e5_1, false, true,  false,         false,  false,   false,   false},
     {BAVC_AudioCompressionStd_eLpcmBd,      BDSP_Algorithm_eLpcmBdDecode,         BDSP_Algorithm_eMax,                  BDSP_Algorithm_eMax,              "LPCM BD",      BAPE_MultichannelFormat_e7_1, false, true,  false,         false,  false,   false,   false},

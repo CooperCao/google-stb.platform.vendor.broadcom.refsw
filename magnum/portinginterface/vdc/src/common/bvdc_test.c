@@ -74,8 +74,7 @@ BERR_Code  BVDC_Test_P_Buffer_ExtractBuffer_isr
     BVDC_P_Buffer_GetPrevActiveAndNotUsedByUserNode(pPrevReaderNode, hBuffer->pCurReaderBuf);
     if ((hBuffer->pPrevReaderBuf != hBuffer->pCurReaderBuf) &&
         (pPrevReaderNode != hBuffer->pCurWriterBuf) && (pPrevReaderNode->pHeapNode) &&
-        (!pPrevReaderNode->stFlags.bMute) && (!pPrevReaderNode->stFlags.bMuteFixedColor) &&
-        (!pPrevReaderNode->stFlags.bMuteMad))
+        (!pPrevReaderNode->stFlags.bMute) && (!pPrevReaderNode->stFlags.bMuteFixedColor))
     {
         /* Mark picture node as currently used by user */
         pPrevReaderNode->stFlags.bUsedByUser = true;

@@ -391,7 +391,8 @@ UserAppDmon::UserApp *UserAppDmon::uappFindName(string name)
 {
     for (uint32_t i = 0; i < UAPP_NUM_MAX; i++) {
         if (pUApps[i] &&
-            pUApps[i]->name == name)
+            pUApps[i]->name == name &&
+            pUApps[i]->pappCnt != 0) /* NOT stopped */
             return pUApps[i];
     }
     return NULL;
@@ -450,6 +451,7 @@ int UserAppDmon::UserApp::getId()
     int err = tzioc_client_getid(
         UserAppDmon::hClient,
         const_cast<char *>(name.c_str()),
+        pid,
         &id);
 
     if (err) {

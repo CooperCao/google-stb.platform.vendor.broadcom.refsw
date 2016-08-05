@@ -512,7 +512,7 @@ NEXUS_Error NEXUS_StillDecoder_P_Start_Avd( NEXUS_StillDecoderHandle stillDecode
         break;
     case NEXUS_VideoCodec_eVp8:
         stillDecoder->endCode = 0;
-        stillDecoder->stillMode = supportHd?BXVD_DecodeModeStill_eVP8_SD:BXVD_DecodeModeStill_eVP8_HD;
+        stillDecoder->stillMode = supportHd?BXVD_DecodeModeStill_eVP8_HD:BXVD_DecodeModeStill_eVP8_SD;
         break;
     default:
         BDBG_WRN(("video codec %d not supported", pSettings->codec));

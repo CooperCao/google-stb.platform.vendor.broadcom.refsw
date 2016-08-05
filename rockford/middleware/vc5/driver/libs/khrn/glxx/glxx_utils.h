@@ -12,9 +12,19 @@ Miscellaneous glxx functions
 #include "gl_public_api.h"
 #include "../common/khrn_int_common.h"
 #include "glxx_int_config.h"
+#include "glxx_enum_types.h"
 #include "libs/core/lfmt/lfmt.h"
 
-extern unsigned int glxx_get_type_size(GLenum type, int count);
+static inline uint32_t glxx_get_index_type_size(GLXX_INDEX_T type)
+{
+   switch (type)
+   {
+   case E_GL_UNSIGNED_BYTE:   return 1u;
+   case E_GL_UNSIGNED_SHORT:  return 2u;
+   case E_GL_UNSIGNED_INT:    return 4u;
+   default: unreachable();
+   }
+}
 
 extern bool glxx_is_color_renderable_internalformat(GLenum internalformat);
 extern bool glxx_is_depth_renderable_internalformat(GLenum internallformat);

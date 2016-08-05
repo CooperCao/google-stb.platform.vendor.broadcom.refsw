@@ -1,43 +1,39 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *****************************************************************************/
 
 
@@ -988,7 +984,7 @@ BERR_Code BXPT_GetParserConfig(
     if( ParserNum > hXpt->MaxPidParsers )
     {
         /* Bad parser number. Complain. */
-        BDBG_ERR(( "ParserNum %lu is out of range!", ParserNum ));
+        BDBG_ERR(( "ParserNum %u is out of range!", ParserNum ));
         ExitCode = BERR_TRACE( BERR_INVALID_PARAMETER );
     }
     else
@@ -1032,7 +1028,7 @@ BERR_Code BXPT_GetDefaultParserConfig(
     if( ParserNum > hXpt->MaxPidParsers )
     {
         /* Bad parser number. Complain. */
-        BDBG_ERR(( "ParserNum %lu is out of range!", ParserNum ));
+        BDBG_ERR(( "ParserNum %u is out of range!", ParserNum ));
         ExitCode = BERR_TRACE( BERR_INVALID_PARAMETER );
     }
     else
@@ -1065,7 +1061,7 @@ BERR_Code BXPT_SetParserConfig(
     if( ParserNum > hXpt->MaxPidParsers )
     {
         /* Bad parser number. Complain. */
-        BDBG_ERR(( "ParserNum %lu is out of range!", ParserNum ));
+        BDBG_ERR(( "ParserNum %u is out of range!", ParserNum ));
         ExitCode = BERR_TRACE( BERR_INVALID_PARAMETER );
     }
     else
@@ -1131,7 +1127,7 @@ BERR_Code BXPT_GetDefaultInputBandConfig(
     if( BandNum > hXpt->MaxInputBands )
     {
         /* Bad parser number. Complain. */
-        BDBG_ERR(( "BandNum %lu is out of range!", BandNum ));
+        BDBG_ERR(( "BandNum %u is out of range!", BandNum ));
         ExitCode = BERR_TRACE( BERR_INVALID_PARAMETER );
     }
     else
@@ -1175,7 +1171,7 @@ BERR_Code BXPT_GetInputBandConfig(
     if( BandNum > hXpt->MaxInputBands )
     {
         /* Bad parser number. Complain. */
-        BDBG_ERR(( "BandNum %lu is out of range!", BandNum ));
+        BDBG_ERR(( "BandNum %u is out of range!", BandNum ));
         ExitCode = BERR_TRACE( BERR_INVALID_PARAMETER );
     }
     else
@@ -1240,7 +1236,7 @@ BERR_Code BXPT_SetInputBandConfig(
     if( BandNum > hXpt->MaxInputBands )
     {
         /* Bad parser number. Complain. */
-        BDBG_ERR(( "BandNum %lu is out of range!", BandNum ));
+        BDBG_ERR(( "BandNum %u is out of range!", BandNum ));
         ExitCode = BERR_TRACE( BERR_INVALID_PARAMETER );
     }
     else
@@ -1327,7 +1323,7 @@ BERR_Code BXPT_ParserAllPassMode(
     if( ParserNum > hXpt->MaxPidParsers )
     {
         /* Bad parser number. Complain. */
-        BDBG_ERR(( "ParserNum %lu is out of range!", ParserNum ));
+        BDBG_ERR(( "ParserNum %u is out of range!", ParserNum ));
         ExitCode = BERR_TRACE( BERR_INVALID_PARAMETER );
     }
     else
@@ -1390,20 +1386,20 @@ BERR_Code BXPT_SetParserDataSource(
     if( ParserNum > hXpt->MaxPidParsers )
     {
         /* Bad parser number. Complain. */
-        BDBG_ERR(( "ParserNum %lu is out of range!", ParserNum ));
+        BDBG_ERR(( "ParserNum %u is out of range!", ParserNum ));
         ExitCode = BERR_TRACE( BERR_INVALID_PARAMETER );
     }
     /* Is the requested DataSource valid? */
     else if( DataSource == BXPT_DataSource_eInputBand && WhichSource > hXpt->MaxInputBands )
     {
         /* Requested an input band we dont support. Complain. */
-        BDBG_ERR(( "WhichSource %lu is out of range!. Not enough input bands.", WhichSource ));
+        BDBG_ERR(( "WhichSource %u is out of range!. Not enough input bands.", WhichSource ));
         ExitCode = BERR_TRACE( BERR_INVALID_PARAMETER );
     }
 #ifdef BXPT_NUM_LEGACY_PID_PARSERS
     else if( DataSource == BXPT_DataSource_eInputBand && ParserNum >= BXPT_NUM_LEGACY_PID_PARSERS )
     {
-        BDBG_ERR(( "ParserNum %lu does not support legacy input!", ParserNum ));
+        BDBG_ERR(( "ParserNum %u does not support legacy input!", ParserNum ));
         ExitCode = BERR_TRACE( BERR_INVALID_PARAMETER );
     }
 #endif
@@ -1465,7 +1461,7 @@ BERR_Code BXPT_GetParserDataSource(
     if( ParserNum > hXpt->MaxPidParsers )
     {
         /* Bad parser number. Complain. */
-        BDBG_ERR(( "ParserNum %lu is out of range!", ParserNum ));
+        BDBG_ERR(( "ParserNum %u is out of range!", ParserNum ));
         ExitCode = BERR_TRACE( BERR_INVALID_PARAMETER );
     }
     else
@@ -1516,7 +1512,7 @@ BERR_Code BXPT_SetParserEnable(
     if( ParserNum > hXpt->MaxPidParsers )
     {
         /* Bad parser number. Complain. */
-        BDBG_ERR(( "ParserNum %lu is out of range!", ParserNum ));
+        BDBG_ERR(( "ParserNum %u is out of range!", ParserNum ));
         ExitCode = BERR_TRACE( BERR_INVALID_PARAMETER );
     }
     else
@@ -2419,7 +2415,7 @@ bool IsPidDuplicated(
 
             if( TargetChannelCfg == ThisChannelCfg && ThisChannelEnable )
             {
-                BDBG_ERR(( "Pid channels %lu and %lu are duplicates!", i, PidChannelNum ));
+                BDBG_ERR(( "Pid channels %u and %u are duplicates!", i, PidChannelNum ));
                 IsDuplicated = true;
                 break;
             }
@@ -2691,7 +2687,7 @@ BERR_Code BXPT_SetParserMapping(
         Mapping = &ParserMap->FrontEnd[ ii ];
         if( Mapping->VirtualParserBandNum != ii || Mapping->VirtualParserIsPlayback )
         {
-            BDBG_ERR(( "ParserNum %lu cannot be remapped", ii ));
+            BDBG_ERR(( "ParserNum %u cannot be remapped", ii ));
             return BERR_TRACE( BERR_INVALID_PARAMETER );
         }
     }
@@ -2814,7 +2810,7 @@ uint32_t BXPT_P_GetParserCtrlRegAddr(
         else
         {
             /* Read or write of addr 0 will probably cause a segfault, but we were passed an unsupported Reg0 anyway. */
-            BDBG_ERR(( "Parser reg %lu is unsupported", Reg0 ));
+            BDBG_ERR(( "Parser reg %u is unsupported", Reg0 ));
             return 0;
         }
     }

@@ -1,22 +1,42 @@
 /***************************************************************************
- *     Copyright (c) 2006-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * Module Description: Audio Input Capture Interface
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  ***************************************************************************/
 
 #include "bape.h"
@@ -224,7 +244,7 @@ err_buffer:
 err_format:
 err_caps:
     BAPE_InputCapture_Close(handle);
-err_malloc:    
+err_malloc:
 err_index:
     return errCode;
 }
@@ -248,7 +268,7 @@ void BAPE_InputCapture_Close(
 
     /* Disconnect from all mixers, post-processors, and groups */
     BAPE_Connector_P_RemoveAllConnections(&handle->node.connectors[0]);
-    
+
     for ( i = 0; i < BAPE_Channel_eMax; i++ )
     {
         if ( handle->pBuffers[i] )
@@ -364,7 +384,7 @@ BERR_Code BAPE_InputCapture_Start(
     {
         BDBG_ERR(("No input provided"));
         return BERR_TRACE(BERR_INVALID_PARAMETER);
-    }    
+    }
 
     BDBG_OBJECT_ASSERT(pSettings->input, BAPE_InputPort);
 
@@ -379,7 +399,7 @@ BERR_Code BAPE_InputCapture_Start(
     /* Don't reference InputPort format fields until after this.  */
     errCode = BAPE_InputPort_P_AttachConsumer(pSettings->input, &handle->node, &handle->inputPortFormat);
     if ( errCode )
-    {        
+    {
         goto err_attach;
     }
 
@@ -615,7 +635,7 @@ void BAPE_InputCapture_Stop(
     )
 {
     BDBG_OBJECT_ASSERT(handle, BAPE_InputCapture);
-    
+
     if ( !handle->running )
     {
         BDBG_WRN(("Input Capture %u already stopped", handle->index));
@@ -626,7 +646,7 @@ void BAPE_InputCapture_Stop(
     BDBG_ASSERT(NULL != handle->startSettings.input);
     BDBG_ASSERT(NULL != handle->startSettings.input->disable);
     handle->startSettings.input->disable(handle->startSettings.input);
-    
+
     /* Stop DFIFOs */
     if ( handle->dfifoGroup )
     {
@@ -635,11 +655,17 @@ void BAPE_InputCapture_Stop(
 
     /* Disable Interrupts */
     BAPE_InputCapture_P_DisableInterrupts(handle);
-    
+
+    if ( handle->fciSpOutput )
+    {
+        BAPE_FciSplitterOutputGroup_P_Destroy(handle->fciSpOutput);
+        handle->fciSpOutput = NULL;
+    }
+
     BDBG_MSG(("Stop Paths"));
     /* Stop Paths Downstream */
     BAPE_PathNode_P_StopPaths(&handle->node);
-        
+
     BDBG_MSG(("Detach Consumer from Input"));
     (void)BAPE_InputPort_P_DetachConsumer(handle->startSettings.input, &handle->node);
 
@@ -823,12 +849,6 @@ static BERR_Code BAPE_InputCapture_P_FreePathFromInput(
     if ( NULL != handle->pMasterConnection )
     {
         unsigned i;
-        if ( handle->fciSpOutput )
-        {
-            BAPE_FciSplitterOutputGroup_P_Destroy(handle->fciSpOutput);
-            handle->fciSpOutput = NULL;
-        }
-
         for ( i = 0; i < BAPE_FMT_P_GetNumChannelPairs_isrsafe(&pConnection->format); i++ )
         {
             BDBG_MSG(("Clearing FCI input - fci id[%lu] %lx -> 3ff", (unsigned long)i, (unsigned long)handle->pMasterConnection->inputFciGroup.ids[i]));
@@ -937,7 +957,7 @@ static BERR_Code BAPE_InputCapture_P_ConfigPathToOutput(
     }
     /* Other nodes don't require anything done here */
 
-    return BERR_SUCCESS;    
+    return BERR_SUCCESS;
 }
 
 static BERR_Code BAPE_InputCapture_P_StartPathToOutput(
@@ -985,7 +1005,7 @@ static void BAPE_InputCapture_P_StopPathToOutput(
     BAPE_PathNode *pNode,
     BAPE_PathConnection *pConnection
     )
-{   
+{
     BAPE_PathNode *pSink;
 
     BAPE_InputCaptureHandle handle = pNode->pHandle;
@@ -1038,7 +1058,7 @@ static BERR_Code BAPE_InputCapture_P_InputFormatChange_isr(
     BAPE_InputPort inputPort
     )
 {
-    BAPE_InputCaptureHandle handle;    
+    BAPE_InputCaptureHandle handle;
     BDBG_OBJECT_ASSERT(pNode, BAPE_PathNode);
     BDBG_OBJECT_ASSERT(inputPort, BAPE_InputPort);
     BKNI_ASSERT_ISR_CONTEXT();
@@ -1148,7 +1168,7 @@ BERR_Code BAPE_InputCapture_SetInterruptHandlers(
     BDBG_ASSERT(NULL != handle);
     BKNI_EnterCriticalSection();
     handle->interrupts = *pInterrupts;
-    BKNI_LeaveCriticalSection();    
+    BKNI_LeaveCriticalSection();
     if ( handle->running )
     {
         errCode = BAPE_InputCapture_P_EnableInterrupts(handle);

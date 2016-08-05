@@ -134,12 +134,13 @@ def GenerateLegacySignatures():
     SignCommandFile.write(str(Line))
 
 #Processing of SID image
-    Line='add_param_bin -in='+SidBin+' -in_endian=le -cpu_type=sid -mid='+MarketId+' -mid_mask='+MarketIdMask+' -epo_sel='+EpochSel+' -epo='+SidEpoch+' -epo_mask='+EpochMask+' -sig_type='+SigType+' -sig_ver='+SigVer+' -out='+SidPreBin+'\n'
-    SignCommandFile.write(str(Line))
-    Line='sign -in='+SidPreBin+' -out_endian=le -out_type=binary -out='+SidSigBin+'\n'
-    SignCommandFile.write(str(Line))
-    Line='post_process_sid -in='+SidSigBin+' -out='+OutputDir+'/nexus_sid_firmware_signature.c\n'
-    SignCommandFile.write(str(Line))
+    if (NumChipId != 7360 and NumChipId != 7425):
+        Line='add_param_bin -in='+SidBin+' -in_endian=le -cpu_type=sid -mid='+MarketId+' -mid_mask='+MarketIdMask+' -epo_sel='+EpochSel+' -epo='+SidEpoch+' -epo_mask='+EpochMask+' -sig_type='+SigType+' -sig_ver='+SigVer+' -out='+SidPreBin+'\n'
+        SignCommandFile.write(str(Line))
+        Line='sign -in='+SidPreBin+' -out_endian=le -out_type=binary -out='+SidSigBin+'\n'
+        SignCommandFile.write(str(Line))
+        Line='post_process_sid -in='+SidSigBin+' -out='+OutputDir+'/nexus_sid_firmware_signature.c\n'
+        SignCommandFile.write(str(Line))
 
 #Processing of AUDIO image
     Line='add_param_bin -in='+RaagaBin+' -in_endian=le -cpu_type=raaga -mid='+MarketId+' -fw_epo='+RaagaFwEpoch+' -mid_mask='+MarketIdMask+' -epo_sel='+EpochSel+' -epo='+RaagaEpoch+' -epo_mask='+EpochMask+' -sig_type='+SigType+' -sig_ver='+SigVer+' -out='+RaagaPreBin+'\n'
@@ -158,7 +159,7 @@ def GenerateLegacySignatures():
     SignCommandFile.write(str(Line))
 
 #Processing of VCE image
-    if (NumChipId != 74371 and NumChipId != 7271 and NumChipId != 7250):
+    if (NumChipId != 74371 and NumChipId != 7271 and NumChipId != 7250 and NumChipId != 7360 and NumChipId != 7425):
         Line='add_param_bin -in='+VcePicBin+' -in_endian=le -cpu_type=vice -mid='+MarketId+' -mid_mask='+MarketIdMask+' -fw_epo='+VceFwEpoch+' -epo_sel='+EpochSel+' -epo='+VceEpoch+' -epo_mask='+EpochMask+' -sig_type='+SigType+' -sig_ver='+SigVer+' -out='+VcePicPreBin+'\n'
         SignCommandFile.write(str(Line))
         Line='sign -in='+VcePicPreBin+' -out_endian=le -out_type=binary -out='+VcePicSigBin+'\n'
@@ -192,7 +193,7 @@ def GenerateLegacySignatures():
     Line='sign -append -in='+AvdIlPreBin+' -out_endian=le -out_type=binary -out='+AvdOlSigBin+'\n'
     SignCommandFile.write(str(Line))
 
-    if (NumChipId != 74371 and NumChipId != 7271 and NumChipId != 7250):
+    if (NumChipId != 74371 and NumChipId != 7271 and NumChipId != 7250 and NumChipId != 7360 and NumChipId != 7425):
         if (NumChipId == 7445) or (NumChipId == 7439):
             Line='sign -append -in='+AvdOlPreBin+' -out_endian=le -out_type=binary -out='+AvdOlSigBin+'\n'
             SignCommandFile.write(str(Line))
@@ -223,14 +224,15 @@ def GenerateSignatures():
     SignCommandFile.write(str(Line))
 
 #Processing of SID image
-    Line='add_param_bin -in='+SidBin+' -in_endian=be -cpu_type=sid -mid='+MarketId+' -mid_mask='+MarketIdMask+' -epo_sel='+EpochSel+' -epo='+SidEpoch+' -epo_mask='+EpochMask+' -sig_type='+SigType+' -sig_ver='+SigVer+' -out='+SidPreBin+'\n'
-    SignCommandFile.write(str(Line))
-    Line='sign -in='+SidPreBin+' -out_endian=le -out_type=binary -out='+SidSigBin+'\n'
-    SignCommandFile.write(str(Line))
-    Line='add_param_bin -in='+SidSigBin+' -in_endian=be -cpu_type=sid -mid='+MarketId+' -mid_mask='+MarketIdMask+' -epo_sel='+EpochSel+' -epo='+SidEpoch+' -epo_mask='+EpochMask+' -sig_type='+SigType+' -sig_ver='+SigVer+' -out='+SidSigParamBin+'\n'
-    SignCommandFile.write(str(Line))
-    Line='post_process -in='+SidSigParamBin+' -in_endian=be -region=0x11 -out='+OutputDir+'/nexus_security_regver_signatures.h\n'
-    SignCommandFile.write(str(Line))
+    if (NumChipId != 7360 and NumChipId != 7425):
+        Line='add_param_bin -in='+SidBin+' -in_endian=be -cpu_type=sid -mid='+MarketId+' -mid_mask='+MarketIdMask+' -epo_sel='+EpochSel+' -epo='+SidEpoch+' -epo_mask='+EpochMask+' -sig_type='+SigType+' -sig_ver='+SigVer+' -out='+SidPreBin+'\n'
+        SignCommandFile.write(str(Line))
+        Line='sign -in='+SidPreBin+' -out_endian=le -out_type=binary -out='+SidSigBin+'\n'
+        SignCommandFile.write(str(Line))
+        Line='add_param_bin -in='+SidSigBin+' -in_endian=be -cpu_type=sid -mid='+MarketId+' -mid_mask='+MarketIdMask+' -epo_sel='+EpochSel+' -epo='+SidEpoch+' -epo_mask='+EpochMask+' -sig_type='+SigType+' -sig_ver='+SigVer+' -out='+SidSigParamBin+'\n'
+        SignCommandFile.write(str(Line))
+        Line='post_process -in='+SidSigParamBin+' -in_endian=be -region=0x11 -out='+OutputDir+'/nexus_security_regver_signatures.h\n'
+        SignCommandFile.write(str(Line))
 
 #Processing of AUDIO image
     Line='add_param_bin -in='+RaagaBin+' -in_endian=be -cpu_type=raaga -mid='+MarketId+' -mid_mask='+MarketIdMask+' -fw_epo='+RaagaFwEpoch+' -epo_sel='+EpochSel+' -epo='+RaagaEpoch+' -epo_mask='+EpochMask+' -sig_type='+SigType+' -sig_ver='+SigVer+' -out='+RaagaPreBin+'\n'
@@ -256,7 +258,7 @@ def GenerateSignatures():
     SignCommandFile.write(str(Line))
 
 #Processing VCE image
-    if (NumChipId != 74371 and NumChipId != 7271 and NumChipId != 7250):
+    if (NumChipId != 74371 and NumChipId != 7271 and NumChipId != 7250 and NumChipId != 7360 and NumChipId != 7425):
         Line='add_param_bin -in='+VcePicBin+' -in_endian=be -cpu_type=vice -mid='+MarketId+' -mid_mask='+MarketIdMask+' -fw_epo='+VceFwEpoch+' -epo_sel='+EpochSel+' -epo='+VceEpoch+' -epo_mask='+EpochMask+' -sig_type='+SigType+' -sig_ver='+SigVer+' -out='+VcePicPreBin+'\n'
         SignCommandFile.write(str(Line))
         Line='sign -in='+VcePicPreBin+' -out_endian=le -out_type=binary -out='+VcePicSigBin+'\n'
@@ -304,7 +306,7 @@ def GenerateSignatures():
     Line='post_process -append -in='+AvdIlSigParamBin+' -in_endian=be -region=0xB -out='+OutputDir+'/nexus_security_regver_signatures.h\n'
     SignCommandFile.write(str(Line))
 
-    if (NumChipId != 74371 and NumChipId != 7271 and NumChipId != 7250):
+    if (NumChipId != 74371 and NumChipId != 7271 and NumChipId != 7250 and NumChipId != 7360 and NumChipId != 7425):
         if (NumChipId == 7445) or (NumChipId == 7439):
             Line='post_process -append -in='+AvdOlSigParamBin+' -in_endian=be -region=0x16 -out='+OutputDir+'/nexus_security_regver_signatures.h\n'
             SignCommandFile.write(str(Line))
@@ -323,12 +325,13 @@ def GeneratePostProcess():
     SignCommandFile = open(OutputDir+"/"+ChipId+"_signature.in",'w')
 
 #Processing of SID image
-    Line='swap_signature -in='+SidSigBeBin+' -out='+SidSigBin+'\n'
-    SignCommandFile.write(str(Line))
-    Line='add_param_bin -in='+SidSigBin+' -in_endian=be -cpu_type=sid -mid='+MarketId+' -mid_mask='+MarketIdMask+' -epo_sel='+EpochSel+' -epo='+SidEpoch+' -epo_mask='+EpochMask+' -sig_type='+SigType+' -sig_ver='+SigVer+' -out='+SidSigParamBin+'\n'
-    SignCommandFile.write(str(Line))
-    Line='post_process -in='+SidSigParamBin+' -in_endian=be -region=0x11 -out='+OutputDir+'/nexus_security_regver_signatures.h\n'
-    SignCommandFile.write(str(Line))
+    if (NumChipId != 7360 and NumChipId != 7425):
+        Line='swap_signature -in='+SidSigBeBin+' -out='+SidSigBin+'\n'
+        SignCommandFile.write(str(Line))
+        Line='add_param_bin -in='+SidSigBin+' -in_endian=be -cpu_type=sid -mid='+MarketId+' -mid_mask='+MarketIdMask+' -epo_sel='+EpochSel+' -epo='+SidEpoch+' -epo_mask='+EpochMask+' -sig_type='+SigType+' -sig_ver='+SigVer+' -out='+SidSigParamBin+'\n'
+        SignCommandFile.write(str(Line))
+        Line='post_process -in='+SidSigParamBin+' -in_endian=be -region=0x11 -out='+OutputDir+'/nexus_security_regver_signatures.h\n'
+        SignCommandFile.write(str(Line))
 
 #Processing of AUDIO image
     Line='swap_signature -in='+RaagaSigBeBin+' -out='+RaagaSigBin+'\n'
@@ -351,25 +354,26 @@ def GeneratePostProcess():
     SignCommandFile.write(str(Line))
 
 #Processing VCE image
-    Line='swap_signature -in='+VcePicSigBeBin+' -out='+VcePicSigBin+'\n'
-    SignCommandFile.write(str(Line))
-    Line='add_param_bin -in='+VcePicSigBin+' -in_endian=be -cpu_type=vice -mid='+MarketId+' -mid_mask='+MarketIdMask+' -fw_epo='+VceFwEpoch+' -epo_sel='+EpochSel+' -epo='+VceEpoch+' -epo_mask='+EpochMask+' -sig_type='+SigType+' -sig_ver='+SigVer+' -out='+VcePicSigParamBin+'\n'
-    SignCommandFile.write(str(Line))
-    Line='post_process -append -in='+VcePicSigParamBin+' -in_endian=be -region=0xF -out='+OutputDir+'/nexus_security_regver_signatures.h\n'
-    SignCommandFile.write(str(Line))
-
-    Line='swap_signature -in='+VceMbSigBeBin+' -out='+VceMbSigBin+'\n'
-    SignCommandFile.write(str(Line))
-    Line='add_param_bin -in='+VceMbSigBin+' -in_endian=be -cpu_type=vice -mid='+MarketId+' -mid_mask='+MarketIdMask+' -fw_epo='+VceFwEpoch+' -epo_sel='+EpochSel+' -epo='+VceEpoch+' -epo_mask='+EpochMask+' -sig_type='+SigType+' -sig_ver='+SigVer+' -out='+VceMbSigParamBin+'\n'
-    SignCommandFile.write(str(Line))
-    Line='post_process -append -in='+VceMbSigParamBin+' -in_endian=be -region=0x10 -out='+OutputDir+'/nexus_security_regver_signatures.h\n'
-    SignCommandFile.write(str(Line))
-
-    if NumChipId == 7445:
-        Line='post_process -append -in='+VcePicSigParamBin+' -in_endian=be -region=0x13 -out='+OutputDir+'/nexus_security_regver_signatures.h\n'
+    if (NumChipId != 74371 and NumChipId != 7271 and NumChipId != 7250 and NumChipId != 7360 and NumChipId != 7425):
+        Line='swap_signature -in='+VcePicSigBeBin+' -out='+VcePicSigBin+'\n'
         SignCommandFile.write(str(Line))
-        Line='post_process -append -in='+VceMbSigParamBin+' -in_endian=be -region=0x14 -out='+OutputDir+'/nexus_security_regver_signatures.h\n'
+        Line='add_param_bin -in='+VcePicSigBin+' -in_endian=be -cpu_type=vice -mid='+MarketId+' -mid_mask='+MarketIdMask+' -fw_epo='+VceFwEpoch+' -epo_sel='+EpochSel+' -epo='+VceEpoch+' -epo_mask='+EpochMask+' -sig_type='+SigType+' -sig_ver='+SigVer+' -out='+VcePicSigParamBin+'\n'
         SignCommandFile.write(str(Line))
+        Line='post_process -append -in='+VcePicSigParamBin+' -in_endian=be -region=0xF -out='+OutputDir+'/nexus_security_regver_signatures.h\n'
+        SignCommandFile.write(str(Line))
+
+        Line='swap_signature -in='+VceMbSigBeBin+' -out='+VceMbSigBin+'\n'
+        SignCommandFile.write(str(Line))
+        Line='add_param_bin -in='+VceMbSigBin+' -in_endian=be -cpu_type=vice -mid='+MarketId+' -mid_mask='+MarketIdMask+' -fw_epo='+VceFwEpoch+' -epo_sel='+EpochSel+' -epo='+VceEpoch+' -epo_mask='+EpochMask+' -sig_type='+SigType+' -sig_ver='+SigVer+' -out='+VceMbSigParamBin+'\n'
+        SignCommandFile.write(str(Line))
+        Line='post_process -append -in='+VceMbSigParamBin+' -in_endian=be -region=0x10 -out='+OutputDir+'/nexus_security_regver_signatures.h\n'
+        SignCommandFile.write(str(Line))
+
+        if NumChipId == 7445:
+            Line='post_process -append -in='+VcePicSigParamBin+' -in_endian=be -region=0x13 -out='+OutputDir+'/nexus_security_regver_signatures.h\n'
+            SignCommandFile.write(str(Line))
+            Line='post_process -append -in='+VceMbSigParamBin+' -in_endian=be -region=0x14 -out='+OutputDir+'/nexus_security_regver_signatures.h\n'
+            SignCommandFile.write(str(Line))
 
 #Processing AVD image
     Line='swap_signature -in='+AvdOlSigBeBin+' -out='+AvdOlSigBin+'\n'
@@ -389,27 +393,29 @@ def GeneratePostProcess():
     Line='post_process -append -in='+AvdIlSigParamBin+' -in_endian=be -region=0xB -out='+OutputDir+'/nexus_security_regver_signatures.h\n'
     SignCommandFile.write(str(Line))
 
-    if (NumChipId == 7445) or (NumChipId == 7439):
-        Line='post_process -append -in='+AvdOlSigParamBin+' -in_endian=be -region=0x16 -out='+OutputDir+'/nexus_security_regver_signatures.h\n'
-        SignCommandFile.write(str(Line))
-        Line='post_process -append -in='+AvdIlSigParamBin+' -in_endian=be -region=0x15 -out='+OutputDir+'/nexus_security_regver_signatures.h\n'
-        SignCommandFile.write(str(Line))
+    if (NumChipId != 74371 and NumChipId != 7271 and NumChipId != 7250 and NumChipId != 7360 and NumChipId != 7425):
+        if (NumChipId == 7445) or (NumChipId == 7439):
+            Line='post_process -append -in='+AvdOlSigParamBin+' -in_endian=be -region=0x16 -out='+OutputDir+'/nexus_security_regver_signatures.h\n'
+            SignCommandFile.write(str(Line))
+            Line='post_process -append -in='+AvdIlSigParamBin+' -in_endian=be -region=0x15 -out='+OutputDir+'/nexus_security_regver_signatures.h\n'
+            SignCommandFile.write(str(Line))
 
-    if NumChipId == 7445:
-        Line='post_process -append -in='+AvdOlSigParamBin+' -in_endian=be -region=0x1D -out='+OutputDir+'/nexus_security_regver_signatures.h\n'
-        SignCommandFile.write(str(Line))
-        Line='post_process -append -in='+AvdIlSigParamBin+' -in_endian=be -region=0x1C -out='+OutputDir+'/nexus_security_regver_signatures.h\n'
-        SignCommandFile.write(str(Line))
+        if NumChipId == 7445:
+            Line='post_process -append -in='+AvdOlSigParamBin+' -in_endian=be -region=0x1D -out='+OutputDir+'/nexus_security_regver_signatures.h\n'
+            SignCommandFile.write(str(Line))
+            Line='post_process -append -in='+AvdIlSigParamBin+' -in_endian=be -region=0x1C -out='+OutputDir+'/nexus_security_regver_signatures.h\n'
+            SignCommandFile.write(str(Line))
 
 
 def GenerateLegacyPostProcess():
     SignCommandFile = open(OutputDir+"/"+ChipId+"_Legacy_signature.in",'w')
 
 #Processing of SID image
-    Line='swap_signature -in='+SidSigBeBin+' -out='+SidSigBin+'\n'
-    SignCommandFile.write(str(Line))
-    Line='post_process_sid -in='+SidSigBin+' -out='+OutputDir+'/nexus_sid_firmware_signature.c\n'
-    SignCommandFile.write(str(Line))
+    if (NumChipId != 7360 and NumChipId != 7425):
+        Line='swap_signature -in='+SidSigBeBin+' -out='+SidSigBin+'\n'
+        SignCommandFile.write(str(Line))
+        Line='post_process_sid -in='+SidSigBin+' -out='+OutputDir+'/nexus_sid_firmware_signature.c\n'
+        SignCommandFile.write(str(Line))
 
 #Processing of AUDIO image
     Line='swap_signature -in='+RaagaSigBeBin+' -out='+RaagaSigBin+'\n'
@@ -424,7 +430,7 @@ def GenerateLegacyPostProcess():
     SignCommandFile.write(str(Line))
 
 #Processing of VCE image
-    if (NumChipId != 74371 and NumChipId != 7271 and NumChipId != 7250):
+    if (NumChipId != 74371 and NumChipId != 7271 and NumChipId != 7250 and NumChipId != 7360 and NumChipId != 7425):
 
         Line='swap_signature -in='+VcePicSigBeBin+' -out='+VcePicSigBin+'\n'
         SignCommandFile.write(str(Line))
@@ -451,7 +457,7 @@ def GenerateLegacyPostProcess():
     Line='swap_signature -append -in='+AvdIlSigBeBin+' -out='+AvdOlSigBin+'\n'
     SignCommandFile.write(str(Line))
 
-    if (NumChipId != 74371 and NumChipId != 7271 and NumChipId != 7250):
+    if (NumChipId != 74371 and NumChipId != 7271 and NumChipId != 7250 and NumChipId != 7360 and NumChipId != 7425):
         if (NumChipId == 7445) or (NumChipId == 7439):
             Line='swap_signature -append -in='+AvdOlSigBeBin+' -out='+AvdOlSigBin+'\n'
             SignCommandFile.write(str(Line))
@@ -474,8 +480,9 @@ def GeneratePreProcess():
     SignCommandFile = open(OutputDir+"/"+ChipId+".in",'w')
 
 #Processing of SID image
-    Line='add_param_bin -in='+SidBin+' -in_endian=be -cpu_type=sid -mid='+MarketId+' -mid_mask='+MarketIdMask+' -epo_sel='+EpochSel+' -epo='+SidEpoch+' -epo_mask='+EpochMask+' -sig_type='+SigType+' -sig_ver='+SigVer+' -out='+SidPreBin+'\n'
-    SignCommandFile.write(str(Line))
+    if (NumChipId != 7360 and NumChipId != 7425):
+        Line='add_param_bin -in='+SidBin+' -in_endian=be -cpu_type=sid -mid='+MarketId+' -mid_mask='+MarketIdMask+' -epo_sel='+EpochSel+' -epo='+SidEpoch+' -epo_mask='+EpochMask+' -sig_type='+SigType+' -sig_ver='+SigVer+' -out='+SidPreBin+'\n'
+        SignCommandFile.write(str(Line))
 
 #Processing of AUDIO image
     Line='add_param_bin -in='+RaagaBin+' -in_endian=be -cpu_type=raaga -mid='+MarketId+' -mid_mask='+MarketIdMask+' -fw_epo='+RaagaFwEpoch+' -epo_sel='+EpochSel+' -epo='+RaagaEpoch+' -epo_mask='+EpochMask+' -sig_type='+SigType+' -sig_ver='+SigVer+' -out='+RaagaPreBin+'\n'
@@ -486,17 +493,21 @@ def GeneratePreProcess():
     SignCommandFile.write(str(Line))
 
 #Processing VCE image
-    Line='add_param_bin -in='+VcePicBin+' -in_endian=be -cpu_type=vice -mid='+MarketId+' -mid_mask='+MarketIdMask+' -fw_epo='+VceFwEpoch+' -epo_sel='+EpochSel+' -epo='+VceEpoch+' -epo_mask='+EpochMask+' -sig_type='+SigType+' -sig_ver='+SigVer+' -out='+VcePicPreBin+'\n'
-    SignCommandFile.write(str(Line))
+    if (NumChipId != 74371 and NumChipId != 7271 and NumChipId != 7250 and NumChipId != 7360 and NumChipId != 7425):
+        Line='add_param_bin -in='+VcePicBin+' -in_endian=be -cpu_type=vice -mid='+MarketId+' -mid_mask='+MarketIdMask+' -fw_epo='+VceFwEpoch+' -epo_sel='+EpochSel+' -epo='+VceEpoch+' -epo_mask='+EpochMask+' -sig_type='+SigType+' -sig_ver='+SigVer+' -out='+VcePicPreBin+'\n'
+        SignCommandFile.write(str(Line))
 
-    Line='add_param_bin -in='+VceMbBin+' -in_endian=be -cpu_type=vice -mid='+MarketId+' -mid_mask='+MarketIdMask+' -fw_epo='+VceFwEpoch+' -epo_sel='+EpochSel+' -epo='+VceEpoch+' -epo_mask='+EpochMask+' -sig_type='+SigType+' -sig_ver='+SigVer+' -out='+VceMbPreBin+'\n'
-    SignCommandFile.write(str(Line))
+        Line='add_param_bin -in='+VceMbBin+' -in_endian=be -cpu_type=vice -mid='+MarketId+' -mid_mask='+MarketIdMask+' -fw_epo='+VceFwEpoch+' -epo_sel='+EpochSel+' -epo='+VceEpoch+' -epo_mask='+EpochMask+' -sig_type='+SigType+' -sig_ver='+SigVer+' -out='+VceMbPreBin+'\n'
+        SignCommandFile.write(str(Line))
 
 #Processing AVD image
-    Line='add_param_bin -in='+AvdOlBin+' -in_endian=be -cpu_type=hvd -mid='+MarketId+' -mid_mask='+MarketIdMask+' -fw_epo='+AvdFwEpoch+' -epo_sel='+EpochSel+' -epo='+AvdEpoch+' -epo_mask='+EpochMask+' -sig_type='+SigType+' -sig_ver='+SigVer+' -out='+AvdOlPreBin+'\n'
+    CpuType = "hvd"
+    if (NumChipId == 7360):
+        CpuType = "avd"
+    Line='add_param_bin -in='+AvdOlBin+' -in_endian=be -cpu_type='+CpuType+' -mid='+MarketId+' -mid_mask='+MarketIdMask+' -fw_epo='+AvdFwEpoch+' -epo_sel='+EpochSel+' -epo='+AvdEpoch+' -epo_mask='+EpochMask+' -sig_type='+SigType+' -sig_ver='+SigVer+' -out='+AvdOlPreBin+'\n'
     SignCommandFile.write(str(Line))
 
-    Line='add_param_bin -in='+AvdIlBin+' -in_endian=be -cpu_type=hvd -mid='+MarketId+' -mid_mask='+MarketIdMask+' -fw_epo='+AvdFwEpoch+' -epo_sel='+EpochSel+' -epo='+AvdEpoch+' -epo_mask='+EpochMask+' -sig_type='+SigType+' -sig_ver='+SigVer+' -out='+AvdIlPreBin+'\n'
+    Line='add_param_bin -in='+AvdIlBin+' -in_endian=be -cpu_type='+CpuType+' -mid='+MarketId+' -mid_mask='+MarketIdMask+' -fw_epo='+AvdFwEpoch+' -epo_sel='+EpochSel+' -epo='+AvdEpoch+' -epo_mask='+EpochMask+' -sig_type='+SigType+' -sig_ver='+SigVer+' -out='+AvdIlPreBin+'\n'
     SignCommandFile.write(str(Line))
 
     SignCommandFile.close()
@@ -505,8 +516,9 @@ def GenerateLegacyPreProcess():
     SignCommandFile = open(OutputDir+"/"+ChipId+"_Legacy.in",'w')
 
 #Processing of SID image
-    Line='add_param_bin -in='+SidBin+' -in_endian=le -cpu_type=sid -mid='+MarketId+' -mid_mask='+MarketIdMask+' -epo_sel='+EpochSel+' -epo='+SidEpoch+' -epo_mask='+EpochMask+' -sig_type='+SigType+' -sig_ver='+SigVer+' -out='+SidPreBin+'\n'
-    SignCommandFile.write(str(Line))
+    if (NumChipId != 7360 and NumChipId != 7425):
+        Line='add_param_bin -in='+SidBin+' -in_endian=le -cpu_type=sid -mid='+MarketId+' -mid_mask='+MarketIdMask+' -epo_sel='+EpochSel+' -epo='+SidEpoch+' -epo_mask='+EpochMask+' -sig_type='+SigType+' -sig_ver='+SigVer+' -out='+SidPreBin+'\n'
+        SignCommandFile.write(str(Line))
 
 #Processing of AUDIO image
     Line='add_param_bin -in='+RaagaBin+' -in_endian=le -cpu_type=raaga -mid='+MarketId+' -fw_epo='+RaagaFwEpoch+' -mid_mask='+MarketIdMask+' -epo_sel='+EpochSel+' -epo='+RaagaEpoch+' -epo_mask='+EpochMask+' -sig_type='+SigType+' -sig_ver='+SigVer+' -out='+RaagaPreBin+'\n'
@@ -517,7 +529,7 @@ def GenerateLegacyPreProcess():
     SignCommandFile.write(str(Line))
 
 #Processing of VCE image
-    if (NumChipId != 74371 and NumChipId != 7271 and NumChipId != 7250):
+    if (NumChipId != 74371 and NumChipId != 7271 and NumChipId != 7250 and NumChipId != 7360 and NumChipId != 7425):
         Line='add_param_bin -in='+VcePicBin+' -in_endian=le -cpu_type=vice -mid='+MarketId+' -mid_mask='+MarketIdMask+' -fw_epo='+VceFwEpoch+' -epo_sel='+EpochSel+' -epo='+VceEpoch+' -epo_mask='+EpochMask+' -sig_type='+SigType+' -sig_ver='+SigVer+' -out='+VcePicPreBin+'\n'
         SignCommandFile.write(str(Line))
 
@@ -525,10 +537,13 @@ def GenerateLegacyPreProcess():
         SignCommandFile.write(str(Line))
 
 #Processing of AVD image
-    Line='add_param_bin -in='+AvdOlBin+' -in_endian=le -cpu_type=hvd -mid='+MarketId+' -mid_mask='+MarketIdMask+' -fw_epo='+AvdFwEpoch+' -epo_sel='+EpochSel+' -epo='+AvdEpoch+' -epo_mask='+EpochMask+' -sig_type='+SigType+' -sig_ver='+SigVer+' -out='+AvdOlPreBin+'\n'
+    CpuType = "hvd"
+    if (NumChipId == 7360):
+        CpuType = "avd"
+    Line='add_param_bin -in='+AvdOlBin+' -in_endian=le -cpu_type='+CpuType+' -mid='+MarketId+' -mid_mask='+MarketIdMask+' -fw_epo='+AvdFwEpoch+' -epo_sel='+EpochSel+' -epo='+AvdEpoch+' -epo_mask='+EpochMask+' -sig_type='+SigType+' -sig_ver='+SigVer+' -out='+AvdOlPreBin+'\n'
     SignCommandFile.write(str(Line))
 
-    Line='add_param_bin -in='+AvdIlBin+' -in_endian=le -cpu_type=hvd -mid='+MarketId+' -mid_mask='+MarketIdMask+' -fw_epo='+AvdFwEpoch+' -epo_sel='+EpochSel+' -epo='+AvdEpoch+' -epo_mask='+EpochMask+' -sig_type='+SigType+' -sig_ver='+SigVer+' -out='+AvdIlPreBin+'\n'
+    Line='add_param_bin -in='+AvdIlBin+' -in_endian=le -cpu_type='+CpuType+' -mid='+MarketId+' -mid_mask='+MarketIdMask+' -fw_epo='+AvdFwEpoch+' -epo_sel='+EpochSel+' -epo='+AvdEpoch+' -epo_mask='+EpochMask+' -sig_type='+SigType+' -sig_ver='+SigVer+' -out='+AvdIlPreBin+'\n'
     SignCommandFile.write(str(Line))
 
     SignCommandFile.close()

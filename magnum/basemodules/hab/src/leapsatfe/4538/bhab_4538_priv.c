@@ -1141,8 +1141,9 @@ BERR_Code BHAB_4538_P_WriteBbsi(BHAB_Handle h, uint8_t addr, uint8_t *buf, uint3
 
    if (h->settings.isSpi)
    {
-      if (n < 16)
+      if (n < 14)
       {
+         /* perform a short spi write without malloc */
          spiBuf[0] = 0x41;
          spiBuf[1] = addr;
          for (i = 0; i < n; i++)

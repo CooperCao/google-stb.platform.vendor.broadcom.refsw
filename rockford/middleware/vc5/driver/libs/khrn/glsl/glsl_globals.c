@@ -18,5 +18,3 @@ ShaderFlavour g_ShaderFlavour;
 int g_LineNumber;
 int g_FileNumber;
 bool g_InGlobalScope;
-
-ShaderInterfaces *g_ShaderInterfaces;

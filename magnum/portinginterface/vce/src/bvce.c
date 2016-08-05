@@ -1,43 +1,43 @@
-/***************************************************************************
+/******************************************************************************
  * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
- *
- * [File Description:]
- *
- ***************************************************************************/
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************/
 
 /* base modules */
 #include "bstd.h"           /* standard types */
@@ -71,6 +71,10 @@ BDBG_FILE_MODULE(BVCE_RSP);
 BDBG_FILE_MODULE(BVCE_USERDATA);
 BDBG_FILE_MODULE(BVCE_MEMORY);
 BDBG_FILE_MODULE(BVCE_PLATFORM);
+
+BDBG_OBJECT_ID(BVCE_P_Context);           /* BVCE_Handle */
+BDBG_OBJECT_ID(BVCE_P_Channel_Context);   /* BVCE_Channel_Handle */
+BDBG_OBJECT_ID(BVCE_P_Output_Context);    /* BVCE_Output_Handle */
 
 /**********************/
 /* Encoder Open/Close */
@@ -686,7 +690,9 @@ void BVCE_P_Mailbox_isr(
          )
 {
    BVCE_Handle hVce = (BVCE_Handle) pContext;
+
    BSTD_UNUSED(iParam);
+   BDBG_OBJECT_ASSERT(hVce, BVCE_P_Context);
 
    BKNI_SetEvent_isr( hVce->events.hMailbox );
 }
@@ -701,6 +707,7 @@ void BVCE_P_Watchdog_isr(
    unsigned uiProgramCounter = 0;
 
    BSTD_UNUSED(iParam);
+   BDBG_OBJECT_ASSERT(hVce, BVCE_P_Context);
 
    hVce->bWatchdogOccurred = true;
 
@@ -753,6 +760,7 @@ void BVCE_P_Event_isr(
    uint32_t i;
 
    BSTD_UNUSED(iParam);
+   BDBG_OBJECT_ASSERT(hVce, BVCE_P_Context);
 
    /* We handle the device error interrupt by reading the
     * channel error flags and then executing the channel's error
@@ -791,6 +799,7 @@ void BVCE_P_DataReady_isr(
          )
 {
    BVCE_Handle hVce = ( BVCE_Handle ) pContext;
+   BDBG_OBJECT_ASSERT(hVce, BVCE_P_Context);
 
    hVce->outputs[iParam].context.state.bCabacInitializedActual = true;
 
@@ -820,7 +829,7 @@ BVCE_P_SetupCallback(
 {
    BERR_Code rc;
 
-   BDBG_ASSERT( hVce );
+   BDBG_OBJECT_ASSERT(hVce, BVCE_P_Context);
    BDBG_ASSERT( phCallback );
 
    if ( NULL != *phCallback )
@@ -2203,6 +2212,14 @@ static const uint32_t BVCE_P_FrameTimeLUT[BAVC_FrameRateCode_eMax] =
  67,  /* 15 */
  50,   /* 20 */
  80,  /* 12.5 */
+ 10, /* 100 */
+ 9, /* 119.88 */
+ 9, /* 119.88 */
+ 50, /* 19.98 */
+ 134, /* 7.5 */
+ 84, /* 12 */
+ 84, /* 11.988 */
+ 100, /* 9.99 */
 };
 
 static const uint32_t BVCE_P_EventMaskLUT[32] =
@@ -2543,6 +2560,65 @@ BVCE_P_GetMaxDimension(
    }
 }
 
+const BAVC_FrameRateCode BVCE_P_FW2PI_FrameRateLUT[] =
+{
+   BAVC_FrameRateCode_eUnknown, /* ENCODING_FRAME_RATE_CODE_UNKNOWN */
+   BAVC_FrameRateCode_e23_976, /* ENCODING_FRAME_RATE_CODE_2397 */
+   BAVC_FrameRateCode_e24, /* ENCODING_FRAME_RATE_CODE_2400 */
+   BAVC_FrameRateCode_e25, /* ENCODING_FRAME_RATE_CODE_2500 */
+   BAVC_FrameRateCode_e29_97, /* ENCODING_FRAME_RATE_CODE_2997 */
+   BAVC_FrameRateCode_e30, /* ENCODING_FRAME_RATE_CODE_3000 */
+   BAVC_FrameRateCode_e50, /* ENCODING_FRAME_RATE_CODE_5000 */
+   BAVC_FrameRateCode_e59_94, /* ENCODING_FRAME_RATE_CODE_5994 */
+   BAVC_FrameRateCode_e60, /* ENCODING_FRAME_RATE_CODE_6000 */
+   BAVC_FrameRateCode_e14_985, /* ENCODING_FRAME_RATE_CODE_1498 */
+   BAVC_FrameRateCode_e7_493, /* ENCODING_FRAME_RATE_CODE_0749 */
+   BAVC_FrameRateCode_e10, /* ENCODING_FRAME_RATE_CODE_1000 */
+   BAVC_FrameRateCode_e15, /* ENCODING_FRAME_RATE_CODE_1500 */
+   BAVC_FrameRateCode_e20, /* ENCODING_FRAME_RATE_CODE_2000 */
+   BAVC_FrameRateCode_e19_98, /* ENCODING_FRAME_RATE_CODE_1998 */
+   BAVC_FrameRateCode_e12_5, /* ENCODING_FRAME_RATE_CODE_1250 */
+   BAVC_FrameRateCode_e7_5, /* ENCODING_FRAME_RATE_CODE_0750 */
+   BAVC_FrameRateCode_e12, /* ENCODING_FRAME_RATE_CODE_1200 */
+   BAVC_FrameRateCode_e11_988, /* ENCODING_FRAME_RATE_CODE_1198 */
+   BAVC_FrameRateCode_e9_99 /* ENCODING_FRAME_RATE_CODE_0999 */
+};
+
+const unsigned BAVC_FrameRateCodeNumEntries = sizeof(BVCE_P_FW2PI_FrameRateLUT)/sizeof(BAVC_FrameRateCode);
+/* NOTE: This must be the last value in the LUT above
+   (this is verified/asserted at run time)
+   This is necessary since we don't know the largest value from the FW
+   (there is not MAX entry for the ENCODING_FRAME_RATE) so this
+   prevents an array overrun of the above LUT */
+const unsigned BAVC_FWMaxFrameRateCode = ENCODING_FRAME_RATE_CODE_0999;
+
+static const uint32_t BVCE_P_PI2FW_FrameRateLUT[BAVC_FrameRateCode_eMax] =
+{
+   ENCODING_FRAME_RATE_CODE_UNKNOWN, /* BAVC_FrameRateCode_eUnknown */
+   ENCODING_FRAME_RATE_CODE_2397, /* BAVC_FrameRateCode_e23_976 */
+   ENCODING_FRAME_RATE_CODE_2400, /* BAVC_FrameRateCode_e24 */
+   ENCODING_FRAME_RATE_CODE_2500, /* BAVC_FrameRateCode_e25 */
+   ENCODING_FRAME_RATE_CODE_2997, /* BAVC_FrameRateCode_e29_97 */
+   ENCODING_FRAME_RATE_CODE_3000, /* BAVC_FrameRateCode_e30 */
+   ENCODING_FRAME_RATE_CODE_5000, /* BAVC_FrameRateCode_e50 */
+   ENCODING_FRAME_RATE_CODE_5994, /* BAVC_FrameRateCode_e59_94 */
+   ENCODING_FRAME_RATE_CODE_6000, /* BAVC_FrameRateCode_e60 */
+   ENCODING_FRAME_RATE_CODE_1498, /* BAVC_FrameRateCode_e14_985 */
+   ENCODING_FRAME_RATE_CODE_0749, /* BAVC_FrameRateCode_e7_493 */
+   ENCODING_FRAME_RATE_CODE_1000, /* BAVC_FrameRateCode_e10 */
+   ENCODING_FRAME_RATE_CODE_1500, /* BAVC_FrameRateCode_e15 */
+   ENCODING_FRAME_RATE_CODE_2000, /* BAVC_FrameRateCode_e20 */
+   ENCODING_FRAME_RATE_CODE_1250, /* BAVC_FrameRateCode_e12_5 */
+   ENCODING_FRAME_RATE_CODE_UNKNOWN, /* BAVC_FrameRateCode_e100 */
+   ENCODING_FRAME_RATE_CODE_UNKNOWN, /* BAVC_FrameRateCode_e119_88 */
+   ENCODING_FRAME_RATE_CODE_UNKNOWN, /* BAVC_FrameRateCode_e120 */
+   ENCODING_FRAME_RATE_CODE_1998, /* BAVC_FrameRateCode_e19_98 */
+   ENCODING_FRAME_RATE_CODE_0750, /* BAVC_FrameRateCode_e7_5 */
+   ENCODING_FRAME_RATE_CODE_1200, /* BAVC_FrameRateCode_e12 */
+   ENCODING_FRAME_RATE_CODE_1198, /* BAVC_FrameRateCode_e11_988 */
+   ENCODING_FRAME_RATE_CODE_0999 /* BAVC_FrameRateCode_e9_99 */
+};
+
 BERR_Code
 BVCE_P_SendCommand_ConfigChannel(
          BVCE_Handle hVce,
@@ -2741,33 +2817,11 @@ BVCE_P_SendCommand_ConfigChannel(
       return BERR_TRACE( BERR_INVALID_PARAMETER );
    }
 
-#ifdef BVCE_P_PRERELEASE_TEST_MODE
-   hVce->fw.stCommand.type.stConfigChannel.FrameRateCode = pstEncodeSettings->stFrameRate.eFrameRate;
-#else
-   /* SW7425-6070: Override 19.98 frame rate enum */
-   hVce->fw.stCommand.type.stConfigChannel.FrameRateCode = ( BAVC_FrameRateCode_e19_98 == pstEncodeSettings->stFrameRate.eFrameRate ) ? ENCODING_FRAME_RATE_CODE_1998 : pstEncodeSettings->stFrameRate.eFrameRate;
-#endif
-
-   switch ( pstEncodeSettings->stFrameRate.eFrameRate )
+   hVce->fw.stCommand.type.stConfigChannel.FrameRateCode = BVCE_P_PI2FW_FrameRateLUT[pstEncodeSettings->stFrameRate.eFrameRate];
+   if ( 0 == hVce->fw.stCommand.type.stConfigChannel.FrameRateCode )
    {
-      case BAVC_FrameRateCode_e23_976:
-      case BAVC_FrameRateCode_e24:
-      case BAVC_FrameRateCode_e25:
-      case BAVC_FrameRateCode_e29_97:
-      case BAVC_FrameRateCode_e30:
-      case BAVC_FrameRateCode_e50:
-      case BAVC_FrameRateCode_e59_94:
-      case BAVC_FrameRateCode_e60:
-      case BAVC_FrameRateCode_e14_985:
-      case BAVC_FrameRateCode_e15:
-      case BAVC_FrameRateCode_e20:
-      case BAVC_FrameRateCode_e19_98:
-         /* Supported Frame Rate */
-         break;
-
-      default:
-         BDBG_ERR(("Unsupported frame rate (%d)", pstEncodeSettings->stFrameRate.eFrameRate));
-         return BERR_TRACE( BERR_INVALID_PARAMETER );
+      BDBG_ERR(("Unsupported frame rate (%d)", pstEncodeSettings->stFrameRate.eFrameRate));
+      return BERR_TRACE( BERR_INVALID_PARAMETER );
    }
 
    hVce->fw.stCommand.type.stConfigChannel.Flags |= (( true == pstEncodeSettings->stFrameRate.bVariableFrameRateMode ) << CONFIG_FLAG_RATE_MODE_POS); /* Variable Rate */
@@ -3001,8 +3055,8 @@ BVCE_P_SendCommand_ConfigChannel(
    /* Set end-to-end delay */
    hVce->fw.stCommand.type.stConfigChannel.A2PDelay = pstEncodeSettings->uiA2PDelay;
 
-   hVce->fw.stCommand.type.stConfigChannel.FrameRateCodeLimit = ( ( (uint32_t) hVceCh->stStartEncodeSettings.stBounds.stFrameRate.eMin ) << CONFIG_FRAME_RATE_CODE_LIMIT_MIN_SHIFT ) & CONFIG_FRAME_RATE_CODE_LIMIT_MIN_MASK;
-   hVce->fw.stCommand.type.stConfigChannel.FrameRateCodeLimit |= ( ( (uint32_t) hVceCh->stStartEncodeSettings.stBounds.stFrameRate.eMax ) << CONFIG_FRAME_RATE_CODE_LIMIT_MAX_SHIFT ) & CONFIG_FRAME_RATE_CODE_LIMIT_MAX_MASK;
+   hVce->fw.stCommand.type.stConfigChannel.FrameRateCodeLimit = ( ( (uint32_t) BVCE_P_PI2FW_FrameRateLUT[hVceCh->stStartEncodeSettings.stBounds.stFrameRate.eMin] ) << CONFIG_FRAME_RATE_CODE_LIMIT_MIN_SHIFT ) & CONFIG_FRAME_RATE_CODE_LIMIT_MIN_MASK;
+   hVce->fw.stCommand.type.stConfigChannel.FrameRateCodeLimit |= ( ( (uint32_t) BVCE_P_PI2FW_FrameRateLUT[hVceCh->stStartEncodeSettings.stBounds.stFrameRate.eMax] ) << CONFIG_FRAME_RATE_CODE_LIMIT_MAX_SHIFT ) & CONFIG_FRAME_RATE_CODE_LIMIT_MAX_MASK;
    hVce->fw.stCommand.type.stConfigChannel.RateBufferDelayInMs = hVceCh->stStartEncodeSettings.uiRateBufferDelay;
    hVce->fw.stCommand.type.stConfigChannel.MinAllowedBvnFrameRateCode = hVceCh->stStartEncodeSettings.stBounds.stInputFrameRate.eMin;
 
@@ -3595,7 +3649,8 @@ BVCE_Open(
             sizeof( BVCE_P_Context )
             );
 
-   hVce->uiSignature = BVCE_P_SIGNATURE_DEVICEHANDLE;
+   BDBG_OBJECT_SET(hVce, BVCE_P_Context);
+
    hVce->stOpenSettings = *pstOpenSettings;
 
    /* TODO: Print Settings */
@@ -3753,7 +3808,7 @@ BVCE_Close(
 
    BDBG_ENTER( BVCE_Close );
 
-   BDBG_ASSERT( hVce );
+   BDBG_OBJECT_ASSERT(hVce, BVCE_P_Context);
 
    BVCE_P_FUNCTION_TRACE_ENTER(0, hVce, 0);
 
@@ -3792,6 +3847,8 @@ BVCE_Close(
    }
 #endif
 
+   BDBG_OBJECT_DESTROY(hVce, BVCE_P_Context);
+
    BKNI_Free(
             hVce
             );
@@ -3808,6 +3865,7 @@ BVCE_GetTotalChannels(
 {
    BDBG_ENTER( BVCE_GetTotalChannels );
 
+   BDBG_OBJECT_ASSERT(hVce, BVCE_P_Context);
    BDBG_ASSERT( puiTotalChannels );
    BVCE_P_FUNCTION_TRACE_ENTER(0, hVce, 0);
 
@@ -3832,7 +3890,7 @@ BVCE_GetVersionInfo(
 {
    BDBG_ENTER( BVCE_GetVersionInfo );
 
-   BDBG_ASSERT( hVce );
+   BDBG_OBJECT_ASSERT(hVce, BVCE_P_Context);
    BDBG_ASSERT( pstVersionInfo );
    BVCE_P_FUNCTION_TRACE_ENTER(0, hVce, 0);
 
@@ -3864,7 +3922,7 @@ BVCE_Debug_P_ReadBuffer_impl(
    ViceDebugBufferInfo_t stDebugBufferInfo;
    size_t uiInputLengthRead = 0;
 
-   BDBG_ASSERT( hVce );
+   BDBG_OBJECT_ASSERT(hVce, BVCE_P_Context);
    BDBG_ASSERT( szBuffer );
    BDBG_ASSERT( puiBytesRead );
 
@@ -4019,6 +4077,7 @@ BVCE_Debug_ReadBuffer(
          )
 {
    BERR_Code rc;
+   BDBG_OBJECT_ASSERT(hVce, BVCE_P_Context);
    BDBG_ENTER( BVCE_Debug_ReadBuffer );
    BVCE_P_FUNCTION_TRACE_ENTER(1, hVce, 0);
 
@@ -4057,7 +4116,7 @@ BVCE_Debug_P_SendCommand_impl(
    size_t uiCommandLength = 0;
    size_t uiCommandCurrentIndex = 0;
 
-   BDBG_ASSERT( hVce );
+   BDBG_OBJECT_ASSERT(hVce, BVCE_P_Context);
    BDBG_ASSERT( szCommand );
 
    /* Parse szCommand and send commands one at a time to FW */
@@ -4111,6 +4170,7 @@ BVCE_Debug_SendCommand(
          )
 {
    BERR_Code rc;
+   BDBG_OBJECT_ASSERT(hVce, BVCE_P_Context);
    BDBG_ENTER( BVCE_Debug_SendCommand );
    BVCE_P_FUNCTION_TRACE_ENTER(1, hVce, 0);
 
@@ -4295,6 +4355,7 @@ BVCE_Channel_Debug_P_DumpState_impl(
       if ( NULL != hVceCh->stStartEncodeSettings.hOutputHandle )
       {
          BVCE_Output_Handle hVceOutput = hVceCh->stStartEncodeSettings.hOutputHandle;
+         BDBG_OBJECT_ASSERT(hVceOutput, BVCE_P_Output_Context);
 
          /* ITB Buffer */
          if ( true == pstDumpStateSettings->bDumpItbBuffer )
@@ -4380,7 +4441,7 @@ BVCE_Debug_GetLogMessageFifo(
 {
    BERR_Code rc = BERR_SUCCESS;
 
-   BDBG_ASSERT( hVce );
+   BDBG_OBJECT_ASSERT(hVce, BVCE_P_Context);
    BDBG_ASSERT( pstDebugFifoInfo );
    BVCE_P_FUNCTION_TRACE_ENTER(1, hVce, 0);
 
@@ -4412,7 +4473,7 @@ BVCE_ProcessWatchdog(
 {
    BERR_Code rc = BERR_SUCCESS;
    BDBG_ENTER( BVCE_ProcessWatchdog );
-   BDBG_ASSERT( hVce );
+   BDBG_OBJECT_ASSERT(hVce, BVCE_P_Context);
    BVCE_P_FUNCTION_TRACE_ENTER(0, hVce, 0);
 
    if ( false == hVce->bWatchdogOccurred )
@@ -4539,7 +4600,7 @@ BVCE_SetCallbackSettings(
 {
    BDBG_ENTER( BVCE_SetCallbackSettings );
 
-   BDBG_ASSERT( hVce );
+   BDBG_OBJECT_ASSERT(hVce, BVCE_P_Context);
    BDBG_ASSERT( pstCallbackSettings );
    BDBG_ASSERT( BVCE_P_SIGNATURE_DEVICECALLBACKSETTINGS == pstCallbackSettings->uiSignature );
 
@@ -4561,7 +4622,7 @@ BVCE_GetCallbackSettings(
 {
    BDBG_ENTER( BVCE_GetCallbackSettings );
 
-   BDBG_ASSERT( hVce );
+   BDBG_OBJECT_ASSERT(hVce, BVCE_P_Context);
    BDBG_ASSERT( pstCallbackSettings );
    BVCE_P_FUNCTION_TRACE_ENTER(0, hVce, 0);
 
@@ -4650,7 +4711,7 @@ BVCE_Channel_Output_P_Free(
    BVCE_Channel_Handle hVceCh
    )
 {
-   BDBG_ASSERT( hVceCh );
+   BDBG_OBJECT_ASSERT(hVceCh, BVCE_P_Channel_Context);
 
    BVCE_Output_Close( hVceCh->stOutput.hVceOutput );
    BVCE_Output_FreeBuffers( hVceCh->stOutput.hVceOutputBuffers );
@@ -4662,7 +4723,7 @@ BVCE_Channel_Output_P_Allocate(
    )
 {
    BERR_Code rc;
-   BDBG_ASSERT( hVceCh );
+   BDBG_OBJECT_ASSERT(hVceCh, BVCE_P_Channel_Context);
 
    {
       BVCE_Output_AllocBuffersSettings stOutputAllocBuffersSettings;
@@ -4742,7 +4803,7 @@ BVCE_Channel_P_Open_impl(
 
    BDBG_ENTER( BVCE_Channel_Open );
 
-   BDBG_ASSERT( hVce );
+   BDBG_OBJECT_ASSERT(hVce, BVCE_P_Context);
    BDBG_ASSERT( phVceCh );
    BDBG_ASSERT( pstChOpenSettings );
    BDBG_ASSERT( BVCE_P_SIGNATURE_CHANNELOPENSETTINGS == pstChOpenSettings->uiSignature );
@@ -4825,7 +4886,8 @@ BVCE_Channel_P_Open_impl(
             sizeof( BVCE_P_Channel_Context )
             );
 
-   hVceCh->uiSignature = BVCE_P_SIGNATURE_CHANNELHANDLE;
+   BDBG_OBJECT_SET(hVceCh, BVCE_P_Channel_Context);
+
    hVceCh->hVce = hVce;
    hVceCh->eStatus = BVCE_P_Status_eOpened;
    hVceCh->stOpenSettings = *pstChOpenSettings;
@@ -4965,6 +5027,7 @@ BVCE_Channel_Open(
          )
 {
    BERR_Code rc;
+   BDBG_OBJECT_ASSERT(hVce, BVCE_P_Context);
    BDBG_ENTER( BVCE_Channel_Open );
    BVCE_P_FUNCTION_TRACE_ENTER(0, hVce, pstChOpenSettings->uiInstance);
 
@@ -5078,6 +5141,7 @@ BVCE_Channel_Close(
 {
    BERR_Code rc;
    BDBG_ENTER( BVCE_Channel_Close );
+   BDBG_OBJECT_ASSERT(hVceCh, BVCE_P_Channel_Context);
    BVCE_P_FUNCTION_TRACE_ENTER(0, hVceCh->hVce, hVceCh->stOpenSettings.uiInstance);
 
    BVCE_Power_P_AcquireResource(
@@ -5093,6 +5157,8 @@ BVCE_Channel_Close(
          );
 
    BVCE_P_FUNCTION_TRACE_LEAVE(0, hVceCh->hVce, hVceCh->stOpenSettings.uiInstance);
+   BDBG_OBJECT_UNSET(hVceCh, BVCE_P_Channel_Context);
+
    BDBG_LEAVE( BVCE_Channel_Close );
    return BERR_TRACE( rc );
 }
@@ -5131,7 +5197,7 @@ BVCE_Channel_P_SetCallbackSettings_impl(
    BERR_Code rc;
    bool bConfigNow = true;
 
-   BDBG_ASSERT( hVceCh );
+   BDBG_OBJECT_ASSERT(hVceCh, BVCE_P_Channel_Context);
    BDBG_ASSERT( pstCallbackSettings );
    BDBG_ASSERT( BVCE_P_SIGNATURE_CHANNELCALLBACKSETTINGS == pstCallbackSettings->uiSignature );
 
@@ -5199,6 +5265,7 @@ BVCE_Channel_SetCallbackSettings(
          )
 {
    BERR_Code rc;
+   BDBG_OBJECT_ASSERT(hVceCh, BVCE_P_Channel_Context);
    BDBG_ENTER( BVCE_Channel_SetCallbackSettings );
    BVCE_P_FUNCTION_TRACE_ENTER(0, hVceCh->hVce, hVceCh->stOpenSettings.uiInstance);
 
@@ -5229,7 +5296,7 @@ BVCE_Channel_GetCallbackSettings(
 {
    BDBG_ENTER( BVCE_Channel_GetCallbackSettings );
 
-   BDBG_ASSERT( hVceCh );
+   BDBG_OBJECT_ASSERT(hVceCh, BVCE_P_Channel_Context);
    BDBG_ASSERT( pstCallbackSettings );
    BVCE_P_FUNCTION_TRACE_ENTER(0, hVceCh->hVce, hVceCh->stOpenSettings.uiInstance);
 
@@ -5259,7 +5326,7 @@ static const BVCE_Channel_StartEncodeSettings s_stDefaultStartEncodeSettings =
  1, /* Encoder defaults to STC[1].  Decoder typically uses STC[0]. */
  {
     {
-       BAVC_FrameRateCode_e14_985,
+       BAVC_FrameRateCode_e7_493,
        BAVC_FrameRateCode_e60,
     },
     {
@@ -5371,7 +5438,7 @@ BVCE_Channel_P_StartEncode_impl(
    BERR_Code rc;
    BVCE_P_SendCommand_ConfigChannel_Settings stConfigChannelSettings;
 
-   BDBG_ASSERT( hVceCh );
+   BDBG_OBJECT_ASSERT(hVceCh, BVCE_P_Channel_Context);
    BDBG_ASSERT( pstChStartEncodeSettings );
    BDBG_ASSERT( BVCE_P_SIGNATURE_STARTENCODESETTINGS == pstChStartEncodeSettings->uiSignature );
 
@@ -5491,6 +5558,7 @@ BVCE_Channel_StartEncode(
          )
 {
    BERR_Code rc;
+   BDBG_OBJECT_ASSERT(hVceCh, BVCE_P_Channel_Context);
    BDBG_ENTER( BVCE_Channel_StartEncode );
    BVCE_P_FUNCTION_TRACE_ENTER(0, hVceCh->hVce, hVceCh->stOpenSettings.uiInstance);
 
@@ -5639,6 +5707,7 @@ BVCE_Channel_StopEncode(
          )
 {
    BERR_Code rc;
+   BDBG_OBJECT_ASSERT(hVceCh, BVCE_P_Channel_Context);
    BDBG_ENTER( BVCE_Channel_StopEncode );
    BVCE_P_FUNCTION_TRACE_ENTER(0, hVceCh->hVce, hVceCh->stOpenSettings.uiInstance);
 
@@ -5730,6 +5799,7 @@ BVCE_Channel_FlushEncode(
    )
 {
    BERR_Code rc;
+   BDBG_OBJECT_ASSERT(hVceCh, BVCE_P_Channel_Context);
    BDBG_ENTER( BVCE_Channel_FlushEncode );
    BVCE_P_FUNCTION_TRACE_ENTER(0, hVceCh->hVce, hVceCh->stOpenSettings.uiInstance);
 
@@ -5812,7 +5882,7 @@ BVCE_Channel_P_SetEncodeSettings_impl(
    bool bConfigNow = true;
    BVCE_Channel_EncodeSettings stNewChEncodeSettings;
 
-   BDBG_ASSERT( hVceCh );
+   BDBG_OBJECT_ASSERT(hVceCh, BVCE_P_Channel_Context);
    BDBG_ASSERT( pstChEncodeSettings );
 
    BKNI_Memset( &stConfigChannelSettings, 0, sizeof( BVCE_P_SendCommand_ConfigChannel_Settings ) );
@@ -5913,6 +5983,7 @@ BVCE_Channel_SetEncodeSettings(
          )
 {
    BERR_Code rc;
+   BDBG_OBJECT_ASSERT(hVceCh, BVCE_P_Channel_Context);
    BDBG_ENTER( BVCE_Channel_SetEncodeSettings );
    BVCE_P_FUNCTION_TRACE_ENTER(0, hVceCh->hVce, hVceCh->stOpenSettings.uiInstance);
 
@@ -5941,7 +6012,7 @@ BVCE_Channel_P_GetEncodeSettings_impl(
 {
    BERR_Code rc;
 
-   BDBG_ASSERT( hVceCh );
+   BDBG_OBJECT_ASSERT(hVceCh, BVCE_P_Channel_Context);
    BDBG_ASSERT( pstChEncodeSettings );
 
    /* We get status to make sure we get any pending settings that were applied first */
@@ -5959,6 +6030,7 @@ BVCE_Channel_GetEncodeSettings(
          )
 {
    BERR_Code rc;
+   BDBG_OBJECT_ASSERT(hVceCh, BVCE_P_Channel_Context);
    BDBG_ENTER( BVCE_Channel_GetEncodeSettings );
    BVCE_P_FUNCTION_TRACE_ENTER(0, hVceCh->hVce, hVceCh->stOpenSettings.uiInstance);
 
@@ -5986,7 +6058,7 @@ BVCE_Channel_P_GetDefaultEncodeSettings_OnInputChange(
          )
 {
    BERR_Code rc = BERR_SUCCESS;
-   BDBG_ASSERT( hVceCh );
+   BDBG_OBJECT_ASSERT(hVceCh, BVCE_P_Channel_Context);
    BDBG_ASSERT( pstChEncodeSettings );
 
    /* We get status to make sure we get any pending settings that were applied first */
@@ -6073,7 +6145,7 @@ BVCE_Channel_P_SetEncodeSettings_OnInputChange_impl(
    bool bConfigNow = true;
    BVCE_P_SendCommand_ConfigChannel_Settings stConfigChannelSettings;
 
-   BDBG_ASSERT( hVceCh );
+   BDBG_OBJECT_ASSERT(hVceCh, BVCE_P_Channel_Context);
    BDBG_ASSERT( pstChEncodeSettings );
    BDBG_ASSERT( BVCE_P_SIGNATURE_CHANNELENCODESETTINGSONINPUTCHANGE == pstChEncodeSettings->uiSignature );
 
@@ -6180,7 +6252,7 @@ BVCE_Channel_GetEncodeSettings_OnInputChange(
    BDBG_ENTER( BVCE_Channel_GetEncodeSettings_OnInputChange );
    BVCE_P_FUNCTION_TRACE_ENTER(0, hVceCh->hVce, hVceCh->stOpenSettings.uiInstance);
 
-   BDBG_ASSERT( hVceCh );
+   BDBG_OBJECT_ASSERT(hVceCh, BVCE_P_Channel_Context);
    BDBG_ASSERT( pstChEncodeSettings );
 
    rc = BVCE_Channel_P_GetDefaultEncodeSettings_OnInputChange( hVceCh, pstChEncodeSettings );
@@ -6208,7 +6280,7 @@ BVCE_Channel_P_GetStatus_impl(
 {
    BERR_Code rc;
 
-   BDBG_ASSERT( hVceCh );
+   BDBG_OBJECT_ASSERT(hVceCh, BVCE_P_Channel_Context);
 
    /* Get Updated Channel Status from FW */
    rc = BVCE_P_SendCommand_GetChannelStatus(
@@ -6371,6 +6443,7 @@ BVCE_Channel_GetStatus(
          )
 {
    BERR_Code rc;
+   BDBG_OBJECT_ASSERT(hVceCh, BVCE_P_Channel_Context);
    BDBG_ENTER( BVCE_Channel_GetStatus );
    BVCE_P_FUNCTION_TRACE_ENTER(1, hVceCh->hVce, hVceCh->stOpenSettings.uiInstance);
 
@@ -6399,7 +6472,7 @@ BVCE_Channel_ClearStatus(
 {
    BDBG_ENTER( BVCE_Channel_ClearStatus );
 
-   BDBG_ASSERT( hVceCh );
+   BDBG_OBJECT_ASSERT(hVceCh, BVCE_P_Channel_Context);
    BVCE_P_FUNCTION_TRACE_ENTER(1, hVceCh->hVce, hVceCh->stOpenSettings.uiInstance);
 
    if ( NULL != pChannelStatus )
@@ -6579,10 +6652,10 @@ BVCE_Channel_UserData_AddBuffers_isr(
 
    BDBG_ENTER( BVCE_Channel_UserData_AddBuffers_isr );
 
-   BDBG_ASSERT( hVceCh );
+   BDBG_OBJECT_ASSERT(hVceCh, BVCE_P_Channel_Context);
    BDBG_ASSERT( pstUserDataFieldInfo );
    BDBG_ASSERT( puiQueuedCount );
-   BVCE_P_FUNCTION_TRACE_ENTER(1, hVceCh->hVce, hVceCh->stOpenSettings.uiInstance);
+   BVCE_P_FUNCTION_TRACE_ENTER_isr(1, hVceCh->hVce, hVceCh->stOpenSettings.uiInstance);
 
    BKNI_Memset( (void*) &hVceCh->userdata.stUserDataQueue, 0, sizeof( BVCE_FW_P_UserData_Queue ) );
 
@@ -6829,7 +6902,7 @@ BVCE_Channel_UserData_AddBuffers_isr(
       rc = BERR_TRACE( BERR_INVALID_PARAMETER );
    }
 
-   BVCE_P_FUNCTION_TRACE_LEAVE(1, hVceCh->hVce, hVceCh->stOpenSettings.uiInstance);
+   BVCE_P_FUNCTION_TRACE_LEAVE_isr(1, hVceCh->hVce, hVceCh->stOpenSettings.uiInstance);
    BDBG_LEAVE( BVCE_Channel_UserData_AddBuffers_isr );
    return BERR_TRACE( rc );
 }
@@ -6846,9 +6919,9 @@ BVCE_Channel_UserData_GetStatus_isr(
 
    BDBG_ENTER( BVCE_Channel_UserData_GetStatus_isr );
 
-   BDBG_ASSERT( hVceCh );
+   BDBG_OBJECT_ASSERT(hVceCh, BVCE_P_Channel_Context);
    BDBG_ASSERT( pstUserDataStatus );
-   BVCE_P_FUNCTION_TRACE_ENTER(1, hVceCh->hVce, hVceCh->stOpenSettings.uiInstance);
+   BVCE_P_FUNCTION_TRACE_ENTER_isr(1, hVceCh->hVce, hVceCh->stOpenSettings.uiInstance);
 
    BKNI_Memset( pstUserDataStatus, 0, sizeof( BAVC_VideoUserDataStatus ) );
 
@@ -6883,7 +6956,7 @@ BVCE_Channel_UserData_GetStatus_isr(
       rc = BERR_TRACE( BERR_INVALID_PARAMETER );
    }
 
-   BVCE_P_FUNCTION_TRACE_LEAVE(1, hVceCh->hVce, hVceCh->stOpenSettings.uiInstance);
+   BVCE_P_FUNCTION_TRACE_LEAVE_isr(1, hVceCh->hVce, hVceCh->stOpenSettings.uiInstance);
    BDBG_LEAVE( BVCE_Channel_UserData_GetStatus_isr );
    return BERR_TRACE( rc );
 }
@@ -6990,16 +7063,11 @@ BVCE_GetA2PDelayInfo(
                      uiProtocol,
                      uiProfile,
                      uiLevel,
-#ifdef BVCE_P_PRERELEASE_TEST_MODE
-                     pstChEncodeSettings->stFrameRate.eFrameRate,
-#else
-                     /* SW7425-6070: Override 19.98 frame rate enum */
-                     ( BAVC_FrameRateCode_e19_98 == pstChEncodeSettings->stFrameRate.eFrameRate ) ? ENCODING_FRAME_RATE_CODE_1998 : pstChEncodeSettings->stFrameRate.eFrameRate,
-#endif
+                     BVCE_P_PI2FW_FrameRateLUT[pstChEncodeSettings->stFrameRate.eFrameRate],
                      (0 != pstChStartEncodeSettings->stBounds.stBitRate.stLargest.uiMax) ? pstChStartEncodeSettings->stBounds.stBitRate.stLargest.uiMax : pstChEncodeSettings->stBitRate.uiMax,
                BVCE_P_EncodeModeLUT( pstChStartEncodeSettings ),
                pstChStartEncodeSettings->uiRateBufferDelay,
-               pstChStartEncodeSettings->stBounds.stFrameRate.eMin,
+               BVCE_P_PI2FW_FrameRateLUT[pstChStartEncodeSettings->stBounds.stFrameRate.eMin],
                pstChStartEncodeSettings->stBounds.stInputFrameRate.eMin,
                0,
                pstChEncodeSettings->bITFPEnable,
@@ -7271,6 +7339,7 @@ BVCE_Power_Standby(
    BERR_Code rc = BERR_SUCCESS;
    unsigned uiChannelNum = 0;
 
+   BDBG_OBJECT_ASSERT(hVce, BVCE_P_Context);
    BDBG_ENTER( BVCE_Power_Standby );
    BVCE_P_FUNCTION_TRACE_ENTER(0, hVce, 0);
 
@@ -7359,6 +7428,7 @@ BVCE_Power_Resume(
    BERR_Code rc = BERR_SUCCESS;
    unsigned uiChannelNum = 0;
 
+   BDBG_OBJECT_ASSERT(hVce, BVCE_P_Context);
    BDBG_ENTER( BVCE_Power_Resume );
    BVCE_P_FUNCTION_TRACE_ENTER(0, hVce, 0);
 
@@ -7484,7 +7554,7 @@ BVCE_Channel_P_GetState(
    BVCE_Channel_Handle hVceCh
    )
 {
-   BDBG_ASSERT( hVceCh );
+   BDBG_OBJECT_ASSERT(hVceCh, BVCE_P_Channel_Context);
    return hVceCh->eStatus;
 }
 
@@ -7494,7 +7564,7 @@ BVCE_Channel_P_GetStartEncodeSettings(
    BVCE_Channel_StartEncodeSettings *pstStartEncodeSettings
    )
 {
-   BDBG_ASSERT( hVceCh );
+   BDBG_OBJECT_ASSERT(hVceCh, BVCE_P_Channel_Context);
    BDBG_ASSERT( pstStartEncodeSettings );
 
    *pstStartEncodeSettings = hVceCh->stStartEncodeSettings;
@@ -7506,7 +7576,7 @@ BVCE_Channel_P_GetEncodeSettings(
    BVCE_Channel_EncodeSettings *pstEncodeSettings
    )
 {
-   BDBG_ASSERT( hVceCh );
+   BDBG_OBJECT_ASSERT(hVceCh, BVCE_P_Channel_Context);
    BDBG_ASSERT( pstEncodeSettings );
 
    *pstEncodeSettings = hVceCh->stEncodeSettings;
@@ -7517,6 +7587,7 @@ BVCE_Channel_P_HandleEOSEvent(
    BVCE_Channel_Handle hVceCh
    )
 {
+   BDBG_OBJECT_ASSERT(hVceCh, BVCE_P_Channel_Context);
    /* SW7425-4186: Set EOS event when EOS ITB entry is seen */
    hVceCh->stStatus.uiEventFlags |= BVCE_CHANNEL_STATUS_FLAGS_EVENT_EOS;
 

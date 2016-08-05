@@ -297,7 +297,7 @@ DrmRC DRM_Netflix_Initialize(char                    *bin_file,
         container->blocks[1].data.ptr = NULL;
     }
 
-	SRAI_Container_Free(container);
+    SRAI_Container_Free(container);
 
     *netflixSageHandle = (DrmNetFlixSageHandle ) handle;
 
@@ -305,13 +305,13 @@ DrmRC DRM_Netflix_Initialize(char                    *bin_file,
 
 ErrorExit:
 
-	if(container){
-	if(container->blocks[1].data.ptr != NULL){
-		SRAI_Memory_Free(container->blocks[1].data.ptr);
-		container->blocks[1].data.ptr = NULL;
-	}
-	SRAI_Container_Free(container);
-	}
+    if(container){
+    if(container->blocks[1].data.ptr != NULL){
+        SRAI_Memory_Free(container->blocks[1].data.ptr);
+        container->blocks[1].data.ptr = NULL;
+    }
+    SRAI_Container_Free(container);
+    }
 
     if( handle != NULL) {
         DRM_Common_TL_ModuleFinalize(handle->pNetflixSageModuleHandle);
@@ -366,7 +366,7 @@ DrmRC DRM_Netflix_Finalize(DrmNetFlixSageHandle   netflixSageHandle)
         NEXUS_Memory_Free(ctx);
     }
 
-	DRM_Common_TL_Finalize();
+    DRM_Common_TL_Finalize();
 
     BDBG_MSG(("%s - Exiting function", __FUNCTION__));
     return rc;

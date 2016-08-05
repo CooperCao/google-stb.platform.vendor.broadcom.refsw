@@ -21,6 +21,7 @@ Implementation of common OpenGL ES 1.1 and 2.0 state machine functions.
 #include "glxx_buffer.h"
 #include "../common/khrn_int_util.h"
 #include "../common/khrn_interlock.h"
+#include "../common/khrn_process.h"
 
 #include "../gl11/gl11_int_config.h"
 
@@ -29,7 +30,6 @@ Implementation of common OpenGL ES 1.1 and 2.0 state machine functions.
 #include "glxx_renderbuffer.h"
 #include "glxx_framebuffer.h"
 #include "glxx_translate.h"
-#include "glxx_extensions.h"
 
 #include <string.h>
 #include <math.h>
@@ -52,7 +52,7 @@ static int32_t norm_float_to_int(float f)
 
 GL_API GLenum GL_APIENTRY glGetError(void)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE_UNCHANGED();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state_unchanged(OPENGL_ES_ANY);
    GLenum result;
    if (!state) return 0;
 
@@ -60,14 +60,15 @@ GL_API GLenum GL_APIENTRY glGetError(void)
 
    state->error = GL_NO_ERROR;
 
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 
    return result;
 }
 
 typedef enum glxx_get_type
 {
-   glxx_get_invalid_type,
+   glxx_get_invalid_enum_type,
+   glxx_get_invalid_index_type,
    glxx_get_bool_type,
    glxx_get_int_type,
    glxx_get_uint_type,
@@ -81,7 +82,8 @@ typedef enum glxx_get_type_count
    glxx_get_type_count_force_32bit = 0x7fffffff,
    glxx_get_type_shift = 28,
 
-   glxx_get_invalid_0 = glxx_get_invalid_type << glxx_get_type_shift,
+   glxx_get_invalid_enum_0 = glxx_get_invalid_enum_type << glxx_get_type_shift,
+   glxx_get_invalid_index_0 = glxx_get_invalid_index_type << glxx_get_type_shift,
    glxx_get_bool_0 = glxx_get_bool_type << glxx_get_type_shift,
    glxx_get_bool_1,
    glxx_get_int_0 = glxx_get_int_type << glxx_get_type_shift,
@@ -111,10 +113,9 @@ static glxx_get_type_count glxx_get_params_and_type_common(
       booleans[0] = state->sample_coverage.invert;
       return glxx_get_bool_1;
    case GL_COLOR_WRITEMASK:
-      booleans[0] = state->color_write.r;
-      booleans[1] = state->color_write.g;
-      booleans[2] = state->color_write.b;
-      booleans[3] = state->color_write.a;
+      /* Non-indexed glGet functions query the color write mask of buffer 0 */
+      for (unsigned i = 0; i != 4; ++i)
+         booleans[i] = (state->color_write >> i) & 1;
       return glxx_get_bool_0 + 4;
    case GL_DEPTH_WRITEMASK:
       booleans[0] = state->depth_mask;
@@ -141,7 +142,12 @@ static glxx_get_type_count glxx_get_params_and_type_common(
       booleans[0] = state->caps.depth_test;
       return glxx_get_bool_1;
    case GL_BLEND:
-      booleans[0] = !!(state->blend.enable);
+#if V3D_HAS_PER_RT_BLEND
+      /* Non-indexed glGet functions query the blend enable for buffer 0 */
+      booleans[0] = state->blend.rt_enables & 1;
+#else
+      booleans[0] = state->blend.enable;
+#endif
       return glxx_get_bool_1;
    case GL_DITHER:
       booleans[0] = state->caps.dither;
@@ -370,7 +376,6 @@ static glxx_get_type_count glxx_get_params_and_type_common(
       floats[0] = 16.0f;
       return glxx_get_float_1;
 #endif
-#if GL_EXT_robustness
    case GL_CONTEXT_ROBUST_ACCESS_EXT:
       booleans[0] = egl_context_gl_robustness(state->context);
       return glxx_get_bool_1;
@@ -378,11 +383,23 @@ static glxx_get_type_count glxx_get_params_and_type_common(
       uints[0] = egl_context_gl_notification(state->context) ?
          GL_LOSE_CONTEXT_ON_RESET_EXT : GL_NO_RESET_NOTIFICATION_EXT;
       return glxx_get_uint_1;
-#endif
+   case GL_CONTEXT_FLAGS:
+      ints[0] = egl_context_gl_secure(state->context) ? GL_CONTEXT_FLAG_PROTECTED_CONTENT_BIT_EXT : 0;
+      return glxx_get_int_1;
 
    default:
-      return glxx_get_invalid_0;
+      return glxx_get_invalid_enum_0;
    }
+}
+
+/* Non-indexed glGet functions query the blend config of buffer 0 */
+static const glxx_blend_cfg *blend_cfg_0(const GLXX_SERVER_STATE_T *state)
+{
+#if V3D_HAS_PER_RT_BLEND
+   return &state->blend.rt_cfgs[0];
+#else
+   return &state->blend.cfg;
+#endif
 }
 
 static glxx_get_type_count glxx_get_params_and_type_gl11(
@@ -509,10 +526,10 @@ static glxx_get_type_count glxx_get_params_and_type_gl11(
       uints[0] = untranslate_alpha_func((uint32_t) state->gl11.statebits.fragment & GL11_AFUNC_M);
       return glxx_get_uint_1;
    case GL_BLEND_SRC:
-      uints[0] = untranslate_blend_func(state->blend.src_rgb);
+      uints[0] = untranslate_blend_func(blend_cfg_0(state)->src_rgb);
       return glxx_get_uint_1;
    case GL_BLEND_DST:
-      uints[0] = untranslate_blend_func(state->blend.dst_rgb);
+      uints[0] = untranslate_blend_func(blend_cfg_0(state)->dst_rgb);
       return glxx_get_uint_1;
    case GL_LOGIC_OP_MODE:
       uints[0] = untranslate_logic_op(state->gl11.statebits.fragment & GL11_LOGIC_M);
@@ -550,13 +567,13 @@ static glxx_get_type_count glxx_get_params_and_type_gl11(
       uints[0] = vao->attrib_config[GL11_IX_VERTEX].size;
       return glxx_get_uint_1;
    case GL_VERTEX_ARRAY_TYPE:
-      uints[0] = vao->attrib_config[GL11_IX_VERTEX].type;
+      uints[0] = vao->attrib_config[GL11_IX_VERTEX].gl_type;
       return glxx_get_uint_1;
    case GL_VERTEX_ARRAY_STRIDE:
       uints[0] = vao->attrib_config[GL11_IX_VERTEX].original_stride;
       return glxx_get_uint_1;
    case GL_NORMAL_ARRAY_TYPE:
-      uints[0] = vao->attrib_config[GL11_IX_NORMAL].type;
+      uints[0] = vao->attrib_config[GL11_IX_NORMAL].gl_type;
       return glxx_get_uint_1;
    case GL_NORMAL_ARRAY_STRIDE:
       uints[0] = vao->attrib_config[GL11_IX_NORMAL].original_stride;
@@ -565,7 +582,7 @@ static glxx_get_type_count glxx_get_params_and_type_gl11(
       uints[0] = vao->attrib_config[GL11_IX_COLOR].size;
       return glxx_get_uint_1;
    case GL_COLOR_ARRAY_TYPE:
-      uints[0] = vao->attrib_config[GL11_IX_COLOR].type;
+      uints[0] = vao->attrib_config[GL11_IX_COLOR].gl_type;
       return glxx_get_uint_1;
    case GL_COLOR_ARRAY_STRIDE:
       uints[0] = vao->attrib_config[GL11_IX_COLOR].original_stride;
@@ -574,18 +591,17 @@ static glxx_get_type_count glxx_get_params_and_type_gl11(
       uints[0] = vao->attrib_config[state->gl11.client_active_texture - GL_TEXTURE0 + GL11_IX_TEXTURE_COORD].size;
       return glxx_get_uint_1;
    case GL_TEXTURE_COORD_ARRAY_TYPE:
-      uints[0] = vao->attrib_config[state->gl11.client_active_texture - GL_TEXTURE0 + GL11_IX_TEXTURE_COORD].type;
+      uints[0] = vao->attrib_config[state->gl11.client_active_texture - GL_TEXTURE0 + GL11_IX_TEXTURE_COORD].gl_type;
       return glxx_get_uint_1;
    case GL_TEXTURE_COORD_ARRAY_STRIDE:
       uints[0] = vao->attrib_config[state->gl11.client_active_texture - GL_TEXTURE0 + GL11_IX_TEXTURE_COORD].original_stride;
       return glxx_get_uint_1;
    case GL_POINT_SIZE_ARRAY_TYPE_OES:
-      uints[0] = vao->attrib_config[GL11_IX_POINT_SIZE].type;
+      uints[0] = vao->attrib_config[GL11_IX_POINT_SIZE].gl_type;
       return glxx_get_uint_1;
    case GL_POINT_SIZE_ARRAY_STRIDE_OES:
       uints[0] = vao->attrib_config[GL11_IX_POINT_SIZE].original_stride;
       return glxx_get_uint_1;
-#if GL_OES_matrix_palette
    case GL_MATRIX_PALETTE_OES:
       booleans[0] = !!(state->gl11.statebits.v_enable & GL11_MPAL_M);
       return glxx_get_bool_1;
@@ -599,7 +615,7 @@ static glxx_get_type_count glxx_get_params_and_type_gl11(
       uints[0] = vao->attrib_config[GL11_IX_MATRIX_INDEX].size;
       return glxx_get_uint_1;
    case GL_MATRIX_INDEX_ARRAY_TYPE_OES:
-      uints[0] = vao->attrib_config[GL11_IX_MATRIX_INDEX].type;
+      uints[0] = vao->attrib_config[GL11_IX_MATRIX_INDEX].gl_type;
       return glxx_get_uint_1;
    case GL_MATRIX_INDEX_ARRAY_STRIDE_OES:
       uints[0] = vao->attrib_config[GL11_IX_MATRIX_INDEX].original_stride;
@@ -608,7 +624,7 @@ static glxx_get_type_count glxx_get_params_and_type_gl11(
       uints[0] = vao->attrib_config[GL11_IX_MATRIX_WEIGHT].size;
       return glxx_get_uint_1;
    case GL_WEIGHT_ARRAY_TYPE_OES:
-      uints[0] = vao->attrib_config[GL11_IX_MATRIX_WEIGHT].type;
+      uints[0] = vao->attrib_config[GL11_IX_MATRIX_WEIGHT].gl_type;
       return glxx_get_uint_1;
    case GL_WEIGHT_ARRAY_STRIDE_OES:
       uints[0] = vao->attrib_config[GL11_IX_MATRIX_WEIGHT].original_stride;
@@ -622,16 +638,13 @@ static glxx_get_type_count glxx_get_params_and_type_gl11(
    case GL_CURRENT_PALETTE_MATRIX_OES:
       uints[0] = state->gl11.current_palette_matrix;
       return glxx_get_uint_1;
-#endif
    case GL_VERTEX_ARRAY_BUFFER_BINDING:
    case GL_NORMAL_ARRAY_BUFFER_BINDING:
    case GL_COLOR_ARRAY_BUFFER_BINDING:
    case GL_TEXTURE_COORD_ARRAY_BUFFER_BINDING:
    case GL_POINT_SIZE_ARRAY_BUFFER_BINDING_OES:
-#if GL_OES_matrix_palette
    case GL_MATRIX_INDEX_ARRAY_BUFFER_BINDING_OES:
    case GL_WEIGHT_ARRAY_BUFFER_BINDING_OES:
-#endif
    {
       int arr;
       switch (pname)
@@ -641,10 +654,8 @@ static glxx_get_type_count glxx_get_params_and_type_gl11(
       case GL_COLOR_ARRAY_BUFFER_BINDING:             arr = GL11_IX_COLOR; break;
       case GL_TEXTURE_COORD_ARRAY_BUFFER_BINDING:     arr = GL11_IX_TEXTURE_COORD + (state->gl11.client_active_texture - GL_TEXTURE0); break;
       case GL_POINT_SIZE_ARRAY_BUFFER_BINDING_OES:    arr = GL11_IX_POINT_SIZE; break;
-   #if GL_OES_matrix_palette
       case GL_MATRIX_INDEX_ARRAY_BUFFER_BINDING_OES:  arr = GL11_IX_MATRIX_INDEX; break;
       case GL_WEIGHT_ARRAY_BUFFER_BINDING_OES:        arr = GL11_IX_MATRIX_WEIGHT; break;
-   #endif
       default: unreachable();
       }
       GLXX_VBO_BINDING_T const* vbo = &vao->vbos[vao->attrib_config[arr].vbo_index];
@@ -664,11 +675,11 @@ static glxx_get_type_count glxx_get_params_and_type_gl11(
       return glxx_get_norm_float_1;
    case GL_CURRENT_COLOR:
       for (unsigned i = 0; i < 4; i++)
-         floats[i] = state->generic_attrib[GL11_IX_COLOR].value[i];
+         floats[i] = state->generic_attrib[GL11_IX_COLOR].f[i];
       return glxx_get_norm_float_0 + 4;
    case GL_CURRENT_NORMAL:
       for (unsigned  i = 0; i < 3; i++)
-         floats[i] = state->generic_attrib[GL11_IX_NORMAL].value[i];
+         floats[i] = state->generic_attrib[GL11_IX_NORMAL].f[i];
       return glxx_get_norm_float_0 + 3;
 
    case GL_MODELVIEW_MATRIX:
@@ -714,10 +725,10 @@ static glxx_get_type_count glxx_get_params_and_type_gl11(
    case GL_CURRENT_TEXTURE_COORDS:
       /* apparently we need the current texture coordinates for the _server_ active texture unit */
       for (unsigned i = 0; i < 4; i++)
-         floats[i] = state->generic_attrib[state->active_texture - GL_TEXTURE0 + GL11_IX_TEXTURE_COORD].value[i];
+         floats[i] = state->generic_attrib[state->active_texture - GL_TEXTURE0 + GL11_IX_TEXTURE_COORD].f[i];
       return glxx_get_float_0 + 4;
    case GL_POINT_SIZE:
-      floats[0] = state->generic_attrib[GL11_IX_POINT_SIZE].value[0];
+      floats[0] = state->generic_attrib[GL11_IX_POINT_SIZE].f[0];
       return glxx_get_float_1;
    case GL_ALIASED_POINT_SIZE_RANGE:
       floats[0] = GL11_CONFIG_MIN_ALIASED_POINT_SIZE;
@@ -728,7 +739,7 @@ static glxx_get_type_count glxx_get_params_and_type_gl11(
       floats[1] = GL11_CONFIG_MAX_ALIASED_LINE_WIDTH;
       return glxx_get_float_0 + 2;
    default:
-      return glxx_get_invalid_0;
+      return glxx_get_invalid_enum_0;
    }
 }
 
@@ -778,6 +789,9 @@ static glxx_get_type_count glxx_get_params_and_type_gl3x(
    case GL_TEXTURE_BINDING_CUBE_MAP:
       uints[0] = glxx_server_get_active_texture(state, GL_TEXTURE_CUBE_MAP)->name;
       return glxx_get_uint_1;
+   case GL_TEXTURE_BINDING_CUBE_MAP_ARRAY:
+      uints[0] = glxx_server_get_active_texture(state, GL_TEXTURE_CUBE_MAP_ARRAY)->name;
+      return glxx_get_uint_1;
    case GL_STENCIL_BACK_WRITEMASK:
       uints[0] = state->stencil_mask.back;
       return glxx_get_uint_1;
@@ -797,22 +811,22 @@ static glxx_get_type_count glxx_get_params_and_type_gl3x(
       uints[0] = state->stencil_op.back.zpass;
       return glxx_get_uint_1;
    case GL_BLEND_SRC_RGB:
-      uints[0] = untranslate_blend_func(state->blend.src_rgb);
+      uints[0] = untranslate_blend_func(blend_cfg_0(state)->src_rgb);
       return glxx_get_uint_1;
    case GL_BLEND_SRC_ALPHA:
-      uints[0] = untranslate_blend_func(state->blend.src_alpha);
+      uints[0] = untranslate_blend_func(blend_cfg_0(state)->src_alpha);
       return glxx_get_uint_1;
    case GL_BLEND_DST_RGB:
-      uints[0] = untranslate_blend_func(state->blend.dst_rgb);
+      uints[0] = untranslate_blend_func(blend_cfg_0(state)->dst_rgb);
       return glxx_get_uint_1;
    case GL_BLEND_DST_ALPHA:
-      uints[0] = untranslate_blend_func(state->blend.dst_alpha);
+      uints[0] = untranslate_blend_func(blend_cfg_0(state)->dst_alpha);
       return glxx_get_uint_1;
    case GL_BLEND_EQUATION_RGB:
-      uints[0] = untranslate_blend_equation(state->blend.color_eqn);
+      uints[0] = untranslate_blend_equation(blend_cfg_0(state)->color_eqn);
       return glxx_get_uint_1;
    case GL_BLEND_EQUATION_ALPHA:
-      uints[0] = untranslate_blend_equation(state->blend.alpha_eqn);
+      uints[0] = untranslate_blend_equation(blend_cfg_0(state)->alpha_eqn);
       return glxx_get_uint_1;
    case GL_MAX_CUBE_MAP_TEXTURE_SIZE:
       uints[0] = MAX_TEXTURE_SIZE;
@@ -961,7 +975,7 @@ static glxx_get_type_count glxx_get_params_and_type_gl3x(
       uints[0] = GLXX_CONFIG_UNIFORM_BUFFER_OFFSET_ALIGNMENT;
       return glxx_get_uint_1;
    case GL_NUM_EXTENSIONS:
-      uints[0] = glxx_get_num_extensions();
+      uints[0] = khrn_get_num_gl3x_exts();
       return glxx_get_uint_1;
    case GL_MAJOR_VERSION:
       uints[0] = 3u;
@@ -1160,29 +1174,132 @@ static glxx_get_type_count glxx_get_params_and_type_gl3x(
    case GL_MAX_SHADER_STORAGE_BLOCK_SIZE:
       int64s[0] = GLXX_CONFIG_MAX_SHADER_STORAGE_BLOCK_SIZE;
       return glxx_get_int64_1;
+   case GL_PRIMITIVE_BOUNDING_BOX:
+      for (int i=0; i<4; i++) {
+         floats[i]   = state->primitive_bounding_box.min[i];
+         floats[4+i] = state->primitive_bounding_box.max[i];
+      }
+      return glxx_get_float_0 + 8;
 #endif
 
-#if GL_BRCM_provoking_vertex && V3D_VER_AT_LEAST(3,3,0,0)
+#if GLXX_HAS_TNG
+   case GL_PATCH_VERTICES:
+      uints[0] = state->num_patch_vertices;
+      return glxx_get_uint_1;
+   case GL_MAX_PATCH_VERTICES:
+      uints[0] = V3D_MAX_PATCH_VERTICES;
+      return glxx_get_uint_1;
+   case GL_MAX_TESS_GEN_LEVEL:
+      uints[0] = V3D_MAX_TESS_GEN_LEVEL;
+      return glxx_get_uint_1;
+   case GL_MAX_TESS_CONTROL_UNIFORM_COMPONENTS:
+   case GL_MAX_TESS_EVALUATION_UNIFORM_COMPONENTS:
+      uints[0] = GLXX_CONFIG_MAX_UNIFORM_SCALARS;
+      return glxx_get_uint_1;
+   case GL_MAX_TESS_CONTROL_TEXTURE_IMAGE_UNITS:
+   case GL_MAX_TESS_EVALUATION_TEXTURE_IMAGE_UNITS:
+   case GL_MAX_GEOMETRY_TEXTURE_IMAGE_UNITS:
+      uints[0] = GLXX_CONFIG_MAX_SHADER_TEXTURE_IMAGE_UNITS;
+      return glxx_get_uint_1;
+   case GL_MAX_TESS_CONTROL_OUTPUT_COMPONENTS:
+      uints[0] = GLXX_CONFIG_MAX_TESS_CONTROL_OUTPUT_COMPONENTS;
+      return glxx_get_uint_1;
+   case GL_MAX_TESS_PATCH_COMPONENTS:
+      uints[0] = GLXX_CONFIG_MAX_TESS_PATCH_COMPONENTS;
+      return glxx_get_uint_1;
+   case GL_MAX_TESS_CONTROL_TOTAL_OUTPUT_COMPONENTS:
+      uints[0] = GLXX_CONFIG_MAX_TESS_CONTROL_TOTAL_OUTPUT_COMPONENTS;
+      return glxx_get_uint_1;
+   case GL_MAX_TESS_EVALUATION_OUTPUT_COMPONENTS:
+      uints[0] = GLXX_CONFIG_MAX_TESS_EVALUATION_OUTPUT_COMPONENTS;
+      return glxx_get_uint_1;
+   case GL_MAX_TESS_CONTROL_UNIFORM_BLOCKS:
+   case GL_MAX_TESS_EVALUATION_UNIFORM_BLOCKS:
+   case GL_MAX_GEOMETRY_UNIFORM_BLOCKS:
+      uints[0] = GLXX_CONFIG_MAX_SHADER_UNIFORM_BLOCKS;
+      return glxx_get_uint_1;
+   case GL_MAX_TESS_CONTROL_INPUT_COMPONENTS:
+      uints[0] = GLXX_CONFIG_MAX_TESS_CONTROL_INPUT_COMPONENTS;
+      return glxx_get_uint_1;
+   case GL_MAX_TESS_EVALUATION_INPUT_COMPONENTS:
+      uints[0] = GLXX_CONFIG_MAX_TESS_EVALUATION_INPUT_COMPONENTS;
+      return glxx_get_uint_1;
+   case GL_MAX_COMBINED_TESS_CONTROL_UNIFORM_COMPONENTS:
+   case GL_MAX_COMBINED_TESS_EVALUATION_UNIFORM_COMPONENTS:
+   case GL_MAX_GEOMETRY_UNIFORM_COMPONENTS:
+      uints[0] = GLXX_CONFIG_MAX_UNIFORM_SCALARS + GLXX_CONFIG_MAX_SHADER_UNIFORM_BLOCKS * GLXX_CONFIG_MAX_UNIFORM_BLOCK_SIZE / 4;
+      return glxx_get_uint_1;
+   case GL_MAX_TESS_CONTROL_ATOMIC_COUNTER_BUFFERS:
+   case GL_MAX_TESS_EVALUATION_ATOMIC_COUNTER_BUFFERS:
+   case GL_MAX_GEOMETRY_ATOMIC_COUNTER_BUFFERS:
+      uints[0] = GLXX_CONFIG_MAX_VERTEX_ATOMIC_COUNTER_BUFFERS;
+      return glxx_get_uint_1;
+   case GL_MAX_TESS_CONTROL_ATOMIC_COUNTERS:
+   case GL_MAX_TESS_EVALUATION_ATOMIC_COUNTERS:
+   case GL_MAX_GEOMETRY_ATOMIC_COUNTERS:
+      uints[0] = GLXX_CONFIG_MAX_VERTEX_ATOMIC_COUNTERS;
+      return glxx_get_uint_1;
+   case GL_MAX_TESS_CONTROL_IMAGE_UNIFORMS:
+   case GL_MAX_TESS_EVALUATION_IMAGE_UNIFORMS:
+   case GL_MAX_GEOMETRY_IMAGE_UNIFORMS:
+      uints[0] = GLXX_CONFIG_MAX_VERTEX_IMAGE_UNIFORMS;
+      return glxx_get_uint_1;
+   case GL_MAX_TESS_CONTROL_SHADER_STORAGE_BLOCKS:
+   case GL_MAX_TESS_EVALUATION_SHADER_STORAGE_BLOCKS:
+   case GL_MAX_GEOMETRY_SHADER_STORAGE_BLOCKS:
+      uints[0] = GLXX_CONFIG_MAX_VERTEX_STORAGE_BLOCKS;
+      return glxx_get_uint_1;
+   case GL_PRIMITIVE_RESTART_FOR_PATCHES_SUPPORTED:
+      booleans[0] = false;
+      return glxx_get_bool_1;
+
+   case GL_MAX_GEOMETRY_INPUT_COMPONENTS:
+      uints[0] = GLXX_CONFIG_MAX_GEOMETRY_INPUT_COMPONENTS;
+      return glxx_get_uint_1;
+   case GL_MAX_GEOMETRY_OUTPUT_COMPONENTS:
+      uints[0] = GLXX_CONFIG_MAX_GEOMETRY_OUTPUT_COMPONENTS;
+      return glxx_get_uint_1;
+   case GL_MAX_GEOMETRY_OUTPUT_VERTICES:
+      uints[0] = GLXX_CONFIG_MAX_GEOMETRY_OUTPUT_VERTICES;
+      return glxx_get_uint_1;
+   case GL_MAX_GEOMETRY_TOTAL_OUTPUT_COMPONENTS:
+      uints[0] = GLXX_CONFIG_MAX_GEOMETRY_TOTAL_OUTPUT_COMPONENTS;
+      return glxx_get_uint_1;
+   case GL_MAX_GEOMETRY_SHADER_INVOCATIONS:
+      uints[0] = V3D_MAX_GEOMETRY_INVOCATIONS;
+      return glxx_get_uint_1;
+
+#endif
+
+#if V3D_VER_AT_LEAST(3,3,0,0)
    case GL_PROVOKING_VERTEX_BRCM:
       uints[0] = state->provoking_vtx;
       return glxx_get_uint_1;
 #endif
-#if GL_BRCM_texture_1D
    case GL_TEXTURE_BINDING_1D_BRCM:
       uints[0] = glxx_server_get_active_texture(state, GL_TEXTURE_1D_BRCM)->name;
       return glxx_get_uint_1;
    case GL_TEXTURE_BINDING_1D_ARRAY_BRCM:
       uints[0] = glxx_server_get_active_texture(state, GL_TEXTURE_1D_ARRAY_BRCM)->name;
       return glxx_get_uint_1;
+
+#if KHRN_GLES32_DRIVER
+   case GL_MULTISAMPLE_LINE_WIDTH_RANGE:
+      floats[0] = GLXX_CONFIG_MIN_MULTISAMPLE_LINE_WIDTH;
+      floats[1] = GLXX_CONFIG_MAX_MULTISAMPLE_LINE_WIDTH;
+      return glxx_get_float_0 + 2;
+   case GL_MULTISAMPLE_LINE_WIDTH_GRANULARITY:
+      floats[0] = GLXX_CONFIG_MULTISAMPLE_LINE_WIDTH_GRANULARITY;
+      return glxx_get_float_1;
 #endif
 
    default:
-      return glxx_get_invalid_0;
+      return glxx_get_invalid_enum_0;
    }
 }
 
 static glxx_get_type_count glxx_get_params_and_type(
-   GLXX_SERVER_STATE_T* state,
+   const GLXX_SERVER_STATE_T* state,
    GLenum pname,
    GLboolean* booleans,
    GLint* ints,
@@ -1191,7 +1308,7 @@ static glxx_get_type_count glxx_get_params_and_type(
    GLint64* int64s)
 {
    glxx_get_type_count ret = glxx_get_params_and_type_common(state, pname, booleans, ints, uints, floats);
-   if (ret != glxx_get_invalid_0)
+   if (ret != glxx_get_invalid_enum_0)
       return ret;
 
    if (IS_GL_11(state))
@@ -1200,276 +1317,275 @@ static glxx_get_type_count glxx_get_params_and_type(
       return glxx_get_params_and_type_gl3x(state, pname, booleans, ints, uints, floats, int64s);
 }
 
-bool glxx_get_boolean(GLXX_SERVER_STATE_T* state, GLenum pname, GLboolean* params)
-{
-   static_assrt(sizeof(GLint) == sizeof(GLuint));
-   union
-   {
-      GLint64 int64s[MAX_GET_ITEM_COUNT];
-      GLint ints[MAX_GET_ITEM_COUNT];
-      GLfloat floats[MAX_GET_ITEM_COUNT];
-   } u;
+/* Can use glxx_get_union.ints & glxx_get_union.uints interchangeably, and cast
+ * betweeen (GLint *) and (GLuint *) */
+static_assrt(sizeof(GLint) == sizeof(GLuint));
 
-   glxx_get_type_count type_count = glxx_get_params_and_type(state, pname, params, u.ints, (GLuint*)u.ints, u.floats, u.int64s);
-   glxx_get_type type = type_count >> glxx_get_type_shift;
+typedef union
+{
+   GLboolean bools[MAX_GET_ITEM_COUNT];
+   GLint ints[MAX_GET_ITEM_COUNT];
+   GLuint uints[MAX_GET_ITEM_COUNT];
+   GLint64 int64s[MAX_GET_ITEM_COUNT];
+   GLfloat floats[MAX_GET_ITEM_COUNT];
+} glxx_get_union;
+
+static GLenum glxx_get_union_to_bools(GLboolean *bools, glxx_get_type_count type_count, const glxx_get_union *u)
+{
    unsigned count = type_count & gfx_mask(glxx_get_type_shift);
    assert(count <= MAX_GET_ITEM_COUNT);
 
-   switch (type)
+   switch (type_count >> glxx_get_type_shift)
    {
-   case glxx_get_invalid_type:
-      return false;
+   case glxx_get_invalid_enum_type:
+      return GL_INVALID_ENUM;
+   case glxx_get_invalid_index_type:
+      return GL_INVALID_VALUE;
    case glxx_get_bool_type:
-      break;
+      /* Assume wrote directly to bools */
+      return GL_NO_ERROR;
    case glxx_get_int_type:
    case glxx_get_uint_type:
       for (unsigned i = 0; i != count; ++i)
-         params[i] = u.ints[i] != 0;
-      break;
+         bools[i] = u->ints[i] != 0;
+      return GL_NO_ERROR;
    case glxx_get_int64_type:
       for (unsigned i = 0; i != count; ++i)
-         params[i] = u.int64s[i] != 0;
-      break;
+         bools[i] = u->int64s[i] != 0;
+      return GL_NO_ERROR;
    case glxx_get_norm_float_type:
    case glxx_get_float_type:
       for (unsigned i = 0; i != count; ++i)
-         params[i] = u.floats[i] != 0.0f;
-      break;
+         bools[i] = u->floats[i] != 0.0f;
+      return GL_NO_ERROR;
    default:
       unreachable();
+      return GL_NO_ERROR;
    }
-   return true;
 }
 
-bool glxx_get_fixed(GLXX_SERVER_STATE_T* state, GLenum pname, GLfixed* params)
+static GLenum glxx_get_union_to_fixeds(GLfixed *fixeds, glxx_get_type_count type_count, const glxx_get_union *u)
 {
-   static_assrt(sizeof(GLint) == sizeof(GLuint));
-   union
-   {
-      GLboolean bools[MAX_GET_ITEM_COUNT];
-      GLint ints[MAX_GET_ITEM_COUNT];
-      GLuint uints[MAX_GET_ITEM_COUNT];
-      GLint64 int64s[MAX_GET_ITEM_COUNT];
-      GLfloat floats[MAX_GET_ITEM_COUNT];
-   } u;
-
-   glxx_get_type_count type_count = glxx_get_params_and_type(state, pname, u.bools, u.ints, u.uints, u.floats, u.int64s);
-   glxx_get_type type = type_count >> glxx_get_type_shift;
    unsigned count = type_count & gfx_mask(glxx_get_type_shift);
    assert(count <= MAX_GET_ITEM_COUNT);
 
    // todo, could probably be smarter about these conversions now.
-   switch (type)
+   switch (type_count >> glxx_get_type_shift)
    {
-   case glxx_get_invalid_type:
-      return false;
+   case glxx_get_invalid_enum_type:
+      return GL_INVALID_ENUM;
+   case glxx_get_invalid_index_type:
+      return GL_INVALID_VALUE;
    case glxx_get_bool_type:
       for (unsigned i = 0; i != count; ++i)
-         params[i] = u.bools[i] ? float_to_fixed(1.0f) : 0;
-      break;
+         fixeds[i] = u->bools[i] ? float_to_fixed(1.0f) : 0;
+      return GL_NO_ERROR;
    case glxx_get_int_type:
       for (unsigned i = 0; i != count; ++i)
-         params[i] = float_to_fixed((GLfloat)u.ints[i]);
-      break;
+         fixeds[i] = float_to_fixed((GLfloat)u->ints[i]);
+      return GL_NO_ERROR;
    case glxx_get_uint_type:
       for (unsigned i = 0; i != count; ++i)
-         params[i] = float_to_fixed((GLfloat)u.uints[i]);
-      break;
+         fixeds[i] = float_to_fixed((GLfloat)u->uints[i]);
+      return GL_NO_ERROR;
    case glxx_get_int64_type:
       for (unsigned i = 0; i != count; ++i)
-         params[i] = float_to_fixed((GLfloat)u.int64s[i]);
-      break;
+         fixeds[i] = float_to_fixed((GLfloat)u->int64s[i]);
+      return GL_NO_ERROR;
    case glxx_get_norm_float_type:
    case glxx_get_float_type:
       for (unsigned i = 0; i != count; ++i)
-         params[i] = float_to_fixed(u.floats[i]);
-      break;
+         fixeds[i] = float_to_fixed(u->floats[i]);
+      return GL_NO_ERROR;
    default:
       unreachable();
+      return GL_NO_ERROR;
    }
-   return true;
 }
 
-static bool glxx_get_float(GLXX_SERVER_STATE_T* state, GLenum pname, GLfloat* params)
+static GLenum glxx_get_union_to_floats(GLfloat *floats, glxx_get_type_count type_count, const glxx_get_union *u)
 {
-   static_assrt(sizeof(GLint) == sizeof(GLuint));
-   union
-   {
-      GLboolean bools[MAX_GET_ITEM_COUNT];
-      GLint ints[MAX_GET_ITEM_COUNT];
-      GLuint uints[MAX_GET_ITEM_COUNT];
-      GLint64 int64s[MAX_GET_ITEM_COUNT];
-   } u;
-
-   glxx_get_type_count type_count = glxx_get_params_and_type(state, pname, u.bools, u.ints, u.uints, params, u.int64s);
-   glxx_get_type type = type_count >> glxx_get_type_shift;
    unsigned count = type_count & gfx_mask(glxx_get_type_shift);
    assert(count <= MAX_GET_ITEM_COUNT);
 
-   switch (type)
+   switch (type_count >> glxx_get_type_shift)
    {
-   case glxx_get_invalid_type:
-      return false;
+   case glxx_get_invalid_enum_type:
+      return GL_INVALID_ENUM;
+   case glxx_get_invalid_index_type:
+      return GL_INVALID_VALUE;
    case glxx_get_bool_type:
       for (unsigned i = 0; i != count; ++i)
-         params[i] = u.bools[i] ? 1.0f : 0.0f;
-      break;
+         floats[i] = u->bools[i] ? 1.0f : 0.0f;
+      return GL_NO_ERROR;
    case glxx_get_int_type:
       for (unsigned i = 0; i != count; ++i)
-         params[i] = (GLfloat)u.ints[i];
-      break;
+         floats[i] = (GLfloat)u->ints[i];
+      return GL_NO_ERROR;
    case glxx_get_uint_type:
       for (unsigned i = 0; i != count; ++i)
-         params[i] = (GLfloat)u.uints[i];
-      break;
+         floats[i] = (GLfloat)u->uints[i];
+      return GL_NO_ERROR;
    case glxx_get_int64_type:
       for (unsigned i = 0; i != count; ++i)
-         params[i] = (GLfloat)u.int64s[i];
-      break;
+         floats[i] = (GLfloat)u->int64s[i];
+      return GL_NO_ERROR;
    case glxx_get_norm_float_type:
    case glxx_get_float_type:
-      break;
+      /* Assume wrote directly to floats */
+      return GL_NO_ERROR;
    default:
       unreachable();
+      return GL_NO_ERROR;
    }
-   return true;
 }
 
-static bool glxx_get_int(GLXX_SERVER_STATE_T* state, GLenum pname, GLint* params)
+static GLenum glxx_get_union_to_ints(GLint *ints, glxx_get_type_count type_count, const glxx_get_union *u)
 {
-   static_assrt(sizeof(GLint) == sizeof(GLuint));
-   union
-   {
-      GLboolean bools[MAX_GET_ITEM_COUNT];
-      GLint64 int64s[MAX_GET_ITEM_COUNT];
-      GLfloat floats[MAX_GET_ITEM_COUNT];
-   } u;
-
-   glxx_get_type_count type_count = glxx_get_params_and_type(state, pname, u.bools, params, (GLuint*)params, u.floats, u.int64s);
-   glxx_get_type type = type_count >> glxx_get_type_shift;
    unsigned count = type_count & gfx_mask(glxx_get_type_shift);
    assert(count <= MAX_GET_ITEM_COUNT);
 
-   switch (type)
+   switch (type_count >> glxx_get_type_shift)
    {
-   case glxx_get_invalid_type:
-      return false;
+   case glxx_get_invalid_enum_type:
+      return GL_INVALID_ENUM;
+   case glxx_get_invalid_index_type:
+      return GL_INVALID_VALUE;
    case glxx_get_bool_type:
       for (unsigned i = 0; i != count; ++i)
-         params[i] = (GLint)u.bools[i];
-      break;
+         ints[i] = (GLint)u->bools[i];
+      return GL_NO_ERROR;
    case glxx_get_int_type:
+      /* Assume wrote directly to ints */
+      return GL_NO_ERROR;
    case glxx_get_uint_type:
-      break;
+      for (unsigned i = 0; i != count; ++i)
+         ints[i] = gfx_uclamp(u->uints[i], 0u, (unsigned)INT_MAX);
+      return GL_NO_ERROR;
    case glxx_get_int64_type:
       for (unsigned i = 0; i != count; ++i)
-         params[i] = (GLint)u.int64s[i];
-      break;
+         ints[i] = (GLint)u->int64s[i];
+      return GL_NO_ERROR;
    case glxx_get_norm_float_type:
       for (unsigned i = 0; i != count; ++i)
-         params[i] = norm_float_to_int(u.floats[i]);
-      break;
+         ints[i] = norm_float_to_int(u->floats[i]);
+      return GL_NO_ERROR;
    case glxx_get_float_type:
       for (unsigned i = 0; i != count; ++i)
-         params[i] = float_to_int(u.floats[i]);
-      break;
+         ints[i] = gfx_float_to_int32(u->floats[i]);
+      return GL_NO_ERROR;
    default:
       unreachable();
+      return GL_NO_ERROR;
    }
-   return true;
 }
 
-static bool glxx_get_int64(GLXX_SERVER_STATE_T* state, GLenum pname, GLint64* params)
+static GLenum glxx_get_union_to_int64s(GLint64 *int64s, glxx_get_type_count type_count, const glxx_get_union *u)
 {
-   static_assrt(sizeof(GLint) == sizeof(GLuint));
-   union
-   {
-      GLboolean bools[MAX_GET_ITEM_COUNT];
-      GLint ints[MAX_GET_ITEM_COUNT];
-      GLuint uints[MAX_GET_ITEM_COUNT];
-      GLfloat floats[MAX_GET_ITEM_COUNT];
-   } u;
-
-   glxx_get_type_count type_count = glxx_get_params_and_type(state, pname, u.bools, u.ints, u.uints, u.floats, params);
-   glxx_get_type type = type_count >> glxx_get_type_shift;
    unsigned count = type_count & gfx_mask(glxx_get_type_shift);
    assert(count <= MAX_GET_ITEM_COUNT);
 
-   switch (type)
+   switch (type_count >> glxx_get_type_shift)
    {
-   case glxx_get_invalid_type:
-      return false;
+   case glxx_get_invalid_enum_type:
+      return GL_INVALID_ENUM;
+   case glxx_get_invalid_index_type:
+      return GL_INVALID_VALUE;
    case glxx_get_bool_type:
       for (unsigned i = 0; i != count; ++i)
-         params[i] = (GLint64)u.bools[i];
-      break;
+         int64s[i] = (GLint64)u->bools[i];
+      return GL_NO_ERROR;
    case glxx_get_int_type:
       for (unsigned i = 0; i != count; ++i)
-         params[i] = (GLint64)u.ints[i];
-      break;
+         int64s[i] = (GLint64)u->ints[i];
+      return GL_NO_ERROR;
    case glxx_get_uint_type:
       for (unsigned i = 0; i != count; ++i)
-         params[i] = (GLint64)u.uints[i];
-      break;
+         int64s[i] = (GLint64)u->uints[i];
+      return GL_NO_ERROR;
    case glxx_get_int64_type:
-      break;
+      /* Assume wrote directly to int64s */
+      return GL_NO_ERROR;
    case glxx_get_norm_float_type:
       for (unsigned i = 0; i != count; ++i)
-         params[i] = (GLint64)norm_float_to_int(u.floats[i]);  // todo, 64-bit handling?
-      break;
+         int64s[i] = (GLint64)norm_float_to_int(u->floats[i]); // todo, 64-bit handling?
+      return GL_NO_ERROR;
    case glxx_get_float_type:
       for (unsigned i = 0; i != count; ++i)
-         params[i] = (GLint64)float_to_int(u.floats[i]); // todo, 64-bit handling?
-      break;
+         int64s[i] = gfx_float_to_int64(u->floats[i]);
+      return GL_NO_ERROR;
    default:
       unreachable();
+      return GL_NO_ERROR;
    }
-   return true;
+}
+
+GLenum glxx_get_booleans(const GLXX_SERVER_STATE_T* state, GLenum pname, GLboolean* params)
+{
+   glxx_get_union u;
+   glxx_get_type_count type_count = glxx_get_params_and_type(state, pname, params, u.ints, u.uints, u.floats, u.int64s);
+   return glxx_get_union_to_bools(params, type_count, &u);
+}
+
+GLenum glxx_get_fixeds(const GLXX_SERVER_STATE_T* state, GLenum pname, GLfixed* params)
+{
+   glxx_get_union u;
+   glxx_get_type_count type_count = glxx_get_params_and_type(state, pname, u.bools, u.ints, u.uints, u.floats, u.int64s);
+   return glxx_get_union_to_fixeds(params, type_count, &u);
 }
 
 GL_API void GL_APIENTRY glGetBooleanv(GLenum pname, GLboolean *params)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE_UNCHANGED();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state_unchanged(OPENGL_ES_ANY);
    if (!state) return;
 
-   if (!glxx_get_boolean(state, pname, params))
-      glxx_server_state_set_error(state, GL_INVALID_ENUM);
+   GLenum error = glxx_get_booleans(state, pname, params);
+   if (error != GL_NO_ERROR)
+      glxx_server_state_set_error(state, error);
 
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_API void GL_APIENTRY glGetFloatv(GLenum pname, GLfloat *params)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE_UNCHANGED();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state_unchanged(OPENGL_ES_ANY);
    if (!state) return;
 
-   if (!glxx_get_float(state, pname, params))
-      glxx_server_state_set_error(state, GL_INVALID_ENUM);
+   glxx_get_union u;
+   glxx_get_type_count type_count = glxx_get_params_and_type(state, pname, u.bools, u.ints, u.uints, params, u.int64s);
+   GLenum error = glxx_get_union_to_floats(params, type_count, &u);
+   if (error != GL_NO_ERROR)
+      glxx_server_state_set_error(state, error);
 
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
-
 
 GL_API void GL_APIENTRY glGetIntegerv(GLenum pname, GLint *params)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE_UNCHANGED();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state_unchanged(OPENGL_ES_ANY);
    if (!state) return;
 
-   if (!glxx_get_int(state, pname, params))
-      glxx_server_state_set_error(state, GL_INVALID_ENUM);
+   glxx_get_union u;
+   glxx_get_type_count type_count = glxx_get_params_and_type(state, pname, u.bools, params, u.uints, u.floats, u.int64s);
+   GLenum error = glxx_get_union_to_ints(params, type_count, &u);
+   if (error != GL_NO_ERROR)
+      glxx_server_state_set_error(state, error);
 
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_API void GL_APIENTRY glGetInteger64v(GLenum pname, GLint64* params)
 {
-   GLXX_SERVER_STATE_T *state = GL30_LOCK_SERVER_STATE_UNCHANGED();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state_unchanged(OPENGL_ES_3X);
    if (!state) return;
 
-   if (!glxx_get_int64(state, pname, params))
-      glxx_server_state_set_error(state, GL_INVALID_ENUM);
+   glxx_get_union u;
+   glxx_get_type_count type_count = glxx_get_params_and_type(state, pname, u.bools, u.ints, u.uints, u.floats, params);
+   GLenum error = glxx_get_union_to_int64s(params, type_count, &u);
+   if (error != GL_NO_ERROR)
+      glxx_server_state_set_error(state, error);
 
-   GL30_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 bool glxx_is_int_sampler_texparam(GLXX_SERVER_STATE_T *state, GLenum pname)
@@ -1486,11 +1602,12 @@ bool glxx_is_int_sampler_texparam(GLXX_SERVER_STATE_T *state, GLenum pname)
       case GL_TEXTURE_WRAP_R:
       case GL_TEXTURE_COMPARE_MODE:
       case GL_TEXTURE_COMPARE_FUNC:
+      case GL_TEXTURE_BORDER_COLOR:
          return !IS_GL_11(state);
 
-#if GL_BRCM_texture_unnormalised_coords
+#if V3D_VER_AT_LEAST(3,3,0,0)
       case GL_TEXTURE_UNNORMALISED_COORDS_BRCM:
-         return !IS_GL_11(state) && (khrn_get_v3d_version() >= V3D_MAKE_VER(3,3,0,0));
+         return !IS_GL_11(state);
 #endif
 
       default:
@@ -1508,23 +1625,20 @@ bool glxx_is_int_texparam(GLXX_SERVER_STATE_T *state, GLenum target, GLenum pnam
       case GL_GENERATE_MIPMAP:
          return IS_GL_11(state) && target != GL_TEXTURE_EXTERNAL_OES;
 
-#if GL_OES_EGL_image_external
       case GL_REQUIRED_TEXTURE_IMAGE_UNITS_OES:
          return true;
-#endif
       case GL_TEXTURE_SWIZZLE_R:
       case GL_TEXTURE_SWIZZLE_G:
       case GL_TEXTURE_SWIZZLE_B:
       case GL_TEXTURE_SWIZZLE_A:
       case GL_TEXTURE_BASE_LEVEL:
       case GL_TEXTURE_MAX_LEVEL:
-#if GL_BRCM_texture_mirror_swap
       case GL_TEXTURE_FLIP_X:
       case GL_TEXTURE_FLIP_Y:
       case GL_TEXTURE_SWAP_ST:
-#endif // GL_BRCM_texture_mirror_swap
       case GL_TEXTURE_IMMUTABLE_FORMAT:
       case GL_TEXTURE_IMMUTABLE_LEVELS:
+      case GL_TEXTURE_PROTECTED_EXT:
          return !IS_GL_11(state);
       case GL_DEPTH_STENCIL_TEXTURE_MODE:
       case GL_IMAGE_FORMAT_COMPATIBILITY_TYPE:
@@ -1570,14 +1684,17 @@ uint32_t glxx_get_texparameter_sampler_internal(GLXX_SERVER_STATE_T *state, GLXX
          params[0] = so->compare_func;
          result = 1;
          break;
-#if GL_BRCM_texture_unnormalised_coords
       case GL_TEXTURE_UNNORMALISED_COORDS_BRCM:
          params[0] = so->unnormalised_coords ? GL_TRUE : GL_FALSE;
          result = 1;
          break;
-#endif
+      case GL_TEXTURE_BORDER_COLOR:
+         for (uint32_t i = 0; i < 4; i++)
+            params[i] = so->border_color[i];
+         result = 4;
+         break;
       default:
-         UNREACHABLE();
+         unreachable();
    }
    return result;
 }
@@ -1600,21 +1717,18 @@ uint32_t glxx_get_texparameter_internal(GLXX_SERVER_STATE_T *state, GLenum targe
       case GL_TEXTURE_WRAP_R:
       case GL_TEXTURE_COMPARE_MODE:
       case GL_TEXTURE_COMPARE_FUNC:
-#if GL_BRCM_texture_unnormalised_coords
+      case GL_TEXTURE_BORDER_COLOR:
       case GL_TEXTURE_UNNORMALISED_COORDS_BRCM:
-#endif
          result = glxx_get_texparameter_sampler_internal(state, &texture->sampler, pname, params);
          break;
       case GL_GENERATE_MIPMAP:
          params[0] = texture->generate_mipmap;
          result = 1;
          break;
-#if GL_OES_EGL_image_external
       case GL_REQUIRED_TEXTURE_IMAGE_UNITS_OES:
          params[0] = 1;
          result = 1;
          break;
-#endif
       case GL_TEXTURE_SWIZZLE_R:
       case GL_TEXTURE_SWIZZLE_G:
       case GL_TEXTURE_SWIZZLE_B:
@@ -1627,7 +1741,7 @@ uint32_t glxx_get_texparameter_internal(GLXX_SERVER_STATE_T *state, GLenum targe
             case 4: params[0] = GL_BLUE; break;
             case 5: params[0] = GL_ALPHA; break;
             default:
-               UNREACHABLE();
+               unreachable();
          }
          result = 1;
          break;
@@ -1667,6 +1781,11 @@ uint32_t glxx_get_texparameter_internal(GLXX_SERVER_STATE_T *state, GLenum targe
          params[0] = GL_IMAGE_FORMAT_COMPATIBILITY_BY_SIZE;
          result = 1;
          break;
+      case GL_TEXTURE_PROTECTED_EXT:
+         params[0] = texture->create_secure;
+         result = 1;
+         break;
+
       default:
          glxx_server_state_set_error(state, GL_INVALID_ENUM);
          result = 0;
@@ -1748,52 +1867,69 @@ static uint32_t glxx_get_texparameterf_internal(GLXX_SERVER_STATE_T *state, GLen
 
 GL_API void GL_APIENTRY glGetTexParameterfv(GLenum target, GLenum pname, GLfloat *params)
 {
-   uint32_t count;
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE_UNCHANGED();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state_unchanged(OPENGL_ES_ANY);
    if (!state)
       return;
 
    if (glxx_is_float_texparam(pname)) {
-      count = glxx_get_texparameterf_internal(state, target, pname, params);
+      glxx_get_texparameterf_internal(state, target, pname, params);
    } else if (glxx_is_int_texparam(state, target, pname)) {
       GLint temp[4];
-      count = glxx_get_texparameter_internal(state, target, pname, temp);
-
+      uint32_t count = glxx_get_texparameter_internal(state, target, pname, temp);
       if (count) {
-         unsigned int i;
          assert(count == 1 || count == 4);
-         for (i = 0; i < count; i++)
-            params[i] = (GLfloat)temp[i];
+         for (uint32_t i = 0; i < count; i++)
+            if (pname == GL_TEXTURE_BORDER_COLOR)
+               params[i] = gfx_float_from_bits(temp[i]);
+            else
+               params[i] = (GLfloat)temp[i];
       }
    } else {
       glxx_server_state_set_error(state, GL_INVALID_ENUM);
    }
 
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 
 }
 
-GL_API void GL_APIENTRY glGetTexParameteriv(GLenum target, GLenum pname, GLint *params)
+void glxx_get_texparameter_iv_common(GLenum target, GLenum pname, GLint *params)
 {
-   uint32_t count;
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE_UNCHANGED();
-   if (!state)
-      return;
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state_unchanged(OPENGL_ES_ANY);
+   if (!state) return;
 
    if (glxx_is_float_texparam(pname)) {
-      GLfloat temp[4];
-      uint32_t i;
-      count = glxx_get_texparameterf_internal(state, target, pname, temp);
-      for (i = 0; i < count; i++)
-         params[i] = float_to_int(temp[i]);
+      GLfloat temp;
+      uint32_t count = glxx_get_texparameterf_internal(state, target, pname, &temp);
+      if (count)
+      {
+         assert(count == 1);
+         params[0] = gfx_float_to_int32(temp);
+      }
    } else if (glxx_is_int_texparam(state, target, pname)) {
-      count = glxx_get_texparameter_internal(state, target, pname, params);
+      glxx_get_texparameter_internal(state, target, pname, params);
    } else {
       glxx_server_state_set_error(state, GL_INVALID_ENUM);
    }
 
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
+
+GL_API void GL_APIENTRY glGetTexParameteriv(GLenum target, GLenum pname, GLint *params)
+{
+   glxx_get_texparameter_iv_common(target, pname, params);
+}
+
+#if KHRN_GLES32_DRIVER
+GL_APICALL void GL_APIENTRY glGetTexParameterIiv(GLenum target, GLenum pname, GLint *params)
+{
+   glxx_get_texparameter_iv_common(target, pname, params);
+}
+
+GL_APICALL void GL_APIENTRY glGetTexParameterIuiv(GLenum target, GLenum pname, GLuint *params)
+{
+   glxx_get_texparameter_iv_common(target, pname, (GLint *) params);
+}
+#endif
 
 static int get_integer_vertex_attrib_internal(GLXX_SERVER_STATE_T *state,
                                               GLint index, GLenum pname)
@@ -1812,7 +1948,7 @@ static int get_integer_vertex_attrib_internal(GLXX_SERVER_STATE_T *state,
    case GL_VERTEX_ATTRIB_ARRAY_STRIDE:
       return attr->original_stride;
    case GL_VERTEX_ATTRIB_ARRAY_TYPE:
-      return attr->type;
+      return attr->gl_type;
    case GL_VERTEX_ATTRIB_ARRAY_NORMALIZED:
       return attr->norm ? GL_TRUE : GL_FALSE;
    case GL_VERTEX_ATTRIB_ARRAY_BUFFER_BINDING:
@@ -1827,7 +1963,7 @@ static int get_integer_vertex_attrib_internal(GLXX_SERVER_STATE_T *state,
    case GL_VERTEX_ATTRIB_RELATIVE_OFFSET:
       return attr->relative_offset;
    default:
-      UNREACHABLE(); return 0;
+      unreachable(); return 0;
    }
 }
 
@@ -1852,7 +1988,7 @@ static bool is_integer_attrib_param(GLenum pname) {
 
 GL_API void GL_APIENTRY glGetVertexAttribfv(GLuint index, GLenum pname, GLfloat *params)
 {
-   GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
    if (!state) return;
 
    if (index >= GLXX_CONFIG_MAX_VERTEX_ATTRIBS) {
@@ -1865,10 +2001,10 @@ GL_API void GL_APIENTRY glGetVertexAttribfv(GLuint index, GLenum pname, GLfloat 
    } else {
       switch (pname) {
          case GL_CURRENT_VERTEX_ATTRIB:
-            params[0] = state->generic_attrib[index].value[0];
-            params[1] = state->generic_attrib[index].value[1];
-            params[2] = state->generic_attrib[index].value[2];
-            params[3] = state->generic_attrib[index].value[3];
+            params[0] = state->generic_attrib[index].f[0];
+            params[1] = state->generic_attrib[index].f[1];
+            params[2] = state->generic_attrib[index].f[2];
+            params[3] = state->generic_attrib[index].f[3];
             break;
          default:
             glxx_server_state_set_error(state, GL_INVALID_ENUM);
@@ -1877,12 +2013,12 @@ GL_API void GL_APIENTRY glGetVertexAttribfv(GLuint index, GLenum pname, GLfloat 
    }
 
 end:
-   GL20_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_API void GL_APIENTRY glGetVertexAttribiv(GLuint index, GLenum pname, GLint *params)
 {
-   GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
    if (!state) return;
 
    if (index >= GLXX_CONFIG_MAX_VERTEX_ATTRIBS) {
@@ -1895,10 +2031,10 @@ GL_API void GL_APIENTRY glGetVertexAttribiv(GLuint index, GLenum pname, GLint *p
    } else {
       switch(pname) {
          case GL_CURRENT_VERTEX_ATTRIB:
-            params[0] = (GLint)state->generic_attrib[index].value[0];
-            params[1] = (GLint)state->generic_attrib[index].value[1];
-            params[2] = (GLint)state->generic_attrib[index].value[2];
-            params[3] = (GLint)state->generic_attrib[index].value[3];
+            params[0] = (GLint)state->generic_attrib[index].f[0];
+            params[1] = (GLint)state->generic_attrib[index].f[1];
+            params[2] = (GLint)state->generic_attrib[index].f[2];
+            params[3] = (GLint)state->generic_attrib[index].f[3];
             break;
          default:
             glxx_server_state_set_error(state, GL_INVALID_ENUM);
@@ -1907,12 +2043,12 @@ GL_API void GL_APIENTRY glGetVertexAttribiv(GLuint index, GLenum pname, GLint *p
    }
 
 end:
-   GL20_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_API void GL_APIENTRY glGetVertexAttribIiv(GLuint index, GLenum pname, GLint* params)
 {
-   GLXX_SERVER_STATE_T *state = GL30_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
    if (!state) return;
 
    if (index >= GLXX_CONFIG_MAX_VERTEX_ATTRIBS)
@@ -1927,10 +2063,10 @@ GL_API void GL_APIENTRY glGetVertexAttribIiv(GLuint index, GLenum pname, GLint* 
       switch (pname)
       {
          case GL_CURRENT_VERTEX_ATTRIB:
-            params[0] = state->generic_attrib[index].value_int[0];
-            params[1] = state->generic_attrib[index].value_int[1];
-            params[2] = state->generic_attrib[index].value_int[2];
-            params[3] = state->generic_attrib[index].value_int[3];
+            params[0] = state->generic_attrib[index].i[0];
+            params[1] = state->generic_attrib[index].i[1];
+            params[2] = state->generic_attrib[index].i[2];
+            params[3] = state->generic_attrib[index].i[3];
             break;
 
          default:
@@ -1940,12 +2076,12 @@ GL_API void GL_APIENTRY glGetVertexAttribIiv(GLuint index, GLenum pname, GLint* 
    }
 
 end:
-   GL30_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_API void GL_APIENTRY glGetVertexAttribIuiv(GLuint index, GLenum pname, GLuint* params)
 {
-   GLXX_SERVER_STATE_T *state = GL30_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
    if (!state) return;
 
    if (index >= GLXX_CONFIG_MAX_VERTEX_ATTRIBS)
@@ -1959,10 +2095,10 @@ GL_API void GL_APIENTRY glGetVertexAttribIuiv(GLuint index, GLenum pname, GLuint
    } else {
       switch (pname) {
       case GL_CURRENT_VERTEX_ATTRIB:
-         params[0] = state->generic_attrib[index].value_int[0];
-         params[1] = state->generic_attrib[index].value_int[1];
-         params[2] = state->generic_attrib[index].value_int[2];
-         params[3] = state->generic_attrib[index].value_int[3];
+         params[0] = state->generic_attrib[index].u[0];
+         params[1] = state->generic_attrib[index].u[1];
+         params[2] = state->generic_attrib[index].u[2];
+         params[3] = state->generic_attrib[index].u[3];
          break;
 
       default:
@@ -1972,7 +2108,7 @@ GL_API void GL_APIENTRY glGetVertexAttribIuiv(GLuint index, GLenum pname, GLuint
    }
 
 end:
-   GL30_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 typedef uint32_t (*comp_size_fct_t)(GFX_LFMT_T lfmt);
@@ -2020,305 +2156,320 @@ static uint32_t component_bits(GLXX_FRAMEBUFFER_T *fbo, GLenum component)
    return bits;
 }
 
-static bool is_indexed_boolean(GLenum target)
+static glxx_get_type_count glxx_get_params_and_type_gl3x_indexed(
+   const GLXX_SERVER_STATE_T *state,
+   GLenum target, GLuint index,
+   GLboolean *booleans,
+   GLint *ints,
+   GLint64 *int64s)
 {
-   switch (target)
-   {
-   case GL_IMAGE_BINDING_LAYERED:
-      return KHRN_GLES31_DRIVER ? true : false;
-   default:
-      return false;
-   }
-}
-
-static bool is_indexed_integer(GLenum target) {
-   switch (target) {
-      case GL_UNIFORM_BUFFER_BINDING:
-      case GL_TRANSFORM_FEEDBACK_BUFFER_BINDING:
-         return true;
-
-      case GL_MAX_COMPUTE_WORK_GROUP_COUNT:
-      case GL_MAX_COMPUTE_WORK_GROUP_SIZE:
-      case GL_ATOMIC_COUNTER_BUFFER_BINDING:
-      case GL_SHADER_STORAGE_BUFFER_BINDING:
-      case GL_SAMPLE_MASK_VALUE:
-      case GL_VERTEX_BINDING_DIVISOR:
-      case GL_VERTEX_BINDING_STRIDE:
-      case GL_VERTEX_BINDING_BUFFER:
-      case GL_IMAGE_BINDING_NAME:
-      case GL_IMAGE_BINDING_LEVEL:
-      case GL_IMAGE_BINDING_LAYER:
-      case GL_IMAGE_BINDING_ACCESS:
-      case GL_IMAGE_BINDING_FORMAT:
-         return KHRN_GLES31_DRIVER ? true : false;
-
-      default: return false;
-   }
-}
-
-static bool is_indexed_int64(GLenum target) {
-   switch (target) {
-   case GL_UNIFORM_BUFFER_START:
-   case GL_UNIFORM_BUFFER_SIZE:
-   case GL_TRANSFORM_FEEDBACK_BUFFER_START:
-   case GL_TRANSFORM_FEEDBACK_BUFFER_SIZE:
-      return true;
-   case GL_SHADER_STORAGE_BUFFER_START:
-   case GL_SHADER_STORAGE_BUFFER_SIZE:
-   case GL_ATOMIC_COUNTER_BUFFER_START:
-   case GL_ATOMIC_COUNTER_BUFFER_SIZE:
-   case GL_VERTEX_BINDING_OFFSET:
-      return KHRN_GLES31_DRIVER ? true : false;
-
-   default:
-      return false;
-   }
-}
-
-static unsigned indexed_get_max_index(GLenum target) {
-   switch (target) {
-      case GL_UNIFORM_BUFFER_BINDING:              return GLXX_CONFIG_MAX_UNIFORM_BUFFER_BINDINGS;
-      case GL_UNIFORM_BUFFER_START:                return GLXX_CONFIG_MAX_UNIFORM_BUFFER_BINDINGS;
-      case GL_UNIFORM_BUFFER_SIZE:                 return GLXX_CONFIG_MAX_UNIFORM_BUFFER_BINDINGS;
-      case GL_SHADER_STORAGE_BUFFER_BINDING:       return GLXX_CONFIG_MAX_SHADER_STORAGE_BUFFER_BINDINGS;
-      case GL_SHADER_STORAGE_BUFFER_START:         return GLXX_CONFIG_MAX_SHADER_STORAGE_BUFFER_BINDINGS;
-      case GL_SHADER_STORAGE_BUFFER_SIZE:          return GLXX_CONFIG_MAX_SHADER_STORAGE_BUFFER_BINDINGS;
-      case GL_ATOMIC_COUNTER_BUFFER_BINDING:       return GLXX_CONFIG_MAX_ATOMIC_COUNTER_BUFFER_BINDINGS;
-      case GL_ATOMIC_COUNTER_BUFFER_START:         return GLXX_CONFIG_MAX_ATOMIC_COUNTER_BUFFER_BINDINGS;
-      case GL_ATOMIC_COUNTER_BUFFER_SIZE:          return GLXX_CONFIG_MAX_ATOMIC_COUNTER_BUFFER_BINDINGS;
-      case GL_TRANSFORM_FEEDBACK_BUFFER_BINDING:   return GLXX_CONFIG_MAX_TF_SEPARATE_ATTRIBS;
-      case GL_TRANSFORM_FEEDBACK_BUFFER_START:     return GLXX_CONFIG_MAX_TF_SEPARATE_ATTRIBS;
-      case GL_TRANSFORM_FEEDBACK_BUFFER_SIZE:      return GLXX_CONFIG_MAX_TF_SEPARATE_ATTRIBS;
-      case GL_MAX_COMPUTE_WORK_GROUP_COUNT:        return 3;
-      case GL_MAX_COMPUTE_WORK_GROUP_SIZE:         return 3;
-      case GL_SAMPLE_MASK_VALUE:                   return GLXX_CONFIG_MAX_SAMPLE_WORDS;
-      case GL_VERTEX_BINDING_OFFSET:               return GLXX_CONFIG_MAX_VERTEX_ATTRIB_BINDINGS;
-      case GL_VERTEX_BINDING_DIVISOR:              return GLXX_CONFIG_MAX_VERTEX_ATTRIB_BINDINGS;
-      case GL_VERTEX_BINDING_STRIDE:               return GLXX_CONFIG_MAX_VERTEX_ATTRIB_BINDINGS;
-      case GL_VERTEX_BINDING_BUFFER:               return GLXX_CONFIG_MAX_VERTEX_ATTRIB_BINDINGS;
-      case GL_IMAGE_BINDING_NAME:
-      case GL_IMAGE_BINDING_LEVEL:
-      case GL_IMAGE_BINDING_LAYER:
-      case GL_IMAGE_BINDING_LAYERED:
-      case GL_IMAGE_BINDING_ACCESS:
-      case GL_IMAGE_BINDING_FORMAT:
-            return GLXX_CONFIG_MAX_IMAGE_UNITS;
-      default: unreachable();                      return 0;
-   }
-}
-
-static bool get_indexed_bool(const GLXX_SERVER_STATE_T *state, GLenum target, unsigned index) {
-   switch (target)
-   {
-   case GL_IMAGE_BINDING_LAYERED:
-      return state->image_unit[index].layered;
-   default:
-      UNREACHABLE(); return false;
-   }
-}
-
-static int get_indexed_int(const GLXX_SERVER_STATE_T *state, GLenum target, unsigned index) {
    switch (target)
    {
    case GL_UNIFORM_BUFFER_BINDING:
-      return state->uniform_block.binding_points[index].buffer.buffer;
-   case GL_SHADER_STORAGE_BUFFER_BINDING:
-      return state->ssbo.binding_points[index].buffer.buffer;
-   case GL_ATOMIC_COUNTER_BUFFER_BINDING:
-      return state->atomic_counter.binding_points[index].buffer.buffer;
-   case GL_TRANSFORM_FEEDBACK_BUFFER_BINDING:
-   {
-      int data;
-      glxx_tf_get_integeri(state, target, index, &data);
-      return data;
-   }
-   case GL_MAX_COMPUTE_WORK_GROUP_COUNT:
-      return GLXX_CONFIG_MAX_COMPUTE_GROUP_COUNT;
-   case GL_MAX_COMPUTE_WORK_GROUP_SIZE:
-   {
-      const int v[3] = { GLXX_CONFIG_MAX_COMPUTE_GROUP_SIZE_X,
-                         GLXX_CONFIG_MAX_COMPUTE_GROUP_SIZE_Y,
-                         GLXX_CONFIG_MAX_COMPUTE_GROUP_SIZE_Z };
-      return v[index];
-   }
-   case GL_SAMPLE_MASK_VALUE:
-      return state->sample_mask.mask[index];
-   case GL_VERTEX_BINDING_DIVISOR:
-      return state->vao.bound->vbos[index].divisor;
-   case GL_VERTEX_BINDING_STRIDE:
-      return state->vao.bound->vbos[index].stride;
-   case GL_VERTEX_BINDING_BUFFER:
-      return state->vao.bound->vbos[index].buffer ? state->vao.bound->vbos[index].buffer->name : 0;
-   case GL_IMAGE_BINDING_NAME:
-      return state->image_unit[index].texture ? state->image_unit[index].texture->name : 0;
-   case GL_IMAGE_BINDING_LEVEL:
-      return state->image_unit[index].level;
-   case GL_IMAGE_BINDING_LAYER:
-      return state->image_unit[index].layer;
-   case GL_IMAGE_BINDING_ACCESS:
-      return state->image_unit[index].access;
-   case GL_IMAGE_BINDING_FORMAT:
-      return state->image_unit[index].internalformat;
-   default:
-      UNREACHABLE(); return 0;
-   }
-}
-
-static int64_t get_indexed_int64(const GLXX_SERVER_STATE_T *state, GLenum target, unsigned index) {
-   switch (target)
-   {
    case GL_UNIFORM_BUFFER_START:
    case GL_UNIFORM_BUFFER_SIZE:
-      if (state->uniform_block.binding_points[index].buffer.obj != NULL)
+      if (index >= GLXX_CONFIG_MAX_UNIFORM_BUFFER_BINDINGS)
+         return glxx_get_invalid_index_0;
+      switch (target)
       {
-         if (target == GL_UNIFORM_BUFFER_START)
-            return state->uniform_block.binding_points[index].offset;
+      case GL_UNIFORM_BUFFER_BINDING:
+         ints[0] = state->uniform_block.binding_points[index].buffer.buffer;
+         return glxx_get_int_1;
+      case GL_UNIFORM_BUFFER_START:
+      case GL_UNIFORM_BUFFER_SIZE:
+         if (state->uniform_block.binding_points[index].buffer.obj != NULL)
+         {
+            if (target == GL_UNIFORM_BUFFER_START)
+               int64s[0] = state->uniform_block.binding_points[index].offset;
+            else
+               // Internally -1 means full size. In GL API 0 means full size
+               int64s[0] = (state->uniform_block.binding_points[index].size == -1)
+                  ? 0
+                  : state->uniform_block.binding_points[index].size;
+         }
          else
-            // Internally -1 means full size. In GL API 0 means full size
-            return (state->uniform_block.binding_points[index].size == -1)
-               ? 0
-               : state->uniform_block.binding_points[index].size;
+         {
+            /* If no buffer is bound the return should be 0 */
+            int64s[0] = 0;
+         }
+         return glxx_get_int64_1;
+      default:
+         unreachable();
       }
-      else
-      {
-         /* If no buffer is bound the return should be 0 */
-         return 0;
-      }
-      break;
-   case GL_SHADER_STORAGE_BUFFER_START:
-   case GL_SHADER_STORAGE_BUFFER_SIZE:
-      if (state->ssbo.binding_points[index].buffer.obj != NULL)
-      {
-         if (target == GL_SHADER_STORAGE_BUFFER_START)
-            return state->ssbo.binding_points[index].offset;
-         else
-            // Internally -1 means full size. In GL API 0 means full size
-            return (state->ssbo.binding_points[index].size == -1)
-               ? 0
-               : state->ssbo.binding_points[index].size;
-      }
-      else
-      {
-         /* If no buffer is bound the return should be 0 */
-         return 0;
-      }
-      break;
-   case GL_ATOMIC_COUNTER_BUFFER_START:
-   case GL_ATOMIC_COUNTER_BUFFER_SIZE:
-      if (state->atomic_counter.binding_points[index].buffer.obj != NULL)
-      {
-         if (target == GL_ATOMIC_COUNTER_BUFFER_START)
-            return state->atomic_counter.binding_points[index].offset;
-         else
-            // Internally -1 means full size. In GL API 0 means full size
-            return (state->atomic_counter.binding_points[index].size == -1)
-               ? 0
-               : state->atomic_counter.binding_points[index].size;
-      }
-      else
-      {
-         /* If no buffer is bound the return should be 0 */
-         return 0;
-      }
-      break;
+
+   case GL_TRANSFORM_FEEDBACK_BUFFER_BINDING:
    case GL_TRANSFORM_FEEDBACK_BUFFER_START:
    case GL_TRANSFORM_FEEDBACK_BUFFER_SIZE:
    {
-      int64_t data;
-      glxx_tf_get_integer64i(state, target, index, &data);
-      return data;
+      if (index >= GLXX_CONFIG_MAX_TF_SEPARATE_ATTRIBS)
+         return glxx_get_invalid_index_0;
+      const GLXX_TRANSFORM_FEEDBACK_T *tf = state->transform_feedback.binding;
+      switch (target)
+      {
+      case GL_TRANSFORM_FEEDBACK_BUFFER_BINDING:
+         ints[0] = tf->binding_points[index].buffer.buffer;
+         return glxx_get_int_1;
+      case GL_TRANSFORM_FEEDBACK_BUFFER_START:
+         int64s[0] = tf->binding_points[index].offset;
+         return glxx_get_int64_1;
+      case GL_TRANSFORM_FEEDBACK_BUFFER_SIZE:
+         // Internally -1 means full size. In GL API 0 means full size
+         int64s[0] = (tf->binding_points[index].size == -1) ? 0 : tf->binding_points[index].size;
+         return glxx_get_int64_1;
+      default:
+         unreachable();
+      }
    }
+
+#if KHRN_GLES31_DRIVER
+   case GL_SHADER_STORAGE_BUFFER_BINDING:
+   case GL_SHADER_STORAGE_BUFFER_START:
+   case GL_SHADER_STORAGE_BUFFER_SIZE:
+      if (index >= GLXX_CONFIG_MAX_SHADER_STORAGE_BUFFER_BINDINGS)
+         return glxx_get_invalid_index_0;
+      switch (target)
+      {
+      case GL_SHADER_STORAGE_BUFFER_BINDING:
+         ints[0] = state->ssbo.binding_points[index].buffer.buffer;
+         return glxx_get_int_1;
+      case GL_SHADER_STORAGE_BUFFER_START:
+      case GL_SHADER_STORAGE_BUFFER_SIZE:
+         if (state->ssbo.binding_points[index].buffer.obj != NULL)
+         {
+            if (target == GL_SHADER_STORAGE_BUFFER_START)
+               int64s[0] = state->ssbo.binding_points[index].offset;
+            else
+               // Internally -1 means full size. In GL API 0 means full size
+               int64s[0] = (state->ssbo.binding_points[index].size == -1)
+                  ? 0
+                  : state->ssbo.binding_points[index].size;
+         }
+         else
+         {
+            /* If no buffer is bound the return should be 0 */
+            int64s[0] = 0;
+         }
+         return glxx_get_int64_1;
+      default:
+         unreachable();
+      }
+
+   case GL_ATOMIC_COUNTER_BUFFER_BINDING:
+   case GL_ATOMIC_COUNTER_BUFFER_START:
+   case GL_ATOMIC_COUNTER_BUFFER_SIZE:
+      if (index >= GLXX_CONFIG_MAX_ATOMIC_COUNTER_BUFFER_BINDINGS)
+         return glxx_get_invalid_index_0;
+      switch (target)
+      {
+      case GL_ATOMIC_COUNTER_BUFFER_BINDING:
+         ints[0] = state->atomic_counter.binding_points[index].buffer.buffer;
+         return glxx_get_int_1;
+      case GL_ATOMIC_COUNTER_BUFFER_START:
+      case GL_ATOMIC_COUNTER_BUFFER_SIZE:
+         if (state->atomic_counter.binding_points[index].buffer.obj != NULL)
+         {
+            if (target == GL_ATOMIC_COUNTER_BUFFER_START)
+               int64s[0] = state->atomic_counter.binding_points[index].offset;
+            else
+               // Internally -1 means full size. In GL API 0 means full size
+               int64s[0] = (state->atomic_counter.binding_points[index].size == -1)
+                  ? 0
+                  : state->atomic_counter.binding_points[index].size;
+         }
+         else
+         {
+            /* If no buffer is bound the return should be 0 */
+            int64s[0] = 0;
+         }
+         return glxx_get_int64_1;
+      default:
+         unreachable();
+      }
+
+   case GL_IMAGE_BINDING_NAME:
+   case GL_IMAGE_BINDING_LEVEL:
+   case GL_IMAGE_BINDING_LAYER:
+   case GL_IMAGE_BINDING_LAYERED:
+   case GL_IMAGE_BINDING_ACCESS:
+   case GL_IMAGE_BINDING_FORMAT:
+      if (index >= GLXX_CONFIG_MAX_IMAGE_UNITS)
+         return glxx_get_invalid_index_0;
+      switch (target)
+      {
+      case GL_IMAGE_BINDING_NAME:
+         ints[0] = state->image_unit[index].texture ? state->image_unit[index].texture->name : 0;
+         return glxx_get_int_1;
+      case GL_IMAGE_BINDING_LEVEL:
+         ints[0] = state->image_unit[index].level;
+         return glxx_get_int_1;
+      case GL_IMAGE_BINDING_LAYER:
+         ints[0] = state->image_unit[index].layer;
+         return glxx_get_int_1;
+      case GL_IMAGE_BINDING_LAYERED:
+         booleans[0] = state->image_unit[index].layered;
+         return glxx_get_bool_1;
+      case GL_IMAGE_BINDING_ACCESS:
+         ints[0] = state->image_unit[index].access;
+         return glxx_get_int_1;
+      case GL_IMAGE_BINDING_FORMAT:
+         ints[0] = state->image_unit[index].internalformat;
+         return glxx_get_int_1;
+      default:
+         unreachable();
+      }
+
    case GL_VERTEX_BINDING_OFFSET:
-      return state->vao.bound->vbos[index].offset;
+   case GL_VERTEX_BINDING_DIVISOR:
+   case GL_VERTEX_BINDING_STRIDE:
+   case GL_VERTEX_BINDING_BUFFER:
+      if (index >= GLXX_CONFIG_MAX_VERTEX_ATTRIB_BINDINGS)
+         return glxx_get_invalid_index_0;
+      switch (target)
+      {
+      case GL_VERTEX_BINDING_OFFSET:
+         int64s[0] = state->vao.bound->vbos[index].offset;
+         return glxx_get_int64_1;
+      case GL_VERTEX_BINDING_DIVISOR:
+         ints[0] = state->vao.bound->vbos[index].divisor;
+         return glxx_get_int_1;
+      case GL_VERTEX_BINDING_STRIDE:
+         ints[0] = state->vao.bound->vbos[index].stride;
+         return glxx_get_int_1;
+      case GL_VERTEX_BINDING_BUFFER:
+         ints[0] = state->vao.bound->vbos[index].buffer ? state->vao.bound->vbos[index].buffer->name : 0;
+         return glxx_get_int_1;
+      default:
+         unreachable();
+      }
+
+   case GL_SAMPLE_MASK_VALUE:
+      if (index >= GLXX_CONFIG_MAX_SAMPLE_WORDS)
+         return glxx_get_invalid_index_0;
+      ints[0] = state->sample_mask.mask[index];
+      return glxx_get_int_1;
+
+   case GL_MAX_COMPUTE_WORK_GROUP_COUNT:
+   case GL_MAX_COMPUTE_WORK_GROUP_SIZE:
+      if (index >= 3)
+         return glxx_get_invalid_index_0;
+      switch (target)
+      {
+      case GL_MAX_COMPUTE_WORK_GROUP_COUNT:
+         ints[0] = GLXX_CONFIG_MAX_COMPUTE_GROUP_COUNT;
+         return glxx_get_int_1;
+      case GL_MAX_COMPUTE_WORK_GROUP_SIZE:
+      {
+         static const int v[3] = { GLXX_CONFIG_MAX_COMPUTE_GROUP_SIZE_X,
+                                   GLXX_CONFIG_MAX_COMPUTE_GROUP_SIZE_Y,
+                                   GLXX_CONFIG_MAX_COMPUTE_GROUP_SIZE_Z };
+         ints[0] = v[index];
+         return glxx_get_int_1;
+      }
+      default:
+         unreachable();
+      }
+#endif
+
+#if V3D_HAS_PER_RT_BLEND
+   case GL_BLEND:
+   case GL_BLEND_EQUATION_RGB:
+   case GL_BLEND_EQUATION_ALPHA:
+   case GL_BLEND_SRC_RGB:
+   case GL_BLEND_SRC_ALPHA:
+   case GL_BLEND_DST_RGB:
+   case GL_BLEND_DST_ALPHA:
+   case GL_COLOR_WRITEMASK:
+      if (index >= GLXX_MAX_RENDER_TARGETS)
+         return glxx_get_invalid_index_0;
+      switch (target)
+      {
+      case GL_BLEND:
+         booleans[0] = (state->blend.rt_enables >> index) & 1;
+         return glxx_get_bool_1;
+      case GL_BLEND_EQUATION_RGB:
+         ints[0] = untranslate_blend_equation(state->blend.rt_cfgs[index].color_eqn);
+         return glxx_get_int_1;
+      case GL_BLEND_EQUATION_ALPHA:
+         ints[0] = untranslate_blend_equation(state->blend.rt_cfgs[index].alpha_eqn);
+         return glxx_get_int_1;
+      case GL_BLEND_SRC_RGB:
+         ints[0] = untranslate_blend_func(state->blend.rt_cfgs[index].src_rgb);
+         return glxx_get_int_1;
+      case GL_BLEND_SRC_ALPHA:
+         ints[0] = untranslate_blend_func(state->blend.rt_cfgs[index].src_alpha);
+         return glxx_get_int_1;
+      case GL_BLEND_DST_RGB:
+         ints[0] = untranslate_blend_func(state->blend.rt_cfgs[index].dst_rgb);
+         return glxx_get_int_1;
+      case GL_BLEND_DST_ALPHA:
+         ints[0] = untranslate_blend_func(state->blend.rt_cfgs[index].dst_alpha);
+         return glxx_get_int_1;
+      case GL_COLOR_WRITEMASK:
+      {
+         uint32_t mask = state->color_write >> (index * 4);
+         for (unsigned i = 0; i != 4; ++i)
+            booleans[i] = (mask >> i) & 1;
+         return glxx_get_bool_0 + 4;
+      }
+      default:
+         unreachable();
+      }
+#endif
+
    default:
-      UNREACHABLE();
+      return glxx_get_invalid_enum_0;
    }
 }
 
-GL_API void GL_APIENTRY glGetBooleani_v (GLenum target, GLuint index, GLboolean *data) {
-   GLXX_SERVER_STATE_T *state = GL31_LOCK_SERVER_STATE();
+#if KHRN_GLES31_DRIVER
+
+GLenum glxx_get_booleans_i(const GLXX_SERVER_STATE_T *state, GLenum pname, GLuint index, GLboolean *params)
+{
+   glxx_get_union u;
+   glxx_get_type_count type_count = glxx_get_params_and_type_gl3x_indexed(state, pname, index, params, u.ints, u.int64s);
+   return glxx_get_union_to_bools(params, type_count, &u);
+}
+
+GL_API void GL_APIENTRY glGetBooleani_v(GLenum target, GLuint index, GLboolean *data)
+{
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
    if (!state) return;
 
-   if (!is_indexed_boolean(target) && !is_indexed_integer(target) && !is_indexed_int64(target)) {
-      glxx_server_state_set_error(state, GL_INVALID_ENUM);
-      goto end;
-   }
+   GLenum error = glxx_get_booleans_i(state, target, index, data);
+   if (error != GL_NO_ERROR)
+      glxx_server_state_set_error(state, error);
 
-   if (index >= indexed_get_max_index(target)) {
-      glxx_server_state_set_error(state, GL_INVALID_VALUE);
-      goto end;
-   }
-
-   if (is_indexed_boolean(target)) {
-      data[0] = get_indexed_bool(state, target, index);
-   } else if (is_indexed_integer(target)) {
-      int temp = get_indexed_int(state, target, index);
-      data[0] = temp ? GL_TRUE : GL_FALSE;
-   } else {
-      int64_t temp = get_indexed_int64(state, target, index);
-      data[0] = temp ? GL_TRUE : GL_FALSE;
-   }
-
-end:
-   GL31_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
+
+#endif
 
 GL_API void GL_APIENTRY glGetIntegeri_v(GLenum target, GLuint index, GLint* data)
 {
-   GLXX_SERVER_STATE_T *state = GL30_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
    if (!state) return;
 
-   if (!is_indexed_boolean(target) && !is_indexed_integer(target) && !is_indexed_int64(target)) {
-      glxx_server_state_set_error(state, GL_INVALID_ENUM);
-      goto end;
-   }
+   glxx_get_union u;
+   glxx_get_type_count type_count = glxx_get_params_and_type_gl3x_indexed(state, target, index, u.bools, data, u.int64s);
+   GLenum error = glxx_get_union_to_ints(data, type_count, &u);
+   if (error != GL_NO_ERROR)
+      glxx_server_state_set_error(state, error);
 
-   if (index >= indexed_get_max_index(target)) {
-      glxx_server_state_set_error(state, GL_INVALID_VALUE);
-      goto end;
-   }
-
-   if (is_indexed_boolean(target)) {
-      bool temp = get_indexed_bool(state, target, index);
-      data[0] = temp ? 1 : 0;
-   } else if (is_indexed_integer(target)) {
-      data[0] = get_indexed_int(state, target, index);
-   } else {
-      int64_t temp = get_indexed_int64(state, target, index);
-      data[0] = (int)temp;
-   }
-
-end:
-   GL30_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_API void GL_APIENTRY glGetInteger64i_v(GLenum target, GLuint index, GLint64* data)
 {
-   GLXX_SERVER_STATE_T *state = GL30_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
    if (!state) return;
 
-   if (!is_indexed_boolean(target) && !is_indexed_integer(target) && !is_indexed_int64(target)) {
-      glxx_server_state_set_error(state, GL_INVALID_ENUM);
-      goto end;
-   }
+   glxx_get_union u;
+   glxx_get_type_count type_count = glxx_get_params_and_type_gl3x_indexed(state, target, index, u.bools, u.ints, data);
+   GLenum error = glxx_get_union_to_int64s(data, type_count, &u);
+   if (error != GL_NO_ERROR)
+      glxx_server_state_set_error(state, error);
 
-   if (index >= indexed_get_max_index(target)) {
-      glxx_server_state_set_error(state, GL_INVALID_VALUE);
-      goto end;
-   }
-
-   if (is_indexed_boolean(target)) {
-      bool temp = get_indexed_bool(state, target, index);
-      data[0] = temp ? 1 : 0;
-   } else if (is_indexed_integer(target)) {
-      int temp = get_indexed_int(state, target, index);
-      data[0] = temp;
-   } else {
-      data[0] = get_indexed_int64(state, target, index);
-   }
-
-end:
-   GL30_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_API void GL_APIENTRY glGetInternalformativ (GLenum target,
@@ -2327,7 +2478,7 @@ GL_API void GL_APIENTRY glGetInternalformativ (GLenum target,
                                                GLsizei bufSize,
                                                GLint* params)
 {
-   GLXX_SERVER_STATE_T *state = GL30_LOCK_SERVER_STATE_UNCHANGED();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state_unchanged(OPENGL_ES_3X);
    if (!state) return;
 
    bool renderable = glxx_is_color_renderable_internalformat(internalformat) ||
@@ -2366,8 +2517,10 @@ GL_API void GL_APIENTRY glGetInternalformativ (GLenum target,
    }
 
 end:
-   GL30_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
+
+#if KHRN_GLES31_DRIVER
 
 /* the order and location of samples in TLB is (in 1/8s from bottom-left):
  *      1 2 3 4 5 6 7
@@ -2385,7 +2538,7 @@ GL_APICALL void GL_APIENTRY glGetMultisamplefv (GLenum pname, GLuint index,
       GLfloat *val)
 {
    GLenum error = GL_NO_ERROR;
-   GLXX_SERVER_STATE_T *state = GL31_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
    if (!state)
       return;
 
@@ -2426,5 +2579,7 @@ GL_APICALL void GL_APIENTRY glGetMultisamplefv (GLenum pname, GLuint index,
 end:
    if (error != GL_NO_ERROR)
       glxx_server_state_set_error(state, error);
-   GL31_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
+
+#endif

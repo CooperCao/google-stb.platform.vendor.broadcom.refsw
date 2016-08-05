@@ -103,6 +103,9 @@ NEXUS_LDFLAGS += ${NEXUS_EXTRA_LDFLAGS}
 
 ifeq ($(B_REFSW_ANDROID),y)
 include $(NEXUS_TOP)/build/os/linuxuser/os_flags_android.inc
+else
+# only use these when running cpp on the NEXUS_HEADERS generated nexus.cpp.h
+NEXUS_API_CPP_CFLAGS := -Wundef -Werror
 endif
 
 # Flag to generate dependencies

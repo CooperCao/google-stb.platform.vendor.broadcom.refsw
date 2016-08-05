@@ -33,7 +33,7 @@ static void fencesync_term(void *v, size_t size)
    free(fsync->debug_label);
    fsync->debug_label = NULL;
 
-   UNUSED(size);
+   vcos_unused(size);
    khrn_fence_refdec(fsync->fence);
 }
 

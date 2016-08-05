@@ -101,9 +101,7 @@
 #ifdef BROADCOM_PLATFORM
 
 #if defined(_WIN32) && !defined(__SCITECH_SNAP__)
-#   if defined(khronos_EXPORTS) && defined(_WIN64)
-#      define KHRONOS_APICALL
-#   elif defined(khronos_EXPORTS)
+#   if defined(khronos_EXPORTS)
 #      define KHRONOS_APICALL __declspec(dllexport)
 #   else
 #      define KHRONOS_APICALL __declspec(dllimport)

@@ -174,6 +174,11 @@ NWK_PRIVATE void zbProNwkRouteDiscoveryTableHandler(SYS_SchedulerTaskDescriptor_
 NWK_PRIVATE ZbProNwkRouteDiscoveryEntry_t* zbProNwkAllocRouteDiscoveryEntry(void);
 
 /************************************************************************************//**
+  \brief Notification about an expired discovery entry.
+****************************************************************************************/
+NWK_PRIVATE void zbProNwkRouteDiscoveryFreeEntryNtf(ZbProNwkRouteDiscoveryEntry_t *const entry);
+
+/************************************************************************************//**
   \brief Find an active route discovery entry by route request id and source address.
   \param[in] srcAddr - network address of route discovery originator.
   \param[in] requestId - identifier of initial route request.
@@ -187,10 +192,11 @@ NWK_PRIVATE ZbProNwkRouteDiscoveryEntry_t* zbProNwkFindRouteDiscoveryEntry(
   \brief Find an active route discovery entry by destination and source addresses.
   \param[in] dstAddr - network address of route discovery destination.
   \param[in] srcAddr - network address of route discovery originator.
-  \return True if route discovery entry is found, false otherwise.
+  \return Pointer to the active route discovery entry and NULL if an active procedure doesn't exist.
  ***************************************************************************************/
-NWK_PRIVATE bool zbProNwkIsRouteDiscoveryEntryExist(const ZBPRO_NWK_NwkAddr_t dstAddr,
-                                                    const ZBPRO_NWK_NwkAddr_t srcAddr);
+NWK_PRIVATE ZbProNwkRouteDiscoveryEntry_t* zbProNwkIsRouteDiscoveryEntryExist(
+                                                const ZBPRO_NWK_NwkAddr_t dstAddr,
+                                                const ZBPRO_NWK_NwkAddr_t srcAddr);
 
 /************************************************************************************//**
   \brief Returns the first entry which is waiting for an output buffer allocation.

@@ -46,9 +46,12 @@ typedef struct {
    bool geomd;
 #endif
 
+#ifdef KHRN_AUTOCLIF
+   bool                 autoclif_enabled;
    int32_t              autoclif_only_one_clif_i; /* < 0 means capture all frames */
    char                 autoclif_only_one_clif_name[VCOS_PROPERTY_VALUE_MAX];
    uint32_t             autoclif_bin_block_size; /* Set the size of the binning memory block in recorded CLIFs */
+#endif
 
    char                 checksum_capture_filename[VCOS_PROPERTY_VALUE_MAX];
    uint32_t             checksum_start_buffer_index;
@@ -79,6 +82,13 @@ typedef struct {
    bool random_centroid;
    uint32_t random_centroid_seed;
 
+#if V3D_HAS_SRS
+   /* For testing sample-rate shading */
+   bool force_sample_rate_shading;
+   bool random_sample_rate_shading;
+   uint32_t random_sample_rate_shading_seed;
+#endif
+
    bool     gl_error_assist;           /* Outputs useful info when the error occurs */
    bool     force_dither_off;          /* Ensure dithering is always off */
    bool     z_prepass;                 /* Z-prepass enabled */
@@ -86,7 +96,6 @@ typedef struct {
    bool     no_empty_tile_fill;        /* No empty tile filling. */
    bool     no_gfxh_1385;              /* Disable workarounds for GFXH-1385. */
    bool     early_z;                   /* Use early-Z */
-   bool     merge_attributes;
    bool     no_compute_batching;
    uint32_t max_worker_threads;        /* Maximum number of worker threads to spawn for computing in parallel */
 
@@ -96,6 +105,9 @@ extern KHRN_OPTIONS_T khrn_options;
 
 extern void khrn_init_options(void);
 extern bool khrn_options_make_centroid(void);
+#if V3D_HAS_SRS
+extern bool khrn_options_make_sample_rate_shaded(void);
+#endif
 extern void khrn_error_assist(GLenum error, const char *func, const char *file, int line);
 
 #ifdef WIN32

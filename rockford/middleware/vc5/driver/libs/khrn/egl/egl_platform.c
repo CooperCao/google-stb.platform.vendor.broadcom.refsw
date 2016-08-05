@@ -51,6 +51,14 @@ const char *egl_platform_get_display_extensions(void)
    return fns->get_display_extensions();
 }
 
+__eglMustCastToProperFunctionPointerType egl_platform_get_proc_address(
+      const char *procname)
+{
+   EGL_PLATFORM_FNS_T *fns = egl_platform_fns();
+   if (!fns->get_proc_address) return NULL;
+   return fns->get_proc_address(procname);
+}
+
 EGLDisplay egl_platform_get_default_display(void)
 {
    EGL_PLATFORM_FNS_T *fns = egl_platform_fns();

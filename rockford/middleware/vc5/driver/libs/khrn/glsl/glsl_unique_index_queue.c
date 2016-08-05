@@ -8,10 +8,12 @@ Module   :
 FILE DESCRIPTION
 =============================================================================*/
 
-#include "glsl_common.h"
 #include "glsl_fastmem.h"
 
 #include "glsl_unique_index_queue.h"
+
+#include <string.h>
+#include <assert.h>
 
 struct glsl_unique_index_queue_s {
    int *queue;
@@ -24,10 +26,10 @@ struct glsl_unique_index_queue_s {
 GLSL_UNIQUE_INDEX_QUEUE_T *glsl_unique_index_queue_alloc(int size) {
    GLSL_UNIQUE_INDEX_QUEUE_T *ret;
 
-   ret             = malloc_fast(sizeof(*ret));
-   ret->queue      = malloc_fast(sizeof(*ret->queue) * size);
-   ret->mark       = malloc_fast(sizeof(*ret->mark)  * size);
-   ret->size       = size;
+   ret        = malloc_fast(sizeof(*ret));
+   ret->queue = malloc_fast(sizeof(*ret->queue) * size);
+   ret->mark  = malloc_fast(sizeof(*ret->mark)  * size);
+   ret->size  = size;
 
    glsl_unique_index_queue_reset(ret);
 

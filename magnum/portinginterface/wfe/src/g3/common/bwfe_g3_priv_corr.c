@@ -348,7 +348,8 @@ BERR_Code BWFE_g3_Corr_P_CalcDelay(BWFE_ChannelHandle h)
          if (bNegative)
             hChn->corrDelay[k] = -(hChn->corrDelay[k]);
 
-         /*BDBG_MSG(("AGC=%08X, DLY=0x%08X (%d)", h->corrAgc[k], h->corrDelay[k], h->corrDelay[k]));*/
+         /*BDBG_MSG(("AGC=%08X, DLY=0x%08X (%d)", hChn->corrAgc[k], hChn->corrDelay[k], hChn->corrDelay[k]));*/
+         BKNI_Printf("k%d: AGC=%08X, DLY=0x%08X (%d)\n", k, hChn->corrAgc[k], hChn->corrDelay[k], hChn->corrDelay[k]);
       }
    }
 
@@ -363,7 +364,7 @@ BERR_Code BWFE_g3_Corr_P_CalcDelay(BWFE_ChannelHandle h)
          hChn->sliceDelay[0] -= hChn->corrDelay[k];
    }
    hChn->sliceDelay[0] >>= 3;
-   BKNI_Printf("delay=%d\n", hChn->sliceDelay[0]);
+   BKNI_Printf("slc delay=%d\n", hChn->sliceDelay[0]);
 
    /* continue with next function */
    if (hChn->postCalcDelayFunct != NULL)
@@ -374,9 +375,89 @@ BERR_Code BWFE_g3_Corr_P_CalcDelay(BWFE_ChannelHandle h)
 
 
 /******************************************************************************
+ BWFE_g3_Corr_P_AccumulateOffset() - ISR context
+******************************************************************************/
+BERR_Code BWFE_g3_Corr_P_AccumulateOffset(BWFE_ChannelHandle h)
+{
+   /* BWFE_g3_P_Handle *hDev = h->pDevice->pImpl; */
+   BWFE_g3_P_ChannelHandle *hChn = (BWFE_g3_P_ChannelHandle *)h->pImpl;
+   uint32_t P_hi, P_lo, Q_hi, Q_lo;
+   uint32_t avg_hi, avg_lo;
+   int32_t avg, offset, delay[BWFE_NUM_SLICES];
+   uint8_t k;
+   bool bNegative = false;
+
+   avg_hi = avg_lo = 0;
+
+   /* calculate average delay */
+   for (k = 0; k < BWFE_NUM_SLICES; k++)
+   {
+      /* sign extension */
+      P_lo = hChn->corrDelay[k];
+      if (hChn->corrDelay[k] < 0)
+         P_hi = 0xFFFFFFFF;
+      else
+         P_hi = 0;
+
+      /* accumulate for average */
+      BMTH_HILO_64TO64_Add(avg_hi, avg_lo, P_hi, P_lo, &avg_hi, &avg_lo);
+   }
+
+   /* remove sign since 64-bit div is unsigned */
+   if ((int32_t)avg_hi < 0)
+   {
+      bNegative = true;
+      BMTH_HILO_64TO64_Neg(avg_hi, avg_lo, &avg_hi, &avg_lo);
+   }
+   else
+      bNegative = false;
+
+   /* divide to get average */
+   BMTH_HILO_64TO64_Div32(avg_hi, avg_lo, BWFE_NUM_SLICES, &Q_hi, &Q_lo);
+   avg = (int32_t)Q_lo;
+
+   /* recover sign for average */
+   if (bNegative)
+      avg = -avg;
+
+   for (k = 0; k < BWFE_NUM_SLICES; k++)
+   {
+      offset = hChn->corrDelay[k] - avg;
+      if (offset < 0)
+      {
+         bNegative = true;
+         offset = -offset;
+      }
+      else
+         bNegative = false;
+
+      /* offset = beta * (corrDelay - avg) / Fs_adc * 1.0e12 */
+      BMTH_HILO_32TO64_Mul(offset, hChn->corrDelayBeta * 1000000, &P_hi, &P_lo);  /* (corrDelay - avg) * 1.0e6 * beta(in 0.05 steps) */
+      BMTH_HILO_64TO64_Div32(P_hi, P_lo, (hChn->adcSampleFreqKhz / 1000) * 3, &Q_hi, &Q_lo);  /* div by Fs_adc in MHz, div by 0.15 */
+      delay[k] = (Q_hi << 5) | (Q_lo >> 27); /* undo cordic phase scaling, keep 4-bit frac delay */
+      if (bNegative)
+         delay[k] = -delay[k];
+
+      delay[k] += hChn->analogDelay[k];   /* accumulate offset to previous delay */
+      /*BKNI_Printf("{%08X} delay[%d]=%08X\n", hChn->analogDelay[k], k, delay[k]);*/
+
+      /* restrict delay to boundaries */
+      if (delay[k] > (80 << 4)) delay[k] = (80 << 4);
+      if (delay[k] < 0) delay[k] = 0;
+
+      /* store current delay for next iteration */
+      hChn->analogDelay[k] = delay[k];
+   }
+
+   /* analog delay compensation */
+   return BWFE_g3_Corr_P_CompensateDelay(h, (int32_t *)delay);
+}
+
+
+/******************************************************************************
  BWFE_g3_Corr_P_CompensateDelay() - ISR context
 ******************************************************************************/
-BERR_Code BWFE_g3_Corr_P_CompensateDelay(BWFE_ChannelHandle h)
+BERR_Code BWFE_g3_Corr_P_CompensateDelay(BWFE_ChannelHandle h, int32_t *delay)
 {
 #if (BCHP_CHIP==4538)
    BERR_Code retCode = BERR_SUCCESS;
@@ -402,6 +483,7 @@ BERR_Code BWFE_g3_Corr_P_CompensateDelay(BWFE_ChannelHandle h)
    return retCode;
 #else
    BSTD_UNUSED(h);
+   BSTD_UNUSED(delay);
    return BERR_NOT_SUPPORTED;
 #endif
 }

@@ -65,6 +65,7 @@ typedef struct BAPE_SpdifOutput
         unsigned mclkFreqToFsRatio;
     } mclkInfo;
     bool enabled;
+    bool powered;
     bool muted;
     char name[9];   /* SPDIF %d */
     /* The following are used to generate a pauseburst compressed mute on legacy chips */
@@ -327,6 +328,64 @@ void BAPE_SpdifOutput_Close(
     handle->deviceHandle->spdifOutputs[handle->index] = NULL;
     BDBG_OBJECT_DESTROY(handle, BAPE_SpdifOutput);
     BKNI_Free(handle);    
+}
+
+/**************************************************************************/
+
+BERR_Code BAPE_SpdifOutput_PowerUp(
+    BAPE_SpdifOutputHandle handle
+    )
+{
+    BDBG_OBJECT_ASSERT(handle, BAPE_SpdifOutput);
+
+    if ( handle->powered )
+    {
+        return BERR_SUCCESS;
+    }
+
+#ifdef BCHP_AUD_FMM_IOP_OUT_SPDIF_0_REG_START
+    {
+        BAPE_Reg_P_FieldList regFieldList;
+        BDBG_MSG(("ENABLE clock and data"));
+
+        BAPE_Reg_P_InitFieldList(handle->deviceHandle, &regFieldList);
+        BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_OUT_SPDIF_0_SPDIF_FORMAT_CFG, CLOCK_ENABLE, Enable);
+        BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_OUT_SPDIF_0_SPDIF_FORMAT_CFG, DATA_ENABLE, Enable);
+        BAPE_Reg_P_ApplyFieldList(&regFieldList, BAPE_SPDIF_Reg_P_GetAddress(BCHP_AUD_FMM_IOP_OUT_SPDIF_0_SPDIF_FORMAT_CFG, handle->index));
+        handle->powered = true;
+    }
+#endif
+
+    return BERR_SUCCESS;
+}
+
+/**************************************************************************/
+
+BERR_Code BAPE_SpdifOutput_PowerDown(
+    BAPE_SpdifOutputHandle handle
+    )
+{
+    BDBG_OBJECT_ASSERT(handle, BAPE_SpdifOutput);
+
+    if ( handle->enabled )
+    {
+        BDBG_ERR(("Cannot power down SPDIF while it is enabled."));
+        return BERR_TRACE(BERR_NOT_AVAILABLE);
+    }
+
+#ifdef BCHP_AUD_FMM_IOP_OUT_SPDIF_0_REG_START
+    {
+        BAPE_Reg_P_FieldList regFieldList;
+        BDBG_MSG(("DISABLE clock and data"));
+        BAPE_Reg_P_InitFieldList(handle->deviceHandle, &regFieldList);
+        BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_OUT_SPDIF_0_SPDIF_FORMAT_CFG, CLOCK_ENABLE, Disable);
+        BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_OUT_SPDIF_0_SPDIF_FORMAT_CFG, DATA_ENABLE, Disable);
+        BAPE_Reg_P_ApplyFieldList(&regFieldList, BAPE_SPDIF_Reg_P_GetAddress(BCHP_AUD_FMM_IOP_OUT_SPDIF_0_SPDIF_FORMAT_CFG, handle->index));
+        handle->powered = false;
+    }
+#endif
+
+    return BERR_SUCCESS;
 }
 
 /**************************************************************************/
@@ -910,23 +969,11 @@ static BERR_Code BAPE_SpdifOutput_P_OpenHw_IopOut(BAPE_SpdifOutputHandle handle)
 {
     BERR_Code            errCode = BERR_SUCCESS;
     BAPE_Handle          deviceHandle;
-    BAPE_Reg_P_FieldList regFieldList;
 
     BDBG_OBJECT_ASSERT(handle, BAPE_SpdifOutput);
 
     deviceHandle = handle->deviceHandle;
     BDBG_OBJECT_ASSERT(deviceHandle, BAPE_Device);
-
-    /* Enable the clock and data while opening the output. */
-
-    BAPE_Reg_P_InitFieldList(deviceHandle, &regFieldList);
-
-    BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_OUT_SPDIF_0_SPDIF_FORMAT_CFG, CLOCK_ENABLE, Enable);
-    BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_OUT_SPDIF_0_SPDIF_FORMAT_CFG, DATA_ENABLE, Enable);
-
-    BDBG_MSG(("ENABLE clock and data"));
-
-    BAPE_Reg_P_ApplyFieldList(&regFieldList, BAPE_SPDIF_Reg_P_GetAddress(BCHP_AUD_FMM_IOP_OUT_SPDIF_0_SPDIF_FORMAT_CFG, handle->index));
 
 #if !(defined BCHP_AUD_FMM_IOP_OUT_SPDIF_0_SPDIF_CTRL_DITHER_VALUE_MASK)
     /* if we don't have a DITHER_VALUE register, then the default dither value is '1'.  
@@ -953,7 +1000,6 @@ static BERR_Code BAPE_SpdifOutput_P_CloseHw_IopOut(BAPE_SpdifOutputHandle handle
 {
     BERR_Code            errCode = BERR_SUCCESS;
     BAPE_Handle          deviceHandle;
-    BAPE_Reg_P_FieldList regFieldList;
 
     BDBG_OBJECT_ASSERT(handle, BAPE_SpdifOutput);
 
@@ -964,15 +1010,7 @@ static BERR_Code BAPE_SpdifOutput_P_CloseHw_IopOut(BAPE_SpdifOutputHandle handle
     BAPE_Reg_P_UpdateField(handle->deviceHandle, BAPE_SPDIF_Reg_P_GetAddress(BCHP_AUD_FMM_IOP_OUT_SPDIF_0_STREAM_CFG_0, handle->index), AUD_FMM_IOP_OUT_SPDIF_0_STREAM_CFG_0, ENA, 0);
 
     /* Enable the clock and data while opening the output. */
-
-    BAPE_Reg_P_InitFieldList(deviceHandle, &regFieldList);
-
-    BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_OUT_SPDIF_0_SPDIF_FORMAT_CFG, CLOCK_ENABLE, Disable);
-    BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_OUT_SPDIF_0_SPDIF_FORMAT_CFG, DATA_ENABLE, Disable);
-
-    BDBG_MSG(("DISABLE clock and data"));
-
-    BAPE_Reg_P_ApplyFieldList(&regFieldList, BAPE_SPDIF_Reg_P_GetAddress(BCHP_AUD_FMM_IOP_OUT_SPDIF_0_SPDIF_FORMAT_CFG, handle->index));
+    BAPE_SpdifOutput_PowerDown(handle);
 
     return errCode;
 }
@@ -1772,15 +1810,10 @@ static BERR_Code BAPE_SpdifOutput_P_SetBurstConfig_Legacy(BAPE_SpdifOutputHandle
 
     if ( handle->settings.underflowBurst == BAPE_SpdifBurstType_ePause )
     {
-        for ( i = 0; i < (BAPE_P_MUTE_BUFFER_SIZE/sizeof(g_pauseburst)); i++ )
-        {
-            pCached[6*i] = g_pauseburst[0];
-            pCached[(6*i)+1] = g_pauseburst[1];
-            pCached[(6*i)+2] = g_pauseburst[2];
-            pCached[(6*i)+3] = g_pauseburst[3];
-            pCached[(6*i)+4] = g_pauseburst[4];
-            pCached[(6*i)+5] = g_pauseburst[5];
-        }
+        pCached[0] = g_pauseburst[0];
+        pCached[1] = g_pauseburst[1];
+        pCached[2] = g_pauseburst[2];
+        pCached[3] = g_pauseburst[3];
     }
     else if ( handle->settings.underflowBurst == BAPE_SpdifBurstType_eNull )
     {

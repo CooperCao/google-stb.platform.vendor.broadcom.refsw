@@ -24,8 +24,6 @@ generated each frame as HW input.
 
 VCOS_EXTERN_C_BEGIN
 
-#define KHRN_CLE_BRANCH_SIZE 5   /* for linking control list blocks */
-
 typedef uint64_t job_t;
 
 typedef struct
@@ -38,30 +36,30 @@ typedef struct
 struct glxx_query;
 
 /* Do not change this unless you know what you are doing. See the comments
- * above the definition of V3D_QUERY_COUNTER_SINGLE_CORE_CACHE_LINE_COUNTERS
+ * above the definition of V3D_OCCLUSION_QUERY_COUNTER_SINGLE_CORE_CACHE_LINE_COUNTERS
  * for why. */
-#define KHRN_CLE_QUERY_COUNT V3D_QUERY_COUNTER_SINGLE_CORE_CACHE_LINE_COUNTERS
+#define KHRN_CLE_OCCLUSION_QUERY_COUNT V3D_OCCLUSION_QUERY_COUNTER_SINGLE_CORE_CACHE_LINE_COUNTERS
 
-struct khrn_query_block
+struct khrn_occlusion_query_block
 {
    /* query_values must be KHRN_CLE_QUERY_BLOCK_ALIGN aligned. So it's at the
     * start of the structure and we make sure the structure is sufficiently
     * aligned when allocating. */
-#define KHRN_CLE_QUERY_BLOCK_ALIGN V3D_QUERY_COUNTER_FIRST_CORE_CACHE_LINE_ALIGN
-   uint32_t query_values[V3D_MAX_CORES * KHRN_CLE_QUERY_COUNT];
+#define KHRN_CLE_OCCLUSION_QUERY_BLOCK_ALIGN V3D_OCCLUSION_QUERY_COUNTER_FIRST_CORE_CACHE_LINE_ALIGN
+   uint32_t query_values[V3D_MAX_CORES * KHRN_CLE_OCCLUSION_QUERY_COUNT];
 
    struct
    {
       struct glxx_query* obj;
       uint64_t instance;
-   }query [KHRN_CLE_QUERY_COUNT];
+   }query [KHRN_CLE_OCCLUSION_QUERY_COUNT];
 
    unsigned count;
 
-   struct khrn_query_block* prev;
+   struct khrn_occlusion_query_block* prev;
 };
 
-typedef struct khrn_query_block KHRN_QUERY_BLOCK_T;
+typedef struct khrn_occlusion_query_block KHRN_OCCLUSION_QUERY_BLOCK_T;
 
 /* Precious things of the FMEM that need to live longer than the render state
    reside in khrn_fmem_common_persist, which is cleaned up when the
@@ -74,7 +72,7 @@ typedef struct
    struct fmem_debug_info_vector debug_info;
 #endif
    KHRN_UINTPTR_VECTOR_T client_handles;  // client-allocated handles
-   KHRN_QUERY_BLOCK_T *query_list; // allocation for this list comes form fmem_data
+   KHRN_OCCLUSION_QUERY_BLOCK_T *occlusion_query_list; // allocation for this list comes form fmem_data
 
    gmem_handle_t bin_tile_state[V3D_MAX_CORES];
    unsigned num_bin_tile_states;
@@ -153,8 +151,8 @@ static inline bool khrn_fmem_should_flush(KHRN_FMEM_T *fmem)
 
 // required to call begin_clist before any calls to khrn_fmem_*_cle
 // begin_clist is called automatically in khrn_fmem_init
-extern uint8_t *khrn_fmem_begin_clist(KHRN_FMEM_T *fmem);
-extern uint8_t *khrn_fmem_end_clist(KHRN_FMEM_T *fmem);
+extern v3d_addr_t khrn_fmem_begin_clist(KHRN_FMEM_T *fmem);
+extern v3d_addr_t khrn_fmem_end_clist(KHRN_FMEM_T *fmem);
 
 #if V3D_HAS_NEW_TMU_CFG
 extern v3d_addr_t khrn_fmem_add_tmu_tex_state(KHRN_FMEM_T *fmem,
@@ -279,12 +277,11 @@ extern bool khrn_fmem_record_res_interlock(KHRN_FMEM_T *fmem,
       KHRN_RES_INTERLOCK_T *res_i, bool write, khrn_interlock_action_t actions);
 
 /*
- * Mark the fact that fmem is using this res_interlock for transform feedback writes
- * during binning. Returns false if this operation failed; either because the
- * render state requires a flush (already reading the interlock), or ran out of memory.
+ * Returns false if we're already reading the interlock (*requires_flush will
+ * be true), or if we run out of memory (*requires_flush will be false).
  */
-extern bool khrn_fmem_record_res_interlock_tf_write(KHRN_FMEM_T *fmem,
-      KHRN_RES_INTERLOCK_T *res_i, bool* requires_flush);
+extern bool khrn_fmem_record_res_interlock_self_read_conflicting_write(KHRN_FMEM_T *fmem,
+      KHRN_RES_INTERLOCK_T *res_i, khrn_interlock_action_t actions, bool* requires_flush);
 
 extern bool khrn_fmem_record_handle(KHRN_FMEM_T *fmem, gmem_handle_t handle);
 
@@ -293,8 +290,8 @@ extern bool khrn_fmem_record_fence_to_signal(KHRN_FMEM_T *fmem,
 extern bool khrn_fmem_record_fence_to_depend_on(KHRN_FMEM_T *fmem,
       KHRN_FENCE_T *fence);
 
-void khrn_fmem_new_query_entry(KHRN_FMEM_T *fmem,
-      KHRN_QUERY_BLOCK_T **block, unsigned *index);
+void khrn_fmem_new_occlusion_query_entry(KHRN_FMEM_T *fmem,
+      KHRN_OCCLUSION_QUERY_BLOCK_T **block, unsigned *index);
 
 VCOS_EXTERN_C_END
 

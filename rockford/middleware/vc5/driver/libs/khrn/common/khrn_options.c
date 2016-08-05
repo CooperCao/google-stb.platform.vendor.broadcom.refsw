@@ -21,6 +21,9 @@ LOG_DEFAULT_CAT("khrn_options")
 
 KHRN_OPTIONS_T khrn_options;
 static GFX_RAND_STATE_T random_centroid_state;
+#if V3D_HAS_SRS
+static GFX_RAND_STATE_T random_sample_rate_shading_state;
+#endif
 
 void khrn_init_options(void)
 {
@@ -65,6 +68,7 @@ void khrn_init_options(void)
 #endif
 
 #ifdef KHRN_AUTOCLIF
+   khrn_options.autoclif_enabled             = gfx_options_bool(  "KHRN_AUTOCLIF",                 false);
    khrn_options.autoclif_only_one_clif_i     = gfx_options_int32( "AUTOCLIF_ONLY_ONE_CLIF_I",      -1);
                                                gfx_options_str(   "AUTOCLIF_ONLY_ONE_CLIF_NAME",   "",
                                                      khrn_options.autoclif_only_one_clif_name,
@@ -85,14 +89,23 @@ void khrn_init_options(void)
    khrn_options.random_centroid              = gfx_options_bool(  "KHRN_RANDOM_CENTROID",          false);
    khrn_options.random_centroid_seed         = gfx_options_uint32("KHRN_RANDOM_CENTROID_SEED",     42);
 
+#if V3D_HAS_SRS
+   khrn_options.force_sample_rate_shading    = gfx_options_bool(  "KHRN_FORCE_SAMPLE_RATE_SHADING", false);
+   khrn_options.random_sample_rate_shading   = gfx_options_bool(  "KHRN_RANDOM_SAMPLE_RATE_SHADING", false);
+   khrn_options.random_sample_rate_shading_seed = gfx_options_uint32("KHRN_RANDOM_SAMPLE_RATE_SHADING_SEED", 42);
+#endif
+
    khrn_options.gl_error_assist              = gfx_options_bool(  "V3D_GL_ERROR_ASSIST",           false);
    khrn_options.force_dither_off             = gfx_options_bool(  "V3D_FORCE_DITHER_OFF",          false);
    khrn_options.early_z                      = gfx_options_bool(  "GL_EARLY_Z",                    true);
-   khrn_options.merge_attributes             = gfx_options_bool(  "GL_MERGE_ATTRIBUTES",           false);
    khrn_options.max_worker_threads           = gfx_options_uint32( "KHRN_MAX_WORKER_THREADS",      3);
 
    if (khrn_options.random_centroid)
       gfx_rand_init(&random_centroid_state, khrn_options.random_centroid_seed);
+#if V3D_HAS_SRS
+   if (khrn_options.random_sample_rate_shading)
+      gfx_rand_init(&random_sample_rate_shading_state, khrn_options.random_sample_rate_shading_seed);
+#endif
 }
 
 bool khrn_options_make_centroid(void)
@@ -105,6 +118,19 @@ bool khrn_options_make_centroid(void)
 
    return false;
 }
+
+#if V3D_HAS_SRS
+bool khrn_options_make_sample_rate_shaded(void)
+{
+   if (khrn_options.force_sample_rate_shading)
+      return true;
+
+   if (khrn_options.random_sample_rate_shading)
+      return gfx_rand_with_prob(&random_sample_rate_shading_state, 0.5f);
+
+   return false;
+}
+#endif
 
 /* TODO Why is this here? */
 void khrn_error_assist(GLenum error, const char *func, const char *file, int line)

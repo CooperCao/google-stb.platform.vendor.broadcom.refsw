@@ -36,7 +36,7 @@
 #  ANY LIMITED REMEDY.
 #
 # Module Description:
-#   This file defines the rules to build the 97468 platform
+#   This file defines the rules to build the 97268 platform
 #
 ############################################################
 

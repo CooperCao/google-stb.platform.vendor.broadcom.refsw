@@ -9,7 +9,7 @@
 VCOS_EXTERN_C_BEGIN
 
 #if WANT_THIRDPARTY
-/* Just declare functions here; they will be defined by thirdparty/helpers/gfx/gfx_buffer_adapter_*.cpp */
+/* Just declare functions here; they will be defined by gfx_buffer_adapter_*.cpp */
 #define GFX_BUFFER_ADAPTER_LINKAGE extern
 #define GFX_BUFFER_ADAPTER_BODY(DUMMY_RET) ;
 #else

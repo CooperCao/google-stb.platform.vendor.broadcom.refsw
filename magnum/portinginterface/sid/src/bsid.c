@@ -54,6 +54,8 @@
 #endif
 
 BDBG_MODULE(BSID);
+BDBG_OBJECT_ID(BSID_P_Context);  /* BSID_Handle */
+BDBG_OBJECT_ID(BSID_P_Channel);  /* BSID_ChannelHandle */
 
 typedef enum {
     BSID_Operation_eSetDmaChunk,          /* still only */
@@ -79,6 +81,8 @@ static const BSID_RevisionInfo stMyRevisionInfo =
     BSID_GIF_MAXWIDTH,        /* image width max for GIF */
 };
 
+static void DestroyChannel(BSID_ChannelHandle hSidCh);
+
 
 /******************************************************************************
 * Function name: CheckParams_isr
@@ -93,7 +97,7 @@ static BERR_Code CheckParams(
     BSID_Operation Operation,
     void *pv_OpParam)
 {
-    BDBG_ASSERT(hSidChannel);
+    BDBG_OBJECT_ASSERT(hSidChannel, BSID_P_Channel);
 
     switch (Operation)
     {
@@ -497,7 +501,7 @@ BERR_Code BSID_Open(
     }
 
     /* allocate device handle */
-    hSid = (BSID_Handle)BKNI_Malloc(sizeof (BSID_P_Context));
+    hSid = (BSID_Handle)BKNI_Malloc(sizeof(BSID_P_Context));
     if (hSid == NULL)
     {
         BDBG_LEAVE(BSID_Open);
@@ -505,7 +509,8 @@ BERR_Code BSID_Open(
     }
 
     /* init device handle structure to default value */
-    BKNI_Memset((void *)hSid, 0x00, sizeof (BSID_P_Context));
+    BKNI_Memset((void *)hSid, 0x00, sizeof(BSID_P_Context));
+    BDBG_OBJECT_SET(hSid, BSID_P_Context);
 
     /* save instance number */
     hSid->ui32_SidInstance = psOpenSettings->ui32_SidInstance;
@@ -661,7 +666,7 @@ void BSID_Close(
     BSID_Handle hSid
     )
 {
-    BDBG_ASSERT(hSid);
+    BDBG_OBJECT_ASSERT(hSid, BSID_P_Context);
     BDBG_ENTER(BSID_Close);
 
     if (!hSid->bStandby)
@@ -687,6 +692,8 @@ void BSID_Close(
 
     /* free sid memory buffer(s) */
     BSID_P_ResetFwHwDefault(hSid);
+
+    BDBG_OBJECT_DESTROY(hSid, BSID_P_Context);
 
     /* free device handle memory */
     BKNI_Free((void *)hSid);
@@ -752,7 +759,7 @@ BERR_Code BSID_OpenChannel(
 
     BDBG_ENTER(BSID_OpenChannel);
 
-    BDBG_ASSERT(hSid);
+    BDBG_OBJECT_ASSERT(hSid, BSID_P_Context);
     BDBG_ASSERT(phSidChannel);
     BDBG_ASSERT(ps_OpenChannelSettings);
     BDBG_ASSERT(ps_OpenChannelSettings->uiSignature == BSID_P_SIGNATURE_OPENCHSETTINGS);
@@ -869,6 +876,7 @@ BERR_Code BSID_OpenChannel(
 
     /* init device channel handle structure to default value */
     BKNI_Memset((void *)hSidChannel, 0x00, sizeof(BSID_P_Channel));
+    BDBG_OBJECT_SET(hSidChannel, BSID_P_Channel);
 
     /* register some device channel information */
     BKNI_Memcpy((void *)&hSidChannel->sChSettings, (void *)ps_OpenChannelSettings, sizeof(BSID_OpenChannelSettings));
@@ -913,7 +921,7 @@ BERR_Code BSID_OpenChannel(
     if (retCode != BERR_SUCCESS)
     {
         BDBG_ERR(("BKNI_CreateEvent failed with error 0x%x", retCode));
-        BSID_P_DestroyChannel(hSidChannel);
+        DestroyChannel(hSidChannel);
         BDBG_LEAVE( BSID_OpenChannel );
         return BERR_TRACE(retCode);
     }
@@ -923,7 +931,7 @@ BERR_Code BSID_OpenChannel(
     if (retCode != BERR_SUCCESS)
     {
         BDBG_ERR(("BKNI_CreateEvent failed with error 0x%x", retCode));
-        BSID_P_DestroyChannel(hSidChannel);
+        DestroyChannel(hSidChannel);
         BDBG_LEAVE( BSID_OpenChannel );
         return BERR_TRACE(retCode);
     }
@@ -933,7 +941,7 @@ BERR_Code BSID_OpenChannel(
     if (retCode != BERR_SUCCESS)
     {
         BDBG_ERR(("BSID_P_CreateChannelMemory failed with error 0x%x", retCode));
-        BSID_P_DestroyChannel(hSidChannel);
+        DestroyChannel(hSidChannel);
         BDBG_LEAVE( BSID_OpenChannel );
         return BERR_TRACE(retCode);
     }
@@ -944,7 +952,7 @@ BERR_Code BSID_OpenChannel(
     if (retCode != BERR_SUCCESS)
     {
         BDBG_ERR(("OpenChannel failed to acquire clock with error 0x%x", retCode));
-        BSID_P_DestroyChannel(hSidChannel);
+        DestroyChannel(hSidChannel);
         BDBG_LEAVE( BSID_OpenChannel );
         return BERR_TRACE(retCode);
     }
@@ -954,7 +962,7 @@ BERR_Code BSID_OpenChannel(
     if (BERR_SUCCESS != retCode)
     {
         BDBG_ERR(("OpenChannel: Unable to resume channel (error code 0x%x)", retCode));
-        BSID_P_DestroyChannel(hSidChannel);
+        DestroyChannel(hSidChannel);
         failCode = retCode;
         /* NOTE: This falls through so it can release the clock */
     }
@@ -967,7 +975,7 @@ BERR_Code BSID_OpenChannel(
         BDBG_ERR(("OpenChannel failed to release clock with error 0x%x", retCode));
         if (BERR_SUCCESS != failCode)
         {
-            BSID_P_DestroyChannel(hSidChannel);
+            DestroyChannel(hSidChannel);
             failCode = retCode;
         }
     }
@@ -995,10 +1003,11 @@ void BSID_CloseChannel(BSID_ChannelHandle hSidChannel)
 {
     BERR_Code retCode = BERR_SUCCESS;
     BSID_Handle  hSid;
-    BDBG_ASSERT(hSidChannel);
+    BDBG_OBJECT_ASSERT(hSidChannel, BSID_P_Channel);
 
     BDBG_ENTER(BSID_CloseChannel);
     hSid = hSidChannel->hSid;
+    BDBG_OBJECT_ASSERT(hSid, BSID_P_Context);
 
     if (hSid->bStandby)
     {
@@ -1050,10 +1059,50 @@ void BSID_CloseChannel(BSID_ChannelHandle hSidChannel)
         BDBG_ERR(("CloseChannel failed to acquire clock with error code 0x%x", retCode));
     }
 
-    BSID_P_DestroyChannel(hSidChannel);
+    DestroyChannel(hSidChannel);
 
     BDBG_LEAVE(BSID_CloseChannel);
     return;
+}
+
+
+/******************************************************************************
+* Function name: DestroyChannel
+*
+* Comments:
+*
+******************************************************************************/
+static void DestroyChannel(BSID_ChannelHandle hSidCh)
+{
+    BDBG_OBJECT_ASSERT(hSidCh, BSID_P_Channel);
+
+    /* destroy device channel queue */
+    BSID_P_DestroyChannelMemory(hSidCh);
+
+    BSID_SET_CH_STATE(hSidCh, Close);
+
+    /* destroy sync event */
+    if (NULL != hSidCh->hSyncEvent)
+    {
+       BKNI_DestroyEvent(hSidCh->hSyncEvent);
+       hSidCh->hSyncEvent = NULL;
+    }
+
+    /* destroy abort event */
+    if (NULL != hSidCh->hAbortedEvent)
+    {
+       BKNI_DestroyEvent(hSidCh->hAbortedEvent);
+       hSidCh->hAbortedEvent = NULL;
+    }
+
+    /* invalidate the device channel from the main device handle */
+    hSidCh->hSid->ahChannel[hSidCh->ui32_ChannelNum] = NULL;
+
+    BDBG_OBJECT_DESTROY(hSidCh, BSID_P_Channel);
+
+    /* free device channel handle */
+    BKNI_Free(hSidCh);
+    hSidCh = NULL;
 }
 
 /******************************************************************************
@@ -1127,7 +1176,7 @@ void BSID_GetChannelSettings(
 {
     BDBG_ENTER(BSID_GetChannelSettings);
 
-    BDBG_ASSERT(hSidChannel);
+    BDBG_OBJECT_ASSERT(hSidChannel, BSID_P_Channel);
     BDBG_ASSERT(ps_ChannelSettings);
 
     BKNI_Memset(ps_ChannelSettings, 0, sizeof(BSID_ChannelSettings));
@@ -1172,7 +1221,7 @@ BERR_Code BSID_SetChannelSettings(
 {
     BDBG_ENTER( BSID_SetChannelSettings );
 
-    BDBG_ASSERT(hSidChannel);
+    BDBG_OBJECT_ASSERT(hSidChannel, BSID_P_Channel);
     BDBG_ASSERT(ps_ChannelSettings);
     BDBG_ASSERT(ps_ChannelSettings->uiSignature == BSID_P_SIGNATURE_CHANNELSETTINGS);
 
@@ -1228,6 +1277,8 @@ BERR_Code BSID_GetStreamInfo(
     BSID_StartDecodeSettings ps_StartDecodeSettings;
     BDBG_ENTER(BSID_GetStreamInfo);
 
+    BDBG_OBJECT_ASSERT(hSidChannel, BSID_P_Channel);
+
     BDBG_WRN(("BSID_GetStreamInfo is deprecated.  Please use BSID_StartDecode with a BSID_DecodeMode of BSID_DecodeMode_eStillInfo"));
 
     ps_StartDecodeSettings.eDecodeMode = BSID_DecodeMode_eStillInfo;
@@ -1257,6 +1308,8 @@ BERR_Code BSID_DecodeStillImage(
     BSID_StartDecodeSettings ps_StartDecodeSettings;
 
     BDBG_ENTER(BSID_DecodeStillImage);
+
+    BDBG_OBJECT_ASSERT(hSidChannel, BSID_P_Channel);
 
     BDBG_WRN(("BSID_DecodeStillImage is deprecated.  Please use BSID_StartDecode with a BSID_DecodeMode of BSID_DecodeMode_eStillImage"));
 
@@ -1288,6 +1341,8 @@ BERR_Code BSID_DecodeImageSegment(
 
     BDBG_ENTER(BSID_DecodeImageSegment);
 
+    BDBG_OBJECT_ASSERT(hSidChannel, BSID_P_Channel);
+
     BDBG_WRN(("BSID_DecodeImageSegment is deprecated.  Please use BSID_StartDecode with a BSID_DecodeMode of BSID_DecodeMode_eStillSegment"));
 
     ps_StartDecodeSettings.eDecodeMode = BSID_DecodeMode_eStillSegment;
@@ -1312,7 +1367,7 @@ BERR_Code BSID_SetDmaChunkInfo(
     )
 {
     BERR_Code   retCode = BERR_SUCCESS;
-    BDBG_ASSERT(hSidChannel);
+    BDBG_OBJECT_ASSERT(hSidChannel, BSID_P_Channel);
     BDBG_ASSERT(ps_DmaChunkInfo);
 
     BDBG_ENTER(BSID_SetDmaChunkInfo);
@@ -1390,7 +1445,7 @@ BERR_Code BSID_DisableForFlush(
 
     BDBG_ENTER( BSID_DisableForFlush );
 
-    BDBG_ASSERT(hSidChannel);
+    BDBG_OBJECT_ASSERT(hSidChannel, BSID_P_Channel);
 
     if (hSidChannel->e_ChannelState != BSID_ChannelState_eDecode)
     {
@@ -1452,7 +1507,7 @@ BERR_Code BSID_FlushChannel(
     BERR_Code retCode = BERR_SUCCESS;
 
     BDBG_ENTER( BSID_FlushChannel );
-    BDBG_ASSERT(hSidChannel);
+    BDBG_OBJECT_ASSERT(hSidChannel, BSID_P_Channel);
     BDBG_ASSERT(ps_FlushSettings);
     BDBG_ASSERT(ps_FlushSettings->uiSignature == BSID_P_SIGNATURE_FLUSHSETTINGS);
 
@@ -1574,7 +1629,7 @@ BERR_Code BSID_StartDecode(
 
     BDBG_ENTER( BSID_StartDecode );
 
-    BDBG_ASSERT(hSidChannel);
+    BDBG_OBJECT_ASSERT(hSidChannel, BSID_P_Channel);
     BDBG_ASSERT(ps_StartDecodeSettings);
     BDBG_ASSERT(ps_StartDecodeSettings->uiSignature == BSID_P_SIGNATURE_STARTDECSETTINGS);
 
@@ -1751,7 +1806,7 @@ void BSID_StopDecode(
     BERR_Code retCode = BERR_SUCCESS;
 
     BDBG_ENTER(BSID_StopDecode);
-    BDBG_ASSERT(hSidChannel);
+    BDBG_OBJECT_ASSERT(hSidChannel, BSID_P_Channel);
     BDBG_ASSERT(ps_StopDecodeSettings->uiSignature == BSID_P_SIGNATURE_STOPDECSETTINGS);
 
     if (hSidChannel->hSid->bStandby)
@@ -1863,6 +1918,8 @@ void BSID_GetXdmInterface(
 {
     BDBG_ENTER( BSID_GetXdmInterface );
 
+    BDBG_OBJECT_ASSERT(hSidChannel, BSID_P_Channel);
+
     BKNI_Memset((void *)ps_XdmInterface, 0, sizeof(BXDM_Decoder_Interface));
     ps_XdmInterface->getPictureCount_isr              = BSID_P_GetPictureCount_isr;
     ps_XdmInterface->peekAtPicture_isr                = BSID_P_PeekAtPicture_isr;
@@ -1887,6 +1944,7 @@ void BSID_GetXdmInterface(
 ******************************************************************************/
 BERR_Code BSID_Standby(BSID_Handle hSid)
 {
+    BDBG_OBJECT_ASSERT(hSid, BSID_P_Context);
     if (!BSID_P_Power_SupportsResource(hSid, BSID_P_ResourceType_ePower))
     {
         BDBG_WRN(("Standby/Resume Not Supported - SID ARC will be idled, but not powered down"));
@@ -1902,6 +1960,7 @@ BERR_Code BSID_Standby(BSID_Handle hSid)
 ******************************************************************************/
 BERR_Code BSID_Resume(BSID_Handle hSid)
 {
+    BDBG_OBJECT_ASSERT(hSid, BSID_P_Context);
     if (!BSID_P_Power_SupportsResource(hSid, BSID_P_ResourceType_ePower))
     {
        BDBG_WRN(("Standby/Resume Not Supported - SID ARC will be rebooted/restarted"));
@@ -1923,7 +1982,7 @@ BERR_Code BSID_ProcessWatchdog(BSID_Handle hSid)
 
    BDBG_ENTER(BSID_ProcessWatchdog);
 
-   BDBG_ASSERT(hSid);
+   BDBG_OBJECT_ASSERT(hSid, BSID_P_Context);
 
    if (false == hSid->bWatchdogOccurred)
    {

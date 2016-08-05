@@ -8,11 +8,9 @@ All rights reserved.
 #include "../glxx/glxx_server.h"
 #include "libs/util/dglenum/dglenum.h"
 
-#if GL_BRCM_polygon_mode
-
 GL_APICALL void GL_APIENTRY glPolygonModeBRCM(GLenum mode)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
    if (!state)
       return;
 
@@ -29,7 +27,5 @@ GL_APICALL void GL_APIENTRY glPolygonModeBRCM(GLenum mode)
    if (error != GL_NO_ERROR)
       glxx_server_state_set_error(state, error);
 
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
-
-#endif

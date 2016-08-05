@@ -11,7 +11,11 @@ FILE DESCRIPTION
 #ifndef GLSL_COMMON_H
 #define GLSL_COMMON_H
 
-#include "../common/khrn_int_common.h"
+#include <stdint.h>
+#include <stdbool.h>
+
+#include "vcos_types.h"
+#include "libs/core/v3d/v3d_ver.h"
 
 // Enumerations.
 
@@ -246,8 +250,8 @@ typedef struct _Symbol Symbol;
 struct _SymbolType;
 typedef struct _SymbolType SymbolType;
 
-struct _MEMBER_LAYOUT_T;
-typedef struct _MEMBER_LAYOUT_T MEMBER_LAYOUT_T;
+struct _MemLayout;
+typedef struct _MemLayout MemLayout;
 
 struct _Expr;
 typedef struct _Expr Expr;
@@ -279,43 +283,6 @@ typedef struct _Qualifiers
 
 
 // Functions.
-
-static inline bool glsl_is_row_major(LayoutQualifier *lq)
-{
-   if(!lq)
-      return false;
-
-   if((lq->qualified & UNIF_QUALED) && (lq->unif_bits & LAYOUT_ROW_MAJOR))
-      return true;
-
-   return false;
-}
-
-static inline bool glsl_layouts_equal(LayoutQualifier *lq1, LayoutQualifier *lq2)
-{
-   if(lq1 == lq2)
-      return true;
-
-   if(lq1->qualified != lq2->qualified)
-      return false;
-
-   if( (lq1->qualified & LOC_QUALED) && lq1->location!=lq2->location )
-      return false;
-
-   if( (lq1->qualified & UNIF_QUALED) && lq1->unif_bits!=lq2->unif_bits )
-      return false;
-
-   if( (lq1->qualified & BINDING_QUALED) && lq1->binding != lq2->binding )
-      return false;
-
-   if( (lq1->qualified & OFFSET_QUALED) && lq1->offset != lq2->offset  )
-      return false;
-
-   if( (lq1->qualified & FORMAT_QUALED) && lq1->format != lq2->format )
-      return false;
-
-   return true;
-}
 
 bool glsl_parsing_user_code(void);
 

@@ -37,28 +37,16 @@
  ***************************************************************************/
 
 
-#include <fs/ramfs.h>
-#include <hwtimer.h>
 #include <stdint.h>
-#include <waitqueue.h>
 
 #include "arm/arm.h"
 #include "arm/gic.h"
+#include "fs/ramfs.h"
 #include "config.h"
 
-#include "lib_printf.h"
-#include "libfdt.h"
-#include "parse_utils.h"
-
 #include "kernel.h"
-#include "tzmemory.h"
-#include "pgtable.h"
-#include "objalloc.h"
-#include "interrupt.h"
-#include "tztask.h"
-#include "scheduler.h"
 
-static uint8_t tzDevTree[MAX_DT_SIZE_BYTES];
+#include "system.h"
 
 #define assert(cond) if (!(cond)) { err_msg("%s:%d - Assertion failed", __PRETTY_FUNCTION__, __LINE__); while (true) { asm volatile("wfi":::);} }
 
@@ -291,8 +279,6 @@ void fileScatterWriteTests() {
     success_msg("scatter write tests passed\n");
 }
 
-extern "C" unsigned long _initramfs_start, _initramfs_end;
-
 void ramfsTests() {
 
     IDirectory *dir;
@@ -371,58 +357,12 @@ void ramfsTests() {
 
 void tzKernelInit(const void *devTree) {
 
-    printf("%s: RAMFS unit tests\n", __FUNCTION__);
+    printf("%s: Ramfs unit tests\n", __FUNCTION__);
 
-    // The bootstrap code has mapped device tree memory one-to-one VA and PA.
-    int rc = fdt_check_header(devTree);
-    if (rc) {
-        err_msg("Corrupted device tree at %p.\n", devTree);
-        return;
-    }
+    System::init(devTree);
 
-    int dtSize = fdt_totalsize(devTree);
-    if (dtSize > MAX_DT_SIZE_BYTES) {
-        err_msg("Device tree is too large (size %d) . Increase MAX_DT_SIZE_BYTES\n", dtSize);
-        return;
-    }
-
-    rc = fdt_move(devTree, tzDevTree, dtSize);
-    if (rc) {
-        err_msg("Device tree could not be relocated to tzDevTree: %s\n", fdt_strerror(rc));
-        return;
-    }
-
-    TzMem::init(tzDevTree);
-    PageTable::init(devTree);
-    GIC::init(tzDevTree);
-    Interrupt::init();
-    TzTask::init();
-    TzTimers::init();
-    Scheduler::init();
-    RamFS::init();
-
-    /* Initialize the secure config register and setup
-     * access permissions for non-secure world */
-    register uint32_t scr, nsacr;
-    asm volatile("mrc p15, 0, %[rt], c1, c1, 0" : [rt] "=r" (scr) : :);
-    scr |= (1 << 8) | (1 << 5) |(1 << 2);//(SCR_HYP_CALL_ENABLE | SCR_NS_ALLOW_DATA_ABORT_MASK | SCR_FIQ_IN_MON_MODE);
-    asm volatile("mcr p15, 0, %[rt], c1, c1, 0" : : [rt] "r" (scr) :);
-
-    asm volatile("mrc p15, 0, %[rt], c1, c1, 2" : [rt] "=r" (nsacr) : :);
-    nsacr |= ( (1 << 19) | ( 1<<11 ) |  ( 1<<10 ) |  ( 1<<18 )); // RFR, SMP CP10 and CP11.
-    asm volatile("mcr p15, 0, %[rt], c1, c1, 2" : : [rt] "r" (nsacr) :);
-
-    asm volatile ("cpsie aif" : : :);
-
-    unsigned long *fsStart = &_initramfs_start;
-    unsigned long *fsEnd = &_initramfs_end;
-
-    printf("%s: ramfs start %p end %p\n", __FUNCTION__, fsStart, fsEnd);
-
-    root = RamFS::load(fsStart);
+    root = System::root();
     ((RamFS::Directory *)root)->print();
-
-    success_msg("RamFS created\n");
 
     ramfsTests();
 
@@ -434,11 +374,8 @@ void tzKernelInit(const void *devTree) {
 }
 
 void kernelHalt(const char *reason) {
-
-    UNUSED(reason);
-    while (true) {
-        asm volatile("wfi":::);
-    }
+    err_msg("%s\n", reason);
+    while (true) {}
 }
 
 extern "C" void __cxa_pure_virtual() {

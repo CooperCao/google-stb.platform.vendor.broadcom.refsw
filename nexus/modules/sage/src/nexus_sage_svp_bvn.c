@@ -363,16 +363,6 @@ typedef struct BBVN_P_PathStatus
 #define BBVN_P_MAKE_VNET_B_DISABLED_NODE(name) \
     {#name, {BBVN_P_VnetB_eDisabled}, BBVN_P_VnetF_eDisabled, BBVN_P_VnetMuxType_eDisabled, BBVN_P_VnetMuxType_eDisabled, BAVC_CoreId_eInvalid}
 
-/* Core Id Table Information */
-static const struct {
-    const char achName[BBVN_P_VNET_NAME_LEN];
-} s_aCoreInfoTbl[] = {
-#define BCHP_P_MEMC_DEFINE_SVP_HWBLOCK(svp_block, access) { #svp_block },
-#include "memc/bchp_memc_svp_hwblock.h"
-    {"  -  "},
-#undef BCHP_P_MEMC_DEFINE_SVP_HWBLOCK
-};
-
 /***************************************************************************
  * VNET_F enum to MUX addr LUT
  */
@@ -800,13 +790,13 @@ static BERR_Code BBVN_P_TraverseBvn_recursive
             ulSource = BREG_Read32(hReg, pCurMux->ulAddress);
             ulSource = BCHP_GET_FIELD_DATA(ulSource, VNET_B_CAP_0_SRC, SOURCE);
             BDBG_MODULE_MSG(BBVN_L2, ("Mux[%16s]: core_id[%s][%02d][%c] addr[0x%08x], upstream_src[0x%02x]",
-                pCurMux->achName, s_aCoreInfoTbl[pCurMux->eCoreId].achName, pCurMux->eCoreId,
+                pCurMux->achName, g_NEXUS_SvpHwBlockTbl[pCurMux->eCoreId].achName, pCurMux->eCoreId,
                 chSecured, pCurMux->ulAddress, ulSource));
         }
         else
         {
             BDBG_MODULE_MSG(BBVN_L2, ("Mux[%16s]: core_id[%s][%02d][%c]",
-                pCurMux->achName, s_aCoreInfoTbl[pCurMux->eCoreId].achName, pCurMux->eCoreId,
+                pCurMux->achName, g_NEXUS_SvpHwBlockTbl[pCurMux->eCoreId].achName, pCurMux->eCoreId,
                 chSecured));
         }
 
@@ -1202,7 +1192,7 @@ BERR_Code BBVN_Monitor_Check
     {
         if(pSecureCores->aeCores[i])
         {
-            BDBG_MODULE_MSG(BBVN_L3, ("\t%s(%02d)", s_aCoreInfoTbl[i].achName, i));
+            BDBG_MODULE_MSG(BBVN_L3, ("\t%s(%02d)", g_NEXUS_SvpHwBlockTbl[i].achName, i));
         }
     }
 
@@ -1244,7 +1234,6 @@ BERR_Code BBVN_Monitor_Check
 
                 BDBG_MODULE_MSG(BBVN_L1,("%s - [%c][%c]", pPath->achBvnMap,
                     pPath->bSecuredCt ? 's' : 'u', pPath->bViolation ? 'y' : 'n'));
-                BDBG_MODULE_MSG(BBVN_L2,(""));
 
                 if(BBVN_P_GetCmpInfo(hBvnMonitor->hReg, pCurMux->ulAddress,
                     &iCmpIdx, &iWinIdx, &ulHSize, &ulVSize))
@@ -1328,7 +1317,7 @@ BERR_Code BBVN_Monitor_Check
                 pStatus->Xcode[j].ulHSize,
                 pStatus->Xcode[j].ulVSize,
                 pStatus->Xcode[j].bSecure ? "secured" : "non-secured", (uint32_t)j,
-                s_aCoreInfoTbl[s_aStgCmpIdx[j].eVipCoreId].achName));
+                g_NEXUS_SvpHwBlockTbl[s_aStgCmpIdx[j].eVipCoreId].achName));
             }
         }
 
@@ -1344,7 +1333,6 @@ BERR_Code BBVN_Monitor_Check
     BDBG_MSG(("                    BVN Violation = '%s'",
         pStatus->bViolation ? "yes" : "no"));
     BDBG_MSG(("***************************************************************"));
-    BDBG_MSG((""));
 
 ERROR:
     BDBG_LEAVE(BBVN_Monitor_Check);

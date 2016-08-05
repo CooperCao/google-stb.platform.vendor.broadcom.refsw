@@ -752,7 +752,7 @@ BERR_Code BXPT_Open(
 #if (!BXPT_DMA_HAS_MEMDMA_MCPB)
     BXPT_P_AcquireSubmodule(lhXpt, BXPT_P_Submodule_eMcpb);
 #endif
-    BXPT_P_PMUHwg_Control(hRegister, false);
+    BXPT_P_PMUHwg_Control(hRegister, true);
 
     done:
     *hXpt = lhXpt;

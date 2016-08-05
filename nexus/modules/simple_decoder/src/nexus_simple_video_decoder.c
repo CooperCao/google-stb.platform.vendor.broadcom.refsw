@@ -86,23 +86,28 @@ static struct nexus_simplevideodecoder_defaultsettings {
     NEXUS_VideoDecoderExtendedSettings extendedSettings;
 } *g_default;
 
+struct NEXUS_SimpleVideoAsGraphics
+{
+    NEXUS_SimpleVideoDecoderServerHandle server;
+    unsigned refcnt;
+    NEXUS_TimerHandle timer;
+    NEXUS_Graphics2DHandle gfx;
+    bool checkpointPending;
+};
+
 struct NEXUS_SimpleVideoDecoderServer
 {
     NEXUS_OBJECT(NEXUS_SimpleVideoDecoderServer);
+    BLST_S_ENTRY(NEXUS_SimpleVideoDecoderServer) link;
     BLST_S_HEAD(NEXUS_SimpleVideoDecoder_P_List, NEXUS_SimpleVideoDecoder) decoders;
-    struct {
-        unsigned refcnt;
-        NEXUS_TimerHandle timer;
-        NEXUS_Graphics2DHandle gfx;
-        bool checkpointPending;
-    } videoAsGraphics;
+    struct NEXUS_SimpleVideoAsGraphics videoAsGraphics[2];
     struct {
         NEXUS_SimpleVideoDecoderHandle handle;
         NEXUS_VideoInput videoInput;
     } sdOverride;
 };
 
-static NEXUS_SimpleVideoDecoderServerHandle g_NEXUS_SimpleVideoDecoderServer;
+static BLST_S_HEAD(NEXUS_SimpleVideoDecoderServer_P_List, NEXUS_SimpleVideoDecoderServer) g_NEXUS_SimpleVideoDecoderServers;
 
 struct NEXUS_SimpleVideoDecoder
 {
@@ -139,6 +144,7 @@ struct NEXUS_SimpleVideoDecoder
             unsigned pictures;
             unsigned overflows;
         } stats;
+        struct NEXUS_SimpleVideoAsGraphics *videoAsGraphics;
     } capture;
 
     struct {
@@ -159,6 +165,30 @@ struct NEXUS_SimpleVideoDecoder
     } hdDviInput;
 };
 
+static NEXUS_SimpleVideoDecoderHandle nexus_simple_video_decoder_p_first(void)
+{
+    NEXUS_SimpleVideoDecoderServerHandle server;
+    for (server = BLST_S_FIRST(&g_NEXUS_SimpleVideoDecoderServers); server; server = BLST_S_NEXT(server, link)) {
+        NEXUS_SimpleVideoDecoderHandle decoder = BLST_S_FIRST(&server->decoders);
+        if (decoder) return decoder;
+    }
+    return NULL;
+}
+
+static NEXUS_SimpleVideoDecoderHandle nexus_simple_video_decoder_p_next(NEXUS_SimpleVideoDecoderHandle handle)
+{
+    NEXUS_SimpleVideoDecoderHandle next;
+    next = BLST_S_NEXT(handle, link);
+    if (!next) {
+        NEXUS_SimpleVideoDecoderServerHandle server;
+        for (server = BLST_S_NEXT(handle->server, link); server; server = BLST_S_NEXT(server, link)) {
+            next = BLST_S_FIRST(&server->decoders);
+            if (next) break;
+        }
+    }
+    return next;
+}
+
 static NEXUS_Error nexus_simplevideodecoder_p_setdecodersettings(NEXUS_SimpleVideoDecoderHandle handle, bool currentSettings);
 static NEXUS_Error nexus_simplevideodecoder_p_start( NEXUS_SimpleVideoDecoderHandle handle );
 static void nexus_simplevideodecoder_p_stop( NEXUS_SimpleVideoDecoderHandle handle );
@@ -178,18 +208,17 @@ server functions
 NEXUS_SimpleVideoDecoderServerHandle NEXUS_SimpleVideoDecoderServer_Create(void)
 {
     NEXUS_SimpleVideoDecoderServerHandle handle;
-    if (g_NEXUS_SimpleVideoDecoderServer) return NULL; /* singleton */
     handle = BKNI_Malloc(sizeof(*handle));
     if (!handle) return NULL;
     NEXUS_OBJECT_INIT(NEXUS_SimpleVideoDecoderServer, handle);
-    g_NEXUS_SimpleVideoDecoderServer = handle;
+    BLST_S_INSERT_HEAD(&g_NEXUS_SimpleVideoDecoderServers, handle, link);
     return handle;
 }
 
 static void NEXUS_SimpleVideoDecoderServer_P_Finalizer( NEXUS_SimpleVideoDecoderServerHandle handle )
 {
+    BLST_S_REMOVE(&g_NEXUS_SimpleVideoDecoderServers, handle, NEXUS_SimpleVideoDecoderServer, link);
     NEXUS_OBJECT_DESTROY(NEXUS_SimpleVideoDecoderServer, handle);
-    g_NEXUS_SimpleVideoDecoderServer = NULL;
     BKNI_Free(handle);
 }
 
@@ -418,6 +447,7 @@ NEXUS_Error NEXUS_SimpleVideoDecoder_SetServerSettings( NEXUS_SimpleVideoDecoder
 void NEXUS_SimpleVideoDecoder_GetStcStatus_priv(NEXUS_SimpleVideoDecoderHandle handle, NEXUS_SimpleStcChannelDecoderStatus * pStatus)
 {
     NEXUS_OBJECT_ASSERT(NEXUS_SimpleVideoDecoder, handle);
+    BKNI_Memset(pStatus, 0, sizeof(*pStatus));
     pStatus->connected = (handle->serverSettings.videoDecoder && handle->serverSettings.enabled) ||
                          handle->hdmiInput.handle || handle->hdDviInput.handle;
     pStatus->started = handle->started;
@@ -425,6 +455,7 @@ void NEXUS_SimpleVideoDecoder_GetStcStatus_priv(NEXUS_SimpleVideoDecoderHandle h
     pStatus->primer = handle->primer.started && !handle->started;
     pStatus->hdDviInput = handle->hdmiInput.handle || handle->hdDviInput.handle;
     NEXUS_SimpleEncoder_GetStcStatus_priv(handle->encoder.handle, &pStatus->encoder);
+    pStatus->mainWindow = handle->serverSettings.mainWindow;
 }
 
 /**
@@ -453,10 +484,7 @@ NEXUS_SimpleVideoDecoderHandle NEXUS_SimpleVideoDecoder_Acquire( unsigned index 
 {
     NEXUS_Error rc;
     NEXUS_SimpleVideoDecoderHandle handle;
-    NEXUS_SimpleVideoDecoderServerHandle server = g_NEXUS_SimpleVideoDecoderServer;
-
-    if (!server) return NULL;
-    for (handle=BLST_S_FIRST(&server->decoders); handle; handle = BLST_S_NEXT(handle, link)) {
+    for (handle=nexus_simple_video_decoder_p_first(); handle; handle = nexus_simple_video_decoder_p_next(handle)) {
         BDBG_OBJECT_ASSERT(handle, NEXUS_SimpleVideoDecoder);
         if (handle->index == index) {
             if (handle->acquired) {
@@ -522,6 +550,11 @@ static bool nexus_simplevideodecoder_p_nondecoder(NEXUS_SimpleVideoDecoderHandle
     return handle->hdmiInput.handle || handle->hdDviInput.handle || handle->imageInput.handle;
 }
 
+#define SET_UPDATE_MODE(MODE, PUPDATEMODE) do { \
+    NEXUS_Module_Lock(g_NEXUS_simpleDecoderModuleSettings.modules.display); \
+    NEXUS_DisplayModule_SetUpdateMode_priv((MODE), (PUPDATEMODE)); \
+    NEXUS_Module_Unlock(g_NEXUS_simpleDecoderModuleSettings.modules.display);}while(0)
+
 static NEXUS_Error nexus_simplevideodecoder_p_connect(NEXUS_SimpleVideoDecoderHandle handle)
 {
     unsigned i;
@@ -550,72 +583,14 @@ static NEXUS_Error nexus_simplevideodecoder_p_connect(NEXUS_SimpleVideoDecoderHa
     }
 
     if (disp) {
+        NEXUS_DisplayUpdateMode updateMode;
+        SET_UPDATE_MODE(NEXUS_DisplayUpdateMode_eManual, &updateMode);
+        NEXUS_SimpleVideoDecoder_SetClientSettings(handle, &handle->clientSettings);
+        NEXUS_SimpleVideoDecoder_SetPictureQualitySettings(handle, &handle->pictureQualitySettings);
         if (!use_cache(handle)) {
-            NEXUS_SimpleVideoDecoder_SetClientSettings(handle, &handle->clientSettings);
-            NEXUS_SimpleVideoDecoder_SetPictureQualitySettings(handle, &handle->pictureQualitySettings);
-
             for (i=0;i<NEXUS_MAX_DISPLAYS;i++) {
                 NEXUS_VideoWindowHandle window = handle->serverSettings.window[i];
                 if (window) {
-                    NEXUS_VideoWindowSettings windowSettings;
-                    NEXUS_VideoWindowScalerSettings scalerSettings;
-                    bool change;
-
-                    NEXUS_Module_Lock(g_NEXUS_simpleDecoderModuleSettings.modules.display);
-                    NEXUS_VideoWindow_GetSettings_priv(window, &windowSettings);
-                    change = false;
-                    if (g_pCoreHandles->boxConfig->stBox.ulBoxId == 0) {
-                        if (handle->startSettings.smoothResolutionChange && i == 0) {
-                            if (!windowSettings.minimumDisplayFormat) {
-                                NEXUS_VideoWindow_GetDefaultMinDisplayFormat_isrsafe(window, &windowSettings.minimumDisplayFormat);
-                                windowSettings.allocateFullScreen = true;
-                                change = true;
-                            }
-                        }
-                        else {
-                            if (windowSettings.minimumDisplayFormat) {
-                                windowSettings.minimumDisplayFormat = NEXUS_VideoFormat_eUnknown;
-                                windowSettings.allocateFullScreen = false;
-                                change = true;
-                            }
-                        }
-                    }
-                    /* for box mode systems, the only effect of smoothResolutionChange is disabling scaleFactorRounding */
-                    if (windowSettings.scaleFactorRounding.enabled != !handle->startSettings.smoothResolutionChange) {
-                        windowSettings.scaleFactorRounding.enabled = !handle->startSettings.smoothResolutionChange;
-                        change = true;
-                    }
-                    if (change) {
-                        NEXUS_VideoWindow_SetSettings_priv(window, &windowSettings);
-                    }
-                    NEXUS_Module_Unlock(g_NEXUS_simpleDecoderModuleSettings.modules.display);
-
-                    if (g_pCoreHandles->boxConfig->stBox.ulBoxId == 0) {
-                        /* no priv for these functions because they are not called elsewhere in nxclient system */
-                        NEXUS_VideoWindow_GetScalerSettings(window, &scalerSettings);
-                        change = false;
-                        if (handle->startSettings.smoothResolutionChange && i == 0) {
-                            if (scalerSettings.bandwidthEquationParams.bias != NEXUS_ScalerCaptureBias_eScalerBeforeCapture) {
-                                scalerSettings.bandwidthEquationParams.bias = NEXUS_ScalerCaptureBias_eScalerBeforeCapture;
-                                scalerSettings.bandwidthEquationParams.delta = 1*1000*1000;
-                                change = true;
-                            }
-                        }
-                        else {
-                            NEXUS_VideoWindowScalerSettings defaultSettings;
-                            NEXUS_VideoWindow_GetDefaultScalerSettings(&defaultSettings);
-                            /* avoid calling SetScalerSettings unless there's really a change */
-                            if (scalerSettings.bandwidthEquationParams.bias != defaultSettings.bandwidthEquationParams.bias ||
-                                scalerSettings.bandwidthEquationParams.delta != defaultSettings.bandwidthEquationParams.delta) {
-                                scalerSettings.bandwidthEquationParams = defaultSettings.bandwidthEquationParams;
-                                change = true;
-                            }
-                        }
-                        if (change) {
-                            NEXUS_VideoWindow_SetScalerSettings(window, &scalerSettings);
-                        }
-                    }
-
                     if (i == 1 && handle->server->sdOverride.videoInput) {
                         rc = NEXUS_VideoWindow_AddInput(window, handle->server->sdOverride.videoInput);
                         if (rc) { rc = BERR_TRACE(rc); goto error; }
@@ -627,6 +602,7 @@ static NEXUS_Error nexus_simplevideodecoder_p_connect(NEXUS_SimpleVideoDecoderHa
                 }
             }
         }
+        NEXUS_DisplayModule_SetUpdateMode(updateMode);
     }
     else {
         NEXUS_SimpleVideoDecoderModule_CheckCache(handle->server, NULL, handle->serverSettings.videoDecoder);
@@ -639,6 +615,7 @@ static NEXUS_Error nexus_simplevideodecoder_p_connect(NEXUS_SimpleVideoDecoderHa
     return 0;
 
 error:
+    NEXUS_DisplayModule_SetUpdateMode(NEXUS_DisplayUpdateMode_eAuto);
     nexus_simplevideodecoder_p_disconnect(handle, false);
     return rc;
 }
@@ -646,6 +623,8 @@ error:
 static void nexus_simplevideodecoder_p_disconnect_settings(const NEXUS_SimpleVideoDecoderServerSettings *pSettings, NEXUS_SimpleVideoDecoderHandle handle)
 {
     NEXUS_VideoInput videoInput;
+    NEXUS_DisplayUpdateMode updateMode;
+    SET_UPDATE_MODE(NEXUS_DisplayUpdateMode_eAuto, &updateMode);
     if (handle) {
         if (handle->server->sdOverride.videoInput) {
             NEXUS_VideoWindowHandle window = handle->serverSettings.window[1];
@@ -666,6 +645,7 @@ static void nexus_simplevideodecoder_p_disconnect_settings(const NEXUS_SimpleVid
         /* display module will internally call NEXUS_VideoWindow_RemoveInput in optimal way */
         NEXUS_VideoInput_Shutdown(videoInput);
     }
+    NEXUS_DisplayModule_SetUpdateMode(updateMode);
     if (handle) {
         /* only reset video decoder settings back to default when shutting down */
         nexus_simplevideodecoder_p_setdecodersettings(handle, false);
@@ -675,7 +655,9 @@ static void nexus_simplevideodecoder_p_disconnect_settings(const NEXUS_SimpleVid
 static NEXUS_Error nexus_simplevideodecoder_p_setvbisetings(NEXUS_SimpleVideoDecoderHandle handle, bool closedCaptionRouting)
 {
     unsigned i;
+    NEXUS_Error rc = NEXUS_SUCCESS;
     bool connect = closedCaptionRouting && handle->serverSettings.videoDecoder;
+    NEXUS_DisplayUpdateMode updateMode;
 
     if (nexus_simplevideodecoder_p_nondecoder(handle)) {
         return 0;
@@ -691,12 +673,12 @@ static NEXUS_Error nexus_simplevideodecoder_p_setvbisetings(NEXUS_SimpleVideoDec
         }
     }
 
+    SET_UPDATE_MODE(NEXUS_DisplayUpdateMode_eManual, &updateMode);
     for (i=0;i<NEXUS_MAX_DISPLAYS;i++) {
         if (handle->serverSettings.display[i]) {
             NEXUS_DisplayVbiSettings settings;
             NEXUS_Display_GetVbiSettings(handle->serverSettings.display[i], &settings);
             if (settings.closedCaptionEnabled) {
-                int rc;
                 if (connect) {
                     settings.vbiSource = NEXUS_VideoDecoder_GetConnector(handle->serverSettings.videoDecoder);
                     settings.closedCaptionRouting = true;
@@ -706,11 +688,16 @@ static NEXUS_Error nexus_simplevideodecoder_p_setvbisetings(NEXUS_SimpleVideoDec
                     settings.closedCaptionRouting = false;
                 }
                 rc = NEXUS_Display_SetVbiSettings(handle->serverSettings.display[i], &settings);
-                if (rc) return BERR_TRACE(rc);
+                if (rc) {rc = BERR_TRACE(rc); goto error;}
             }
         }
     }
+    NEXUS_DisplayModule_SetUpdateMode(updateMode);
     return 0;
+
+error:
+    NEXUS_DisplayModule_SetUpdateMode(NEXUS_DisplayUpdateMode_eAuto);
+    return rc;
 }
 
 static void nexus_simplevideodecoder_p_disconnect(NEXUS_SimpleVideoDecoderHandle handle, bool allow_cache)
@@ -769,19 +756,18 @@ static void surface_timer_func(void *arg)
     NEXUS_Error rc;
     struct nexus_captured_surface *cap;
     unsigned rptr;
-    NEXUS_SimpleVideoDecoderServerHandle server = g_NEXUS_SimpleVideoDecoderServer;
+    struct NEXUS_SimpleVideoAsGraphics *videoAsGraphics = arg;
+    NEXUS_SimpleVideoDecoderServerHandle server = videoAsGraphics->server;
 
-    BSTD_UNUSED(arg);
+    videoAsGraphics->timer = NULL;
 
-    if (!server) return;
-    server->videoAsGraphics.timer = NULL;
-
-    if (!server->videoAsGraphics.checkpointPending) {
+    if (!videoAsGraphics->checkpointPending) {
         NEXUS_SimpleVideoDecoderHandle handle;
         unsigned total = 0;
 
         for (handle=BLST_S_FIRST(&server->decoders); handle; handle=BLST_S_NEXT(handle, link)) {
             if (!handle->capture.started || !handle->serverSettings.videoDecoder) continue;
+            if (handle->capture.videoAsGraphics != videoAsGraphics) continue;
             BDBG_ASSERT(handle->capture.total);
             while (1) {
                 unsigned numEntries;
@@ -826,7 +812,7 @@ static void surface_timer_func(void *arg)
                 BDBG_ASSERT(rptr < handle->capture.total);
                 cap = &handle->capture.destripe[rptr];
                 if (cap->state == nexus_captured_surface_striped) {
-                    rc = NEXUS_Graphics2D_DestripeToSurface(server->videoAsGraphics.gfx, cap->stripedSurface, cap->surface, NULL);
+                    rc = NEXUS_Graphics2D_DestripeToSurface(videoAsGraphics->gfx, cap->stripedSurface, cap->surface, NULL);
                     if (rc == NEXUS_GRAPHICS2D_QUEUE_FULL) {
                         break;
                     }
@@ -847,21 +833,22 @@ static void surface_timer_func(void *arg)
         BDBG_MSG_TRACE(("surface_timer_func: checkpoint %d surface(s)", total));
     }
 
-    rc = NEXUS_Graphics2D_Checkpoint(server->videoAsGraphics.gfx, NULL);
+    rc = NEXUS_Graphics2D_Checkpoint(videoAsGraphics->gfx, NULL);
     if (rc==NEXUS_GRAPHICS2D_BUSY) {
         BDBG_MSG_TRACE(("surface_timer_func: checkpoint busy"));
-        server->videoAsGraphics.checkpointPending = true;
+        videoAsGraphics->checkpointPending = true;
         goto done;
     }
     else if (rc!=NEXUS_SUCCESS) {
-        server->videoAsGraphics.checkpointPending = false;
+        videoAsGraphics->checkpointPending = false;
         rc = BERR_TRACE(rc);
         goto done;
     }
     else { /* success */
         NEXUS_SimpleVideoDecoderHandle handle;
-        server->videoAsGraphics.checkpointPending = false;
+        videoAsGraphics->checkpointPending = false;
         for (handle=BLST_S_FIRST(&server->decoders); handle; handle=BLST_S_NEXT(handle, link)) {
+            if (handle->capture.videoAsGraphics != videoAsGraphics) continue;
             if (!handle->capture.total) continue;
             rptr = handle->capture.rptr;
             while (1) {
@@ -881,10 +868,10 @@ static void surface_timer_func(void *arg)
     }
 
 done:
-    server->videoAsGraphics.timer = NEXUS_ScheduleTimer(server->videoAsGraphics.checkpointPending?1:5, surface_timer_func, NULL);
+    videoAsGraphics->timer = NEXUS_ScheduleTimer(videoAsGraphics->checkpointPending?1:5, surface_timer_func, videoAsGraphics);
 }
 
-NEXUS_Error NEXUS_SimpleVideoDecoder_GetCapturedSurfaces(NEXUS_SimpleVideoDecoderHandle handle, NEXUS_SurfaceHandle *pSurface, NEXUS_SimpleVideoDecoderCaptureStatus *pStatus, unsigned numEntries, unsigned *pNumReturned)
+NEXUS_Error NEXUS_SimpleVideoDecoder_GetCapturedSurfaces(NEXUS_SimpleVideoDecoderHandle handle, NEXUS_SurfaceHandle *pSurface, NEXUS_VideoDecoderFrameStatus *pStatus, unsigned numEntries, unsigned *pNumReturned)
 {
     unsigned i = 0, rptr = handle->capture.rptr;
     while (i < numEntries) {
@@ -999,6 +986,45 @@ void NEXUS_SimpleVideoDecoder_GetDefaultStartCaptureSettings(NEXUS_SimpleVideoDe
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
 }
 
+static NEXUS_Error nexus_p_start_video_as_graphics(NEXUS_SimpleVideoDecoderHandle handle)
+{
+    struct NEXUS_SimpleVideoAsGraphics *videoAsGraphics = &handle->server->videoAsGraphics[handle->capture.settings.secure?1:0];
+    if (videoAsGraphics->refcnt++ == 0) {
+        NEXUS_Graphics2DSettings gfxSettings;
+        NEXUS_Graphics2DOpenSettings openSettings;
+        NEXUS_Graphics2D_GetDefaultOpenSettings(&openSettings);
+        openSettings.packetFifoSize = 4096; /* alloc space to destripe 12 mosaics, but also handle full queue */
+        openSettings.secure = handle->capture.settings.secure;
+        videoAsGraphics->gfx = NEXUS_Graphics2D_Open(NEXUS_ANY_ID, &openSettings);
+        if (videoAsGraphics->gfx==NULL) {
+            return BERR_TRACE(NEXUS_UNKNOWN);
+        }
+        NEXUS_Graphics2D_GetSettings(videoAsGraphics->gfx, &gfxSettings);
+        gfxSettings.pollingCheckpoint = true; /* must use pollingCheckpoint inside module */
+        NEXUS_Graphics2D_SetSettings(videoAsGraphics->gfx, &gfxSettings);
+
+        BDBG_ASSERT(!videoAsGraphics->timer);
+        videoAsGraphics->timer = NEXUS_ScheduleTimer(5, surface_timer_func, videoAsGraphics);
+        videoAsGraphics->server = handle->server;
+        videoAsGraphics->checkpointPending = false;
+    }
+    handle->capture.videoAsGraphics = videoAsGraphics;
+    return NEXUS_SUCCESS;
+}
+
+static void nexus_p_stop_video_as_graphics(NEXUS_SimpleVideoDecoderHandle handle)
+{
+    struct NEXUS_SimpleVideoAsGraphics *videoAsGraphics = handle->capture.videoAsGraphics;
+    BDBG_ASSERT(videoAsGraphics->refcnt);
+    if (--videoAsGraphics->refcnt == 0) {
+        BDBG_ASSERT(videoAsGraphics->timer);
+        NEXUS_CancelTimer(videoAsGraphics->timer);
+        videoAsGraphics->timer = NULL;
+        NEXUS_Graphics2D_Close(videoAsGraphics->gfx);
+    }
+    handle->capture.videoAsGraphics = NULL;
+}
+
 NEXUS_Error NEXUS_SimpleVideoDecoder_StartCapture(NEXUS_SimpleVideoDecoderHandle handle, const NEXUS_SimpleVideoDecoderStartCaptureSettings *pSettings)
 {
     NEXUS_Error rc;
@@ -1036,26 +1062,8 @@ NEXUS_Error NEXUS_SimpleVideoDecoder_StartCapture(NEXUS_SimpleVideoDecoderHandle
     }
     handle->capture.rptr = handle->capture.wptr = 0;
 
-    if (handle->server->videoAsGraphics.refcnt++ == 0) {
-        NEXUS_Graphics2DSettings gfxSettings;
-        NEXUS_Graphics2DOpenSettings openSettings;
-
-        NEXUS_Graphics2D_GetDefaultOpenSettings(&openSettings);
-        openSettings.packetFifoSize = 4096; /* alloc space to destripe 12 mosaics, but also handle full queue */
-        openSettings.secure = pSettings->secure;
-        handle->server->videoAsGraphics.gfx = NEXUS_Graphics2D_Open(NEXUS_ANY_ID, &openSettings);
-        if (handle->server->videoAsGraphics.gfx==NULL) {
-            rc = BERR_TRACE(NEXUS_UNKNOWN);
-            goto err_opengfx;
-        }
-        NEXUS_Graphics2D_GetSettings(handle->server->videoAsGraphics.gfx, &gfxSettings);
-        gfxSettings.pollingCheckpoint = true; /* must use pollingCheckpoint inside module */
-        NEXUS_Graphics2D_SetSettings(handle->server->videoAsGraphics.gfx, &gfxSettings);
-
-        BDBG_ASSERT(!handle->server->videoAsGraphics.timer);
-        handle->server->videoAsGraphics.timer = NEXUS_ScheduleTimer(5, surface_timer_func, NULL);
-        handle->server->videoAsGraphics.checkpointPending = false;
-    }
+    rc = nexus_p_start_video_as_graphics(handle);
+    if (rc) {BERR_TRACE(rc); goto err_opengfx;}
 
     return 0;
 
@@ -1074,13 +1082,7 @@ void NEXUS_SimpleVideoDecoder_StopCapture(NEXUS_SimpleVideoDecoderHandle handle)
 
     nexus_simplevideodecoder_p_reset_caps(handle);
 
-    BDBG_ASSERT(handle->server->videoAsGraphics.refcnt);
-    if (--handle->server->videoAsGraphics.refcnt == 0) {
-        BDBG_ASSERT(handle->server->videoAsGraphics.timer);
-        NEXUS_CancelTimer(handle->server->videoAsGraphics.timer);
-        handle->server->videoAsGraphics.timer = NULL;
-        NEXUS_Graphics2D_Close(handle->server->videoAsGraphics.gfx);
-    }
+    nexus_p_stop_video_as_graphics(handle);
 
     handle->capture.total = 0;
     handle->capture.started = false;
@@ -1445,24 +1447,33 @@ NEXUS_Error NEXUS_SimpleVideoDecoder_SetClientSettings( NEXUS_SimpleVideoDecoder
 {
     unsigned i;
     NEXUS_Error rc;
+    NEXUS_DisplayUpdateMode updateMode;
 
     BDBG_OBJECT_ASSERT(handle, NEXUS_SimpleVideoDecoder);
+
+    SET_UPDATE_MODE(NEXUS_DisplayUpdateMode_eManual, &updateMode);
+
     for (i=0;i<NEXUS_MAX_DISPLAYS;i++) {
         NEXUS_VideoWindowHandle window = handle->serverSettings.window[i];
         if (window) {
             rc = NEXUS_VideoWindow_SetAfdSettings(window, &pSettings->afdSettings);
-            if (rc) return BERR_TRACE(rc);
+            if (rc) {rc = BERR_TRACE(rc); goto error;}
         }
     }
     if (handle->connected) {
         rc = nexus_simplevideodecoder_p_setvbisetings(handle, pSettings->closedCaptionRouting);
         if (rc) return BERR_TRACE(rc);
     }
+    NEXUS_DisplayModule_SetUpdateMode(updateMode);
     if (pSettings != &handle->clientSettings) {
         NEXUS_TaskCallback_Set(handle->resourceChangedCallback, &pSettings->resourceChanged);
         handle->clientSettings = *pSettings;
     }
     return 0;
+
+error:
+    NEXUS_DisplayModule_SetUpdateMode(NEXUS_DisplayUpdateMode_eAuto);
+    return rc;
 }
 
 void NEXUS_SimpleVideoDecoder_GetSettings( NEXUS_SimpleVideoDecoderHandle handle, NEXUS_VideoDecoderSettings *pSettings )
@@ -1808,10 +1819,8 @@ BDBG_FILE_MODULE(nexus_simple_decoder_proc);
 void NEXUS_SimpleDecoderModule_P_PrintVideoDecoder(void)
 {
 #if BDBG_DEBUG_BUILD
-    NEXUS_SimpleVideoDecoderServerHandle server = g_NEXUS_SimpleVideoDecoderServer;
     NEXUS_SimpleVideoDecoderHandle handle;
-    if (!server) return;
-    for (handle=BLST_S_FIRST(&server->decoders); handle; handle=BLST_S_NEXT(handle, link)) {
+    for (handle=nexus_simple_video_decoder_p_first(); handle; handle = nexus_simple_video_decoder_p_next(handle)) {
         BDBG_MODULE_LOG(nexus_simple_decoder_proc, ("video %u(%p)", handle->index, (void *)handle));
         BDBG_MODULE_LOG(nexus_simple_decoder_proc, ("  acquired %d, clientStarted %d",
             handle->acquired, handle->clientStarted));
@@ -2024,11 +2033,19 @@ void NEXUS_SimpleVideoDecoder_GetPictureQualitySettings( NEXUS_SimpleVideoDecode
     *pSettings = handle->pictureQualitySettings;
 }
 
-static NEXUS_Error nexus_simplevideodecoder_p_setwindowpq(NEXUS_VideoWindowHandle window, const NEXUS_SimpleVideoDecoderPictureQualitySettings *pSettings )
+static NEXUS_Error nexus_simplevideodecoder_p_setwindowpq(NEXUS_SimpleVideoDecoderHandle handle, NEXUS_VideoWindowHandle window, const NEXUS_SimpleVideoDecoderPictureQualitySettings *pSettings )
 {
+    NEXUS_VideoWindowSettings windowSettings;
+    bool change;
     NEXUS_Error rc;
+    bool firstWindow=false;
     NEXUS_VideoWindowMadSettings madSettings = pSettings->mad;
+
     rc = NEXUS_PictureCtrl_SetCommonSettings(window, &pSettings->common);
+    if (rc) return BERR_TRACE(rc);
+    rc = NEXUS_PictureCtrl_SetAdvColorSettings(window, &pSettings->advColor);
+    if (rc) return BERR_TRACE(rc);
+    rc = NEXUS_PictureCtrl_SetContrastStretch(window, &pSettings->constrastStretch);
     if (rc) return BERR_TRACE(rc);
     /* DNR is per source, but we must apply to both HD and SD display windows so we don't have inconsistent settings */
     rc = NEXUS_VideoWindow_SetDnrSettings(window, &pSettings->dnr);
@@ -2043,8 +2060,69 @@ static NEXUS_Error nexus_simplevideodecoder_p_setwindowpq(NEXUS_VideoWindowHandl
     }
     rc = NEXUS_VideoWindow_SetMadSettings(window, &madSettings);
     if (rc) return BERR_TRACE(rc);
-    rc = NEXUS_VideoWindow_SetScalerSettings(window, &pSettings->scaler);
-    if (rc) return BERR_TRACE(rc);
+
+    NEXUS_Module_Lock(g_NEXUS_simpleDecoderModuleSettings.modules.display);
+    NEXUS_VideoWindow_GetSettings_priv(window, &windowSettings);
+    change = false;
+
+    if ( handle->serverSettings.window[0] && ( handle->serverSettings.window[0] == window) ) firstWindow=true;
+
+    if (g_pCoreHandles->boxConfig->stBox.ulBoxId == 0) {
+        if (handle->startSettings.smoothResolutionChange && firstWindow ) {
+            if (!windowSettings.minimumDisplayFormat) {
+                NEXUS_VideoWindow_GetDefaultMinDisplayFormat_isrsafe(window, &windowSettings.minimumDisplayFormat);
+                windowSettings.allocateFullScreen = true;
+                change = true;
+            }
+        }
+        else {
+            if (windowSettings.minimumDisplayFormat) {
+                windowSettings.minimumDisplayFormat = NEXUS_VideoFormat_eUnknown;
+                windowSettings.allocateFullScreen = false;
+                change = true;
+            }
+        }
+    }
+    /* for box mode systems, the only effect of smoothResolutionChange is disabling scaleFactorRounding */
+    if (windowSettings.scaleFactorRounding.enabled != !handle->startSettings.smoothResolutionChange) {
+        windowSettings.scaleFactorRounding.enabled = !handle->startSettings.smoothResolutionChange;
+        change = true;
+    }
+    if (change) {
+        NEXUS_VideoWindow_SetSettings_priv(window, &windowSettings);
+    }
+    NEXUS_Module_Unlock(g_NEXUS_simpleDecoderModuleSettings.modules.display);
+
+    if (g_pCoreHandles->boxConfig->stBox.ulBoxId == 0) {
+        NEXUS_VideoWindowScalerSettings scalerSettings;
+        /* no priv for these functions because they are not called elsewhere in nxclient system */
+        scalerSettings = pSettings->scaler;
+        change = false;
+        if (handle->startSettings.smoothResolutionChange && firstWindow /* i == 0 */) {
+            if (scalerSettings.bandwidthEquationParams.bias != NEXUS_ScalerCaptureBias_eScalerBeforeCapture) {
+                scalerSettings.bandwidthEquationParams.bias = NEXUS_ScalerCaptureBias_eScalerBeforeCapture;
+                scalerSettings.bandwidthEquationParams.delta = 1*1000*1000;
+                change = true;
+            }
+        }
+        else {
+            NEXUS_VideoWindowScalerSettings defaultSettings;
+            NEXUS_VideoWindow_GetDefaultScalerSettings(&defaultSettings);
+            /* avoid calling SetScalerSettings unless there's really a change */
+            if (scalerSettings.bandwidthEquationParams.bias != defaultSettings.bandwidthEquationParams.bias ||
+                scalerSettings.bandwidthEquationParams.delta != defaultSettings.bandwidthEquationParams.delta) {
+                scalerSettings.bandwidthEquationParams = defaultSettings.bandwidthEquationParams;
+                change = true;
+            }
+        }
+        if (change) {
+            NEXUS_VideoWindow_SetScalerSettings(window, &scalerSettings);
+        }
+    }
+    else {
+        rc = NEXUS_VideoWindow_SetScalerSettings(window, &pSettings->scaler);
+        if (rc) return BERR_TRACE(rc);
+    }
     return 0;
 }
 
@@ -2054,22 +2132,29 @@ NEXUS_Error NEXUS_SimpleVideoDecoder_SetPictureQualitySettings( NEXUS_SimpleVide
 
     BDBG_OBJECT_ASSERT(handle, NEXUS_SimpleVideoDecoder);
     if (handle->encoder.window) {
-        rc = nexus_simplevideodecoder_p_setwindowpq(handle->encoder.window, pSettings);
+        rc = nexus_simplevideodecoder_p_setwindowpq( handle, handle->encoder.window, pSettings);
         if (rc) return BERR_TRACE(rc);
     }
     else {
         unsigned i;
+        NEXUS_DisplayUpdateMode updateMode;
+        SET_UPDATE_MODE(NEXUS_DisplayUpdateMode_eManual, &updateMode);
         for (i=0;i<NEXUS_MAX_DISPLAYS;i++) {
             if (handle->serverSettings.window[i]) {
-                rc = nexus_simplevideodecoder_p_setwindowpq(handle->serverSettings.window[i], pSettings);
-                if (rc) return BERR_TRACE(rc);
+                rc = nexus_simplevideodecoder_p_setwindowpq( handle, handle->serverSettings.window[i], pSettings);
+                if (rc) {rc = BERR_TRACE(rc); goto error;}
             }
         }
+        NEXUS_DisplayModule_SetUpdateMode(updateMode);
     }
     if (pSettings != &handle->pictureQualitySettings) {
         handle->pictureQualitySettings = *pSettings;
     }
     return 0;
+
+error:
+    NEXUS_DisplayModule_SetUpdateMode(NEXUS_DisplayUpdateMode_eAuto);
+    return rc;
 }
 
 void NEXUS_SimpleVideoDecoder_GetStcIndex( NEXUS_SimpleVideoDecoderServerHandle server, NEXUS_SimpleVideoDecoderHandle handle, int *pStcIndex )

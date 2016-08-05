@@ -126,7 +126,9 @@ void BMMA_RangeAllocator_Verify(BMMA_RangeAllocator_Handle a, bool printAllocati
     BMMA_RangeAllocator_Block_Handle b,prev;
     unsigned n;
     unsigned freeBlocks;
+#if BDBG_DEBUG_BUILD
     unsigned blocks;
+#endif
     unsigned holes;
     size_t allocatedSpace,freeSpace;
 
@@ -148,7 +150,9 @@ void BMMA_RangeAllocator_Verify(BMMA_RangeAllocator_Handle a, bool printAllocati
         prev = b;
     }
     BDBG_ASSERT(n==a->status.freeBlocks);
+#if BDBG_DEBUG_BUILD
     blocks = a->status.freeBlocks + a->status.allocatedBlocks;
+#endif
 
     for(allocatedSpace=freeSpace=0, holes=freeBlocks=0, n=0,prev=NULL, b=BLST_D_FIRST(&a->blocks);b!=NULL;n++) {
         BMMA_RangeAllocator_Block_Handle next;
@@ -221,7 +225,7 @@ static BMMA_RangeAllocator_Block_Handle BMMA_RangeAllocator_P_AllocateNode(BMMA_
 {
     if(b==NULL) {
         b = BMMA_PoolAllocator_Alloc(a->blockAllocator);
-        if(b==NULL) {BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);return NULL;}
+        if(b==NULL) {(void)BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);return NULL;}
     }
     BDBG_OBJECT_INIT(b, BMMA_RangeAllocator_Block);
     b->region.base = base;
@@ -241,7 +245,8 @@ BMMA_RangeAllocator_P_InsertFreeNodeSorted(BMMA_RangeAllocator_Handle a, BMMA_Ra
     BMMA_RangeAllocator_Block_Handle blockInserted;
 
     b->state.size = 0;
-    blockInserted=BLST_AA_TREE_INSERT(BMMA_RangeAllocator_SizeTree, &a->size_tree, &b->region, b);
+    blockInserted = BLST_AA_TREE_INSERT(BMMA_RangeAllocator_SizeTree, &a->size_tree, &b->region, b);
+    BSTD_UNUSED(blockInserted);
     BDBG_ASSERT(blockInserted==b);
     return;
 }
@@ -467,7 +472,10 @@ bool BMMA_RangeAllocator_AllocateInRegion_InFront(const BMMA_RangeAllocator_Regi
 
 bool BMMA_RangeAllocator_AllocateInRegion_InBack(const BMMA_RangeAllocator_Region *region, size_t size, const BMMA_RangeAllocator_BlockSettings *settings, BMMA_RangeAllocator_Region *allocation)
 {
-    BMMA_DeviceOffset base, block_end, allocation_end, temp_base;
+    BMMA_DeviceOffset base, block_end, temp_base;
+#if BDBG_DEBUG_BUILD
+    BMMA_DeviceOffset allocation_end;
+#endif
     block_end = region->base + region->length;
     if(block_end<size) { /* requested block wouldn't fit */
         return false;
@@ -480,7 +488,9 @@ bool BMMA_RangeAllocator_AllocateInRegion_InBack(const BMMA_RangeAllocator_Regio
         }
         base -= settings->alignment;
     }
+#if BDBG_DEBUG_BUILD
     allocation_end = base + size;
+#endif
     block_end = region->base + region->length;
     BDBG_MSG_TRACE(("BMMA_RangeAllocator_AllocateInRegion_InBack:%u(%u) %s " BDBG_UINT64_FMT "(%u) " BDBG_UINT64_FMT "(%u)", (unsigned)size, settings->alignment, block_end < allocation_end?"won't fit":"fit", BDBG_UINT64_ARG(region->base), (unsigned)region->length, BDBG_UINT64_ARG(base), (unsigned)size));
     if(base < region->base) { /* requested block wouldn't fit */

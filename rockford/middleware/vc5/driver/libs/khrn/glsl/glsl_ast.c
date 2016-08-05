@@ -17,7 +17,6 @@ FILE DESCRIPTION
 #include "glsl_ast.h"
 #include "glsl_ast_visitor.h"
 #include "glsl_builders.h"
-#include "glsl_check.h"
 #include "glsl_const_operators.h"
 #include "glsl_errors.h"
 #include "glsl_extensions.h"
@@ -27,6 +26,7 @@ FILE DESCRIPTION
 #include "glsl_stdlib.auto.h"
 #include "glsl_symbols.h"
 #include "glsl_trace.h"
+#include "glsl_layout.h"
 
 //
 // Utilities.
@@ -133,7 +133,7 @@ bool glsl_is_lvalue(Expr *expr)
                return true;
 
             default:
-               UNREACHABLE();
+               unreachable();
                return false;
          }
       }
@@ -206,20 +206,20 @@ static bool valid_for_atomic(Expr *expr)
    - non-void function with plain return statement;
    - non-void function value return statement type mismatch.
 */
-static void spostv_check_returns(Statement *statement, void *data) {
+static void spostv_check_returns(Statement *s, void *data) {
    SymbolType *function_type = data;
 
-   if (statement->flavour == STATEMENT_RETURN ||
-       statement->flavour == STATEMENT_RETURN_EXPR)
+   if (s->flavour == STATEMENT_RETURN ||
+       s->flavour == STATEMENT_RETURN_EXPR)
    {
       SymbolType *returned_type = &primitiveTypes[PRIM_VOID];
 
-      if (statement->flavour == STATEMENT_RETURN_EXPR)
-         returned_type = statement->u.return_expr.expr->type;
+      if (s->flavour == STATEMENT_RETURN_EXPR)
+         returned_type = s->u.return_expr.expr->type;
 
       if (!glsl_shallow_match_nonfunction_types(returned_type, function_type))
       {
-         glsl_compile_error(ERROR_SEMANTIC, 1, statement->line_num, "return type %s does not match function definition %s",
+         glsl_compile_error(ERROR_SEMANTIC, 1, s->line_num, "return type %s does not match function definition %s",
                             returned_type->name, function_type->name);
       }
    }
@@ -254,7 +254,7 @@ static Statement *sprev_mark_entries(Statement *s, void *data) {
    return s;
 }
 
-static void reject_ins_outs(Statement *s) {
+static void reject_ins_outs(const Statement *s) {
    assert(s->flavour == STATEMENT_VAR_DECL);
 
    if (s->u.var_decl.quals == NULL) return;
@@ -263,6 +263,120 @@ static void reject_ins_outs(Statement *s) {
       if (n->q->flavour == QUAL_STORAGE && ( n->q->u.storage == STORAGE_IN ||
                                              n->q->u.storage == STORAGE_OUT  ) )
          glsl_compile_error(ERROR_SEMANTIC, 15, s->line_num, "in and out invalid in compute shaders");
+   }
+}
+
+static void validate_qualifier_default(const Statement *s, ShaderFlavour flavour, int version) {
+   StorageQualifier sq = STORAGE_NONE;
+   for (QualListNode *qn = s->u.qualifier_default.quals->head; qn; qn=qn->next)
+      if (qn->q->flavour == QUAL_STORAGE) sq = qn->q->u.storage;
+
+   for (QualListNode *qn = s->u.qualifier_default.quals->head; qn; qn=qn->next) {
+      if (qn->q->flavour == QUAL_LAYOUT) {
+         for (LayoutIDList *idn = qn->q->u.layout; idn; idn=idn->next) {
+            switch(idn->l->id) {
+               case LQ_SHARED:
+               case LQ_PACKED:
+               case LQ_STD140:
+               case LQ_STD430:
+               case LQ_ROW_MAJOR:
+               case LQ_COLUMN_MAJOR:
+                  if (sq != STORAGE_UNIFORM && sq != STORAGE_BUFFER)
+                     glsl_compile_error(ERROR_CUSTOM, 15, s->line_num, "Block qualifier only valid for uniform and buffer interfaces");
+                  break;
+               case LQ_TRIANGLES:
+                  if (sq != STORAGE_IN || (flavour != SHADER_TESS_EVALUATION && flavour != SHADER_GEOMETRY))
+                     glsl_compile_error(ERROR_CUSTOM, 15, s->line_num, "'trianlges'qualifier only valid for tess evaluation or geometry input");
+                  break;
+               case LQ_QUADS:
+               case LQ_ISOLINES:
+               case LQ_SPACING_EQUAL:
+               case LQ_SPACING_FRACTIONAL_EVEN:
+               case LQ_SPACING_FRACTIONAL_ODD:
+               case LQ_CW:
+               case LQ_CCW:
+               case LQ_POINT_MODE:
+                  if (sq != STORAGE_IN || flavour != SHADER_TESS_EVALUATION)
+                     glsl_compile_error(ERROR_CUSTOM, 15, s->line_num, "Tessellation mode qualifier only valid for tess evaluation input");
+                  break;
+               case LQ_POINTS:
+                  if (flavour != SHADER_GEOMETRY || (sq != STORAGE_IN && sq != STORAGE_OUT))
+                     glsl_compile_error(ERROR_CUSTOM, 15, s->line_num, "'points' qualifiers only valid for geometry input/output");
+                  break;
+               case LQ_LINES:
+               case LQ_LINES_ADJACENCY:
+               case LQ_TRIANGLES_ADJACENCY:
+                  if (flavour != SHADER_GEOMETRY || sq != STORAGE_IN)
+                     glsl_compile_error(ERROR_CUSTOM, 15, s->line_num, "Primitive type only valid for geometry input");
+                  break;
+               case LQ_INVOCATIONS:
+                  if (flavour != SHADER_GEOMETRY || sq != STORAGE_IN)
+                     glsl_compile_error(ERROR_CUSTOM, 15, s->line_num, "'invocations' qualifier only valid for geometry input");
+                  break;
+               case LQ_EARLY_FRAGMENT_TESTS:
+                  if (flavour != SHADER_FRAGMENT || sq != STORAGE_IN || version < GLSL_SHADER_VERSION(3,10,1))
+                     glsl_compile_error(ERROR_CUSTOM, 15, s->line_num, "'early_fragment_tests' layout only valid for fragment input (version >= 310)");
+                  break;
+               case LQ_SIZE_X:
+               case LQ_SIZE_Y:
+               case LQ_SIZE_Z:
+                  if (flavour != SHADER_COMPUTE || sq != STORAGE_IN)
+                     glsl_compile_error(ERROR_CUSTOM, 15, s->line_num, "Compute size qualifiers only valid for compute input");
+                  break;
+               case LQ_VERTICES:
+                  if (flavour != SHADER_TESS_CONTROL || sq != STORAGE_OUT)
+                     glsl_compile_error(ERROR_CUSTOM, 15, s->line_num, "'vertices' qualifiers only valid for tess control output");
+                  break;
+               case LQ_LINE_STRIP:
+               case LQ_TRIANGLE_STRIP:
+                  if (flavour != SHADER_GEOMETRY || sq != STORAGE_OUT)
+                     glsl_compile_error(ERROR_CUSTOM, 15, s->line_num, "Primitive type only valid for geometry output");
+                  break;
+               case LQ_MAX_VERTICES:
+                  if (flavour != SHADER_GEOMETRY || sq != STORAGE_OUT)
+                     glsl_compile_error(ERROR_CUSTOM, 15, s->line_num, "'max_vertices' only valid for geometry output");
+                  break;
+               default:
+                  glsl_compile_error(ERROR_CUSTOM, 15, s->line_num, "Layout qualifier not valid for default declarations");
+            }
+         }
+      }
+   }
+}
+
+/* Determine whether the given variable may be declared invariant. Outputs can
+   always be invariant. Additionally fragment shader inputs may be invariant in
+   language version 100.  */
+bool invariant_decl_valid(Symbol *var, ShaderFlavour flavour, int version) {
+   if (var->flavour != SYMBOL_VAR_INSTANCE) return false;
+
+   StorageQualifier sq = var->u.var_instance.storage_qual;
+   if (sq == STORAGE_OUT) return true;
+   if (version == GLSL_SHADER_VERSION(1, 0, 1) &&
+       sq == STORAGE_IN && flavour == SHADER_FRAGMENT) return true;
+
+   return false;
+}
+
+static void validate_qualifier_augment(const Statement *s, ShaderFlavour flavour, int version) {
+   int invariant = 0, precise = 0, other = 0;
+   for (QualListNode *qn = s->u.qualifier_augment.quals->head; qn; qn = qn->next) {
+      if      (qn->q->flavour == QUAL_INVARIANT) invariant++;
+      else if (qn->q->flavour == QUAL_PRECISE)   precise++;
+      else other++;
+   }
+
+   if (other > 0)
+      glsl_compile_error(ERROR_CUSTOM, 15, s->line_num, "Invalid requalification");
+
+   if (invariant > 1 || precise > 1)
+      glsl_compile_error(ERROR_CUSTOM, 15, s->line_num, "repeated qualifier");
+
+   if (invariant > 0) {
+      for (SymbolListNode *n = s->u.qualifier_augment.vars->head; n; n=n->next) {
+         if(!invariant_decl_valid(n->s, flavour, version))
+            glsl_compile_error(ERROR_SEMANTIC, 34, s->line_num, "%s", n->s->name);
+      }
    }
 }
 
@@ -308,6 +422,12 @@ static void spostv_check_and_mark_exits(Statement *s, void *data) {
       glsl_compile_error(ERROR_CUSTOM, 12, s->line_num, NULL);
    if (s->flavour == STATEMENT_VAR_DECL && info->flavour == SHADER_COMPUTE)
       reject_ins_outs(s);
+   if (s->flavour == STATEMENT_QUALIFIER_DEFAULT)
+      validate_qualifier_default(s, info->flavour, info->version);
+   if (s->flavour == STATEMENT_FUNCTION_DEF)
+      check_returns(s->u.function_def.header->type->u.function_type.return_type, s->u.function_def.body);
+   if (s->flavour == STATEMENT_QUALIFIER_AUGMENT)
+      validate_qualifier_augment(s, info->flavour, info->version);
 
    /* Now check nesting */
    switch (s->flavour) {
@@ -322,11 +442,11 @@ static void spostv_check_and_mark_exits(Statement *s, void *data) {
 
       case STATEMENT_BREAK:
          if (info->loop_depth == 0 && info->switch_depth == 0)
-            glsl_compile_error(ERROR_CUSTOM, 23, g_LineNumber, NULL);
+            glsl_compile_error(ERROR_CUSTOM, 23, s->line_num, NULL);
          break;
       case STATEMENT_CONTINUE:
          if (info->loop_depth == 0)
-            glsl_compile_error(ERROR_CUSTOM, 23, g_LineNumber, NULL);
+            glsl_compile_error(ERROR_CUSTOM, 23, s->line_num, NULL);
          break;
       default:
          break;
@@ -443,24 +563,24 @@ static void epostv_validate(Expr *e, void *data) {
          break;
       }
       default:
-         UNREACHABLE();
+         unreachable();
          break;
    }
 
+   struct validate_data *d = data;
    if (e->flavour == EXPR_FUNCTION_CALL) {
       Symbol *called = e->u.function_call.function;
       if (called->u.function_instance.function_def == NULL)
          glsl_compile_error(ERROR_CUSTOM, 21, e->line_num, "%s", called->name);
 
       if (glsl_stdlib_is_stdlib_symbol(called)) {
-         int fn_props = glsl_stdlib_function_properties[glsl_stdlib_function_index(called)];
+         uint64_t fn_props = glsl_stdlib_function_properties[glsl_stdlib_function_index(called)];
          if (fn_props & GLSL_STDLIB_PROPERTY_ATOMIC_MEM) {
             if (!valid_for_atomic(e->u.function_call.args->first->expr))
                glsl_compile_error(ERROR_CUSTOM, 21, e->line_num, NULL);
          }
 
-         struct validate_data *d = data;
-         bool gath_off_const = d->version < GLSL_SHADER_VERSION(3,20,1);
+         bool gath_off_const = d->version < GLSL_SHADER_VERSION(3,20,1) && glsl_ext_status(GLSL_EXT_GPU_SHADER5) == GLSL_DISABLED;
          if (fn_props & (GLSL_STDLIB_PROPERTY_ARG3_CONST | (gath_off_const ? GLSL_STDLIB_PROPERTY_ARG3_GATHER_OFFSET : 0)))
             ensure_arg_n_const(called, e->u.function_call.args, 3);
          if (fn_props & (GLSL_STDLIB_PROPERTY_ARG4_CONST | (gath_off_const ? GLSL_STDLIB_PROPERTY_ARG4_GATHER_OFFSET : 0)))
@@ -470,13 +590,42 @@ static void epostv_validate(Expr *e, void *data) {
       }
    }
 
+   if (d->version < GLSL_SHADER_VERSION(3,0,1)) {
+      switch(e->flavour) {
+         case EXPR_BITWISE_AND:
+         case EXPR_BITWISE_OR:
+         case EXPR_BITWISE_XOR:
+         case EXPR_BITWISE_NOT:
+         case EXPR_SHL:
+         case EXPR_SHR:
+         case EXPR_REM:
+            glsl_compile_error(ERROR_SEMANTIC, 4, e->line_num, "operator not supported before GLSL version 300 es");
+
+         case EXPR_ASSIGN:
+         case EXPR_CONDITIONAL:
+            if (glsl_type_contains_array(e->type))
+               glsl_compile_error(ERROR_SEMANTIC, 4, e->line_num, "operator not supported for arrays before GLSL version 300 es");
+            break;
+         case EXPR_EQUAL:
+         case EXPR_NOT_EQUAL:
+            if (glsl_type_contains_array(e->u.binary_op.left->type))
+               glsl_compile_error(ERROR_SEMANTIC, 4, e->line_num, "operator not supported for arrays before GLSL version 300 es");
+            break;
+         default:
+            break;
+      }
+   }
+
    if (e->flavour == EXPR_SUBSCRIPT) {
       /* Check that all interface blocks are indexed by constant expressions */
       SymbolType *aggregate_type = e->u.subscript.aggregate->type;
       while (aggregate_type->flavour == SYMBOL_ARRAY_TYPE)
          aggregate_type = aggregate_type->u.array_type.member_type;
-      if (aggregate_type->flavour == SYMBOL_BLOCK_TYPE && !e->u.subscript.subscript->compile_time_value)
-         glsl_compile_error(ERROR_SEMANTIC, 15, e->line_num, "indexing array of interface blocks");
+      if (aggregate_type->flavour == SYMBOL_BLOCK_TYPE && !e->u.subscript.subscript->compile_time_value) {
+         bool shader5 = d->version >= GLSL_SHADER_VERSION(3,20,1) || glsl_ext_status(GLSL_EXT_GPU_SHADER5) != GLSL_DISABLED;
+         if (!shader5 || e->u.subscript.aggregate->u.instance.symbol->u.var_instance.storage_qual == STORAGE_BUFFER)
+            glsl_compile_error(ERROR_SEMANTIC, 15, e->line_num, "indexing array of interface blocks");
+      }
    }
 }
 
@@ -542,14 +691,14 @@ void glsl_ast_validate(Statement *ast, ShaderFlavour flavour, int version) {
 //
 /////////////////////
 
-Expr *glsl_expr_construct_const_value(PrimitiveTypeIndex type_index, const_value v)
+Expr *glsl_expr_construct_const_value(int line_num, PrimitiveTypeIndex type_index, const_value v)
 {
    assert(type_index == PRIM_INT  || type_index == PRIM_UINT ||
           type_index == PRIM_BOOL || type_index == PRIM_FLOAT);
 
    Expr *expr     = malloc_fast(sizeof(Expr));
-   expr->line_num = g_LineNumber;
    expr->flavour  = EXPR_VALUE;
+   expr->line_num = line_num;
    expr->type     = &primitiveTypes[type_index];
    expr->compile_time_value = malloc_fast(sizeof(const_value));
    *expr->compile_time_value = v;
@@ -557,11 +706,11 @@ Expr *glsl_expr_construct_const_value(PrimitiveTypeIndex type_index, const_value
    return expr;
 }
 
-Expr *glsl_expr_construct_instance(Symbol *symbol)
+Expr *glsl_expr_construct_instance(int line_num, Symbol *symbol)
 {
-   Expr *expr = malloc_fast(sizeof(Expr));
-   expr->line_num = g_LineNumber;
+   Expr *expr     = malloc_fast(sizeof(Expr));
    expr->flavour  = EXPR_INSTANCE;
+   expr->line_num = line_num;
    expr->type     = symbol->type;
    expr->u.instance.symbol = symbol;
 
@@ -576,32 +725,31 @@ Expr *glsl_expr_construct_instance(Symbol *symbol)
          break;
       default:
          // Identifier is not var or param.
-         glsl_compile_error(ERROR_CUSTOM, 1, g_LineNumber, "%s", symbol->name);
+         glsl_compile_error(ERROR_CUSTOM, 1, line_num, "%s", symbol->name);
          return NULL;
    }
 
    return expr;
 }
 
-Expr *glsl_expr_construct_subscript(Expr* aggregate, Expr* subscript)
+Expr *glsl_expr_construct_subscript(int line_num, Expr *aggregate, Expr *subscript)
 {
-   if (subscript->type != &primitiveTypes[PRIM_INT] &&
-       subscript->type != &primitiveTypes[PRIM_UINT]  )
-   {
-      // subscript is not integral.
-      glsl_compile_error(ERROR_CUSTOM, 2, g_LineNumber, NULL);
-      return NULL;
-   }
-
-   Expr *expr = malloc_fast(sizeof(Expr));
-
-   expr->line_num = g_LineNumber;
-   expr->flavour = EXPR_SUBSCRIPT;
+   Expr *expr     = malloc_fast(sizeof(Expr));
+   expr->flavour  = EXPR_SUBSCRIPT;
+   expr->line_num = line_num;
    expr->u.subscript.aggregate = aggregate;
    expr->u.subscript.subscript = subscript;
    expr->compile_time_value = NULL;
 
    expr->type = NULL;
+
+   if (subscript->type != &primitiveTypes[PRIM_INT] &&
+       subscript->type != &primitiveTypes[PRIM_UINT]  )
+   {
+      // subscript is not integral.
+      glsl_compile_error(ERROR_CUSTOM, 2, line_num, NULL);
+      return NULL;
+   }
 
    unsigned aggregate_size = 0;
    if (aggregate->type->flavour == SYMBOL_PRIMITIVE_TYPE )
@@ -619,18 +767,18 @@ Expr *glsl_expr_construct_subscript(Expr* aggregate, Expr* subscript)
 
    if (expr->type == NULL) {
       // aggregate cannot be subscripted.
-      glsl_compile_error(ERROR_CUSTOM, 3, g_LineNumber, NULL);
+      glsl_compile_error(ERROR_CUSTOM, 3, line_num, NULL);
       return NULL;
    }
 
    if (glsl_type_contains(expr->type, PRIM_SAMPLER_TYPE | PRIM_IMAGE_TYPE) && subscript->compile_time_value == NULL)
-      glsl_compile_error(ERROR_CUSTOM, 3, g_LineNumber, "Indexing type %s requires constant expression", expr->type->name);
+      glsl_compile_error(ERROR_CUSTOM, 3, line_num, "Indexing type %s requires constant expression", expr->type->name);
 
    if (subscript->compile_time_value) {
       if (subscript->type == &primitiveTypes[PRIM_INT]) {
          int v = const_signed_from_value(subscript->compile_time_value[0]);
          if (v < 0) {
-            glsl_compile_error(ERROR_SEMANTIC, 20, g_LineNumber, "array subscript (%d) cannot be negative", v);
+            glsl_compile_error(ERROR_SEMANTIC, 20, line_num, "array subscript (%d) cannot be negative", v);
             return NULL;
          }
       }
@@ -639,8 +787,8 @@ Expr *glsl_expr_construct_subscript(Expr* aggregate, Expr* subscript)
 
       // Bounds check. aggregate_size == 0 for unsized SSBO arrays
       if (aggregate_size > 0 && subscript_value >= aggregate_size) {
-         glsl_compile_error(ERROR_SEMANTIC, 20, g_LineNumber, "subscript %d beyond array bound %d",
-                                                              subscript_value, aggregate_size-1);
+         glsl_compile_error(ERROR_SEMANTIC, 20, line_num, "subscript %d beyond array bound %d",
+                                                          subscript_value, aggregate_size-1);
          return NULL;
       }
 
@@ -667,31 +815,29 @@ static bool expr_chain_all_primitive_type(const ExprChain *c) {
    return true;
 }
 
-Expr *glsl_expr_construct_function_call(Symbol *function, ExprChain *args)
+Expr *glsl_expr_construct_function_call(int line_num, Symbol *function, ExprChain *args)
 {
    // Note that each function symbol points to the last function symbol
    // with the same name.
    // We create a prototype from the arg types and then traverse the chain
    // until we find the correct overload.
 
-   if(function->flavour != SYMBOL_FUNCTION_INSTANCE) {
-      /* The symbol is not actually a function */
-      glsl_compile_error(ERROR_CUSTOM, 9, g_LineNumber, NULL);
-      return NULL;
-   }
+   /* The symbol is not actually a function */
+   if(function->flavour != SYMBOL_FUNCTION_INSTANCE)
+      glsl_compile_error(ERROR_CUSTOM, 9, line_num, "%s", function->name);
 
    function = glsl_resolve_overload_using_arguments(function, args);
    if(!function) {
       /* There's no match for the arguments */
-      glsl_compile_error(ERROR_CUSTOM, 11, g_LineNumber, NULL);
+      glsl_compile_error(ERROR_CUSTOM, 11, line_num, NULL);
       return NULL;
    }
 
    /* There exists such a function which we can call - setup the expr */
    Expr *expr                     = malloc_fast(sizeof(*expr));
    expr->type                     = function->type->u.function_type.return_type;
-   expr->line_num                 = g_LineNumber;
    expr->flavour                  = EXPR_FUNCTION_CALL;
+   expr->line_num                 = line_num;
    expr->u.function_call.function = function;
    expr->u.function_call.args     = args;
    expr->compile_time_value       = NULL;
@@ -738,7 +884,7 @@ Expr *glsl_expr_construct_function_call(Symbol *function, ExprChain *args)
          break;
       default:
          // No built in functions take more than 4 arguments.
-         UNREACHABLE();
+         unreachable();
          return NULL;
       }
       return expr;
@@ -747,7 +893,7 @@ Expr *glsl_expr_construct_function_call(Symbol *function, ExprChain *args)
    return expr;
 }
 
-Expr *glsl_expr_construct_method_call(Expr *aggregate, CallContext *function_ctx)
+Expr *glsl_expr_construct_method_call(int line_num, Expr *aggregate, CallContext *function_ctx)
 {
    const char *method_name;
 
@@ -762,55 +908,49 @@ Expr *glsl_expr_construct_method_call(Expr *aggregate, CallContext *function_ctx
       /* If we ever want to have our own intrinsic methods, handling
          is needed here; a lookup array to convert them back into
          names would probably be sufficient */
-      glsl_compile_error(ERROR_LEXER_PARSER, 2, g_LineNumber, NULL);
+      glsl_compile_error(ERROR_LEXER_PARSER, 2, line_num, NULL);
       return NULL;
    default:
-      UNREACHABLE();
+      unreachable();
       return NULL;
    }
 
    if (aggregate->type->flavour != SYMBOL_ARRAY_TYPE || strcmp(method_name, "length") != 0)
-      glsl_compile_error(ERROR_LEXER_PARSER, 2, g_LineNumber, NULL);
+      glsl_compile_error(ERROR_LEXER_PARSER, 2, line_num, NULL);
 
-   return glsl_expr_construct_array_length(aggregate);
+   return glsl_expr_construct_array_length(line_num, aggregate);
 }
 
 
-static Expr *glsl_expr_construct_prim_constructor_call(PrimitiveTypeIndex return_index, ExprChain *args)
+static Expr *glsl_expr_construct_prim_constructor_call(int line_num, PrimitiveTypeIndex return_index, ExprChain *args)
 {
-   Expr *expr = malloc_fast(sizeof(Expr));
-   expr->line_num = g_LineNumber;
+   Expr *expr     = malloc_fast(sizeof(Expr));
+   expr->flavour  = EXPR_PRIM_CONSTRUCTOR_CALL;
+   expr->line_num = line_num;
    expr->type = &primitiveTypes[return_index];
-   expr->flavour = EXPR_PRIM_CONSTRUCTOR_CALL;
    expr->u.prim_constructor_call.flavour = PRIM_CONS_INVALID;
-   expr->u.prim_constructor_call.args = args;
+   expr->u.prim_constructor_call.args    = args;
    expr->compile_time_value = NULL;
 
    PRIMITIVE_TYPE_FLAGS_T return_flags = primitiveTypeFlags[return_index];
 
    // Quick checks.
-   if (!args || args->count <= 0) {
-      glsl_compile_error(ERROR_SEMANTIC, 7, g_LineNumber, "Too few arguments");
-      return NULL;
-   }
-   if (!expr_chain_all_primitive_type(args)) {
-      glsl_compile_error(ERROR_SEMANTIC, 7, g_LineNumber, "Arguments must be primitive types");
-      return NULL;
-   }
+   if (!args || args->count <= 0)
+      glsl_compile_error(ERROR_SEMANTIC, 3, line_num, "Too few arguments");
 
-   if ( ! (return_flags & (PRIM_SCALAR_TYPE | PRIM_VECTOR_TYPE | PRIM_MATRIX_TYPE)) ) {
-      glsl_compile_error(ERROR_SEMANTIC, 7, g_LineNumber, "No constructor for type %s", primitiveTypes[return_index].name);
-   }
+   if (!expr_chain_all_primitive_type(args))
+      glsl_compile_error(ERROR_SEMANTIC, 3, line_num, "Arguments must be primitive types");
+
+   if ( ! (return_flags & (PRIM_SCALAR_TYPE | PRIM_VECTOR_TYPE | PRIM_MATRIX_TYPE)) )
+      glsl_compile_error(ERROR_SEMANTIC, 3, line_num, "No constructor for type %s", primitiveTypes[return_index].name);
 
    // Peek at first argument.
    ExprChainNode *arg = args->first;
    PrimitiveTypeIndex arg_index = arg->expr->type->u.primitive_type.index;
    PRIMITIVE_TYPE_FLAGS_T arg_flags = primitiveTypeFlags[arg_index];
 
-   if (!glsl_conversion_valid(arg_index, return_index)) {
-      glsl_compile_error(ERROR_SEMANTIC, 7, g_LineNumber, "Invalid type conversion");
-      return NULL;
-   }
+   if (!glsl_conversion_valid(arg_index, return_index))
+      glsl_compile_error(ERROR_SEMANTIC, 3, line_num, "Invalid type conversion");
 
    /* TODO: Do these even need a flavour? */
    if ((return_flags & PRIM_VECTOR_TYPE) && args->count == 1 && (arg_flags & PRIM_SCALAR_TYPE))
@@ -833,28 +973,19 @@ static Expr *glsl_expr_construct_prim_constructor_call(PrimitiveTypeIndex return
 
          // Ensure that matrix constructors reject matrix arguments.
          if ((return_flags & PRIM_MATRIX_TYPE) && (arg_flags & PRIM_MATRIX_TYPE))
-         {
-            glsl_compile_error(ERROR_SEMANTIC, 7, g_LineNumber, "Argument may not be a matrix type");
-            return NULL;
-         }
+            glsl_compile_error(ERROR_SEMANTIC, 3, line_num, "Argument may not be a matrix type");
 
-         if (!glsl_conversion_valid(arg_index, return_index)) {
-            glsl_compile_error(ERROR_SEMANTIC, 7, g_LineNumber, "Invalid type conversion");
-            return NULL;
-         }
+         if (!glsl_conversion_valid(arg_index, return_index))
+            glsl_compile_error(ERROR_SEMANTIC, 3, line_num, "Invalid type conversion");
 
          arg_components += primitiveTypes[arg_index].scalar_count;
       }
 
-      if (arg) {
-         glsl_compile_error(ERROR_SEMANTIC, 7, g_LineNumber, "Unused argument");
-         return NULL;
-      }
+      if (arg)
+         glsl_compile_error(ERROR_SEMANTIC, 3, line_num, "Unused argument");
 
-      if (return_components > arg_components) {
-         glsl_compile_error(ERROR_SEMANTIC, 7, g_LineNumber, "Too few arguments");
-         return NULL;
-      }
+      if (return_components > arg_components)
+         glsl_compile_error(ERROR_SEMANTIC, 3, line_num, "Too few arguments");
    }
 
    // If we can decide a value at compile time, do so.
@@ -931,7 +1062,7 @@ static Expr *glsl_expr_construct_prim_constructor_call(PrimitiveTypeIndex return
             break;
          }
          case PRIM_CONS_INVALID:
-            UNREACHABLE();
+            unreachable();
             break;
       }
    }
@@ -939,23 +1070,20 @@ static Expr *glsl_expr_construct_prim_constructor_call(PrimitiveTypeIndex return
    return expr;
 }
 
-static Expr *glsl_expr_construct_type_constructor_call(SymbolType *type, ExprChain *args)
+static Expr *glsl_expr_construct_type_constructor_call(int line_num, SymbolType *type, ExprChain *args)
 {
-   Expr *expr = malloc_fast(sizeof(Expr));
-   expr->line_num = g_LineNumber;
-   expr->type = type;
-   expr->flavour = EXPR_COMPOUND_CONSTRUCTOR_CALL;
+   Expr *expr     = malloc_fast(sizeof(Expr));
+   expr->flavour  = EXPR_COMPOUND_CONSTRUCTOR_CALL;
+   expr->line_num = line_num;
+   expr->type     = type;
    expr->u.compound_constructor_call.args = args;
    expr->compile_time_value = NULL;
 
    assert(type->flavour == SYMBOL_STRUCT_TYPE);
 
    if (!args || args->count != type->u.struct_type.member_count)
-   {
-      glsl_compile_error(ERROR_SEMANTIC, 7, g_LineNumber, "Expected %d args, found %d", type->u.struct_type.member_count,
-                                                                                        args ? args->count : 0);
-      return NULL;
-   }
+      glsl_compile_error(ERROR_SEMANTIC, 3, line_num, "Expected %d args, found %d", type->u.struct_type.member_count,
+                                                                                    args ? args->count : 0);
 
    // Match the types of all arguments.
    ExprChainNode *arg;
@@ -964,7 +1092,7 @@ static Expr *glsl_expr_construct_type_constructor_call(SymbolType *type, ExprCha
    {
       // Match types.
       if (!glsl_shallow_match_nonfunction_types(arg->expr->type, type->u.struct_type.member[i].type))
-         glsl_compile_error(ERROR_SEMANTIC, 7, g_LineNumber, "Invalid type conversion");
+         glsl_compile_error(ERROR_SEMANTIC, 3, line_num, "Invalid type conversion");
    }
 
    // If we can decide a value at compile time, do so.
@@ -982,28 +1110,26 @@ static Expr *glsl_expr_construct_type_constructor_call(SymbolType *type, ExprCha
    return expr;
 }
 
-static Expr *glsl_expr_construct_array_constructor_call(SymbolType *type, ExprChain *args)
+static Expr *glsl_expr_construct_array_constructor_call(int line_num, SymbolType *type, ExprChain *args)
 {
-   Expr *expr = malloc_fast(sizeof(Expr));
-   expr->line_num = g_LineNumber;
-   expr->flavour = EXPR_COMPOUND_CONSTRUCTOR_CALL;
+   Expr *expr     = malloc_fast(sizeof(Expr));
+   expr->flavour  = EXPR_COMPOUND_CONSTRUCTOR_CALL;
+   expr->line_num = line_num;
    expr->u.compound_constructor_call.args = args;
    expr->compile_time_value = NULL;
 
    assert(type->flavour==SYMBOL_ARRAY_TYPE);
 
    // Quick checks.
-   if (!args || args->count <= 0) {
-      glsl_compile_error(ERROR_SEMANTIC, 7, g_LineNumber, "Arguments required");
-      return NULL;
-   }
+   if (!args || args->count <= 0)
+      glsl_compile_error(ERROR_SEMANTIC, 3, line_num, "Arguments required");
 
    SymbolType *type_in = type->u.array_type.member_type;
    SymbolType *arg_type = args->first->expr->type;
    if (type_in->flavour == SYMBOL_ARRAY_TYPE) {
       if (arg_type->flavour != SYMBOL_ARRAY_TYPE)
-         glsl_compile_error(ERROR_SEMANTIC, 7, g_LineNumber, "expected argument of type %s but found %s",
-                                                             type_in->name, arg_type->name);
+         glsl_compile_error(ERROR_SEMANTIC, 3, line_num, "expected argument of type %s but found %s",
+                                                         type_in->name, arg_type->name);
 
       glsl_complete_array_from_init_type(type_in, arg_type);
    }
@@ -1013,20 +1139,14 @@ static Expr *glsl_expr_construct_array_constructor_call(SymbolType *type, ExprCh
 
    expr->type = type;
 
-   if (args->count != expr->type->u.array_type.member_count) {
-      glsl_compile_error(ERROR_SEMANTIC, 7, g_LineNumber, "Expected %d args, found %d",
+   if (args->count != expr->type->u.array_type.member_count)
+      glsl_compile_error(ERROR_SEMANTIC, 3, line_num, "Expected %d args, found %d",
                          args->count, expr->type->u.array_type.member_count);
-      return NULL;
-   }
 
    // Match the types of all arguments.
    for (ExprChainNode *arg = args->first; arg; arg = arg->next) {
-      // Match types.
-      if (!glsl_shallow_match_nonfunction_types(arg->expr->type, expr->type->u.array_type.member_type)) {
-         // Wrong args.
-         glsl_compile_error(ERROR_SEMANTIC, 7, g_LineNumber, "Invalid type conversion");
-         return NULL;
-      }
+      if (!glsl_shallow_match_nonfunction_types(arg->expr->type, expr->type->u.array_type.member_type))
+         glsl_compile_error(ERROR_SEMANTIC, 3, line_num, "Invalid type conversion");
    }
 
    // If we can decide a value at compile time, do so.
@@ -1044,21 +1164,20 @@ static Expr *glsl_expr_construct_array_constructor_call(SymbolType *type, ExprCh
    return expr;
 }
 
-Expr *glsl_expr_construct_constructor_call(SymbolType *type, ExprChain *args)
+Expr *glsl_expr_construct_constructor_call(int line_num, SymbolType *type, ExprChain *args)
 {
-   switch(type->flavour)
-   {
+   switch(type->flavour) {
       case SYMBOL_PRIMITIVE_TYPE:
-         return glsl_expr_construct_prim_constructor_call(type->u.primitive_type.index, args);
+         return glsl_expr_construct_prim_constructor_call(line_num, type->u.primitive_type.index, args);
 
       case SYMBOL_STRUCT_TYPE:
-         return glsl_expr_construct_type_constructor_call(type, args);
+         return glsl_expr_construct_type_constructor_call(line_num, type, args);
 
       case SYMBOL_ARRAY_TYPE:
-         return glsl_expr_construct_array_constructor_call(type, args);
+         return glsl_expr_construct_array_constructor_call(line_num, type, args);
 
       default:
-         UNREACHABLE();
+         unreachable();
          return NULL;
    }
 }
@@ -1084,13 +1203,13 @@ static unsigned char swizzle_value(char c) {
    }
 }
 
-Expr *glsl_expr_construct_field_selector(Expr *aggregate, const char *field)
+Expr *glsl_expr_construct_field_selector(int line_num, Expr *aggregate, const char *field)
 {
    int member_count;
    StructMember *member;
 
    Expr *expr = malloc_fast(sizeof(Expr));
-   expr->line_num = g_LineNumber;
+   expr->line_num = line_num;
 
    switch (aggregate->type->flavour)
    {
@@ -1120,8 +1239,8 @@ Expr *glsl_expr_construct_field_selector(Expr *aggregate, const char *field)
          }
 
          if (expr->u.field_selector.field_no == -1) {
-            glsl_compile_error(ERROR_SEMANTIC, 25, g_LineNumber, "%s does not name a field of type %s",
-                                                                 field, aggregate->type->name);
+            glsl_compile_error(ERROR_SEMANTIC, 25, line_num, "%s does not name a field of type %s",
+                                                             field, aggregate->type->name);
          }
 
          if (aggregate->compile_time_value) {
@@ -1145,11 +1264,11 @@ Expr *glsl_expr_construct_field_selector(Expr *aggregate, const char *field)
          primitive_flags = primitiveTypeFlags[aggregate->type->u.primitive_type.index];
 
          if (!(primitive_flags & PRIM_VECTOR_TYPE))
-            glsl_compile_error(ERROR_SEMANTIC, 26, g_LineNumber, "%s does not support swizzling", aggregate->type->name);
+            glsl_compile_error(ERROR_SEMANTIC, 26, line_num, "%s does not support swizzling", aggregate->type->name);
 
          int len = strlen(field);
          if (len > MAX_SWIZZLE_FIELD_COUNT)
-            glsl_compile_error(ERROR_SEMANTIC, 26, g_LineNumber, "%s too long", field);
+            glsl_compile_error(ERROR_SEMANTIC, 26, line_num, "%s too long", field);
 
          // Decode swizzle into swizzle_slots[].
          int seen_xyzw = 0, seen_rgba = 0, seen_stpq = 0;
@@ -1166,20 +1285,20 @@ Expr *glsl_expr_construct_field_selector(Expr *aggregate, const char *field)
                   break;
 
                default:
-                  glsl_compile_error(ERROR_SEMANTIC, 26, g_LineNumber, "%c not a swizzle", field[i]);
+                  glsl_compile_error(ERROR_SEMANTIC, 26, line_num, "%c not a swizzle", field[i]);
                   return NULL;
             }
             expr->u.swizzle.swizzle_slots[i] = swizzle_value(field[i]);
             if (expr->u.swizzle.swizzle_slots[i] >= primitiveTypes[aggregate->type->u.primitive_type.index].scalar_count)
             {
-               glsl_compile_error(ERROR_SEMANTIC, 26, g_LineNumber, "component too large for aggregate");
+               glsl_compile_error(ERROR_SEMANTIC, 26, line_num, "component too large for aggregate");
                return NULL;
             }
          }
 
          if ((seen_xyzw != len) && (seen_rgba != len) && (seen_stpq != len))
          {
-            glsl_compile_error(ERROR_SEMANTIC, 26, g_LineNumber, "Elements must be from the same set");
+            glsl_compile_error(ERROR_SEMANTIC, 26, line_num, "Elements must be from the same set");
             return NULL;
          }
 
@@ -1204,19 +1323,19 @@ Expr *glsl_expr_construct_field_selector(Expr *aggregate, const char *field)
    }
 
    // Illegal field selector.
-   glsl_compile_error(ERROR_SEMANTIC, 26, g_LineNumber, NULL);
+   glsl_compile_error(ERROR_SEMANTIC, 26, line_num, NULL);
    return NULL;
 }
 
-Expr *glsl_expr_construct_unary_op(ExprFlavour flavour, Expr *operand)
+Expr *glsl_expr_construct_unary_op(ExprFlavour flavour, int line_num, Expr *operand)
 {
    //  unary PLUS is trivial, just return the operand:
    if (flavour == EXPR_ADD)
       return operand;
 
-   Expr *expr = malloc_fast(sizeof(Expr));
-   expr->line_num = g_LineNumber;
-   expr->flavour = flavour;
+   Expr *expr     = malloc_fast(sizeof(Expr));
+   expr->flavour  = flavour;
+   expr->line_num = line_num;
    expr->u.unary_op.operand = operand;
    expr->type = operand->type;
    expr->compile_time_value = NULL;
@@ -1236,7 +1355,7 @@ Expr *glsl_expr_construct_unary_op(ExprFlavour flavour, Expr *operand)
          //  applied to constants.
          if (!glsl_is_lvalue(operand)) {
             // Not an l-value.
-            glsl_compile_error(ERROR_SEMANTIC, 27, g_LineNumber, NULL);
+            glsl_compile_error(ERROR_SEMANTIC, 27, line_num, NULL);
             return NULL;
          }
          /* Fall through */
@@ -1252,7 +1371,6 @@ Expr *glsl_expr_construct_unary_op(ExprFlavour flavour, Expr *operand)
       /* Bitwise unaries */
       case EXPR_BITWISE_NOT:
          if ( !(primitiveTypeFlags[prim_index] & PRIM_BITWISE)) goto error;
-         if ( g_ShaderVersion < GLSL_SHADER_VERSION(3, 0, 1))   goto error;
          break;
 
       default:
@@ -1285,7 +1403,7 @@ Expr *glsl_expr_construct_unary_op(ExprFlavour flavour, Expr *operand)
                      component_op = op_f_negate;
                      break;
                   default:
-                     UNREACHABLE();
+                     unreachable();
                      return NULL;
                }
             } else {
@@ -1316,7 +1434,7 @@ Expr *glsl_expr_construct_unary_op(ExprFlavour flavour, Expr *operand)
 
 error:
    // Operator not supported.
-   glsl_compile_error(ERROR_SEMANTIC, 4, g_LineNumber, NULL);
+   glsl_compile_error(ERROR_SEMANTIC, 4, line_num, NULL);
    return NULL;
 }
 
@@ -1325,15 +1443,11 @@ error:
 // src_left, src_right are incremented iff their locks are not set.
 static inline void apply_component_wise(
                          const_value (*component_op)(const_value, const_value),
-                         int n,
-                         const_value *dst,
-                         const_value *src_left,
-                         bool lock_src_left,
-                         const_value *src_right,
-                         bool lock_src_right)
+                         int n, const_value *dst,
+                         const_value *src_left,  bool lock_src_left,
+                         const_value *src_right, bool lock_src_right)
 {
-   for (int i = 0; i < n; i++)
-   {
+   for (int i = 0; i < n; i++) {
       dst[i] = component_op(*src_left, *src_right);
 
       if (!lock_src_left) src_left = src_left + 1;
@@ -1341,14 +1455,14 @@ static inline void apply_component_wise(
    }
 }
 
-Expr *glsl_expr_construct_binary_op_arithmetic(ExprFlavour flavour, Expr *left, Expr *right)
+Expr *glsl_expr_construct_binary_op_arithmetic(ExprFlavour flavour, int line_num, Expr *left, Expr *right)
 {
-   Expr *expr = malloc_fast(sizeof(Expr));
-
-   expr->line_num = g_LineNumber;
-   expr->flavour = flavour;
-   expr->u.binary_op.left = left;
+   Expr *expr     = malloc_fast(sizeof(Expr));
+   expr->flavour  = flavour;
+   expr->line_num = line_num;
+   expr->u.binary_op.left  = left;
    expr->u.binary_op.right = right;
+
    expr->compile_time_value = NULL;
 
    if (left->type->flavour != SYMBOL_PRIMITIVE_TYPE || right->type->flavour != SYMBOL_PRIMITIVE_TYPE)
@@ -1362,18 +1476,13 @@ Expr *glsl_expr_construct_binary_op_arithmetic(ExprFlavour flavour, Expr *left, 
    if (!(left_flags & PRIM_ARITHMETIC) || !(right_flags & PRIM_ARITHMETIC))
       goto fail;
 
-   {
-      bool types_match = ( (left_flags & PRIM_FLOAT_TYPE) && (right_flags & PRIM_FLOAT_TYPE) ) ||
-                         ( (left_flags & PRIM_INT_TYPE)   && (right_flags & PRIM_INT_TYPE)   ) ||
-                         ( (left_flags & PRIM_UINT_TYPE)  && (right_flags & PRIM_UINT_TYPE) );
-      if (!types_match) goto fail;
-   }
+   bool types_match = ( (left_flags & PRIM_FLOAT_TYPE) && (right_flags & PRIM_FLOAT_TYPE) ) ||
+                      ( (left_flags & PRIM_INT_TYPE)   && (right_flags & PRIM_INT_TYPE)   ) ||
+                      ( (left_flags & PRIM_UINT_TYPE)  && (right_flags & PRIM_UINT_TYPE) );
+   if (!types_match) goto fail;
 
    /* rem is not supported for floats (because division gives no remainder) */
    if (flavour == EXPR_REM && (left_flags & PRIM_FLOAT_TYPE))
-      goto fail;
-
-   if (flavour == EXPR_REM && g_ShaderVersion < GLSL_SHADER_VERSION(3, 0, 1))
       goto fail;
 
    // Infer type, and value if possible.
@@ -1471,86 +1580,47 @@ Expr *glsl_expr_construct_binary_op_arithmetic(ExprFlavour flavour, Expr *left, 
             case PRIM_INT_TYPE:
                switch (flavour)
                {
-                  case EXPR_MUL:
-                     component_op = op_i_mul;
-                     break;
-                  case EXPR_DIV:
-                     component_op = op_i_div;
-                     break;
-                  case EXPR_REM:
-                     component_op = op_i_rem;
-                     break;
-                  case EXPR_ADD:
-                     component_op = op_i_add;
-                     break;
-                  case EXPR_SUB:
-                     component_op = op_i_sub;
-                     break;
-                  default:
-                     UNREACHABLE();
-                     return NULL;
+                  case EXPR_MUL: component_op = op_i_mul; break;
+                  case EXPR_DIV: component_op = op_i_div; break;
+                  case EXPR_REM: component_op = op_i_rem; break;
+                  case EXPR_ADD: component_op = op_i_add; break;
+                  case EXPR_SUB: component_op = op_i_sub; break;
+                  default: unreachable(); return NULL;
                }
                break;
             case PRIM_UINT_TYPE:
                switch (flavour)
                {
-                  case EXPR_MUL:
-                     component_op = op_u_mul;
-                     break;
-                  case EXPR_DIV:
-                     component_op = op_u_div;
-                     break;
-                  case EXPR_REM:
-                     component_op = op_u_rem;
-                     break;
-                  case EXPR_ADD:
-                     component_op = op_i_add;
-                     break;
-                  case EXPR_SUB:
-                     component_op = op_i_sub;
-                     break;
-                  default:
-                     UNREACHABLE();
-                     return NULL;
+                  case EXPR_MUL: component_op = op_u_mul; break;
+                  case EXPR_DIV: component_op = op_u_div; break;
+                  case EXPR_REM: component_op = op_u_rem; break;
+                  case EXPR_ADD: component_op = op_i_add; break;
+                  case EXPR_SUB: component_op = op_i_sub; break;
+                  default: unreachable(); return NULL;
                }
                break;
             case PRIM_FLOAT_TYPE:
                switch (flavour)
                {
-                  case EXPR_MUL:
-                     component_op = op_f_mul;
-                     break;
-                  case EXPR_DIV:
-                     component_op = op_f_div;
-                     break;
-                  case EXPR_REM:
-                     UNREACHABLE();
-                     break;
-                  case EXPR_ADD:
-                     component_op = op_f_add;
-                     break;
-                  case EXPR_SUB:
-                     component_op = op_f_sub;
-                     break;
-                  default:
-                     UNREACHABLE();
-                     return NULL;
+                  case EXPR_MUL: component_op = op_f_mul; break;
+                  case EXPR_DIV: component_op = op_f_div; break;
+                  case EXPR_REM: unreachable(); break;
+                  case EXPR_ADD: component_op = op_f_add; break;
+                  case EXPR_SUB: component_op = op_f_sub; break;
+                  default: unreachable(); return NULL;
                }
                break;
             default:
-               UNREACHABLE();
+               unreachable();
                return NULL;
          }
 
          /* ... everything else is component wise */
-         apply_component_wise(
-            component_op,
-            primitiveTypes[expr->type->u.primitive_type.index].scalar_count,
-            expr->compile_time_value,
-            left->compile_time_value,
-            left_scalar,
-            right->compile_time_value,
-            right_scalar);
+         apply_component_wise(component_op,
+                              primitiveTypes[expr->type->u.primitive_type.index].scalar_count,
+                              expr->compile_time_value,
+                              left->compile_time_value,  left_scalar,
+                              right->compile_time_value, right_scalar);
       }
    }
 
@@ -1558,17 +1628,17 @@ Expr *glsl_expr_construct_binary_op_arithmetic(ExprFlavour flavour, Expr *left, 
 
 fail:
    // Operator not supported.
-   glsl_compile_error(ERROR_SEMANTIC, 4, g_LineNumber, NULL);
+   glsl_compile_error(ERROR_SEMANTIC, 4, line_num, NULL);
    return NULL;
 }
 
-Expr *glsl_expr_construct_binary_op_logical(ExprFlavour flavour, Expr *left, Expr *right)
+Expr *glsl_expr_construct_binary_op_logical(ExprFlavour flavour, int line_num, Expr *left, Expr *right)
 {
-   Expr *expr = malloc_fast(sizeof(Expr));
-   expr->line_num = g_LineNumber;
-   expr->flavour = flavour;
-   expr->type = &primitiveTypes[PRIM_BOOL];
-   expr->u.binary_op.left = left;
+   Expr *expr     = malloc_fast(sizeof(Expr));
+   expr->flavour  = flavour;
+   expr->line_num = line_num;
+   expr->type     = &primitiveTypes[PRIM_BOOL];
+   expr->u.binary_op.left  = left;
    expr->u.binary_op.right = right;
 
    expr->compile_time_value = NULL;
@@ -1600,7 +1670,7 @@ Expr *glsl_expr_construct_binary_op_logical(ExprFlavour flavour, Expr *left, Exp
             *expr->compile_time_value = op_logical_or(l, r);
             break;
          default:
-            UNREACHABLE();
+            unreachable();
             return NULL;
       }
    }
@@ -1608,24 +1678,16 @@ Expr *glsl_expr_construct_binary_op_logical(ExprFlavour flavour, Expr *left, Exp
 
 fail:
    // Operator not supported.
-   glsl_compile_error(ERROR_SEMANTIC, 4, g_LineNumber, NULL);
+   glsl_compile_error(ERROR_SEMANTIC, 4, line_num, NULL);
    return NULL;
 }
 
-Expr* glsl_expr_construct_binary_op_bitwise(ExprFlavour flavour, Expr* left, Expr* right)
+Expr *glsl_expr_construct_binary_op_bitwise(ExprFlavour flavour, int line_num, Expr *left, Expr *right)
 {
-   Expr *expr;
-   PRIMITIVE_TYPE_FLAGS_T left_flags, right_flags;
-   bool left_vector, right_vector;
-
-   // Operator not supported.
-   if (g_ShaderVersion < GLSL_SHADER_VERSION(3, 0, 1))
-      glsl_compile_error(ERROR_SEMANTIC, 4, g_LineNumber, "bitwise and/or/xor not supported before GLSL version 300es");
-
-   expr = (Expr *)malloc_fast(sizeof(Expr));
-   expr->line_num = g_LineNumber;
-   expr->flavour = flavour;
-   expr->u.binary_op.left = left;
+   Expr *expr     = malloc_fast(sizeof(Expr));
+   expr->flavour  = flavour;
+   expr->line_num = line_num;
+   expr->u.binary_op.left  = left;
    expr->u.binary_op.right = right;
 
    expr->compile_time_value = NULL;
@@ -1633,21 +1695,21 @@ Expr* glsl_expr_construct_binary_op_bitwise(ExprFlavour flavour, Expr* left, Exp
    if (left->type->flavour != SYMBOL_PRIMITIVE_TYPE || right->type->flavour != SYMBOL_PRIMITIVE_TYPE)
       goto error;
 
-   left_flags = primitiveTypeFlags[left->type->u.primitive_type.index];
-   right_flags = primitiveTypeFlags[right->type->u.primitive_type.index];
+   PRIMITIVE_TYPE_FLAGS_T left_flags  = primitiveTypeFlags[left->type->u.primitive_type.index];
+   PRIMITIVE_TYPE_FLAGS_T right_flags = primitiveTypeFlags[right->type->u.primitive_type.index];
 
    if ( !(left_flags  & PRIM_BITWISE) ) goto error;
    if ( !(right_flags & PRIM_BITWISE) ) goto error;
 
    /* Can't mix int and uint types in bitwise expressions */
-   if ((left_flags & PRIM_INT_TYPE) && (right_flags & PRIM_UINT_TYPE)) goto error;
-   if ((left_flags & PRIM_UINT_TYPE) && (right_flags & PRIM_INT_TYPE)) goto error;
+   if ((left_flags & PRIM_INT_TYPE)  && (right_flags & PRIM_UINT_TYPE)) goto error;
+   if ((left_flags & PRIM_UINT_TYPE) && (right_flags & PRIM_INT_TYPE))  goto error;
 
-   left_vector = !!(left_flags & PRIM_VECTOR_TYPE);
-   right_vector = !!(right_flags & PRIM_VECTOR_TYPE);
+   bool left_vector  = !!(left_flags & PRIM_VECTOR_TYPE);
+   bool right_vector = !!(right_flags & PRIM_VECTOR_TYPE);
    if (left_vector && right_vector && left->type != right->type) goto error;
 
-   if (left_vector)  expr->type = left->type;
+   if      (left_vector)  expr->type = left->type;
    else if (right_vector) expr->type = right->type;
    else {
       assert(left->type == right->type);
@@ -1659,63 +1721,42 @@ Expr* glsl_expr_construct_binary_op_bitwise(ExprFlavour flavour, Expr* left, Exp
       const_value (*component_op)(const_value, const_value);
       expr->compile_time_value = malloc_fast(expr->type->scalar_count * sizeof(const_value));
 
-      switch (flavour)
-      {
-         case EXPR_BITWISE_AND:
-            component_op = op_bitwise_and;
-            break;
-         case EXPR_BITWISE_XOR:
-            component_op = op_bitwise_xor;
-            break;
-         case EXPR_BITWISE_OR:
-            component_op = op_bitwise_or;
-            break;
-         default:
-            UNREACHABLE();
-            return NULL;
+      switch (flavour) {
+         case EXPR_BITWISE_AND: component_op = op_bitwise_and; break;
+         case EXPR_BITWISE_XOR: component_op = op_bitwise_xor; break;
+         case EXPR_BITWISE_OR:  component_op = op_bitwise_or; break;
+         default: unreachable(); return NULL;
       }
-      apply_component_wise(
-         component_op,
-         primitiveTypes[expr->type->u.primitive_type.index].scalar_count,
-         expr->compile_time_value,
-         left->compile_time_value,
-         !left_vector,
-         right->compile_time_value,
-         !right_vector
-         );
-
+      apply_component_wise(component_op,
+                           primitiveTypes[expr->type->u.primitive_type.index].scalar_count,
+                           expr->compile_time_value,
+                           left->compile_time_value, !left_vector,
+                           right->compile_time_value, !right_vector);
    }
 
    return expr;
 
    // Operator not supported.
 error:
-   glsl_compile_error(ERROR_SEMANTIC, 4, g_LineNumber, NULL);
+   glsl_compile_error(ERROR_SEMANTIC, 4, line_num, NULL);
    return NULL;
 }
 
-Expr *glsl_expr_construct_binary_op_shift(ExprFlavour flavour, Expr *left, Expr *right)
+Expr *glsl_expr_construct_binary_op_shift(ExprFlavour flavour, int line_num, Expr *left, Expr *right)
 {
-   PRIMITIVE_TYPE_FLAGS_T left_flags, right_flags;
-
-   // Operator not supported.
-   if (g_ShaderVersion < GLSL_SHADER_VERSION(3, 0, 1)) {
-      glsl_compile_error(ERROR_SEMANTIC, 4, g_LineNumber, "shl/shr not supported before GLSL version 300 es");
-   }
-
-   Expr *expr = malloc_fast(sizeof(Expr));
-   expr->line_num = g_LineNumber;
-   expr->flavour = flavour;
-   expr->u.binary_op.left = left;
+   Expr *expr     = malloc_fast(sizeof(Expr));
+   expr->flavour  = flavour;
+   expr->line_num = line_num;
+   expr->u.binary_op.left  = left;
    expr->u.binary_op.right = right;
+
+   expr->compile_time_value = NULL;
 
    if (right->type->flavour != SYMBOL_PRIMITIVE_TYPE || left->type->flavour != SYMBOL_PRIMITIVE_TYPE)
       goto error;
 
-   expr->compile_time_value = NULL;
-
-   left_flags  = primitiveTypeFlags[left->type->u.primitive_type.index];
-   right_flags = primitiveTypeFlags[right->type->u.primitive_type.index];
+   PRIMITIVE_TYPE_FLAGS_T left_flags  = primitiveTypeFlags[left->type->u.primitive_type.index];
+   PRIMITIVE_TYPE_FLAGS_T right_flags = primitiveTypeFlags[right->type->u.primitive_type.index];
 
    if (!(left_flags & PRIM_BITWISE))
       goto error;
@@ -1749,7 +1790,7 @@ Expr *glsl_expr_construct_binary_op_shift(ExprFlavour flavour, Expr *left, Expr 
                component_op = op_u_bitwise_shr;
             break;
          default:
-            UNREACHABLE();
+            unreachable();
             return NULL;
       }
       apply_component_wise(
@@ -1766,17 +1807,17 @@ Expr *glsl_expr_construct_binary_op_shift(ExprFlavour flavour, Expr *left, Expr 
 
 error:
    // Operator not supported.
-   glsl_compile_error(ERROR_SEMANTIC, 4, g_LineNumber, NULL);
+   glsl_compile_error(ERROR_SEMANTIC, 4, line_num, NULL);
    return NULL;
 }
 
-Expr* glsl_expr_construct_binary_op_relational(ExprFlavour flavour, Expr* left, Expr* right)
+Expr *glsl_expr_construct_binary_op_relational(ExprFlavour flavour, int line_num, Expr *left, Expr *right)
 {
-   Expr *expr = malloc_fast(sizeof(Expr));
-   expr->line_num = g_LineNumber;
-   expr->flavour = flavour;
-   expr->type = &primitiveTypes[PRIM_BOOL];
-   expr->u.binary_op.left = left;
+   Expr *expr     = malloc_fast(sizeof(Expr));
+   expr->flavour  = flavour;
+   expr->line_num = line_num;
+   expr->type     = &primitiveTypes[PRIM_BOOL];
+   expr->u.binary_op.left  = left;
    expr->u.binary_op.right = right;
 
    expr->compile_time_value = NULL;
@@ -1820,7 +1861,7 @@ Expr* glsl_expr_construct_binary_op_relational(ExprFlavour flavour, Expr* left, 
                   component_op = op_i_greater_than_equal;
                   break;
                default:
-                  UNREACHABLE();
+                  unreachable();
                   return NULL;
             }
             break;
@@ -1840,7 +1881,7 @@ Expr* glsl_expr_construct_binary_op_relational(ExprFlavour flavour, Expr* left, 
                   component_op = op_u_greater_than_equal;
                   break;
                default:
-                  UNREACHABLE();
+                  unreachable();
                   return NULL;
             }
             break;
@@ -1860,12 +1901,12 @@ Expr* glsl_expr_construct_binary_op_relational(ExprFlavour flavour, Expr* left, 
                   component_op = op_f_greater_than_equal;
                   break;
                default:
-                  UNREACHABLE();
+                  unreachable();
                   return NULL;
             }
             break;
          default:
-            UNREACHABLE();
+            unreachable();
             return NULL;
       }
 
@@ -1877,7 +1918,7 @@ Expr* glsl_expr_construct_binary_op_relational(ExprFlavour flavour, Expr* left, 
 
 fail:
    // Operator not supported.
-   glsl_compile_error(ERROR_SEMANTIC, 4, g_LineNumber, NULL);
+   glsl_compile_error(ERROR_SEMANTIC, 4, line_num, NULL);
    return NULL;
 }
 
@@ -1933,17 +1974,17 @@ static bool compile_time_values_equal(SymbolType  *a_type,
          b_value += scalar_count;
       }
    } else {
-      UNREACHABLE();
+      unreachable();
    }
    return result;
 }
 
-Expr *glsl_expr_construct_binary_op_equality(ExprFlavour flavour, Expr *left, Expr *right)
+Expr *glsl_expr_construct_binary_op_equality(ExprFlavour flavour, int line_num, Expr *left, Expr *right)
 {
-   Expr *expr = malloc_fast(sizeof(Expr));
-   expr->line_num = g_LineNumber;
-   expr->flavour = flavour;
-   expr->u.binary_op.left = left;
+   Expr *expr     = malloc_fast(sizeof(Expr));
+   expr->flavour  = flavour;
+   expr->line_num = line_num;
+   expr->u.binary_op.left  = left;
    expr->u.binary_op.right = right;
    expr->type = &primitiveTypes[PRIM_BOOL];
 
@@ -1951,32 +1992,18 @@ Expr *glsl_expr_construct_binary_op_equality(ExprFlavour flavour, Expr *left, Ex
 
    if (!glsl_shallow_match_nonfunction_types(left->type, right->type)) goto fail;
 
-   if (g_ShaderVersion < GLSL_SHADER_VERSION(3, 0, 1) &&
-       glsl_type_contains_array(left->type)              )
-   {
-      goto fail;
-   }
-
    if (glsl_type_contains_opaque(left->type)) goto fail;
 
    if (left->compile_time_value && right->compile_time_value) {
-      bool equal;
-      equal = compile_time_values_equal(left->type,  left->compile_time_value,
-                                        right->type, right->compile_time_value);
+      bool equal = compile_time_values_equal(left->type,  left->compile_time_value,
+                                             right->type, right->compile_time_value);
 
       expr->compile_time_value = malloc_fast(expr->type->scalar_count * sizeof(const_value));
 
-      switch (flavour)
-      {
-      case EXPR_EQUAL:
-         *expr->compile_time_value = equal ? 1 : 0;
-         break;
-      case EXPR_NOT_EQUAL:
-         *expr->compile_time_value = !equal ? 1 : 0;
-         break;
-      default:
-         UNREACHABLE();
-         return NULL;
+      switch (flavour) {
+         case EXPR_EQUAL:     *expr->compile_time_value =  equal ? 1 : 0; break;
+         case EXPR_NOT_EQUAL: *expr->compile_time_value = !equal ? 1 : 0; break;
+         default: unreachable(); return NULL;
       }
    }
 
@@ -1984,15 +2011,15 @@ Expr *glsl_expr_construct_binary_op_equality(ExprFlavour flavour, Expr *left, Ex
 
 fail:
    // Operator not supported.
-   glsl_compile_error(ERROR_SEMANTIC, 4, g_LineNumber, NULL);
+   glsl_compile_error(ERROR_SEMANTIC, 4, line_num, NULL);
    return NULL;
 }
 
-Expr *glsl_expr_construct_cond_op(Expr *cond, Expr *if_true, Expr *if_false)
+Expr *glsl_expr_construct_cond_op(int line_num, Expr *cond, Expr *if_true, Expr *if_false)
 {
    Expr *expr = malloc_fast(sizeof(Expr));
-   expr->line_num = g_LineNumber;
    expr->flavour = EXPR_CONDITIONAL;
+   expr->line_num = line_num;
    expr->u.cond_op.cond = cond;
    expr->u.cond_op.if_true = if_true;
    expr->u.cond_op.if_false = if_false;
@@ -2000,30 +2027,16 @@ Expr *glsl_expr_construct_cond_op(Expr *cond, Expr *if_true, Expr *if_false)
 
    expr->type = if_true->type;
 
+   // cond must be a (scalar) bool.
    if (cond->type != &primitiveTypes[PRIM_BOOL])
-   {
-      // cond must be a (scalar) bool.
-      glsl_compile_error(ERROR_SEMANTIC, 4, g_LineNumber, "First operand of ?: must have type bool");
-      return NULL;
-   }
+      glsl_compile_error(ERROR_SEMANTIC, 4, line_num, "First operand of ?: must have type bool");
 
+   // if_true and if_false must have same type.
    if (!glsl_shallow_match_nonfunction_types(if_true->type, if_false->type))
-   {
-      // if_true and if_false must have same type.
-      glsl_compile_error(ERROR_SEMANTIC, 1, g_LineNumber, NULL);
-      return NULL;
-   }
-
-   if (g_ShaderVersion == GLSL_SHADER_VERSION(1, 0, 1) &&
-       glsl_type_contains_array(expr->type)               )
-   {
-      // if_true and if_false cannot be arrays for ES2.
-      glsl_compile_error(ERROR_SEMANTIC, 4, g_LineNumber, "?: not supported for arrays in version 100");
-      return NULL;
-   }
+      glsl_compile_error(ERROR_SEMANTIC, 1, line_num, NULL);
 
    if (glsl_type_contains_opaque(if_true->type))
-      glsl_compile_error(ERROR_SEMANTIC, 4, g_LineNumber, "?: operator not supported for samplers");
+      glsl_compile_error(ERROR_SEMANTIC, 4, line_num, "?: operator not supported for samplers");
 
    if (cond->compile_time_value     != NULL &&
        if_true->compile_time_value  != NULL &&
@@ -2038,11 +2051,11 @@ Expr *glsl_expr_construct_cond_op(Expr *cond, Expr *if_true, Expr *if_false)
    return expr;
 }
 
-Expr *glsl_expr_construct_assign_op(Expr *lvalue, Expr *rvalue)
+Expr *glsl_expr_construct_assign_op(int line_num, Expr *lvalue, Expr *rvalue)
 {
-   Expr *expr = malloc_fast(sizeof(Expr));
-   expr->line_num = g_LineNumber;
-   expr->flavour = EXPR_ASSIGN;
+   Expr *expr     = malloc_fast(sizeof(Expr));
+   expr->flavour  = EXPR_ASSIGN;
+   expr->line_num = line_num;
    expr->u.assign_op.lvalue = lvalue;
    expr->u.assign_op.rvalue = rvalue;
    expr->type = rvalue->type;
@@ -2051,32 +2064,20 @@ Expr *glsl_expr_construct_assign_op(Expr *lvalue, Expr *rvalue)
    // and thus they cannot form part of constant expressions.
    expr->compile_time_value = NULL;
 
-   if (!glsl_is_lvalue(lvalue)) {
-      // Not an l-value.
-      glsl_compile_error(ERROR_SEMANTIC, 27, g_LineNumber, NULL);
-      return NULL;
-   }
-
-   if (g_ShaderVersion == GLSL_SHADER_VERSION(1,0,1) && glsl_type_contains_array(lvalue->type)) {
-      glsl_compile_error(ERROR_SEMANTIC, 27, g_LineNumber, "Assignment of arrays not valid in version 100");
-      return NULL;
-   }
+   if (!glsl_is_lvalue(lvalue))
+      glsl_compile_error(ERROR_SEMANTIC, 27, line_num, NULL);
 
    if (!glsl_shallow_match_nonfunction_types(lvalue->type, rvalue->type))
-   {
-      // Type mismatch.
-      glsl_compile_error(ERROR_SEMANTIC, 1, g_LineNumber, NULL);
-      return NULL;
-   }
+      glsl_compile_error(ERROR_SEMANTIC, 1, line_num, NULL);
 
    return expr;
 }
 
-Expr *glsl_expr_construct_sequence(Expr *all_these, Expr *then_this)
+Expr *glsl_expr_construct_sequence(int line_num, Expr *all_these, Expr *then_this)
 {
-   Expr *expr = malloc_fast(sizeof(Expr));
-   expr->line_num = g_LineNumber;
-   expr->flavour = EXPR_SEQUENCE;
+   Expr *expr     = malloc_fast(sizeof(Expr));
+   expr->flavour  = EXPR_SEQUENCE;
+   expr->line_num = line_num;
    expr->u.sequence.all_these = all_these;
    expr->u.sequence.then_this = then_this;
    expr->type = then_this->type;
@@ -2091,10 +2092,10 @@ Expr *glsl_expr_construct_sequence(Expr *all_these, Expr *then_this)
    return expr;
 }
 
-Expr *glsl_expr_construct_array_length(Expr *array) {
+Expr *glsl_expr_construct_array_length(int line_num, Expr *array) {
    Expr *expr     = malloc_fast(sizeof(Expr));
-   expr->line_num = g_LineNumber;
    expr->flavour  = EXPR_ARRAY_LENGTH;
+   expr->line_num = line_num;
    expr->type     = &primitiveTypes[PRIM_INT];
    expr->u.array_length.array = array;
    expr->compile_time_value   = NULL;
@@ -2108,101 +2109,60 @@ Expr *glsl_expr_construct_array_length(Expr *array) {
 }
 
 
-Statement *glsl_statement_construct(StatementFlavour flavour)
+Statement *glsl_statement_construct(StatementFlavour flavour, int line_num)
 {
    Statement *statement = malloc_fast(sizeof(Statement));
-   statement->line_num  = g_LineNumber;
+   statement->line_num  = line_num;
    statement->flavour   = flavour;
    return statement;
 }
 
-Statement* glsl_statement_construct_ast(StatementChain* decls)
+Statement *glsl_statement_construct_ast(int line_num, StatementChain *decls)
 {
-   Statement* statement = (Statement *)malloc_fast(sizeof(Statement));
-   statement->line_num = g_LineNumber;
-   statement->flavour = STATEMENT_AST;
+   Statement *statement = glsl_statement_construct(STATEMENT_AST, line_num);
    statement->u.ast.decls = decls;
    return statement;
 }
 
-Statement* glsl_statement_construct_decl_list(StatementChain* decls)
+Statement *glsl_statement_construct_decl_list(int line_num, StatementChain *decls)
 {
-   Statement* statement = (Statement *)malloc_fast(sizeof(Statement));
-   statement->line_num = g_LineNumber;
-   statement->flavour = STATEMENT_DECL_LIST;
+   Statement *statement = glsl_statement_construct(STATEMENT_DECL_LIST, line_num);
    statement->u.decl_list.decls = decls;
    return statement;
 }
 
-Statement* glsl_statement_construct_function_def(Symbol* header, Statement* body)
+Statement *glsl_statement_construct_function_def(int line_num, Symbol *header, Statement *body)
 {
-   Statement* statement = (Statement *)malloc_fast(sizeof(Statement));
-   statement->line_num = g_LineNumber;
-   statement->flavour = STATEMENT_FUNCTION_DEF;
+   Statement *statement = glsl_statement_construct(STATEMENT_FUNCTION_DEF, line_num);
    statement->u.function_def.header = header;
-   statement->u.function_def.body = body;
-
-   check_returns(header->type->u.function_type.return_type, body);
-
+   statement->u.function_def.body   = body;
    return statement;
 }
 
-Statement *glsl_statement_construct_precision(PrecisionQualifier prec, SymbolType *type) {
-   Statement *statement = malloc_fast(sizeof(Statement));
-   statement->line_num  = g_LineNumber;
-   statement->flavour   = STATEMENT_PRECISION;
+Statement *glsl_statement_construct_precision(int line_num, PrecisionQualifier prec, SymbolType *type) {
+   Statement *statement = glsl_statement_construct(STATEMENT_PRECISION, line_num);
    statement->u.precision.prec = prec;
    statement->u.precision.type = type;
    return statement;
 }
 
-Statement *glsl_statement_construct_qualifier_default(QualList *quals) {
-   Statement *statement = malloc_fast(sizeof(Statement));
-   statement->line_num  = g_LineNumber;
-   statement->flavour   = STATEMENT_QUALIFIER_DEFAULT;
+Statement *glsl_statement_construct_qualifier_default(int line_num, QualList *quals) {
+   Statement *statement = glsl_statement_construct(STATEMENT_QUALIFIER_DEFAULT, line_num);
    statement->u.qualifier_default.quals = quals;
    return statement;
 }
 
-/* Determine whether the given variable may be declared invariant. Outputs can
-   always be invariant. Additionally fragment shader inputs may be invariant in
-   language version 100.  */
-bool invariant_decl_valid(Symbol *var) {
-   if (var->flavour != SYMBOL_VAR_INSTANCE) return false;
-
-   StorageQualifier sq = var->u.var_instance.storage_qual;
-   if (sq == STORAGE_OUT) return true;
-   if (g_ShaderVersion == GLSL_SHADER_VERSION(1, 0, 1) &&
-       sq == STORAGE_IN && g_ShaderFlavour == SHADER_FRAGMENT) return true;
-
-   return false;
-}
-
-Statement *glsl_statement_construct_qualifier_augment(QualList *quals, SymbolList *vars) {
-   if (quals->head->next != NULL || quals->head->q->flavour != QUAL_INVARIANT)
-      glsl_compile_error(ERROR_CUSTOM, 14, g_LineNumber, "Only 'invariant' may be applied to declared variables");
-
-   for (SymbolListNode *n = vars->head; n; n=n->next) {
-      if(!invariant_decl_valid(n->s)) {
-         glsl_compile_error(ERROR_SEMANTIC, 34, g_LineNumber, "%s", n->s->name);
-         return NULL;
-      }
-   }
-
-   /* if we got here, this invariant qualification is well-formed */
-   Statement *statement = malloc_fast(sizeof(Statement));
-   statement->line_num  = g_LineNumber;
-   statement->flavour   = STATEMENT_QUALIFIER_AUGMENT;
+Statement *glsl_statement_construct_qualifier_augment(int line_num, QualList *quals, SymbolList *vars) {
+   Statement *statement = glsl_statement_construct(STATEMENT_QUALIFIER_AUGMENT, line_num);
    statement->u.qualifier_augment.quals = quals;
    statement->u.qualifier_augment.vars  = vars;
    return statement;
 }
 
-Statement *glsl_statement_construct_var_decl(QualList *quals, SymbolType *base_type, Symbol *var, Expr *initializer)
+Statement *glsl_statement_construct_var_decl(int line_num, QualList *quals, SymbolType *base_type,
+                                             Symbol *var, Expr *initializer)
 {
-   Statement *statement = malloc_fast(sizeof(Statement));
-   statement->line_num = g_LineNumber;
-   statement->flavour = STATEMENT_VAR_DECL;
+   Statement *statement = glsl_statement_construct(STATEMENT_VAR_DECL, line_num);
    statement->u.var_decl.quals       = quals;
    statement->u.var_decl.base_type   = base_type;
    statement->u.var_decl.var         = var;
@@ -2210,87 +2170,65 @@ Statement *glsl_statement_construct_var_decl(QualList *quals, SymbolType *base_t
    return statement;
 }
 
-Statement *glsl_statement_construct_struct_decl(SymbolType *type, QualList *quals, StatementChain *members)
+Statement *glsl_statement_construct_struct_decl(int line_num, SymbolType *type, QualList *quals, StatementChain *members)
 {
-   Statement *statement = malloc_fast(sizeof(Statement));
-   statement->line_num  = g_LineNumber;
-   statement->flavour   = STATEMENT_STRUCT_DECL;
+   Statement *statement = glsl_statement_construct(STATEMENT_STRUCT_DECL, line_num);
    statement->u.struct_decl.type    = type;
    statement->u.struct_decl.quals   = quals;
    statement->u.struct_decl.members = members;
    return statement;
 }
 
-Statement *glsl_statement_construct_struct_member_decl(const char *name, ExprChain *size)
-{
-   Statement *statement = malloc_fast(sizeof(Statement));
-   statement->line_num  = g_LineNumber;
-   statement->flavour   = STATEMENT_STRUCT_MEMBER_DECL;
-   statement->u.struct_member_decl.name = name;
+Statement *glsl_statement_construct_struct_member_decl(int line_num, const char *name, ExprChain *size) {
+   Statement *statement = glsl_statement_construct(STATEMENT_STRUCT_MEMBER_DECL, line_num);
+   statement->u.struct_member_decl.name            = name;
    statement->u.struct_member_decl.array_specifier = size;
    return statement;
 }
 
-Statement *glsl_statement_construct_compound(StatementChain *statements)
-{
-   Statement *statement = malloc_fast(sizeof(Statement));
-   statement->line_num  = g_LineNumber;
-   statement->flavour   = STATEMENT_COMPOUND;
+Statement *glsl_statement_construct_compound(int line_num, StatementChain *statements) {
+   Statement *statement = glsl_statement_construct(STATEMENT_COMPOUND, line_num);
    statement->u.compound.statements = statements;
    return statement;
 }
 
-Statement *glsl_statement_construct_expr(Expr *expr)
-{
-   Statement *statement = malloc_fast(sizeof(Statement));
-   statement->line_num  = g_LineNumber;
-   statement->flavour   = STATEMENT_EXPR;
+Statement *glsl_statement_construct_expr(int line_num, Expr *expr) {
+   Statement *statement = glsl_statement_construct(STATEMENT_EXPR, line_num);
    statement->u.expr.expr = expr;
    return statement;
 }
 
-static inline Statement *promote_to_statement_compound(Statement *statement)
+static inline Statement *promote_to_statement_compound(Statement *s)
 {
-   if (!statement) return NULL;
+   if (!s) return NULL;
+   if (s->flavour == STATEMENT_COMPOUND) return s;
 
-   if (statement->flavour == STATEMENT_COMPOUND) return statement;
-
-   return glsl_statement_construct_compound(glsl_statement_chain_append(glsl_statement_chain_create(), statement));
+   return glsl_statement_construct_compound(s->line_num, glsl_statement_chain_append(glsl_statement_chain_create(), s));
 }
 
-Statement *glsl_statement_construct_selection(Expr *cond, Statement *if_true, Statement *if_false)
+Statement *glsl_statement_construct_selection(int line_num, Expr *cond, Statement *if_true, Statement *if_false)
 {
-   if (&primitiveTypes[PRIM_BOOL] != cond->type)
-   {
-      // cond must be a (scalar) bool.
-      glsl_compile_error(ERROR_SEMANTIC, 1, g_LineNumber, "if condition must be bool, found %s", cond->type->name);
-      return NULL;
-   }
-
-   Statement *statement = malloc_fast(sizeof(Statement));
-   statement->line_num = g_LineNumber;
-   statement->flavour = STATEMENT_SELECTION;
-   statement->u.selection.cond = cond;
-   statement->u.selection.if_true = promote_to_statement_compound(if_true);
+   Statement *statement = glsl_statement_construct(STATEMENT_SELECTION, line_num);
+   statement->u.selection.cond     = cond;
+   statement->u.selection.if_true  = promote_to_statement_compound(if_true);
    statement->u.selection.if_false = promote_to_statement_compound(if_false);
+
+   // cond must be a (scalar) bool.
+   if (cond->type != &primitiveTypes[PRIM_BOOL])
+      glsl_compile_error(ERROR_SEMANTIC, 1, line_num, "if condition must be bool, found %s", cond->type->name);
+
    return statement;
 }
 
-Statement *glsl_statement_construct_switch(Expr *cond, StatementChain *chain)
+Statement *glsl_statement_construct_switch(int line_num, Expr *cond, StatementChain *chain)
 {
-   if (cond->type != &primitiveTypes[PRIM_INT] &&
-       cond->type != &primitiveTypes[PRIM_UINT]  )
-   {
-      // cond must be a (scalar) int.
-      glsl_compile_error(ERROR_SEMANTIC, 1, g_LineNumber, "switch condition requires int type, found %s", cond->type->name);
-      return NULL;
-   }
-
-   Statement *statement = malloc_fast(sizeof(Statement));
-   statement->line_num  = g_LineNumber;
-   statement->flavour   = STATEMENT_SWITCH;
+   Statement *statement = glsl_statement_construct(STATEMENT_SWITCH, line_num);
    statement->u.switch_stmt.cond      = cond;
    statement->u.switch_stmt.stmtChain = chain;
+
+   // cond must be a (scalar) int.
+   if (cond->type != &primitiveTypes[PRIM_INT] && cond->type != &primitiveTypes[PRIM_UINT])
+      glsl_compile_error(ERROR_SEMANTIC, 1, line_num, "switch condition requires int type, found %s", cond->type->name);
 
    /* If the switch was empty then we're done */
    if(!chain->first) return statement;
@@ -2299,12 +2237,12 @@ Statement *glsl_statement_construct_switch(Expr *cond, StatementChain *chain)
    if(chain->first->statement->flavour!=STATEMENT_CASE &&
       chain->first->statement->flavour!=STATEMENT_DEFAULT )
    {
-      glsl_compile_error(ERROR_LEXER_PARSER, 1, g_LineNumber, "Statements in switch before first case");
+      glsl_compile_error(ERROR_LEXER_PARSER, 1, line_num, "Statements in switch before first case");
    }
    if (chain->last->statement->flavour==STATEMENT_CASE ||
        chain->last->statement->flavour==STATEMENT_DEFAULT )
    {
-      glsl_compile_error(ERROR_LEXER_PARSER, 1, g_LineNumber, "Switch statements may not end with a case or default");
+      glsl_compile_error(ERROR_LEXER_PARSER, 1, line_num, "Switch statements may not end with a case or default");
    }
 
    bool dflt_label = false;
@@ -2315,8 +2253,7 @@ Statement *glsl_statement_construct_switch(Expr *cond, StatementChain *chain)
          if(!node->statement->u.case_stmt.expr->compile_time_value ||
              node->statement->u.case_stmt.expr->type != cond->type   )
          {
-            glsl_compile_error(ERROR_CUSTOM, 26, g_LineNumber, "Case labels must be constant and match the condition type");
-            return NULL;
+            glsl_compile_error(ERROR_CUSTOM, 26, line_num, "Case labels must be constant and match the condition type");
          }
 
          const_value case_label = *node->statement->u.case_stmt.expr->compile_time_value;
@@ -2325,13 +2262,13 @@ Statement *glsl_statement_construct_switch(Expr *cond, StatementChain *chain)
          {
             if(node2->statement->flavour==STATEMENT_CASE && case_label==*node2->statement->u.case_stmt.expr->compile_time_value)
                /* Case labels cannot repeat values */
-               glsl_compile_error(ERROR_CUSTOM, 26, g_LineNumber, "Duplicate case value %d", case_label);
+               glsl_compile_error(ERROR_CUSTOM, 26, line_num, "Duplicate case value %d", case_label);
          }
       }
 
       if(node->statement->flavour==STATEMENT_DEFAULT) {
          if(dflt_label)
-            glsl_compile_error(ERROR_CUSTOM, 26, g_LineNumber, "Duplicate default labels");
+            glsl_compile_error(ERROR_CUSTOM, 26, line_num, "Duplicate default labels");
 
          dflt_label = true;
       }
@@ -2340,21 +2277,17 @@ Statement *glsl_statement_construct_switch(Expr *cond, StatementChain *chain)
    return statement;
 }
 
-Statement* glsl_statement_construct_case(Expr* expr)
-{
-   Statement *statement = malloc_fast(sizeof(Statement));
-   statement->line_num = g_LineNumber;
-   statement->flavour = STATEMENT_CASE;
+Statement *glsl_statement_construct_case(int line_num, Expr *expr) {
+   Statement *statement = glsl_statement_construct(STATEMENT_CASE, line_num);
    statement->u.case_stmt.expr = expr;
    return statement;
 }
 
 static bool cond_or_decl_is_bool(Statement *cond_or_decl) {
-   SymbolType *type;
-
    assert(cond_or_decl->flavour == STATEMENT_VAR_DECL ||
           cond_or_decl->flavour == STATEMENT_EXPR);
 
+   SymbolType *type;
    if (cond_or_decl->flavour == STATEMENT_VAR_DECL) {
       type = cond_or_decl->u.var_decl.var->type;
    } else {
@@ -2366,35 +2299,28 @@ static bool cond_or_decl_is_bool(Statement *cond_or_decl) {
    return true;
 }
 
-Statement *glsl_statement_construct_iterator_for(Statement *init, Statement *cond_or_decl, Expr *loop, Statement *block)
+Statement *glsl_statement_construct_iterator_for(int line_num, Statement *init, Statement *cond_or_decl, Expr *loop, Statement *block)
 {
-   Statement *statement = (Statement *)malloc_fast(sizeof(Statement));
-   statement->line_num = g_LineNumber;
-   statement->flavour = STATEMENT_ITERATOR_FOR;
+   Statement *statement = glsl_statement_construct(STATEMENT_ITERATOR_FOR, line_num);
 
-   if (cond_or_decl == NULL) {
-      /* TODO: Should we just leave this NULL instead? */
-      cond_or_decl = glsl_statement_construct_expr(glsl_expr_construct_const_value(PRIM_BOOL, 1));
-   }
-
-   if (!cond_or_decl_is_bool(cond_or_decl)) {
-      glsl_compile_error(ERROR_SEMANTIC, 1, statement->line_num, "loop condition must be a boolean");
-      return NULL;
-   }
+   /* TODO: Should we just leave this NULL instead? */
+   if (cond_or_decl == NULL)
+      cond_or_decl = glsl_statement_construct_expr(line_num, glsl_expr_construct_const_value(line_num, PRIM_BOOL, 1));
 
    statement->u.iterator_for.init = init;
    statement->u.iterator_for.cond_or_decl = cond_or_decl;
    statement->u.iterator_for.loop = loop;
    statement->u.iterator_for.block = promote_to_statement_compound(block);
 
+   if (!cond_or_decl_is_bool(cond_or_decl))
+      glsl_compile_error(ERROR_SEMANTIC, 1, statement->line_num, "loop condition must be a boolean");
+
    return statement;
 }
 
-Statement *glsl_statement_construct_iterator_while(Statement *cond_or_decl, Statement *block)
+Statement *glsl_statement_construct_iterator_while(int line_num, Statement *cond_or_decl, Statement *block)
 {
-   Statement *statement = (Statement *)malloc_fast(sizeof(Statement));
-   statement->line_num = g_LineNumber;
-   statement->flavour = STATEMENT_ITERATOR_WHILE;
+   Statement *statement = glsl_statement_construct(STATEMENT_ITERATOR_WHILE, line_num);
    statement->u.iterator_while.cond_or_decl = cond_or_decl;
    statement->u.iterator_while.block = promote_to_statement_compound(block);
 
@@ -2406,13 +2332,11 @@ Statement *glsl_statement_construct_iterator_while(Statement *cond_or_decl, Stat
    return statement;
 }
 
-Statement *glsl_statement_construct_iterator_do_while(Statement *block, Expr *cond)
+Statement *glsl_statement_construct_iterator_do_while(int line_num, Statement *block, Expr *cond)
 {
-   Statement *statement = (Statement *)malloc_fast(sizeof(Statement));
-   statement->line_num = g_LineNumber;
-   statement->flavour = STATEMENT_ITERATOR_DO_WHILE;
+   Statement *statement = glsl_statement_construct(STATEMENT_ITERATOR_DO_WHILE, line_num);
    statement->u.iterator_do_while.block = promote_to_statement_compound(block);
-   statement->u.iterator_do_while.cond = cond;
+   statement->u.iterator_do_while.cond  = cond;
 
    if (cond->type->flavour != SYMBOL_PRIMITIVE_TYPE ||
        cond->type->u.primitive_type.index != PRIM_BOOL )
@@ -2423,13 +2347,9 @@ Statement *glsl_statement_construct_iterator_do_while(Statement *block, Expr *co
    return statement;
 }
 
-Statement *glsl_statement_construct_return_expr(Expr *expr)
-{
-   Statement* statement = (Statement *)malloc_fast(sizeof(Statement));
-   statement->line_num = g_LineNumber;
-   statement->flavour = STATEMENT_RETURN_EXPR;
+Statement *glsl_statement_construct_return_expr(int line_num, Expr *expr) {
+   Statement *statement = glsl_statement_construct(STATEMENT_RETURN_EXPR, line_num);
    statement->u.return_expr.expr = expr;
-
    return statement;
 }
 
@@ -2500,4 +2420,22 @@ StatementChain *glsl_statement_chain_append(StatementChain *chain, Statement *st
    chain->count++;
 
    return chain;
+}
+
+StatementChain *glsl_statement_chain_cat(StatementChain *a, StatementChain *b)
+{
+   if (b->count == 0) return a;
+
+   assert(b->first && b->last);
+
+   if (a->count == 0)
+      a->first = b->first;
+   else {
+      a->last->next = b->first;
+      b->first->prev = a->last;
+   }
+   a->last = b->last;
+   a->count += b->count;
+
+   return a;
 }

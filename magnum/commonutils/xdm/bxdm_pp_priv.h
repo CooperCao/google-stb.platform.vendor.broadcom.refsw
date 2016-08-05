@@ -46,9 +46,13 @@
 #include "bxdm_pp_jrc.h"
 #include "bxdm_pp_avg.h"
 #include "bxdm_pp_timer.h"
+#include "bxdm_pp_dbg_common.h"
+#include "bdbg_fifo.h"
 
+#if 0
 #ifndef BXVD_DBG_MSG
 #define BXVD_DBG_MSG(a,b) BSTD_UNUSED(a); BDBG_MSG(b)
+#endif
 #endif
 
 #ifndef BXVD_DBG_WRN
@@ -253,6 +257,11 @@ typedef struct BXDM_PictureProvider_P_LocalState
    bool bRepeatedVsyncPolarity;
    bool bNRTModeStall;
 
+   /* SWSTB-1613: the number of pictures promoted for display on this vsync.
+    * When more than 1 is promoted, only the last is sent for display, the
+    * others are essentially dropped. */
+   uint32_t uiPicturesPromoted;
+
 } BXDM_PictureProvider_P_LocalState;
 
 #define BXDM_PictureProvider_P_MAX_EARLY_BEFORE_DROP 3
@@ -321,6 +330,38 @@ typedef struct BXDM_PictureProvide_P_FilterContext
    struct BXDM_PictureProvide_P_FilterContext * pstDownSteamFilter;
 
 } BXDM_PictureProvide_P_FilterContext;
+
+
+/*
+ * SWSTB-1380: debug fifo context
+ */
+typedef struct BXDM_PictureProvider_P_DebugFifo
+{
+      BMMA_Heap_Handle  hBMMAHeap;
+      BMMA_Block_Handle hBMMABlock;
+      BMMA_DeviceOffset bmmaOffset;       /* physical address */
+      void *            pBuffer;          /* virtual address */
+      bool              bBufferValid;
+
+      size_t uiElementSize;
+      size_t uiFifoSize;
+
+      BDBG_Fifo_Handle hDebugFifo;
+
+} BXDM_PictureProvider_P_DebugFifo;
+
+/*
+ * SWSTB-1380: debug fifo reader context
+ */
+typedef struct BXDM_Debug_ReaderInfo
+{
+   BXDM_PictureProvider_DebugFifoInfo stFifoInfo;
+   BDBG_FifoReader_Handle hDebugReader;
+
+   void * pDebugFifo;
+   void * pEntry;
+
+} BXDM_Debug_ReaderInfo;
 
 typedef struct BXDM_PictureProvider_P_Config
 {
@@ -444,6 +485,12 @@ typedef struct BXDM_PictureProvider_P_Config
    /* SW7405-4736: for debug, flag changes to trigger debug messages. */
    uint32_t uiDirtyBits_1;
    uint32_t uiDirtyBits_2;
+
+   /* SWSTB-1380: when using the debug fifo, the following will contain the
+    * context of the fifo and the associated reader. */
+
+   BXDM_PictureProvider_P_DebugFifo stDebugFifo;
+   BXDM_Debug_ReaderInfo stDebugReader;
 
 } BXDM_PictureProvider_P_Config;
 

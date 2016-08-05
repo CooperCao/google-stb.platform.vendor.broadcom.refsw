@@ -1,43 +1,39 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c) 2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *****************************************************************************/
 #ifndef NEXUS_TRANSPORT_MODULE_H__
 #define NEXUS_TRANSPORT_MODULE_H__
@@ -144,9 +140,7 @@ B_REFSW_DSS_SUPPORT means the SW supports it and is set by env variable. */
 #include "nexus_tsio.h"
 #endif
 
-#if NEXUS_TRANSPORT_EXTENSION_TSMF
 #include "nexus_tsmf.h"
-#endif
 
 #if NEXUS_TRANSPORT_EXTENSION_ATS
 #include "nexus_ats.h"
@@ -341,7 +335,7 @@ typedef struct NEXUS_RaveCapture {
 
 /* this is the implementation of NEXUS_RaveHandle */
 struct NEXUS_Rave {
-    BDBG_OBJECT(NEXUS_Rave)
+    NEXUS_OBJECT(NEXUS_Rave);
     BXPT_RaveCx_Handle raveHandle; /* This is the RAVE channel, aka device. */
     NEXUS_RaveSettings settings;
     NEXUS_RaveOpenSettings openSettings;
@@ -386,6 +380,9 @@ struct NEXUS_Rave {
 #if NEXUS_TRANSPORT_CLIENT_CAPTURE_ENABLED
     NEXUS_TransportClientCapture * xcCap;
 #endif
+    struct {
+        const NEXUS_Rave_P_ItbEntry *DataPtr;
+    } readItbEvents;
 
     /* slave pidchannel support */
     BLST_S_ENTRY(NEXUS_Rave) pidchannel_link; /* for NEXUS_PidChannel.raves */
@@ -571,6 +568,11 @@ nexus_message_pid2buf.c was released for a while, so I'm adding this debug optio
 #endif
 
     NEXUS_IsrCallbackHandle dataReady, overflow, psiLengthError, crcError, pesLengthError, pesStartCodeError;
+    struct {
+        uint8_t *buffer;
+        unsigned size, wptr, rptr;
+        NEXUS_TimerHandle timer;
+    } copy;
 };
 #endif /* NEXUS_USE_SW_FILTER */
 
@@ -736,9 +738,6 @@ struct NEXUS_Transport_P_State {
 #if BXPT_HAS_WAKEUP_PKT_SUPPORT
     struct {
         BINT_CallbackHandle intPacketFoundCallback;
-        /* BKNI_EventHandle event; */
-        /* NEXUS_EventCallbackHandle eventHandle; */
-        NEXUS_IsrCallbackHandle wakeupCallback;
         NEXUS_TransportWakeupSettings *settings;
     } wakeup;
 #endif
@@ -779,14 +778,12 @@ struct NEXUS_Transport_P_State {
 extern struct NEXUS_Transport_P_State g_NEXUS_Transport_P_State;
 #define pTransport (&g_NEXUS_Transport_P_State)
 
-#if NEXUS_HAS_TSMF
 typedef struct NEXUS_Tsmf_P_State
 {
     BLST_S_HEAD(NEXUS_TsmfContexts, NEXUS_Tsmf) handles;
 } NEXUS_Tsmf_P_State;
 
 extern NEXUS_Tsmf_P_State g_NEXUS_Tsmf_P_State;
-#endif
 
 
 void NEXUS_Playpump_P_ConsumerStarted(NEXUS_PlaypumpHandle p);
@@ -823,7 +820,6 @@ void NEXUS_Message_P_FireInterrupt_isr(NEXUS_MessageHandle msg, unsigned pidChan
 bool NEXUS_Message_P_HasCallback(NEXUS_MessageHandle msg, NEXUS_XptDataInterrupt xptDataInterrupt);
 
 void NEXUS_Transport_P_SetInterrupts(void);
-void NEXUS_Transport_P_IncPowerDown(bool powered);
 
 void NEXUS_Vcxo_Init(void);
 void NEXUS_Vcxo_Uninit(void);
@@ -833,7 +829,6 @@ void NEXUS_Vcxo_Uninit(void);
 
 NEXUS_OBJECT_CLASS_DECLARE(NEXUS_PacketSub);
 NEXUS_OBJECT_CLASS_DECLARE(NEXUS_Message);
-NEXUS_OBJECT_CLASS_DECLARE(NEXUS_Tsmf);
 NEXUS_OBJECT_CLASS_DECLARE(NEXUS_Remux);
 NEXUS_OBJECT_CLASS_DECLARE(NEXUS_Mpod);
 NEXUS_OBJECT_CLASS_DECLARE(NEXUS_MpodInput);
@@ -842,9 +837,7 @@ NEXUS_OBJECT_CLASS_DECLARE(NEXUS_MpodInput);
 NEXUS_OBJECT_CLASS_DECLARE(NEXUS_TsioCard);
 #endif
 
-#if NEXUS_TRANSPORT_EXTENSION_TSMF
 NEXUS_OBJECT_CLASS_DECLARE(NEXUS_Tsmf);
-#endif
 
 #if NEXUS_TRANSPORT_EXTENSION_TBG
 NEXUS_OBJECT_CLASS_DECLARE(NEXUS_Tbg);

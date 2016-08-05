@@ -1,15 +1,8 @@
 /*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
+Broadcom Proprietary and Confidential. (c)2016 Broadcom.
 All rights reserved.
-
-Project  :  helpers
-Module   :
-
-FILE DESCRIPTION
 =============================================================================*/
-
-#ifndef V3D_UTIL_H
-#define V3D_UTIL_H
+#pragma once
 
 #include "v3d_common.h"
 #include "libs/util/gfx_util/gfx_util.h"
@@ -71,68 +64,4 @@ static inline bool v3d_addr_aligned(v3d_addr_t addr, uint32_t align)
 #define v3d_assert_addr_range_within(BEGIN, SIZE, PERMITTED_BEGIN, PERMITTED_SIZE)
 #endif
 
-// Returns tile size in pixels - NOT subsamples
-static inline void v3d_tile_size_pixels(
-   uint32_t *width,
-   uint32_t *height,
-   uint32_t color_rendertarget_count,
-   bool doublebuffer_enabled,
-   uint32_t max_rt_bpp,
-   bool ms_enabled)
-{
-   unsigned int split_count = 0;
-   *width = 64; // TODO use ident
-   *height = 64;
-
-   if (ms_enabled)
-      split_count += 2;
-
-   if (doublebuffer_enabled)
-      ++split_count;
-
-   switch (max_rt_bpp) {
-   case 32:
-      break;
-   case 64:
-      ++split_count;
-      break;
-   case 128:
-      split_count += 2;
-      break;
-   default:
-      assert(0);
-   }
-
-   switch (color_rendertarget_count) {
-   case 0: /* TODO 0 isn't really supported? */
-   case 1:
-      break;
-   case 2:
-      ++split_count;
-      break;
-   case 3:
-   case 4:
-      split_count += 2;
-      break;
-   default:
-      assert(0);
-   }
-
-   for (;;) {
-      if (!split_count)
-         break;
-
-      *height /= 2;
-      --split_count;
-
-      if (!split_count)
-         break;
-
-      *width /= 2;
-      --split_count;
-   }
-}
-
 VCOS_EXTERN_C_END
-
-#endif

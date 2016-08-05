@@ -103,19 +103,20 @@ B_REFSW_DEBUG ?= y
 
 # Create the app
 $(info Objects = $(OBJECTS))
-$(BSG_OBJ_DIR)/$(TARGET):	$(OBJECTS)
-	$(CXX) $(CFLAGS) $(CXXFLAGS) $(OBJECTS) $(LDFLAGS) -o $(BSG_OBJ_DIR)/$(TARGET)
+$(BSG_OBJ_DIR)/$(TARGET):	bsg $(OBJECTS)
+	@echo Linking $(BSG_OBJ_DIR)/$(TARGET)
+	@$(CXX) $(CFLAGS) $(CXXFLAGS) $(OBJECTS) $(LDFLAGS) -o $(BSG_OBJ_DIR)/$(TARGET)
 ifneq ($(B_REFSW_DEBUG),y)
 	$(STRIP) $(BSG_OBJ_DIR)/$(TARGET)
 endif
 
 bsg:
-	echo "Making bsg"
-	$(MAKE) -f bsg.mk -C $(BSG_DIR)
+	@echo "Making bsg"
+	@$(MAKE) -f bsg.mk -C $(BSG_DIR)
 
 # Install
 install:	bsg $(BSG_OBJ_DIR)/$(TARGET)
-	mkdir -p $(TARGET_APP); \
+	@mkdir -p $(TARGET_APP); \
 	chmod 777 $(TARGET_APP); \
 	cp -f $(BSG_OBJ_DIR)/$(TARGET) $(TARGET_APP); \
 	test "$(DATA)" != "" && cp -f $(DATA) $(TARGET_APP); \
@@ -136,6 +137,7 @@ clean:	clean_app
 
 # Files that are common
 $(OBJECTS): $(BSG_OBJ_DIR)/%o: %cpp
-	mkdir -p $(BSG_OBJ_DIR)
-	mkdir -p $(BSG_OBJ_DIR)/../common
-	$(CXX) $(CFLAGS) $(CXXFLAGS) -c $^ -o $@
+	@mkdir -p $(BSG_OBJ_DIR)
+	@mkdir -p $(BSG_OBJ_DIR)/../common
+	@echo Compiling $^
+	@$(CXX) $(CFLAGS) $(CXXFLAGS) -c $^ -o $@

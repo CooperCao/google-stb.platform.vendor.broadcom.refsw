@@ -238,7 +238,7 @@ static int b_next_decoder_index(struct b_connect *connect, int index)
     if (connect->client->server->videoDecoder.special_mode == b_special_mode_linked_decoder2)
     {
         if (connect->settings.simpleVideoDecoder[0].windowCapabilities.encoder) {
-            /* encoder uses 2,1 */
+            /* encoder uses 2,0 */
             switch (index) {
             case NEXUS_MAX_VIDEO_DECODERS: return 2;
             case 2: return 0;
@@ -364,7 +364,6 @@ static bool nxserver_p_urr_on(nxserver_t server)
     }
 #else
     BSTD_UNUSED(heapSettings);
-    BSTD_UNUSED(rc);
 #endif
 #ifdef NEXUS_MEMC1_SECURE_PICTURE_BUFFER_HEAP
     if (server->platformConfig.heap[NEXUS_MEMC1_SECURE_PICTURE_BUFFER_HEAP]) {
@@ -996,28 +995,33 @@ static void release_video_window(struct b_connect *connect, bool remainVisible)
     connect->windowIndex = 0; /* don't care */
 }
 
-void uninit_session_video(struct b_session *session)
+void nxserverlib_video_close_windows(struct b_session *session, unsigned local_display_index)
 {
-    unsigned i, j, index;
-    NEXUS_SimpleVideoDecoderModule_CheckCache(session->video.server, NULL, NULL);
-    for (j=0;j<NXCLIENT_MAX_DISPLAYS;j++) {
-        if (session->display[j].display) {
-            for (index=0;index<NEXUS_NUM_VIDEO_WINDOWS;index++) {
-                for (i=0;i<NXCLIENT_MAX_IDS;i++) {
-                    if (session->display[j].window[index][i]) {
-                        NEXUS_VideoWindow_Close(session->display[j].window[index][i]);
-                        session->display[j].window[index][i] = NULL;
-                    }
-                }
-                if (session->display[j].parentWindow[index]) {
-                    NEXUS_VideoWindow_Close(session->display[j].parentWindow[index]);
-                    session->display[j].parentWindow[index] = NULL;
-                }
+    unsigned i, index;
+    for (index=0;index<NEXUS_NUM_VIDEO_WINDOWS;index++) {
+        for (i=0;i<NXCLIENT_MAX_IDS;i++) {
+            if (session->display[local_display_index].window[index][i]) {
+                NEXUS_VideoWindow_Close(session->display[local_display_index].window[index][i]);
+                session->display[local_display_index].window[index][i] = NULL;
             }
+        }
+        if (session->display[local_display_index].parentWindow[index]) {
+            NEXUS_VideoWindow_Close(session->display[local_display_index].parentWindow[index]);
+            session->display[local_display_index].parentWindow[index] = NULL;
         }
     }
 }
 
+void uninit_session_video(struct b_session *session)
+{
+    unsigned j;
+    NEXUS_SimpleVideoDecoderModule_CheckCache(session->video.server, NULL, NULL);
+    for (j=0;j<NXCLIENT_MAX_DISPLAYS;j++) {
+        if (session->display[j].display) {
+            nxserverlib_video_close_windows(session, j);
+        }
+    }
+}
 
 static NEXUS_Error video_acquire_stc_index(struct b_connect * connect, int *pStcIndex)
 {
@@ -1057,8 +1061,14 @@ int acquire_video_decoders(struct b_connect *connect, bool grab)
     }
 
     if (req->handles.simpleVideoDecoder[0].r) {
-        BDBG_WRN(("already connected"));
-        return 0;
+        if (req->handles.simpleVideoDecoder[0].r->connect == connect) {
+            BDBG_WRN(("already connected"));
+            return 0;
+        }
+        else {
+            BDBG_ERR(("already connected to %p", (void*)req->handles.simpleVideoDecoder[0].r->connect));
+            return BERR_TRACE(NEXUS_NOT_AVAILABLE);
+        }
     }
 
     rc = acquire_video_window(connect, grab);
@@ -1136,6 +1146,7 @@ int acquire_video_decoders(struct b_connect *connect, bool grab)
         }
         settings.stcIndex = stcIndex;
         settings.mosaic = IS_MOSAIC(connect);
+        settings.mainWindow = (connect->settings.simpleVideoDecoder[0].windowCapabilities.type == NxClient_VideoWindowType_eMain);
 
         BDBG_MSG(("connect SimpleVideoDecoder %p to decoder %p, window0 %p, stcIndex %u", (void*)videoDecoder, (void*)settings.videoDecoder, (void*)settings.window[0], settings.stcIndex));
         rc = NEXUS_SimpleVideoDecoder_SetServerSettings(session->video.server, videoDecoder, &settings);
@@ -1154,26 +1165,29 @@ err_create:
     return rc;
 }
 
-void nxserverlib_video_disconnect_sd_display(struct b_session *session)
+void nxserverlib_video_disconnect_display(nxserver_t server, NEXUS_DisplayHandle display)
 {
-    /* Go through every connection and disconnect video from the SD path. It's not supported with native 3D.
-    TODO: There is no code to reconnect the SD path going out of native 3D. For now, app must reconnect. */
     nxclient_t client;
-    for (client = BLST_D_FIRST(&session->clients); client; client = BLST_D_NEXT(client, session_link)) {
+    for (client = BLST_D_FIRST(&server->clients); client; client = BLST_D_NEXT(client, link)) {
         struct b_connect *connect;
         for (connect = BLST_D_FIRST(&client->connects); connect; connect = BLST_D_NEXT(connect, link)) {
             struct b_req *req = connect->req[b_resource_simple_video_decoder];
             unsigned i, j;
             for (i=0;i<NXCLIENT_MAX_IDS;i++) {
                 NEXUS_SimpleVideoDecoderServerSettings settings;
+                bool change = false;
                 if (!req || !req->handles.simpleVideoDecoder[i].handle) continue;
-                NEXUS_SimpleVideoDecoder_GetServerSettings(session->video.server, req->handles.simpleVideoDecoder[i].handle, &settings);
-                /* skip j=0 */
-                for (j=1;j<NXCLIENT_MAX_DISPLAYS;j++) {
-                    settings.window[j] = NULL;
-                    settings.display[j] = NULL;
+                NEXUS_SimpleVideoDecoder_GetServerSettings(client->session->video.server, req->handles.simpleVideoDecoder[i].handle, &settings);
+                for (j=0;j<NXCLIENT_MAX_DISPLAYS;j++) {
+                    if (settings.display[j] == display) {
+                        settings.window[j] = NULL;
+                        settings.display[j] = NULL;
+                        change = true;
+                    }
                 }
-                NEXUS_SimpleVideoDecoder_SetServerSettings(session->video.server, req->handles.simpleVideoDecoder[i].handle, &settings);
+                if (change) {
+                    NEXUS_SimpleVideoDecoder_SetServerSettings(client->session->video.server, req->handles.simpleVideoDecoder[i].handle, &settings);
+                }
             }
         }
     }

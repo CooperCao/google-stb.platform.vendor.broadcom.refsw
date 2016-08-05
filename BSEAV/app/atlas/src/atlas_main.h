@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -65,7 +65,6 @@
 #include "still_decode.h"
 #include "thumb.h"
 #include "config.h"
-#include "streamer_udp.h"
 
 #ifdef MPOD_SUPPORT
 #include "cablecard.h"
@@ -88,6 +87,7 @@
 #include "bluetooth.h"
 #endif
 #ifdef PLAYBACK_IP_SUPPORT
+#include "streamer_udp.h"
 #include "servermgr.h"
 #include "discovery.h"
 #include "playlist_db.h"

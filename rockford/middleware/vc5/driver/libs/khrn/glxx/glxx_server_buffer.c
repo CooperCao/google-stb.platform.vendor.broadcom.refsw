@@ -146,7 +146,7 @@ static GLXX_BUFFER_BINDING_T *binding_from_target(GLXX_SERVER_STATE_T *state,
    case GL_TRANSFORM_FEEDBACK_BUFFER:
       return glxx_tf_get_buffer_binding(state);
    default:
-      UNREACHABLE();
+      unreachable();
    }
 }
 
@@ -259,7 +259,7 @@ static GLenum set_bound_buffer(GLXX_SERVER_STATE_T *state, GLenum target,
 
 GL_API GLboolean GL_APIENTRY glIsBuffer(GLuint buffer)
 {
-   GLXX_SERVER_STATE_T  *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T  *state = glxx_lock_server_state(OPENGL_ES_ANY);
    GLboolean            result;
    GLXX_BUFFER_T        *buffer_obj;
 
@@ -268,14 +268,14 @@ GL_API GLboolean GL_APIENTRY glIsBuffer(GLuint buffer)
    buffer_obj = glxx_shared_get_buffer(state->shared, buffer);
    result = (buffer_obj != NULL && buffer_obj->enabled);
 
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 
    return result;
 }
 
 GL_API void GL_APIENTRY glBindBuffer(GLenum target, GLuint buffer)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
    GLenum error;
 
    if (!state) return;
@@ -298,12 +298,14 @@ GL_API void GL_APIENTRY glBindBuffer(GLenum target, GLuint buffer)
    }
 
 unlock_out:
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
+
+#if KHRN_GLES31_DRIVER
 
 GL_API void GL_APIENTRY glBindVertexBuffer(GLuint bindingindex, GLuint buffer, GLintptr offset, GLsizei stride)
 {
-   GLXX_SERVER_STATE_T *state = GL31_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
 
    if(!state) return;
 
@@ -345,8 +347,10 @@ GL_API void GL_APIENTRY glBindVertexBuffer(GLuint bindingindex, GLuint buffer, G
    KHRN_MEM_ASSIGN(vbo->buffer, buffer_obj);
 
 end:
-   GL31_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
+
+#endif
 
 static const struct buf_restrictions {
    unsigned int num_bindings;
@@ -371,7 +375,7 @@ static const struct buf_restrictions *get_buf_restrictions(GLenum target) {
 
 GL_API void GL_APIENTRY glBindBufferBase(GLenum target, GLuint index, GLuint buffer)
 {
-   GLXX_SERVER_STATE_T *state = GL30_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
    GLenum error;
    const struct buf_restrictions *r;
 
@@ -396,7 +400,7 @@ GL_API void GL_APIENTRY glBindBufferBase(GLenum target, GLuint index, GLuint buf
    }
 
 unlock_out:
-   GL30_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_API void GL_APIENTRY glBindBufferRange(GLenum target, GLuint index, GLuint buffer, GLintptr offset, GLsizeiptr size)
@@ -405,7 +409,7 @@ GL_API void GL_APIENTRY glBindBufferRange(GLenum target, GLuint index, GLuint bu
    GLenum error;
    const struct buf_restrictions *r;
 
-   state = GL30_LOCK_SERVER_STATE();
+   state = glxx_lock_server_state(OPENGL_ES_3X);
    if (!state) return;
 
    if (!is_indexed_buffer_target(target)) {
@@ -449,14 +453,14 @@ GL_API void GL_APIENTRY glBindBufferRange(GLenum target, GLuint index, GLuint bu
       glxx_server_state_set_error(state, error);
 
 unlock_out:
-   GL30_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_API void GL_APIENTRY glBufferData(GLenum target, GLsizeiptr size, const GLvoid *data, GLenum usage)
 {
    PROFILE_FUNCTION_MT("GL");
 
-   GLXX_SERVER_STATE_T     *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T     *state = glxx_lock_server_state(OPENGL_ES_ANY);
    GLXX_BUFFER_BINDING_T   buffer_binding;
    GLXX_BUFFER_T           *buffer;
    GLenum error;
@@ -500,7 +504,7 @@ GL_API void GL_APIENTRY glBufferData(GLenum target, GLsizeiptr size, const GLvoi
       glxx_server_state_set_error(state, GL_OUT_OF_MEMORY);
 
 unlock_out:
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 
    khrn_stats_record_end(KHRN_STATS_BUFFER_DATA);
 }
@@ -509,7 +513,7 @@ GL_API void GL_APIENTRY glBufferSubData(GLenum target, GLintptr offset, GLsizeip
 {
    PROFILE_FUNCTION_MT("GL");
 
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
    if (!state)
       return;
 
@@ -545,14 +549,14 @@ GL_API void GL_APIENTRY glBufferSubData(GLenum target, GLintptr offset, GLsizeip
    }
 
 unlock_out:
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 
    khrn_stats_record_end(KHRN_STATS_BUFFER_DATA);
 }
 
 GL_API void GL_APIENTRY glDeleteBuffers(GLsizei n, const GLuint* buffers)
 {
-   GLXX_SERVER_STATE_T  *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T  *state = glxx_lock_server_state(OPENGL_ES_ANY);
    if (!state) return;
 
    if (n < 0)
@@ -623,12 +627,12 @@ GL_API void GL_APIENTRY glDeleteBuffers(GLsizei n, const GLuint* buffers)
       }
    }
 
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 void glxx_get_buffer_pointerv(GLenum target, GLenum pname, GLvoid ** params)
 {
-   GLXX_SERVER_STATE_T     *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T     *state = glxx_lock_server_state(OPENGL_ES_ANY);
    GLXX_BUFFER_BINDING_T   buffer_binding;
    GLXX_BUFFER_T           *buffer;
    GLenum error;
@@ -652,13 +656,13 @@ void glxx_get_buffer_pointerv(GLenum target, GLenum pname, GLvoid ** params)
    params[0] = buffer->mapped_pointer;
 
 unlock_out:
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_API void GL_APIENTRY glGetBufferParameteri64v(GLenum target, GLenum pname, GLint64* params)
 {
    // TODO: This is currently identical to glGetBufferParameteriv
-   GLXX_SERVER_STATE_T     *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T     *state = glxx_lock_server_state(OPENGL_ES_ANY);
    GLXX_BUFFER_BINDING_T   buffer_binding;
    GLXX_BUFFER_T           *buffer;
    GLenum error;
@@ -682,14 +686,12 @@ GL_API void GL_APIENTRY glGetBufferParameteri64v(GLenum target, GLenum pname, GL
    case GL_BUFFER_USAGE:
       params[0] = buffer->usage;
       break;
-#if GL_OES_mapbuffer
    case GL_BUFFER_ACCESS_OES:
       if ((buffer->mapped_access_flags & ~GL_MAP_WRITE_BIT) != 0)
          glxx_server_state_set_error(state, GL_INVALID_OPERATION);
       else
          params[0] = GL_WRITE_ONLY;
       break;
-#endif
    case GL_BUFFER_MAPPED: // == GL_BUFFER_MAPPED_OES
       params[0] = (buffer->mapped_pointer != 0);
       break;
@@ -708,12 +710,12 @@ GL_API void GL_APIENTRY glGetBufferParameteri64v(GLenum target, GLenum pname, GL
    }
 
 unlock_out:
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_API void GL_APIENTRY glGetBufferPointerv(GLenum target, GLenum pname, GLvoid** params)
 {
-   GLXX_SERVER_STATE_T     *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T     *state = glxx_lock_server_state(OPENGL_ES_ANY);
    GLXX_BUFFER_BINDING_T   buffer_binding;
    GLXX_BUFFER_T           *buffer;
    GLenum error;
@@ -739,7 +741,7 @@ GL_API void GL_APIENTRY glGetBufferPointerv(GLenum target, GLenum pname, GLvoid*
    }
 
 unlock_out:
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_API GLvoid* GL_APIENTRY glMapBufferRange(
@@ -750,7 +752,7 @@ GL_API GLvoid* GL_APIENTRY glMapBufferRange(
 {
    PROFILE_FUNCTION_MT("GL");
 
-   GLXX_SERVER_STATE_T *state = GL30_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
    if (!state)
       return NULL;
 
@@ -765,7 +767,7 @@ GL_API GLvoid* GL_APIENTRY glMapBufferRange(
    p = glxx_map_buffer_range(state, target, offset, length, access);
 
 end:
-   GL30_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
    return p;
 }
 
@@ -774,33 +776,26 @@ end:
 void* glxx_map_buffer_range(GLXX_SERVER_STATE_T *state, GLenum target,
       size_t offset, size_t size, GLbitfield access)
 {
-   GLXX_BUFFER_BINDING_T   buffer_binding;
-   GLXX_BUFFER_T           *buffer;
-   size_t buffer_size;
-   GLenum error;
-   bool read, write, inv_buffer, inv_range, unsync, flush_exp;
-   void * p = NULL;
+   bool read = (access & GL_MAP_READ_BIT) == GL_MAP_READ_BIT;
+   bool write = (access & GL_MAP_WRITE_BIT) == GL_MAP_WRITE_BIT;
+   bool inv_buffer = (access & GL_MAP_INVALIDATE_BUFFER_BIT) == GL_MAP_INVALIDATE_BUFFER_BIT;
+   bool inv_range = (access & GL_MAP_INVALIDATE_RANGE_BIT) == GL_MAP_INVALIDATE_RANGE_BIT;
+   bool unsync = (access & GL_MAP_UNSYNCHRONIZED_BIT) == GL_MAP_UNSYNCHRONIZED_BIT;
+   bool flush_exp = (access & GL_MAP_FLUSH_EXPLICIT_BIT) == GL_MAP_FLUSH_EXPLICIT_BIT;
 
-
-   read = (access & GL_MAP_READ_BIT) == GL_MAP_READ_BIT;
-   write = (access & GL_MAP_WRITE_BIT) == GL_MAP_WRITE_BIT;
-   inv_buffer = (access & GL_MAP_INVALIDATE_BUFFER_BIT) == GL_MAP_INVALIDATE_BUFFER_BIT;
-   inv_range = (access & GL_MAP_INVALIDATE_RANGE_BIT) == GL_MAP_INVALIDATE_RANGE_BIT;
-   unsync = (access & GL_MAP_UNSYNCHRONIZED_BIT) == GL_MAP_UNSYNCHRONIZED_BIT;
-   flush_exp = (access & GL_MAP_FLUSH_EXPLICIT_BIT) == GL_MAP_FLUSH_EXPLICIT_BIT;
-
-   error = get_buffer_binding(state, target, &buffer_binding);
+   GLXX_BUFFER_BINDING_T buffer_binding;
+   GLenum error = get_buffer_binding(state, target, &buffer_binding);
    if (error != GL_NO_ERROR)
    {
       glxx_server_state_set_error(state, error);
-      goto end;
+      return NULL;
    }
    assert(buffer_binding.obj != NULL);
 
    if (!is_access(access))
    {
       glxx_server_state_set_error(state, GL_INVALID_VALUE);
-      goto end;
+      return NULL;
    }
 
    if ((size == 0)                                   ||
@@ -809,58 +804,55 @@ void* glxx_map_buffer_range(GLXX_SERVER_STATE_T *state, GLenum target,
       (flush_exp && !write))
    {
       glxx_server_state_set_error(state, GL_INVALID_OPERATION);
-      goto end;
+      return NULL;
    }
 
-   buffer = buffer_binding.obj;
+   GLXX_BUFFER_T *buffer = buffer_binding.obj;
    if (buffer->mapped_pointer != NULL)
    {
       glxx_server_state_set_error(state, GL_INVALID_OPERATION); /* already mapped */
-      goto end;
+      return NULL;
    }
 
-   buffer_size = glxx_buffer_get_size(buffer);
+   size_t buffer_size = glxx_buffer_get_size(buffer);
    if (size == SIZE_MAX)
    {
       if (offset > buffer_size)
       {
          glxx_server_state_set_error(state, GL_INVALID_VALUE);
-         goto end;
+         return NULL;
       }
       size = buffer_size - offset;
    }
    else if (offset + size > buffer_size)
    {
       glxx_server_state_set_error(state, GL_INVALID_VALUE);
-      goto end;
+      return NULL;
    }
 
    buffer->mapped_pointer = glxx_buffer_map_range(buffer, offset, size, access);
    if (buffer->mapped_pointer == NULL)
    {
       glxx_server_state_set_error(state, GL_OUT_OF_MEMORY);
-      goto end;
+      return NULL;
    }
 
-   buffer->mapped_size = size;
-   buffer->mapped_offset         = offset;
-   buffer->mapped_access_flags   = access;
+   buffer->mapped_size         = size;
+   buffer->mapped_offset       = offset;
+   buffer->mapped_access_flags = access;
 
-   p = buffer->mapped_pointer;
-
-end:
-   return p;
+   return buffer->mapped_pointer;
 }
 
 GL_API GLboolean GL_APIENTRY glUnmapBuffer(GLenum target)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
    if (!state)
       return GL_FALSE;
 
    GLboolean res = glxx_unmap_buffer(state, target);
 
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
    return res;
 }
 
@@ -903,7 +895,7 @@ GLboolean glxx_unmap_buffer(GLXX_SERVER_STATE_T *state, GLenum target)
 
 GL_API void GL_APIENTRY glFlushMappedBufferRange(GLenum target, GLintptr offset, GLsizeiptr length)
 {
-   GLXX_SERVER_STATE_T *state = GL30_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
    if (!state)
       return;
 
@@ -937,7 +929,7 @@ GL_API void GL_APIENTRY glFlushMappedBufferRange(GLenum target, GLintptr offset,
    }
 
 unlock_out:
-   GL30_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_API void GL_APIENTRY glCopyBufferSubData(GLenum readTarget, GLenum writeTarget,
@@ -945,7 +937,7 @@ GL_API void GL_APIENTRY glCopyBufferSubData(GLenum readTarget, GLenum writeTarge
 {
    PROFILE_FUNCTION_MT("GL");
 
-   GLXX_SERVER_STATE_T     *state = GL30_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T     *state = glxx_lock_server_state(OPENGL_ES_3X);
    GLXX_BUFFER_BINDING_T   read_buffer_binding;
    GLXX_BUFFER_BINDING_T   write_buffer_binding;
    GLXX_BUFFER_T           *read_buffer;
@@ -1002,7 +994,7 @@ GL_API void GL_APIENTRY glCopyBufferSubData(GLenum readTarget, GLenum writeTarge
    }
 
 unlock_out:
-   GL30_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 
    khrn_stats_record_end(KHRN_STATS_BUFFER_DATA);
 }
@@ -1010,7 +1002,7 @@ unlock_out:
 GL_API void GL_APIENTRY glGetBufferParameteriv(GLenum target, GLenum pname, GLint *params)
 {
    // TODO: This is currently identical to glGetBufferParameteri64v
-   GLXX_SERVER_STATE_T     *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T     *state = glxx_lock_server_state(OPENGL_ES_ANY);
    GLXX_BUFFER_BINDING_T   buffer_binding;
    GLXX_BUFFER_T           *buffer;
    GLenum error;
@@ -1034,14 +1026,12 @@ GL_API void GL_APIENTRY glGetBufferParameteriv(GLenum target, GLenum pname, GLin
    case GL_BUFFER_USAGE:
       params[0] = buffer->usage;
       break;
-#if GL_OES_mapbuffer
    case GL_BUFFER_ACCESS_OES:
       if ((buffer->mapped_access_flags & ~GL_MAP_WRITE_BIT)!=0)
          glxx_server_state_set_error(state, GL_INVALID_OPERATION);
       else
          params[0] = GL_WRITE_ONLY;
       break;
-#endif
    case GL_BUFFER_MAPPED: // == GL_BUFFER_MAPPED_OES
       params[0] = (buffer->mapped_pointer != 0);
       break;
@@ -1060,5 +1050,5 @@ GL_API void GL_APIENTRY glGetBufferParameteriv(GLenum target, GLenum pname, GLin
    }
 
 unlock_out:
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }

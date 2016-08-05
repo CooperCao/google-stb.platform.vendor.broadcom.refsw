@@ -492,7 +492,6 @@ int b_virtual_irq_make_group(const b_virtual_irq_group * group)
             B_VIRTUAL_IRQ_UNMASK_L1(group->l1_shift);
             B_VIRTUAL_IRQ_SPIN_UNLOCK(flags);
         }
-        if (result != 0) { goto end; }
     }
 
 end:

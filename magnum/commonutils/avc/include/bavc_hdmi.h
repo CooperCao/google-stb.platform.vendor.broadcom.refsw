@@ -41,53 +41,36 @@
 
 #include "bstd.h"
 #include "bchp_common.h"
+#ifdef BCHP_HDMI_REG_START
+#include "bchp_hdmi.h"
+#endif
 
 /* HDMI Rx Chips */
-#if (BCHP_CHIP == 7422)  || (BCHP_CHIP == 7425)  \
- || (BCHP_CHIP == 7640)  || (BCHP_CHIP == 7429)  \
- || (BCHP_CHIP == 7435)  || (BCHP_CHIP == 7445)  \
- || (BCHP_CHIP == 7251)  || (BCHP_CHIP == 74371) \
- || (BCHP_CHIP == 74295) || (BCHP_HDMI_RX_0_REG_START)
-
+#if BCHP_HDMI_RX_0_REG_START
 #define BAVC_HDMI_RECEIVER 1
 #endif
 
 /* HDMI 1.3 Support */
-       /* TX CHIPS */                                                     \
-#if  (BCHP_CHIP == 7601)  || (BCHP_CHIP == 7635)  || (BCHP_CHIP == 7630)  \
-  || (BCHP_CHIP == 7420)  || (BCHP_CHIP == 7125)  || (BCHP_CHIP == 7340)  \
-  || (BCHP_CHIP == 7342)  || (BCHP_CHIP == 7550)  || (BCHP_CHIP == 7408)  \
-  || (BCHP_CHIP == 7468)  || (BCHP_CHIP == 7208)  || (BCHP_CHIP == 7360)  \
-  || (BCHP_CHIP == 7584)  || (BCHP_CHIP == 75845)                         \
-                /* 40nm TX CHIPS */                                       \
-  || (BCHP_CHIP == 7358)  || (BCHP_CHIP == 7344)  || (BCHP_CHIP == 7346)  \
-  || (BCHP_CHIP == 7231)  || (BCHP_CHIP == 7552)  || (BCHP_CHIP == 7360)  \
-  || (BCHP_CHIP == 7563)  || (BCHP_CHIP == 7543)  || (BCHP_CHIP == 7362)  \
-  || (BCHP_CHIP == 7228)  || (BCHP_CHIP == 75635) || (BCHP_CHIP == 73625) \
-  || (BCHP_CHIP == 73465) || (BCHP_CHIP == 75525) \
-       /* COMBO RX/TX CHIPS */                                            \
-  || (BCHP_CHIP == 7422)  || (BCHP_CHIP == 7425)  || (BCHP_CHIP == 7640)  \
-  || (BCHP_CHIP == 7429)  || (BCHP_CHIP == 74295) || (BCHP_CHIP == 7435)  \
-          /* COMBO RX/TX - 28nm */                                        \
-  || (BCHP_CHIP == 7445)  || (BCHP_CHIP == 7145)  || (BCHP_CHIP == 7366)  \
-  || (BCHP_CHIP == 7439)                                                  \
-  || (BCHP_CHIP == 7251)  || (BCHP_CHIP == 7364)  || (BCHP_CHIP == 74371) \
-  || BHDM_HAS_HDMI_20_SUPPORT                                             \
-  || BAVC_HDMI_RECEIVER
+#if BCHP_HDMI_DEEP_COLOR_CONFIG_1_COLOR_DEPTH_MASK
 #define BAVC_HDMI_1_3_SUPPORT 1
 #endif
-
 
 /* Check for HDMI 2.0 Support */
 #if BCHP_HDMI_TX_AUTO_I2C_REG_START
 #define BAVC_HDMI_20_SUPPORT 1
 #endif
 
+/* Check for HDMI CRC reading fix */
+#ifdef BCHP_HDMI_TX_INTR2_REG_START
+#include "bchp_hdmi_tx_intr2.h"
+#ifdef BCHP_HDMI_TX_INTR2_CPU_STATUS_FD_LINE_TRIGGER_INTR_MASK
+#define BAVC_HDMI_CRC_READING_FIX 1
+#endif
+#endif
 
 #define BAVC_HDMI_HDCP_N_PRIVATE_KEYS 40
 #define BAVC_HDMI_HDCP_KSV_LENGTH 5
 #define BAVC_HDMI_HDCP_AN_LENGTH 8
-
 
 /******************************************************************************
 Summary:

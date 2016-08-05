@@ -965,7 +965,7 @@ void irCallback(void *pParam, int iParam)
                     g_DeviceState.exit_app = true;
                     break;
                 default:
-                    BDBG_MSG(("Unknown IR event\n"));
+                    BDBG_MSG(("Unknown IR event (%x)\n", irEvent.code));
                     return;
             }
             if(g_StandbyNexusHandles.event)
@@ -2214,8 +2214,16 @@ void ir_open(void)
         BDBG_ASSERT(g_StandbyNexusHandles.irHandle);
 
         NEXUS_IrInput_GetDefaultDataFilter(&irPattern );
-        irPattern.filterWord[0].patternWord =S0_IR_CODE;
+        irPattern.filterWord[0].patternWord = S0_IR_CODE; /*power*/
         irPattern.filterWord[0].enabled = true;
+        irPattern.filterWord[0].mask = ~0xFFFF;
+#if 0
+	/* enable this to verify that can use two different IR keys to wake up. */
+	/* use 'ir_last_key' to get the key that was pressed to wake-up. */
+        irPattern.filterWord[1].patternWord = SO_IR_CODE; /*ok*/
+        irPattern.filterWord[1].enabled = true;
+        irPattern.filterWord[1].mask = ~0xFFFF;
+#endif
         NEXUS_IrInput_SetDataFilter(g_StandbyNexusHandles.irHandle, &irPattern);
     }
 }
@@ -2225,6 +2233,14 @@ void ir_close(void)
     if(g_StandbyNexusHandles.irHandle)
         NEXUS_IrInput_Close(g_StandbyNexusHandles.irHandle);
     g_StandbyNexusHandles.irHandle = NULL;
+}
+
+void ir_last_key(uint32_t *code, uint32_t *codeHigh)
+{
+    NEXUS_IrInputEvent pEvent;
+    NEXUS_IrInput_ReadEvent(g_StandbyNexusHandles.irHandle, &pEvent);
+    *code = pEvent.code;
+    *codeHigh = pEvent.codeHigh;
 }
 
 void uhf_open(void)

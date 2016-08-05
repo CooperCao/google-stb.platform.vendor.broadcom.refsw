@@ -15,8 +15,6 @@ Implementation of the GL_OES_matrix_palette extension for GLES 1.1
 #include "../glxx/gl_public_api.h"
 #include "../gl11/gl11_int_config.h"
 
-#if GL_OES_matrix_palette
-
 static GLboolean is_matrix_index_type(GLenum type) {
    return (type == GL_UNSIGNED_BYTE);
 }
@@ -28,7 +26,7 @@ static GLboolean is_matrix_palette_size(GLint size) {
 
 GL_API void GL_APIENTRY glMatrixIndexPointerOES(GLint size, GLenum type, GLsizei stride, const GLvoid *pointer)
 {
-   GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_11);
    if (!state) return;
 
    if (!is_matrix_index_type(type)) {
@@ -42,7 +40,7 @@ GL_API void GL_APIENTRY glMatrixIndexPointerOES(GLint size, GLenum type, GLsizei
       glxx_server_state_set_error(state, GL_INVALID_VALUE);
 
 end:
-   GL11_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 static GLboolean is_matrix_weight_type(GLenum type) {
@@ -52,7 +50,7 @@ static GLboolean is_matrix_weight_type(GLenum type) {
 
 GL_API void GL_APIENTRY glWeightPointerOES(GLint size, GLenum type, GLsizei stride, const GLvoid *pointer)
 {
-   GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_11);
    if (!state) return;
 
    if (!is_matrix_weight_type(type)) {
@@ -66,11 +64,11 @@ GL_API void GL_APIENTRY glWeightPointerOES(GLint size, GLenum type, GLsizei stri
       glxx_server_state_set_error(state, GL_INVALID_VALUE);
 
 end:
-   GL11_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_API void GL_APIENTRY glCurrentPaletteMatrixOES(GLuint index) {
-   GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_11);
 
    /* The index has already been verified by the client */
    if (index >= GL11_CONFIG_MAX_PALETTE_MATRICES_OES) {
@@ -81,16 +79,14 @@ GL_API void GL_APIENTRY glCurrentPaletteMatrixOES(GLuint index) {
    state->gl11.current_palette_matrix = index;
 
 end:
-   GL11_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_API void GL_APIENTRY glLoadPaletteFromModelViewMatrixOES() {
-   GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_11);
 
    assert(state->gl11.current_palette_matrix < GL11_CONFIG_MAX_PALETTE_MATRICES_OES);
    gl11_matrix_load(state->gl11.palette_matrices[state->gl11.current_palette_matrix], state->gl11.current_modelview);
 
-   GL11_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
-
-#endif /* GL_OES_matrix_palette */

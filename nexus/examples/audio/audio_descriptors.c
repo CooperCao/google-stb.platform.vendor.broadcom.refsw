@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2014 Broadcom Corporation
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
 ******************************************************************************/
 /* Nexus example app: single live a/v decode from an input band */
@@ -77,6 +69,7 @@
 #include "bkni.h"
 #include <stdlib.h>
 #include <string.h>
+#include <pthread.h>
 
 BDBG_MODULE(audio_descriptors);
 
@@ -85,6 +78,20 @@ BDBG_MODULE(audio_descriptors);
 #define USE_COMPRESSED_SPDIF 0
 #endif
 
+static void *status_thread(void *pParam);
+
+typedef struct decoderHandles
+{
+    NEXUS_VideoDecoderHandle vdecode;
+    NEXUS_AudioDecoderHandle pcmDecoder, descriptorDecoder;
+#if USE_COMPRESSED_SPDIF
+    NEXUS_AudioDecoderHandle compressedDecoder;
+#endif
+    NEXUS_StcChannelHandle stcChannel;
+    bool audioDescription;
+} decoderHandles;
+
+bool quit = false;
 /* the following define the input and its characteristics -- these will vary by input */
 /* these values correspond to UK-DTT-MUXC-20070706.trp */
 #define TRANSPORT_TYPE NEXUS_TransportType_eTs
@@ -138,6 +145,8 @@ int main(int argc, char **argv)
     NEXUS_VideoCodec videoCodec = VIDEO_CODEC;
     NEXUS_AudioCodec audioCodec = AUDIO_CODEC;
     int curarg = 0;
+    pthread_t statusThread;
+    decoderHandles decHandles;
 
     /* Parse command-line arguments */
     while (++curarg < argc) {
@@ -151,6 +160,7 @@ int main(int argc, char **argv)
             printf("-audio_id               audio pid\n");
             printf("-description_id         audio description pid (if value is 0, audio description will be disabled)\n");
             printf("-file                   file name. if not setting it, streamer will be used not playback\n");
+
             return -1;
         }
         else if (!strcmp(argv[curarg], "-video_codec") && curarg+1 < argc)
@@ -328,7 +338,7 @@ int main(int argc, char **argv)
         if ( !hdmiStatus.videoFormatSupported[displaySettings.format] ) {
             displaySettings.format = hdmiStatus.preferredVideoFormat;
             NEXUS_Display_SetSettings(display, &displaySettings);
-		}
+        }
     }
 #endif
 
@@ -455,44 +465,20 @@ int main(int argc, char **argv)
         #endif
     }
 
+    decHandles.vdecode = vdecode;
+    decHandles.pcmDecoder = pcmDecoder;
+    decHandles.descriptorDecoder = descriptorDecoder;
+    decHandles.stcChannel = stcChannel;
+    #if USE_COMPRESSED_SPDIF
+    decodeHandles.compressedDecoder = compressedDecoder;
+    #endif
+    decHandles.audioDescription = audioDescription;
+    pthread_create(&statusThread, NULL, status_thread, &decHandles);
 
-#if 1
-    /* Print status while decoding */
-    for (;;) {
-        NEXUS_VideoDecoderStatus status;
-        NEXUS_AudioDecoderStatus audioStatus;
-        uint32_t stc;
-
-        NEXUS_VideoDecoder_GetStatus(vdecode, &status);
-        NEXUS_StcChannel_GetStc(videoProgram.stcChannel, &stc);
-        printf("decode %.4dx%.4d, pts %#x, stc %#x (diff %d) fifo=%d%%\n",
-            status.source.width, status.source.height, status.pts, stc, status.ptsStcDifference, status.fifoSize?(status.fifoDepth*100)/status.fifoSize:0);
-        NEXUS_AudioDecoder_GetStatus(pcmDecoder, &audioStatus);
-        printf("audio            pts %#x, stc %#x (diff %d) fifo=%d%%\n",
-            audioStatus.pts, stc, audioStatus.ptsStcDifference, audioStatus.fifoSize?(audioStatus.fifoDepth*100)/audioStatus.fifoSize:0);
-#if USE_COMPRESSED_SPDIF
-        NEXUS_AudioDecoder_GetStatus(compressedDecoder, &audioStatus);
-        if ( audioStatus.started )
-        {
-            printf("compressed        pts %#x, stc %#x (diff %d) fifo=%d%%\n",
-                audioStatus.pts, stc, audioStatus.ptsStcDifference, audioStatus.fifoSize?(audioStatus.fifoDepth*100)/audioStatus.fifoSize:0);
-        }
-#endif
-        if(audioDescription == true)
-        {
-            NEXUS_AudioDecoder_GetStatus(descriptorDecoder, &audioStatus);
-            if ( audioStatus.started )
-            {
-                printf("descriptor        pts %#x, stc %#x (diff %d) fifo=%d%%\n",
-                audioStatus.pts, stc, audioStatus.ptsStcDifference, audioStatus.fifoSize?(audioStatus.fifoDepth*100)/audioStatus.fifoSize:0);
-            }
-        }
-        BKNI_Sleep(1000);
-    }
-#else
     printf("Press ENTER to quit\n");
     getchar();
-
+    quit = true;
+    pthread_join(statusThread, NULL);
     /* Bring down system */
     NEXUS_VideoDecoder_Stop(vdecode);
     NEXUS_AudioDecoder_Stop(pcmDecoder);
@@ -536,10 +522,55 @@ int main(int argc, char **argv)
     NEXUS_Display_Close(display);
     NEXUS_StcChannel_Close(stcChannel);
     NEXUS_Platform_Uninit();
-#endif
 
     return 0;
 }
+
+
+static void *status_thread(void *pParam)
+{
+
+    decoderHandles *decHandles;
+    decHandles = (decoderHandles *)pParam;
+
+
+    /* Print status while decoding */
+    while(!quit) {
+        NEXUS_VideoDecoderStatus status;
+        NEXUS_AudioDecoderStatus audioStatus;
+        uint32_t stc;
+
+        NEXUS_VideoDecoder_GetStatus(decHandles->vdecode, &status);
+        NEXUS_StcChannel_GetStc(decHandles->stcChannel, &stc);
+        printf("decode %.4dx%.4d, pts %#x, stc %#x (diff %d) fifo=%d%%\n",
+            status.source.width, status.source.height, status.pts, stc, status.ptsStcDifference, status.fifoSize?(status.fifoDepth*100)/status.fifoSize:0);
+        NEXUS_AudioDecoder_GetStatus(decHandles->pcmDecoder, &audioStatus);
+        printf("audio            pts %#x, stc %#x (diff %d) fifo=%d%%\n",
+            audioStatus.pts, stc, audioStatus.ptsStcDifference, audioStatus.fifoSize?(audioStatus.fifoDepth*100)/audioStatus.fifoSize:0);
+#if USE_COMPRESSED_SPDIF
+        NEXUS_AudioDecoder_GetStatus(decHandles->compressedDecoder, &audioStatus);
+        if ( audioStatus.started )
+        {
+            printf("compressed        pts %#x, stc %#x (diff %d) fifo=%d%%\n",
+                audioStatus.pts, stc, audioStatus.ptsStcDifference, audioStatus.fifoSize?(audioStatus.fifoDepth*100)/audioStatus.fifoSize:0);
+        }
+#endif
+        if(decHandles->audioDescription == true)
+        {
+            NEXUS_AudioDecoder_GetStatus(decHandles->descriptorDecoder, &audioStatus);
+            if ( audioStatus.started )
+            {
+                printf("descriptor        pts %#x, stc %#x (diff %d) fifo=%d%%\n",
+                audioStatus.pts, stc, audioStatus.ptsStcDifference, audioStatus.fifoSize?(audioStatus.fifoDepth*100)/audioStatus.fifoSize:0);
+            }
+        }
+        BKNI_Sleep(1000);
+    }
+
+
+    return NULL;
+}
+
 #else /* NEXUS_HAS_AUDIO */
 int main(void)
 {

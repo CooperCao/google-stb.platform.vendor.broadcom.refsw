@@ -433,6 +433,10 @@ static uint64_t MemGetInfo(void *context, BEGL_MemInfoType type)
         NEXUS_Heap_Dump(data->heaps[0].heap);
         return 0;
      }
+  default:
+     {
+        break;
+     }
   }
 
   return 0;

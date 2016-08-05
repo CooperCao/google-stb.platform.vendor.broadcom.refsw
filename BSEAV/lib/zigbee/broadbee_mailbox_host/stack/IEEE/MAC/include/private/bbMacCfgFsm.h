@@ -89,9 +89,6 @@ enum
                                                             on request to transmit a pending MAC frame
                                                             for the case of indirect transmission. */
 
-    S_WAIT_MAC_LE_TX_ASSOC_REQ_CONF,                    /*!< Wait for confirmation from the MAC-LE on request
-                                                            to transmit an Association Request MAC Command frame. */
-
     S_WAIT_MAC_LE_TX_BEACON_REQ_CONF,                   /*!< Wait for confirmation from the MAC-LE on request
                                                             to transmit a Beacon Request MAC Command frame. */
 
@@ -129,8 +126,6 @@ enum
 
     /* States relating to prolonged procedures. */
 
-    S_DELAY_MAC_RESPONSE_WAIT_TIME,                     /*!< Delay MAC-FE for macResponseWaitTime period. */
-
     S_DELAY_MAC_SCAN_DURATION,                          /*!< Delay MAC-FE for ScanDuration period. */
 
     /* Transient states. */
@@ -140,8 +135,6 @@ enum
     S_CONTINUE_MAC_SCAN_ACTIVE,                         /*!< Transient state to start or continue the Active scan. */
 
     S_CONTINUE_MAC_ISSUE_CONF,                          /*!< Transient state to issue confirmation. */
-
-    S_PROCEED_ISSUE_ASSOC_CONF,                         /*!< Transient state to issue confirmation for Association. */
 };
 
 
@@ -250,25 +243,6 @@ enum
     MAC_IF_BEACON_DIFF_CHANNEL,             /*!< If received Beacon frame is from another PHY channel. */
 
     MAC_IF_BEACON_NOT_UNIQUE,               /*!< If received Beacon frame is not unique. */
-
-    MAC_IF_DATA_REQ_NOT_CONFIRMED,          /*!< If Data Request was not confirmed yet. */
-
-    MAC_IF_ASSOC_RESP_NOT_RECEIVED,         /*!< If no Association Response was received yet that coincides with
-                                                MLME-ASSOCIATION.request being processed. */
-
-    MAC_IF_ASSOC_PAN_AT_CAPACITY,           /*!< If received Association Response MAC Command frame has
-                                                association status 'PAN at capacity'. */
-
-    MAC_IF_ASSOC_PAN_ACCESS_DENIED,         /*!< If received Association Response MAC Command frame has
-                                                association status 'PAN access denied'. */
-
-    MAC_IF_FRAME_TOO_LONG,                  /*!< If the frame is too long for sending. */
-
-    MAC_IF_COUNTER_ERROR,                   /*!< If there is a COUNTER ERROR fail during processing. */
-
-    MAC_IF_UNAVAILABLE_KEY,                 /*!< If the security procedure returned UNAVAILABLE_KEY status. */
-
-    MAC_IF_NO_MEMORY,                       /*!< If it is not enough memory to proceed. */
 };
 
 
@@ -279,15 +253,9 @@ enum
 {
     /* Actions for issuing confirmations with different statuses with codes from 0x00 to 0x02. */
 
-    MAC_DO_SAP_CONF_SUCCESS           = MAC_SUCCESS,                    /*!< Issue successful confirmation. */
+    MAC_DO_SAP_CONF_SUCCESS = MAC_SUCCESS,      /*!< Issue successful confirmation. */
 
-    MAC_DO_SAP_CONF_NOT_SUCCESS,                                        /*!< Issue confirmation with come fail status. */
-
-    MAC_DO_SAP_CONF_PAN_AT_CAPACITY   = MAC_PAN_AT_CAPACITY,            /*!< Issue confirmation with error status
-                                                                            'PAN at capacity'. */
-
-    MAC_DO_SAP_CONF_PAN_ACCESS_DENIED = MAC_PAN_ACCESS_DENIED,          /*!< Issue confirmation with error status
-                                                                            'PAN access denied'. */
+    MAC_DO_SAP_CONF_NOT_SUCCESS,                /*!< Issue confirmation with specific failure status. */
 
     /* Actions to be performed by the MAC-FE. */
 
@@ -312,11 +280,6 @@ enum
 
     MAC_DO_FE_DELAY_FOR_RESPONSE_WAIT_TIME,     /*!< Perform delay for macResponseWaitTime symbols. */
 
-    MAC_DO_FE_WAIT_FOR_RX_ASSOC_RESP_CMD,       /*!< Save fact that Data Request was confirmed and start timed waiting
-                                                    for Association Response MAC Command frame. */
-
-    MAC_DO_FE_SAVE_ASSOC_RESP_PARAMS,           /*!< Save parameters of the received Association Response. */
-
     MAC_DO_FE_DELAY_FOR_SCAN_DURATION,          /*!< Perform delay for ScanDuration period. */
 
     MAC_DO_FE_RESET_DISPATCHER_AND_PIB,         /*!< Reset MAC-FE Requests Queues and MAC PIB. */
@@ -330,8 +293,6 @@ enum
     MAC_DO_LE_TX_DATA_DIRECT,               /*!< Commence transmission of direct Data frame. */
 
     MAC_DO_LE_TX_DATA_PENDING,              /*!< Commence transmission of pending Data frame. */
-
-    MAC_DO_LE_TX_ASSOC_REQ_CMD,             /*!< Commence transmission of Association Request MAC Command frame. */
 
     MAC_DO_LE_TX_ASSOC_RESP_CMD,            /*!< Commence transmission of Association Response MAC Command frame. */
 

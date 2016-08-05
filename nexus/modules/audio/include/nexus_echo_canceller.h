@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2006-2013 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *  
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,8 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF 
  *  ANY LIMITED REMEDY.
  * 
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description: Audio Decoder Interface
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  ***************************************************************************/
 #ifndef NEXUS_ECHO_CANCELLER_H_
 #define NEXUS_ECHO_CANCELLER_H_
@@ -169,7 +161,7 @@ NEXUS_Error NEXUS_EchoCanceller_SetAlgorithmSettings(
 Summary:
     Get the audio connector for an Audio EchoCanceller stage
 ***************************************************************************/
-NEXUS_AudioInput NEXUS_EchoCanceller_GetConnector(
+NEXUS_AudioInputHandle NEXUS_EchoCanceller_GetConnector(
     NEXUS_EchoCancellerHandle handle
     );
 
@@ -179,7 +171,7 @@ Add a local (near-end) input to the echo canceller
 ***************************************************************************/
 NEXUS_Error NEXUS_EchoCanceller_AddLocalInput(
     NEXUS_EchoCancellerHandle handle,
-    NEXUS_AudioInput input
+    NEXUS_AudioInputHandle input
     );
 
 /***************************************************************************
@@ -188,7 +180,7 @@ Remove a local (near-end) input from this processing stage
 ***************************************************************************/
 NEXUS_Error NEXUS_EchoCanceller_RemoveLocalInput(
     NEXUS_EchoCancellerHandle handle,
-    NEXUS_AudioInput input
+    NEXUS_AudioInputHandle input
     );
 
 /***************************************************************************
@@ -197,7 +189,7 @@ Add a remote (far-end) input to the echo canceller
 ***************************************************************************/
 NEXUS_Error NEXUS_EchoCanceller_AddRemoteInput(
     NEXUS_EchoCancellerHandle handle,
-    NEXUS_AudioInput input
+    NEXUS_AudioInputHandle input
     );
 
 /***************************************************************************
@@ -206,7 +198,7 @@ Remove a remote (far-end) input from this processing stage
 ***************************************************************************/
 NEXUS_Error NEXUS_EchoCanceller_RemoveRemoteInput(
     NEXUS_EchoCancellerHandle handle,
-    NEXUS_AudioInput input
+    NEXUS_AudioInputHandle input
     );
 
 /***************************************************************************
@@ -218,4 +210,3 @@ NEXUS_Error NEXUS_EchoCanceller_RemoveAllInputs(
     );
 
 #endif /* #ifndef NEXUS_ECHO_CANCELLER_H_ */
-

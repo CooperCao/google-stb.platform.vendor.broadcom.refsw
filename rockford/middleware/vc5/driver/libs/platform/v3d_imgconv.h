@@ -48,6 +48,7 @@ struct v3d_imgconv_base_tgt
  *
  *  base          - The base container.
  *  handle        - The gmem handle.
+ *  offset        - Offset into the gmem block where the image begins.
  *  deps          - The buffers dependencies to wait on before
  *                  performing the conversion.
  */
@@ -55,12 +56,13 @@ struct v3d_imgconv_gmem_tgt
 {
    struct v3d_imgconv_base_tgt base;
    gmem_handle_t handle;
+   size_t offset;
    v3d_scheduler_deps deps;
 };
 
 void v3d_imgconv_init_gmem_tgt(struct v3d_imgconv_gmem_tgt *tgt,
-      gmem_handle_t handle, const v3d_scheduler_deps *deps,
-      const GFX_BUFFER_DESC_T *desc,
+      gmem_handle_t handle, size_t offset,
+      const v3d_scheduler_deps *deps, const GFX_BUFFER_DESC_T *desc,
       unsigned int x, unsigned int y, unsigned int z, unsigned int start_elem,
       unsigned int array_pitch);
 

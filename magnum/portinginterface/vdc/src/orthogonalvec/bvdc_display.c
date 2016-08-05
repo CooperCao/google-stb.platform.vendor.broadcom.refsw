@@ -476,7 +476,7 @@ static BERR_Code BVDC_P_Display_SetHdmiConfiguration
 
     bDirty = (
          (hDisplay->stCurInfo.ulHdmi != ulHdmi) ||
-         (hDisplay->stCurInfo.eHdmiOutput != eHdmiOutput) ||
+         (hDisplay->stCurInfo.eHdmiOutput != eHdmiOutput && hDisplay->stCurInfo.bEnableHdmi==false) ||
          (BFMT_IS_4kx2k(hDisplay->stNewInfo.pFmtInfo->eVideoFmt) !=
           BFMT_IS_4kx2k(hDisplay->stCurInfo.pFmtInfo->eVideoFmt)) ||
          (hDisplay->stNewInfo.bErrorLastSetting));
@@ -493,7 +493,7 @@ static BERR_Code BVDC_P_Display_SetHdmiConfiguration
        (!BFMT_IS_4kx2k(hDisplay->stNewInfo.pFmtInfo->eVideoFmt)))
     {
         hDisplay->stNewInfo.bEnableHdmi = false;
-        if (bDirty)
+        if (hDisplay->stCurInfo.eHdmiOutput != eHdmiOutput)
         {
             hDisplay->stNewInfo.stDirty.stBits.bHdmiEnable = BVDC_P_DIRTY;
             if (hDisplay->stCurInfo.aulEnableMpaaDeci[BVDC_MpaaDeciIf_eHdmi])
@@ -525,6 +525,10 @@ static BERR_Code BVDC_P_Display_SetHdmiConfiguration
 #else
             hDisplay->stNewInfo.stDirty.stBits.bMpaaHdmi = BVDC_P_DIRTY;
 #endif
+        }
+        else if(hDisplay->stCurInfo.eHdmiOutput != eHdmiOutput)
+        {
+            hDisplay->stNewInfo.stDirty.stBits.bHdmiCsc    = BVDC_P_DIRTY;
         }
         BDBG_MSG(("Display[%d] enables HDMI", hDisplay->eId));
     }
@@ -1021,8 +1025,6 @@ BERR_Code BVDC_Display_SetHdmiDropLines
     if((hDisplay->stCurInfo.aulHdmiDropLines[eVideoFormat] != ulHdmiDropLines) ||
        (hDisplay->stNewInfo.bErrorLastSetting))
     {
-        hDisplay->stNewInfo.stDirty.stBits.bHdmiDroplines = BVDC_P_DIRTY;
-
         /* DTRAM instructions will have to be reloaded.
          */
         hDisplay->stNewInfo.stDirty.stBits.bTiming = BVDC_P_DIRTY;
@@ -1249,7 +1251,7 @@ static BERR_Code BVDC_P_Display_SetHdmiSettings
     {
         /* set dirty bit to indicate HDMI format change */
         hDisplay->stNewInfo.stDirty.stBits.bHdmiSettings = BVDC_P_DIRTY;
-        hDisplay->stNewInfo.stHdmiSettings.stDirty.stBits.bHdmiRmChanged = BVDC_P_DIRTY;
+        hDisplay->stNewInfo.stDirty.stBits.bHdmiRmSettings = BVDC_P_DIRTY;
     }
 
     if((hDisplay->stCurInfo.stHdmiSettings.eHdmiPixelRepetition != hDisplay->stNewInfo.stHdmiSettings.eHdmiPixelRepetition) ||
@@ -1264,8 +1266,7 @@ static BERR_Code BVDC_P_Display_SetHdmiSettings
         hDisplay->stNewInfo.stDirty.stBits.bTimeBase = BVDC_P_DIRTY;
         hDisplay->stNewInfo.stDirty.stBits.bDacSetting = BVDC_P_DIRTY;
         hDisplay->stNewInfo.stDirty.stBits.bHdmiSettings = BVDC_P_DIRTY;
-        hDisplay->stNewInfo.stHdmiSettings.stDirty.stBits.bHdmiRmChanged = BVDC_P_DIRTY;
-        hDisplay->stNewInfo.stHdmiSettings.stDirty.stBits.bHdmiColorComponent = BVDC_P_DIRTY;
+        hDisplay->stNewInfo.stDirty.stBits.bHdmiRmSettings = BVDC_P_DIRTY;
     }
     if (hDisplay->stCurInfo.stHdmiSettings.stSettings.eEotf != hDisplay->stNewInfo.stHdmiSettings.stSettings.eEotf)
     {
@@ -2127,7 +2128,7 @@ BERR_Code BVDC_Display_SetDropFrame
     if((hDisplay->stCurInfo.eDropFrame != eDropFrame) ||
        (hDisplay->stNewInfo.bErrorLastSetting))
     {
-        hDisplay->stNewInfo.stDirty.stBits.bDropFrame = BVDC_P_DIRTY;
+        hDisplay->stNewInfo.stDirty.stBits.bSrcFrameRate = BVDC_P_DIRTY;
     }
 
     BDBG_LEAVE(BVDC_Display_SetDropFrame);
@@ -3013,7 +3014,7 @@ BERR_Code BVDC_Display_GetVfFilter
         }
         BKNI_EnterCriticalSection();
         BKNI_Memcpy(paulFilterRegs, pAnlgChan->apVfFilter[lChannel], BVDC_P_CHROMA_TABLE_SIZE * sizeof(uint32_t));
-        *pulSumOfTaps = BVDC_P_ExtractSumOfTaps (pAnlgChan->vfMisc);
+        *pulSumOfTaps = BVDC_P_ExtractSumOfTaps_isr (pAnlgChan->vfMisc);
         BKNI_LeaveCriticalSection();
     }
 

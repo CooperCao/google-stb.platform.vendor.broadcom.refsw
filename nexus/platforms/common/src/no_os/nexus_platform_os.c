@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2013 Broadcom Corporation
+*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * API Description:
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 
@@ -51,9 +43,7 @@
 #include "nexus_platform.h"
 #include "nexus_platform_priv.h"
 #include "nexus_core_utils.h"
-#if (BCHP_CHIP != 7408)        
-    #include "nexus_base.h"
-#endif
+#include "nexus_base.h"
 #include "bkni.h"
 #include "int1.h"
 #include "memmap.h"
@@ -156,7 +146,7 @@ NEXUS_Error NEXUS_Platform_P_GetHostMemory(NEXUS_PlatformMemory *pMemory)
     #elif (BCHP_CHIP==7344) || (BCHP_CHIP==7346) || (BCHP_CHIP==73465)
         pMemory->osRegion[1].base = DRAM_0_768MB_PHYS_ADDR_START; // 0x20000000;
         pMemory->osRegion[1].length = 0x20000000; /* 512MB */
-    #elif (BCHP_CHIP==7429) || (BCHP_CHIP==7408) || (BCHP_CHIP==74295)
+    #elif (BCHP_CHIP==7429) || (BCHP_CHIP==74295)
         pMemory->osRegion[1].base = 0x20000000;
         pMemory->osRegion[1].length = 0x30000000; /* 768MB */
     #endif
@@ -247,7 +237,7 @@ NEXUS_Error NEXUS_Platform_P_EnableInterrupt(
 
 /***************************************************************************
 Summary:
-	Hook to enable an L1 interrupt
+    Hook to enable an L1 interrupt
 See Also:
     NEXUS_Platform_P_EnableInterrupt_isr
  ***************************************************************************/
@@ -289,7 +279,7 @@ void NEXUS_Platform_P_DisableInterrupt_isr(
 
 /***************************************************************************
 Summary:
-	Map physical memory into virtual space
+    Map physical memory into virtual space
 Returns:
     Valid address on success, NULL for failure.
 See Also:
@@ -304,7 +294,7 @@ void *NEXUS_Platform_P_MapMemory(
 
     switch (offset & 0xf0000000)
     {
-        case 0x00000000:	/* KSEG0/KSEZG1 */
+        case 0x00000000:    /* KSEG0/KSEZG1 */
             #ifndef CACHE_WORKAROUND
                 if (cached)
                     addr = offset + 0x80000000;
@@ -312,14 +302,14 @@ void *NEXUS_Platform_P_MapMemory(
                     addr = offset + 0xA0000000;
                 break;
             #endif
-        case 0x10000000:	/* chips regs */
+        case 0x10000000:    /* chips regs */
             addr = offset + 0xA0000000;
             break;
 
         #if defined(BOARD_HAS_1024MB_MEMC0)
-            case DRAM_0_768MB_PHYS_ADDR_START+0x00000000:	/* memc0 */
-            case DRAM_0_768MB_PHYS_ADDR_START+0x10000000:	/* memc0 */
-            case DRAM_0_768MB_PHYS_ADDR_START+0x20000000:	/* memc0 */
+            case DRAM_0_768MB_PHYS_ADDR_START+0x00000000:   /* memc0 */
+            case DRAM_0_768MB_PHYS_ADDR_START+0x10000000:   /* memc0 */
+            case DRAM_0_768MB_PHYS_ADDR_START+0x20000000:   /* memc0 */
                     if (cached)
                         addr = offset + (DRAM_0_768MB_VIRT_CACHED_ADDR_START-DRAM_0_768MB_PHYS_ADDR_START); // 0x30000000
                     else
@@ -335,10 +325,10 @@ void *NEXUS_Platform_P_MapMemory(
         #endif
 
         #ifdef BOARD_HAS_1024MB_MEMC1
-            case DRAM_1_1024MB_PHYS_ADDR_START+0x00000000:	/* memc1 */
-            case DRAM_1_1024MB_PHYS_ADDR_START+0x10000000:	/* memc1 */
-            case DRAM_1_1024MB_PHYS_ADDR_START+0x20000000:	/* memc1 */
-            case DRAM_1_1024MB_PHYS_ADDR_START+0x30000000:	/* memc1 */
+            case DRAM_1_1024MB_PHYS_ADDR_START+0x00000000:  /* memc1 */
+            case DRAM_1_1024MB_PHYS_ADDR_START+0x10000000:  /* memc1 */
+            case DRAM_1_1024MB_PHYS_ADDR_START+0x20000000:  /* memc1 */
+            case DRAM_1_1024MB_PHYS_ADDR_START+0x30000000:  /* memc1 */
                     if (cached)
                         addr = offset + (DRAM_1_1024MB_VIRT_CACHED_ADDR_START-DRAM_1_1024MB_PHYS_ADDR_START); // 0x30000000;
                     else
@@ -357,7 +347,7 @@ void *NEXUS_Platform_P_MapMemory(
 
 /***************************************************************************
 Summary:
-	Unmap a virtual address
+    Unmap a virtual address
 See Also:
     NEXUS_Platform_P_MapMemory
  ***************************************************************************/
@@ -385,7 +375,7 @@ void NEXUS_Platform_P_UnmapRegisterMemory(void *pMem,unsigned long length)
 
 /***************************************************************************
 Summary:
-	Reset any pending L1 interrupts
+    Reset any pending L1 interrupts
  ***************************************************************************/
 void NEXUS_Platform_P_ResetInterrupts(void)
 {
@@ -413,10 +403,8 @@ NEXUS_Platform_P_Magnum_Init(void)
         if(rc!=BERR_SUCCESS) {return BERR_TRACE(rc);}
         rc = BDBG_Init();
         if(rc!=BERR_SUCCESS) {rc=BERR_TRACE(rc); BKNI_Uninit();return rc;}
-#if (BCHP_CHIP != 7408)        
         rc = NEXUS_Base_Core_Init();
         if(rc!=BERR_SUCCESS) {rc=BERR_TRACE(rc); BDBG_Uninit();BKNI_Uninit();return rc;}
-#endif        
         g_NEXUS_magnum_init = true;
     }
     return BERR_SUCCESS;
@@ -432,86 +420,6 @@ NEXUS_Platform_P_Magnum_Uninit(void)
     }
     return;
 }
-
-#if BCHP_CHIP == 7408
-/***************************************************************************
-Summary:
-Read reserved memory
-***************************************************************************/
-uint32_t NEXUS_Platform_P_ReadReserved(
-    uint32_t physicalAddress
-    )
-{
-	uint32_t value;
-	value = *((volatile uint32_t *)(0xa0000000 | physicalAddress));
-	return value; 
-}
-
-/***************************************************************************
-Summary:
-Write reserved memory
-***************************************************************************/
-void NEXUS_Platform_P_WriteReserved(
-    uint32_t physicalAddress,
-    uint32_t value
-    )
-{
-	*((volatile uint32_t *)(0xa0000000 | physicalAddress)) = value;
-}
-
-/***************************************************************************
-Summary:
-Read core register
-***************************************************************************/
-uint32_t NEXUS_Platform_P_ReadCoreReg(
-    uint32_t offset
-    )
-{
-	uint32_t physicalAddress, value;
-	uint32_t cbr = CpuCbrGet();
-	physicalAddress = cbr & ~0x3ffff; /* mask off lower 18 bits */
-	physicalAddress |= offset;
-	value = *((volatile uint32_t *)(0xa0000000 | physicalAddress));
-	return value;
-}
-
-/***************************************************************************
-Summary:
-Write core register
-***************************************************************************/
-void NEXUS_Platform_P_WriteCoreReg(
-    uint32_t offset,
-    uint32_t value
-    )
-{
-	uint32_t physicalAddress;
-	uint32_t cbr = CpuCbrGet();
-	physicalAddress = CpuCbrGet() & ~0x3ffff; /* mask off lower 18 bits */
-	physicalAddress |= offset;
-	*((volatile uint32_t *)(0xa0000000 | physicalAddress)) = value;
-}
-
-/***************************************************************************
-Summary:
-Read CMT Control Register
-***************************************************************************/
-uint32_t NEXUS_Platform_P_ReadCmtControl(void)
-{
-    /*printf("NEXUS_Platform_P_ReadCmtControl stubbed\n");*/
-    return 0;
-}
-
-/***************************************************************************
-Summary:
-Write CMT Control Register
-***************************************************************************/
-void NEXUS_Platform_P_WriteCmtControl(
-    uint32_t value
-    )
-{
-    /*printf("NEXUS_Platform_P_WriteCmtControl stubbed\n");*/
-}
-#endif
 
 void NEXUS_Platform_P_StopCallbacks(void *interfaceHandle)
 {

@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2014 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  **************************************************************************/
 #include "nexus_picture_decoder_module.h"
@@ -148,7 +140,9 @@ static BERR_Code secureFirmwareSid( void* pData, const BSID_BootInfo *pBootInfo 
     NEXUS_FlushCache( pBootInfo->pStartAddress, pBootInfo->uiSize );
 
     LOCK_SECURITY();
-    rc = NEXUS_Security_RegionVerifyEnable_priv( NEXUS_SecurityRegverRegionID_eSid0,  pBootInfo->pStartAddress, pBootInfo->uiSize );
+    rc = NEXUS_Security_RegionVerifyEnable_priv( NEXUS_SecurityRegverRegionID_eSid0,
+                                                 NEXUS_AddrToOffset( pBootInfo->pStartAddress ),
+                                                 pBootInfo->uiSize );
     UNLOCK_SECURITY();
     if (rc) { return BERR_TRACE(rc); }
 
@@ -211,13 +205,11 @@ NEXUS_PictureDecoderModule_Init(const NEXUS_PictureDecoderModuleSettings *pSetti
     /* Image download */
     if (Nexus_Core_P_Img_Create(NEXUS_CORE_IMG_ID_SID,&hwState->img_context,&hwState->img_interface )== NEXUS_SUCCESS)
     {
-        BDBG_WRN(("Setup for FW download"));
         sidSettings.pImgInterface = (BIMG_Interface*)&hwState->img_interface;
         sidSettings.pImgContext   = hwState->img_context;
     }
     else
     {
-        BDBG_WRN(("FW download not used"));
         hwState->img_context= NULL;
     }
     #if NEXUS_HAS_SECURITY

@@ -93,11 +93,9 @@ typedef struct GL20_PROGRAM_T_ {
 
    GL20_SHADER_T      *vertex;
    GL20_SHADER_T      *fragment;
-#if GLXX_HAS_TESSELLATION
+#if GLXX_HAS_TNG
    GL20_SHADER_T      *tess_control;
    GL20_SHADER_T      *tess_evaluation;
-#endif
-#if GLXX_HAS_TNG
    GL20_SHADER_T      *geometry;
 #endif
    GL20_SHADER_T      *compute;

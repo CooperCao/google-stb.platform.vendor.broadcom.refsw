@@ -43,21 +43,11 @@
 #ifndef BHSM_KEYLADDER_ENC_H__
 #define BHSM_KEYLADDER_ENC_H__
 
-
 #include "bhsm.h"
-
-#if !HSM_IS_ASKM_40NM_ZEUS_1_0
-#ifdef BSP_PKL
-#include "bsp_s_pkl.h"
-#endif
-#endif
-
-
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
 
 #define BHSM_GEN_ROUTE_KEY_DATA_LEN            (((BCMD_GenKey_InCmd_eKeySize/4)*4) - ((BCMD_GenKey_InCmd_eProcIn/4)*4))
 #define BHSM_KEYLADDER_CUSTSUBMODE_SHIFT    0x08

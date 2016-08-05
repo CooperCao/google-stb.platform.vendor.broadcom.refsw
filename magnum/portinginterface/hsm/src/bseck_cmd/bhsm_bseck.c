@@ -49,6 +49,7 @@
 
 BDBG_MODULE(BHSM);
 
+BDBG_OBJECT_ID_DECLARE( BHSM_P_Handle );
 
 BERR_Code BHSM_VerifySecondTierKey (
         BHSM_Handle hHsm,
@@ -62,7 +63,9 @@ BERR_Code BHSM_VerifySecondTierKey (
 
     BDBG_ENTER( BHSM_VerifySecondTierKey );
 
-    if( hHsm == NULL || hHsm->ulMagicNumber != BHSM_P_HANDLE_MAGIC_NUMBER || pSecondTierKey == NULL )
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
+
+    if( pSecondTierKey == NULL )
     {
         return BERR_TRACE(BHSM_STATUS_FAILED);
     }
@@ -127,7 +130,9 @@ BERR_Code BHSM_VerifySecondStageCodeLoad( BHSM_Handle hHsm, BHSM_VerifySecondSta
 
     BDBG_ENTER( BHSM_VerifySecondStageCodeLoad );
 
-    if( hHsm == NULL || hHsm->ulMagicNumber != BHSM_P_HANDLE_MAGIC_NUMBER || pConfig == NULL )
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
+
+    if( pConfig == NULL )
     {
         return BERR_TRACE(BHSM_STATUS_FAILED);
     }
@@ -199,7 +204,9 @@ BERR_Code BHSM_SecondTierKeyInvalidate(
 
     BDBG_ENTER( BHSM_SecondTierKeyInvalidate );
 
-    if( hHsm == NULL || hHsm->ulMagicNumber != BHSM_P_HANDLE_MAGIC_NUMBER || pSecondTierKey == NULL )
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
+
+    if( pSecondTierKey == NULL )
     {
         return BERR_TRACE(BHSM_STATUS_FAILED);
     }

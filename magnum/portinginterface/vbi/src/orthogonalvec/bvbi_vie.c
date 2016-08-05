@@ -49,17 +49,12 @@
 BDBG_MODULE(BVBI);
 
 /* This is better than having many ifdefs scattered throughout the file */
-#if (BCHP_CHIP != 7125) && (BCHP_CHIP != 7408) && \
-    (BCHP_CHIP != 7420) && (BCHP_CHIP != 7468) /** { **/
 #define BCHP_VEC_CFG_SW_RESET_CCE_0        BCHP_VEC_CFG_SW_INIT_CCE_0
 #define BCHP_VEC_CFG_SW_RESET_WSE_0        BCHP_VEC_CFG_SW_INIT_WSE_0
 #define BCHP_VEC_CFG_SW_RESET_TTE_0        BCHP_VEC_CFG_SW_INIT_TTE_0
 #define BCHP_VEC_CFG_SW_RESET_GSE_0        BCHP_VEC_CFG_SW_INIT_GSE_0
 #define BCHP_VEC_CFG_SW_RESET_AMOLE_0      BCHP_VEC_CFG_SW_INIT_AMOLE_0
 #define BCHP_VEC_CFG_SW_RESET_CGMSAE_0     BCHP_VEC_CFG_SW_INIT_CGMSAE_0
-#endif /** } BCHP... **/
-
-#if (BCHP_CHIP != 7420) /** { **/
 #define BCHP_VEC_CFG_SW_RESET_CCE_ANCIL_0   BCHP_VEC_CFG_SW_INIT_CCE_ANCIL_0
 #define BCHP_VEC_CFG_SW_RESET_WSE_ANCIL_0   BCHP_VEC_CFG_SW_INIT_WSE_ANCIL_0
 #define BCHP_VEC_CFG_SW_RESET_TTE_ANCIL_0   BCHP_VEC_CFG_SW_INIT_TTE_ANCIL_0
@@ -68,7 +63,6 @@ BDBG_MODULE(BVBI);
     BCHP_VEC_CFG_SW_INIT_AMOLE_ANCIL_0
 #define BCHP_VEC_CFG_SW_RESET_ANCI656_ANCIL_0                           \
     BCHP_VEC_CFG_SW_INIT_ANCI656_ANCIL_0
-#endif /** } BCHP... **/
 
 /* This will make code more legible, in special cases. Like, chipsets that do
  * not support 656 output.

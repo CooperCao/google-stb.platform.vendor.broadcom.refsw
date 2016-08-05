@@ -292,9 +292,6 @@ typedef struct BVBI_P_Encode_CNState
     /* What video display format to assume */
     BFMT_VideoFmt eVideoFormat;
 
-    /* HDMI pixel repetition to assume */
-    BAVC_HDMI_PixelRepetition ePixRep;
-
     /* Options for encapsulating VBI data into
        ITU-R 656 ancillary data packets */
     BVBI_P_Encode_656_Options h656options;
@@ -480,8 +477,7 @@ BERR_Code BVBI_P_CGMSA_Enc_Program (
     uint8_t hwCoreIndex,
     bool bActive,
     BFMT_VideoFmt eVideoFormat,
-    bool bArib480p,
-    BAVC_HDMI_PixelRepetition ePixRep);
+    bool bArib480p);
 BERR_Code BVBI_P_CGMSA_Encode_Data_isr (
     BREG_Handle hReg,
     bool is656,
@@ -503,7 +499,6 @@ BERR_Code BVBI_P_CGMSB_Enc_Program (
     bool bActive,
     BFMT_VideoFmt eVideoFormat,
     bool bArib480p,
-    BAVC_HDMI_PixelRepetition ePixRep,
     bool bCea805dStyle);
 
 BERR_Code BVBI_P_CGMSB_Encode_Data_isr (
@@ -565,7 +560,6 @@ BERR_Code BVBI_P_WSS_Encode_Enable_isr (
     bool bEnable);
 
 void BVBI_P_WSS_Dec_Init (BREG_Handle hReg, uint32_t ulCoreOffset);
-uint16_t BVBI_P_AddWSSparity (uint16_t usData);
 
 BERR_Code BVBI_P_WSS_Dec_Program (
     BREG_Handle hReg,
@@ -840,12 +834,10 @@ BERR_Code BVBI_P_VE_Enc_Program (
     uint32_t ulActive_Standards,
     uint32_t ulActive_656_Standards,
     BFMT_VideoFmt eVideoFormat);
-#ifdef BVBI_P_HAS_CROSSBAR_VEC
 void BVBI_P_VE_Crossbar_Program (
     BREG_Handle hReg,
     BAVC_VbiPath eDest,
     uint8_t hwCoreIndex[BVBI_P_EncCoreType_eLAST]);
-#endif
 
 #ifdef BVBI_P_HAS_XSER_TT
 /***************************************************************************

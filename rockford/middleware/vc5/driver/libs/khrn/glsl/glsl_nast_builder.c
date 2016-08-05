@@ -44,7 +44,15 @@ static void vpost_expr_has_no_side_effects(Expr *expr, void *data)
              expr->u.intrinsic.flavour == INTRINSIC_ATOMIC_XOR  ||
              expr->u.intrinsic.flavour == INTRINSIC_ATOMIC_XCHG ||
              expr->u.intrinsic.flavour == INTRINSIC_ATOMIC_CMPXCHG ||
-             expr->u.intrinsic.flavour == INTRINSIC_IMAGE_STORE)
+             expr->u.intrinsic.flavour == INTRINSIC_IMAGE_STORE ||
+             expr->u.intrinsic.flavour == INTRINSIC_IMAGE_ADD   ||
+             expr->u.intrinsic.flavour == INTRINSIC_IMAGE_MIN   ||
+             expr->u.intrinsic.flavour == INTRINSIC_IMAGE_MAX   ||
+             expr->u.intrinsic.flavour == INTRINSIC_IMAGE_AND   ||
+             expr->u.intrinsic.flavour == INTRINSIC_IMAGE_OR    ||
+             expr->u.intrinsic.flavour == INTRINSIC_IMAGE_XOR   ||
+             expr->u.intrinsic.flavour == INTRINSIC_IMAGE_XCHG  ||
+             expr->u.intrinsic.flavour == INTRINSIC_IMAGE_CMPXCHG )
          {
             *result = false;
          }
@@ -127,8 +135,8 @@ static Expr *eval_expr(NStmtList *nstmts, Expr *expr, bool make_lvalue)
       }
       case EXPR_LOGICAL_AND:
       case EXPR_LOGICAL_OR: {
-         Expr *temp = glsl_expr_construct_instance(glsl_symbol_construct_temporary(expr->type));
-         Expr *cond = (expr->flavour == EXPR_LOGICAL_AND ? temp : glsl_expr_construct_unary_op(EXPR_LOGICAL_NOT, temp));
+         Expr *temp = glsl_expr_construct_instance(expr->line_num, glsl_symbol_construct_temporary(expr->type));
+         Expr *cond = (expr->flavour == EXPR_LOGICAL_AND ? temp : glsl_expr_construct_unary_op(EXPR_LOGICAL_NOT, expr->line_num, temp));
          NStmtList *other = glsl_nstmt_list_new();
          add_assign_stmt(nstmts, temp, eval_expr(nstmts, expr->u.binary_op.left, false));
          add_assign_stmt(other, temp, eval_expr(other, expr->u.binary_op.right, false));
@@ -136,7 +144,7 @@ static Expr *eval_expr(NStmtList *nstmts, Expr *expr, bool make_lvalue)
          return temp;
       }
       case EXPR_CONDITIONAL: {
-         Expr *temp = glsl_expr_construct_instance(glsl_symbol_construct_temporary(expr->type));
+         Expr *temp = glsl_expr_construct_instance(expr->line_num, glsl_symbol_construct_temporary(expr->type));
          Expr *cond = eval_expr(nstmts, expr->u.cond_op.cond, false);
          NStmtList *if_true = glsl_nstmt_list_new();
          NStmtList *if_false = glsl_nstmt_list_new();
@@ -151,15 +159,15 @@ static Expr *eval_expr(NStmtList *nstmts, Expr *expr, bool make_lvalue)
       case EXPR_PRE_DEC: {
          ExprFlavour op = (expr->flavour == EXPR_PRE_INC || expr->flavour == EXPR_POST_INC) ? EXPR_ADD : EXPR_SUB;
          Expr *lvalue = eval_expr(nstmts, expr->u.unary_op.operand, true);
-         Expr *temp = glsl_expr_construct_instance(glsl_symbol_construct_temporary(expr->type));
+         Expr *temp = glsl_expr_construct_instance(expr->line_num, glsl_symbol_construct_temporary(expr->type));
          ExprChain *ch = glsl_expr_chain_create();
          for (unsigned int i=0; i<expr->type->scalar_count; i++)
-            glsl_expr_chain_append(ch, glsl_expr_construct_const_value(PRIM_INT, 1));
-         Expr *one = glsl_expr_construct_constructor_call(lvalue->type, ch);
+            glsl_expr_chain_append(ch, glsl_expr_construct_const_value(expr->line_num, PRIM_INT, 1));
+         Expr *one = glsl_expr_construct_constructor_call(expr->line_num, lvalue->type, ch);
          if (expr->flavour == EXPR_POST_INC || expr->flavour == EXPR_POST_DEC)
             add_assign_stmt(nstmts, temp, lvalue);
          assert(lvalue->type->flavour == SYMBOL_PRIMITIVE_TYPE);
-         add_assign_stmt(nstmts, lvalue, glsl_expr_construct_binary_op_arithmetic(op, lvalue, one));
+         add_assign_stmt(nstmts, lvalue, glsl_expr_construct_binary_op_arithmetic(op, expr->line_num, lvalue, one));
          if (expr->flavour == EXPR_PRE_INC || expr->flavour == EXPR_PRE_DEC)
             add_assign_stmt(nstmts, temp, lvalue);
          return temp;
@@ -169,12 +177,12 @@ static Expr *eval_expr(NStmtList *nstmts, Expr *expr, bool make_lvalue)
          ExprChainNode *node;
          Symbol *function = expr->u.function_call.function;
          NStmtList *copy_back_params = glsl_nstmt_list_new();
-         Expr *result = glsl_expr_construct_instance(glsl_symbol_construct_temporary(expr->type));
+         Expr *result = glsl_expr_construct_instance(expr->line_num, glsl_symbol_construct_temporary(expr->type));
          ExprChain *args = glsl_expr_chain_create();
          for (i = 0, node = expr->u.function_call.args->first; node; i++, node = node->next) {
             ParamQualifier qual = function->type->u.function_type.params[i]->u.param_instance.param_qual;
             if (qual == PARAM_QUAL_OUT || qual == PARAM_QUAL_INOUT) {
-               Expr *temp = glsl_expr_construct_instance(glsl_symbol_construct_temporary(node->expr->type));
+               Expr *temp = glsl_expr_construct_instance(expr->line_num, glsl_symbol_construct_temporary(node->expr->type));
                Expr *lvalue = eval_expr(nstmts, node->expr, true);
                // read the lvalue now
                add_assign_stmt(nstmts, temp, lvalue);
@@ -258,7 +266,7 @@ static Expr *eval_expr(NStmtList *nstmts, Expr *expr, bool make_lvalue)
       case EXPR_VALUE:        /* Always compile-time constant */
       case EXPR_INSTANCE:     /* Dealt with above */
       case EXPR_FLAVOUR_COUNT:
-         UNREACHABLE();
+         unreachable();
          break;
       }
    }
@@ -268,7 +276,7 @@ static Expr *eval_expr(NStmtList *nstmts, Expr *expr, bool make_lvalue)
       return nexpr;
    } else {
       // evaluate the expression
-      Expr *temp = glsl_expr_construct_instance(glsl_symbol_construct_temporary(expr->type));
+      Expr *temp = glsl_expr_construct_instance(expr->line_num, glsl_symbol_construct_temporary(expr->type));
       add_assign_stmt(nstmts, temp, nexpr);
       return temp;
    }
@@ -297,12 +305,12 @@ static Expr *eval_loop_pre_cond(NStmtList *nstmts, Statement *pre_cond)
             eval_stmt(nstmts, pre_cond);
             if (initializer && initializer->compile_time_value)
                return initializer;
-            return glsl_expr_construct_instance(pre_cond->u.var_decl.var);
+            return glsl_expr_construct_instance(pre_cond->line_num, pre_cond->u.var_decl.var);
          }
          case STATEMENT_NULL:
             break;
          default:
-            UNREACHABLE();
+            unreachable();
             break;
       }
    }
@@ -379,7 +387,6 @@ static void eval_stmt(NStmtList *nstmts, Statement *stmt)
       }
       case STATEMENT_ITERATOR_FOR: {
          Statement *init = stmt->u.iterator_for.init;
-         Symbol *loop_index = NULL;
          NStmtList *pre_cond_stmts = glsl_nstmt_list_new();
          Expr *pre_cond_expr = eval_loop_pre_cond(pre_cond_stmts, stmt->u.iterator_for.cond_or_decl);
          NStmtList *body = glsl_nstmt_list_new();
@@ -387,12 +394,8 @@ static void eval_stmt(NStmtList *nstmts, Statement *stmt)
          eval_stmt(nstmts, init);
          eval_stmt(body, stmt->u.iterator_for.block);
          eval_root_expr(increment, stmt->u.iterator_for.loop);
-         if (init && init->flavour == STATEMENT_DECL_LIST) {
-            StatementChainNode *decl = init->u.decl_list.decls->first;
-            loop_index = (decl ? decl->statement->u.var_decl.var : NULL);
-         }
          glsl_nstmt_list_add(nstmts, glsl_nstmt_new_iterator(stmt->line_num,
-            pre_cond_stmts, pre_cond_expr, body, NULL, NULL, increment, loop_index));
+            pre_cond_stmts, pre_cond_expr, body, NULL, NULL, increment));
          break;
       }
       case STATEMENT_ITERATOR_WHILE: {
@@ -401,7 +404,7 @@ static void eval_stmt(NStmtList *nstmts, Statement *stmt)
          NStmtList *body = glsl_nstmt_list_new();
          eval_stmt(body, stmt->u.iterator_while.block);
          glsl_nstmt_list_add(nstmts, glsl_nstmt_new_iterator(stmt->line_num,
-            pre_cond_stmts, pre_cond_expr, body, NULL, NULL, NULL, NULL));
+            pre_cond_stmts, pre_cond_expr, body, NULL, NULL, NULL));
          break;
       }
       case STATEMENT_ITERATOR_DO_WHILE: {
@@ -410,7 +413,7 @@ static void eval_stmt(NStmtList *nstmts, Statement *stmt)
          NStmtList *body = glsl_nstmt_list_new();
          eval_stmt(body, stmt->u.iterator_do_while.block);
          glsl_nstmt_list_add(nstmts, glsl_nstmt_new_iterator(stmt->line_num,
-            NULL, NULL, body, post_cond_stmts, post_cond_expr, NULL, NULL));
+            NULL, NULL, body, post_cond_stmts, post_cond_expr, NULL));
          break;
       }
       case STATEMENT_CONTINUE:
@@ -456,7 +459,7 @@ static void eval_stmt(NStmtList *nstmts, Statement *stmt)
          break;
 
       case STATEMENT_FLAVOUR_COUNT:
-         UNREACHABLE();
+         unreachable();
          break;
    }
 }

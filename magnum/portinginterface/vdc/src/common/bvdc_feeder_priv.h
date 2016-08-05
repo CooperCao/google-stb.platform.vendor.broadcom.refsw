@@ -114,7 +114,7 @@ extern "C" {
  */
 #define BVDC_P_MFD_VER_8                            (8)
 
-/* 7550, 7125, 7468, 7408:
+/* 7125:
  * AVC feeder + MFD_0_RANGE_EXP_REMAP_CNTL +
  * MFD_0_LAC_CNTL.STRIPE_WIDTH_SEL support +
  * BVDC_P_Feeder_ImageFormat_ePacked_new +

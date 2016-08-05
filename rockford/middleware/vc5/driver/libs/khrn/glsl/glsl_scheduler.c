@@ -43,7 +43,6 @@ static void graphviz(Backflow **roots, int num_roots, const BackflowChain *iodep
 #endif
 #ifndef NDEBUG
    char filename[20];
-   FILE *f;
    /* The filename is of the form
       graph{shader number}-{success|fail}{threads}.txt */
    sprintf(filename,
@@ -51,11 +50,9 @@ static void graphviz(Backflow **roots, int num_roots, const BackflowChain *iodep
            graphviz_file_num,
            success ? "S" : "F",
            threads);
-   f = fopen(filename, "w");
-   assert(f);
+   FILE *f = fopen(filename, "w");
    glsl_print_backflow_from_roots(f, roots, num_roots, iodeps, BACKEND_PASS_PRINT);
    fclose(f);
-#else
 #endif
 }
 #endif
@@ -64,8 +61,12 @@ static void dpostv_init_backend_fields(Backflow *backend, void *data)
 {
    BackflowPriorityQueue *age_queue = data;
 
-   bool is_uniform = (backend->type == SIG && backend->sigbits == SIGBIT_LDUNIF);
-   bool is_attribute = (backend->type == SIG && backend->sigbits == SIGBIT_LDVPM);
+   bool is_uniform = (backend->type == SIG && backend->u.sigbits == SIGBIT_LDUNIF);
+#if !V3D_HAS_LDVPM
+   bool is_attribute = (backend->type == SIG && backend->u.sigbits == SIGBIT_LDVPM);
+#else
+   bool is_attribute = false;
+#endif
 
    backend->phase = 0;
    backend->reg = 0;
@@ -145,7 +146,7 @@ void order_texture_lookups(SchedBlock *block)
       for (struct tmu_lookup_s *cur = block->tmu_lookups; cur; cur=cur->next) {
          assert(!cur->done);   /* Done ones are no longer in the list */
 
-         if (all_tmu_deps_done(cur->tmu_deps)) {
+         if (all_tmu_deps_done(cur->last_write->tmu_deps)) {
             if (best_lookup == NULL || cur->age < best_lookup->age) {
                best_prev = prev;
                best_lookup = cur;
@@ -212,7 +213,7 @@ static uint32_t fix_texture_dependencies(SchedBlock *block,
            ( cur_section.input  + lookup->write_count  > input_fifo_size  ||
              cur_section.output + lookup->read_count   > output_fifo_size ||
              cur_section.config + 1                    > config_fifo_size ||
-             some_tmu_deps_in_section(lookup->tmu_deps, &cur_section)    ))
+             some_tmu_deps_in_section(lookup->last_write->tmu_deps, &cur_section)))
       {
          iodep_texture(sched_deps, read_sec_start, cur_section.pre_write);
 
@@ -272,12 +273,12 @@ static uint32_t fix_texture_dependencies(SchedBlock *block,
    /* TODO: Make this more intelligent */
    if (thread_count > 1) {
       if (block->first_tlb_read) {
-         Backflow *cond_false = create_node(BACKFLOW_UNIFORM, SETF_NONE, NULL, NULL, NULL, NULL);
+         Backflow *cond_false = create_sig(SIGBIT_LDUNIF);
          cond_false->unif_type = BACKEND_UNIFORM_LITERAL;
          cond_false->unif = 1;
-         Backflow *fake_tmu_lookup = create_node(BACKFLOW_MOV, COND_IFFLAG, cond_false, cond_false, NULL, NULL);
+         Backflow *fake_tmu_lookup = create_node(BACKFLOW_MOV, UNPACK_NONE, COND_IFFLAG, cond_false, cond_false, NULL, NULL);
          fake_tmu_lookup->magic_write = REG_MAGIC_TMUA;
-         Backflow *fake_tmu_read = create_node(BACKFLOW_TEX_GET, SETF_NONE, NULL, NULL, NULL, NULL);
+         Backflow *fake_tmu_read = create_sig(SIGBIT_LDTMU);
          Backflow *sbwait_switch = glsl_backflow_thrsw();
          iodep_texture(sched_deps, sbwait_switch, fake_tmu_lookup);
          iodep_texture(sched_deps, fake_tmu_read, sbwait_switch);

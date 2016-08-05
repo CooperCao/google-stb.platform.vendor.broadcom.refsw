@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2009-2015 Broadcom Corporation
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  *****************************************************************************/
 
@@ -177,7 +169,7 @@ static int DtcpAppLib_LoadSrm(char *aSrm, int *aSrmSize)
         {
             strncpy(sSrmFilename, srmFn, 255);
         } else {
-            BDBG_MSG(("%s: DtcpSrmFilePath environment variable not defined. Use default", __FUNCTION__, sSrmFilename));
+            BDBG_MSG(("%s: DtcpSrmFilePath environment variable not defined. Use default", __FUNCTION__));
         }
 
         BDBG_MSG(("load SRM from %s", sSrmFilename));
@@ -352,7 +344,7 @@ void * DtcpAppLib_Startup(B_DeviceMode_T mode,
 
     if((pDeviceParams = BKNI_Malloc(sizeof(B_DeviceParams_T)) ) == NULL)
     {
-        BDBG_ERR(("Faled to allocate memory for device params: size=%d\n", sizeof(B_DeviceParams_T)));
+        BDBG_ERR(("Faled to allocate memory for device params: size=%zu\n", sizeof(B_DeviceParams_T)));
         return NULL;
     }
     BKNI_Memset(pDeviceParams, 0, sizeof(B_DeviceParams_T));

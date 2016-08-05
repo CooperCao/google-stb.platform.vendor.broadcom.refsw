@@ -44,17 +44,19 @@
  * This module was generated magically with RDB from a source description
  * file. You must edit the source file for changes to be made to this file.
  *
+ * The launch point for all information concerning RDB is found at:
+ *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Tue Feb 23 15:26:06 2016
- *                 Full Compile MD5 Checksum  4b84f30a4b3665aac5b824a1ed76e56c
+ * Date:           Generated on               Thu Jun 23 18:55:21 2016
+ *                 Full Compile MD5 Checksum  726d365438fe88693b6f0a492958face
  *                     (minus title and desc)
- *                 MD5 Checksum               4894bba0ec078aee10b5b5954262d56e
+ *                 MD5 Checksum               942083b46396c70655d90e546c008796
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     804
+ *                 RDB.pm                     1048
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
  *                 Script Source              /home/pntruong/sbin/combo_header.pl
  *                 DVTSWVER                   n/a
@@ -78,14 +80,19 @@
 /***************************************************************************
  *CPU_STATUS - CPU interrupt Status Register
  ***************************************************************************/
-/* DS_A_00_IRQ :: CPU_STATUS :: reserved0 [31:26] */
-#define BCHP_DS_A_00_IRQ_CPU_STATUS_reserved0_MASK                 0xfc000000
-#define BCHP_DS_A_00_IRQ_CPU_STATUS_reserved0_SHIFT                26
+/* DS_A_00_IRQ :: CPU_STATUS :: reserved0 [31:28] */
+#define BCHP_DS_A_00_IRQ_CPU_STATUS_reserved0_MASK                 0xf0000000
+#define BCHP_DS_A_00_IRQ_CPU_STATUS_reserved0_SHIFT                28
 
-/* DS_A_00_IRQ :: CPU_STATUS :: ECO_SPARE_0 [25:21] */
-#define BCHP_DS_A_00_IRQ_CPU_STATUS_ECO_SPARE_0_MASK               0x03e00000
-#define BCHP_DS_A_00_IRQ_CPU_STATUS_ECO_SPARE_0_SHIFT              21
+/* DS_A_00_IRQ :: CPU_STATUS :: ECO_SPARE_0 [27:22] */
+#define BCHP_DS_A_00_IRQ_CPU_STATUS_ECO_SPARE_0_MASK               0x0fc00000
+#define BCHP_DS_A_00_IRQ_CPU_STATUS_ECO_SPARE_0_SHIFT              22
 #define BCHP_DS_A_00_IRQ_CPU_STATUS_ECO_SPARE_0_DEFAULT            0x00000000
+
+/* DS_A_00_IRQ :: CPU_STATUS :: OI_LOSS_LOCK_IS [21:21] */
+#define BCHP_DS_A_00_IRQ_CPU_STATUS_OI_LOSS_LOCK_IS_MASK           0x00200000
+#define BCHP_DS_A_00_IRQ_CPU_STATUS_OI_LOSS_LOCK_IS_SHIFT          21
+#define BCHP_DS_A_00_IRQ_CPU_STATUS_OI_LOSS_LOCK_IS_DEFAULT        0x00000000
 
 /* DS_A_00_IRQ :: CPU_STATUS :: OI_LOCK_IS [20:20] */
 #define BCHP_DS_A_00_IRQ_CPU_STATUS_OI_LOCK_IS_MASK                0x00100000
@@ -195,14 +202,19 @@
 /***************************************************************************
  *CPU_SET - CPU interrupt Set Register
  ***************************************************************************/
-/* DS_A_00_IRQ :: CPU_SET :: reserved0 [31:26] */
-#define BCHP_DS_A_00_IRQ_CPU_SET_reserved0_MASK                    0xfc000000
-#define BCHP_DS_A_00_IRQ_CPU_SET_reserved0_SHIFT                   26
+/* DS_A_00_IRQ :: CPU_SET :: reserved0 [31:28] */
+#define BCHP_DS_A_00_IRQ_CPU_SET_reserved0_MASK                    0xf0000000
+#define BCHP_DS_A_00_IRQ_CPU_SET_reserved0_SHIFT                   28
 
-/* DS_A_00_IRQ :: CPU_SET :: ECO_SPARE_0 [25:21] */
-#define BCHP_DS_A_00_IRQ_CPU_SET_ECO_SPARE_0_MASK                  0x03e00000
-#define BCHP_DS_A_00_IRQ_CPU_SET_ECO_SPARE_0_SHIFT                 21
+/* DS_A_00_IRQ :: CPU_SET :: ECO_SPARE_0 [27:22] */
+#define BCHP_DS_A_00_IRQ_CPU_SET_ECO_SPARE_0_MASK                  0x0fc00000
+#define BCHP_DS_A_00_IRQ_CPU_SET_ECO_SPARE_0_SHIFT                 22
 #define BCHP_DS_A_00_IRQ_CPU_SET_ECO_SPARE_0_DEFAULT               0x00000000
+
+/* DS_A_00_IRQ :: CPU_SET :: OI_LOSS_LOCK_IS [21:21] */
+#define BCHP_DS_A_00_IRQ_CPU_SET_OI_LOSS_LOCK_IS_MASK              0x00200000
+#define BCHP_DS_A_00_IRQ_CPU_SET_OI_LOSS_LOCK_IS_SHIFT             21
+#define BCHP_DS_A_00_IRQ_CPU_SET_OI_LOSS_LOCK_IS_DEFAULT           0x00000000
 
 /* DS_A_00_IRQ :: CPU_SET :: OI_LOCK_IS [20:20] */
 #define BCHP_DS_A_00_IRQ_CPU_SET_OI_LOCK_IS_MASK                   0x00100000
@@ -312,14 +324,19 @@
 /***************************************************************************
  *CPU_CLEAR - CPU interrupt Clear Register
  ***************************************************************************/
-/* DS_A_00_IRQ :: CPU_CLEAR :: reserved0 [31:26] */
-#define BCHP_DS_A_00_IRQ_CPU_CLEAR_reserved0_MASK                  0xfc000000
-#define BCHP_DS_A_00_IRQ_CPU_CLEAR_reserved0_SHIFT                 26
+/* DS_A_00_IRQ :: CPU_CLEAR :: reserved0 [31:28] */
+#define BCHP_DS_A_00_IRQ_CPU_CLEAR_reserved0_MASK                  0xf0000000
+#define BCHP_DS_A_00_IRQ_CPU_CLEAR_reserved0_SHIFT                 28
 
-/* DS_A_00_IRQ :: CPU_CLEAR :: ECO_SPARE_0 [25:21] */
-#define BCHP_DS_A_00_IRQ_CPU_CLEAR_ECO_SPARE_0_MASK                0x03e00000
-#define BCHP_DS_A_00_IRQ_CPU_CLEAR_ECO_SPARE_0_SHIFT               21
+/* DS_A_00_IRQ :: CPU_CLEAR :: ECO_SPARE_0 [27:22] */
+#define BCHP_DS_A_00_IRQ_CPU_CLEAR_ECO_SPARE_0_MASK                0x0fc00000
+#define BCHP_DS_A_00_IRQ_CPU_CLEAR_ECO_SPARE_0_SHIFT               22
 #define BCHP_DS_A_00_IRQ_CPU_CLEAR_ECO_SPARE_0_DEFAULT             0x00000000
+
+/* DS_A_00_IRQ :: CPU_CLEAR :: OI_LOSS_LOCK_IS [21:21] */
+#define BCHP_DS_A_00_IRQ_CPU_CLEAR_OI_LOSS_LOCK_IS_MASK            0x00200000
+#define BCHP_DS_A_00_IRQ_CPU_CLEAR_OI_LOSS_LOCK_IS_SHIFT           21
+#define BCHP_DS_A_00_IRQ_CPU_CLEAR_OI_LOSS_LOCK_IS_DEFAULT         0x00000000
 
 /* DS_A_00_IRQ :: CPU_CLEAR :: OI_LOCK_IS [20:20] */
 #define BCHP_DS_A_00_IRQ_CPU_CLEAR_OI_LOCK_IS_MASK                 0x00100000
@@ -429,14 +446,19 @@
 /***************************************************************************
  *CPU_MASK_STATUS - CPU interrupt Mask Status Register
  ***************************************************************************/
-/* DS_A_00_IRQ :: CPU_MASK_STATUS :: reserved0 [31:26] */
-#define BCHP_DS_A_00_IRQ_CPU_MASK_STATUS_reserved0_MASK            0xfc000000
-#define BCHP_DS_A_00_IRQ_CPU_MASK_STATUS_reserved0_SHIFT           26
+/* DS_A_00_IRQ :: CPU_MASK_STATUS :: reserved0 [31:28] */
+#define BCHP_DS_A_00_IRQ_CPU_MASK_STATUS_reserved0_MASK            0xf0000000
+#define BCHP_DS_A_00_IRQ_CPU_MASK_STATUS_reserved0_SHIFT           28
 
-/* DS_A_00_IRQ :: CPU_MASK_STATUS :: ECO_SPARE_0 [25:21] */
-#define BCHP_DS_A_00_IRQ_CPU_MASK_STATUS_ECO_SPARE_0_MASK          0x03e00000
-#define BCHP_DS_A_00_IRQ_CPU_MASK_STATUS_ECO_SPARE_0_SHIFT         21
-#define BCHP_DS_A_00_IRQ_CPU_MASK_STATUS_ECO_SPARE_0_DEFAULT       0x0000001f
+/* DS_A_00_IRQ :: CPU_MASK_STATUS :: ECO_SPARE_0 [27:22] */
+#define BCHP_DS_A_00_IRQ_CPU_MASK_STATUS_ECO_SPARE_0_MASK          0x0fc00000
+#define BCHP_DS_A_00_IRQ_CPU_MASK_STATUS_ECO_SPARE_0_SHIFT         22
+#define BCHP_DS_A_00_IRQ_CPU_MASK_STATUS_ECO_SPARE_0_DEFAULT       0x0000003f
+
+/* DS_A_00_IRQ :: CPU_MASK_STATUS :: OI_LOSS_LOCK_IMSK [21:21] */
+#define BCHP_DS_A_00_IRQ_CPU_MASK_STATUS_OI_LOSS_LOCK_IMSK_MASK    0x00200000
+#define BCHP_DS_A_00_IRQ_CPU_MASK_STATUS_OI_LOSS_LOCK_IMSK_SHIFT   21
+#define BCHP_DS_A_00_IRQ_CPU_MASK_STATUS_OI_LOSS_LOCK_IMSK_DEFAULT 0x00000001
 
 /* DS_A_00_IRQ :: CPU_MASK_STATUS :: OI_LOCK_IMSK [20:20] */
 #define BCHP_DS_A_00_IRQ_CPU_MASK_STATUS_OI_LOCK_IMSK_MASK         0x00100000
@@ -546,14 +568,19 @@
 /***************************************************************************
  *CPU_MASK_SET - CPU interrupt Mask Set Register
  ***************************************************************************/
-/* DS_A_00_IRQ :: CPU_MASK_SET :: reserved0 [31:26] */
-#define BCHP_DS_A_00_IRQ_CPU_MASK_SET_reserved0_MASK               0xfc000000
-#define BCHP_DS_A_00_IRQ_CPU_MASK_SET_reserved0_SHIFT              26
+/* DS_A_00_IRQ :: CPU_MASK_SET :: reserved0 [31:28] */
+#define BCHP_DS_A_00_IRQ_CPU_MASK_SET_reserved0_MASK               0xf0000000
+#define BCHP_DS_A_00_IRQ_CPU_MASK_SET_reserved0_SHIFT              28
 
-/* DS_A_00_IRQ :: CPU_MASK_SET :: ECO_SPARE_0 [25:21] */
-#define BCHP_DS_A_00_IRQ_CPU_MASK_SET_ECO_SPARE_0_MASK             0x03e00000
-#define BCHP_DS_A_00_IRQ_CPU_MASK_SET_ECO_SPARE_0_SHIFT            21
-#define BCHP_DS_A_00_IRQ_CPU_MASK_SET_ECO_SPARE_0_DEFAULT          0x0000001f
+/* DS_A_00_IRQ :: CPU_MASK_SET :: ECO_SPARE_0 [27:22] */
+#define BCHP_DS_A_00_IRQ_CPU_MASK_SET_ECO_SPARE_0_MASK             0x0fc00000
+#define BCHP_DS_A_00_IRQ_CPU_MASK_SET_ECO_SPARE_0_SHIFT            22
+#define BCHP_DS_A_00_IRQ_CPU_MASK_SET_ECO_SPARE_0_DEFAULT          0x0000003f
+
+/* DS_A_00_IRQ :: CPU_MASK_SET :: OI_LOSS_LOCK_IMSK [21:21] */
+#define BCHP_DS_A_00_IRQ_CPU_MASK_SET_OI_LOSS_LOCK_IMSK_MASK       0x00200000
+#define BCHP_DS_A_00_IRQ_CPU_MASK_SET_OI_LOSS_LOCK_IMSK_SHIFT      21
+#define BCHP_DS_A_00_IRQ_CPU_MASK_SET_OI_LOSS_LOCK_IMSK_DEFAULT    0x00000001
 
 /* DS_A_00_IRQ :: CPU_MASK_SET :: OI_LOCK_IMSK [20:20] */
 #define BCHP_DS_A_00_IRQ_CPU_MASK_SET_OI_LOCK_IMSK_MASK            0x00100000
@@ -663,14 +690,19 @@
 /***************************************************************************
  *CPU_MASK_CLEAR - CPU interrupt Mask Clear Register
  ***************************************************************************/
-/* DS_A_00_IRQ :: CPU_MASK_CLEAR :: reserved0 [31:26] */
-#define BCHP_DS_A_00_IRQ_CPU_MASK_CLEAR_reserved0_MASK             0xfc000000
-#define BCHP_DS_A_00_IRQ_CPU_MASK_CLEAR_reserved0_SHIFT            26
+/* DS_A_00_IRQ :: CPU_MASK_CLEAR :: reserved0 [31:28] */
+#define BCHP_DS_A_00_IRQ_CPU_MASK_CLEAR_reserved0_MASK             0xf0000000
+#define BCHP_DS_A_00_IRQ_CPU_MASK_CLEAR_reserved0_SHIFT            28
 
-/* DS_A_00_IRQ :: CPU_MASK_CLEAR :: ECO_SPARE_0 [25:21] */
-#define BCHP_DS_A_00_IRQ_CPU_MASK_CLEAR_ECO_SPARE_0_MASK           0x03e00000
-#define BCHP_DS_A_00_IRQ_CPU_MASK_CLEAR_ECO_SPARE_0_SHIFT          21
-#define BCHP_DS_A_00_IRQ_CPU_MASK_CLEAR_ECO_SPARE_0_DEFAULT        0x0000001f
+/* DS_A_00_IRQ :: CPU_MASK_CLEAR :: ECO_SPARE_0 [27:22] */
+#define BCHP_DS_A_00_IRQ_CPU_MASK_CLEAR_ECO_SPARE_0_MASK           0x0fc00000
+#define BCHP_DS_A_00_IRQ_CPU_MASK_CLEAR_ECO_SPARE_0_SHIFT          22
+#define BCHP_DS_A_00_IRQ_CPU_MASK_CLEAR_ECO_SPARE_0_DEFAULT        0x0000003f
+
+/* DS_A_00_IRQ :: CPU_MASK_CLEAR :: OI_LOSS_LOCK_IMSK [21:21] */
+#define BCHP_DS_A_00_IRQ_CPU_MASK_CLEAR_OI_LOSS_LOCK_IMSK_MASK     0x00200000
+#define BCHP_DS_A_00_IRQ_CPU_MASK_CLEAR_OI_LOSS_LOCK_IMSK_SHIFT    21
+#define BCHP_DS_A_00_IRQ_CPU_MASK_CLEAR_OI_LOSS_LOCK_IMSK_DEFAULT  0x00000001
 
 /* DS_A_00_IRQ :: CPU_MASK_CLEAR :: OI_LOCK_IMSK [20:20] */
 #define BCHP_DS_A_00_IRQ_CPU_MASK_CLEAR_OI_LOCK_IMSK_MASK          0x00100000

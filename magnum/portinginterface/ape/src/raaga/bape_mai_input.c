@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -67,6 +67,12 @@ typedef struct BAPE_MaiInput
     bool formatDetectionEnabled;
     bool hwAutoMuteEnabled;
     uint32_t outFormatEna;      /* last value written to OUT_FORMAT_ENA field. */
+    struct
+    {
+        BAPE_MclkSource mclkSource;
+        unsigned pllChannel;    /* only applies if mclkSource refers to a PLL */
+        unsigned mclkFreqToFsRatio;
+    } mclkInfo;
     bool enable;
     char name[12];   /* MAI IN %d */
 
@@ -529,9 +535,239 @@ BERR_Code BAPE_MaiInput_P_ResumeFromStandby(BAPE_Handle hApe)
     return errCode;
 }
 
+/* work around to reset FCI splitter and HDMI IN - works around FCI splitter locking up HDMI IN when grouping is used */
+static void BAPE_MaiInput_P_FciSpReset(BAPE_MaiInputHandle handle)
+{
+    #if defined BCHP_AUD_MISC_INIT_SPLTR0_LOGIC_INIT_MASK
+    unsigned mode = BAPE_Reg_P_ReadField(handle->deviceHandle, BCHP_AUD_FMM_IOP_IN_HDMI_0_OUT_RATE_CTRL, AUD_FMM_IOP_IN_HDMI_0_OUT_RATE_CTRL, MODE);
+
+    BAPE_Reg_P_UpdateEnum(handle->deviceHandle, BCHP_AUD_MISC_INIT, AUD_MISC_INIT, SPLTR0_LOGIC_INIT, Init);
+    BAPE_Reg_P_UpdateField(handle->deviceHandle, BCHP_AUD_FMM_IOP_IN_HDMI_0_OUT_RATE_CTRL, AUD_FMM_IOP_IN_HDMI_0_OUT_RATE_CTRL, MODE, (mode == 2) ? 0 : 2);
+    BAPE_Reg_P_UpdateField(handle->deviceHandle, BCHP_AUD_FMM_IOP_IN_HDMI_0_OUT_RATE_CTRL, AUD_FMM_IOP_IN_HDMI_0_OUT_RATE_CTRL, MODE, mode);
+    BAPE_Reg_P_UpdateEnum(handle->deviceHandle, BCHP_AUD_MISC_INIT, AUD_MISC_INIT, SPLTR0_LOGIC_INIT, Inactive);
+    #else
+    BSTD_UNUSED(handle);
+    #endif
+}
+
 /***************************************************************************
         Private callbacks: Protyped above
 ***************************************************************************/
+
+#if defined BAPE_CHIP_MAI_INPUT_TYPE_IS_IOPIN
+static void BAPE_MaiInput_P_SetMclk_isr(BAPE_MaiInputHandle handle, BAPE_MclkSource mclkSource, unsigned pllChannel, unsigned mclkFreqToFsRatio)
+{
+    BAPE_Reg_P_FieldList regFieldList;
+
+    BDBG_OBJECT_ASSERT(handle, BAPE_MaiInput);
+    BDBG_ASSERT(handle->offset == 0);
+
+    /* Save the settings in case we need to re-apply them later. */
+    handle->mclkInfo.mclkSource         = mclkSource;
+    handle->mclkInfo.pllChannel         = pllChannel;
+    handle->mclkInfo.mclkFreqToFsRatio  = mclkFreqToFsRatio;
+
+    BAPE_Reg_P_InitFieldList(handle->deviceHandle, &regFieldList);
+
+    switch ( mclkSource )
+    {
+#ifdef BCHP_AUD_FMM_IOP_IN_HDMI_0_MCLK_CFG_0_PLLCLKSEL_PLL0_ch1
+    case BAPE_MclkSource_ePll0:
+        switch ( pllChannel )
+        {
+        case 0: BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_IN_HDMI_0_MCLK_CFG_0, PLLCLKSEL, PLL0_ch1); break;
+        case 1: BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_IN_HDMI_0_MCLK_CFG_0, PLLCLKSEL, PLL0_ch2); break;
+        case 2: BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_IN_HDMI_0_MCLK_CFG_0, PLLCLKSEL, PLL0_ch3); break;
+        default: (void) BERR_TRACE(BERR_NOT_SUPPORTED); break;
+        }
+        break;
+#endif
+#ifdef BCHP_AUD_FMM_IOP_IN_HDMI_0_MCLK_CFG_0_PLLCLKSEL_PLL1_ch1
+    case BAPE_MclkSource_ePll1:
+        switch ( pllChannel )
+        {
+        case 0: BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_IN_HDMI_0_MCLK_CFG_0, PLLCLKSEL, PLL1_ch1); break;
+        case 1: BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_IN_HDMI_0_MCLK_CFG_0, PLLCLKSEL, PLL1_ch2); break;
+        case 2: BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_IN_HDMI_0_MCLK_CFG_0, PLLCLKSEL, PLL1_ch3); break;
+        default: (void) BERR_TRACE(BERR_NOT_SUPPORTED); break;
+        }
+        break;
+#endif
+#ifdef BCHP_AUD_FMM_IOP_IN_HDMI_0_MCLK_CFG_0_PLLCLKSEL_PLL2_ch1
+    case BAPE_MclkSource_ePll2:
+        switch ( pllChannel )
+        {
+        case 0: BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_IN_HDMI_0_MCLK_CFG_0, PLLCLKSEL, PLL2_ch1); break;
+        case 1: BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_IN_HDMI_0_MCLK_CFG_0, PLLCLKSEL, PLL2_ch2); break;
+        case 2: BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_IN_HDMI_0_MCLK_CFG_0, PLLCLKSEL, PLL2_ch3); break;
+        default: (void) BERR_TRACE(BERR_NOT_SUPPORTED); break;
+        }
+        break;
+#endif
+#ifdef BCHP_AUD_FMM_IOP_IN_HDMI_0_MCLK_CFG_0_PLLCLKSEL_Mclk_gen0
+    case BAPE_MclkSource_eNco0:
+        BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_IN_HDMI_0_MCLK_CFG_0, PLLCLKSEL, Mclk_gen0);
+        break;
+#endif
+#ifdef BCHP_AUD_FMM_IOP_IN_HDMI_0_MCLK_CFG_0_PLLCLKSEL_Mclk_gen1
+    case BAPE_MclkSource_eNco1:
+        BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_IN_HDMI_0_MCLK_CFG_0, PLLCLKSEL, Mclk_gen1);
+        break;
+#endif
+#ifdef BCHP_AUD_FMM_IOP_IN_HDMI_0_MCLK_CFG_0_PLLCLKSEL_Mclk_gen2
+    case BAPE_MclkSource_eNco2:
+        BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_IN_HDMI_0_MCLK_CFG_0, PLLCLKSEL, Mclk_gen2);
+        break;
+#endif
+#ifdef BCHP_AUD_FMM_IOP_IN_HDMI_0_MCLK_CFG_0_PLLCLKSEL_Mclk_gen3
+    case BAPE_MclkSource_eNco3:
+        BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_IN_HDMI_0_MCLK_CFG_0, PLLCLKSEL, Mclk_gen3);
+        break;
+#endif
+#ifdef BCHP_AUD_FMM_IOP_IN_HDMI_0_MCLK_CFG_0_PLLCLKSEL_Mclk_gen4
+    case BAPE_MclkSource_eNco4:
+        BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_IN_HDMI_0_MCLK_CFG_0, PLLCLKSEL, Mclk_gen4);
+        break;
+#endif
+#ifdef BCHP_AUD_FMM_IOP_IN_HDMI_0_MCLK_CFG_0_PLLCLKSEL_Mclk_gen5
+    case BAPE_MclkSource_eNco5:
+        BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_IN_HDMI_0_MCLK_CFG_0, PLLCLKSEL, Mclk_gen6);
+        break;
+#endif
+#ifdef BCHP_AUD_FMM_IOP_IN_HDMI_0_MCLK_CFG_0_PLLCLKSEL_Mclk_gen6
+    case BAPE_MclkSource_eNco6:
+        BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_IN_HDMI_0_MCLK_CFG_0, PLLCLKSEL, Mclk_gen6);
+        break;
+#endif
+    default:
+        BDBG_ERR(("Unsupported clock source %u for MAI IN %u", mclkSource, handle->index));
+        (void)BERR_TRACE(BERR_NOT_SUPPORTED);
+    }
+
+    switch ( mclkFreqToFsRatio )
+    {
+    case 128: BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_IN_HDMI_0_MCLK_CFG_0, MCLK_RATE, MCLK_128fs_SCLK_64fs); break;
+    case 256: BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_IN_HDMI_0_MCLK_CFG_0, MCLK_RATE, MCLK_256fs_SCLK_64fs); break;
+    case 384: BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_IN_HDMI_0_MCLK_CFG_0, MCLK_RATE, MCLK_384fs_SCLK_64fs); break;
+    case 512: BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_IN_HDMI_0_MCLK_CFG_0, MCLK_RATE, MCLK_512fs_SCLK_64fs); break;
+    default:
+        BDBG_ERR(("Unsupported MCLK Rate of %uFs", mclkFreqToFsRatio));
+        (void)BERR_TRACE(BERR_NOT_SUPPORTED);
+        break;
+    }
+    BAPE_Reg_P_ApplyFieldList(&regFieldList, BCHP_AUD_FMM_IOP_IN_HDMI_0_MCLK_CFG_0);
+}
+
+#define BAPE_NUM_OUTPUTS    10
+void BAPE_MaiInput_P_ConfigureClockSource_isr(BAPE_MaiInputHandle handle)
+{
+    BAPE_PathNode * pConsumer;
+    BAPE_Mixer *pMixer = NULL;
+    BAPE_OutputPort mai = NULL;
+    BAPE_OutputPort alternate[BAPE_NUM_OUTPUTS];
+    BAPE_MclkSource mclkSource = BAPE_MclkSource_eNone;
+    unsigned i,k, j=0;
+
+    BKNI_Memset(alternate, 0, sizeof(BAPE_OutputPort)*BAPE_NUM_OUTPUTS);
+
+    BDBG_MSG(("Looking for clock source to drive MAI input..."));
+    for ( pConsumer = BLST_S_FIRST(&handle->inputPort.consumerList);
+        pConsumer != NULL;
+        pConsumer = BLST_S_NEXT(pConsumer, consumerNode) )
+    {
+        BAPE_OutputPort outputs[BAPE_NUM_OUTPUTS];
+        unsigned numFound;
+        BAPE_PathNode_P_GetConnectedOutputs(pConsumer, BAPE_NUM_OUTPUTS, &numFound, outputs);
+        /* try to use Mai output as our reference, if present */
+        for ( i=0; i<numFound; i++ )
+        {
+            if ( outputs[i]->type == BAPE_OutputPortType_eMaiOutput )
+            {
+                mai = outputs[i];
+                BDBG_MSG(("  Found mai output %s", mai->pName));
+            }
+            else
+            {
+                alternate[j] = outputs[i];
+                BDBG_MSG(("  Found alternate output %s", alternate[j]->pName));
+                ++j;
+            }
+        }
+    }
+
+    /* prioritize NCOs, then PLLs... */
+    for ( k=0; k<2; k++ )
+    {
+        if ( mai != NULL )
+        {
+            pMixer = (BAPE_Mixer*)mai->mixer;
+            if ( pMixer &&
+                 ( (k==0)?BAPE_MCLKSOURCE_IS_NCO(pMixer->mclkSource):BAPE_MCLKSOURCE_IS_PLL(pMixer->mclkSource) ) )
+            {
+                if ( BAPE_Mixer_P_GetOutputSampleRate_isr(pMixer) != 0 &&
+                     handle->inputPort.format.sampleRate >= BAPE_Mixer_P_GetOutputSampleRate_isr(pMixer) &&
+                     (handle->inputPort.format.sampleRate % BAPE_Mixer_P_GetOutputSampleRate_isr(pMixer)) == 0 )
+                {
+                    BDBG_MSG(("Mai output is an %s clock match for mai input", (k==0)?"NCO":"PLL"));
+                    mclkSource = pMixer->mclkSource;
+                }
+            }
+        }
+
+        for ( i=0; i<j; i++ )
+        {
+            if ( mclkSource == BAPE_MclkSource_eNone && alternate[i] != NULL )
+            {
+                pMixer = (BAPE_Mixer*)alternate[i]->mixer;
+                if ( pMixer &&
+                     ( (k==0)?BAPE_MCLKSOURCE_IS_NCO(pMixer->mclkSource):BAPE_MCLKSOURCE_IS_PLL(pMixer->mclkSource) ) )
+                {
+                    if ( BAPE_Mixer_P_GetOutputSampleRate_isr(pMixer) != 0 &&
+                         handle->inputPort.format.sampleRate >= BAPE_Mixer_P_GetOutputSampleRate_isr(pMixer) &&
+                         (handle->inputPort.format.sampleRate % BAPE_Mixer_P_GetOutputSampleRate_isr(pMixer)) == 0 )
+                    {
+                        BDBG_MSG(("%s output is an %s clock match for mai input", alternate[i]->pName, (k==0)?"NCO":"PLL"));
+                        mclkSource = pMixer->mclkSource;
+                    }
+                }
+            }
+        }
+    }
+
+    if ( mclkSource == BAPE_MclkSource_eNone )
+    {
+        #if BAPE_CHIP_MAX_NCOS > 0
+        BDBG_WRN(("No clock source found downstream. Defaulting to NCO0 . This may indidate a problem."));
+        mclkSource = BAPE_MclkSource_eNco0;
+        #elif BAPE_CHIP_MAX_PLLS > 0
+        BDBG_WRN(("No clock source found downstream. Defaulting to PLL0 . This may indidate a problem."));
+        mclkSource = BAPE_MclkSource_ePll0;
+        #else
+        BDBG_WRN(("No clock sources found. Cannot configure Mai input clock"));
+        #endif
+    }
+
+    if ( BAPE_MCLKSOURCE_IS_NCO(mclkSource) )
+    {
+        BAPE_NcoConfiguration ncoConfig;
+        unsigned mclkFreqToFsRatio = 1;
+        BAPE_P_GetNcoConfiguration(handle->deviceHandle, mclkSource - BAPE_MclkSource_eNco0, &ncoConfig);
+        mclkFreqToFsRatio = ncoConfig.frequency / (handle->inputPort.format.sampleRate == 0 ? 48000: handle->inputPort.format.sampleRate);
+        BDBG_MSG(("Success. Setting mai input to use clock source %lu, ch %lu, mclkFreqToFsRatio %lu", (unsigned long)mclkSource, (unsigned long)0, (unsigned long)mclkFreqToFsRatio));
+        BAPE_MaiInput_P_SetMclk_isr(handle, mclkSource, 0, mclkFreqToFsRatio);
+    }
+    else if ( BAPE_MCLKSOURCE_IS_PLL(mclkSource) )
+    {
+        BDBG_WRN(("Currently MAI IN requires a downstream output that uses an NCO (typically MAI output or Dummy output"));
+    }
+}
+#else
+void BAPE_MaiInput_P_ConfigureClockSource_isr(BAPE_MaiInputHandle handle)
+{
+    BSTD_UNUSED(handle);
+}
+#endif
+
 static void BAPE_MaiInput_P_Enable(BAPE_InputPort inputPort)
 {
     BAPE_MaiInputHandle handle;
@@ -551,6 +787,7 @@ static void BAPE_MaiInput_P_Enable(BAPE_InputPort inputPort)
         {
             BDBG_ERR(("Unable to start MAI Input FCI Splitter"));
         }
+        BAPE_MaiInput_P_FciSpReset(handle);
         return;
     }
     else
@@ -572,19 +809,42 @@ static void BAPE_MaiInput_P_Enable(BAPE_InputPort inputPort)
         /* Set Capture Group ID's for the correct number of channel pairs */
         for ( i = 0; i < BAPE_FMT_P_GetNumChannelPairs_isrsafe(&inputPort->format); i++ )
         {
-            regAddr = BAPE_Reg_P_GetArrayAddress(                    AUD_FMM_IOP_IN_HDMI_0_CAP_STREAM_CFG_i, i);
+            regAddr = BAPE_Reg_P_GetArrayAddress(                 AUD_FMM_IOP_IN_HDMI_0_CAP_STREAM_CFG_i, i);
             BAPE_Reg_P_UpdateField(handle->deviceHandle, regAddr, AUD_FMM_IOP_IN_HDMI_0_CAP_STREAM_CFG_i, CAP_GROUP_ID, 0);
         }
         for ( ; i <= BCHP_AUD_FMM_IOP_IN_HDMI_0_CAP_STREAM_CFG_i_ARRAY_END; i++ )
         {
-            regAddr = BAPE_Reg_P_GetArrayAddress(                    AUD_FMM_IOP_IN_HDMI_0_CAP_STREAM_CFG_i, i);
+            regAddr = BAPE_Reg_P_GetArrayAddress(                 AUD_FMM_IOP_IN_HDMI_0_CAP_STREAM_CFG_i, i);
             BAPE_Reg_P_UpdateField(handle->deviceHandle, regAddr, AUD_FMM_IOP_IN_HDMI_0_CAP_STREAM_CFG_i, CAP_GROUP_ID, i);
+        }
+
+        /* If we have an FCI splitter, enable it here */
+        if ( handle->inputPort.fciSpGroup )
+        {
+            BAPE_FciSplitterGroupSettings fciGroupSettings;
+            unsigned numChannelPairs = BAPE_FMT_P_GetNumChannelPairs_isrsafe(&inputPort->format);
+            BAPE_FciSplitterGroup_P_Stop(handle->inputPort.fciSpGroup);
+
+            BAPE_FciSplitterGroup_P_GetSettings(handle->inputPort.fciSpGroup, &fciGroupSettings);
+            BAPE_InputPort_P_GetFciIds(inputPort, &fciGroupSettings.input);
+            fciGroupSettings.numChannelPairs = numChannelPairs;
+            errCode = BAPE_FciSplitterGroup_P_SetSettings(handle->inputPort.fciSpGroup, &fciGroupSettings);
+            if ( errCode != BERR_SUCCESS )
+            {
+                BDBG_ERR(("Unable to set FCI Splitter Settings"));
+            }
+            errCode = BAPE_FciSplitterGroup_P_Start(handle->inputPort.fciSpGroup);
+            if ( errCode != BERR_SUCCESS )
+            {
+                BDBG_ERR(("Unable to start MAI Input FCI Splitter"));
+            }
+            BAPE_MaiInput_P_FciSpReset(handle);
         }
 
         /* Enable capture */
         for ( i = 0; i < numChannelPairs; i++ )
         {
-            regAddr = BAPE_Reg_P_GetArrayAddress(                    AUD_FMM_IOP_IN_HDMI_0_CAP_STREAM_CFG_i, i);
+            regAddr = BAPE_Reg_P_GetArrayAddress(                 AUD_FMM_IOP_IN_HDMI_0_CAP_STREAM_CFG_i, i);
             BAPE_Reg_P_UpdateField(handle->deviceHandle, regAddr, AUD_FMM_IOP_IN_HDMI_0_CAP_STREAM_CFG_i, CAP_ENA, 1);
         }
     }
@@ -597,6 +857,9 @@ static void BAPE_MaiInput_P_Enable(BAPE_InputPort inputPort)
     /* Enable output FIFO */
     {  /* Start Critical Section */
         BKNI_EnterCriticalSection();
+
+        /* Configure Mclk, needed for Locked mode */
+        BAPE_MaiInput_P_ConfigureClockSource_isr(handle);
 
         if ( inputPort->halted )
         {
@@ -618,28 +881,6 @@ static void BAPE_MaiInput_P_Enable(BAPE_InputPort inputPort)
 
         BKNI_LeaveCriticalSection();
     }  /* End Critical Section */
-
-    /* If we have an FCI splitter, enable it here */
-    if ( handle->inputPort.fciSpGroup )
-    {
-        BAPE_FciSplitterGroupSettings fciGroupSettings;
-        unsigned numChannelPairs = BAPE_FMT_P_GetNumChannelPairs_isrsafe(&inputPort->format);
-        BAPE_FciSplitterGroup_P_Stop(handle->inputPort.fciSpGroup);
-
-        BAPE_FciSplitterGroup_P_GetSettings(handle->inputPort.fciSpGroup, &fciGroupSettings);
-        BAPE_InputPort_P_GetFciIds(inputPort, &fciGroupSettings.input);
-        fciGroupSettings.numChannelPairs = numChannelPairs;
-        errCode = BAPE_FciSplitterGroup_P_SetSettings(handle->inputPort.fciSpGroup, &fciGroupSettings);
-        if ( errCode != BERR_SUCCESS )
-        {
-            BDBG_ERR(("Unable to set FCI Splitter Settings"));
-        }
-        errCode = BAPE_FciSplitterGroup_P_Start(handle->inputPort.fciSpGroup);
-        if ( errCode != BERR_SUCCESS )
-        {
-            BDBG_ERR(("Unable to start MAI Input FCI Splitter"));
-        }
-    }
 }
 
 /**************************************************************************/
@@ -653,6 +894,12 @@ static void BAPE_MaiInput_P_Disable(BAPE_InputPort inputPort)
     BDBG_OBJECT_ASSERT(handle, BAPE_MaiInput);
 
     if ( !handle->enable )
+    {
+        return;
+    }
+
+    /* Check if we have multiple consumers */
+    if ( BAPE_InputPort_P_GetNumConsumersAttached(inputPort) > 1 )
     {
         return;
     }
@@ -677,20 +924,20 @@ static void BAPE_MaiInput_P_Disable(BAPE_InputPort inputPort)
         /* Disable capture */
         for ( i = 0; i < BAPE_ChannelPair_eMax; i++ )
         {
-            regAddr = BAPE_Reg_P_GetArrayAddress(                    AUD_FMM_IOP_IN_HDMI_0_CAP_STREAM_CFG_i, i);
+            regAddr = BAPE_Reg_P_GetArrayAddress(                 AUD_FMM_IOP_IN_HDMI_0_CAP_STREAM_CFG_i, i);
             BAPE_Reg_P_UpdateField(handle->deviceHandle, regAddr, AUD_FMM_IOP_IN_HDMI_0_CAP_STREAM_CFG_i, CAP_ENA, 0);
-        }
-
-        /* Ungroup */
-        for ( i = 0; i < BAPE_ChannelPair_eMax; i++ )
-        {
-            regAddr = BAPE_Reg_P_GetArrayAddress(                    AUD_FMM_IOP_IN_HDMI_0_CAP_STREAM_CFG_i, i);
-            BAPE_Reg_P_UpdateField(handle->deviceHandle, regAddr, AUD_FMM_IOP_IN_HDMI_0_CAP_STREAM_CFG_i, CAP_GROUP_ID, i);
         }
 
         if ( handle->inputPort.fciSpGroup )
         {
             BAPE_FciSplitterGroup_P_Stop(handle->inputPort.fciSpGroup);
+        }
+
+        /* Ungroup */
+        for ( i = 0; i < BAPE_ChannelPair_eMax; i++ )
+        {
+            regAddr = BAPE_Reg_P_GetArrayAddress(                 AUD_FMM_IOP_IN_HDMI_0_CAP_STREAM_CFG_i, i);
+            BAPE_Reg_P_UpdateField(handle->deviceHandle, regAddr, AUD_FMM_IOP_IN_HDMI_0_CAP_STREAM_CFG_i, CAP_GROUP_ID, i);
         }
     }
     #elif defined BAPE_CHIP_MAI_INPUT_TYPE_IS_LEGACY  /* Shared pool of STREAM_CFG registers in IOP */
@@ -780,9 +1027,17 @@ static void BAPE_MaiInput_P_ConsumerDetached_isr(BAPE_InputPort inputPort, BAPE_
     handle = inputPort->pHandle;
     BDBG_OBJECT_ASSERT(handle, BAPE_MaiInput);
 
-    /* Disable local format detection. */
-    handle->localFormatDetectionEnabled = false;
-    BAPE_MaiInput_P_SetFormatDetection_isr(handle);
+    if ( BAPE_InputPort_P_GetNumConsumersAttached(inputPort) <= 1 )
+    {
+        /* Disable local format detection. */
+        handle->localFormatDetectionEnabled = false;
+        BAPE_MaiInput_P_SetFormatDetection_isr(handle);
+    }
+    else
+    {
+        BDBG_MSG(("Detached one consumer %s (restart FCI Splitter only)", pConsumer->pName));
+        BAPE_MaiInput_P_FciSpReset(handle);
+    }
 
     return;
 }
@@ -819,8 +1074,8 @@ static BERR_Code BAPE_MaiInput_P_OpenHw(BAPE_MaiInputHandle handle)
 
     regAddr = BAPE_P_HDMI_RX_CONFIG_REGADDR;
 
-    BAPE_Reg_P_AddEnumToFieldList(&regFieldList, BAPE_P_HDMI_RX_CONFIG_REGNAME, OUT_FORMAT_ENA, PCM);
-    handle->outFormatEna = BAPE_P_BCHP_ENUM(BAPE_P_HDMI_RX_CONFIG_REGNAME, OUT_FORMAT_ENA, PCM);  /* Remember OUT_FORMAT_ENA setting. */
+    BAPE_Reg_P_AddEnumToFieldList(&regFieldList, BAPE_P_HDMI_RX_CONFIG_REGNAME, OUT_FORMAT_ENA, ALL);
+    handle->outFormatEna = BAPE_P_BCHP_ENUM(BAPE_P_HDMI_RX_CONFIG_REGNAME, OUT_FORMAT_ENA, ALL);  /* Remember OUT_FORMAT_ENA setting. */
 
     BAPE_Reg_P_AddEnumToFieldList(&regFieldList, BAPE_P_HDMI_RX_CONFIG_REGNAME, ALLOW_NZ_STUFFING, Nonzero_OK);
     #if defined BAPE_CHIP_MAI_INPUT_TYPE_IS_LEGACY
@@ -846,6 +1101,8 @@ static BERR_Code BAPE_MaiInput_P_OpenHw(BAPE_MaiInputHandle handle)
         BAPE_Reg_P_Write(hApe, BCHP_AUD_FMM_IOP_MISC_ESR_STATUS_CLEAR, BCHP_MASK( AUD_FMM_IOP_MISC_ESR_STATUS_CLEAR, IOP_INTERRUPT_IN_HDMI_0));
         BAPE_Reg_P_Write(hApe, BCHP_AUD_FMM_IOP_MISC_ESR_MASK_CLEAR,   BCHP_MASK( AUD_FMM_IOP_MISC_ESR_MASK_CLEAR,   IOP_INTERRUPT_IN_HDMI_0));
 
+        BAPE_Reg_P_UpdateEnum_isr(hApe, BCHP_AUD_FMM_IOP_IN_HDMI_0_OUT_RATE_CTRL,
+                                                           AUD_FMM_IOP_IN_HDMI_0_OUT_RATE_CTRL, MODE, Locked);
 
     #endif /* if defined BAPE_CHIP_MAI_INPUT_TYPE_IS_IOPIN */
     #if defined BAPE_CHIP_MAI_INPUT_TYPE_IS_LEGACY
@@ -857,6 +1114,8 @@ static BERR_Code BAPE_MaiInput_P_OpenHw(BAPE_MaiInputHandle handle)
                                                               BCHP_MASK( SPDIF_RCVR_ESR_MASK_CLEAR, SPDIFRX_COMP_CHANGE_MASK ) |
                                                               BCHP_MASK( SPDIF_RCVR_ESR_MASK_CLEAR, SPDIFRX_MAI_FMT_CHANGE_MASK ));
 
+        BAPE_Reg_P_UpdateEnum_isr(hApe, BCHP_HDMI_RCVR_CTRL_OUT_RATE_CTRL,
+                                                            SPDIF_RCVR_CTRL_OUT_RATE_CTRL, MODE, Locked);
     #endif /* if defined BAPE_CHIP_MAI_INPUT_TYPE_IS_LEGACY */
 
     {
@@ -1361,62 +1620,7 @@ static void BAPE_MaiInput_P_SetReceiverOutputFormat_isr (BAPE_MaiInputHandle han
     BKNI_ASSERT_ISR_CONTEXT();
     BDBG_OBJECT_ASSERT(handle, BAPE_MaiInput);
 
-    outFormatEna =  BAPE_P_BCHP_ENUM(BAPE_P_HDMI_RX_CONFIG_REGNAME, OUT_FORMAT_ENA, PCM);
-
-    if ( pFormatDetectionStatus->compressed)
-    {
-        BAPE_PathNode * pConsumer;
-
-        /* TODO: Need to revisit compressed capture in the context of FCI splitting
-           As of today, this code is broken if we have consumer of different types. Second consumer wins. */
-        for ( pConsumer = BLST_S_FIRST(&handle->inputPort.consumerList);
-            pConsumer != NULL;
-            pConsumer = BLST_S_NEXT(pConsumer, consumerNode) )
-        {
-            if ( pConsumer && pConsumer->type == BAPE_PathNodeType_eInputCapture )
-            {
-                outFormatEna =  BAPE_P_BCHP_ENUM(BAPE_P_HDMI_RX_CONFIG_REGNAME, OUT_FORMAT_ENA, COMP);
-            }
-            else
-            {
-                outFormatEna =  BAPE_P_BCHP_ENUM(BAPE_P_HDMI_RX_CONFIG_REGNAME, OUT_FORMAT_ENA, PES);
-            }
-        }
-
-        if (pFormatDetectionStatus->codec == BAVC_AudioCompressionStd_eAacAdts ||
-            pFormatDetectionStatus->codec == BAVC_AudioCompressionStd_eAacLoas ||
-            pFormatDetectionStatus->codec == BAVC_AudioCompressionStd_eAacPlusAdts ||
-            pFormatDetectionStatus->codec == BAVC_AudioCompressionStd_eAacPlusAdts ) {
-#if defined BAPE_CHIP_MAI_INPUT_TYPE_IS_IOPIN
-            BAPE_Reg_P_UpdateEnum_isr(handle->deviceHandle, BCHP_AUD_FMM_IOP_IN_HDMI_0_OUT_RATE_CTRL,
-                                      AUD_FMM_IOP_IN_HDMI_0_OUT_RATE_CTRL, MODE, Locked);
-#endif
-#if defined BAPE_CHIP_MAI_INPUT_TYPE_IS_LEGACY
-            BAPE_Reg_P_UpdateEnum_isr(handle->deviceHandle, BCHP_HDMI_RCVR_CTRL_OUT_RATE_CTRL,
-                                      SPDIF_RCVR_CTRL_OUT_RATE_CTRL, MODE, Locked);
-#endif
-        }
-        else {
-#if defined BAPE_CHIP_MAI_INPUT_TYPE_IS_IOPIN
-            BAPE_Reg_P_UpdateEnum_isr(handle->deviceHandle, BCHP_AUD_FMM_IOP_IN_HDMI_0_OUT_RATE_CTRL,
-                                      AUD_FMM_IOP_IN_HDMI_0_OUT_RATE_CTRL, MODE, Keep_empty);
-#endif
-#if defined BAPE_CHIP_MAI_INPUT_TYPE_IS_LEGACY
-            BAPE_Reg_P_UpdateEnum_isr(handle->deviceHandle, BCHP_HDMI_RCVR_CTRL_OUT_RATE_CTRL,
-                                      SPDIF_RCVR_CTRL_OUT_RATE_CTRL, MODE, Keep_empty);
-#endif
-        }
-    }
-    else {
-#if defined BAPE_CHIP_MAI_INPUT_TYPE_IS_IOPIN
-            BAPE_Reg_P_UpdateEnum_isr(handle->deviceHandle, BCHP_AUD_FMM_IOP_IN_HDMI_0_OUT_RATE_CTRL,
-                                      AUD_FMM_IOP_IN_HDMI_0_OUT_RATE_CTRL, MODE, Keep_empty);
-#endif
-#if defined BAPE_CHIP_MAI_INPUT_TYPE_IS_LEGACY
-            BAPE_Reg_P_UpdateEnum_isr(handle->deviceHandle, BCHP_HDMI_RCVR_CTRL_OUT_RATE_CTRL,
-                                      SPDIF_RCVR_CTRL_OUT_RATE_CTRL, MODE, Keep_empty);
-#endif
-    }
+    outFormatEna =  BAPE_P_BCHP_ENUM(BAPE_P_HDMI_RX_CONFIG_REGNAME, OUT_FORMAT_ENA, ALL);
 
     if ( outFormatEna != handle->outFormatEna )
     {
@@ -1438,6 +1642,8 @@ static void BAPE_MaiInput_P_SetReceiverOutputFormat_isr (BAPE_MaiInputHandle han
     BAPE_Reg_P_UpdateField_isr(handle->deviceHandle, BAPE_P_HDMI_RX_CONFIG_REGADDR,
                                BAPE_P_HDMI_RX_CONFIG_REGNAME, HBR_MODE, pFormatDetectionStatus->hbr?1:0);
 
+    #else
+    BSTD_UNUSED(pFormatDetectionStatus);
     #endif
 
     BDBG_LEAVE (BAPE_MaiInput_P_SetReceiverOutputFormat_isr);

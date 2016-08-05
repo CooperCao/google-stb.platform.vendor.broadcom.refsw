@@ -146,6 +146,7 @@ typedef struct BDSP_CTB_Input
 {
     BDSP_AudioTaskDelayMode audioTaskDelayMode;
     BDSP_TaskRealtimeMode realtimeMode;
+	BDSP_Audio_AudioInputSource     eAudioIpSourceType;           /* Capture port Type    */
 }BDSP_CTB_Input;
 
 /***************************************************************************

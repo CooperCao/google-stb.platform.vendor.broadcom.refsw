@@ -14,6 +14,7 @@ FILE DESCRIPTION
 #include "glsl_common.h"
 #include "glsl_compiler.h"
 #include "glsl_scoped_map.h"
+#include "glsl_shader_interfaces.h"
 
 typedef struct _SymbolTable {
    ScopedMap* map;

@@ -19,7 +19,7 @@ GL_API void* GL_APIENTRY glMapBufferOES(GLenum target, GLenum access)
 {
    void *p = NULL;
 
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
    if (!state) return NULL;
 
    if (access != GL_WRITE_ONLY) {
@@ -29,7 +29,7 @@ GL_API void* GL_APIENTRY glMapBufferOES(GLenum target, GLenum access)
    p = glxx_map_buffer_range(state, target, 0, SIZE_MAX, GL_MAP_WRITE_BIT);
 
 end:
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
    return p;
 }
 
@@ -37,11 +37,11 @@ GL_API GLboolean GL_APIENTRY glUnmapBufferOES(GLenum target)
 {
    GLboolean res = GL_FALSE;
 
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
    if (!state) return GL_FALSE;
 
    res = glxx_unmap_buffer(state, target);
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 
    return res;
 }

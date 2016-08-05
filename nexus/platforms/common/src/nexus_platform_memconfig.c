@@ -38,9 +38,7 @@
 
 #include "nexus_platform_priv.h"
 
-#if BCHP_CHIP==7125 || BCHP_CHIP==7208 || BCHP_CHIP==7241 || \
-    BCHP_CHIP==7340 || BCHP_CHIP==7405 || BCHP_CHIP==7408 || BCHP_CHIP==7410 || \
-    BCHP_CHIP==7420 || BCHP_CHIP==7468 || BCHP_CHIP==7543
+#if BCHP_CHIP==7241 || BCHP_CHIP==7543
 #define USE_MEMCONFIG 0
 #else
 #define USE_MEMCONFIG 1

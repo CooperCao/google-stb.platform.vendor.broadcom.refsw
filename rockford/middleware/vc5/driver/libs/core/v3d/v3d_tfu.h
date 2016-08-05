@@ -293,7 +293,6 @@ bool v3d_build_tfu_cmd(V3D_TFU_COMMAND_T *cmd,
       const GFX_BUFFER_DESC_T *src_desc,
       const GFX_BUFFER_DESC_T *dst_desc,
       unsigned num_dst_levels, bool skip_dst_level_0,
-      v3d_addr_t src_base_addr, v3d_addr_t dst_base_addr,
-      int v3d_version);
+      v3d_addr_t src_base_addr, v3d_addr_t dst_base_addr);
 
 VCOS_EXTERN_C_END

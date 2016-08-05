@@ -30,6 +30,7 @@ static bool alloc_next(KHRN_FMEM_T *fmem);
 static bool fix(KHRN_FMEM_T *fmem, uint8_t *location, MEM_HANDLE_T handle, uint32_t offset);
 static void do_fix_lock(KHRN_FMEM_T *fmem);
 static void do_fix_unlock(KHRN_FMEM_T *fmem);
+static void do_fix_release(KHRN_FMEM_T *fmem);
 static void do_specials(KHRN_FMEM_T *fmem, const uint32_t *specials);
 static void do_interlock_transfer(KHRN_FMEM_T *fmem);
 static void do_interlock_release(KHRN_FMEM_T *fmem);
@@ -87,6 +88,7 @@ void khrn_fmem_discard(KHRN_FMEM_T *fmem)
 {
    vcos_assert(!fmem->nmem_entered);
    tweak_close(&fmem->interlock);
+   do_fix_release(fmem);
    do_interlock_release(fmem);
    khrn_nmem_group_term(&fmem->nmem_group);
 }
@@ -386,6 +388,18 @@ static void do_fix_unlock(KHRN_FMEM_T *fmem)
          mem_unlock(f->handles[i].mh_handle);
          mem_release(f->handles[i].mh_handle);
       }
+   }
+}
+
+static void do_fix_release(KHRN_FMEM_T *fmem)
+{
+   KHRN_FMEM_FIX_T *f;
+   uint32_t i;
+
+   for (f = fmem->fix_start; f != NULL; f = f->next)
+   {
+      for (i = 0; i < f->count; i++)
+         mem_release(f->handles[i].mh_handle);
    }
 }
 

@@ -123,10 +123,8 @@ int main(void)
 #endif                                           
     unsigned char iv[16]={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 
-	unsigned int videoPID, audioPID;
 	NEXUS_KeySlotHandle keyHandle = NULL;
 	NEXUS_SecurityAlgorithmSettings AlgConfig;
-	NEXUS_PidChannelStatus pidStatus;
 	NEXUS_SecurityKeySlotSettings keySlotSettings;
 
     /* Bring up all modules for a platform in a default configuration for this platform */
@@ -293,18 +291,10 @@ int main(void)
 	}
 
 	/* Add video PID channel to keyslot */
-	NEXUS_PidChannel_GetStatus (videoProgram.pidChannel, &pidStatus);
-	videoPID = pidStatus.pidChannelIndex;
-	if ( NEXUS_Security_AddPidChannelToKeySlot(keyHandle, videoPID)!= 0 )
-	{
-		printf("\nConfigPIDPointerTable failed \n");
-		return 1;
-	}
+    NEXUS_KeySlot_AddPidChannel ( keyHandle, videoProgram.pidChannel);
 
-	/* Add video PID channel to keyslot */
-	NEXUS_PidChannel_GetStatus (audioProgram.pidChannel, &pidStatus);
-	audioPID = pidStatus.pidChannelIndex;
-	NEXUS_Security_AddPidChannelToKeySlot(keyHandle, audioPID); 
+	/* Add audio PID channel to keyslot */
+    NEXUS_KeySlot_AddPidChannel ( keyHandle, audioProgram.pidChannel);
 
 	printf ("\nSecurity Config OK\n");
 

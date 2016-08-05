@@ -97,11 +97,11 @@ typedef struct BEGL_PixmapInfo
 
 typedef struct BEGL_PixmapInfoEXT
 {
+   uint32_t            magic;
    uint32_t            width;                 /* Visible width of pixmap in pixels */
    uint32_t            height;                /* Visible height of pixmap in pixels */
    BEGL_BufferFormat   format;
    bool                secure;                /* Create pixmap in secure heap */
-   uint32_t            magic;
 } BEGL_PixmapInfoEXT;
 
 typedef struct
@@ -160,6 +160,12 @@ typedef struct BEGL_DisplayInterface
 
    const char *(*GetClientExtensions)(void *context);
    const char *(*GetDisplayExtensions)(void *context);
+
+   bool (*BindWaylandDisplay)(void *context, void *egl_display, void *wl_display);
+
+   bool (*UnbindWaylandDisplay)(void *context, void *egl_display, void *wl_display);
+
+   bool (*QueryBuffer)(void *context, void *display, void* buffer, int32_t attribute, int32_t *value);
 
 } BEGL_DisplayInterface;
 

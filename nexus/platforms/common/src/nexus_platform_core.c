@@ -178,11 +178,11 @@ static NEXUS_Error NEXUS_Platform_P_MemcBspInterrupt_Init(struct NEXUS_Platform_
 #endif
 #if defined(BCHP_MEMC_L2_1_0_REG_START)
          case 1:
-             /* coverity[dead_error_line: FALSE */
+             /* coverity[dead_error_line: FALSE] */
              /* coverity[-unreachable] for some platform this line is unreachable */
-#if defined(BCHP_INT_ID_MEMC_L2_0_0_BSP_WRCH_INTR)
-            wrchIrq = BCHP_INT_ID_MEMC_L2_0_0_BSP_WRCH_INTR;
-            archIrq = BCHP_INT_ID_MEMC_L2_0_0_BSP_ARCH_INTR;
+#if defined(BCHP_INT_ID_MEMC_L2_1_0_BSP_WRCH_INTR)
+            wrchIrq = BCHP_INT_ID_MEMC_L2_1_0_BSP_WRCH_INTR;
+            archIrq = BCHP_INT_ID_MEMC_L2_1_0_BSP_ARCH_INTR;
 #endif
             break;
 #endif
@@ -192,13 +192,14 @@ static NEXUS_Error NEXUS_Platform_P_MemcBspInterrupt_Init(struct NEXUS_Platform_
             archIrq = BCHP_INT_ID_MEMC_L2_2_0_BSP_ARCH_INTR;
             break;
 #endif
+         /* coverity[dead_error_begin: FALSE] */
          default:
-             /* coverity[dead_error_line: FALSE */
+             /* coverity[dead_error_line: FALSE] */
              /* coverity[-unreachable] for some platform this line is unreachable */
             break;
          }
          if(wrchIrq==0 || archIrq==0) {
-             /* coverity[dead_error_line: FALSE */
+             /* coverity[dead_error_line: FALSE] */
              /* coverity[-unreachable] for some platform this line is unreachable */
              break;
          }
@@ -206,6 +207,7 @@ static NEXUS_Error NEXUS_Platform_P_MemcBspInterrupt_Init(struct NEXUS_Platform_
          if(rc!=BERR_SUCCESS) {
              rc = BERR_TRACE(rc);
              for(j=0;j<i;j++) {
+                /* coverity[dead_error_line: FALSE] */
                 NEXUS_Platform_P_MemcBspInterrupt_UninitOne(&memc->memc[j]);
              }
              goto err_interrupt;
@@ -574,19 +576,11 @@ static NEXUS_Error NEXUS_Platform_P_MapRegion(unsigned index, NEXUS_Core_MemoryR
     if (!region->pvAddr) {
         bool cachedMapOnly;
 
-#if BCHP_CHIP==7125 ||\
-    BCHP_CHIP==7340 || BCHP_CHIP==7342 ||\
-    BCHP_CHIP==7405 || BCHP_CHIP==7408 || BCHP_CHIP==7420 || BCHP_CHIP==7468
-        cachedMapOnly = false;
-        if(NEXUS_GetEnv("without_uncached_mmap")) {
-            cachedMapOnly = true;
-        }
-#else
         cachedMapOnly = true;
         if(NEXUS_GetEnv("with_uncached_mmap")) {
             cachedMapOnly = false;
         }
-#endif
+
         if(cachedMapOnly) {
             uncachedMapType = NEXUS_MemoryMapType_eFake;
         } else {

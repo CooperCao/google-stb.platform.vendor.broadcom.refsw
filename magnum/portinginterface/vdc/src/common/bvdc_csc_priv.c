@@ -1109,7 +1109,7 @@ static const BVDC_P_MatrixCoeffs s_aMatrixCoeffs_BAVC_to_BVDC_P[] =
     BVDC_P_MatrixCoeffs_eBt709                /* BAVC_MatrixCoefficients_eHdmi_Full_Range_YCbCr = 13 */
 };
 
-BVDC_P_MatrixCoeffs BVDC_P_MatrixCoeffs_BAVC_to_BVDC_P
+BVDC_P_MatrixCoeffs BVDC_P_MatrixCoeffs_BAVC_to_BVDC_P_isr
     ( BAVC_MatrixCoefficients          eMatrixCoeffs,
       bool                             bXvYcc)
 {

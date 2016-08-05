@@ -124,7 +124,7 @@ clean_apps:
 	-$(RM) $(APPS) *.d *.o *.a
 
 # This is the minimum needed to compile and link with Nexus
-CFLAGS += -g $(NEXUS_CFLAGS) $(addprefix -I,$(NEXUS_APP_INCLUDE_PATHS)) $(addprefix -D,$(NEXUS_APP_DEFINES))
+CFLAGS += -g $(NEXUS_CFLAGS) ${NEXUS_INTERNAL_CFLAGS} $(addprefix -I,$(NEXUS_APP_INCLUDE_PATHS)) $(addprefix -D,$(NEXUS_APP_DEFINES))
 include $(NEXUS_TOP)/nxclient/include/nxclient.inc
 CFLAGS += $(NXCLIENT_CFLAGS)
 # temporarily needed for namevalue.c conversion, should refactor
@@ -173,6 +173,11 @@ NXSERVERLIB_SRCS = \
     nxclient_common.c \
     $(notdir $(NXCLIENT_SOCKET_INTF)) \
     namevalue.c
+
+ifneq ($(NXSERVER_CUSTOM_HOOK),)
+CFLAGS += -DNXSERVER_CUSTOM_HOOK=1
+NXSERVERLIB_SRCS += $(NXSERVER_CUSTOM_HOOK)
+endif
 
 NXSERVERLIB = libnxserver.a
 

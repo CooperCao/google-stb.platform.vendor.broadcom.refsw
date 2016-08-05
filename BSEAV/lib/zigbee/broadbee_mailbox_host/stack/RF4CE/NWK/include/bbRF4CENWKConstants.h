@@ -45,8 +45,8 @@
  * DESCRIPTION:
  *   This is the header file for the RF4CE Network Layer component constants declarations.
  *
- * $Revision: 3484 $
- * $Date: 2014-09-08 08:06:50Z $
+ * $Revision: 12956 $
+ * $Date: 2016-07-14 01:20:40Z $
  *
  ****************************************************************************************/
 #ifndef _RF4CE_NWK_CONSTANTS_H
@@ -63,9 +63,6 @@
 #define RF4CE_NWKC_REPEAT_SHORT_PERIOD               6250
 /* The maximum time, in MAC symbols, to wait for each security link key seed exchange. */
 #define RF4CE_NWKC_MAX_KEY_SEED_WAIT_TIME            3750
- /* The delay for the deferred RX_ENABLE task in milliseconds (max time for 3 retries). */
-#define RF4CE_NWKC_RX_ENABLE_DEFERRED_TIMEOUT        30
-
 /* The maximum number of entries supported in the pairing table. */
 /* For a controller this value should be 1. For a target this value can be overwritten
  * with the SET_RF4CE_NWKC_MAX_PAIRING_TABLE_ENTRIES=xx compiler macro */
@@ -218,6 +215,9 @@
 #define RF4CE_NWK_RX_ON_FOREVER                      0xffffff
 /* RX disable */
 #define RF4CE_NWK_RX_OFF                             0
+/* RX disable timeout - 30 ms. In case of Target is retransmitting now and Controller should wait 4 retransmit at max
+befoure RX disable. */
+#define RF4CE_NWK_RX_OFF_TIMEOUT                     (1875u)
 /* Maximum scan duration value */
 #define RF4CE_NWK_MAX_SCAN_DURATION                  14
 
@@ -233,6 +233,9 @@
 
 /* Frequency Agility Counter */
 #define RF4CE_NWK_FREQUENCY_AGILITY_COUTER           10
+
+/* Frequency Agility Counter */
+#define RF4CE_NWK_FREQUENCY_AGILITY_DECREMENT        -2
 
 /* Frequency Agility Timeout */
 #define RF4CE_NWK_FREQUENCY_AGILITY_TIMEOUT          100    /* 300 */

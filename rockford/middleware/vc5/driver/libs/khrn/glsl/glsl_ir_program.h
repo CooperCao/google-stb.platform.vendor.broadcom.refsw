@@ -25,7 +25,7 @@ typedef enum {
    SHADER_FLAVOUR_COUNT
 } ShaderFlavour;
 
-#define DF_BLOB_FRAGMENT_COUNT 34
+#define DF_BLOB_FRAGMENT_COUNT 35
 #define DF_BLOB_VERTEX_COUNT   69
 
 #define DF_FNODE_R(n) (4*(n)+0) /* up to 8 of these */
@@ -33,8 +33,9 @@ typedef enum {
 #define DF_FNODE_B(n) (4*(n)+2)
 #define DF_FNODE_A(n) (4*(n)+3)
 /* DF_FNODE_A(7) == 31 */
-#define DF_FNODE_DISCARD 32
-#define DF_FNODE_DEPTH 33
+#define DF_FNODE_DISCARD     32
+#define DF_FNODE_DEPTH       33
+#define DF_FNODE_SAMPLE_MASK 34
 
 #define DF_VNODE_X 0
 #define DF_VNODE_Y 1
@@ -54,6 +55,26 @@ typedef struct {
    uint32_t entries[V3D_MAX_VARYING_COMPONENTS];
 } GLSL_VARY_MAP_T;
 
+enum tess_mode {
+   TESS_ISOLINES,
+   TESS_TRIANGLES,
+   TESS_QUADS,
+   TESS_INVALID,
+};
+
+enum tess_spacing {
+   TESS_SPACING_EQUAL,
+   TESS_SPACING_FRACT_EVEN,
+   TESS_SPACING_FRACT_ODD,
+   TESS_SPACING_INVALID,
+};
+
+enum gs_out_type {
+   GS_OUT_POINTS,
+   GS_OUT_LINE_STRIP,
+   GS_OUT_TRI_STRIP,
+   GS_OUT_INVALID
+};
 
 typedef struct {
    struct {
@@ -66,7 +87,18 @@ typedef struct {
    GLSL_VARY_MAP_T tf_vary_map;
 
    bool early_fragment_tests;
+   bool varyings_per_sample;
    VARYING_INFO_T varying[V3D_MAX_VARYING_COMPONENTS];
+
+   unsigned          tess_vertices;
+   enum tess_mode    tess_mode;
+   enum tess_spacing tess_spacing;
+   bool              tess_point_mode;
+   bool              tess_cw;
+
+   enum gs_out_type  gs_out;
+   unsigned          gs_n_invocations;
+   unsigned          gs_max_vertices;
 } IR_PROGRAM_T;
 
 LinkMap *glsl_link_map_alloc(int num_ins, int num_outs, int num_unifs, int num_buffers);

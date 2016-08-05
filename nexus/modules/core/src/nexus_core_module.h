@@ -90,6 +90,7 @@ void NEXUS_PowerManagement_Uninit(void);
 
 void NEXUS_VideoInput_P_Destroy(NEXUS_VideoInputHandle videoInput);
 void NEXUS_VideoOutput_P_Destroy(NEXUS_VideoOutputHandle videoOutput);
+void NEXUS_AudioInput_P_Destroy(NEXUS_AudioInputHandle audioInput);
 void NEXUS_AudioOutput_P_Destroy(NEXUS_AudioOutputHandle audioOutput);
 
 void NEXUS_MemoryBlock_P_Print(void);

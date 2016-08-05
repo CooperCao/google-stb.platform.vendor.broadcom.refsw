@@ -39,7 +39,10 @@ extern bool glxx_teximage_internal_checks(GLXX_SERVER_STATE_T *state,
       GLint xoffset, GLint yoffset, GLint zoffset, GLint border,
       GLXX_TEXTURE_T **tex_out, GLenum *error);
 
-extern GLint glxx_texparam_float_to_int(GLfloat param);
+extern void glxx_texparamter_iv_common(GLenum target, GLenum pname, const GLint *params);
+extern void glxx_get_texparameter_iv_common(GLenum target, GLenum pname, GLint *params);
+extern void glxx_sampler_parameter_iv_common(GLuint sampler, GLenum pname, const GLint *param);
+extern void glxx_get_sampler_parameter_iv_common(GLuint sampler, GLenum pname, GLint *params);
 
 extern void glxx_texparameterf_sampler_internal(GLXX_SERVER_STATE_T *state,
       GLXX_TEXTURE_SAMPLER_STATE_T *sampler, GLenum pname, const GLfloat *f);

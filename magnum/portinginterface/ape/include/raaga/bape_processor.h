@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2010 Broadcom Corporation
+*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,17 +35,9 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * API Description:
 *   API name: Post Processor
 *    Specific APIs related to Karaoke Vocal Path Processing
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 
@@ -71,7 +63,7 @@ typedef struct BAPE_FadeSettings
     unsigned duration;          /* duration in milliseconds it will take to change
                                    to a new level. Valid values are 3 - 1000 */
     unsigned type;              /* specifies the type of fade -
-                                   0- Linear, 1-Quad, 2-cubic, 3-Quart. Default is 2 (cubic)*/
+                                   0- Linear (Default), 1-Cubic-In, 2-Cubic-Out. */
 } BAPE_FadeSettings;
 
 /***************************************************************************

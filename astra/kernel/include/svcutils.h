@@ -210,6 +210,10 @@ private:
     static void doCacheClean(TzTask *currTask);
     static void doSetThreadArea(TzTask *currTask);
     static void doGetThreadArea(TzTask *currTask);
+    static void doTraceLogInval(TzTask *currTask);
+    static void doTraceLogStart(TzTask *currTask);
+    static void doTraceLogStop(TzTask *currTask);
+    static void doTraceLogAdd(TzTask *currTask);
 
     enum CacheOp {
         CacheInval,
@@ -228,7 +232,6 @@ private:
 
     static spinlock_t execLock;
     static spinlock_t fopsLock;
-
 };
 
 

@@ -210,6 +210,10 @@ ifeq ($(BCHP_CHIP),74371)
 BDSP_RAAGA_FP_VER := fp2011
 endif
 
+ifeq ($(BCHP_CHIP),7260)
+BDSP_RAAGA_FP_VER := fp2012
+endif
+
 # Include Arm files
 ifeq ($(BDSP_ARM_AUDIO_SUPPORT),y)
 include $(MAGNUM)/basemodules/dsp/build/bdsp_arm.inc

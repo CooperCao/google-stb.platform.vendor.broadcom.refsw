@@ -116,41 +116,12 @@ Uninitialize the Display module
 **/
 void NEXUS_DisplayModule_Uninit(void);
 
-/**
-Summary:
-Get the settings that were used in NEXUS_DisplayModule_Init.
-
-Description:
-These cannot be changed without calling NEXUS_DisplayModule_Uninit then NEXUS_DisplayModule_Init.
-This is for informational purposes.
-**/
-void NEXUS_DisplayModule_GetSettings(
-    NEXUS_DisplayModuleSettings *pSettings /* [out] */
-    );
-
 #define NEXUS_DISPLAY_WINDOW_MAIN (0x1)
 #define NEXUS_DISPLAY_WINDOW_PIP  (0x2)
 #define NEXUS_DISPLAY_WINDOW_MONITOR (0x4)
 
 #define NEXUS_DISPLAY_INPUT_DIGITAL (0x1000)
 #define NEXUS_DISPLAY_INPUT_ANALOG  (0x2000)
-
-/**
-Summary:
-Get the settings that were used in NEXUS_DisplayModule_Init.
-
-Description:
-These cannot be changed without calling NEXUS_DisplayModule_Uninit then NEXUS_DisplayModule_Init.
-This is for informational purposes.
-**/
-NEXUS_Error NEXUS_DisplayModule_GetMemorySettings(
-    unsigned configurationId,                           /* Configuration ID */
-    uint32_t mask,                                      /* Must contain at least one window and at least one input */
-    NEXUS_DisplayBufferTypeSettings *pFullHdBuffers,    /* [out] Full HD buffer requirements */
-    NEXUS_DisplayBufferTypeSettings *pHdBuffers,        /* [out] HD buffer requirements */
-    NEXUS_DisplayBufferTypeSettings *pSdBuffers,        /* [out] SD buffer requirements */
-    unsigned *pHeapSize                                 /* [out] Heap size in bytes */
-    );
 
 /**
 Summary:
@@ -162,6 +133,10 @@ This allows for faster system boot time. The Display module and VideoDecoder mod
 void NEXUS_DisplayModule_SetVideoDecoderModule(
     NEXUS_ModuleHandle videoDecoder /* Set to NULL or to the VideoDecoder module */
     );
+
+/* deprecated */
+#define NEXUS_DisplayModule_GetMemorySettings(configurationId,mask,pFullHdBuffers,pHdBuffers,pSdBuffers,pHeapSize) NEXUS_NOT_SUPPORTED
+#define NEXUS_DisplayModule_GetSettings(pSettings)
 
 #ifdef __cplusplus
 }

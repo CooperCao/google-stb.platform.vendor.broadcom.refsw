@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2011 Broadcom Corporation
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,8 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  **************************************************************************/
 #ifndef NEXUS_RAVE_H__
 #define NEXUS_RAVE_H__
@@ -58,9 +50,28 @@ extern "C" {
 /*
 RAVE handle can be obtained from NEXUS_VideoDecoder_DetachRaveContext.
 It can be used in NEXUS_PidChannelScramblingSettings.raveContext.
-There is currently no public API for the RAVE context. */
+There is currently no public API for the RAVE context; these API calls
+exist for proper reference counting of NEXUS_RaveHandle objects.
+Customer code should NOT call these APIs. */
 
 typedef struct NEXUS_Rave *NEXUS_RaveHandle;
+
+typedef struct NEXUS_RaveOpenSetting
+{
+    unsigned placeHolder;
+} NEXUS_RaveOpenSetting;
+
+void NEXUS_Rave_GetDefaultOpenSetting(
+    NEXUS_RaveOpenSetting *pSetting /* [out] */
+    );
+
+NEXUS_RaveHandle NEXUS_Rave_Open(  /* attr{destructor=NEXUS_Rave_Close} */
+    const NEXUS_RaveOpenSetting *pOpenSetting
+    );
+
+void NEXUS_Rave_Close(
+    NEXUS_RaveHandle handle
+    );
 
 #ifdef __cplusplus
 }

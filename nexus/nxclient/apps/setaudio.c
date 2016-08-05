@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2010-2013 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  *****************************************************************************/
 #if NEXUS_HAS_AUDIO
@@ -94,6 +86,10 @@ static void print_usage(void)
     printf(
         "  -dac_delay MSEC\n"
         );
+    print_list_option("rfm_channel_mode", g_audioChannelModeStrs);
+    printf(
+        "  -rfm_delay MSEC\n"
+        );
     printf(
         "  -vol {0..%d}\n",
         MAX_VOLUME
@@ -117,6 +113,7 @@ static void print_settings(const NxClient_AudioSettings *pSettings, NxClient_Aud
         "dac   %s, %s, %d msec delay\n"
         "hdmi  %s, %s, %d msec delay\n"
         "spdif %s, %s, %d msec delay\n"
+        "rfm   %s, %s, %d msec delay\n"
         "vol   %s%d/%d %s\n",
 
         lookup_name(g_nxclientAudioOutputModeStrs, pSettings->dac.outputMode),
@@ -130,6 +127,10 @@ static void print_settings(const NxClient_AudioSettings *pSettings, NxClient_Aud
         lookup_name(g_nxclientAudioOutputModeStrs, pSettings->spdif.outputMode),
         lookup_name(g_audioChannelModeStrs, pSettings->spdif.channelMode),
         pSettings->spdif.additionalDelay,
+
+        lookup_name(g_nxclientAudioOutputModeStrs, pSettings->rfm.outputMode),
+        lookup_name(g_audioChannelModeStrs, pSettings->rfm.channelMode),
+        pSettings->rfm.additionalDelay,
 
         pSettings->muted?"muted ":"",
         CONVERT_TO_USER_VOL(pSettings->leftVolume, MAX_VOLUME),
@@ -156,7 +157,8 @@ static void print_status(void)
         "NxClient Audio Status:\n"
         "dac   %s, %s\n"
         "hdmi  %s, %s\n"
-        "spdif %s, %s\n",
+        "spdif %s, %s\n"
+        "rfm   %s, %s\n",
 
         lookup_name(g_nxclientAudioOutputModeStrs, status.dac.outputMode),
         lookup_name(g_audioCodecStrs, status.dac.outputCodec),
@@ -165,7 +167,10 @@ static void print_status(void)
         lookup_name(g_audioCodecStrs, status.hdmi.outputCodec),
 
         lookup_name(g_nxclientAudioOutputModeStrs, status.spdif.outputMode),
-        lookup_name(g_audioCodecStrs, status.spdif.outputCodec)
+        lookup_name(g_audioCodecStrs, status.spdif.outputCodec),
+
+        lookup_name(g_nxclientAudioOutputModeStrs, status.rfm.outputMode),
+        lookup_name(g_audioCodecStrs, status.rfm.outputCodec)
         );
 }
 
@@ -229,6 +234,14 @@ int main(int argc, char **argv)  {
         else if (!strcmp(argv[curarg], "-dac_delay") && curarg+1<argc) {
             change = true;
             audioSettings.dac.additionalDelay = atoi(argv[++curarg]);
+        }
+        else if (!strcmp(argv[curarg], "-rfm_channel_mode") && curarg+1<argc) {
+            change = true;
+            audioSettings.rfm.channelMode = lookup(g_audioChannelModeStrs, argv[++curarg]);
+        }
+        else if (!strcmp(argv[curarg], "-rfm_delay") && curarg+1<argc) {
+            change = true;
+            audioSettings.rfm.additionalDelay = atoi(argv[++curarg]);
         }
         else if (!strcmp(argv[curarg], "-vol") && curarg+1<argc) {
             unsigned vol;

@@ -265,7 +265,7 @@ if __name__ == "__main__":
     all_flags = list(find_flags(value_types, sampler_flags, image_flags, atomic_flags))
     all_flags.sort()
 
-    with open("glsl_primitive_type_index.auto.h", "w") as outf:
+    with open(os.path.join(output_dir,"glsl_primitive_type_index.auto.h"), "w") as outf:
         print_inclusion_guard_start(outf, "glsl_primitive_type_index.auto.h")
         print_disclaimer(outf)
         print_enum(outf, "PrimitiveTypeIndex",
@@ -290,16 +290,17 @@ typedef struct {
 """
         print_inclusion_guard_end(outf, "glsl_primitive_type_index.auto.h")
 
-    with open("glsl_primitive_types.auto.h", "w") as outf:
+    with open(os.path.join(output_dir,"glsl_primitive_types.auto.h"), "w") as outf:
         print_inclusion_guard_start(outf, "glsl_primitive_types.auto.h")
         print_disclaimer(outf)
-        print_includes(outf, ["libs/khrn/include/GLES3/gl32.h"])
+        print_includes(outf, ["GLES3/gl32.h", "GLES3/gl3ext_brcm.h"])
+        print_includes(outf, ["GLES2/gl2ext.h"])
         print_includes(outf, ["glsl_symbols.h", "glsl_primitive_type_index.auto.h"])
         print_globals(outf, matrix_types)
         print_header_api(outf, scalar_types)
         print_inclusion_guard_end(outf, "glsl_primitive_types.auto.h")
 
-    with open("glsl_primitive_types.auto.table", "w") as outf:
+    with open(os.path.join(output_dir,"glsl_primitive_types.auto.table"), "w") as outf:
         print_disclaimer(outf, "#")
         table_rows = []
         for p in prim_names:
@@ -314,7 +315,7 @@ typedef struct {
                 table_rows.append([p, prim_index(p), None, None, None, None, sampler_types[p].gl_type if p in sampler_types else "GL_NONE"])
         print_table(outf, ["name", "prim_name", "base_type", "df_type", "dim1", "dim2", "gl_type"], table_rows)
 
-    with open("glsl_primitive_types.auto.c", "w") as outf:
+    with open(os.path.join(output_dir,"glsl_primitive_types.auto.c"), "w") as outf:
         print_disclaimer(outf)
         print_includes(outf, ["glsl_common.h", "glsl_primitive_types.auto.h"])
         print >>outf, """
@@ -489,7 +490,7 @@ SymbolType         primitiveTypes             [PRIMITIVE_TYPES_COUNT];
         for s in pure_types:
             pad = " " * (maxlen - len(s))
             print >>outf, "   case %s:%s return %s;" % (prim_index(s), pad, df_index(s))
-        print >>outf, "   default: UNREACHABLE(); return DF_INVALID;"
+        print >>outf, "   default: unreachable(); return DF_INVALID;"
         print >>outf, "   }"
         print >>outf, "}"
 

@@ -54,9 +54,17 @@
 #define _MAIL_SERVICE_H
 
 /************************* INCLUDES ****************************************************/
-#include "bbMailAPI.h"
+#include "bbSysBasics.h"
+#include "bbMailFunctionList.h"
 
 /************************* TYPES *******************************************************/
+typedef enum _MailRouteDirection_t
+{
+    MAIL_ROUTE_TO_MAILBOX = 0,
+    MAIL_ROUTE_TO_STACK = 1
+} MailRouteDirection_t;
+
+
 /**//**
  * \brief The public function pointer prototype.
  */
@@ -117,6 +125,23 @@ void Mail_RequestHandler(MailFID_t fId, MailPublicFunction_t handler, void *req)
     \brief Calls the application callback handler. Implementation can redefined in suitable way for application.
 ****************************************************************************************/
 void Mail_CallbackHandler(MailFID_t fId, const ConfirmCall_t callback, void *req, void *confirm);
+
+/************************************************************************************//**
+    \brief Public primitive for changing the routing direction for Indication.
+    \param[in]  fId  - indication identifier,
+    \param[in]  routeToStack - if true, new routing will be TO STACK, else - TO MAILBOX.
+    \return     true, if change routing procedure was finished successfully.
+****************************************************************************************/
+bool Mail_RoutingChange(MailFID_t fId, MailRouteDirection_t routeDirection);
+
+/************************************************************************************//**
+    \brief Public primitive for changing the routing direction for list of Indications.
+    \param[in]  fIdList  - pointer to list of indications identifiers,
+    \param[in]  fIdCount - amount of the indications in the /p fIdList list.
+    \param[in]  routeToStack - if true, new routing will be TO STACK, else - TO MAILBOX.
+    \return     true, if change routing procedure was finished successfully.
+****************************************************************************************/
+bool Mail_RoutingChangeList(MailFID_t const * const fIdList, uint16_t fIdAmount, MailRouteDirection_t routeDirection);
 
 #endif /* _MAIL_SERVICE_H */
 /* eof mailService.h */

@@ -1,22 +1,42 @@
 /***************************************************************************
- *     Copyright (c) 2006-2014, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * Module Description: Audio Decoder Interface
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  ***************************************************************************/
 
 #include "bstd.h"
@@ -215,7 +235,7 @@ void BAPE_P_FreeBuffers(
     }
 }
 
-static BERR_Code BAPE_P_AllocateResourceGroup(BAPE_Handle handle, bool *pResourceArray, unsigned arraySize, unsigned numRequired, unsigned *pFirstResource)
+static BERR_Code BAPE_P_AllocateResourceGroup(BAPE_Handle handle, bool *pResourceArray, unsigned arraySize, unsigned numRequired, bool mchFromEnd, unsigned *pFirstResource)
 {
     unsigned i, j, attempt;
 
@@ -229,31 +249,65 @@ static BERR_Code BAPE_P_AllocateResourceGroup(BAPE_Handle handle, bool *pResourc
     for ( attempt=0; attempt<2; attempt++ )
     {
         /* Allocate grouped resources from the bottom of the pool and un-grouped resources from the top */
+        BDBG_MSG(("resource alloc: required %d, arraySize %d, mchFromEnd %d", numRequired, arraySize, mchFromEnd));
         if ( numRequired > 1 )
         {
+            unsigned base = 0xffffffff;
+
             /* Grouped */
-            for ( i = arraySize-1; i >= numRequired; i-- )
+            if ( mchFromEnd )
             {
-                bool success = true;
-                for ( j = 0; j < numRequired; j++ )
+                for ( i = arraySize - 1; (i + 1) >= numRequired; i-- )
                 {
-                    if ( pResourceArray[i-j] )
+                    bool success = true;
+                    for ( j = 0; j < numRequired; j++ )
                     {
-                        success = false;
+                        if ( pResourceArray[i-j] )
+                        {
+                            BDBG_MSG(("  resource[%d] allocated", pResourceArray[i-j]));
+                            success = false;
+                            break;
+                        }
+                    }
+                    if ( success )
+                    {
+                        base = i + 1 - numRequired;
                         break;
                     }
                 }
-                if ( !success )
+            }
+            else
+            {
+                for ( i = 0; (i + numRequired) <= arraySize; i++ )
                 {
-                    /* Not enough consecutive resources */
-                    continue;
+                    bool success = true;
+                    for ( j = 0; j < numRequired; j++ )
+                    {
+                        if ( pResourceArray[i+j] )
+                        {
+                            BDBG_MSG(("  resource[%d] allocated", pResourceArray[i+j]));
+                            success = false;
+                            break;
+                        }
+                    }
+                    if ( success )
+                    {
+                        BDBG_MSG(("  resource base %d", i));
+                        base = i;
+                        break;
+                    }
                 }
+            }
+
+            /* if we found space, allocate the resource */
+            if ( base != 0xffffffff )
+            {
                 /* mark them as used */
                 for ( j = 0; j < numRequired; j++ )
                 {
-                    pResourceArray[i-j] = true;
+                    pResourceArray[base+j] = true;
                 }
-                *pFirstResource = i - (numRequired-1);
+                *pFirstResource = base;
                 return BERR_SUCCESS;
             }
         }
@@ -279,11 +333,12 @@ static BERR_Code BAPE_P_AllocateResourceGroup(BAPE_Handle handle, bool *pResourc
     return BERR_TRACE(BERR_NOT_SUPPORTED);
 }
 
-static BERR_Code BAPE_P_GetFmmResourceArray(BAPE_Handle handle, BAPE_FmmResourceType resourceType, bool **ppArray, unsigned *pSize)
+static BERR_Code BAPE_P_GetFmmResourceArray(BAPE_Handle handle, BAPE_FmmResourceType resourceType, bool **ppArray, unsigned *pSize, bool *mchFromEnd)
 {
     bool *pResourceArray;
     unsigned arraySize;
     BERR_Code errCode = BERR_SUCCESS;
+    bool multichannelFromEnd = true;
 
     BDBG_OBJECT_ASSERT(handle, BAPE_Device);
     BDBG_ASSERT(NULL != ppArray);
@@ -333,12 +388,14 @@ static BERR_Code BAPE_P_GetFmmResourceArray(BAPE_Handle handle, BAPE_FmmResource
     case BAPE_FmmResourceType_eFciSplitter:
         pResourceArray = handle->fciSplitterAllocated;
         arraySize = BAPE_CHIP_MAX_FCI_SPLITTERS;
+        multichannelFromEnd = false;
         break;
 #endif
 #if BAPE_CHIP_MAX_FCI_SPLITTER_OUTPUTS > 0
     case BAPE_FmmResourceType_eFciSplitterOutput:
         pResourceArray = handle->fciSplitterOutputAllocated;
         arraySize = BAPE_CHIP_MAX_FCI_SPLITTER_OUTPUTS;
+        multichannelFromEnd = false;
         break;
 #endif
     default:
@@ -350,6 +407,7 @@ static BERR_Code BAPE_P_GetFmmResourceArray(BAPE_Handle handle, BAPE_FmmResource
     }
     *ppArray = pResourceArray;
     *pSize = arraySize;
+    *mchFromEnd = multichannelFromEnd;
     return errCode;
 }
 
@@ -358,6 +416,7 @@ BERR_Code BAPE_P_AllocateFmmResource_tagged(BAPE_Handle handle, BAPE_FmmResource
     bool *pResourceArray=NULL;
     unsigned arraySize=0;
     BERR_Code errCode;
+    bool mchFromEnd = true;
 
     BDBG_MSG(("Allocate resource %s:%u type %u num %u", pFile, line, resourceType, numChannelPairs));
 
@@ -367,13 +426,13 @@ BERR_Code BAPE_P_AllocateFmmResource_tagged(BAPE_Handle handle, BAPE_FmmResource
 
     /* TODO: Add resource tracking to determine current and max resource usage since BAPE_Open() */
 
-    errCode = BAPE_P_GetFmmResourceArray(handle, resourceType, &pResourceArray, &arraySize);
+    errCode = BAPE_P_GetFmmResourceArray(handle, resourceType, &pResourceArray, &arraySize, &mchFromEnd);
     if ( errCode )
     {
         return BERR_TRACE(errCode);
     }
 
-    errCode = BAPE_P_AllocateResourceGroup(handle, pResourceArray, arraySize, numChannelPairs, pFirstResource);
+    errCode = BAPE_P_AllocateResourceGroup(handle, pResourceArray, arraySize, numChannelPairs, mchFromEnd, pFirstResource);
     if ( errCode )
     {
         return BERR_TRACE(errCode);
@@ -405,13 +464,14 @@ void BAPE_P_FreeFmmResource(BAPE_Handle handle, BAPE_FmmResourceType resourceTyp
     bool *pResourceArray=NULL;
     unsigned arraySize=0;
     BERR_Code errCode;
+    bool mchFromEnd = true;
     
     BDBG_OBJECT_ASSERT(handle, BAPE_Device);
     BDBG_ASSERT(numChannelPairs > 0);
     
     /* TODO: Add resource tracking to determine current and max resource usage since BAPE_Open() */
     
-    errCode = BAPE_P_GetFmmResourceArray(handle, resourceType, &pResourceArray, &arraySize);
+    errCode = BAPE_P_GetFmmResourceArray(handle, resourceType, &pResourceArray, &arraySize, &mchFromEnd);
     if ( errCode )
     {
         (void)BERR_TRACE(errCode);
@@ -420,4 +480,3 @@ void BAPE_P_FreeFmmResource(BAPE_Handle handle, BAPE_FmmResourceType resourceTyp
     
     BAPE_P_FreeResourceGroup(handle, pResourceArray, arraySize, numChannelPairs, firstResource);
 }
-

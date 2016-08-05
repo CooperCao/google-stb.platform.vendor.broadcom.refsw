@@ -601,9 +601,9 @@ BERR_Code BWFE_P_LoPowerUp(uint32_t loChan)
 
    BWFE_P_LoReadReg(loChan, BCHP_PLL_LOD2_0_PLL_LOCK_STATUS, &pllstat);
    if (pllstat & 0x1)
-      BKNI_Printf("PLL locked\n");
+      BKNI_Printf("lo%d PLL locked\n", loChan);
    else
-      BKNI_Printf("PLL NOT locked\n");
+      BKNI_Printf("lo%d PLL NOT locked\n", loChan);
 
    /* power on driver */
    BWFE_P_LoWriteReg(loChan, BCHP_PLL_LOD2_0_CKDRV, 0x00010000);
@@ -726,7 +726,7 @@ BERR_Code BWFE_P_SetDpmPilotFreq(BWFE_ChannelHandle h, uint32_t freqKhz)
 {
    BERR_Code retCode = BERR_SUCCESS;
    BWFE_g3_P_ChannelHandle *hChn = (BWFE_g3_P_ChannelHandle *)h->pImpl;
-   uint32_t loChan, val, freqRefKhz;
+   uint32_t val, freqRefKhz, loChan = 2;  /* use loPLL2 for ADC0-3 */
    uint32_t n_xtal, m_xtal, gcd;
    uint16_t n;
    uint8_t p, m, outsel;
@@ -754,15 +754,11 @@ BERR_Code BWFE_P_SetDpmPilotFreq(BWFE_ChannelHandle h, uint32_t freqKhz)
    /* power up loPLL1 to 47.669MHz */
    BWFE_P_LoPowerUp(1);
 
-   if (h->channel >= BWFE_NUM_CHANNELS/2)
-      loChan = 0; /* use loPLL0 for ADC4-7 */
-   else
-      loChan = 2; /* use loPLL2 for ADC0-3 */
-
    /* search for target dpm freq based on stage1 reference, expect p=m=1, n=52, outsel=0 for 2478MHz */
    retCode = BWFE_P_LoSearchDiv(freqKhz, freqRefKhz, &p, &n, &m, &outsel);
    if (retCode != BERR_SUCCESS)
       return retCode;
+   BKNI_Printf("BWFE_P_LoSearchDiv: p=%d, n=%d, m=%d\n", p, n, m);
 
    /* set pdiv, ndiv, and outsel */
    /* To select FVCO/3 output, OUTPUT_SEL = 4 (first MUX), TEST_SEL = 5 (second MUX) */
@@ -805,7 +801,7 @@ BERR_Code BWFE_P_SetDpmPilotFreq(BWFE_ChannelHandle h, uint32_t freqKhz)
       hChn->dpmQddfsN /= gcd;
    }
    hChn->dpmQddfsM = hChn->dpmQddfsM % hChn->dpmQddfsN;
-   /*BKNI_Printf("BWFE_P_SetDpmPilotFreq(%d KHz): dpmQddfsN=%d, dpmQddfsM=%d\n", freqKhz, hChn->dpmQddfsN, hChn->dpmQddfsM);*/
+   BKNI_Printf("BWFE_P_SetDpmPilotFreq(%dkHz): dpmQddfsN=%d, dpmQddfsM=%d\n", freqKhz, hChn->dpmQddfsN, hChn->dpmQddfsM);
 
    return retCode;
 }
@@ -817,7 +813,7 @@ BERR_Code BWFE_P_SetDpmPilotFreq(BWFE_ChannelHandle h, uint32_t freqKhz)
 BERR_Code BWFE_P_GetDpmPilotFreq(BWFE_ChannelHandle h, uint32_t *freqKhz)
 {
    BWFE_g3_P_ChannelHandle *hChn = (BWFE_g3_P_ChannelHandle *)h->pImpl;
-   uint32_t loChan, val;
+   uint32_t val, loChan = 2;  /* use loPLL2 for ADC0-3 */
    uint16_t ndiv;
    uint8_t pdiv, mdiv, outsel;
 
@@ -835,11 +831,6 @@ BERR_Code BWFE_P_GetDpmPilotFreq(BWFE_ChannelHandle h, uint32_t *freqKhz)
    *freqKhz = ((h->pDevice->settings.xtalFreqKhz << 1) * ndiv) / pdiv;
    *freqKhz = ((*freqKhz / mdiv) + 1) >> 1;  /* round */
    /*BKNI_Printf("lo1: %d\n", *freqKhz);*/
-
-   if (h->channel >= BWFE_NUM_CHANNELS/2)
-      loChan = 0; /* use loPLL0 for ADC4-7 */
-   else
-      loChan = 2; /* use loPLL2 for ADC0-3 */
 
    BWFE_P_LoReadReg(loChan, BCHP_PLL_LOD2_0_PLL_DIV, &val);
    pdiv = (val >> 10) & 0xF;
@@ -869,12 +860,7 @@ BERR_Code BWFE_P_GetDpmPilotFreq(BWFE_ChannelHandle h, uint32_t *freqKhz)
 ******************************************************************************/
 BERR_Code BWFE_P_EnableDpmPilot(BWFE_ChannelHandle h)
 {
-   uint32_t loChan;
-
-   if (h->channel >= BWFE_NUM_CHANNELS/2)
-      loChan = 0; /* use loPLL0 for ADC4-7 */
-   else
-      loChan = 2; /* use loPLL2 for ADC0-3 */
+   uint32_t loChan = 2; /* use loPLL2 for ADC0-3 */
 
    BWFE_P_LoPowerUp(loChan);
 
@@ -890,12 +876,7 @@ BERR_Code BWFE_P_EnableDpmPilot(BWFE_ChannelHandle h)
 ******************************************************************************/
 BERR_Code BWFE_P_DisableDpmPilot(BWFE_ChannelHandle h)
 {
-   uint32_t loChan;
-
-   if (h->channel >= BWFE_NUM_CHANNELS/2)
-      loChan = 0; /* use loPLL0 for ADC4-7 */
-   else
-      loChan = 2; /* use loPLL2 for ADC0-3 */
+   uint32_t loChan = 2; /* use loPLL2 for ADC0-3 */
 
    BWFE_P_LoPowerDown(loChan);
 

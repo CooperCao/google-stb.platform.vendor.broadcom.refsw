@@ -914,6 +914,16 @@ INLINE void SYS_SplitLinked(SYS_DataPointer_t *chain, SYS_DataPointer_t *trailer
 #endif
 }
 
+
+/*
+ * Repeat pragma GCC optimize because function definitions (including inlined) turn these pragrmas off automatically
+ * when compiled by G++ but not GCC.
+ */
+#if (defined(__arm__) || defined(__i386__)) && !defined(__clang__)
+# pragma GCC optimize "short-enums"     /* Implement short enums. */
+# pragma GCC diagnostic ignored "-Wattributes"
+#endif
+
 #ifdef __cplusplus
 }
 #endif

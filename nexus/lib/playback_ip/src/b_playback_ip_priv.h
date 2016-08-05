@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -109,7 +109,7 @@
 #endif
 #define STREAMING_BUF_SIZE (DIO_BLK_SIZE*188*4)
 #define STREAMING_BUF_MULTIPLE 32 /* can't be less than this as read size has to be DIO aligned */
-#define HTTP_AES_BLOCK_SIZE 16
+#define HTTP_AES_BLOCK_SIZE     16
 #define HTTP_DEFAULT_PORT 80
 
 #ifdef B_HAS_NETACCEL
@@ -1436,6 +1436,28 @@ typedef struct MpegDashSessionState {
 
 #endif
 
+#if defined(LOG_IP_LATENCY)
+struct B_PlaybackIpTrkTsVar {
+    uint32_t    first;      /* first value in the stream */
+    uint32_t    last;       /* last known value, current value */
+    uint32_t    buffer;     /* first known value in current buffer, may or may not be same as last */
+    uint32_t    count;
+    char        logName[32];
+};
+
+#define B_PlaybackIpTrkArraySize (256)
+struct B_PlaybackIpTrkStats {
+    int max;
+    int min;
+    int cnt;
+    int last;
+    int avgArray[B_PlaybackIpTrkArraySize];
+    int logIntervalMs;
+    B_Time logLastTime;
+    char logName[32];
+};
+#endif
+
 typedef struct brtp_channel *brtp_channel_t;
 
 typedef struct B_PlaybackIpPsiState *B_PlaybackIpPsiStateHandle;
@@ -1661,9 +1683,21 @@ typedef struct B_PlaybackIp
     bool playApiActive;
     bool forward;
     bool frameRewindCalled;
+    bool trickmodeCalled;
     B_PlaybackIpPsiStateHandle pPsiState;
     uint32_t fifoMarker;
     B_Time fifoMarkerUpdateTime;
+
+#if defined(LOG_IP_LATENCY)
+    struct B_PlaybackIpTrkStats videoLatency;       /* pumpVideoLatency == videoDecode PTS - current video PTS goint into playpump */
+    struct B_PlaybackIpTrkStats audioLatency;       /* pumpVideoLatency == audioDecode PTS - current audio PTS goint into playpump */
+    struct B_PlaybackIpTrkStats videoQueuedFrames;  /* Queued for display */
+    struct B_PlaybackIpTrkStats audioQueuedFrames;  /* Queued for decode */
+    struct B_PlaybackIpTrkStats pcrJitter;          /* system time delta - pcr time delta */
+    struct B_PlaybackIpTrkTsVar trkPts;             /* used to track PTSs going to playpump */
+    B_Time prevPcrTime;
+    uint32_t prevPcr;
+#endif
 } B_PlaybackIp;
 
 /* Output structure used in security session opens */

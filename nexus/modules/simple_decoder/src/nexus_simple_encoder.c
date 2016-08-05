@@ -53,6 +53,9 @@
 #include "nexus_video_adj.h"
 #endif
 #include "tshdrbuilder.h"
+#if NEXUS_HAS_SECURITY
+#include "nexus_security_client.h"
+#endif
 
 BDBG_MODULE(nexus_simple_encoder);
 
@@ -61,10 +64,11 @@ BDBG_MODULE(nexus_simple_encoder);
 struct NEXUS_SimpleEncoderServer
 {
     NEXUS_OBJECT(NEXUS_SimpleEncoderServer);
+    BLST_S_ENTRY(NEXUS_SimpleEncoderServer) link;
     BLST_S_HEAD(NEXUS_SimpleEncoder_P_List, NEXUS_SimpleEncoder) encoders;
 };
 
-static NEXUS_SimpleEncoderServerHandle g_NEXUS_SimpleEncoderServer;
+static BLST_S_HEAD(NEXUS_SimpleEncoderServer_P_List, NEXUS_SimpleEncoderServer) g_NEXUS_SimpleEncoderServers;
 
 struct NEXUS_SimpleEncoder
 {
@@ -93,6 +97,11 @@ struct NEXUS_SimpleEncoder
     struct {
         bool video, audio;
     } wait;
+    struct {
+        struct {
+            NEXUS_PidChannelHandle pidChannel;
+        } video, audio;
+    } pids;
 
     /* move structs off stack */
 #if NEXUS_HAS_STREAM_MUX
@@ -106,6 +115,30 @@ struct NEXUS_SimpleEncoder
     NEXUS_MessageHandle message[NEXUS_SIMPLE_ENCODER_NUM_PASSTHROUGH_PIDS];
 };
 
+static NEXUS_SimpleEncoderHandle nexus_simple_encoder_p_first(void)
+{
+    NEXUS_SimpleEncoderServerHandle server;
+    for (server = BLST_S_FIRST(&g_NEXUS_SimpleEncoderServers); server; server = BLST_S_NEXT(server, link)) {
+        NEXUS_SimpleEncoderHandle encoder = BLST_S_FIRST(&server->encoders);
+        if (encoder) return encoder;
+    }
+    return NULL;
+}
+
+static NEXUS_SimpleEncoderHandle nexus_simple_encoder_p_next(NEXUS_SimpleEncoderHandle handle)
+{
+    NEXUS_SimpleEncoderHandle next;
+    next = BLST_S_NEXT(handle, link);
+    if (!next) {
+        NEXUS_SimpleEncoderServerHandle server;
+        for (server = BLST_S_NEXT(handle->server, link); server; server = BLST_S_NEXT(server, link)) {
+            next = BLST_S_FIRST(&server->encoders);
+            if (next) break;
+        }
+    }
+    return next;
+}
+
 static NEXUS_Error nexus_simpleencoder_p_start( NEXUS_SimpleEncoderHandle handle );
 #if NEXUS_HAS_STREAM_MUX
 static NEXUS_Error nexus_simpleencoder_p_pre_start( NEXUS_SimpleEncoderHandle handle );
@@ -118,18 +151,17 @@ static bool ready_to_start(NEXUS_SimpleEncoderHandle handle);
 NEXUS_SimpleEncoderServerHandle NEXUS_SimpleEncoderServer_Create(void)
 {
     NEXUS_SimpleEncoderServerHandle handle;
-    if (g_NEXUS_SimpleEncoderServer) return NULL;
     handle = BKNI_Malloc(sizeof(*handle));
     if (!handle) return NULL;
     NEXUS_OBJECT_INIT(NEXUS_SimpleEncoderServer, handle);
-    g_NEXUS_SimpleEncoderServer = handle;
+    BLST_S_INSERT_HEAD(&g_NEXUS_SimpleEncoderServers, handle, link);
     return handle;
 }
 
 static void NEXUS_SimpleEncoderServer_P_Finalizer( NEXUS_SimpleEncoderServerHandle handle )
 {
+    BLST_S_REMOVE(&g_NEXUS_SimpleEncoderServers, handle, NEXUS_SimpleEncoderServer, link);
     NEXUS_OBJECT_DESTROY(NEXUS_SimpleEncoderServer, handle);
-    g_NEXUS_SimpleEncoderServer = NULL;
     BKNI_Free(handle);
 }
 
@@ -269,10 +301,7 @@ NEXUS_Error NEXUS_SimpleEncoder_SetServerSettings( NEXUS_SimpleEncoderServerHand
 NEXUS_SimpleEncoderHandle NEXUS_SimpleEncoder_Acquire( unsigned index )
 {
     NEXUS_SimpleEncoderHandle handle;
-    NEXUS_SimpleEncoderServerHandle server = g_NEXUS_SimpleEncoderServer;
-
-    if (!server) return NULL;
-    for (handle=BLST_S_FIRST(&server->encoders); handle; handle = BLST_S_NEXT(handle, link)) {
+    for (handle=nexus_simple_encoder_p_first(); handle; handle = nexus_simple_encoder_p_next(handle)) {
         BDBG_OBJECT_ASSERT(handle, NEXUS_SimpleEncoder);
         if (handle->index == index) {
             int rc;
@@ -327,6 +356,7 @@ void NEXUS_SimpleEncoder_GetDefaultStartSettings( NEXUS_SimpleEncoderStartSettin
     pSettings->output.transport.pcrPid = 0x15;
     pSettings->output.transport.pmtPid = 0x55;
     pSettings->output.transport.interval = 1000; /* 1 second */
+    pSettings->transcode.nonRealTimeRate = 32 * NEXUS_NORMAL_PLAY_SPEED; /* AFAP */
 }
 
 NEXUS_Error NEXUS_SimpleEncoder_Start( NEXUS_SimpleEncoderHandle handle, const NEXUS_SimpleEncoderStartSettings *pSettings )
@@ -487,10 +517,10 @@ NEXUS_Error NEXUS_SimpleEncoder_SetSettings( NEXUS_SimpleEncoderHandle handle, c
         NEXUS_DisplayCustomFormatSettings customFormatSettings;
 
         NEXUS_Display_GetDefaultCustomFormatSettings(&customFormatSettings);
-        customFormatSettings.width = handle->settings.video.width;
-        customFormatSettings.height = handle->settings.video.height;
-        customFormatSettings.refreshRate = handle->settings.video.refreshRate;
-        customFormatSettings.interlaced = handle->settings.video.interlaced;
+        customFormatSettings.width = pSettings->video.width;
+        customFormatSettings.height = pSettings->video.height;
+        customFormatSettings.refreshRate = pSettings->video.refreshRate;
+        customFormatSettings.interlaced = pSettings->video.interlaced;
         customFormatSettings.aspectRatio = NEXUS_DisplayAspectRatio_e16x9; /* don't care */
         customFormatSettings.dropFrameAllowed = true;
         rc = NEXUS_Display_SetCustomFormatSettings(handle->transcodeDisplay, NEXUS_VideoFormat_eCustom2, &customFormatSettings);
@@ -499,19 +529,19 @@ NEXUS_Error NEXUS_SimpleEncoder_SetSettings( NEXUS_SimpleEncoderHandle handle, c
     if (handle->transcodeWindow) {
         NEXUS_VideoWindowSettings windowSettings;
         NEXUS_VideoWindow_GetSettings(handle->transcodeWindow, &windowSettings);
-        if (handle->settings.video.window.width && handle->settings.video.window.height) {
-            windowSettings.position = handle->settings.video.window;
+        if (pSettings->video.window.width && pSettings->video.window.height) {
+            windowSettings.position = pSettings->video.window;
         }
         else {
             windowSettings.position.x = 0;
             windowSettings.position.y = 0;
-            windowSettings.position.width = handle->settings.video.width;
-            windowSettings.position.height = handle->settings.video.height;
+            windowSettings.position.width = pSettings->video.width;
+            windowSettings.position.height = pSettings->video.height;
         }
-        windowSettings.sourceClip.left   = handle->settings.video.clip.left;
-        windowSettings.sourceClip.right  = handle->settings.video.clip.right;
-        windowSettings.sourceClip.top    = handle->settings.video.clip.top;
-        windowSettings.sourceClip.bottom = handle->settings.video.clip.bottom;
+        windowSettings.sourceClip.left   = pSettings->video.clip.left;
+        windowSettings.sourceClip.right  = pSettings->video.clip.right;
+        windowSettings.sourceClip.top    = pSettings->video.clip.top;
+        windowSettings.sourceClip.bottom = pSettings->video.clip.bottom;
         rc = NEXUS_VideoWindow_SetSettings(handle->transcodeWindow, &windowSettings);
         if (rc) return BERR_TRACE(rc);
     }
@@ -727,6 +757,32 @@ static NEXUS_Error nexus_simpleencoder_p_set_playpump(NEXUS_PlaypumpHandle playp
     }
 }
 
+static void nexus_p_remove_pid_channels(NEXUS_SimpleEncoderHandle handle)
+{
+    NEXUS_RecpumpSettings recpumpSettings;
+    NEXUS_Recpump_RemoveAllPidChannels(handle->startSettings.recpump);
+#if NEXUS_HAS_SECURITY
+    if (handle->pids.video.pidChannel) {
+        if (handle->startSettings.output.video.keyslot) {
+            NEXUS_KeySlot_RemovePidChannel(handle->startSettings.output.video.keyslot, handle->pids.video.pidChannel);
+        }
+    }
+    if (handle->pids.audio.pidChannel) {
+        if (handle->startSettings.output.audio.keyslot) {
+            NEXUS_KeySlot_RemovePidChannel(handle->startSettings.output.audio.keyslot, handle->pids.audio.pidChannel);
+        }
+    }
+#endif
+    handle->pids.video.pidChannel = NULL;
+    handle->pids.audio.pidChannel = NULL;
+    NEXUS_Recpump_GetSettings(handle->startSettings.recpump, &recpumpSettings);
+    if (recpumpSettings.pcrPidChannel) {
+        recpumpSettings.pcrPidChannel = NULL;
+        (void)NEXUS_Recpump_SetSettings(handle->startSettings.recpump, &recpumpSettings);
+    }
+    NEXUS_Playpump_CloseAllPidChannels(handle->serverSettings.playpump[2]);
+}
+
 static NEXUS_Error nexus_simpleencoder_p_start_stream_mux(NEXUS_SimpleEncoderHandle handle)
 {
     NEXUS_Error rc;
@@ -752,7 +808,7 @@ static NEXUS_Error nexus_simpleencoder_p_start_stream_mux(NEXUS_SimpleEncoderHan
         pMuxStartSettings->stcChannel = nexus_simpleencoder_p_getStcChannel(handle, NEXUS_SimpleDecoderType_eAudio);
     }
     pMuxStartSettings->nonRealTime = handle->serverSettings.nonRealTime;
-    pMuxStartSettings->nonRealTimeRate = 32 * NEXUS_NORMAL_PLAY_SPEED; /* AFAP */
+    pMuxStartSettings->nonRealTimeRate = handle->startSettings.transcode.nonRealTimeRate;
     if (handle->videoStarted) {
         pMuxStartSettings->video[0].pid = handle->startSettings.output.video.pid;
         pMuxStartSettings->video[0].encoder = handle->serverSettings.videoEncoder;
@@ -848,6 +904,14 @@ static NEXUS_Error nexus_simpleencoder_p_start_stream_mux(NEXUS_SimpleEncoderHan
         rc = NEXUS_Recpump_AddPidChannel(handle->startSettings.recpump, muxOutput.video[0], &settings);
         if (rc) {rc = BERR_TRACE(rc); goto err_addpid;}
 
+        handle->pids.video.pidChannel = muxOutput.video[0];
+#if NEXUS_HAS_SECURITY
+        if (handle->startSettings.output.video.keyslot) {
+            rc = NEXUS_KeySlot_AddPidChannel(handle->startSettings.output.video.keyslot, handle->pids.video.pidChannel);
+            if (rc) {rc = BERR_TRACE(rc); goto err_addpid;}
+        }
+#endif
+
         /* may want user option for TPIT RAI indexing. required for HLS now. */
         if (handle->startSettings.output.video.raiIndex) {
             NEXUS_RecpumpTpitFilter filter;
@@ -861,14 +925,20 @@ static NEXUS_Error nexus_simpleencoder_p_start_stream_mux(NEXUS_SimpleEncoderHan
     if (muxOutput.audio[0]) {
         rc = NEXUS_Recpump_AddPidChannel(handle->startSettings.recpump, muxOutput.audio[0], NULL);
         if (rc) {rc = BERR_TRACE(rc); goto err_addpid;}
+        handle->pids.audio.pidChannel = muxOutput.audio[0];
+#if NEXUS_HAS_SECURITY
+        if (handle->startSettings.output.audio.keyslot) {
+            rc = NEXUS_KeySlot_AddPidChannel(handle->startSettings.output.audio.keyslot, handle->pids.audio.pidChannel);
+            if (rc) {rc = BERR_TRACE(rc); goto err_addpid;}
+        }
+#endif
     }
 
     return 0;
 
 err_addpid:
-    NEXUS_Recpump_RemoveAllPidChannels(handle->startSettings.recpump);
 err_openpid:
-    NEXUS_Playpump_CloseAllPidChannels(handle->serverSettings.playpump[2]);
+    nexus_p_remove_pid_channels(handle);
     NEXUS_StreamMux_Stop(handle->serverSettings.streamMux);
 err_startmux:
 err_message:
@@ -1049,14 +1119,7 @@ void nexus_simpleencoder_p_stop( NEXUS_SimpleEncoderHandle handle )
     if (handle->settings.stopMode != NEXUS_SimpleEncoderStopMode_eVideoEncoderOnly && handle->started) {
         unsigned i;
         if ( handle->startSettings.output.transport.type == NEXUS_TransportType_eTs ) {
-            NEXUS_RecpumpSettings recpumpSettings;
-            NEXUS_Recpump_RemoveAllPidChannels(handle->startSettings.recpump); /* TODO: remove only the pid channels we've added */
-            NEXUS_Recpump_GetSettings(handle->startSettings.recpump, &recpumpSettings);
-            if (recpumpSettings.pcrPidChannel) {
-                recpumpSettings.pcrPidChannel = NULL;
-                (void)NEXUS_Recpump_SetSettings(handle->startSettings.recpump, &recpumpSettings);
-            }
-            NEXUS_Playpump_CloseAllPidChannels(handle->serverSettings.playpump[2]);
+            nexus_p_remove_pid_channels(handle);
             NEXUS_StreamMux_Stop(handle->serverSettings.streamMux);
             nexus_simpleencoder_p_stop_psi(handle);
             /* TS layer user data passthrough is a stream mux feature, so to close in case TS type. */
@@ -1444,10 +1507,7 @@ void NEXUS_SimpleDecoderModule_P_PrintEncoder(void)
 {
 #if BDBG_DEBUG_BUILD
     NEXUS_SimpleEncoderHandle handle;
-    NEXUS_SimpleEncoderServerHandle server = g_NEXUS_SimpleEncoderServer;
-
-    if (!server) return;
-    for (handle=BLST_S_FIRST(&server->encoders); handle; handle = BLST_S_NEXT(handle, link)) {
+    for (handle=nexus_simple_encoder_p_first(); handle; handle = nexus_simple_encoder_p_next(handle)) {
         BDBG_MODULE_LOG(nexus_simple_decoder_proc, ("encode %u(%p)", handle->index, (void *)handle));
         BDBG_MODULE_LOG(nexus_simple_decoder_proc, ("  acquired %d, started %d, clientStarted %d",
             handle->acquired, handle->started, handle->clientStarted));

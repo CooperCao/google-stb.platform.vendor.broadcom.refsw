@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -78,7 +78,7 @@ BERR_Code BCHP_PWR_Open(BCHP_PWR_Handle *pHandle, BCHP_Handle chp)
 #if BCHP_PWR_SUPPORT
     BDBG_ASSERT(pHandle);
 #else
-	BSTD_UNUSED(pHandle);
+    BSTD_UNUSED(pHandle);
 #endif
     BDBG_ASSERT(chp);
     BDBG_ASSERT(chp->regHandle);
@@ -685,7 +685,11 @@ static BERR_Code BCHP_PWR_P_ReleaseResource(BCHP_Handle handle, const BCHP_PWR_P
 }
 #endif /* BCHP_PWR_SUPPORT */
 
+#if BCHP_PWR_TRACK
+BERR_Code BCHP_PWR_AcquireResource_tagged(BCHP_Handle handle, BCHP_PWR_ResourceId resourceId, const char *file, unsigned line)
+#else
 BERR_Code BCHP_PWR_AcquireResource(BCHP_Handle handle, BCHP_PWR_ResourceId resourceId)
+#endif
 {
 #if BCHP_PWR_SUPPORT
     BERR_Code rc;
@@ -708,7 +712,11 @@ BERR_Code BCHP_PWR_AcquireResource(BCHP_Handle handle, BCHP_PWR_ResourceId resou
     resource = BCHP_PWR_P_GetResourceHandle(resourceId);
     refcnt = handle->pwrManager->pubRefcnt[idx];
 
+#if BCHP_PWR_TRACK
+    BDBG_MSG(("Acquire resource %#x (%s) refcnt %u->%u from %s:%u", resource->id, resource->name, refcnt, refcnt+1, file, line));
+#else
     BDBG_MSG(("Acquire resource %#x (%s) refcnt %u->%u", resource->id, resource->name, refcnt, refcnt+1));
+#endif
     handle->pwrManager->pubRefcnt[idx]++;
 
     rc = BCHP_PWR_P_AcquireResource(handle, resource, false);
@@ -726,7 +734,11 @@ BERR_Code BCHP_PWR_AcquireResource(BCHP_Handle handle, BCHP_PWR_ResourceId resou
 #endif
 }
 
+#if BCHP_PWR_TRACK
+BERR_Code BCHP_PWR_ReleaseResource_tagged(BCHP_Handle handle, BCHP_PWR_ResourceId resourceId, const char *file, unsigned line)
+#else
 BERR_Code BCHP_PWR_ReleaseResource(BCHP_Handle handle, BCHP_PWR_ResourceId resourceId)
+#endif
 {
 #if BCHP_PWR_SUPPORT
     BERR_Code rc;
@@ -755,7 +767,11 @@ BERR_Code BCHP_PWR_ReleaseResource(BCHP_Handle handle, BCHP_PWR_ResourceId resou
         rc = BERR_TRACE(BERR_INVALID_PARAMETER);
     }
     else {
+#if BCHP_PWR_TRACK
+        BDBG_MSG(("Release resource %#x (%s) refcnt %u->%u from %s:%u", resource->id, resource->name, refcnt, refcnt-1, file, line));
+#else
         BDBG_MSG(("Release resource %#x (%s) refcnt %u->%u", resource->id, resource->name, refcnt, refcnt-1));
+#endif
         handle->pwrManager->pubRefcnt[idx]--;
 
         rc = BCHP_PWR_P_ReleaseResource(handle, resource, false);
@@ -837,7 +853,7 @@ void BCHP_PWR_DebugPrint(BCHP_Handle handle)
 {
     unsigned i, j;
 #if BDBG_NO_LOG
-	BSTD_UNUSED(handle);
+    BSTD_UNUSED(handle);
 #endif
 
     for(i=0; i<sizeof(cores)/sizeof(cores[0]); i++) {
@@ -1112,7 +1128,11 @@ BERR_Code BCHP_PWR_GetClockRate(BCHP_Handle handle, BCHP_PWR_ResourceId resource
 #endif
 }
 
+#if BCHP_PWR_TRACK
+BERR_Code BCHP_PWR_SetClockRate_tagged(BCHP_Handle handle, BCHP_PWR_ResourceId resourceId, unsigned clkRate, const char *file, unsigned line)
+#else
 BERR_Code BCHP_PWR_SetClockRate(BCHP_Handle handle, BCHP_PWR_ResourceId resourceId, unsigned clkRate)
+#endif
 {
     BERR_Code rc = BERR_NOT_SUPPORTED;
 #if BCHP_PWR_SUPPORT
@@ -1130,7 +1150,11 @@ BERR_Code BCHP_PWR_SetClockRate(BCHP_Handle handle, BCHP_PWR_ResourceId resource
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
+#if BCHP_PWR_TRACK
+    BDBG_MSG(("Requested %u Clock Rate from %s:%u", clkRate, file, line));
+#else
     BDBG_MSG(("Requested %u Clock Rate", clkRate));
+#endif
 
     BKNI_AcquireMutex(handle->pwrManager->lock);
 

@@ -99,6 +99,19 @@ struct tzioc_client *TzIoc::TzIocClient::clientFindByTask(const TzTask *pTask)
     return pClient;
 }
 
+struct tzioc_client *TzIoc::TzIocClient::clientFindByNameAndTask(
+    const char *pName,
+    const TzTask *pTask)
+{
+    struct tzioc_client *pClient;
+
+    spin_lock(&lock);
+    pClient = __tzioc_client_find_by_name_and_task(pName, (uint32_t)pTask);
+    spin_unlock(&lock);
+
+    return pClient;
+}
+
 struct tzioc_client *TzIoc::TzIocClient::kernelClientOpen(
     const char *pName,
     tzioc_msg_proc_pfn pMsgProc,

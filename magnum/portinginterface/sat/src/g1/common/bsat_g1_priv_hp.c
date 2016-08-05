@@ -1,51 +1,43 @@
 /******************************************************************************
-*    (c)2011-2013 Broadcom Corporation
-*
-* This program is the proprietary software of Broadcom Corporation and/or its licensors,
-* and may only be used, duplicated, modified or distributed pursuant to the terms and
-* conditions of a separate, written license agreement executed between you and Broadcom
-* (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
-* no license (express or implied), right to use, or waiver of any kind with respect to the
-* Software, and Broadcom expressly reserves all rights in and to the Software and all
-* intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-* Except as expressly set forth in the Authorized License,
-*
-* 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
-* secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
-* and to use this information only in connection with your use of Broadcom integrated circuit products.
-*
-* 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-* AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-* WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
-* THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
-* OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
-* LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
-* OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
-* USE OR PERFORMANCE OF THE SOFTWARE.
-*
-* 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-* LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
-* EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
-* USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
-* THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
-* ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
-* LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
-* ANY LIMITED REMEDY.
-*
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* Module Description:
-*
-* Revision History:
-*
-* $brcm_Log: $
-*
-*****************************************************************************/
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
+ *
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************/
 #include "bstd.h"
 #include "bmth.h"
 #include "bsat.h"
@@ -512,13 +504,28 @@ BERR_Code BSAT_g1_P_HpConfig_isr(BSAT_ChannelHandle h)
       BSAT_g1_P_AndRegister_isrsafe(h, BCHP_SDS_CL_CLCTL1, 0xFFF7FFEF);
    BSAT_g1_P_OrRegister_isrsafe(h, BCHP_SDS_CL_CLCTL2, 0x00000004);   /* freeze front carrier loop */
 
-   val = 0x0000600F; /* dafe loop filter should be reset by state machine */
-#if 1 /* do we still need to do this??? */
-   val |= 0x1F0000; /* TBD: dont let HP control the eq */
-#endif
+   val = BCHP_FIELD_DATA(SDS_HP_0_HPOVERRIDE, VLCFRZOV, 1);
+   BCHP_SET_FIELD_DATA(val, SDS_HP_0_HPOVERRIDE, VLCRSTOV, 1);
+   BCHP_SET_FIELD_DATA(val, SDS_HP_0_HPOVERRIDE, EQFRZQOV, 1);
+   BCHP_SET_FIELD_DATA(val, SDS_HP_0_HPOVERRIDE, EQFRZIOV, 1);
+   BCHP_SET_FIELD_DATA(val, SDS_HP_0_HPOVERRIDE, EQFRZOV, 1);
+   BCHP_SET_FIELD_DATA(val, SDS_HP_0_HPOVERRIDE, EQRSTOV, 1);
+   BCHP_SET_FIELD_DATA(val, SDS_HP_0_HPOVERRIDE, EQMODEOV, 1);
    if (BSAT_MODE_IS_TURBO(hChn->acqSettings.mode))
    {
-      val = 0x207F00;
+      BCHP_SET_FIELD_DATA(val, SDS_HP_0_HPOVERRIDE, SNOREOV, 1);
+      BCHP_SET_FIELD_DATA(val, SDS_HP_0_HPOVERRIDE, CLFBENOV, 1);
+      BCHP_SET_FIELD_DATA(val, SDS_HP_0_HPOVERRIDE, CLFBFRZOV, 1);
+      BCHP_SET_FIELD_DATA(val, SDS_HP_0_HPOVERRIDE, CLFBRSTOV, 1);
+      BCHP_SET_FIELD_DATA(val, SDS_HP_0_HPOVERRIDE, CLFBINTRSTOV, 1);
+      BCHP_SET_FIELD_DATA(val, SDS_HP_0_HPOVERRIDE, VLCENOV, 1);
+   }
+   else
+   {
+      BCHP_SET_FIELD_DATA(val, SDS_HP_0_HPOVERRIDE, CLFINTRSTOV, 1);
+      BCHP_SET_FIELD_DATA(val, SDS_HP_0_HPOVERRIDE, CLFENOV, 1);
+      BCHP_SET_FIELD_DATA(val, SDS_HP_0_HPOVERRIDE, CLFFRZOV, 1);
+      BCHP_SET_FIELD_DATA(val, SDS_HP_0_HPOVERRIDE, CLFRSTOV, 1);
    }
    BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_HP_HPOVERRIDE, val);
 

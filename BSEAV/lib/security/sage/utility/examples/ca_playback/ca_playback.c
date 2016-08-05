@@ -445,8 +445,6 @@ static BERR_Code Utility_LoadKey(KeyLoaderTl_Handle hKeyLoader)
 
     wrappedKeySettings.keyladderAlg = BSAGElib_Crypto_Algorithm_eAes;
     wrappedKeySettings.keyladderDepth = BSAGElib_Crypto_KeyLadderLevel_eKey5;
-    wrappedKeySettings.engine = BSAGElib_Crypto_Engine_eCa;
-    wrappedKeySettings.operation = BSAGElib_Crypto_Operation_eDecrypt;
     wrappedKeySettings.keyType = BSAGElib_Crypto_KeyType_eEven;
     BKNI_Memcpy(wrappedKeySettings.procInForKey3, ca_procInForKey3, 16);
     BKNI_Memcpy(wrappedKeySettings.procInForKey4, ca_procInForKey4, 16);

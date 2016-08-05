@@ -4308,6 +4308,91 @@ done:
 
 #endif /* ifdef PLAYBACK_IP_SUPPORT */
 
+/* atlas.ipClientTranscodeEnable()
+ */
+static int atlasLua_ipClientTranscodeEnable(lua_State * pLua)
+{
+    CLua *  pThis       = getCLua(pLua);
+    eRet    err         = eRet_Ok;
+    uint8_t argNum      = 1;
+    uint8_t numArgTotal = lua_gettop(pLua) - 1;
+    bool *  pTranscodeEnable   = NULL;
+    bool    transcodeEnable    = false;
+
+    CLuaDataEvent <bool> * pLuaEvent = NULL;
+
+    BDBG_ASSERT(pThis);
+    /* check number of lua arguments on stack */
+    if (1 != numArgTotal)
+    {
+        /* wrong number of arguments */
+        LUA_ERROR(pLua, "wrong number of arguments, enter 'true' or 'false' for enable/disable: [bool]", error);
+    }
+    /* get arguments */
+    pTranscodeEnable  = new bool;
+    transcodeEnable   = lua_toboolean(pLua, argNum++);
+    *pTranscodeEnable = transcodeEnable;
+
+    /* note that we are not setting a wait notification so we will not wait for this command to complete */
+    pLuaEvent = new CLuaDataEvent <bool>(eNotify_ipClientTranscodeEnable, pTranscodeEnable);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
+    pThis->addEvent(pLuaEvent);
+    /* trigger bwin io event here */
+    err = pThis->trigger(pLuaEvent);
+
+    goto done;
+error:
+    DEL(pTranscodeEnable);
+    DEL(pLuaEvent);
+    err = eRet_InvalidParameter;
+done:
+    LUA_RETURN(err);
+} /* atlasLua_ipClientTranscodeEnable */
+
+/* atlas.ipClientTranscodeProfile()
+ */
+static int atlasLua_ipClientTranscodeProfile(lua_State * pLua)
+{
+    CLua *  pThis       = getCLua(pLua);
+    eRet    err         = eRet_Ok;
+    uint8_t argNum      = 1;
+    uint8_t numArgTotal = lua_gettop(pLua) - 1;
+    int _xcodeProfile = 0;
+    int * pTranscodeProfile = NULL;
+
+    CLuaDataEvent <int> * pLuaEvent = NULL;
+
+    BDBG_ASSERT(pThis);
+    /* check number of lua arguments on stack */
+    if (1 != numArgTotal)
+    {
+        /* wrong number of arguments */
+        LUA_ERROR(pLua, "wrong number of arguments, enter '1' or '2' for 480p/720p profile selection:", error);
+    }
+
+    /* get arguments */
+    _xcodeProfile = luaL_checknumber(pLua, argNum++);
+
+    pTranscodeProfile  = new int;
+    *pTranscodeProfile = _xcodeProfile;
+
+    /* note that we are not setting a wait notification so we will not wait for this command to complete */
+    pLuaEvent = new CLuaDataEvent <int>(eNotify_ipClientTranscodeProfile, pTranscodeProfile,eNotify_Invalid,DEFAULT_LUA_EVENT_TIMEOUT);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
+
+    pThis->addEvent(pLuaEvent);
+    /* trigger bwin io event here */
+    err = pThis->trigger(pLuaEvent);
+
+    goto done;
+error:
+    DEL(pTranscodeProfile);
+    DEL(pLuaEvent);
+    err = eRet_InvalidParameter;
+done:
+    LUA_RETURN(err);
+} /* atlasLua_ipClientTranscodeProfile */
+
 static int atlasLua_SetDebugLevel(lua_State * pLua)
 {
     const char * strModule = luaL_checkstring(pLua, 1);
@@ -4512,6 +4597,8 @@ static const struct luaL_Reg atlasLua[] = {
     { "setAudioProcessing",            atlasLua_SetAudioProcessing                    }, /* set the pcm audio proccessing (see eAudioProcessing) */
     { "showPip",                       atlasLua_ShowPip                               }, /* show/hide the pip window */
     { "swapPip",                       atlasLua_SwapPip                               }, /* swap the main and pip window */
+    { "ipClientTranscodeEnable",       atlasLua_ipClientTranscodeEnable               }, /* enable/disable BIP transcoding for a given client */
+    { "ipClientTranscodeProfile",      atlasLua_ipClientTranscodeProfile              }, /* set the BIP transcode profile for a given client */
 #ifdef DCC_SUPPORT
     { "closedCaptionEnable",           atlasLua_ClosedCaptionEnable                   }, /* enable/disable closed caption */
     { "closedCaptionMode",             atlasLua_ClosedCaptionMode                     }, /*set 608/708 closed caption mode */

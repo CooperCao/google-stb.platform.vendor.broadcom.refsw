@@ -425,7 +425,7 @@ handle_error:
                 BDBG_LOG(("\t********* SAGE-side ECC validation successfully completed!!! *********"));
             }
             else{
-                BDBG_ERR(("\tEDRM validation FAILED!!!! No file will be provisioned/written to rootfs"));
+                BDBG_ERR(("\tECC validation FAILED!!!! No file will be provisioned/written to rootfs"));
                 goto end;
             }
         }

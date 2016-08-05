@@ -19,9 +19,7 @@ Server-side implementation of the GL_OES_draw_texture extension for GLES 1.1.
 
 static void glDrawTexfOES_impl(GLfloat x_s, GLfloat y_s, GLfloat z_s, GLfloat w_s, GLfloat h_s)
 {
-#if GL_OES_draw_texture
-
-   GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_11);
    GLenum error = GL_NO_ERROR;
    GLfloat z_w;
    GLclampf n, f;
@@ -47,9 +45,7 @@ static void glDrawTexfOES_impl(GLfloat x_s, GLfloat y_s, GLfloat z_s, GLfloat w_
 end:
    if (error != GL_NO_ERROR)
       glxx_server_state_set_error(state, error);
-   GLXX_UNLOCK_SERVER_STATE();
-
-#endif
+   glxx_unlock_server_state();
 }
 
 GL_APICALL void GL_APIENTRY glDrawTexfOES(GLfloat x_s, GLfloat y_s, GLfloat z_s, GLfloat w_s, GLfloat h_s)

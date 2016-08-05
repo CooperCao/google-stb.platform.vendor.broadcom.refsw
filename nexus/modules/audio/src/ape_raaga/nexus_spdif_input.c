@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2013 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *  
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,17 +35,9 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF 
 *  ANY LIMITED REMEDY.
 * 
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * API Description:
 *   API name: SpdifInput
 *    Specific APIs related to SPDIF Input
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 #include "nexus_audio_module.h"
@@ -108,6 +100,7 @@ NEXUS_SpdifInputHandle NEXUS_SpdifInput_Open(  /* attr{destructor=NEXUS_SpdifInp
     NEXUS_OBJECT_INIT(NEXUS_SpdifInput, handle);
     BKNI_Snprintf(handle->name, sizeof(handle->name), "SPDIF INPUT %u", index);
     NEXUS_AUDIO_INPUT_INIT(&handle->connector, NEXUS_AudioInputType_eSpdif, handle);
+    NEXUS_OBJECT_REGISTER(NEXUS_AudioInput, &handle->connector, Open);
     handle->connector.pName = handle->name;
     handle->opened = true;
     
@@ -144,9 +137,15 @@ static void NEXUS_SpdifInput_P_Finalizer(
 {
     NEXUS_OBJECT_ASSERT(NEXUS_SpdifInput, handle);
     BAPE_SpdifInput_Close(handle->apeHandle);
+    NEXUS_OBJECT_DESTROY(NEXUS_SpdifInput, handle);
     BKNI_Memset(handle, 0, sizeof(NEXUS_SpdifInput));
 }
 
+static void NEXUS_SpdifInput_P_Release(NEXUS_SpdifInputHandle handle)
+{
+    NEXUS_OBJECT_UNREGISTER(NEXUS_AudioInput, &handle->connector, Close);
+    return;
+}
 
 void NEXUS_SpdifInput_GetSettings(
     NEXUS_SpdifInputHandle handle,
@@ -170,7 +169,7 @@ NEXUS_Error NEXUS_SpdifInput_SetSettings(
     return BERR_SUCCESS;
 }
 
-NEXUS_AudioInput NEXUS_SpdifInput_GetConnector( /* attr{shutdown=NEXUS_AudioInput_Shutdown} */
+NEXUS_AudioInputHandle NEXUS_SpdifInput_GetConnector( /* attr{shutdown=NEXUS_AudioInput_Shutdown} */
     NEXUS_SpdifInputHandle handle
     )
 {
@@ -282,6 +281,11 @@ static void NEXUS_SpdifInput_P_Finalizer(
     BSTD_UNUSED(handle);
 }
 
+static void NEXUS_SpdifInput_P_Release(NEXUS_SpdifInputHandle handle)
+{
+    BSTD_UNUSED(handle);
+}
+
 void NEXUS_SpdifInput_GetSettings(
     NEXUS_SpdifInputHandle handle,
     NEXUS_SpdifInputSettings *pSettings    /* [out] Settings */
@@ -301,7 +305,7 @@ NEXUS_Error NEXUS_SpdifInput_SetSettings(
     return BERR_TRACE(BERR_NOT_SUPPORTED);
 }
 
-NEXUS_AudioInput NEXUS_SpdifInput_GetConnector( /* attr{shutdown=NEXUS_AudioInput_Shutdown} */
+NEXUS_AudioInputHandle NEXUS_SpdifInput_GetConnector( /* attr{shutdown=NEXUS_AudioInput_Shutdown} */
     NEXUS_SpdifInputHandle handle
     )
 {
@@ -311,5 +315,4 @@ NEXUS_AudioInput NEXUS_SpdifInput_GetConnector( /* attr{shutdown=NEXUS_AudioInpu
 
 #endif /* #if NEXUS_NUM_SPDIF_INPUTS */
 
-NEXUS_OBJECT_CLASS_MAKE(NEXUS_SpdifInput, NEXUS_SpdifInput_Close);
-
+NEXUS_OBJECT_CLASS_MAKE_WITH_RELEASE(NEXUS_SpdifInput, NEXUS_SpdifInput_Close);

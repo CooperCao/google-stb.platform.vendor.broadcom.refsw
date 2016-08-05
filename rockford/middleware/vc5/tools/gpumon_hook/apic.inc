@@ -33,6 +33,153 @@ HOOK(eglWaitGL);
 HOOK(eglWaitNative);
 #endif /* EGL_VERSION_1_0*/
 
+#if GL_VERSION_ES_CM_1_0
+HOOK(glAlphaFunc);
+HOOK(glClearColor);
+HOOK(glClearDepthf);
+HOOK(glClipPlanef);
+HOOK(glColor4f);
+HOOK(glDepthRangef);
+HOOK(glFogf);
+HOOK(glFogfv);
+HOOK(glFrustumf);
+HOOK(glGetClipPlanef);
+HOOK(glGetFloatv);
+HOOK(glGetLightfv);
+HOOK(glGetMaterialfv);
+HOOK(glGetTexEnvfv);
+HOOK(glGetTexParameterfv);
+HOOK(glLightModelf);
+HOOK(glLightModelfv);
+HOOK(glLightf);
+HOOK(glLightfv);
+HOOK(glLineWidth);
+HOOK(glLoadMatrixf);
+HOOK(glMaterialf);
+HOOK(glMaterialfv);
+HOOK(glMultMatrixf);
+HOOK(glMultiTexCoord4f);
+HOOK(glNormal3f);
+HOOK(glOrthof);
+HOOK(glPointParameterf);
+HOOK(glPointParameterfv);
+HOOK(glPointSize);
+HOOK(glPolygonOffset);
+HOOK(glRotatef);
+HOOK(glScalef);
+HOOK(glTexEnvf);
+HOOK(glTexEnvfv);
+HOOK(glTexParameterf);
+HOOK(glTexParameterfv);
+HOOK(glTranslatef);
+HOOK(glActiveTexture);
+HOOK(glAlphaFuncx);
+HOOK(glBindBuffer);
+HOOK(glBindTexture);
+HOOK(glBlendFunc);
+HOOK(glBufferData);
+HOOK(glBufferSubData);
+HOOK(glClear);
+HOOK(glClearColorx);
+HOOK(glClearDepthx);
+HOOK(glClearStencil);
+HOOK(glClientActiveTexture);
+HOOK(glClipPlanex);
+HOOK(glColor4ub);
+HOOK(glColor4x);
+HOOK(glColorMask);
+HOOK(glColorPointer);
+HOOK(glCompressedTexImage2D);
+HOOK(glCompressedTexSubImage2D);
+HOOK(glCopyTexImage2D);
+HOOK(glCopyTexSubImage2D);
+HOOK(glCullFace);
+HOOK(glDeleteBuffers);
+HOOK(glDeleteTextures);
+HOOK(glDepthFunc);
+HOOK(glDepthMask);
+HOOK(glDepthRangex);
+HOOK(glDisable);
+HOOK(glDisableClientState);
+HOOK(glDrawArrays);
+HOOK(glDrawElements);
+HOOK(glEnable);
+HOOK(glEnableClientState);
+HOOK(glFinish);
+HOOK(glFlush);
+HOOK(glFogx);
+HOOK(glFogxv);
+HOOK(glFrontFace);
+HOOK(glFrustumx);
+HOOK(glGetBooleanv);
+HOOK(glGetBufferParameteriv);
+HOOK(glGetClipPlanex);
+HOOK(glGenBuffers);
+HOOK(glGenTextures);
+HOOK(glGetError);
+HOOK(glGetFixedv);
+HOOK(glGetIntegerv);
+HOOK(glGetLightxv);
+HOOK(glGetMaterialxv);
+HOOK(glGetPointerv);
+HOOK(glGetString);
+HOOK(glGetTexEnviv);
+HOOK(glGetTexEnvxv);
+HOOK(glGetTexParameteriv);
+HOOK(glGetTexParameterxv);
+HOOK(glHint);
+HOOK(glIsBuffer);
+HOOK(glIsEnabled);
+HOOK(glIsTexture);
+HOOK(glLightModelx);
+HOOK(glLightModelxv);
+HOOK(glLightx);
+HOOK(glLightxv);
+HOOK(glLineWidthx);
+HOOK(glLoadIdentity);
+HOOK(glLoadMatrixx);
+HOOK(glLogicOp);
+HOOK(glMaterialx);
+HOOK(glMaterialxv);
+HOOK(glMatrixMode);
+HOOK(glMultMatrixx);
+HOOK(glMultiTexCoord4x);
+HOOK(glNormal3x);
+HOOK(glNormalPointer);
+HOOK(glOrthox);
+HOOK(glPixelStorei);
+HOOK(glPointParameterx);
+HOOK(glPointParameterxv);
+HOOK(glPointSizex);
+HOOK(glPolygonOffsetx);
+HOOK(glPopMatrix);
+HOOK(glPushMatrix);
+HOOK(glReadPixels);
+HOOK(glRotatex);
+HOOK(glSampleCoverage);
+HOOK(glSampleCoveragex);
+HOOK(glScalex);
+HOOK(glScissor);
+HOOK(glShadeModel);
+HOOK(glStencilFunc);
+HOOK(glStencilMask);
+HOOK(glStencilOp);
+HOOK(glTexCoordPointer);
+HOOK(glTexEnvi);
+HOOK(glTexEnvx);
+HOOK(glTexEnviv);
+HOOK(glTexEnvxv);
+HOOK(glTexImage2D);
+HOOK(glTexParameteri);
+HOOK(glTexParameterx);
+HOOK(glTexParameteriv);
+HOOK(glTexParameterxv);
+HOOK(glTexSubImage2D);
+HOOK(glTranslatex);
+HOOK(glVertexPointer);
+HOOK(glViewport);
+#endif /* GL_VERSION_ES_CM_1_0*/
+
 #if EGL_VERSION_1_1
 HOOK(eglBindTexImage);
 HOOK(eglReleaseTexImage);
@@ -69,70 +216,35 @@ HOOK(eglWaitSync);
 #endif /* EGL_VERSION_1_5*/
 
 #if GL_ES_VERSION_2_0
-HOOK(glActiveTexture);
 HOOK(glAttachShader);
 HOOK(glBindAttribLocation);
-HOOK(glBindBuffer);
 HOOK(glBindFramebuffer);
 HOOK(glBindRenderbuffer);
-HOOK(glBindTexture);
 HOOK(glBlendColor);
 HOOK(glBlendEquation);
 HOOK(glBlendEquationSeparate);
-HOOK(glBlendFunc);
 HOOK(glBlendFuncSeparate);
-HOOK(glBufferData);
-HOOK(glBufferSubData);
 HOOK(glCheckFramebufferStatus);
-HOOK(glClear);
-HOOK(glClearColor);
-HOOK(glClearDepthf);
-HOOK(glClearStencil);
-HOOK(glColorMask);
 HOOK(glCompileShader);
-HOOK(glCompressedTexImage2D);
-HOOK(glCompressedTexSubImage2D);
-HOOK(glCopyTexImage2D);
-HOOK(glCopyTexSubImage2D);
 HOOK(glCreateProgram);
 HOOK(glCreateShader);
-HOOK(glCullFace);
-HOOK(glDeleteBuffers);
 HOOK(glDeleteFramebuffers);
 HOOK(glDeleteProgram);
 HOOK(glDeleteRenderbuffers);
 HOOK(glDeleteShader);
-HOOK(glDeleteTextures);
-HOOK(glDepthFunc);
-HOOK(glDepthMask);
-HOOK(glDepthRangef);
 HOOK(glDetachShader);
-HOOK(glDisable);
 HOOK(glDisableVertexAttribArray);
-HOOK(glDrawArrays);
-HOOK(glDrawElements);
-HOOK(glEnable);
 HOOK(glEnableVertexAttribArray);
-HOOK(glFinish);
-HOOK(glFlush);
 HOOK(glFramebufferRenderbuffer);
 HOOK(glFramebufferTexture2D);
-HOOK(glFrontFace);
-HOOK(glGenBuffers);
 HOOK(glGenerateMipmap);
 HOOK(glGenFramebuffers);
 HOOK(glGenRenderbuffers);
-HOOK(glGenTextures);
 HOOK(glGetActiveAttrib);
 HOOK(glGetActiveUniform);
 HOOK(glGetAttachedShaders);
 HOOK(glGetAttribLocation);
-HOOK(glGetBooleanv);
-HOOK(glGetBufferParameteriv);
-HOOK(glGetError);
-HOOK(glGetFloatv);
 HOOK(glGetFramebufferAttachmentParameteriv);
-HOOK(glGetIntegerv);
 HOOK(glGetProgramiv);
 HOOK(glGetProgramInfoLog);
 HOOK(glGetRenderbufferParameteriv);
@@ -140,46 +252,24 @@ HOOK(glGetShaderiv);
 HOOK(glGetShaderInfoLog);
 HOOK(glGetShaderPrecisionFormat);
 HOOK(glGetShaderSource);
-HOOK(glGetString);
-HOOK(glGetTexParameterfv);
-HOOK(glGetTexParameteriv);
 HOOK(glGetUniformfv);
 HOOK(glGetUniformiv);
 HOOK(glGetUniformLocation);
 HOOK(glGetVertexAttribfv);
 HOOK(glGetVertexAttribiv);
 HOOK(glGetVertexAttribPointerv);
-HOOK(glHint);
-HOOK(glIsBuffer);
-HOOK(glIsEnabled);
 HOOK(glIsFramebuffer);
 HOOK(glIsProgram);
 HOOK(glIsRenderbuffer);
 HOOK(glIsShader);
-HOOK(glIsTexture);
-HOOK(glLineWidth);
 HOOK(glLinkProgram);
-HOOK(glPixelStorei);
-HOOK(glPolygonOffset);
-HOOK(glReadPixels);
 HOOK(glReleaseShaderCompiler);
 HOOK(glRenderbufferStorage);
-HOOK(glSampleCoverage);
-HOOK(glScissor);
 HOOK(glShaderBinary);
 HOOK(glShaderSource);
-HOOK(glStencilFunc);
 HOOK(glStencilFuncSeparate);
-HOOK(glStencilMask);
 HOOK(glStencilMaskSeparate);
-HOOK(glStencilOp);
 HOOK(glStencilOpSeparate);
-HOOK(glTexImage2D);
-HOOK(glTexParameterf);
-HOOK(glTexParameterfv);
-HOOK(glTexParameteri);
-HOOK(glTexParameteriv);
-HOOK(glTexSubImage2D);
 HOOK(glUniform1f);
 HOOK(glUniform1fv);
 HOOK(glUniform1i);
@@ -210,7 +300,6 @@ HOOK(glVertexAttrib3fv);
 HOOK(glVertexAttrib4f);
 HOOK(glVertexAttrib4fv);
 HOOK(glVertexAttribPointer);
-HOOK(glViewport);
 #endif /* GL_ES_VERSION_2_0*/
 
 #if GL_ES_VERSION_3_0
@@ -404,7 +493,6 @@ HOOK(glObjectLabel);
 HOOK(glGetObjectLabel);
 HOOK(glObjectPtrLabel);
 HOOK(glGetObjectPtrLabel);
-HOOK(glGetPointerv);
 HOOK(glEnablei);
 HOOK(glDisablei);
 HOOK(glBlendEquationi);
@@ -438,103 +526,15 @@ HOOK(glTexBufferRange);
 HOOK(glTexStorage3DMultisample);
 #endif /* GL_ES_VERSION_3_2*/
 
-#if GL_VERSION_ES_CM_1_0
-HOOK(glAlphaFunc);
-HOOK(glClipPlanef);
-HOOK(glColor4f);
-HOOK(glFogf);
-HOOK(glFogfv);
-HOOK(glFrustumf);
-HOOK(glGetClipPlanef);
-HOOK(glGetLightfv);
-HOOK(glGetMaterialfv);
-HOOK(glGetTexEnvfv);
-HOOK(glLightModelf);
-HOOK(glLightModelfv);
-HOOK(glLightf);
-HOOK(glLightfv);
-HOOK(glLoadMatrixf);
-HOOK(glMaterialf);
-HOOK(glMaterialfv);
-HOOK(glMultMatrixf);
-HOOK(glMultiTexCoord4f);
-HOOK(glNormal3f);
-HOOK(glOrthof);
-HOOK(glPointParameterf);
-HOOK(glPointParameterfv);
-HOOK(glPointSize);
-HOOK(glRotatef);
-HOOK(glScalef);
-HOOK(glTexEnvf);
-HOOK(glTexEnvfv);
-HOOK(glTranslatef);
-HOOK(glAlphaFuncx);
-HOOK(glClearColorx);
-HOOK(glClearDepthx);
-HOOK(glClientActiveTexture);
-HOOK(glClipPlanex);
-HOOK(glColor4ub);
-HOOK(glColor4x);
-HOOK(glColorPointer);
-HOOK(glDepthRangex);
-HOOK(glDisableClientState);
-HOOK(glEnableClientState);
-HOOK(glFogx);
-HOOK(glFogxv);
-HOOK(glFrustumx);
-HOOK(glGetClipPlanex);
-HOOK(glGetFixedv);
-HOOK(glGetLightxv);
-HOOK(glGetMaterialxv);
-HOOK(glGetTexEnviv);
-HOOK(glGetTexEnvxv);
-HOOK(glGetTexParameterxv);
-HOOK(glLightModelx);
-HOOK(glLightModelxv);
-HOOK(glLightx);
-HOOK(glLightxv);
-HOOK(glLineWidthx);
-HOOK(glLoadIdentity);
-HOOK(glLoadMatrixx);
-HOOK(glLogicOp);
-HOOK(glMaterialx);
-HOOK(glMaterialxv);
-HOOK(glMatrixMode);
-HOOK(glMultMatrixx);
-HOOK(glMultiTexCoord4x);
-HOOK(glNormal3x);
-HOOK(glNormalPointer);
-HOOK(glOrthox);
-HOOK(glPointParameterx);
-HOOK(glPointParameterxv);
-HOOK(glPointSizex);
-HOOK(glPolygonOffsetx);
-HOOK(glPopMatrix);
-HOOK(glPushMatrix);
-HOOK(glRotatex);
-HOOK(glSampleCoveragex);
-HOOK(glScalex);
-HOOK(glShadeModel);
-HOOK(glTexCoordPointer);
-HOOK(glTexEnvi);
-HOOK(glTexEnvx);
-HOOK(glTexEnviv);
-HOOK(glTexEnvxv);
-HOOK(glTexParameterx);
-HOOK(glTexParameterxv);
-HOOK(glTranslatex);
-HOOK(glVertexPointer);
-#endif /* GL_VERSION_ES_CM_1_0*/
-
 #if EGL_KHR_cl_event2
 HOOK(eglCreateSync64KHR);
 #endif /* EGL_KHR_cl_event2*/
 
+#if EGL_KHR_client_get_all_proc_addresses
+#endif /* EGL_KHR_client_get_all_proc_addresses*/
+
 #if EGL_KHR_create_context
 #endif /* EGL_KHR_create_context*/
-
-#if EGL_KHR_create_context_no_error
-#endif /* EGL_KHR_create_context_no_error*/
 
 #if EGL_KHR_fence_sync
 HOOK(eglCreateSyncKHR);
@@ -565,9 +565,6 @@ HOOK(eglDestroyImageKHR);
 
 #if EGL_KHR_image_base
 #endif /* EGL_KHR_image_base*/
-
-#if EGL_KHR_image_pixmap
-#endif /* EGL_KHR_image_pixmap*/
 
 #if EGL_KHR_platform_android
 #endif /* EGL_KHR_platform_android*/
@@ -607,8 +604,8 @@ HOOK(glEGLImageTargetRenderbufferStorageOES);
 #if GL_OES_EGL_image_external
 #endif /* GL_OES_EGL_image_external*/
 
-#if GL_OES_EGL_image_external_essl3
-#endif /* GL_OES_EGL_image_external_essl3*/
+#if GL_OES_EGL_sync
+#endif /* GL_OES_EGL_sync*/
 
 #if GL_OES_compressed_ETC1_RGB8_texture
 #endif /* GL_OES_compressed_ETC1_RGB8_texture*/
@@ -619,8 +616,16 @@ HOOK(glEGLImageTargetRenderbufferStorageOES);
 #if GL_OES_depth24
 #endif /* GL_OES_depth24*/
 
-#if GL_OES_depth32
-#endif /* GL_OES_depth32*/
+#if GL_OES_draw_buffers_indexed
+HOOK(glEnableiOES);
+HOOK(glDisableiOES);
+HOOK(glBlendEquationiOES);
+HOOK(glBlendEquationSeparateiOES);
+HOOK(glBlendFunciOES);
+HOOK(glBlendFuncSeparateiOES);
+HOOK(glColorMaskiOES);
+HOOK(glIsEnablediOES);
+#endif /* GL_OES_draw_buffers_indexed*/
 
 #if GL_OES_draw_texture
 HOOK(glDrawTexsOES);
@@ -651,18 +656,21 @@ HOOK(glGetFramebufferAttachmentParameterivOES);
 HOOK(glGenerateMipmapOES);
 #endif /* GL_OES_framebuffer_object*/
 
+#if GL_OES_geometry_point_size
+#endif /* GL_OES_geometry_point_size*/
+
+#if GL_OES_geometry_shader
+HOOK(glFramebufferTextureOES);
+#endif /* GL_OES_geometry_shader*/
+
+#if GL_OES_gpu_shader5
+#endif /* GL_OES_gpu_shader5*/
+
 #if GL_OES_mapbuffer
 HOOK(glMapBufferOES);
 HOOK(glUnmapBufferOES);
 HOOK(glGetBufferPointervOES);
 #endif /* GL_OES_mapbuffer*/
-
-#if GL_OES_matrix_palette
-HOOK(glCurrentPaletteMatrixOES);
-HOOK(glLoadPaletteFromModelViewMatrixOES);
-HOOK(glMatrixIndexPointerOES);
-HOOK(glWeightPointerOES);
-#endif /* GL_OES_matrix_palette*/
 
 #if GL_OES_packed_depth_stencil
 #endif /* GL_OES_packed_depth_stencil*/
@@ -678,20 +686,63 @@ HOOK(glQueryMatrixxOES);
 #if GL_OES_rgb8_rgba8
 #endif /* GL_OES_rgb8_rgba8*/
 
+#if GL_OES_sample_variables
+#endif /* GL_OES_sample_variables*/
+
+#if GL_OES_shader_image_atomic
+#endif /* GL_OES_shader_image_atomic*/
+
+#if GL_OES_shader_io_blocks
+#endif /* GL_OES_shader_io_blocks*/
+
+#if GL_OES_shader_multisample_interpolation
+#endif /* GL_OES_shader_multisample_interpolation*/
+
 #if GL_OES_standard_derivatives
 #endif /* GL_OES_standard_derivatives*/
 
 #if GL_OES_stencil8
 #endif /* GL_OES_stencil8*/
 
+#if GL_OES_stencil_wrap
+#endif /* GL_OES_stencil_wrap*/
+
 #if GL_OES_surfaceless_context
 #endif /* GL_OES_surfaceless_context*/
+
+#if GL_OES_tessellation_point_size
+#endif /* GL_OES_tessellation_point_size*/
+
+#if GL_OES_tessellation_shader
+HOOK(glPatchParameteriOES);
+#endif /* GL_OES_tessellation_shader*/
+
+#if GL_OES_texture_border_clamp
+HOOK(glTexParameterIivOES);
+HOOK(glTexParameterIuivOES);
+HOOK(glGetTexParameterIivOES);
+HOOK(glGetTexParameterIuivOES);
+HOOK(glSamplerParameterIivOES);
+HOOK(glSamplerParameterIuivOES);
+HOOK(glGetSamplerParameterIivOES);
+HOOK(glGetSamplerParameterIuivOES);
+#endif /* GL_OES_texture_border_clamp*/
+
+#if GL_OES_texture_cube_map_array
+#endif /* GL_OES_texture_cube_map_array*/
+
+#if GL_OES_texture_mirrored_repeat
+#endif /* GL_OES_texture_mirrored_repeat*/
 
 #if GL_OES_texture_npot
 #endif /* GL_OES_texture_npot*/
 
 #if GL_OES_texture_stencil8
 #endif /* GL_OES_texture_stencil8*/
+
+#if GL_OES_texture_storage_multisample_2d_array
+HOOK(glTexStorage3DMultisampleOES);
+#endif /* GL_OES_texture_storage_multisample_2d_array*/
 
 #if GL_OES_vertex_array_object
 HOOK(glBindVertexArrayOES);
@@ -760,19 +811,14 @@ HOOK(eglCreatePlatformPixmapSurfaceEXT);
 #if EGL_EXT_platform_x11
 #endif /* EGL_EXT_platform_x11*/
 
-#if GL_BRCM_base_instance
-HOOK(glDrawArraysInstancedBaseInstanceBRCM);
-HOOK(glDrawElementsInstancedBaseInstanceBRCM);
-HOOK(glDrawElementsInstancedBaseVertexBaseInstanceBRCM);
-#endif /* GL_BRCM_base_instance*/
+#if EGL_EXT_protected_content
+#endif /* EGL_EXT_protected_content*/
+
+#if EGL_EXT_protected_surface
+#endif /* EGL_EXT_protected_surface*/
 
 #if GL_BRCM_mirror_once_border
 #endif /* GL_BRCM_mirror_once_border*/
-
-#if GL_BRCM_multi_draw_indirect
-HOOK(glMultiDrawArraysIndirectBRCM);
-HOOK(glMultiDrawElementsIndirectBRCM);
-#endif /* GL_BRCM_multi_draw_indirect*/
 
 #if GL_BRCM_polygon_mode
 HOOK(glPolygonModeBRCM);
@@ -792,6 +838,12 @@ HOOK(glTexImage1DBRCM);
 #if GL_BRCM_texture_norm16
 #endif /* GL_BRCM_texture_norm16*/
 
+#if GL_EXT_base_instance
+HOOK(glDrawArraysInstancedBaseInstanceEXT);
+HOOK(glDrawElementsInstancedBaseInstanceEXT);
+HOOK(glDrawElementsInstancedBaseVertexBaseInstanceEXT);
+#endif /* GL_EXT_base_instance*/
+
 #if GL_EXT_color_buffer_float
 #endif /* GL_EXT_color_buffer_float*/
 
@@ -805,6 +857,17 @@ HOOK(glPopGroupMarkerEXT);
 HOOK(glDiscardFramebufferEXT);
 #endif /* GL_EXT_discard_framebuffer*/
 
+#if GL_EXT_draw_buffers_indexed
+HOOK(glEnableiEXT);
+HOOK(glDisableiEXT);
+HOOK(glBlendEquationiEXT);
+HOOK(glBlendEquationSeparateiEXT);
+HOOK(glBlendFunciEXT);
+HOOK(glBlendFuncSeparateiEXT);
+HOOK(glColorMaskiEXT);
+HOOK(glIsEnablediEXT);
+#endif /* GL_EXT_draw_buffers_indexed*/
+
 #if GL_EXT_draw_elements_base_vertex
 HOOK(glDrawElementsBaseVertexEXT);
 HOOK(glDrawRangeElementsBaseVertexEXT);
@@ -812,10 +875,32 @@ HOOK(glDrawElementsInstancedBaseVertexEXT);
 HOOK(glMultiDrawElementsBaseVertexEXT);
 #endif /* GL_EXT_draw_elements_base_vertex*/
 
+#if GL_EXT_geometry_point_size
+#endif /* GL_EXT_geometry_point_size*/
+
+#if GL_EXT_geometry_shader
+HOOK(glFramebufferTextureEXT);
+#endif /* GL_EXT_geometry_shader*/
+
+#if GL_EXT_gpu_shader5
+#endif /* GL_EXT_gpu_shader5*/
+
+#if GL_EXT_multi_draw_indirect
+HOOK(glMultiDrawArraysIndirectEXT);
+HOOK(glMultiDrawElementsIndirectEXT);
+#endif /* GL_EXT_multi_draw_indirect*/
+
 #if GL_EXT_multisampled_render_to_texture
 HOOK(glRenderbufferStorageMultisampleEXT);
 HOOK(glFramebufferTexture2DMultisampleEXT);
 #endif /* GL_EXT_multisampled_render_to_texture*/
+
+#if GL_EXT_primitive_bounding_box
+HOOK(glPrimitiveBoundingBoxEXT);
+#endif /* GL_EXT_primitive_bounding_box*/
+
+#if GL_EXT_protected_textures
+#endif /* GL_EXT_protected_textures*/
 
 #if GL_EXT_robustness
 HOOK(glGetGraphicsResetStatusEXT);
@@ -824,8 +909,35 @@ HOOK(glGetnUniformfvEXT);
 HOOK(glGetnUniformivEXT);
 #endif /* GL_EXT_robustness*/
 
+#if GL_EXT_shader_integer_mix
+#endif /* GL_EXT_shader_integer_mix*/
+
+#if GL_EXT_shader_io_blocks
+#endif /* GL_EXT_shader_io_blocks*/
+
 #if GL_EXT_shader_texture_lod
 #endif /* GL_EXT_shader_texture_lod*/
+
+#if GL_EXT_tessellation_point_size
+#endif /* GL_EXT_tessellation_point_size*/
+
+#if GL_EXT_tessellation_shader
+HOOK(glPatchParameteriEXT);
+#endif /* GL_EXT_tessellation_shader*/
+
+#if GL_EXT_texture_border_clamp
+HOOK(glTexParameterIivEXT);
+HOOK(glTexParameterIuivEXT);
+HOOK(glGetTexParameterIivEXT);
+HOOK(glGetTexParameterIuivEXT);
+HOOK(glSamplerParameterIivEXT);
+HOOK(glSamplerParameterIuivEXT);
+HOOK(glGetSamplerParameterIivEXT);
+HOOK(glGetSamplerParameterIuivEXT);
+#endif /* GL_EXT_texture_border_clamp*/
+
+#if GL_EXT_texture_cube_map_array
+#endif /* GL_EXT_texture_cube_map_array*/
 
 #if GL_EXT_texture_filter_anisotropic
 #endif /* GL_EXT_texture_filter_anisotropic*/

@@ -101,6 +101,9 @@ upon the chip usage. See below */
 #define NEXUS_NUM_FRONTEND_CARD_SLOTS 1
 #endif
 
+#ifdef NEXUS_USE_7252S_GW
+#define NEXUS_MAX_FRONTENDS 9
+#endif
 
 #define NEXUS_MAX_3255_ADSCHN 8
 #define NEXUS_3255_OOB_TUNER_IFFREQ (1250000)/* 1.25 MHz */
@@ -148,7 +151,6 @@ upon the chip usage. See below */
 #define NEXUS_MEMC1_SECURE_GRAPHICS_HEAP 13
 #define NEXUS_EXPORT_HEAP 14
 
-#define NEXUS_PLATFORM_P_GET_FRAMEBUFFER_HEAP_INDEX 1
 
 #define NEXUS_AVS_MONITOR           0
 

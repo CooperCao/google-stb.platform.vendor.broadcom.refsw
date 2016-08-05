@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2014 Broadcom Corporation
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  **************************************************************************/
 #ifndef NEXUS_RECPUMP_H__
@@ -99,13 +91,14 @@ substruct for NEXUS_RecpumpOpenSettings
 **/
 typedef struct NEXUS_RecpumpOpenFlowSettings
 {
-    NEXUS_HeapHandle heap; /* Optional heap for fifo allocation. If server has memory mapping, it will flush before GetBuffer; if no mapping, client app is responsible to flush after GetBuffer. */
+    NEXUS_HeapHandle heap; /* Optional heap for fifo allocation. If server has memory mapping, it will flush before GetBuffer; if no mapping,
+                              client app is responsible to flush after GetBuffer. */
     void *buffer;          /* attr{memory=cached} optional user-allocated buffer */
     size_t bufferSize;     /* Size of record buffer that recpump will allocate or that buffer points to, in bytes. */
     unsigned alignment;    /* Alignment of record buffer that recpump will allocate, in powers of 2 (i.e. 4 would be 2^4, or 16 byte aligned).
                               Default is 12, which is 4K alignment. */
-    unsigned dataReadyThreshold; /* Threshold in bytes. The NEXUS_RecpumpSettings dataReady callback will be fired when pending data exceeds this threshold. Default is 20% of bufferSize.
-                                    A low number will produce more frequent dataReady callbacks.
+    unsigned dataReadyThreshold; /* Threshold in bytes. The NEXUS_RecpumpSettings dataReady callback will be fired when pending data exceeds this threshold.
+                                    Default is 20% of bufferSize. A low number will produce more frequent dataReady callbacks.
                                     A high number puts the system at risk for overflow.
                                     If you are also specifying an atomSize, we recommend that dataReadyThreshold be a multiple of atomSize for efficiency. */
     unsigned atomSize;  /* Optional atomSize. If the caller specifies atomSize, and always consumes data in multiples of atomSize, then Recpump can guarantee
@@ -205,16 +198,16 @@ typedef struct NEXUS_RecpumpSettings
     {
         size_t useBufferSize;         /* Limit the size of NEXUS_RecpumpOpenSettings.data.bufferSize at runtime.
                                          This currently only applies to data, not index.
-                                         The user can repurpose memory at the end of the recpump buffer if useBufferSize < bufferSize. See NEXUS_RecpumpStatus.data.bufferBase.
-                                         If 0 (default), the whole bufferSize will be used. */
+                                         The user can repurpose memory at the end of the recpump buffer if useBufferSize < bufferSize.
+                                         See NEXUS_RecpumpStatus.data.bufferBase. If 0 (default), the whole bufferSize will be used. */
         NEXUS_CallbackDesc dataReady; /* data.dataReady is required. index.dataReady is not required but is typically used for non-polling record.
                                          A data or index dataReady callback is fired in these cases:
                                          1) in response to a XPT or DMA interrupt if the amount of data in the buffer exceeds exceeds the dataReadyThreshold
                                          2) at the end of a ReadComplete call if the data in the buffer exceeds the dataReadyThreshold
                                          3) at wrap-around regardless of buffer level
                                          If you receive a dataReady callback and do not call ReadComplete, no additional callback will be fired.
-                                         Your app should not do synchronous I/O in a dataReady callback. Instead, you should schedule asynchronous I/O (either by using an
-                                         async file I/O system call or by notifying another thread to start the I/O). */
+                                         Your app should not do synchronous I/O in a dataReady callback. Instead, you should schedule asynchronous I/O
+                                         (either by using an async file I/O system call or by notifying another thread to start the I/O). */
         NEXUS_CallbackDesc overflow;  /* Notification when data is dropped because there is no room in the buffer.
                                          Under normal circumstances, this should never occur. If it does, please analyze your overall system
                                          performance including I/O performance, interrupt response time and CPU load. */
@@ -339,7 +332,8 @@ bitfield must match in order to have an index generated.
 **/
 typedef struct NEXUS_RecpumpTpitFilter
 {
-    unsigned pid;               /* The PID to build TPIT entries for. Nexus will set this automatically if not allPass. This is included only to make the structure a passthrough to the lower-level SW. */
+    unsigned pid;               /* The PID to build TPIT entries for. Nexus will set this automatically if not allPass. This is included only to make the structure a
+                                   passthrough to the lower-level SW. */
     bool corruptionEnable;      /* Corrupt packet if it matches the filter criterion below. Disabled by default */
     bool mpegMode;              /* Set true for TS, false for DSS. This is used for the config structure. */
 
@@ -351,10 +345,12 @@ typedef struct NEXUS_RecpumpTpitFilter
 
             bool sectionFilterEn;
 
-            bool adaptationExtensionFlagEnable;         /* Store an index table entry if this bit is set and the adaptation_field_extension_flag matches the corresponding compare value. */
+            bool adaptationExtensionFlagEnable;         /* Store an index table entry if this bit is set and the adaptation_field_extension_flag matches the
+                                                           corresponding compare value. */
             bool adaptationExtensionFlagCompValue;      /* The value to compare adaptation_field_extension_flag with. */
 
-            bool privateDataFlagEnable;                 /* Store an index table entry if this bit is set and the transport_private_data_flag matches the corresponding compare value. */
+            bool privateDataFlagEnable;                 /* Store an index table entry if this bit is set and the transport_private_data_flag matches the
+                                                           corresponding compare value. */
             bool privateDataFlagCompValue;              /* The value to compare transport_private_data_flag with. */
 
             bool splicingPointFlagEnable;               /* Store an index table entry if this bit is set and the splicing_point_flag matches SplicingPointFlagCompValue */
@@ -366,13 +362,16 @@ typedef struct NEXUS_RecpumpTpitFilter
             bool pcrFlagEnable;                         /* Store an index table entry if this bit is set and the PCR_flag matches the corresponding compare value */
             bool pcrFlagCompValue;                      /* The value to compare PCR_flag with. */
 
-            bool esPriorityIndicatorEnable;             /* Store an index table entry if this bit is set and the elementary_stream_priority_indicator matches the corresponding compare value */
+            bool esPriorityIndicatorEnable;             /* Store an index table entry if this bit is set and the elementary_stream_priority_indicator matches the
+                                                           corresponding compare value */
             bool esPriorityIndicatorCompValue;          /* The value to compare elementary_stream_priority_indicator with. */
 
-            bool randomAccessIndicatorEnable;           /* Store an index table entry if this bit is set and the random_access_indicator matches the corresponding compare value */
+            bool randomAccessIndicatorEnable;           /* Store an index table entry if this bit is set and the random_access_indicator matches the
+                                                           corresponding compare value */
             bool randomAccessIndicatorCompValue;        /* The value to compare random_access_indicator with. */
 
-            bool discontinuityIndicatorEnable;          /* Store an index table entry if this bit is set and the discontinuity_indicator matches the corresponding compare value */
+            bool discontinuityIndicatorEnable;          /* Store an index table entry if this bit is set and the discontinuity_indicator matches the
+                                                           corresponding compare value */
             bool discontinuityIndicatorCompValue;       /* The value to compare discontinuity_indicator with. */
 
             bool adaptationFieldChangeEnable;           /* Store an index table entry if a change is detected in the adaptation field control field (enable only) */
@@ -382,7 +381,8 @@ typedef struct NEXUS_RecpumpTpitFilter
             bool transportPriorityEnable;               /* Store an index table entry if this bit is set and the transport_priority matches the corresponding compare value */
             bool transportPriorityCompValue;            /* The value to compare transport_priority with. */
 
-            bool payloadUnitStartEnable;                /* Store an index table entry if this bit is set and the payload_unit_start_indicator matches the corresponding compare value */
+            bool payloadUnitStartEnable;                /* Store an index table entry if this bit is set and the payload_unit_start_indicator matches the
+                                                           corresponding compare value */
             bool payloadUnitStartCompValue;             /* The value to compare payload_unit_start_indicator with. */
         } mpeg;
 
@@ -398,15 +398,17 @@ typedef struct NEXUS_RecpumpTpitFilter
             bool rtsDetEn;          /* Store an index table entry if a valid RTS is contained in the packet (enable only) */
 
             bool cffEn;             /* Store an index table entry if this bit is set and the current field flag matches the corresponding compare value */
-            bool cffComp;           /* The current field flag must match this value if the corresponding enable bit is set in order for an index table entry to be made */
+            bool cffComp;           /* The current field flag must match this value if the corresponding enable bit is set in order for an
+                                       index table entry to be made */
 
             bool mfEn;              /* Store an index table entry if this bit is set and the modifiable flag matches the corresponding compare value */
-            bool mfComp;            /* The modifiable flag must match this value if the corresponding enable bit is set in order for an index table entry to be made */
+            bool mfComp;            /* The modifiable flag must match this value if the corresponding enable bit is set in order for an
+                                       index table entry to be made */
 
             bool hdEn;              /* Store an index table entry for any bit set in this field and the respective compare bit matches the
                                         respective header designator bit (only for valid HD i.e. unencrypted packets) */
-            uint8_t hdMask;         /* The header designator bits must bitwise match this value if the corresponding enable bit is set in order for an index table entry to be made.
-                                        (only for valid HD i.e. unencrypted packets) */
+            uint8_t hdMask;         /* The header designator bits must bitwise match this value if the corresponding enable bit is set in order for an
+                                       index table entry to be made. (only for valid HD i.e. unencrypted packets) */
 
             bool csAuxChangeEn;     /* Store an index table entry if a change is detected in the control sync for CWP packets (enable only) */
 
@@ -415,7 +417,8 @@ typedef struct NEXUS_RecpumpTpitFilter
             bool cfChangeEn;        /* Store an index table entry if a change is detected in the control flag for content (non AUX)packets (enable only) */
 
             bool bbEn;              /* Store an index table entry if this bit is set and the bundle boundary matches the corresponding compare value */
-            bool bbComp;            /* The bundle boundary must match this value if the corresponding enable bit is set in order for an index table entry to be made */
+            bool bbComp;            /* The bundle boundary must match this value if the corresponding enable bit is set in order for an
+                                       index table entry to be made */
         } dss;
     } config;
 } NEXUS_RecpumpTpitFilter;
@@ -435,8 +438,8 @@ typedef struct NEXUS_RecpumpAddPidChannelSettings
         {
             bool index;                  /* index this video pid. You can only index one video pid. */
             NEXUS_VideoCodec codec;      /* only needed if index is true */
-            uint16_t pid;                /* index using pid value, not pid channel. if pid==0x1fff (default) then generate index using the pid channel, not this pid value.
-                                            This is needed for indexing an allpass pid channel */
+            uint16_t pid;                /* index using pid value, not pid channel. if pid==0x1fff (default) then generate index
+                                            using the pid channel, not this pid value. This is needed for indexing an allpass pid channel */
         } video; /* settings for pidType == NEXUS_PidType_eVideo */
         struct
         {

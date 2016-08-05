@@ -11,6 +11,15 @@ void MakeFence(BEGL_SchedInterface *schedIface, int *fence)
       schedIface->MakeFence(schedIface->context, fence);
 }
 
+int KeepFence(BEGL_SchedInterface *schedIface, int fence)
+{
+   if (fence < 0)
+      return fence;
+
+   return (schedIface != NULL && schedIface->KeepFence != NULL) ?
+      schedIface->KeepFence(schedIface->context, fence) : -1;
+}
+
 void SignalFence(BEGL_SchedInterface *schedIface, int fence)
 {
    if (fence < 0)

@@ -138,11 +138,15 @@ typedef struct
     NEXUS_Error (*init)(const NEXUS_GpioModuleOsSharedBankInitSettings * pSettings); /* initializes os gpio bank sharing */
     void (*getCapabilities)(NEXUS_GpioModuleOsSharedBankCapabilities * caps); /* returns the capabilities of the os gpio bank sharing module */
     NEXUS_Error (*getInterruptStatus_isr)(NEXUS_GpioModuleOsSharedBankInterruptStatus * pStatus); /* returns the interrupt status of all os-shared gpio banks */
-    NEXUS_GpioModuleOsSharedBankPinHandle (*openPin)(const NEXUS_GpioModuleOsSharedBankPinOpenSettings * pSettings); /* opens a pin in an os-shared gpio bank, this implicitly tells the OS that nexus owns this pin */
-    void (*closePin)(NEXUS_GpioModuleOsSharedBankPinHandle pin); /* closes a pin in an os-shared gpio bank, but does not release the pin from nexus ownership. Release of nexus ownership occurs once the driver is removed */
+    NEXUS_GpioModuleOsSharedBankPinHandle (*openPin)(const NEXUS_GpioModuleOsSharedBankPinOpenSettings * pSettings); /* opens a pin in an os-shared gpio bank,
+        this implicitly tells the OS that nexus owns this pin */
+    void (*closePin)(NEXUS_GpioModuleOsSharedBankPinHandle pin); /* closes a pin in an os-shared gpio bank, but does not release the pin from nexus ownership.
+        Release of nexus ownership occurs once the driver is removed */
     NEXUS_Error (*clearPinInterrupt_isr)(NEXUS_GpioModuleOsSharedBankPinHandle pin); /* clears the interrupt status for a given pin in an os-shared gpio bank */
-    NEXUS_Error (*setPinInterruptMask_isr)(NEXUS_GpioModuleOsSharedBankPinHandle pin, bool disable); /* enables/disables the interrupt mask for a given pin in an os-shared gpio bank */
-    NEXUS_Error (*setStandby)(NEXUS_GpioModuleOsSharedBankPinHandle pin, bool enable); /* enables/disables standby mode for a given pin in an os-shared gpio bank. If the pin is an input with its interrupt enabled, it will act as a wakeup source */
+    NEXUS_Error (*setPinInterruptMask_isr)(NEXUS_GpioModuleOsSharedBankPinHandle pin, bool disable); /* enables/disables the interrupt mask for a given pin in
+        an os-shared gpio bank */
+    NEXUS_Error (*setStandby)(NEXUS_GpioModuleOsSharedBankPinHandle pin, bool enable); /* enables/disables standby mode for a given pin in an os-shared gpio
+        bank. If the pin is an input with its interrupt enabled, it will act as a wakeup source */
 } NEXUS_GpioModuleOsSharedBankSettings;
 
 /**

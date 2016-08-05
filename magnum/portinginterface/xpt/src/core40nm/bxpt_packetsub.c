@@ -1,43 +1,39 @@
 /******************************************************************************
- * (c) 2003-2015 Broadcom Corporation
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *****************************************************************************/
 
 
@@ -406,8 +402,8 @@ BERR_Code BXPT_PacketSub_SetOutputRate(
 
     if( OutputRate > BXPT_P_MAX_PSUB_OUTPUT_RATE )
     {
-        BDBG_ERR(( "OutputRate %lu is out of range! Clamped to %lu",
-            ( unsigned long ) OutputRate, BXPT_P_MAX_PSUB_OUTPUT_RATE ));
+        BDBG_ERR(( "OutputRate %u is out of range! Clamped to %u",
+            OutputRate, BXPT_P_MAX_PSUB_OUTPUT_RATE ));
         NewRate = 65535;    /* Max value this bitfield can hold */
         ExitCode = BERR_TRACE( BERR_INVALID_PARAMETER );
     }
@@ -782,12 +778,12 @@ BERR_Code BXPT_PacketSub_StartChannel(
 
     BDBG_ASSERT( hPSub );
 
-    BDBG_MSG(( "Starting Packet Sub channel %d", ( unsigned long ) hPSub->ChannelNo ));
+    BDBG_MSG(( "Starting Packet Sub channel %u", hPSub->ChannelNo ));
 
     if( hPSub->Running == true )
     {
-        BDBG_ERR(( "Packet Sub channel %d cannot be started because it's already running!",
-            ( unsigned long ) hPSub->ChannelNo ));
+        BDBG_ERR(( "Packet Sub channel %u cannot be started because it's already running!",
+            hPSub->ChannelNo ));
         ExitCode = BERR_TRACE( BXPT_ERR_CHANNEL_ALREADY_RUNNING );
     }
 
@@ -826,12 +822,12 @@ BERR_Code BXPT_PacketSub_StopChannel(
 
     BDBG_ASSERT( hPSub );
 
-    BDBG_MSG(( "Stopping Packet Sub channel %d", ( unsigned long ) hPSub->ChannelNo ));
+    BDBG_MSG(( "Stopping Packet Sub channel %u", hPSub->ChannelNo ));
 
     if( hPSub->Running == false )
     {
-        BDBG_ERR(( "Packet Sub channel %d cannot be stopped because it's not running!",
-            ( unsigned long ) hPSub->ChannelNo ));
+        BDBG_ERR(( "Packet Sub channel %u cannot be stopped because it's not running!",
+            hPSub->ChannelNo ));
         ExitCode = BERR_TRACE( BXPT_ERR_CHANNEL_ALREADY_STOPPED );
     }
 
@@ -856,8 +852,8 @@ BERR_Code BXPT_PacketSub_StopChannel(
             WaitCount--;
             if( !WaitCount )
             {
-                BDBG_ERR(("Busy is still set when Packet Sub chan %d has been stopped!",
-                    ( unsigned long ) hPSub->ChannelNo ));
+                BDBG_ERR(("Busy is still set when Packet Sub chan %u has been stopped!",
+                    hPSub->ChannelNo ));
                 return BERR_TRACE( BERR_TIMEOUT );
             }
 

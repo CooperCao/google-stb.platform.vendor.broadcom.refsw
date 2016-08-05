@@ -424,7 +424,7 @@ int main(int argc, const char **argv)
         /* index-only requires allpass because stream is unfiltered */
         NEXUS_PlaybackPidChannelSettings pidCfg0;
         NEXUS_Playback_GetDefaultPidChannelSettings(&pidCfg0);
-        NEXUS_Playpump_GetAllPassPidChannelIndex(playback.playpump, (unsigned *)&pidCfg0.pidSettings.pidSettings.pidChannelIndex);
+        NEXUS_Playpump_GetAllPassPidChannelIndex(playback.playpump, &pidCfg0.pidSettings.pidSettings.pidChannelIndex);
         pidChannel[total_pids] = NEXUS_Playback_OpenPidChannel(playback.playback, 0x0, &pidCfg0);
         if (pidChannel[total_pids]) {
             NEXUS_Record_GetDefaultPidChannelSettings(&pidSettings);

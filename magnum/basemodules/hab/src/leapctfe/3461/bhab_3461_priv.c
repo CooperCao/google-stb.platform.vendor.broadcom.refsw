@@ -683,9 +683,6 @@ BERR_Code BHAB_3461_WriteMemory(BHAB_Handle handle, uint32_t addr, const uint8_t
                 case 3:
                     writebuf[1] = CSR_RBUS_DATA3;
                     break;
-                default:
-                    writebuf[1] = CSR_RBUS_DATA0;
-                  break;
             }
 
             for(k=0; k<bytes_left; k++)

@@ -65,6 +65,9 @@ SECTIONS
     . = ALIGN(4096); /* align to page size */
     _bss_end = .;
 
+    _initramfs_start = .;
+    _initramfs_end = .;
+
     _kernel_img_end = .;
 
     _end = .;

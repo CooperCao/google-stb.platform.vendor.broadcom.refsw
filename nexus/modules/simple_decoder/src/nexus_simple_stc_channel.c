@@ -61,7 +61,7 @@ static NEXUS_Error NEXUS_SimpleStcChannel_P_SetSettings(NEXUS_SimpleStcChannelHa
 typedef struct NEXUS_AudioInputQueueEntry
 {
     BLST_Q_ENTRY(NEXUS_AudioInputQueueEntry) link;
-    NEXUS_AudioInput audioInput;
+    NEXUS_AudioInputHandle audioInput;
 } NEXUS_AudioInputQueueEntry;
 #endif
 
@@ -102,6 +102,7 @@ struct NEXUS_SimpleStcChannel
         BLST_Q_HEAD(NEXUS_ConnectedAudioInputQueue, NEXUS_AudioInputQueueEntry) connectedAudioInputs;
     } sync;
 #endif
+    NEXUS_TimebaseHandle timebase; /* internally allocated timebase for high jitter */
 };
 
 static NEXUS_SimpleStcChannelSettings g_default_settings;
@@ -120,9 +121,21 @@ void NEXUS_SimpleStcChannel_GetDefaultSettings( NEXUS_SimpleStcChannelSettings *
         g_default_settings.modeSettings.Auto = s.modeSettings.Auto;
         g_default_settings.modeSettings.host = s.modeSettings.host;
         g_default_settings.sync = NEXUS_SimpleStcChannelSyncMode_eDefaultAdjustmentConcealment;
+        g_default_settings.timebase = NEXUS_Timebase_eInvalid;
         set = true;
     }
     *pSettings = g_default_settings;
+}
+
+static struct {
+    NEXUS_AstmSettings settings;
+    bool set;
+} g_NEXUS_defaultAstmSettings;
+
+void NEXUS_SimpleStcChannel_SetDefaultAstmSettings_priv( const NEXUS_AstmSettings *pSettings )
+{
+    g_NEXUS_defaultAstmSettings.settings = *pSettings;
+    g_NEXUS_defaultAstmSettings.set = true;
 }
 
 #if NEXUS_HAS_ASTM
@@ -163,7 +176,11 @@ static void create_astm(NEXUS_SimpleStcChannelHandle handle)
     /* disabled by default */
     handle->astm.enabled = false;
 
-    NEXUS_Astm_GetDefaultSettings(&settings);
+    if (!g_NEXUS_defaultAstmSettings.set) {
+        NEXUS_Astm_GetDefaultSettings(&g_NEXUS_defaultAstmSettings.settings);
+        g_NEXUS_defaultAstmSettings.set = true;
+    }
+    settings = g_NEXUS_defaultAstmSettings.settings;
     settings.enableAutomaticLifecycleControl = true;
     settings.enabled = handle->astm.enabled;
     handle->astm.handle = NEXUS_Astm_Create(&settings);
@@ -223,6 +240,8 @@ static void destroy_astm(NEXUS_SimpleStcChannelHandle handle)
         BKNI_Free(pEntry);
     }
 }
+#else
+#define set_astm_stc(handle, stcChannel)
 #endif
 
 #if NEXUS_HAS_SYNC_CHANNEL
@@ -316,6 +335,11 @@ static void destroy_sync(NEXUS_SimpleStcChannelHandle handle)
 }
 #endif
 
+static bool timebaseIsHandle(NEXUS_Timebase timebase)
+{
+     return timebase > NEXUS_Timebase_eMax && timebase != NEXUS_Timebase_eInvalid;
+}
+
 static NEXUS_Error validateSettings(const NEXUS_SimpleStcChannelSettings *pSettings)
 {
     if (pSettings->mode == NEXUS_StcChannelMode_ePcr) {
@@ -325,6 +349,10 @@ static NEXUS_Error validateSettings(const NEXUS_SimpleStcChannelSettings *pSetti
     }
     else if (pSettings->modeSettings.pcr.pidChannel) {
         /* don't fail. it will be unused, so we don't ACQUIRE/RELEASE either. */
+    }
+    if ((pSettings->timebase != NEXUS_Timebase_eInvalid) && !timebaseIsHandle(pSettings->timebase)) {
+        /* if set, must be a handle, not an enum */
+        return BERR_TRACE(NEXUS_INVALID_PARAMETER);
     }
     return 0;
 }
@@ -353,6 +381,15 @@ static void doSettingsAccounting(NEXUS_SimpleStcChannelHandle handle, const NEXU
         }
         if (acq) {
             NEXUS_OBJECT_ACQUIRE(handle, NEXUS_PidChannel, acq);
+        }
+    }
+
+    if (pSettings && pSettings->timebase != handle->settings.timebase) {
+        if (timebaseIsHandle(handle->settings.timebase)) {
+            NEXUS_OBJECT_RELEASE(handle, NEXUS_Timebase, (NEXUS_TimebaseHandle)handle->settings.timebase);
+        }
+        if (timebaseIsHandle(pSettings->timebase)) {
+            NEXUS_OBJECT_ACQUIRE(handle, NEXUS_Timebase, (NEXUS_TimebaseHandle)pSettings->timebase);
         }
     }
 }
@@ -414,6 +451,7 @@ static void NEXUS_SimpleStcChannel_P_Finalizer( NEXUS_SimpleStcChannelHandle han
     /* ensure RELEASE is called */
     NEXUS_SimpleStcChannel_GetDefaultSettings(&settings);
     NEXUS_SimpleStcChannel_SetSettings(handle, &settings);
+    BDBG_ASSERT(!handle->timebase);
 
 #if NEXUS_HAS_SYNC_CHANNEL
     destroy_sync(handle);
@@ -444,19 +482,6 @@ void NEXUS_SimpleStcChannel_GetSettings( NEXUS_SimpleStcChannelHandle handle, NE
     NEXUS_OBJECT_ASSERT(NEXUS_SimpleStcChannel, handle);
     *pSettings = handle->settings;
 }
-
-#if 0
-/* commenting this out as we think default timese settings should be like this only: free-running */
-/* TODO: take this code out once we verify the above assumption */
-static void configureOutputTimebase(NEXUS_Timebase outputTimebase, NEXUS_TimebaseSettings *timebaseSettings)
-{
-    /* configure timebase to free-run */
-    timebaseSettings->sourceType = NEXUS_TimebaseSourceType_eFreeRun;
-    timebaseSettings->freeze = true;
-    timebaseSettings->sourceSettings.pcr.trackRange = NEXUS_TimebaseTrackRange_e61ppm;
-    BDBG_MSG(("Configured timebase %d for free-run", outputTimebase));
-}
-#endif
 
 static void configureHighJitterTimebase(NEXUS_Timebase highJitterTimebase, const NEXUS_SimpleStcChannelSettings *pSettings, NEXUS_TimebaseSettings *timebaseSettings)
 {
@@ -489,6 +514,7 @@ static void configureHighJitterStc(NEXUS_Timebase highJitterTimebase, const NEXU
     BDBG_MSG(("Configured stcChannel for highJtter value of %d msec", pSettings->modeSettings.highJitter.threshold));
 }
 
+#if !BDBG_NO_MSG
 static void printTimebaseSettings(NEXUS_Timebase timebase)
 {
     NEXUS_TimebaseSettings timebaseSettings;
@@ -523,7 +549,10 @@ static void printStcChannelSettings(NEXUS_SimpleStcChannelHandle handle)
                     ));
     }
 }
-
+#else
+#define printTimebaseSettings(timebase)
+#define printStcChannelSettings(handle)
+#endif
 
 static NEXUS_Error NEXUS_SimpleStcChannel_P_GetEncoderTimebase(NEXUS_SimpleStcChannelHandle handle, NEXUS_Timebase *pTimebase)
 {
@@ -546,16 +575,47 @@ static NEXUS_Error NEXUS_SimpleStcChannel_P_GetEncoderTimebase(NEXUS_SimpleStcCh
     return -1; /* not an error */
 }
 
+static NEXUS_Error nexus_stc_channel_p_open_timebase(NEXUS_SimpleStcChannelHandle handle, NEXUS_Timebase *pTimebase)
+{
+    if (!handle->timebase) {
+        handle->timebase = (NEXUS_TimebaseHandle)NEXUS_Timebase_Open(NEXUS_ANY_ID);
+        if (!handle->timebase) return BERR_TRACE(NEXUS_NOT_AVAILABLE);
+    }
+    *pTimebase = (NEXUS_Timebase)handle->timebase;
+    return NEXUS_SUCCESS;
+}
+
+static void nexus_stc_channel_p_close_unused_timebase(NEXUS_SimpleStcChannelHandle handle)
+{
+    NEXUS_StcChannelSettings settings;
+    NEXUS_Timebase t;
+    if (!handle->timebase) return;
+    t = (NEXUS_Timebase)handle->timebase;
+    if (handle->stcChannel) {
+        NEXUS_StcChannel_GetSettings(handle->stcChannel, &settings);
+        if (settings.timebase == t) return;
+    }
+    if (handle->stcChannelAudio) {
+        NEXUS_StcChannel_GetSettings(handle->stcChannelAudio, &settings);
+        if (settings.timebase == t) return;
+    }
+    /* timebase is unused, so close it */
+    NEXUS_Timebase_Close(t);
+    handle->timebase = NULL;
+}
+
 static NEXUS_Error NEXUS_SimpleStcChannel_P_SetSettings(NEXUS_SimpleStcChannelHandle handle, NEXUS_StcChannelHandle stcChannel, const NEXUS_SimpleStcChannelSettings *pSettings)
 {
     NEXUS_StcChannelSettings settings;
     NEXUS_TimebaseSettings timebaseSettings;
     int rc;
     NEXUS_Timebase releaseTimebase = NEXUS_Timebase_eInvalid;
-    bool manualTimebaseConfig = false;
+    bool manualTimebaseConfig = false; /* this means SimpleStcChannel will do the "auto config" */
+    NEXUS_SimpleStcChannelDecoderStatus videoStatus;
 
     NEXUS_StcChannel_GetSettings(stcChannel, &settings);
-    if (!settings.autoConfigTimebase) {
+    /* TODO: reconsider releaseTimebase */
+    if (!settings.autoConfigTimebase && settings.timebase != handle->settings.timebase) {
         /* if the last setting was manual, we need to unhook any pcr pid channel that was connected */
         releaseTimebase = settings.timebase;
     }
@@ -566,18 +626,26 @@ static NEXUS_Error NEXUS_SimpleStcChannel_P_SetSettings(NEXUS_SimpleStcChannelHa
     settings.modeSettings.host = pSettings->modeSettings.host;
     settings.underflowHandling = pSettings->underflowHandling;
 
+    if (handle->settings.timebase != NEXUS_Timebase_eInvalid) {
+        /* user-supplied timebase */
+        settings.timebase = handle->settings.timebase;
+        settings.autoConfigTimebase = false;
+        /* manualTimebaseConfig must be false; user will set timebase settings. */
+        goto set_settings;
+    }
+
     if (!NEXUS_SimpleStcChannel_P_GetEncoderTimebase(handle, &settings.timebase)) {
         settings.mode = NEXUS_StcChannelMode_eAuto;
-        /* TODO: do we or don't we want to autoConfig for this timebase? */
+        settings.autoConfigTimebase = false;
         goto set_settings;
     }
 
     if (handle->video) {
-        NEXUS_SimpleStcChannelDecoderStatus videoStatus;
         NEXUS_SimpleVideoDecoder_GetStcStatus_priv(handle->video, &videoStatus);
         if (videoStatus.hdDviInput) {
             NEXUS_Timebase_GetSettings(settings.timebase, &timebaseSettings);
             timebaseSettings.sourceType = NEXUS_TimebaseSourceType_eHdDviIn;
+            settings.autoConfigTimebase = false;
             manualTimebaseConfig = true;
             goto set_settings;
         }
@@ -588,32 +656,31 @@ static NEXUS_Error NEXUS_SimpleStcChannel_P_SetSettings(NEXUS_SimpleStcChannelHa
         case NEXUS_StcChannelMode_eAuto:
             /* DVR is freerun, so timebase is a don't care */
             settings.timebase = NEXUS_Timebase_eInvalid;
-            /*
-             * TODO: I think we don't want to autoconfig the default timebase,
-             * but this just leaves it sticky from previous config
-             */
+            settings.autoConfigTimebase = false;
             break;
         case NEXUS_StcChannelMode_ePcr:
             /* manage timebase through system-wide settings, not individual client control */
             switch (pSettings->modeSettings.highJitter.mode) {
                 case NEXUS_SimpleStcChannelHighJitterMode_eNone:
-                    /* no jitter on PCRs, so use same timebase for both AV decoders and display/audio outputs */
-                    settings.timebase = NEXUS_Timebase_e0 + settings.stcIndex;
-                    /* we want to auto config timebase for no-jitter pcr tracking */
+                    /* if no jitter on PCRs, allow main window live decode to drive timebase0, which is used for display/audio outputs */
+                    if (handle->video && videoStatus.mainWindow) {
+                        settings.timebase = NEXUS_Timebase_e0;
+                    }
+                    else {
+                        rc = nexus_stc_channel_p_open_timebase(handle, &settings.timebase);
+                        if (rc) return BERR_TRACE(rc);
+                    }
+                    /* This is the only case for StcChannel autoConfigTimebase. It will do PCR clock recovery. */
                     settings.autoConfigTimebase = true;
                     break;
                 case NEXUS_SimpleStcChannelHighJitterMode_eDirect:
-                    /* jittered PCR packets are directly fed to transport,
-                       so we can't use jittered timebase for display/audio outputs.
-                       We use different timebase from display and audio outputs
-                       NEXUS_NUM_VIDEO_WINDOWS is 2 for PIP systems, 1 for non-PIP systems.
-                       So, for PIP systems, high jitter timebase is 2 and 3; for non-PIP, high jitter timebase is 1. */
                     if (pSettings->modeSettings.highJitter.threshold == 0) {
                         BDBG_ERR(("NEXUS SimpleStcChannelHighJitterMode_eDirect requires caller to specify non-zero highJitterThreshold"));
                         return NEXUS_INVALID_PARAMETER;
                     }
-                    /* select the highJitter timebase */
-                    settings.timebase = NEXUS_Timebase_e0 + NEXUS_NUM_VIDEO_WINDOWS + settings.stcIndex;
+                    /* must alloc a timebase for high jitter, different from timebase0 which is used for display and audio outputs */
+                    rc = nexus_stc_channel_p_open_timebase(handle, &settings.timebase);
+                    if (rc) return BERR_TRACE(rc);
                     /* manually configure this timebase */
                     NEXUS_Timebase_GetSettings(settings.timebase, &timebaseSettings);
                     configureHighJitterTimebase(settings.timebase, pSettings, &timebaseSettings);
@@ -647,9 +714,11 @@ set_settings:
         /* and this unconfigures the old timebase we manually configured last time -- if different */
         NEXUS_Timebase_GetSettings(releaseTimebase, &timebaseSettings);
         timebaseSettings.sourceType = NEXUS_TimebaseSourceType_eFreeRun;
-        NEXUS_Timebase_SetSettings(releaseTimebase, &timebaseSettings);
+        rc = NEXUS_Timebase_SetSettings(releaseTimebase, &timebaseSettings);
+        if (rc) return BERR_TRACE(rc);
     }
     printTimebaseSettings(settings.timebase);
+    nexus_stc_channel_p_close_unused_timebase(handle);
     return 0;
 }
 
@@ -662,24 +731,24 @@ NEXUS_Error NEXUS_SimpleStcChannel_SetSettings( NEXUS_SimpleStcChannelHandle han
     if (rc) return BERR_TRACE(rc);
 
     if (handle->stcChannel) {
-#if NEXUS_HAS_ASTM
         /* must disconnect from astm first, due to potential of losing timebase
          * or switching user stc modes
          */
         set_astm_stc(handle, NULL);
-#endif
         rc = NEXUS_SimpleStcChannel_P_SetSettings(handle, handle->stcChannel, pSettings);
         if (rc) return BERR_TRACE(rc);
-#if NEXUS_HAS_ASTM
         /* must reconnect to astm again */
         set_astm_stc(handle, handle->stcChannel);
-#endif
         BDBG_MSG(("%p: apply %s mode to stcChannel %p", (void *)handle, pSettings->mode==NEXUS_StcChannelMode_ePcr?"pcr":"auto", (void *)handle->stcChannel));
         printStcChannelSettings(handle);
     }
     if (handle->stcChannelAudio) {
         rc = NEXUS_SimpleStcChannel_P_SetSettings(handle, handle->stcChannelAudio, pSettings);
         if (rc) return BERR_TRACE(rc);
+    }
+    else if (!handle->stcChannel) {
+        /* if neither, do cleanup */
+        nexus_stc_channel_p_close_unused_timebase(handle);
     }
 
 #if NEXUS_HAS_SYNC_CHANNEL
@@ -792,11 +861,8 @@ static NEXUS_Error apply_settings(NEXUS_SimpleStcChannelHandle handle)
 
 static void init_decoder_stc_status(NEXUS_SimpleStcChannelDecoderStatus * pStatus)
 {
-    if (pStatus)
-    {
-        BKNI_Memset(pStatus, 0, sizeof(NEXUS_SimpleStcChannelDecoderStatus));
-        pStatus->stcIndex = -1;
-    }
+    BKNI_Memset(pStatus, 0, sizeof(NEXUS_SimpleStcChannelDecoderStatus));
+    pStatus->stcIndex = -1;
 }
 
 static int resolve_stc_index(NEXUS_SimpleStcChannelDecoderStatus * videoStatus, NEXUS_SimpleStcChannelDecoderStatus * audioStatus)
@@ -830,22 +896,23 @@ static int resolve_stc_index(NEXUS_SimpleStcChannelDecoderStatus * videoStatus, 
 static NEXUS_Error resolve_server_stc(NEXUS_SimpleStcChannelHandle handle)
 {
     int rc = 0;
-    bool change = false;
     NEXUS_SimpleStcChannelDecoderStatus videoStatus;
     NEXUS_SimpleStcChannelDecoderStatus audioStatus;
     NEXUS_StcChannelSettings settings;
 
     NEXUS_OBJECT_ASSERT(NEXUS_SimpleStcChannel, handle);
 
-    init_decoder_stc_status(&videoStatus);
-    init_decoder_stc_status(&audioStatus);
-
     if (handle->video) {
         NEXUS_SimpleVideoDecoder_GetStcStatus_priv(handle->video, &videoStatus);
     }
-
+    else {
+        init_decoder_stc_status(&videoStatus);
+    }
     if (handle->audio) {
         NEXUS_SimpleAudioDecoder_GetStcStatus_priv(handle->audio, &audioStatus);
+    }
+    else {
+        init_decoder_stc_status(&audioStatus);
     }
 
     BDBG_MSG(("%p: video %s:%s:%d; audio %s:%s:%d; primer:%s",
@@ -875,6 +942,7 @@ static NEXUS_Error resolve_server_stc(NEXUS_SimpleStcChannelHandle handle)
         if (!handle->stcChannelAudio) {
             NEXUS_StcChannel_GetDefaultSettings(0, &settings);
             settings.stcIndex = audioStatus.stcIndex;
+            settings.autoConfigTimebase = false;
             handle->stcChannelAudio = NEXUS_StcChannel_Open(NEXUS_ANY_ID, &settings);
             if (!handle->stcChannelAudio) { rc = BERR_TRACE(NEXUS_NOT_AVAILABLE); }
             BDBG_MSG(("%p open NRT audio %p: %d", (void *)handle, (void *)handle->stcChannelAudio, settings.stcIndex));
@@ -890,18 +958,10 @@ static NEXUS_Error resolve_server_stc(NEXUS_SimpleStcChannelHandle handle)
 
     if (videoStatus.connected || videoStatus.primer || audioStatus.connected)
     {
-        bool autoConfigTimebase = (!videoStatus.primer && !videoStatus.hdDviInput);
         if (handle->stcChannel)
         {
             NEXUS_StcChannel_GetSettings(handle->stcChannel, &settings);
-
             BDBG_ASSERT(settings.stcIndex != -1);
-            if (settings.stcIndex == -1)
-            {
-                BDBG_ERR(("An stc channel is attached to this simple stc channel, but has an invalid stc index"));
-                rc = BERR_TRACE(NEXUS_NOT_SUPPORTED);
-                goto error;
-            }
 
             /*
              * stc channel already allocated, check stc index compatibility
@@ -919,19 +979,15 @@ static NEXUS_Error resolve_server_stc(NEXUS_SimpleStcChannelHandle handle)
                 if (!videoStatus.started && !videoStatus.primer && !audioStatus.started)
                 {
                     /* keep current settings, except index */
-#if NEXUS_HAS_ASTM
                     set_astm_stc(handle, NULL);
-#endif
                     NEXUS_StcChannel_Close(handle->stcChannel);
                     handle->stcChannel = NULL;
-
-                    change = true;
 
                     /* open new channel with correct index */
                     settings.stcIndex = resolve_stc_index(&videoStatus, &audioStatus);
                     if (settings.stcIndex != -1)
                     {
-                        settings.autoConfigTimebase = autoConfigTimebase;
+                        settings.autoConfigTimebase = false;
                         handle->stcChannel = NEXUS_StcChannel_Open(NEXUS_ANY_ID, &settings);
                         if (!handle->stcChannel) { rc = BERR_TRACE(NEXUS_NOT_AVAILABLE); }
                         BDBG_MSG(("%p re-open %p: %d for %p,%p", (void *)handle, (void *)handle->stcChannel, settings.stcIndex, (void *)handle->video, (void *)handle->audio));
@@ -951,7 +1007,7 @@ static NEXUS_Error resolve_server_stc(NEXUS_SimpleStcChannelHandle handle)
                     settings.stcIndex = resolve_stc_index(&videoStatus, &audioStatus);
                     if (settings.stcIndex != -1)
                     {
-                        settings.autoConfigTimebase = autoConfigTimebase;
+                        settings.autoConfigTimebase = false;
                         rc = NEXUS_StcChannel_SetSettings(handle->stcChannel, &settings);
                         BDBG_MSG(("%p stc index change %p: %d -> %d for %p,%p", (void *)handle, (void *)handle->stcChannel, oldStcIndex, settings.stcIndex, (void *)handle->video, (void *)handle->audio));
                         if (rc) { rc = BERR_TRACE(rc); }
@@ -965,24 +1021,17 @@ static NEXUS_Error resolve_server_stc(NEXUS_SimpleStcChannelHandle handle)
 #endif
                 }
             }
-            else if (settings.autoConfigTimebase != autoConfigTimebase) {
-                settings.autoConfigTimebase = autoConfigTimebase;
-                (void)NEXUS_StcChannel_SetSettings(handle->stcChannel, &settings);
-            }
         }
         else
         {
             /* no stc channel allocated yet */
 
             NEXUS_StcChannel_GetDefaultSettings(0, &settings);
-            change = true;
-
             settings.stcIndex = resolve_stc_index(&videoStatus, &audioStatus);
-
             if (settings.stcIndex != -1)
             {
                 /* open new channel with correct index */
-                settings.autoConfigTimebase = autoConfigTimebase;
+                settings.autoConfigTimebase = false;
                 handle->stcChannel = NEXUS_StcChannel_Open(NEXUS_ANY_ID, &settings);
                 if (!handle->stcChannel) { rc = BERR_TRACE(NEXUS_NOT_AVAILABLE); }
                 BDBG_MSG(("%p open %p: %d for %p,%p", (void *)handle, (void *)handle->stcChannel, settings.stcIndex, (void *)handle->video, (void *)handle->audio));
@@ -997,29 +1046,17 @@ static NEXUS_Error resolve_server_stc(NEXUS_SimpleStcChannelHandle handle)
 
             NEXUS_StcChannel_GetSettings(handle->stcChannel, &settings);
             BDBG_MSG(("Closing unused STC ch %p:%u", (void *)handle->stcChannel, settings.stcIndex));
-#if NEXUS_HAS_ASTM
             set_astm_stc(handle, NULL);
-#endif
             /* we can dispose of the server stc channel if no one is using it */
             NEXUS_StcChannel_Close(handle->stcChannel);
             handle->stcChannel = NULL;
         }
     }
 
-    if (videoStatus.hdDviInput) {
-        /* need call into NEXUS_SimpleStcChannel_P_SetSettings to set NEXUS_TimebaseSourceType_eHdDviIn */
-        change = true;
-    }
-
-    if (change && handle->stcChannel)
+    if (handle->stcChannel)
     {
         BDBG_MSG(("%p: assigned stcChannel %p", (void *)handle, (void *)handle->stcChannel));
-
-#if NEXUS_HAS_ASTM
         set_astm_stc(handle, handle->stcChannel);
-#endif
-
-        /* apply current settings */
         rc = apply_settings(handle);
         if (rc) { BERR_TRACE(rc); }
     }
@@ -1031,7 +1068,6 @@ static NEXUS_Error resolve_server_stc(NEXUS_SimpleStcChannelHandle handle)
         NEXUS_StcChannel_SetPairSettings(handle->stcChannel, handle->stcChannelAudio, &stcAudioVideoPair);
     }
 
-error:
     return rc;
 }
 
@@ -1274,7 +1310,7 @@ void printSyncAudioQueue(NEXUS_SimpleStcChannelHandle handle)
 }
 #endif
 
-static bool isAudioInputInSyncQueue(NEXUS_SimpleStcChannelHandle handle, NEXUS_AudioInput audioInput)
+static bool isAudioInputInSyncQueue(NEXUS_SimpleStcChannelHandle handle, NEXUS_AudioInputHandle audioInput)
 {
     bool inQueue = false;
     NEXUS_AudioInputQueueEntry * pEntry = NULL;
@@ -1296,7 +1332,7 @@ static bool isAudioInputInSyncQueue(NEXUS_SimpleStcChannelHandle handle, NEXUS_A
     return inQueue;
 }
 
-static NEXUS_Error insertSyncAudioQueueEntry(NEXUS_SimpleStcChannelHandle handle, NEXUS_AudioInput audioInput)
+static NEXUS_Error insertSyncAudioQueueEntry(NEXUS_SimpleStcChannelHandle handle, NEXUS_AudioInputHandle audioInput)
 {
     NEXUS_Error rc = NEXUS_SUCCESS;
     NEXUS_AudioInputQueueEntry * pEntry = NULL;
@@ -1346,7 +1382,7 @@ static NEXUS_Error setSyncSettingsFromAudioQueue(NEXUS_SimpleStcChannelHandle ha
     return rc;
 }
 
-NEXUS_Error NEXUS_SimpleStcChannel_AddSyncAudio_priv(NEXUS_SimpleStcChannelHandle handle, NEXUS_AudioInput audioInput)
+NEXUS_Error NEXUS_SimpleStcChannel_AddSyncAudio_priv(NEXUS_SimpleStcChannelHandle handle, NEXUS_AudioInputHandle audioInput)
 {
     NEXUS_Error rc = NEXUS_SUCCESS;
 
@@ -1368,7 +1404,7 @@ error:
     return rc;
 }
 
-static void removeSyncAudioQueueEntry(NEXUS_SimpleStcChannelHandle handle, NEXUS_AudioInput audioInput)
+static void removeSyncAudioQueueEntry(NEXUS_SimpleStcChannelHandle handle, NEXUS_AudioInputHandle audioInput)
 {
     NEXUS_AudioInputQueueEntry * pEntry = NULL;
 
@@ -1391,7 +1427,7 @@ static void removeSyncAudioQueueEntry(NEXUS_SimpleStcChannelHandle handle, NEXUS
     }
 }
 
-void NEXUS_SimpleStcChannel_RemoveSyncAudio_priv(NEXUS_SimpleStcChannelHandle handle, NEXUS_AudioInput audioInput)
+void NEXUS_SimpleStcChannel_RemoveSyncAudio_priv(NEXUS_SimpleStcChannelHandle handle, NEXUS_AudioInputHandle audioInput)
 {
     NEXUS_Error rc = NEXUS_SUCCESS;
 

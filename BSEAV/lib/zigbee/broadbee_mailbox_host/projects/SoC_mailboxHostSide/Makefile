@@ -88,12 +88,7 @@ BINTARGET_CLEAN := $(addsuffix _clean,$(BINTARGET))
 #$(BINTARGET_BUILD)
 INCDIRS := $(shell ls -d ./include $(STACKDIR)/*/include $(STACKDIR)/*/*/include $(STACKDIR)/*/*/*/include 2>/dev/null)
 # Prepend all directories with '-I' for the tools set.
-INCDIRS += ./rf4ce_registration/include ./ha_registration/include ./common/include ../../../../../linux/driver/zigbee/
-ifeq ($(BYPASS_RPC),y)
-INCDIRS += ./non_rpc/include
-else
-INCDIRS += ./rpc/include
-endif
+INCDIRS += ./rf4ce_registration/include ./ha_registration/include ./common/include ../../../../../linux/driver/zigbee/ ./ioctl/include ./non_rpc/include ./rpc/include
 export INCFLAGS := $(addprefix -I,$(INCDIRS))
 
 sys : export COMPDIR := $(STACKDIR)/common/System
@@ -102,20 +97,15 @@ hal : export COMPDIR := $(STACKDIR)/common/HAL
 mbx : export COMPDIR := $(STACKDIR)/common/Mailbox
 nvm : export COMPDIR := $(STACKDIR)/common/NVM
 common : export COMPDIR := ./common
-ifeq ($(BYPASS_RPC),y)
 non_rpc : export COMPDIR := ./non_rpc
-else
 rpc : export COMPDIR := ./rpc
-endif
 rrn : export COMPDIR := ./rf4ce_registration
 hrn : export COMPDIR := ./ha_registration
+ict : export COMPDIR := ./ioctl
 prj : export COMPDIR := ./
+srv : export COMPDIR := ./server
 
-ifeq ($(BYPASS_RPC),y)
-COMPONENTS := sys hal mbx non_rpc rrn hrn prj common ext
-else
-COMPONENTS := sys hal mbx rpc rrn hrn prj common ext
-endif
+COMPONENTS := sys hal ict mbx non_rpc rpc rrn hrn prj common ext
 
 ### Include the Stack Makefile. The Stack target 'all' will become the default target.
 include $(STACKDIR)/Makefile
@@ -124,22 +114,20 @@ $(COMPONENTS): objdir
 	$(SILENT)$(MAKE) component
 
 ### Rule to build the application.
-ifeq ($(BYPASS_RPC),y)
 AR = arm-linux-ar
 RANLIB = arm-linux-ranlib
 
-$(BINTARGET_BUILD) : $(OBJDIR)/*.o
+$(OBJDIR)/server/bbPrjServerMain.o: ./server/bbPrjServerMain.c
+	@echo "--- C99: $*"
+	$(SILENT)$(CC) $(CFLAGS) $(INCFLAGS) $(CDEFSFLAGS) -c $< -o $@
+
+$(BINTARGET_BUILD) : $(OBJDIR)/*.o $(OBJDIR)/server/bbPrjServerMain.o
 	@echo "--- AR: libzigbee.a"
 	@touch $(BINTARGET_BUILD)
 	$(SILENT)$(AR) cr $(OBJDIR)/libzigbee.a $(OBJDIR)/*.o
 	$(SILENT)$(RANLIB) $(OBJDIR)/libzigbee.a
-else
-$(BINTARGET_BUILD) : $(OBJDIR)/*.o
-	@echo "--- LNK: $(BINTARGET)"
-	@touch $(BINTARGET_BUILD)
-	$(SILENT)$(LD) $(LDFLAGS) $(LDSCRIPTFILE) $(OBJDIR)/*.o $(LIBS) -o ./obj.$(NEXUS_PLATFORM)/$(BINFILE)
+	$(SILENT)$(LD) $(LDFLAGS) $(LDSCRIPTFILE) $(OBJDIR)/server/bbPrjServerMain.o -L$(OBJDIR) -lzigbee $(LIBS) -o ./obj.$(NEXUS_PLATFORM)/$(BINFILE)
 	$(SILENT)-size -td ./obj.$(NEXUS_PLATFORM)/$(BINFILE) 2>/dev/null
-endif
 
 
 ### Rule to clean the application.

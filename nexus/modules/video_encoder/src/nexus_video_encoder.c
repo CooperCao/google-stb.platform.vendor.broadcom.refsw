@@ -55,6 +55,8 @@ BDBG_MODULE(nexus_video_encoder);
 BDBG_FILE_MODULE(nexus_video_encoder_status);
 BDBG_FILE_MODULE(vce_proc);
 
+static void NEXUS_VideoEncoder_P_Release(NEXUS_VideoEncoderHandle encoder);
+
 static NEXUS_Error NEXUS_VideoEncoderModule_P_PostInit(void);
 
 NEXUS_VideoEncoder_P_State g_NEXUS_VideoEncoder_P_State;
@@ -164,6 +166,12 @@ static void NEXUS_VideoEncoder_P_WatchdogHandler(void *context)
     NEXUS_VideoEncoder_P_Device *device = context;
     unsigned i;
     BDBG_WRN(("Video Encoder Watchdog"));
+    /* release nexus memory block before processing watchdog */
+    for(i=0;i<NEXUS_NUM_VCE_CHANNELS;i++ ) {
+        if(device->channels[i].enc && device->channels[i].startSettings.input) {
+            NEXUS_VideoEncoder_P_Release(&device->channels[i]);
+        }
+    }
     rc = BVCE_ProcessWatchdog(device->vce);
     if(rc!=BERR_SUCCESS) {rc=BERR_TRACE(rc);/* keep going */ }
     for(i=0;i<NEXUS_NUM_VCE_CHANNELS;i++ ) {
@@ -1121,14 +1129,65 @@ error:
 }
 
 NEXUS_Error
+NEXUS_VideoEncoder_GetBufferStatus_priv(NEXUS_VideoEncoderHandle encoder, NEXUS_VideoEncoderStatus *pStatus)
+{
+   NEXUS_Error rc;
+   BAVC_VideoBufferStatus bufferStatus;
+
+   BKNI_Memset(&bufferStatus, 0, sizeof(bufferStatus));
+   rc = BVCE_Channel_Output_GetBufferStatus(encoder->enc, &bufferStatus);
+   if(rc!=BERR_SUCCESS) {rc=BERR_TRACE(rc); goto error;}
+   BDBG_MODULE_MSG(nexus_video_encoder_status, ("base addr@%p : metadata base addr@%p", bufferStatus.stCommon.pFrameBufferBaseAddress, bufferStatus.stCommon.pMetadataBufferBaseAddress));
+   /* create persistent NEXUS_MemoryBlock <-> BMMA_Block mapping */
+   if ( NULL != bufferStatus.stCommon.hFrameBufferBlock ) {
+       if(encoder->frame.nexus==NULL) {
+           NEXUS_Module_Lock(g_NEXUS_VideoEncoder_P_State.config.core);
+           encoder->frame.nexus = NEXUS_MemoryBlock_FromMma_priv( bufferStatus.stCommon.hFrameBufferBlock );
+           NEXUS_Module_Unlock(g_NEXUS_VideoEncoder_P_State.config.core);
+           if(encoder->frame.nexus==NULL) {
+               rc=BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);goto error;
+           }
+           encoder->frame.mma = bufferStatus.stCommon.hFrameBufferBlock;
+           NEXUS_OBJECT_REGISTER(NEXUS_MemoryBlock, encoder->frame.nexus, Acquire);
+       }
+       if(encoder->frame.mma != bufferStatus.stCommon.hFrameBufferBlock) {
+           rc=BERR_TRACE(NEXUS_NOT_SUPPORTED);goto error;
+       }
+       pStatus->bufferBlock = encoder->frame.nexus;
+   }
+   if ( NULL != bufferStatus.stCommon.hMetadataBufferBlock ) {
+       if(encoder->meta.nexus==NULL) {
+           NEXUS_Module_Lock(g_NEXUS_VideoEncoder_P_State.config.core);
+           encoder->meta.nexus = NEXUS_MemoryBlock_FromMma_priv( bufferStatus.stCommon.hMetadataBufferBlock);
+           NEXUS_Module_Unlock(g_NEXUS_VideoEncoder_P_State.config.core);
+           if(encoder->meta.nexus==NULL) {
+               rc=BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);goto error;
+           }
+           encoder->meta.mma = bufferStatus.stCommon.hMetadataBufferBlock;
+           NEXUS_OBJECT_REGISTER(NEXUS_MemoryBlock, encoder->meta.nexus, Acquire);
+       }
+       if(encoder->meta.mma != bufferStatus.stCommon.hMetadataBufferBlock) {
+           rc=BERR_TRACE(NEXUS_NOT_SUPPORTED);goto error;
+       }
+       pStatus->metadataBufferBlock = encoder->meta.nexus;
+   }
+   pStatus->data.fifoDepth  = bufferStatus.stCommon.stCDB.uiDepth;
+   pStatus->data.fifoSize   = bufferStatus.stCommon.stCDB.uiSize;
+   pStatus->index.fifoDepth = bufferStatus.stCommon.stITB.uiDepth;
+   pStatus->index.fifoSize  = bufferStatus.stCommon.stITB.uiSize;
+
+   return NEXUS_SUCCESS;
+error:
+   return BERR_TRACE(rc);
+}
+
+NEXUS_Error
 NEXUS_VideoEncoder_GetStatus(NEXUS_VideoEncoderHandle encoder, NEXUS_VideoEncoderStatus *pStatus)
 {
     NEXUS_Error rc;
     BVCE_Channel_Status status;
     BVCE_VersionInfo versionInfo;
     BVCE_Debug_FifoInfo fifoInfo;
-
-    BAVC_VideoBufferStatus bufferStatus;
 
     BDBG_OBJECT_ASSERT(encoder, NEXUS_VideoEncoder);
 
@@ -1159,47 +1218,8 @@ NEXUS_VideoEncoder_GetStatus(NEXUS_VideoEncoderHandle encoder, NEXUS_VideoEncode
     BDBG_CASSERT(BVCE_CHANNEL_STATUS_FLAGS_EVENT_EOS                            == NEXUS_VIDEOENCODER_EVENT_EOS);
 
     BKNI_Memset(pStatus, 0, sizeof(*pStatus));
-    BKNI_Memset(&bufferStatus, 0, sizeof(bufferStatus));
-    rc = BVCE_Channel_Output_GetBufferStatus(encoder->enc, &bufferStatus);
+    rc = NEXUS_VideoEncoder_GetBufferStatus_priv(encoder, pStatus);
     if(rc!=BERR_SUCCESS) {rc=BERR_TRACE(rc); goto error;}
-    BDBG_MODULE_MSG(nexus_video_encoder_status, ("base addr@%p : metadata base addr@%p", bufferStatus.stCommon.pFrameBufferBaseAddress, bufferStatus.stCommon.pMetadataBufferBaseAddress));
-    /* create persistent NEXUS_MemoryBlock <-> BMMA_Block mapping */
-    if ( NULL != bufferStatus.stCommon.hFrameBufferBlock ) {
-        if(encoder->frame.nexus==NULL) {
-            NEXUS_Module_Lock(g_NEXUS_VideoEncoder_P_State.config.core);
-            encoder->frame.nexus = NEXUS_MemoryBlock_FromMma_priv( bufferStatus.stCommon.hFrameBufferBlock );
-            NEXUS_Module_Unlock(g_NEXUS_VideoEncoder_P_State.config.core);
-            if(encoder->frame.nexus==NULL) {
-                rc=BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);goto error;
-            }
-            encoder->frame.mma = bufferStatus.stCommon.hFrameBufferBlock;
-            NEXUS_OBJECT_REGISTER(NEXUS_MemoryBlock, encoder->frame.nexus, Acquire);
-        }
-        if(encoder->frame.mma != bufferStatus.stCommon.hFrameBufferBlock) {
-            rc=BERR_TRACE(NEXUS_NOT_SUPPORTED);goto error;
-        }
-        pStatus->bufferBlock = encoder->frame.nexus;
-    }
-    if ( NULL != bufferStatus.stCommon.hMetadataBufferBlock ) {
-        if(encoder->meta.nexus==NULL) {
-            NEXUS_Module_Lock(g_NEXUS_VideoEncoder_P_State.config.core);
-            encoder->meta.nexus = NEXUS_MemoryBlock_FromMma_priv( bufferStatus.stCommon.hMetadataBufferBlock);
-            NEXUS_Module_Unlock(g_NEXUS_VideoEncoder_P_State.config.core);
-            if(encoder->meta.nexus==NULL) {
-                rc=BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);goto error;
-            }
-            encoder->meta.mma = bufferStatus.stCommon.hMetadataBufferBlock;
-            NEXUS_OBJECT_REGISTER(NEXUS_MemoryBlock, encoder->meta.nexus, Acquire);
-        }
-        if(encoder->meta.mma != bufferStatus.stCommon.hMetadataBufferBlock) {
-            rc=BERR_TRACE(NEXUS_NOT_SUPPORTED);goto error;
-        }
-        pStatus->metadataBufferBlock = encoder->meta.nexus;
-    }
-    pStatus->data.fifoDepth  = bufferStatus.stCommon.stCDB.uiDepth;
-    pStatus->data.fifoSize   = bufferStatus.stCommon.stCDB.uiSize;
-    pStatus->index.fifoDepth = bufferStatus.stCommon.stITB.uiDepth;
-    pStatus->index.fifoSize  = bufferStatus.stCommon.stITB.uiSize;
     rc = BVCE_Channel_GetStatus(encoder->enc, &status);
     if(rc!=BERR_SUCCESS) {rc=BERR_TRACE(rc); goto error;}
     pStatus->errorFlags = status.uiErrorFlags;

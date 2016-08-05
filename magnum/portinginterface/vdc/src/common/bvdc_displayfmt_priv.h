@@ -474,7 +474,7 @@ void BVDC_P_FillVfTable_isr
     BVDC_P_Display_ShaperSettings *pstShaperSettings
 );
 
-uint32_t BVDC_P_ExtractSumOfTaps
+uint32_t BVDC_P_ExtractSumOfTaps_isr
 (
     uint32_t vfMiscRegVal
 );

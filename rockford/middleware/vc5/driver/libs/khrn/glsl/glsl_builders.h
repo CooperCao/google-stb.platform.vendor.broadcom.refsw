@@ -42,7 +42,7 @@ void glsl_commit_function_param(FunctionBuilder *fb, const char *name, SymbolTyp
 // Specializes glsl_commit_singleton() for function instances.
 // At this point we're only committing a declaration,
 // because even if we're parsing a definition, we've only seen the prototype so far.
-Symbol *glsl_commit_singleton_function_declaration(SymbolTable *table, const char *name, SymbolType *type, bool definition);
+Symbol *glsl_commit_singleton_function_declaration(SymbolTable *table, const char *name, SymbolType *type, bool definition, bool user_code);
 Symbol *glsl_commit_variable_instance(SymbolTable *table, const PrecisionTable *prec, unsigned *atomic_offset,
                                       QualList *quals, SymbolType *type, const char *name,
                                       ExprChain *array_size, Expr *initialiser);

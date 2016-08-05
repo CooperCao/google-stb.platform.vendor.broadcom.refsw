@@ -62,6 +62,7 @@ enum testOp_t {
     eTestOpSetSecure,
     eTestOpSetClear,
     eTestOpLoop,
+    eTestOpLoopFinite,
     eTestOpVerify
 };
 
@@ -485,6 +486,7 @@ EXIT:
     return ret;
 }
 
+int iterations = -1;
 int main(int argc, char **argv)
 {
     int i;
@@ -512,6 +514,18 @@ int main(int argc, char **argv)
                     break;
                 case 'l': /* Infinite loop */
                     op = eTestOpLoop;
+                    break;
+                case 'c': /* finite loop */
+                    op = eTestOpLoopFinite;
+
+                    iterations = strtoul(argv[++i], NULL, 0);
+                    if(iterations <= 0)
+                    {
+                        BDBG_ERR(("Supply an iteration count greater than 0"));
+                        return 0;
+                    }
+                    else
+                    BDBG_WRN(("Will run for %d iterations", iterations ));
                     break;
                 case 't': /* Test scrubbing */
                     op = eTestOpVerify;
@@ -557,6 +571,15 @@ int main(int argc, char **argv)
             break;
         case eTestOpVerify:
             rc = scrub_verify();
+            break;
+        case eTestOpLoopFinite:
+            for(i = 0; i < iterations; i++)
+            {
+                printf("iteration: %d\n", i);
+                rc = scrub_verify();
+                if(rc)
+                    return rc;
+            }
             break;
         case eTestOpQueryOnly:
         default:

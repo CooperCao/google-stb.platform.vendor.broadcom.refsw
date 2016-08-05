@@ -1,22 +1,43 @@
 /***************************************************************************
-*	  Copyright (c) 2004-2012, Broadcom Corporation
-*	  All Rights Reserved
-*	  Confidential Property of Broadcom Corporation
-*
-*  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
-*  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
-*  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
-*
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* Revision History:
-*
-* $brcm_Log: $
-* 
-***************************************************************************/
-
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ *  Except as expressly set forth in the Authorized License,
+ *
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+ *
+ * Module Description:
+ *
+ **************************************************************************/
 #include "bstd.h"
 #include "bsynclib_priv.h"
 #include "bsynclib_channel_priv.h"
@@ -48,34 +69,32 @@ BSYNClib_AudioSource * BSYNClib_AudioSource_Create(void)
 void BSYNClib_AudioSource_Destroy(BSYNClib_AudioSource * psSource)
 {
 	BDBG_ENTER(BSYNClib_AudioSource_Destroy);
-
 	BDBG_ASSERT(psSource);
-
 	BKNI_Free(psSource);
-
 	BDBG_LEAVE(BSYNClib_AudioSource_Destroy);
 }
 
 bool BSYNClib_AudioSource_SyncCheck(BSYNClib_AudioSource * psSource)
 {
 	bool bPass = false;
-	
+
 	BDBG_ENTER(BSYNClib_AudioSource_SyncCheck);
 
 	BDBG_ASSERT(psSource);
 
 	bPass = !psSource->sElement.sSnapshot.bSynchronize
 		|| (psSource->sElement.sSnapshot.bStarted /* must be started */
-		&& psSource->sSnapshot.bSamplingRateReceived /* have received a sampling rate */
-		&& psSource->sElement.sDelay.sSnapshot.bValid /* have a valid measured delay */
-		&& psSource->sElement.sDelay.sResults.bAccepted); /* and be accepted */
+			&& psSource->sSnapshot.bSamplingRateReceived /* have received a sampling rate */
+			&& psSource->sElement.sDelay.sSnapshot.bValid /* have a valid measured delay */
+			&& psSource->sElement.sDelay.sResults.bAccepted); /* and be accepted */
 
 	BDBG_MSG(("[%d] Audio source %u sync check:", psSource->sElement.hParent->iIndex, psSource->sElement.uiIndex));
 	BDBG_MSG(("[%d]  %s", psSource->sElement.hParent->iIndex, psSource->sElement.sSnapshot.bSynchronize ? "synchronized" : "ignored"));
 	BDBG_MSG(("[%d]  %s", psSource->sElement.hParent->iIndex, psSource->sElement.sSnapshot.bStarted ? "started" : "stopped"));
 	BDBG_MSG(("[%d]  sampling rate %s", psSource->sElement.hParent->iIndex, psSource->sSnapshot.bSamplingRateReceived ? "received" : "not received"));
-	BDBG_MSG(("[%d]  delay %s, %s", psSource->sElement.hParent->iIndex, psSource->sElement.sDelay.sSnapshot.bValid ? "valid" : "invalid", 
-		psSource->sElement.sDelay.sResults.bAccepted ? "accepted" : "unaccepted"));
+	BDBG_MSG(("[%d]  delay %s, %s", psSource->sElement.hParent->iIndex,
+		psSource->sElement.sDelay.sSnapshot.bValid ? "valid" : "invalid",
+			psSource->sElement.sDelay.sResults.bAccepted ? "accepted" : "unaccepted"));
 
 	BDBG_LEAVE(BSYNClib_AudioSource_SyncCheck);
 	return bPass;
@@ -84,11 +103,8 @@ bool BSYNClib_AudioSource_SyncCheck(BSYNClib_AudioSource * psSource)
 void BSYNClib_AudioSource_Reset_isr(BSYNClib_AudioSource * psSource)
 {
 	BDBG_ENTER(BSYNClib_AudioSource_Reset_isr);
-
 	BDBG_ASSERT(psSource);
-
 	psSource->sData.bSamplingRateReceived = false;
-
 	BDBG_LEAVE(BSYNClib_AudioSource_Reset_isr);
 }
 
@@ -99,15 +115,15 @@ BERR_Code BSYNClib_AudioSource_SetMute(BSYNClib_AudioSource * psSource, bool bMu
 	BSYNClib_Channel_MuteCallback * pcbMute;
 
 	BDBG_ENTER(BSYNClib_AudioSource_SetMute);
-	
+
 	BDBG_ASSERT(psSource);
-	
+
 	hChn = psSource->sElement.hParent;
 	pcbMute = &hChn->sSettings.sAudio.sSource.cbMute;
 
 	BKNI_EnterCriticalSection();
 	psSource->sResults.bMutePending = false;
-	
+
 	/* cancel any pending unmute timer */
 	rc = BSYNClib_Channel_P_CancelTimer_isr(hChn, psSource->psUnmuteTimer);
 	BKNI_LeaveCriticalSection();
@@ -129,7 +145,7 @@ BERR_Code BSYNClib_AudioSource_SetMute(BSYNClib_AudioSource * psSource, bool bMu
 		psSource->sStatus.bMuted = bMute;
 	}
 
-end:
+	end:
 	BDBG_LEAVE(BSYNClib_AudioSource_SetMute);
 	return rc;
 }
@@ -139,13 +155,9 @@ void BSYNClib_AudioSource_GetDefaultConfig(
 )
 {
 	BDBG_ENTER(BSYNClib_AudioSource_GetDefaultConfig);
-
 	BDBG_ASSERT(psConfig);
-	
 	BKNI_Memset(psConfig, 0, sizeof(BSYNClib_AudioSource_Config));
-
 	psConfig->bDigital = true;
-
 	BDBG_LEAVE(BSYNClib_AudioSource_GetDefaultConfig);
 }
 
@@ -154,12 +166,9 @@ void BSYNClib_AudioSource_P_SelfClearConfig_isr(
 )
 {
 	BDBG_ENTER(BSYNClib_AudioSource_P_SelfClearConfig_isr);
-
 	BDBG_ASSERT(psSource);
-	
 	psSource->sConfig.sDelay.bReceived = false;
 	psSource->sConfig.bSamplingRateReceived = false;
-
 	BDBG_LEAVE(BSYNClib_AudioSource_P_SelfClearConfig_isr);
 }
 
@@ -176,9 +185,9 @@ BERR_Code BSYNClib_AudioSource_P_ProcessConfig_isr(
 	BSYNClib_DelayElement_DiffResults sElementDiffResults;
 
 	BDBG_ENTER(BSYNClib_AudioSource_P_ProcessConfig_isr);
-	
+
 	BDBG_ASSERT(psSource);
-	
+
 	hChn = psSource->sElement.hParent;
 	psConfig = &psSource->sConfig;
 	psCurrent = &psSource->sElement;
@@ -196,8 +205,14 @@ BERR_Code BSYNClib_AudioSource_P_ProcessConfig_isr(
 	sDesired = *psCurrent;
 	sDesired.sData.bStarted = psConfig->bStarted;
 	sDesired.sData.bSynchronize = psConfig->bSynchronize;
-	sDesired.sDelay.sData.uiMeasured = BSYNClib_P_Convert_isr(psConfig->sDelay.sMeasured.uiValue, psConfig->sDelay.sMeasured.eUnits, BSYNClib_Units_e27MhzTicks);
-	sDesired.sDelay.sData.uiCustom = BSYNClib_P_Convert_isr(psConfig->sDelay.sCustom.uiValue, psConfig->sDelay.sCustom.eUnits, BSYNClib_Units_e27MhzTicks);
+	sDesired.sDelay.sData.uiMeasured = BSYNClib_P_Convert_isrsafe(
+		psConfig->sDelay.sMeasured.uiValue,
+		psConfig->sDelay.sMeasured.eUnits,
+		BSYNClib_Units_e27MhzTicks);
+	sDesired.sDelay.sData.uiCustom = BSYNClib_P_Convert_isrsafe(
+		psConfig->sDelay.sCustom.uiValue,
+		psConfig->sDelay.sCustom.eUnits,
+		BSYNClib_Units_e27MhzTicks);
 	sDesired.sDelay.sData.eOriginalUnits = psConfig->sDelay.sMeasured.eUnits;
 	sDesired.sNotification.sData.bReceived = psConfig->sDelay.bReceived;
 
@@ -231,7 +246,7 @@ BERR_Code BSYNClib_AudioSource_P_ProcessConfig_isr(
 		default:
 			break;
 	}
-	
+
 	if (sElementDiffResults.eLifecycleEvent == BSYNClib_DelayElement_LifecycleEvent_eStarted)
 	{
 		/* reset source data */
@@ -245,17 +260,17 @@ BERR_Code BSYNClib_AudioSource_P_ProcessConfig_isr(
 			psSource->sData.bDigital = psConfig->bDigital;
 		}
 
-        if (hChn->sConfig.sMuteControl.bEnabled)
-        {
-            if (psConfig->bSynchronize)
-            {
-                /* we expect to start muted via sending the mute command once already on synchronization connection, but
+		if (hChn->sConfig.sMuteControl.bEnabled)
+		{
+			if (psConfig->bSynchronize)
+			{
+				/* we expect to start muted via sending the mute command once already on synchronization connection, but
                 this will ensure the state after stop/start is correct */
-                psSource->sResults.bMutePending = true;
-            }
+				psSource->sResults.bMutePending = true;
+			}
 
-            /* assume we started muted, as nexus sync channel will do this */
-		    psSource->sStatus.bMuted = true;
+			/* assume we started muted, as nexus sync channel will do this */
+			psSource->sStatus.bMuted = true;
 		}
 	}
 
@@ -276,7 +291,7 @@ BERR_Code BSYNClib_AudioSource_P_ProcessConfig_isr(
 		/* this should not indicate changed */
 		psSource->sElement.sDelay.sResults.bAccepted = true;
 	}
-	
+
 	if (bChanged)
 	{
 		BDBG_MSG(("[%d] Audio source %u properties changed:", psSource->sElement.hParent->iIndex, psSource->sElement.uiIndex));
@@ -288,13 +303,17 @@ BERR_Code BSYNClib_AudioSource_P_ProcessConfig_isr(
 		{
 			BDBG_MSG(("[%d]  %s", psSource->sElement.hParent->iIndex, BSYNClib_DelayElement_LifecycleEventNames[sElementDiffResults.eLifecycleEvent]));
 		}
-		BDBG_MSG(("[%d]  measured delay %u ms", psSource->sElement.hParent->iIndex, BSYNClib_P_Convert_isr(psSource->sElement.sDelay.sData.uiMeasured, BSYNClib_Units_e27MhzTicks, BSYNClib_Units_eMilliseconds)));
-		BDBG_MSG(("[%d]  custom delay %u ms", psSource->sElement.hParent->iIndex, BSYNClib_P_Convert_isr(psSource->sElement.sDelay.sData.uiCustom, BSYNClib_Units_e27MhzTicks, BSYNClib_Units_eMilliseconds)));
+		BDBG_MSG(("[%d]  measured delay %u ms",
+			psSource->sElement.hParent->iIndex,
+			BSYNClib_P_Convert_isrsafe(psSource->sElement.sDelay.sData.uiMeasured, BSYNClib_Units_e27MhzTicks, BSYNClib_Units_eMilliseconds)));
+		BDBG_MSG(("[%d]  custom delay %u ms",
+			psSource->sElement.hParent->iIndex,
+			BSYNClib_P_Convert_isrsafe(psSource->sElement.sDelay.sData.uiCustom, BSYNClib_Units_e27MhzTicks, BSYNClib_Units_eMilliseconds)));
 		BDBG_MSG(("[%d]  %s", psSource->sElement.hParent->iIndex, psSource->sData.bDigital ? "digital" : "analog"));
 		BDBG_MSG(("[%d]  sampling rate %s", psSource->sElement.hParent->iIndex, psSource->sData.bSamplingRateReceived ? "received" : "not received"));
 		if (psSource->sResults.bMutePending)
 		{
-				BDBG_MSG(("[%d]  mute pending", psSource->sElement.hParent->iIndex));
+			BDBG_MSG(("[%d]  mute pending", psSource->sElement.hParent->iIndex));
 		}
 	}
 
@@ -304,20 +323,20 @@ BERR_Code BSYNClib_AudioSource_P_ProcessConfig_isr(
 		BSYNClib_MuteControl_ScheduleTask_isr(hChn);
 	}
 
-    if (bChanged)
-    {
-        if (BSYNClib_Channel_P_Enabled_isr(hChn))
-        {
-            /* immediate reprocessing based on current state */
-            BSYNClib_Channel_P_ScheduleTask_isr(hChn);
-        }
-        else
-        {
-            /* reprocessing based on current state deferred until re-enabled */
-            BSYNClib_Channel_P_EnqueueTaskRequest_isr(hChn);
-        }
+	if (bChanged)
+	{
+		if (BSYNClib_Channel_P_Enabled_isrsafe(hChn))
+		{
+			/* immediate reprocessing based on current state */
+			BSYNClib_Channel_P_ScheduleTask_isr(hChn);
+		}
+		else
+		{
+			/* reprocessing based on current state deferred until re-enabled */
+			BSYNClib_Channel_P_EnqueueTaskRequest_isr(hChn);
+		}
 	}
-	
+
 	BDBG_LEAVE(BSYNClib_AudioSource_P_ProcessConfig_isr);
 	return rc;
 }
@@ -325,13 +344,9 @@ BERR_Code BSYNClib_AudioSource_P_ProcessConfig_isr(
 void BSYNClib_AudioSource_Snapshot_isr(BSYNClib_AudioSource * psSource)
 {
 	BDBG_ENTER(BSYNClib_AudioSource_Snapshot_isr);
-
 	BDBG_ASSERT(psSource);
-
 	psSource->sSnapshot = psSource->sData;
-	
 	BSYNClib_DelayElement_Snapshot_isr(&psSource->sElement);
-
 	BDBG_LEAVE(BSYNClib_AudioSource_Snapshot_isr);
 }
 
@@ -340,14 +355,10 @@ void BSYNClib_AudioSource_P_GetDefaultStatus(
 )
 {
 	BDBG_ENTER(BSYNClib_AudioSource_P_GetDefaultStatus);
-
 	BDBG_ASSERT(psStatus);
-
 	psStatus->bMuted = false;
 	psStatus->sDelayNotification.bEnabled = false;
 	psStatus->sDelayNotification.sThreshold.uiValue = 0;
 	psStatus->sAppliedDelay.uiValue = 0;
-
 	BDBG_LEAVE(BSYNClib_AudioSource_P_GetDefaultStatus);
 }
-

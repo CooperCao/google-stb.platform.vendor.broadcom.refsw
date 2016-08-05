@@ -1,8 +1,8 @@
 #############################################################################
-#    (c)2009-2014 Broadcom Corporation
+#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 #
-# This program is the proprietary software of Broadcom Corporation and/or its licensors,
-# and may only be used, duplicated, modified or distributed pursuant to the terms and
+#  This program is the proprietary software of Broadcom and/or its licensors,
+#  and may only be used, duplicated, modified or distributed pursuant to the terms and
 # conditions of a separate, written license agreement executed between you and Broadcom
 # (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
 # no license (express or implied), right to use, or waiver of any kind with respect to the
@@ -11,10 +11,14 @@
 # HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
 # NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
 #
+# THE SOURCE CODE CONTAINS BROADCOM HIGHLY CONFIDENTIAL
+# INFORMATION AND MUST BE HANDLED AS AGREED UPON IN THE
+# HIGHLY CONFIDENTIAL SOFTWARE LICENSE AGREEMENT (HC-SLA).
+#
 # Except as expressly set forth in the Authorized License,
 #
 # 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
-# secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+#  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
 # and to use this information only in connection with your use of Broadcom integrated circuit products.
 #
 # 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
@@ -35,18 +39,7 @@
 # LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 # ANY LIMITED REMEDY.
 #
-# $brcm_Workfile: $
-# $brcm_Revision: $
-# $brcm_Date: $
-#
-# Module Description:
-#
-# Revision History:
-#
-# $brcm_Log: $
-#
 #############################################################################
-
 
 ifdef B_REFSW_REAL_NEXUS_TOP
 NEXUS_TOP ?= ${B_REFSW_REAL_NEXUS_TOP}
@@ -59,6 +52,8 @@ NEXUS_TOP ?= $(shell cd ../../../.. ; pwd)
 endif
 
 include $(NEXUS_TOP)/examples/Makefile_prologue.inc
+
+include ${NEXUS_TOP}/examples/security/utils/utils.in
 
 THEAPPS = \
     m2m_aescbc \

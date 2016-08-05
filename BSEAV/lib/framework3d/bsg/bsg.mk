@@ -1,6 +1,6 @@
 #############################################################################
 # Broadcom Proprietary and Confidential. (c)2012-2013 Broadcom
-# 
+#
 # This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
 # conditions of a separate, written license agreement executed between you and Broadcom
@@ -9,30 +9,30 @@
 # Software, and Broadcom expressly reserves all rights in and to the Software and all
 # intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
 # HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-# NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.  
-#  
+# NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+#
 # Except as expressly set forth in the Authorized License,
-#  
+#
 # 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
 # secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
 # and to use this information only in connection with your use of Broadcom integrated circuit products.
-#  
-# 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS" 
-# AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR 
-# WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO 
-# THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES 
-# OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE, 
-# LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION 
-# OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF 
+#
+# 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+# AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+# WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+# THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+# OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+# LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+# OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
 # USE OR PERFORMANCE OF THE SOFTWARE.
-# 
-# 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS 
-# LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR 
-# EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR 
-# USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF 
-# THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT 
-# ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE 
-# LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF 
+#
+# 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+# LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+# EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+# USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+# THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+# ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+# LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 # ANY LIMITED REMEDY.
 #
 #############################################################################
@@ -109,7 +109,9 @@ NEXUS_CXXFLAGS += $(addprefix -I,$(PLATFORM_INCLUDES))
 
 NEXUS_CXXFLAGS += $(addprefix -D,$(NEXUS_APP_DEFINES))
 
-all:	info nexus_lib nxclient v3d_lib nxpl_lib zlib png freetype $(TARGET)
+.PHONY: info nexus_lib v3d_lib nxpl_lib zlib png freetype
+
+all:	info nxpl_lib png freetype $(TARGET)
 
 info:
 	@echo "*******************************************************"; \
@@ -128,37 +130,25 @@ info:
 	echo "*******************************************************"
 
 #################################################
-# Create and install the BSG library
+# Create the nxclient server (if needed)
 #################################################
-$(TARGET):	$(ALL_OBJECTS)
-	$(CXX) -shared -o $(TARGET) $(ALL_OBJECTS)
+nexus_lib:
+ifeq ($(NXCLIENT_SUPPORT),y)
+	$(MAKE) -C $(NEXUS_TOP)/nxclient NEXUS_BIN_DIR=$(NEXUS_BIN_DIR)
+else
+	$(MAKE) -C $(NEXUS_TOP)/build NEXUS_BIN_DIR=$(NEXUS_BIN_DIR)
+endif
 
 #################################################
 # Create the V3D driver
 #################################################
-v3d_lib:
+
+v3d_lib: nexus_lib
 	$(MAKE) -C $(V3D_DIR) -f V3DDriver.mk OBJDIR=$(V3DDRIVER_OBJ_TARGET) LIBDIR=$(V3DDRIVER_LIB_TARGET)
 
 # Create the platform layer
-nxpl_lib:
+nxpl_lib: v3d_lib
 	$(MAKE) -C $(V3D_PLATFORM_DIR)/nexus -f platform_nexus.mk OBJDIR=$(NXPL_OBJ_TARGET) LIBDIR=$(NXPL_LIB_TARGET) NO_V3DDRIVER_BUILD=y
-
-#################################################
-# Build nexus
-#################################################
-nexus_lib:
-	$(MAKE) -C $(NEXUS_TOP)/build
-
-#################################################
-# Create the nxclient server (if needed)
-#################################################
-nxclient:
-ifeq ($(NXCLIENT_SUPPORT),y)
-	$(MAKE) -C $(NEXUS_TOP)/nxclient server
-	$(MAKE) -C $(NEXUS_TOP)/nxclient/build
-else
-	# Nothing to do
-endif
 
 #################################################
 # Build libz
@@ -171,7 +161,7 @@ $(B_REFSW_OBJ_ROOT)/BSEAV/lib/zlib/$(B_REFSW_ARCH)/libz.a:
 #################################################
 # Build libpng
 #################################################
-png:	$(B_REFSW_OBJ_ROOT)/BSEAV/lib/libpng/libpng.a
+png:	$(B_REFSW_OBJ_ROOT)/BSEAV/lib/libpng/libpng.a zlib
 
 $(B_REFSW_OBJ_ROOT)/BSEAV/lib/libpng/libpng.a:
 	$(MAKE) -C $(PNG)
@@ -193,6 +183,7 @@ $(NEXUS_BIN_DIR)/libfreetype.so:	$(FREETYPE)/.bsg_configured
 	echo $(MAKE)
 	mkdir -p $(FREETYPE_OBJ_DIR)
 	$(MAKE) -C $(FREETYPE) OBJ_DIR=$(FREETYPE_OBJ_DIR)
+	mkdir -p $(NEXUS_BIN_DIR)
 	cp -f $(FREETYPE_OBJ_DIR)/.libs/*.so* $(NEXUS_BIN_DIR)
 
 #################################################
@@ -202,6 +193,13 @@ docs:
 	doxygen Doxyfile
 	-rm -rf $(BSG_DIR)/../doc/bsg_api_docs
 	mv -f doxygen_docs $(BSG_DIR)/../doc/bsg_api_docs
+
+#################################################
+# Create and install the BSG library
+#################################################
+$(TARGET):      $(ALL_OBJECTS) freetype png nxpl_lib
+	@echo Linking $(TARGET)
+	@$(CXX) -shared -o $(TARGET) $(ALL_OBJECTS)
 
 #################################################
 # Clean rules
@@ -216,6 +214,11 @@ clean: clean_bsg
 	@echo "Cleaning V3D Driver and platform"
 	@$(MAKE) -C $(V3D_DIR) -f V3DDriver.mk OBJDIR=$(V3DDRIVER_OBJ_TARGET) LIBDIR=$(V3DDRIVER_LIB_TARGET) clean
 	@$(MAKE) -C $(V3D_PLATFORM_DIR)/nexus -f platform_nexus.mk OBJDIR=$(NXPL_OBJ_TARGET) LIBDIR=$(NXPL_LIB_TARGET) clean
+ifeq ($(NXCLIENT_SUPPORT),y)
+	$(MAKE) -C $(NEXUS_TOP)/nxclient NEXUS_BIN_DIR=$(NEXUS_BIN_DIR) clean
+else
+	$(MAKE) -C $(NEXUS_TOP)/build NEXUS_BIN_DIR=$(NEXUS_BIN_DIR) clean
+endif
 	@$(MAKE) -C $(ZLIB) clean
 	@$(MAKE) -C $(PNG) clean
 ifneq ($(wildcard $(FREETYPE)/.bsg_configured),)
@@ -230,10 +233,12 @@ endif
 
 # Files that need all the Nexus flags for platform specific code
 $(PLATFORM_OBJECTS): $(BSG_OBJ_DIR)/%o: %cpp
-	mkdir -p $(BSG_OBJ_DIR)
-	$(CXX) $(CFLAGS) $(CXXFLAGS) $(NEXUS_CXXFLAGS) -c $^ -o $@
+	@mkdir -p $(BSG_OBJ_DIR)
+	@echo Compiling $^
+	@$(CXX) $(CFLAGS) $(CXXFLAGS) $(NEXUS_CXXFLAGS) -c $^ -o $@
 
 # Files that do not need nexus flags
 $(COMMON_OBJECTS): $(BSG_OBJ_DIR)/%o: %cpp
-	mkdir -p $(BSG_OBJ_DIR)
-	$(CXX) $(CFLAGS) $(CXXFLAGS) -c $^ -o $@
+	@mkdir -p $(BSG_OBJ_DIR)
+	@echo Compiling $^
+	@$(CXX) $(CFLAGS) $(CXXFLAGS) -c $^ -o $@

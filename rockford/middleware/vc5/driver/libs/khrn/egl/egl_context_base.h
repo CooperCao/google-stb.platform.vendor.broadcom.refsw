@@ -17,55 +17,36 @@ typedef struct
 {
    /* Flush all rendering; wait = true --> wait for jobs to finish; required
     * (see eglClientWait) */
-   void        (*flush)(EGL_CONTEXT_T *context, bool wait);
+   void (*flush)(EGL_CONTEXT_T *context, bool wait);
 
-   /*
-    * Flush all rendering destined for surface's back buffer, and return a
-    * pointer to dependecies to wait for for rendering to complete.
-    * If context is a gl api and surface is the current drawing surface,
-    * multisample buffer gets resolved to the color buffer and all ancillary
-    * buffers are invalid after this flush.
-    */
-   v3d_scheduler_deps *(*flush_rendering)(EGL_CONTEXT_T *context,
-         EGL_SURFACE_T *surface);
+   /* Copy the source image to the destination image. The copy may not complete
+    * before the function returns. flush() can be called with wait=true to wait
+    * for the copy. */
+   bool (*copy_image)(EGL_CONTEXT_T *context,
+         KHRN_IMAGE_T *dst, KHRN_IMAGE_T *src);
 
-   /*
-    * Copy the content of the surface's back buffer to the destination image;
-    * If context is a gl api and surface is the current drawing surface, the
-    * multisample buffer gets resolved to the color buffer and multisample
-    * buffer content is invalid after this operation
-    */
-   bool (*copy_surface)(EGL_CONTEXT_T *context,
-         EGL_SURFACE_T *surface, KHRN_IMAGE_T *dst);
+   /* Invalidate the specified draw surface buffers.
+    * color implies color_ms (if color is set, color_ms is ignored), but not
+    * the other way around. Invalidating just color_ms means we want to throw
+    * away the multisample color information but keep the downsampled color. */
+   void (*invalidate_draw)(EGL_CONTEXT_T *context,
+      bool color, bool color_ms, bool other_aux);
 
-   /*
-    * Add a fence on the surface; any reading/writing writing to the surfaces's
-    * back buffer will wait for this fence before proceeding
-    */
-   void        (*add_fence)(EGL_CONTEXT_T *context,
-                  const EGL_SURFACE_T *surface, int fence);
-
-   /*
-    * Must call egl_context_base_attach. If NULL, base_attach is called
-    * instead.
-    */
-   void        (*attach)(EGL_CONTEXT_T *context,
+   /* Must call egl_context_base_attach. If NULL, base_attach is called
+    * instead. */
+   void (*attach)(EGL_CONTEXT_T *context,
                   EGL_SURFACE_T *draw, EGL_SURFACE_T *read);
 
-   /*
-    * Must call egl_context_base_detach. If NULL, base_detach is called
-    * instead.
-    */
-   void        (*detach)(EGL_CONTEXT_T *context);
+   /* Must call egl_context_base_detach. If NULL, base_detach is called
+    * instead. */
+   void (*detach)(EGL_CONTEXT_T *context);
 
    /* Return client API version. Required. */
-   int         (*client_version)(const EGL_CONTEXT_T *context);
+   int (*client_version)(const EGL_CONTEXT_T *context);
 
-   /*
-    * Destroy any resources inside the context (but don't free it-- that's
-    * done in the base class along with allocation).
-    */
-   void        (*invalidate)(EGL_CONTEXT_T *context);
+   /* Destroy any resources inside the context (but don't free it-- that's
+    * done in the base class along with allocation). */
+   void (*invalidate)(EGL_CONTEXT_T *context);
 }
 EGL_CONTEXT_METHODS_T;
 

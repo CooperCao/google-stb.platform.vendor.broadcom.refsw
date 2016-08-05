@@ -132,15 +132,15 @@ void RamFS::File::erase() {
                 if (pageEntry == nullptr)
                     continue;
 
-                freePage(pageEntry);
+                rfsFreePage(pageEntry);
                 l3Entry[k] = 0;
             }
 
-            freePage(l3Entry);
+            rfsFreePage(l3Entry);
             l2Entry[j] = 0;
         }
 
-        freePage(l2Entry);
+        rfsFreePage(l2Entry);
         l1BlockTable[i] = nullptr;
     }
 
@@ -512,7 +512,7 @@ size_t RamFS::File::writeToBlockTable(uint8_t *data, uint64_t absStartPos, uint6
     for (int i=l1Start; i<=l1Stop; i++) {
         uint64_t *l2Block = (uint64_t *)l1BlockTable[i];
         if (l2Block == nullptr) {
-            l2Block = (uint64_t *)allocPage();
+            l2Block = (uint64_t *)rfsAllocPage();
             if (l2Block == nullptr)
                 return rv;
 
@@ -527,7 +527,7 @@ size_t RamFS::File::writeToBlockTable(uint8_t *data, uint64_t absStartPos, uint6
         for (int j=l2Start; j<=l2Stop; j++) {
             uint64_t *l3Block = (uint64_t *)l2Block[j];
             if (l3Block == nullptr) {
-                l3Block = (uint64_t *)allocPage();
+                l3Block = (uint64_t *)rfsAllocPage();
                 if (l3Block == nullptr)
                     return rv;
 
@@ -541,7 +541,7 @@ size_t RamFS::File::writeToBlockTable(uint8_t *data, uint64_t absStartPos, uint6
             for (int k=l3Start; k<=l3Stop; k++) {
                 uint8_t *l3Entry = (uint8_t *)l3Block[k];
                 if (l3Entry == nullptr) {
-                    l3Entry = (uint8_t *)allocPage();
+                    l3Entry = (uint8_t *)rfsAllocPage();
                     if (l3Entry == nullptr)
                         return rv;
 
@@ -572,7 +572,7 @@ size_t RamFS::File::writeToBlockTable(uint8_t *data, uint64_t absStartPos, uint6
     return rv;
 }
 
-TzMem::VirtAddr RamFS::File::allocPage() {
+TzMem::VirtAddr RamFS::File::rfsAllocPage() {
     PageTable *kernPageTable = PageTable::kernelPageTable();
 
     TzMem::VirtAddr vaddr = kernPageTable->reserveAddrRange((void *)KERNEL_HEAP_START, PAGE_SIZE_4K_BYTES, PageTable::ScanForward);
@@ -599,7 +599,7 @@ TzMem::VirtAddr RamFS::File::allocPage() {
     return vaddr;
 }
 
-void RamFS::File::freePage(TzMem::VirtAddr vaddr) {
+void RamFS::File::rfsFreePage(TzMem::VirtAddr vaddr) {
     PageTable *kernPageTable = PageTable::kernelPageTable();
     TzMem::PhysAddr phys = kernPageTable->lookUp(vaddr);
     kernPageTable->unmapPage(vaddr);

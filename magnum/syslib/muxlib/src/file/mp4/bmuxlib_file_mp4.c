@@ -50,6 +50,9 @@ BDBG_FILE_MODULE(BMUX_MP4_FINISH);
 BDBG_FILE_MODULE(BMUX_MP4_MEMORY);
 BDBG_FILE_MODULE(BMUX_MP4_USAGE);      /* enables storage usage display */
 
+BDBG_OBJECT_ID(BMUXlib_File_MP4_P_Context);   /* BMUXlib_File_MP4_Handle*/
+BDBG_OBJECT_ID(BMUXlib_File_MP4_P_CreateData);
+
 #ifdef BMUXLIB_MP4_P_TEST_MODE
 #include <stdio.h>
 #endif
@@ -182,6 +185,7 @@ BERR_Code BMUXlib_File_MP4_Create(BMUXlib_File_MP4_Handle *phMP4Mux, const BMUXl
       BMUXlib_File_MP4_P_CreateData *pCreateData = &hMux->stCreate;
       /* create the objects required by this context, based on user settings ... */
       BKNI_Memset(pCreateData, 0, sizeof(BMUXlib_File_MP4_P_CreateData));
+      BDBG_OBJECT_SET(pCreateData, BMUXlib_File_MP4_P_CreateData);
       pCreateData->uiMuxId = pCreateSettings->uiMuxId;
 
       /* number of output descriptors to allocate for non-metadata outputs (Main & Mdat) */
@@ -234,9 +238,6 @@ BERR_Code BMUXlib_File_MP4_Create(BMUXlib_File_MP4_Handle *phMP4Mux, const BMUXl
       pCreateData->pOutputCBDataFreeList = (BMUXlib_File_MP4_P_OutputCallbackData *)BKNI_Malloc(BMUXLIB_FILE_MP4_P_NUM_FREELIST_ENTRIES * sizeof(BMUXlib_File_MP4_P_OutputCallbackData));
       BDBG_MODULE_MSG(BMUX_MP4_MEMORY, ("Output callback data: Allocating %d bytes", (int)(BMUXLIB_FILE_MP4_P_NUM_FREELIST_ENTRIES * sizeof(BMUXlib_File_MP4_P_OutputCallbackData))));
 
-      /* fill in the signature in the context */
-      pCreateData->uiSignature = BMUXLIB_FILE_MP4_P_SIGNATURE_CONTEXT;
-
       /* verify all objects were created successfully ... */
       if ((true == bCachesOk) &&
           (NULL != pCreateData->pBoxBuffer) &&
@@ -255,6 +256,9 @@ BERR_Code BMUXlib_File_MP4_Create(BMUXlib_File_MP4_Handle *phMP4Mux, const BMUXl
       else
       {
          /* unable to allocate required memory */
+         /* NOTE: the following is necessary so that Destroy() doesn't assert
+            on a bad object (normally set by InitializeContext) */
+         BDBG_OBJECT_SET(hMux, BMUXlib_File_MP4_P_Context);
          BMUXlib_File_MP4_Destroy(hMux);                 /* free anything created so far, then free the context */
          BDBG_ERR(("Unable to allocate memory for specified objects"));
          rc = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
@@ -289,17 +293,16 @@ void BMUXlib_File_MP4_Destroy(BMUXlib_File_MP4_Handle hMP4Mux)
 
    BDBG_ENTER(BMUXlib_File_MP4_Destroy);
 
-   BDBG_ASSERT(hMP4Mux != NULL);
-
    BDBG_MSG(("====Destroying MP4 Mux===="));
 
    /* the following signifies an attempt to free up something that was either
       a) not created by Create()
       b) has already been destroyed
    */
-   BDBG_ASSERT(BMUXLIB_FILE_MP4_P_SIGNATURE_CONTEXT == hMP4Mux->stCreate.uiSignature);
+   BDBG_OBJECT_ASSERT(hMP4Mux, BMUXlib_File_MP4_P_Context);
 
    pCreateData = &hMP4Mux->stCreate;
+   BDBG_OBJECT_ASSERT(pCreateData, BMUXlib_File_MP4_P_CreateData);
 
    /* free up all dependent objects ... */
    if (NULL != pCreateData->pRelocationBuffer)
@@ -340,8 +343,8 @@ void BMUXlib_File_MP4_Destroy(BMUXlib_File_MP4_Handle hMP4Mux)
       pCreateData->pOutputCBDataFreeList = NULL;
    }
 
-   /* clear signature (prevents accidental reuse of memory) */
-   hMP4Mux->stCreate.uiSignature = 0;
+   BDBG_OBJECT_DESTROY(pCreateData, BMUXlib_File_MP4_P_CreateData);
+   BDBG_OBJECT_DESTROY(hMP4Mux, BMUXlib_File_MP4_P_Context);
 
    /* free the context ... */
    BKNI_Free(hMP4Mux);
@@ -423,8 +426,9 @@ BERR_Code BMUXlib_File_MP4_Start(BMUXlib_File_MP4_Handle hMP4Mux, const BMUXlib_
 
    BDBG_ENTER(BMUXlib_File_MP4_Start);
 
-   BDBG_ASSERT(hMP4Mux != NULL);
-   BDBG_ASSERT(BMUXLIB_FILE_MP4_P_SIGNATURE_CONTEXT == hMP4Mux->stCreate.uiSignature);
+   BDBG_OBJECT_ASSERT(hMP4Mux, BMUXlib_File_MP4_P_Context);
+   /* verify that the create data has not been cleared */
+   BDBG_OBJECT_ASSERT(&hMP4Mux->stCreate, BMUXlib_File_MP4_P_CreateData);
    BDBG_ASSERT(pStartSettings != NULL);
    BDBG_ASSERT(BMUXLIB_FILE_MP4_P_SIGNATURE_STARTSETTINGS == pStartSettings->uiSignature);
 
@@ -762,8 +766,7 @@ BERR_Code BMUXlib_File_MP4_Finish(BMUXlib_File_MP4_Handle hMP4Mux, const BMUXlib
 
    BDBG_ENTER(BMUXlib_File_MP4_Finish);
 
-   BDBG_ASSERT(hMP4Mux != NULL);
-   BDBG_ASSERT(BMUXLIB_FILE_MP4_P_SIGNATURE_CONTEXT == hMP4Mux->stCreate.uiSignature);
+   BDBG_OBJECT_ASSERT(hMP4Mux, BMUXlib_File_MP4_P_Context);
    BDBG_ASSERT(pFinishSettings != NULL);
    BDBG_ASSERT(BMUXLIB_FILE_MP4_P_SIGNATURE_FINISHSETTINGS == pFinishSettings->uiSignature);
 
@@ -834,8 +837,7 @@ BERR_Code BMUXlib_File_MP4_Stop(BMUXlib_File_MP4_Handle hMP4Mux)
    BERR_Code rc = BERR_SUCCESS;
    BDBG_ENTER(BMUXlib_File_MP4_Stop);
 
-   BDBG_ASSERT(hMP4Mux != NULL);
-   BDBG_ASSERT(BMUXLIB_FILE_MP4_P_SIGNATURE_CONTEXT == hMP4Mux->stCreate.uiSignature);
+   BDBG_OBJECT_ASSERT(hMP4Mux, BMUXlib_File_MP4_P_Context);
 
    BDBG_MSG(("====Stopping MP4 Mux===="));
 
@@ -916,9 +918,8 @@ BERR_Code BMUXlib_File_MP4_DoMux(BMUXlib_File_MP4_Handle hMP4Mux, BMUXlib_DoMux_
 
    BDBG_ENTER(BMUXlib_File_MP4_DoMux);
 
-   BDBG_ASSERT(hMP4Mux != NULL);
+   BDBG_OBJECT_ASSERT(hMP4Mux, BMUXlib_File_MP4_P_Context);
    BDBG_ASSERT(pStatus != NULL);
-   BDBG_ASSERT(BMUXLIB_FILE_MP4_P_SIGNATURE_CONTEXT == hMP4Mux->stCreate.uiSignature);
 
    switch (BMUXLIB_FILE_MP4_P_GET_MUX_STATE(hMP4Mux))
    {

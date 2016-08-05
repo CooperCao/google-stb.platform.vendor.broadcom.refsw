@@ -1,7 +1,7 @@
 /******************************************************************************
- * (c) 2010-2015 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
  * to the terms and conditions of a separate, written license agreement executed
  * between you and Broadcom (an "Authorized License").  Except as set forth in
@@ -37,8 +37,7 @@
  *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
  *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
  *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
- *****************************************************************************/
+ ******************************************************************************/
 
 
 #ifndef BMUXLIB_FILE_IVF_PRIV_H__
@@ -104,7 +103,6 @@ extern "C" {
 #define BMUXLIB_FILE_IVF_P_SIGNATURE_CREATESETTINGS      0x49564601
 #define BMUXLIB_FILE_IVF_P_SIGNATURE_STARTSETTINGS       0x49564602
 #define BMUXLIB_FILE_IVF_P_SIGNATURE_FINISHSETTINGS      0x49564603
-#define BMUXLIB_FILE_IVF_P_SIGNATURE_CONTEXT             0x49564604
 
 /****************************
 *        T Y P E S          *
@@ -177,7 +175,7 @@ typedef union BMUXlib_File_IVF_P_FrameHeader
 
 typedef struct BMUXlib_File_IVF_P_Context
 {
-   uint32_t uiSignature;
+   BDBG_OBJECT(BMUXlib_File_IVF_P_Context)
 
    BMUXlib_File_IVF_StartSettings stStartSettings;
    BMUXlib_Input_Handle hInput;

@@ -27,14 +27,12 @@ extern "C" {
 /*  range 0x6000-0x8000 during development work.  When the vendor commits to  */
 /*  releasing the extension, allocate permanent enum values (see link).       */
 
-/* Expose "mirror once" and "clamp to border" texture wrap modes */
-#ifndef GL_BRCM_mirror_once_border
-#define GL_BRCM_mirror_once_border 1
+/* Expose "mirror once" texture wrap mode */
+#ifndef GL_BRCM_mirror_clamp_to_edge
+#define GL_BRCM_mirror_clamp_to_edge 1
 #endif
-#if GL_BRCM_mirror_once_border
-#define GL_CLAMP_TO_BORDER_BRCM        0x812D   /* wrap mode */
-#define GL_TEXTURE_BORDER_COLOR_BRCM   0x1004   /* glTexParameterfv pname */
-#define GL_MIRROR_ONCE_BRCM            0x7901   /* wrap mode */
+#if GL_BRCM_mirror_clamp_to_edge
+#define GL_MIRROR_CLAMP_TO_EDGE_BRCM   0x8743 /* wrap mode */
 #endif
 
 /* Expose texture flip x, flip y and swap st */
@@ -52,13 +50,12 @@ extern "C" {
 #define GL_BRCM_texture_norm16 1
 #endif
 #if GL_BRCM_texture_norm16
-/* or we could try and reuse GL_R16 etc.? */
-#define GL_R16_BRCM                   0x7920
-#define GL_RG16_BRCM                  0x7921
-#define GL_RGBA16_BRCM                0x7922
-#define GL_R16_SNORM_BRCM             0x7923
-#define GL_RG16_SNORM_BRCM            0x7924
-#define GL_RGBA16_SNORM_BRCM          0x7925
+#define GL_R16_BRCM                   0x822A
+#define GL_RG16_BRCM                  0x822C
+#define GL_RGBA16_BRCM                0x805B
+#define GL_R16_SNORM_BRCM             0x8F98
+#define GL_RG16_SNORM_BRCM            0x8F99
+#define GL_RGBA16_SNORM_BRCM          0x8F9B
 #endif
 
 #ifndef GL_BRCM_texture_1D
@@ -81,40 +78,6 @@ GL_APICALL void GL_APIENTRY glTexImage1DBRCM (GLenum target, GLint level, GLint 
 #endif
 typedef void   (GL_APIENTRYP PFNGLTEXIMAGE1DBRCMPROC) (GLenum target, GLint level, GLint internalformat, GLsizei width, GLint border, GLenum format, GLenum type, const GLvoid* pixels);
 #endif /* GL_BRCM_texture_1D */
-
-/*  Features for V3D v. 3.1 / OpenGL ES 3.1     */
-
-/*  BRCM_multi_draw_indirect / ARB_multi_draw_indirect / OpenGL 4.3  */
-
-#ifndef GL_BRCM_multi_draw_indirect
-# define GL_BRCM_multi_draw_indirect 1
-#endif
-#if GL_BRCM_multi_draw_indirect
-typedef void (GL_APIENTRYP PFNGLMULTIDRAWARRAYSINDIRECTBRCMPROC) (GLenum mode, const void *indirect, GLsizei drawcount, GLsizei stride);
-typedef void (GL_APIENTRYP PFNGLMULTIDRAWELEMENTSINDIRECTBRCMPROC) (GLenum mode, GLenum type, const void *indirect, GLsizei drawcount, GLsizei stride);
-
-#ifdef GL_GLEXT_PROTOTYPES
-GL_APICALL void GL_APIENTRY glMultiDrawArraysIndirectBRCM (GLenum mode, const void *indirect, GLsizei drawcount, GLsizei stride);
-GL_APICALL void GL_APIENTRY glMultiDrawElementsIndirectBRCM (GLenum mode, GLenum type, const void *indirect, GLsizei drawcount, GLsizei stride);
-#endif
-#endif /* GL_BRCM_multi_draw_indirect */
-
-/*  BRCM_base_instance / ARB_base_instance / OpenGL 4.2  */
-
-#ifndef GL_BRCM_base_instance
-# define GL_BRCM_base_instance 1
-#endif
-#if GL_BRCM_base_instance
-typedef void (GL_APIENTRYP PFNGLDRAWARRAYSINSTANCEDBASEINSTANCEBRCMPROC) (GLenum mode, GLint first, GLsizei count, GLsizei instancecount, GLuint baseinstance);
-typedef void (GL_APIENTRYP PFNGLDRAWELEMENTSINSTANCEDBASEINSTANCEBRCMPROC) (GLenum mode, GLsizei count, GLenum type, const void *indices, GLsizei instancecount, GLuint baseinstance);
-typedef void (GL_APIENTRYP PFNGLDRAWELEMENTSINSTANCEDBASEVERTEXBASEINSTANCEBRCMPROC) (GLenum mode, GLsizei count, GLenum type, const void *indices, GLsizei instancecount, GLint basevertex, GLuint baseinstance);
-
-#ifdef GL_GLEXT_PROTOTYPES
-GL_APICALL void GL_APIENTRY glDrawArraysInstancedBaseInstanceBRCM (GLenum mode, GLint first, GLsizei count, GLsizei instancecount, GLuint baseinstance);
-GL_APICALL void GL_APIENTRY glDrawElementsInstancedBaseInstanceBRCM (GLenum mode, GLsizei count, GLenum type, const void *indices, GLsizei instancecount, GLuint baseinstance);
-GL_APICALL void GL_APIENTRY glDrawElementsInstancedBaseVertexBaseInstanceBRCM (GLenum mode, GLsizei count, GLenum type, const void *indices, GLsizei instancecount, GLint basevertex, GLuint baseinstance);
-#endif
-#endif /* GL_BRCM_base_instance */
 
 #ifndef GL_BRCM_polygon_mode
 #define GL_BRCM_polygon_mode 1

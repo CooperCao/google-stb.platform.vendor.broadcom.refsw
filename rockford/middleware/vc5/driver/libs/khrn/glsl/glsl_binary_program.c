@@ -19,7 +19,6 @@ BINARY_PROGRAM_T *glsl_binary_program_create() {
       ret->vstages[i][MODE_BIN]    = NULL;
       ret->vstages[i][MODE_RENDER] = NULL;
    }
-   ret->has_point_size = false;
    return ret;
 }
 
@@ -32,15 +31,25 @@ BINARY_PROGRAM_T *glsl_binary_program_from_dataflow(IR_PROGRAM_T                
    ret->fshader = glsl_binary_shader_from_dataflow(SHADER_FRAGMENT, false, &ret->vary_map, ir, key);
    if (ret->fshader == NULL) goto fail;
 
-   // early out for compute shaders
-   if (!ir->stage[SHADER_VERTEX].ir)
+   ShaderFlavour last_vtx = (ir->stage[SHADER_GEOMETRY].ir) ? SHADER_GEOMETRY : (ir->stage[SHADER_TESS_EVALUATION].ir) ? SHADER_TESS_EVALUATION : SHADER_VERTEX;
+
+   // early out if there are no shaders left
+   if (!ir->stage[last_vtx].ir)
       return ret;
 
-   ret->vstages[SHADER_VERTEX][MODE_BIN]    = glsl_binary_shader_from_dataflow(SHADER_VERTEX, true,  &ir->tf_vary_map, ir, key);
-   ret->vstages[SHADER_VERTEX][MODE_RENDER] = glsl_binary_shader_from_dataflow(SHADER_VERTEX, false, &ret->vary_map,   ir, key);
-   if (ret->vstages[SHADER_VERTEX][MODE_BIN] == NULL || ret->vstages[SHADER_VERTEX][MODE_RENDER] == NULL) goto fail;
+   ret->vstages[last_vtx][MODE_BIN]    = glsl_binary_shader_from_dataflow(last_vtx, true,  &ir->tf_vary_map, ir, key);
+   ret->vstages[last_vtx][MODE_RENDER] = glsl_binary_shader_from_dataflow(last_vtx, false, &ret->vary_map,   ir, key);
+   if (ret->vstages[last_vtx][MODE_BIN] == NULL || ret->vstages[last_vtx][MODE_RENDER] == NULL) goto fail;
 
-   ret->has_point_size = (key->backend & GLXX_PRIM_M) == GLXX_PRIM_POINT;
+   for (int i=last_vtx-1; i >= SHADER_VERTEX; i--) {
+      if (ir->stage[i].ir == NULL) continue;
+
+      ret->vstages[i][MODE_BIN]    = glsl_binary_shader_from_dataflow(i, true,  NULL, ir, key);
+      ret->vstages[i][MODE_RENDER] = glsl_binary_shader_from_dataflow(i, false, NULL, ir, key);
+      if (ret->vstages[i][MODE_BIN] == NULL || ret->vstages[i][MODE_RENDER] == NULL) goto fail;
+   }
+
+
    return ret;
 
 fail:

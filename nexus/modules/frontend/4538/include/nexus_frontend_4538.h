@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2013 Broadcom Corporation
+*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,18 +35,10 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * API Description:
 *   API name: Frontend 4538
 *    APIs to open, close, and setup initial settings for a BCM4538
 *    Dual-Channel Integrated Satellite Tuner/Demodulator Device.
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 #ifndef NEXUS_FRONTEND_4538_H__
@@ -113,7 +105,8 @@ typedef struct NEXUS_FrontendDevice4538OpenSettings
 
         /* 4538-specific diseqc pinmux override. */
         bool setPinmux;                 /* If setPinmux is true, the values in diseqc.pinmux will be written, overriding the default diseqc pinmux */
-        uint8_t pinmux[2];              /* If the default diseqc pinmux needs to be overridden for a specific configuration, the values for this may be taken from the BAST_4538_DSEC_PIN_MUX_* macros in bast_4538.h */
+        uint8_t pinmux[2];              /* If the default diseqc pinmux needs to be overridden for a specific configuration, the values for this
+                                           may be taken from the BAST_4538_DSEC_PIN_MUX_* macros in bast_4538.h */
     } diseqc;
 
     NEXUS_FrontendDeviceMtsifSettings mtsif[NEXUS_MAX_MTSIF]; /* Configure MTSIF rate and drive strength at open time. If values are 0, defaults are used. */

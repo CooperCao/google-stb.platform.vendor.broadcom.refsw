@@ -271,17 +271,7 @@ const BVDC_Settings s_stDefaultSettings =
  * INDEX: by compositor id, window id source id */
 const BVDC_P_Features s_VdcFeatures =
 {
-#if (BCHP_CHIP==7420)
-    false,
-    /* cmp0   cmp1   cmp2   cmp3   cmp4   cmp5   cmp6 */
-    {  true,  true,  true,  false, false, false, false },
-
-    /* mpg0   mpg1   mpg2   mpg3   mpg4   mpg5   vdec0  vdec1  656_0  656_1  gfx0   gfx1   gfx2   gfx3   gfx4   gfx5   gfx6   dvi0   dvi1   ds 0   vfd0   vfd1   vfd2   vfd3   vfd4   vfd5   vfd6   vfd7  */
-    {  true,  true,  false, false, false, false, false, false, true,  true,  true,  true,  true,  false, false, false, false, true,  false, false, true,  true,  true,  true,  false, false, false, false },
-
-    /* mpg0   mpg1   mpg2   mpg3   mpg4   mpg5   vdec0  vdec1  656_0  656_1  gfx0   gfx1   gfx2   gfx3   gfx4   gfx5   gfx6   dvi0   dvi1   ds 0   vfd0   vfd1   vfd2   vfd3   vfd4   vfd5   vfd6   vfd7  */
-    {  false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false },
-#elif (BCHP_CHIP==7422) || (BCHP_CHIP==7425)
+#if (BCHP_CHIP==7422) || (BCHP_CHIP==7425)
     false,
     /* cmp0   cmp1   cmp2   cmp3   cmp4   cmp5   cmp6 */
     {  true,  true,  true,  true,  false, false, false },
@@ -301,16 +291,6 @@ const BVDC_P_Features s_VdcFeatures =
 
     /* mpg0   mpg1   mpg2   mpg3   mpg4   mpg5   vdec0  vdec1  656_0  656_1  gfx0   gfx1   gfx2   gfx3   gfx4   gfx5   gfx6   dvi0   dvi1   ds 0   vfd0   vfd1   vfd2   vfd3   vfd4   vfd5   vfd6   vfd7  */
     {  true,  true,  true,  true,  false, false, false, false, false, false, true,  false, false, false, false, false, false, false, false, false, true,  true,  false, false, false, false, false, false },
-#elif (BCHP_CHIP==7550)
-    false,
-    /* cmp0   cmp1   cmpb   cmp3   cmp4   cmp5   cmp6 */
-    {  true,  true,  false, false, false, false, false },
-
-    /* mpg0   mpg1   mpg2   mpg3   mpg4   mpg5   vdec0  vdec1  656_0  656_1  gfx0   gfx1   gfx2   gfx3   gfx4   gfx5   gfx6   dvi0   dvi1   ds 0   vfd0   vfd1   vfd2   vfd3   vfd4   vfd5   vfd6   vfd7  */
-    {  true,  false, false, false, false, false, false, false, false, false, true,  true,  false, false, false, false, false, false, false, false, true,  true,  false, false, false, false, false, false },
-
-    /* mpg0   mpg1   mpg2   mpg3   mpg4   mpg5   vdec0  vdec1  656_0  656_1  gfx0   gfx1   gfx2   gfx3   gfx4   gfx5   gfx6   dvi0   dvi1   ds 0   vfd0   vfd1   vfd2   vfd3   vfd4   vfd5   vfd6   vfd7  */
-    {  false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false },
 #elif (BCHP_CHIP==7358) || (BCHP_CHIP==7552) || (BCHP_CHIP==7360) || \
       (BCHP_CHIP==7362) || (BCHP_CHIP==7563) || (BCHP_CHIP==7543) || \
       (BCHP_CHIP==7228) || (BCHP_CHIP==75635) || (BCHP_CHIP==73625) || (BCHP_CHIP==75525)
@@ -363,26 +343,6 @@ const BVDC_P_Features s_VdcFeatures =
 
     /* mpg0   mpg1   mpg2   mpg3   mpg4   mpg5   vdec0  vdec1  656_0  656_1  gfx0   gfx1   gfx2   gfx3   gfx4   gfx5   gfx6   dvi0   dvi1   ds 0   vfd0   vfd1   vfd2   vfd3   vfd4   vfd5   vfd6   vfd7  */
     {  true,  true,  false, false, false, false, false, false, false, false, true,  false, false, false, false, false, false, false, false, false, true,  true,  false, false, false, false, false, false },
-#elif (BCHP_CHIP==7125)
-    false,
-    /* cmp0   cmp1   cmpb   cmp3   cmp4   cmp5   cmp6 */
-    {  true,  true,  false, false, false, false, false },
-
-    /* mpg0   mpg1   mpg2   mpg3   mpg4   mpg5   vdec0  vdec1  656_0  656_1  gfx0   gfx1   gfx2   gfx3   gfx4   gfx5   gfx6   dvi0   dvi1   ds 0   vfd0   vfd1   vfd2   vfd3   vfd4   vfd5   vfd6   vfd7  */
-    {  true,  false, false, false, false, false, false, false, true, false, true,  true,  false, false, false, false, false, false, false, false, true,  true,  false, false, false, false, false, false },
-
-    /* mpg0   mpg1   mpg2   mpg3   mpg4   mpg5   vdec0  vdec1  656_0  656_1  gfx0   gfx1   gfx2   gfx3   gfx4   gfx5   gfx6   dvi0   dvi1   ds 0   vfd0   vfd1   vfd2   vfd3   vfd4   vfd5   vfd6   vfd7  */
-    {  false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false },
-#elif (BCHP_CHIP==7468) || (BCHP_CHIP==7408)
-    false,
-    /* cmp0   cmp1   cmpb   cmp3   cmp4   cmp5   cmp6 */
-    {  true,  true,  false, false, false, false, false },
-
-    /* mpg0   mpg1   mpg2   mpg3   mpg4   mpg5   vdec0  vdec1  656_0  656_1  gfx0   gfx1   gfx2   gfx3   gfx4   gfx5   gfx6   dvi0   dvi1   ds 0   vfd0   vfd1   vfd2   vfd3   vfd4   vfd5   vfd6   vfd7  */
-    {  true,  false, false, false, false, false, false, false, false, false, true,  true,  false, false, false, false, false, false, false, false, true,  true,  false, false, false, false, false, false },
-
-    /* mpg0   mpg1   mpg2   mpg3   mpg4   mpg5   vdec0  vdec1  656_0  656_1  gfx0   gfx1   gfx2   gfx3   gfx4   gfx5   gfx6   dvi0   dvi1   ds 0   vfd0   vfd1   vfd2   vfd3   vfd4   vfd5   vfd6   vfd7  */
-    {  false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false },
 #elif (BCHP_CHIP==7445) || (BCHP_CHIP==11360)
     false,
     /* cmp0   cmp1   cmp2   cmp3   cmp4   cmp5   cmp6  */
@@ -443,10 +403,20 @@ const BVDC_P_Features s_VdcFeatures =
     {  true,  true,  false, false, false, false, false },
 
     /* mpg0   mpg1   mpg2   mpg3   mpg4   mpg5   vdec0  vdec1  656_0  656_1  gfx0   gfx1   gfx2   gfx3   gfx4   gfx5   gfx6   dvi0   dvi1   ds 0   vfd0   vfd1   vfd2   vfd3   vfd4   vfd5   vfd6   vfd7  */
-    {  true,  true, false, false, false, false, false, false, false, false, true,  true,  false, false, false, false, false, true, false, false, true,  true,  false, false, false, false, false, false },
+    {  true,  true, false, false, false, false, false, false, false, false, true,  true,  false, false, false, false, false, true, false, false,  true,  true,  false, false, false, false, false, false },
 
     /* mpg0   mpg1   mpg2   mpg3   mpg4   mpg5   vdec0  vdec1  656_0  656_1  gfx0   gfx1   gfx2   gfx3   gfx4   gfx5   gfx6   dvi0   dvi1   ds 0   vfd0   vfd1   vfd2   vfd3   vfd4   vfd5   vfd6   vfd7  */
-    {  true, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false },
+    {  true, true, false, false, false, false, false, false, false, false,  true,  true, false, false, false, false, false,  true, false, false,  true,  true, false, false, false, false, false, false },
+#elif (BCHP_CHIP==7260)
+    false,
+    /* cmp0   cmp1   cmpb   cmp3   cmp4   cmp5   cmp6 */
+    {  true,  true,  false, false, false, false, false },
+
+    /* mpg0   mpg1   mpg2   mpg3   mpg4   mpg5   vdec0  vdec1  656_0  656_1  gfx0   gfx1   gfx2   gfx3   gfx4   gfx5   gfx6   dvi0   dvi1   ds 0   vfd0   vfd1   vfd2   vfd3   vfd4   vfd5   vfd6   vfd7  */
+    {  true,  true, false, false, false, false, false, false, false, false, true,  true,  false, false, false, false, false, false, false, false, true,  true,  false, false, false, false, false, false },
+
+    /* mpg0   mpg1   mpg2   mpg3   mpg4   mpg5   vdec0  vdec1  656_0  656_1  gfx0   gfx1   gfx2   gfx3   gfx4   gfx5   gfx6   dvi0   dvi1   ds 0   vfd0   vfd1   vfd2   vfd3   vfd4   vfd5   vfd6   vfd7  */
+    {  true, true, false, false, false, false, false, false, false, false,  true,  true, false, false, false, false, false, false, false, false,  true,  true, false, false, false, false, false, false },
 #else
 #error "Unknown chip!  Not yet supported in VDC."
 #endif
@@ -546,7 +516,8 @@ static void BVDC_P_ResetBvn
 
 #ifdef BCHP_FMISC_BVNF_CLOCK_CTRL
     BREG_Write32(pVdc->hRegister, BCHP_FMISC_BVNF_CLOCK_CTRL,
-        BCHP_FIELD_DATA(FMISC_BVNF_CLOCK_CTRL, CLK_FREE_RUN_MODE, bFreeRun));
+        BCHP_FIELD_DATA(FMISC_BVNF_CLOCK_CTRL, CLK_FREE_RUN_MODE,
+            (bFreeRun || BVDC_P_SUPPORT_CLOCK_GATING_FMISC_FR) ? 1 : 0));
 #endif
 
 #if (BVDC_P_SUPPORT_MEM_PWR_GATING)
@@ -1333,11 +1304,17 @@ static BERR_Code BVDC_P_CheckApplyChangesStatus
         }
 #endif
 #ifdef BCHP_PWR_RESOURCE_VDC_DAC
-        if(hVdc->ahDisplay[i]->ulDacPwrRelease)
+        if(hVdc->ahDisplay[i]->stAnlgChan_0.ulDacPwrAcquire == 0 &&
+           hVdc->ahDisplay[i]->stAnlgChan_1.ulDacPwrAcquire == 0 &&
+           (hVdc->ahDisplay[i]->stAnlgChan_0.ulDacPwrRelease ||
+            hVdc->ahDisplay[i]->stAnlgChan_1.ulDacPwrRelease))
         {
             BDBG_MSG(("DAC: release BCHP_PWR_RESOURCE_VDC_DAC"));
             BCHP_PWR_ReleaseResource(hVdc->hChip, BCHP_PWR_RESOURCE_VDC_DAC);
             hVdc->ahDisplay[i]->ulDacPwrRelease = 0;
+            hVdc->ahDisplay[i]->ulDacPwrAcquire = 0;
+            hVdc->ahDisplay[i]->stAnlgChan_0.ulDacPwrRelease = 0;
+            hVdc->ahDisplay[i]->stAnlgChan_1.ulDacPwrRelease = 0;
         }
 #endif
 #if BVDC_P_SUPPORT_VIP
@@ -1367,11 +1344,13 @@ static BERR_Code BVDC_P_CheckApplyChangesStatus
                     const BVDC_P_Window_DirtyBits  *pDirty = &(hWindow->stCurInfo.stDirty);
                     const BVDC_P_VnetMode  *pVntMd = &(hWindow->stVnetMode);
                     BVDC_P_CheckDisplayAlignAdjustedStatus(hVdc);
-                    BDBG_ERR(("Window%d destroy times out", hWindow->eId));
+                    BDBG_ERR(("Window%d (Src%d) destroy times out", hWindow->eId,
+                        hWindow->stCurInfo.hSource->eId));
                     BDBG_ERR(("VnetMode 0x%08lx, readerState %d, writerState %d",
                         *(long unsigned int *) pVntMd, hWindow->stCurInfo.eReaderState, hWindow->stCurInfo.eWriterState));
                     BDBG_ERR(("   bShutDown %d, bRecfgVnet %d, bSrcPending %d, dirty 0x%08lx",
-                        pDirty->stBits.bShutdown, pDirty->stBits.bReConfigVnet, pDirty->stBits.bSrcPending, (long unsigned int)pDirty->aulInts[0]));
+                        pDirty->stBits.bShutdown, pDirty->stBits.bReConfigVnet, pDirty->stBits.bSrcPending,
+                        (long unsigned int)pDirty->aulInts[0]));
 #endif
                     return BERR_TRACE(eStatus);
                 }
@@ -1390,7 +1369,8 @@ static BERR_Code BVDC_P_CheckApplyChangesStatus
                     const BVDC_P_Window_DirtyBits *pDirty = &(hWindow->stCurInfo.stDirty);
                     const BVDC_P_VnetMode  *pVntMd = &(hWindow->stVnetMode);
                     BVDC_P_CheckDisplayAlignAdjustedStatus(hVdc);
-                    BDBG_ERR(("Window%d apply times out", hWindow->eId));
+                    BDBG_ERR(("Window%d (Src%d) apply times out", hWindow->eId,
+                        hWindow->stCurInfo.hSource->eId));
                     BDBG_ERR(("VnetMode 0x%08lx, readerState %d, writerState %d",
                         *(long unsigned int *) pVntMd, hWindow->stCurInfo.eReaderState, hWindow->stCurInfo.eWriterState));
                     BDBG_ERR(("   bShutDown %d, bRecfgVnet %d, bSrcPending %d, dirty 0x%08lx",

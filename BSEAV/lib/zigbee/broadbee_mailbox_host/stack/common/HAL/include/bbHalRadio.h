@@ -55,104 +55,45 @@
 /************************* INCLUDES ***********************************************************************************/
 #include "bbHalSymTmr.h"
 
-#ifdef __SoC__
+#if defined(__SoC__)
 # include "bbSocRadio.h"
-#else
+#else// defined(__ML507__)
 # include "bbMl507Radio.h"
 #endif
 
 /************************* DEFINITIONS ********************************************************************************/
 /**//**
- * \name    Enumerations for use with PHY Services Access Points (SAP).
- * \details Generally there is one main PHY enumeration introduced according to the Standard and a number of derivative
- *  enumerations actually used with particular PHY primitives.
+ * \name    Radio Driver constants.
+ * \par     Documentation
+ *  See IEEE 802.15.4-2006, subclauses 6.3, 6.4.1, 6.9.1, 6.9.2, 7.2.1, 7.2.2.3, tables 21, 22.
+ */
+/**@{*/
+#define HAL_aMaxPHYPacketSize   (127)       /*!< The maximum PSDU size (in octets) the PHY shall be able to receive. */
+#define HAL_aTurnaroundTime     (12)        /*!< RX-to-TX or TX-to-RX maximum turnaround time (in symbol periods). */
+#define HAL_aAckMPDUOverhead    (5)         /*!< The number of octets added by the MAC to the PSDU for the ACK frame. */
+#define HAL_aFCSSize            (2)         /*!< The number of octets added by the MAC to the PSDU for the FCS field. */
+/**@}*/
+
+/*--------------------------------------------------------------------------------------------------------------------*/
+/**//**
+ * \name    Enumerations for use with Radio Driver Services Access Points (SAP).
  * \details The Radio Driver implements PHY primitives in the way almost according to the Standard but with the
  *  following changes that influence the use of PHY enumerations:
  *  - Radio Driver primitives must not be called in inappropriate Driver or Radio hardware state, or with invalid
- *      parameters. Due to this restriction, primitives never return (confirm with) failure statuses.
- *  - The PLME-SET-TRX-STATE.request accepts reduced set of state switching commands.
- *  - The PLME-SET-TRX-STATE.confirm returns (implies) the SUCCESS status instead of RX_ON, TX_ON, TRX_OFF if requested
- *      to switch to the same state as the currently set.
- *  - The PLME-CCA.confirm returns IDLE/BUSY status as a value of Boolean type instead of Enumeration.
- *  - The PLME-GET/SET primitives are implemented as the set of Getter and Setter synchronous functions (except the
+ *      parameters. Due to this restriction, primitives never return (confirm with) failure statuses. That's why there
+ *  - The RF-SET-TRX-STATE.request accepts reduced set of state switching commands.
+ *  - The RF-SET-TRX-STATE.confirm returns (implies) the SUCCESS status instead of RX_ON, TX_ON, TRX_OFF if requested to
+ *      switch to the same state as the currently set.
+ *  - The RF-CCA.confirm returns IDLE/BUSY status as a value of Boolean type instead of Enumeration.
+ *  - The RF-GET/SET primitives are implemented as the set of Getter and Setter synchronous functions (except the
  *      current channel and channel page switching), published variables and public constants, and due to this reason
  *      may not return failure statuses specific to PHY PAN Information Base (PIB) attributes accessing rules violation.
  */
 /**@{*/
 /**//**
- * \brief   PHY enumeration values.
- * \par     Documentation
- *  See IEEE 802.15.4-2006, subclause 6.2.3, table 18.
- */
-enum PHY_Enum_t {
-    PHY__BUSY                   = 0x00,     /*!< The CCA attempt has detected a busy channel. */
-    PHY__BUSY_RX                = 0x01,     /*!< The transceiver is asked to change its state while receiving. */
-    PHY__BUSY_TX                = 0x02,     /*!< The transceiver is asked to change its state while transmitting. */
-    PHY__FORCE_TRX_OFF          = 0x03,     /*!< The transceiver is to be switched off immediately. */
-    PHY__IDLE                   = 0x04,     /*!< The CCA attempt has detected an idle channel. */
-    PHY__INVALID_PARAMETER      = 0x05,     /*!< A SET/GET request was issued with a parameter in the primitive that is
-                                                out of the valid range. */
-    PHY__RX_ON                  = 0x06,     /*!< The transceiver is in or is to be configured into the receiver enabled
-                                                state. */
-    PHY__SUCCESS                = 0x07,     /*!< A SET/GET, an ED operation, or a transceiver state change was
-                                                successful. */
-    PHY__TRX_OFF                = 0x08,     /*!< The transceiver is in or is to be configured into the transceiver
-                                                disabled state. */
-    PHY__TX_ON                  = 0x09,     /*!< The transceiver is in or is to be configured into the transmitter
-                                                enabled state. */
-    PHY__UNSUPPORTED_ATTRIBUTE  = 0x0A,     /*!< A SET/GET request was issued with the identifier of an attribute that
-                                                is not supported. */
-    PHY__READ_ONLY              = 0x0B,     /*!< A SET/GET request was issued with the identifier of an attribute that
-                                                is read-only. */
-};
-SYS_DbgAssertStatic(sizeof(enum PHY_Enum_t) == 1);
-
-/**//**
- * \brief   Enumeration of PHY state codes.
- * \details This Radio Driver implements custom PLME-GET-TRX-STATE primitive that returns the current state of the
- *  Radio. The Radio state code returned may be one of conventional codes or the UNDEFINED (0x00) state.
- * \note    This enumeration indicates the state of the Radio Driver which in general correspond to the actual Radio
  *  hardware state. Hence, the state of the Radio hardware may differ during short periods from the Driver state until
  *  the Driver state is synchronized with the hardware state after corresponding Radio hardware interrupt servicing.
- * \note    Implementations on particular platforms may extend this enumeration with private codes - for example, for
- *  different phases of BUSY states (preparation and continuing), or different types of UNDEFINED state (initially
- *  undefined and in the middle of state switching).
- * \par     Documentation
- *  See IEEE 802.15.4-2006, subclause 6.2.3, table 18.
- */
-enum PHY_State_t {
-    PHY_STATE__UNDEFINED    = 0x00,             /*!< The transceiver state is undefined. */
-    PHY_STATE__BUSY_RX      = PHY__BUSY_RX,     /*!< The transceiver is during reception. */
-    PHY_STATE__BUSY_TX      = PHY__BUSY_TX,     /*!< The transceiver is during transmission. */
-    PHY_STATE__RX_ON        = PHY__RX_ON,       /*!< The transceiver is in the receiver enabled state. */
-    PHY_STATE__TRX_OFF      = PHY__TRX_OFF,     /*!< The transceiver is in the transceiver disabled state. */
-    PHY_STATE__TX_ON        = PHY__TX_ON,       /*!< The transceiver is in the transmitter enabled state. */
-};
-SYS_DbgAssertStatic(sizeof(enum PHY_State_t) == 1);
-
-/**//**
- * \brief   Enumeration of PHY state switching commands.
- * \details The PLME-SET-TRX-STATE.request, as it is implemented in this Radio Driver, accepts reduced set of commands.
- *  Indeed, all three implemented commands are performed as FORCE commands. Due to this reason there are no separate
- *  commands FORCE_TRX_OFF (0x03) and TRX_OFF (0x08) - the TRX_OFF (0x08) shall be used in both cases.
- * \note    There are additional restrictions which commands may be issued to the Radio Driver when it persists in
- *  particular states.
- * \par     Documentation
- *  See IEEE 802.15.4-2006, subclause 6.2.2.7, table 14.
- */
-enum PHY_Cmd_t {
-    PHY_CMD__TRX_OFF    = PHY__TRX_OFF,     /*!< Switch/force to TRX_OFF state. */
-    PHY_CMD__RX_ON      = PHY__RX_ON,       /*!< Switch/force to RX_ON state. */
-    PHY_CMD__TX_ON      = PHY__TX_ON,       /*!< Switch/force to TX_ON state. */
-};
-SYS_DbgAssertStatic(sizeof(enum PHY_Cmd_t) == 1);
-SYS_DbgAssertStatic(PHY_CMD__TRX_OFF == PHY_STATE__TRX_OFF);
-SYS_DbgAssertStatic(PHY_CMD__RX_ON == PHY_STATE__RX_ON);
-SYS_DbgAssertStatic(PHY_CMD__TX_ON == PHY_STATE__TX_ON);
-/**@}*/
-
-/**//**
- * \name    Enumeration of Radio Driver codes of asynchronous task on processing.
+ * \brief   Enumeration of Radio Driver codes of asynchronous task on processing.
  * \details When the Driver is free of task processing it's in the IDLE state. When a new request is received by the
  *  Driver, it starts processing it within the corresponding XXXX_REQ task. As soon as request processing is finished,
  *  the Driver either issues confirmation immediately (on SoC) or schedules the corresponding XXXX_CONF task for issuing
@@ -196,9 +137,51 @@ SYS_DbgAssertStatic(HAL_RADIO_TASK__CCA_CONF     == (HAL_RADIO_TASK__CONF | HAL_
 SYS_DbgAssertStatic(HAL_RADIO_TASK__ED_CONF      == (HAL_RADIO_TASK__CONF | HAL_RADIO_TASK__ED_REQ));
 SYS_DbgAssertStatic(HAL_RADIO_TASK__CHANNEL_CONF == (HAL_RADIO_TASK__CONF | HAL_RADIO_TASK__CHANNEL_REQ));
 
+/**//**
+ * \brief   Enumeration of Radio Driver state switching commands.
+ * \details The RF-SET-TRX-STATE.request, as it is implemented in this Radio Driver, accepts reduced set of commands.
+ *  Indeed, all three implemented commands are performed as FORCE commands. Due to this reason there are no separate
+ *  commands FORCE_TRX_OFF (0x03) and TRX_OFF (0x08) - the TRX_OFF (0x08) shall be used in both cases.
+ * \note    There are additional restrictions which commands may be issued to the Radio Driver when it persists in
+ *  particular states.
+ * \par     Documentation
+ *  See IEEE 802.15.4-2006, subclause 6.2.2.7, table 14.
+ */
+enum HAL_Radio__CMD_Code_t {
+    HAL_RADIO_CMD__RX_ON    = 0x06,     /*!< Switch/force to RX_ON state. */
+    HAL_RADIO_CMD__TRX_OFF  = 0x08,     /*!< Switch/force to TRX_OFF state. */
+    HAL_RADIO_CMD__TX_ON    = 0x09,     /*!< Switch/force to TX_ON state. */
+};
+SYS_DbgAssertStatic(sizeof(enum HAL_Radio__CMD_Code_t) == 1);
+
+/**//**
+ * \brief   Enumeration of Radio Driver state codes.
+ * \details This Radio Driver implements custom RF-GET-TRX-STATE primitive that returns the current state of the Radio.
+ *  The Radio state code returned may be one of conventional PHY codes or the UNDEFINED (0x00) state.
+ * \note    This enumeration indicates the state of the Radio Driver which in general correspond to the actual Radio
+ * \note    Implementations on particular platforms may extend this enumeration with private codes - for example, for
+ *  different phases of BUSY states (preparation and continuing), or different types of UNDEFINED state (initially
+ *  undefined and in the middle of state switching).
+ * \par     Documentation
+ *  See IEEE 802.15.4-2006, subclause 6.2.3, table 18.
+ */
+enum HAL_Radio__STATE_Code_t {
+    HAL_RADIO_STATE__UNDEFINED  = 0x00,     /*!< The transceiver state is undefined. */
+    HAL_RADIO_STATE__BUSY_RX    = 0x01,     /*!< The transceiver is during reception. */
+    HAL_RADIO_STATE__BUSY_TX    = 0x02,     /*!< The transceiver is during transmission. */
+    HAL_RADIO_STATE__RX_ON      = 0x06,     /*!< The transceiver is in the receiver enabled state. */
+    HAL_RADIO_STATE__TRX_OFF    = 0x08,     /*!< The transceiver is in the transceiver disabled state. */
+    HAL_RADIO_STATE__TX_ON      = 0x09,     /*!< The transceiver is in the transmitter enabled state. */
+};
+SYS_DbgAssertStatic(sizeof(enum HAL_Radio__STATE_Code_t) == 1);
+SYS_DbgAssertStatic(HAL_RADIO_STATE__RX_ON   == HAL_RADIO_CMD__RX_ON);
+SYS_DbgAssertStatic(HAL_RADIO_STATE__TRX_OFF == HAL_RADIO_CMD__TRX_OFF);
+SYS_DbgAssertStatic(HAL_RADIO_STATE__TX_ON   == HAL_RADIO_CMD__TX_ON);
+/**@}*/
+
 /*--------------------------------------------------------------------------------------------------------------------*/
 /**//**
- * \name    Data types and macro-functions used for Radio channel and channel page representation.
+ * \name    Data types used for Radio channel page and current channel representation.
  * \details A total of 32 channel pages are available with channel pages 3 to 31 being reserved for future use. A total
  *  of 27 channels numbered 0 to 26 are available per channel page.
  * \par     Documentation
@@ -206,27 +189,31 @@ SYS_DbgAssertStatic(HAL_RADIO_TASK__CHANNEL_CONF == (HAL_RADIO_TASK__CONF | HAL_
  */
 /**@{*/
 /**//**
- * \brief   Data type used for packed representation of the couple of channel page and channel identifiers.
+ * \brief   Data type used for packed representation of the couple of channel page and current channel identifiers.
  * \details This data type represents particular channel on particular channel page in the following format:
  *  - bits 4..0 - Channel[4..0] - indicate the channel in the range from 0 to 26
  *  - bits 7..5 - Page[2..0] - indicate the channel page in the range from 0 to 7
  */
-typedef uint8_t  PHY_PageChannel_t;
-SYS_DbgAssertStatic(sizeof(PHY_PageChannel_t) == 1);
+typedef uint8_t  HAL_Radio__PgCh_t;
+SYS_DbgAssertStatic(sizeof(HAL_Radio__PgCh_t) == 1);
 
 /**//**
  * \brief   Data type for the Radio channel page identifier.
  */
-typedef uint8_t  PHY_Page_t;
-SYS_DbgAssertStatic(sizeof(PHY_Page_t) == 1);
+typedef uint8_t  HAL_Radio__Page_t;
+SYS_DbgAssertStatic(sizeof(HAL_Radio__Page_t) == 1);
 
 /**//**
  * \brief   Data type for the Radio channel identifier.
  */
-typedef uint8_t  PHY_Channel_t;
-SYS_DbgAssertStatic(sizeof(PHY_Channel_t) == 1);
+typedef uint8_t  HAL_Radio__Channel_t;
+SYS_DbgAssertStatic(sizeof(HAL_Radio__Channel_t) == 1);
+/**@}*/
 
+/*--------------------------------------------------------------------------------------------------------------------*/
 /**//**
+ * \name    Macro-functions used for Radio channel page and current channel compact representation.
+ * \details A total of 32 channel pages are available with channel pages 3 to 31 being reserved for future use. A total
  * \brief   Data type for Radio channel mask (set, bitmap).
  * \details This data type represents the bitmap of channels available on particular channel page in the following
  *  format:
@@ -234,104 +221,40 @@ SYS_DbgAssertStatic(sizeof(PHY_Channel_t) == 1);
  *      each of up to 27 valid channels (bit #k indicates the status of channel k) supported by a channel page
  *  - bits 31..27 - Page[4..0] - indicate the channel page in the range from 0 to 2
  *
- * \note    The channel mask may be given also without specifying the page in bits 31..27.
- * \note    In the case of a single bit mask, the channel mask may be used for representing the positional code of a
- *  channel. The bit #k (that is the only bit set to one in the bitmap) will indicate the channel k.
  * \par     Documentation
- *  See IEEE 802.15.4-2006, subclauses 6.1.2.1, 6.1.2.2, table 2, 23.
+ *  See IEEE 802.15.4-2006, subclauses 6.1.2.1, 6.1.2.2, table 2.
  */
-typedef uint32_t  PHY_ChannelMask_t;
-SYS_DbgAssertStatic(sizeof(PHY_ChannelMask_t) == 4);
-
+/**@{*/
 /**//**
- * \brief   The maximum actually possible identifier of a Radio channel page.
- * \details A total of 32 channel pages are available with channel pages 3 to 31 being reserved for future use.
- * \par     Documentation
- *  See IEEE 802.15.4-2006, subclause 6.1.2.2, table 2.
- */
-#define PHY_PAGE_MAX                (2)
-
-/**//**
- * \brief   The total number of actually defined Radio channel pages.
- * \details A total of 32 channel pages are available with channel pages 3 to 31 being reserved for future use.
- * \par     Documentation
- *  See IEEE 802.15.4-2006, subclause 6.1.2.2, table 2.
- */
-#define PHY_PAGES_NUM               (PHY_PAGE_MAX + 1)
-
-/**//**
- * \brief   The maximum possible identifier of a Radio channel.
- * \details A total of 27 channels numbered 0 to 26 are available per channel page.
- * \par     Documentation
- *  See IEEE 802.15.4-2006, subclause 6.1.2.1, table 2.
- */
-#define PHY_CHANNEL_MAX             (26)
-
-/**//**
- * \brief   The maximum possible number of channels on a single channel page.
- * \details A total of 27 channels numbered 0 to 26 are available per channel page.
- * \note    This constant may also be used as the invalid channel identifier.
- * \par     Documentation
- *  See IEEE 802.15.4-2006, subclause 6.1.2.1, table 2.
- */
-#define PHY_CHANNELS_NUM            (PHY_CHANNEL_MAX + 1)
-
-/**//**
- * \brief   The complete mask of channels on a single channel page.
- * \details A total of 27 channels numbered 0 to 26 are available per channel page.
- * \par     Documentation
- *  See IEEE 802.15.4-2006, subclause 6.1.2.1, table 2.
- */
-#define PHY_LEGAL_CHANNELS          BIT_MASK(PHY_CHANNELS_NUM)
-
-/**//**
- * \brief   Composes packed page-channel identifier from distinct channel page and channel identifiers.
+ * \brief   Composes packed Radio page-channel identifier from distinct channel page and current channel identifiers.
  * \param[in]   page        The page identifier, in the range from 0 to 7.
  * \param[in]   channel     The channel identifier, in the range from 0 to 26.
  * \return  The packed page-channel identifier.
- * \details The packed page-channel identifier bits 4..0 indicate the channel, bits 7..5 indicate the page.
  */
-#define PHY__Make_PageChannel(page, channel)\
-        ((((PHY_PageChannel_t)(page)) << 5) | (((PHY_PageChannel_t)(channel)) << 0))
+#define HAL_Radio__Make_PgCh(page, channel)\
+        ((((HAL_Radio__PgCh_t)(page)) << 5) | (((HAL_Radio__PgCh_t)(channel)) << 0))
+SYS_DbgAssertStatic(HAL_Radio__Make_PgCh(/*page*/ 1, /*channel*/ 23) == 0x37);
 
 /**//**
- * \brief   Extracts the channel page identifier from the packed page-channel identifier.
+ * \brief   Extracts the Radio channel page identifier from the packed page-channel identifier.
  * \param[in]   pgch    The packed page-channel identifier.
- * \return  The extracted page identifier.
- * \details The packed page-channel identifier bits 4..0 indicate the channel, bits 7..5 indicate the page.
+ * \return  The extracted channel page identifier.
  */
-#define PHY__Take_Page(pgch)        ((PHY_Page_t)(((PHY_PageChannel_t)(pgch)) >> 5))
+#define HAL_Radio__Take_Page(pgch)          ((HAL_Radio__Page_t)(((HAL_Radio__PgCh_t)(pgch)) >> 5))
+SYS_DbgAssertStatic(HAL_Radio__Take_Page(0x37) == 1);
 
 /**//**
- * \brief   Extracts the Radio channel identifier from the packed page-channel identifier.
+ * \brief   Extracts the Radio current channel identifier from the packed page-channel identifier.
  * \param[in]   pgch    The packed page-channel identifier.
- * \return  The extracted channel identifier.
- * \details The packed page-channel identifier bits 4..0 indicate the channel, bits 7..5 indicate the page.
+ * \return  The extracted current channel identifier.
  */
-#define PHY__Take_Channel(pgch)     ((PHY_Page_t)(((PHY_PageChannel_t)(pgch)) & 0x1F))
-
-/**//**
- * \brief   Substitutes the page identifier with the new one in the given packed page-channel identifier.
- * \param[in/out]   pgch        Reference to the packed page-channel identifier to be updated.
- * \param[in]       page        The new page identifier, in the range from 0 to 7.
- * \details The channel identifier is preserved, only the channel page identifier is updated.
- */
-#define PHY__Update_Page(pgch, page)\
-        do { (pgch) = ((((PHY_PageChannel_t)(page)) << 5) | (((PHY_PageChannel_t)(pgch)) & 0x1F)); } while(0)
-
-/**//**
- * \brief   Substitutes the channel identifier with the new one in the given packed page-channel identifier.
- * \param[in/out]   pgch        Reference to the packed page-channel identifier to be updated.
- * \param[in]       channel     The new channel identifier, in the range from 0 to 26.
- * \details The channel page identifier is preserved, only the channel identifier is updated.
- */
-#define PHY__Update_Channel(pgch, channel)\
-        do { (pgch) = ((((PHY_PageChannel_t)(pgch)) & 0xE0) | (((PHY_PageChannel_t)(channel)) << 0)); } while(0)
+#define HAL_Radio__Take_Channel(pgch)       ((HAL_Radio__Channel_t)(((HAL_Radio__PgCh_t)(pgch)) & 0x1F))
+SYS_DbgAssertStatic(HAL_Radio__Take_Channel(0x37) == 23);
 /**@}*/
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 /**//**
- * \name    Data types and macro-functions used for estimation of the Radio link quality and media conditions.
+ * \name    Data types used for estimation of the radio link quality and media conditions.
  */
 /**@{*/
 /**//**
@@ -351,8 +274,8 @@ SYS_DbgAssertStatic(sizeof(PHY_ChannelMask_t) == 4);
  * \par     Documentation
  *  See IEEE 802.15.4-2006, subclauses 6.2.2.4, 6.5.3.3, 6.6.3.4, 6.7.3.4, 6.8.3.4, 6.9.7, table 11.
  */
-typedef uint8_t  PHY_ED_t;
-SYS_DbgAssertStatic(sizeof(PHY_ED_t) == 1);
+typedef uint8_t  HAL_Radio__ED_t;
+SYS_DbgAssertStatic(sizeof(HAL_Radio__ED_t) == 1);
 
 /**//**
  * \brief   Data type for Received Signal Strength Indicator (RSSI).
@@ -363,8 +286,8 @@ SYS_DbgAssertStatic(sizeof(PHY_ED_t) == 1);
  * \par     Documentation
  *  See IEEE 802.15.4-2006, subclause 6.9.7.
  */
-typedef uint8_t  PHY_RSSI_t;
-SYS_DbgAssertStatic(sizeof(PHY_RSSI_t) == 1);
+typedef uint8_t  HAL_Radio__RSSI_t;
+SYS_DbgAssertStatic(sizeof(HAL_Radio__RSSI_t) == 1);
 
 /**//**
  * \brief   Data type for Link Quality Indicator (LQI).
@@ -378,9 +301,15 @@ SYS_DbgAssertStatic(sizeof(PHY_RSSI_t) == 1);
  * \par     Documentation
  *  See IEEE 802.15.4-2006, subclauses 6.2.1.3, 6.9.8, table 8.
  */
-typedef uint8_t  PHY_LQI_t;
-SYS_DbgAssertStatic(sizeof(PHY_LQI_t) == 1);
+typedef uint8_t  HAL_Radio__LQI_t;
+SYS_DbgAssertStatic(sizeof(HAL_Radio__LQI_t) == 1);
+/**@}*/
 
+/*--------------------------------------------------------------------------------------------------------------------*/
+/**//**
+ * \name    Macro-constants used for estimation of the radio link quality and media conditions.
+ */
+/**@{*/
 /**//**
  * \brief   The maximum possible value of Energy Detection (ED) expressed in the raw format.
  * \details This value is intended to be used as the invalid or unknown value of ED.
@@ -388,30 +317,12 @@ SYS_DbgAssertStatic(sizeof(PHY_LQI_t) == 1);
  * \par     Documentation
  *  See IEEE 802.15.4-2006, subclause 6.2.2.4, 6.9.7, table 11.
  */
-#define PHY_ED_MAX      (0xFFu)
-
-/**//**
- * \brief   Converts the 8-bit raw Energy Detection (ED) value into the dBm scale.
- * \param[in]   ed      The raw ED value to be converted to dBm scale.
- * \return  The ED value, 8-bit signed integer, in dBm.
- * \details Coefficients used in the expression are defined in the platform specific Radio Driver header file.
- */
-#define PHY__ED_to_dBm(ed)\
-        (((int8_t)(((uint16_t)(ed)) * ((int16_t)(PHY_SCALE__ED_1_to_dBm)))) + ((int8_t)(PHY_SCALE__ED_0_to_dBm)))
-
-/**//**
- * \brief   Converts the 8-bit raw Received Signal Strength Indicator (RSSI) value into the dBm scale.
- * \param[in]   rssi    The raw RSSI value to be converted to dBm scale.
- * \return  The RSSI value, 8-bit signed integer, in dBm.
- * \details Coefficients used in the expression are defined in the platform specific Radio Driver header file.
- */
-#define PHY__RSSI_to_dBm(rssi)\
-        (((int8_t)(((uint16_t)(rssi)) * ((int16_t)(PHY_SCALE__RSSI_1_to_dBm)))) + ((int8_t)(PHY_SCALE__RSSI_0_to_dBm)))
+#define HAL_RADIO__ED_MAX       (0xFFu)
 /**@}*/
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 /**//**
- * \name    Data types used for the transceiver configuration.
+ * \name    Data types used for the Radio transceiver configuration.
  */
 /**@{*/
 /**//**
@@ -421,16 +332,16 @@ SYS_DbgAssertStatic(sizeof(PHY_LQI_t) == 1);
  * \par     Documentation
  *  See IEEE 802.15.4-2006, subclauses 6.4.2, 6.9.9, table 23.
  */
-enum PHY_CCAMode_t {
-    PHY_CCA__MODE_3_OR      = 0,    /*!< Mode 3-OR, carrier sense OR energy above threshold. */
-    PHY_CCA__MODE_1         = 1,    /*!< Mode 1, energy above threshold. */
-    PHY_CCA__MODE_2         = 2,    /*!< Mode 2, carrier sense only. */
-    PHY_CCA__MODE_3_AND     = 3,    /*!< Mode 3-AND, carrier sense AND energy above threshold. */
+enum HAL_Radio__CCA_mode_t {
+    HAL_RADIO_CCA__MODE_3_OR      = 0,    /*!< Mode 3-OR, carrier sense OR energy above threshold. */
+    HAL_RADIO_CCA__MODE_1         = 1,    /*!< Mode 1, energy above threshold. */
+    HAL_RADIO_CCA__MODE_2         = 2,    /*!< Mode 2, carrier sense only. */
+    HAL_RADIO_CCA__MODE_3_AND     = 3,    /*!< Mode 3-AND, carrier sense AND energy above threshold. */
 };
-SYS_DbgAssertStatic(sizeof(enum PHY_CCAMode_t) == 1);
+SYS_DbgAssertStatic(sizeof(enum HAL_Radio__CCA_mode_t) == 1);
 
 /**//**
- * \brief   Data type for the PHY nominal transmit power.
+ * \brief   Data type for the Radio nominal transmit power.
  * \details This type represents a signed 8-bit integer in twos-complement format, corresponding to the nominal transmit
  *  power of the device in decibels relative to 1 mW. Valid range is from -32 dBm to +31 dBm. Values outside this range
  *  are limited at the corresponding boundary.
@@ -443,21 +354,8 @@ SYS_DbgAssertStatic(sizeof(enum PHY_CCAMode_t) == 1);
  * \par     Documentation
  *  See IEEE 802.15.4-2006, subclause 6.4.2, table 23.
  */
-typedef int8_t  PHY_TXPower_t;
-SYS_DbgAssertStatic(sizeof(PHY_TXPower_t) == 1);
-/**@}*/
-
-/*--------------------------------------------------------------------------------------------------------------------*/
-/**//**
- * \name    PHY constants.
- * \par     Documentation
- *  See IEEE 802.15.4-2006, subclauses 6.3, 6.4.1, 6.9.1, 6.9.2, 7.2.1, 7.2.2.3, tables 21, 22.
- */
-/**@{*/
-#define PHY_aMaxPHYPacketSize   (127)       /*!< The maximum PSDU size (in octets) the PHY shall be able to receive. */
-#define PHY_aTurnaroundTime     (12)        /*!< RX-to-TX or TX-to-RX maximum turnaround time (in symbol periods). */
-#define PHY_aAckMPDUOverhead    (5)         /*!< The number of octets added by the MAC to the PSDU for the ACK frame. */
-#define PHY_aFCSSize            (2)         /*!< The number of octets added by the MAC to the PSDU for the FCS field. */
+typedef int8_t  HAL_Radio__TX_power_t;
+SYS_DbgAssertStatic(sizeof(HAL_Radio__TX_power_t) == 1);
 /**@}*/
 
 /*--------------------------------------------------------------------------------------------------------------------*/
@@ -470,8 +368,8 @@ SYS_DbgAssertStatic(sizeof(PHY_TXPower_t) == 1);
  * \par     Documentation
  *  See IEEE 802.15.4-2006, subclause 6.3, table 16.
  */
-typedef uint8_t  Octet_t;
-SYS_DbgAssertStatic(sizeof(Octet_t) == 1);
+typedef uint8_t  HAL_Radio__Octet_t;
+SYS_DbgAssertStatic(sizeof(HAL_Radio__Octet_t) == 1);
 
 /**//**
  * \brief   Data type for PHY packet (PHY protocol data unit, PPDU).
@@ -484,9 +382,9 @@ SYS_DbgAssertStatic(sizeof(Octet_t) == 1);
  * \par     Documentation
  *  See IEEE 802.15.4-2006, subclause 6.3, figure 16.
  */
-typedef Octet_t  PPDU_t[1 /*PHR*/ + PHY_aMaxPHYPacketSize] __attribute__((aligned(4)));
-SYS_DbgAssertStatic(sizeof(PPDU_t) == 128);
-SYS_DbgAssertStatic(__alignof__(PPDU_t) % 4 == 0);
+typedef HAL_Radio__Octet_t  HAL_Radio__PPDU_t[1 /*PHR*/ + HAL_aMaxPHYPacketSize] __attribute__((aligned(4)));
+SYS_DbgAssertStatic(sizeof(HAL_Radio__PPDU_t) == 128);
+SYS_DbgAssertStatic(__alignof__(HAL_Radio__PPDU_t) % 4 == 0);
 
 /**//**
  * \brief   Data type for PHY header (PHR) of a packet.
@@ -497,8 +395,8 @@ SYS_DbgAssertStatic(__alignof__(PPDU_t) % 4 == 0);
  * \par     Documentation
  *  See IEEE 802.15.4-2006, subclause 6.3, figure 16.
  */
-typedef Octet_t  PHR_t;
-SYS_DbgAssertStatic(sizeof(PHR_t) == 1);
+typedef HAL_Radio__Octet_t  HAL_Radio__PHR_t;
+SYS_DbgAssertStatic(sizeof(HAL_Radio__PHR_t) == 1);
 
 /**//**
  * \brief   Data type for the Frame Length field of the PHY header (PHR).
@@ -516,8 +414,8 @@ SYS_DbgAssertStatic(sizeof(PHR_t) == 1);
  * \par     Documentation
  *  See IEEE 802.15.4-2006, subclause 6.3, 6.3.3, table 21.
  */
-typedef uint8_t  PHY_FrameLen_t;
-SYS_DbgAssertStatic(sizeof(PHY_FrameLen_t) == 1);
+typedef uint8_t  HAL_Radio__FrameLen_t;
+SYS_DbgAssertStatic(sizeof(HAL_Radio__FrameLen_t) == 1);
 
 /**//**
  * \brief   Data type for PHY payload (PHY service data unit, PSDU) of a packet.
@@ -526,9 +424,9 @@ SYS_DbgAssertStatic(sizeof(PHY_FrameLen_t) == 1);
  * \par     Documentation
  *  See IEEE 802.15.4-2006, subclauses 6.3, 6.3.4, figure 16.
  */
-typedef Octet_t  PSDU_t[PHY_aMaxPHYPacketSize] __attribute__((aligned(4)));
-SYS_DbgAssertStatic(sizeof(PSDU_t) == 127);
-SYS_DbgAssertStatic(__alignof__(PSDU_t) % 4 == 0);
+typedef HAL_Radio__Octet_t  HAL_Radio__PSDU_t[HAL_aMaxPHYPacketSize] __attribute__((aligned(4)));
+SYS_DbgAssertStatic(sizeof(HAL_Radio__PSDU_t) == 127);
+SYS_DbgAssertStatic(__alignof__(HAL_Radio__PSDU_t) % 4 == 0);
 /**@}*/
 
 /************************* PROTOTYPES *********************************************************************************/
@@ -557,8 +455,8 @@ extern enum HAL_Radio__TASK_Code_t  HAL_Radio__TASK;
  *  See Broadcom ZIGBEE MAC & HIF HARDWARE ON SOC 8/30/2013 (UPDATED ON 7/24/2014 FOR ACTUAL SOC IMPLEMENTATION),
  *  subclause TX-BUFFER (1).
  */
-extern PHR_t  PHY_FrmBuf__TX_BDC_PHR;
-SYS_DbgAssertStatic(sizeof(PHY_FrmBuf__TX_BDC_PHR) == 1);
+extern HAL_Radio__PHR_t  HAL_Radio_FrmBuf__TX_BDC_PHR;
+SYS_DbgAssertStatic(sizeof(HAL_Radio_FrmBuf__TX_BDC_PHR) == 1);
 
 /**//**
  * \brief   TX frame buffer for beacon, data, or command frame - PSDU.
@@ -569,9 +467,9 @@ SYS_DbgAssertStatic(sizeof(PHY_FrmBuf__TX_BDC_PHR) == 1);
  *  See Broadcom ZIGBEE MAC & HIF HARDWARE ON SOC 8/30/2013 (UPDATED ON 7/24/2014 FOR ACTUAL SOC IMPLEMENTATION),
  *  subclause TX-BUFFER (1).
  */
-extern PSDU_t  PHY_FrmBuf__TX_BDC_PSDU;                                                                                     // IDEA: [MAC Security] Use dynamic memory and stack to transfer the frame. The caller is responsible for freeing memory allocated for the PSDU.
-SYS_DbgAssertStatic(sizeof(PHY_FrmBuf__TX_BDC_PSDU) == 127);                                                                //  ... It's allowed to dismiss the PSDU as soon as this function [PHY__DATA_req] returned - i.e., prior to the TX_END event occurred.
-SYS_DbgAssertStatic(__alignof__(PHY_FrmBuf__TX_BDC_PSDU) % 4 == 0);                                                         //  ... The PSDU content is pushed into the TX frame buffer by this function completely prior to return.
+extern HAL_Radio__PSDU_t  HAL_Radio_FrmBuf__TX_BDC_PSDU;                                                                   // IDEA: [MAC Security] Use dynamic memory and stack to transfer the frame. The caller is responsible for freeing memory allocated for the PSDU.
+SYS_DbgAssertStatic(sizeof(HAL_Radio_FrmBuf__TX_BDC_PSDU) == 127);                                                         //  ... It's allowed to dismiss the PSDU as soon as this function [HAL_Radio__DATA_req] returned - i.e., prior to the TX_END event occurred.
+SYS_DbgAssertStatic(__alignof__(HAL_Radio_FrmBuf__TX_BDC_PSDU) % 4 == 0);                                                  //  ... The PSDU content is pushed into the TX frame buffer by this function completely prior to return.
 
 /**//**
  * \brief   TX frame buffer for ACK frame PSDU.
@@ -584,9 +482,10 @@ SYS_DbgAssertStatic(__alignof__(PHY_FrmBuf__TX_BDC_PSDU) % 4 == 0);             
  *  See Broadcom ZIGBEE MAC & HIF HARDWARE ON SOC 8/30/2013 (UPDATED ON 7/24/2014 FOR ACTUAL SOC IMPLEMENTATION),
  *  subclause TX-BUFFER (1).
  */
-extern Octet_t  PHY_FrmBuf__TX_ACK_PSDU[PHY_aAckMPDUOverhead - PHY_aFCSSize]  __attribute__((aligned(4)));                  // IDEA: Compose ACK frame dynamically. It's enough to keep only DSN and FP fields. FCS may be saved into the LUT.
-SYS_DbgAssertStatic(sizeof(PHY_FrmBuf__TX_ACK_PSDU) == 3);
-SYS_DbgAssertStatic(__alignof__(PHY_FrmBuf__TX_ACK_PSDU) % 4 == 0);
+extern HAL_Radio__Octet_t
+        HAL_Radio_FrmBuf__TX_ACK_PSDU[HAL_aAckMPDUOverhead - HAL_aFCSSize]  __attribute__((aligned(4)));                   // IDEA: Compose ACK frame dynamically. It's enough to keep only DSN and FP fields. FCS may be saved into the LUT.
+SYS_DbgAssertStatic(sizeof(HAL_Radio_FrmBuf__TX_ACK_PSDU) == 3);
+SYS_DbgAssertStatic(__alignof__(HAL_Radio_FrmBuf__TX_ACK_PSDU) % 4 == 0);
 
 /**//**
  * \brief   RX frame buffer.
@@ -600,16 +499,16 @@ SYS_DbgAssertStatic(__alignof__(PHY_FrmBuf__TX_ACK_PSDU) % 4 == 0);
  *  See Broadcom ZIGBEE MAC & HIF HARDWARE ON SOC 8/30/2013 (UPDATED ON 7/24/2014 FOR ACTUAL SOC IMPLEMENTATION),
  *  subclauses RX-BUFFER (1).
  */
-extern union PHY_FrmBuf__RX_PPDU_t {
-    PPDU_t          ppdu;                           /*!< PPDU of the received packet. */
+extern union HAL_Radio_FrmBuf__RX_PPDU_t {
+    HAL_Radio__PPDU_t       ppdu;                           /*!< PPDU of the received packet. */
     struct {
-        Octet_t     phr;                            /*!< PHR of the received packet. */
-        Octet_t     psdu[PHY_aMaxPHYPacketSize];    /*!< PSDU of the received packet. */
+        HAL_Radio__Octet_t  phr;                            /*!< PHR of the received packet. */
+        HAL_Radio__Octet_t  psdu[HAL_aMaxPHYPacketSize];    /*!< PSDU of the received packet. */
     };
-} PHY_FrmBuf__RX_PPDU;
-SYS_DbgAssertStatic(sizeof(PHY_FrmBuf__RX_PPDU) == 128);
-SYS_DbgAssertStatic(__alignof__(PHY_FrmBuf__RX_PPDU) % 4 == 0);
-SYS_DbgAssertStatic(offsetof(union PHY_FrmBuf__RX_PPDU_t, psdu) == 1);
+} HAL_Radio_FrmBuf__RX_PPDU;
+SYS_DbgAssertStatic(sizeof(HAL_Radio_FrmBuf__RX_PPDU) == 128);
+SYS_DbgAssertStatic(__alignof__(HAL_Radio_FrmBuf__RX_PPDU) % 4 == 0);
+SYS_DbgAssertStatic(offsetof(union HAL_Radio_FrmBuf__RX_PPDU_t, psdu) == 1);
 /**@}*/
 
 /*--------------------------------------------------------------------------------------------------------------------*/
@@ -630,20 +529,20 @@ SYS_DbgAssertStatic(offsetof(union PHY_FrmBuf__RX_PPDU_t, psdu) == 1);
  *  published in the packed format of page-channel identifier. The FCS field is validated only in the MAC mode of
  *  operation.
  */
-extern struct PHY_FrmBuf__RX_Stuff_t {
+extern struct HAL_Radio_FrmBuf__RX_Stuff_t {
     union {
-        PHY_LQI_t           lqi;            /*!< LQI value, hardware-specific units. */
+        HAL_Radio__LQI_t    lqi;            /*!< LQI value, hardware-specific units. */
         uint32_t            cgt;            /*!< CGT value, hardware-specific units. */
     };
     union {
-        PHY_RSSI_t          rssi;           /*!< RSSI value, hardware-specific units. */
+        HAL_Radio__RSSI_t   rssi;           /*!< RSSI value, hardware-specific units. */
         uint32_t            ed;             /*!< ED value, hardware-specific units. */
     };
-    PHY_PageChannel_t       pgch;           /*!< Page-channel packed identifier. */
+    HAL_Radio__PgCh_t       pgch;           /*!< Page-channel packed identifier. */
     Bool8_t                 fcsValid;       /*!< TRUE if FCS of the received MAC frame is valid. */
     uint16_t                reserved;       /*!< Reserved. */
-} PHY_FrmBuf__RX_Stuff;
-SYS_DbgAssertStatic(sizeof(PHY_FrmBuf__RX_Stuff) == 12);
+} HAL_Radio_FrmBuf__RX_Stuff;
+SYS_DbgAssertStatic(sizeof(HAL_Radio_FrmBuf__RX_Stuff) == 12);
 
 /**//**
  * \brief   Timestamps of the last transmitted and the last received packets.
@@ -660,12 +559,12 @@ SYS_DbgAssertStatic(sizeof(PHY_FrmBuf__RX_Stuff) == 12);
  * \par     Documentation
  *  See IEEE 802.15.4-2006, subclause 7.4.2, table 86.
  */
-extern struct PHY_FrmBuf__Tstamps_t {
+extern struct HAL_Radio_FrmBuf__Tstamps_t {
     HAL_Symbol__Tstamp_t    start;      /*!< Start timestamp, in symbol fractions. */
     HAL_Symbol__Tstamp_t    end;        /*!< End timestamp, in symbol fractions. */
-} PHY_FrmBuf__TX_Tstamps, PHY_FrmBuf__RX_Tstamps;
-SYS_DbgAssertStatic(sizeof(PHY_FrmBuf__TX_Tstamps) == 8);
-SYS_DbgAssertStatic(sizeof(PHY_FrmBuf__RX_Tstamps) == 8);
+} HAL_Radio_FrmBuf__TX_Tstamps, HAL_Radio_FrmBuf__RX_Tstamps;
+SYS_DbgAssertStatic(sizeof(HAL_Radio_FrmBuf__TX_Tstamps) == 8);
+SYS_DbgAssertStatic(sizeof(HAL_Radio_FrmBuf__RX_Tstamps) == 8);
 
 /**//**
  * \brief   Variable for saving status/results of the last confirmed request to the Driver.
@@ -679,15 +578,15 @@ SYS_DbgAssertStatic(sizeof(PHY_FrmBuf__RX_Tstamps) == 8);
  * \note    Driver prohibits activation of two or more concurrent requests. Due to this reason results published after
  *  different requests may be stored in the shared memory space (in a union).
  */
-extern union PHY_FrmBuf__Status_t {
-    Bool8_t     ccaIdle;    /*!< The saved CCA status for returning in the postponed confirmation. This variable stores
-                                status of the last performed CCA detection. It is assigned with TRUE for the IDLE status
-                                or FALSE for the BUSY status. */
-    PHY_ED_t    edLevel;    /*!< The saved Energy level value for returning in the postponed confirmation, expressed in
-                                hardware-specific units, from 0x00 to 0xFF. This variable stores result of the last
-                                performed energy detection measurement. */
-} PHY_FrmBuf__Status;
-SYS_DbgAssertStatic(sizeof(PHY_FrmBuf__Status) == 1);
+extern union HAL_Radio_FrmBuf__Status_t {
+    Bool8_t             ccaIdle;    /*!< The saved CCA status for returning in the postponed confirmation. This variable
+                                        stores status of the last performed CCA detection. It is assigned with TRUE for
+                                        the IDLE status or FALSE for the BUSY status. */
+    HAL_Radio__ED_t     edLevel;    /*!< The saved Energy level value for returning in the postponed confirmation,
+                                        expressed in hardware-specific units, from 0x00 to 0xFF. This variable stores
+                                        result of the last performed energy detection measurement. */
+} HAL_Radio_FrmBuf__Status;
+SYS_DbgAssertStatic(sizeof(HAL_Radio_FrmBuf__Status) == 1);
 /**@}*/
 
 /*--------------------------------------------------------------------------------------------------------------------*/
@@ -702,13 +601,13 @@ SYS_DbgAssertStatic(sizeof(PHY_FrmBuf__Status) == 1);
  *  after all the necessary software and hardware are configured either prior or after this function is called depending
  *  on the platform (see above).
  */
-void PHY__Init(void);
+void HAL_Radio__Init(void);
 
 /**//**
  * \brief   Initiates immediate packet transmission.
  * \details This function has implicit parameters which must be assigned by the caller prior to call it:
- *  - PHY_FrmBuf__TX_BDC_PHR    - value of the PHR of the transmitted packet. Allowed values for the FrameLength[6..0]
- *      field (bits 6..0 of the PHR) are from 0 to 127 in the pure PHY mode of operation, and either 5 or from 9 to 127
+ *  - HAL_Radio_FrmBuf__TX_BDC_PHR      - value of the PHR of the transmitted packet. Allowed values for the
+ *      FrameLength[6..0] field (bits 6..0 of the PHR) are from 0 to 127 in the pure PHY mode of operation, and either
  *      in the MAC mode. The Reserved[0] field (bit 7 of the PHR) must be set to zero.
  *  - PHY_FrmBuf__TX_BDC_PSDU   - array of bytes with PSDU of the transmitted packet. Must contain FrameLength bytes in
  *      the pure PHY mode of operation, or at least (FrameLength - 2) bytes in the MAC mode (the trailing two bytes
@@ -741,12 +640,12 @@ void PHY__Init(void);
  * \par     Documentation
  *  See IEEE 802.15.4-2006, subclause 6.2.1.1, table 6.
  */
-void PHY__DATA_req(void);
+void HAL_Radio__DATA_req(void);
 
 /**//**
  * \brief   Initiates timed transmission of the MAC Acknowledgment (ACK) frame.
  * \details This function has implicit parameter which must be assigned by the caller prior to call it:
- *  - PHY_FrmBuf__TX_ACK_PSDU   - array of bytes with PSDU of the transmitted ACK frame.
+ *  - HAL_Radio_FrmBuf__TX_ACK_PSDU     - array of bytes with PSDU of the transmitted ACK frame.
  *
  * \details This function is a version of the Data request processor dedicated for ACK frame transmission. Mostly it
  *  behaves as the general version of the Data transmission request, but this one has the following differences:
@@ -789,13 +688,13 @@ void PHY__DATA_req(void);
  * \par     Documentation
  *  See IEEE 802.15.4-2006, subclause 6.2.1.1, table 6.
  */
-void PHY__DATA_ACK_req();
+void HAL_Radio__DATA_ACK_req();
 
 /**//**
  * \brief   Handles confirmation of a packet transmission.
  * \details This function has implicit parameter which is assigned by the Radio Driver prior to call it:
- *  - PHY_FrmBuf__TX_Tstamps    - start and end timestamps synchronized respectively on the onset of the PHR and on the
- *      cutoff of the PPDU (PSDU) of the transmitted packet, in symbol fractions.
+ *  - HAL_Radio_FrmBuf__TX_Tstamps  - start and end timestamps synchronized respectively on the onset of the PHR and on
+ *      the cutoff of the PPDU (PSDU) of the transmitted packet, in symbol fractions.
  *
  * \details This function must be provided by the higher-level layer. It will be called by the Driver when Radio reports
  *  TX_DONE event after transmitting a packet over the air. This function is called by the Driver in the context of a
@@ -809,18 +708,18 @@ void PHY__DATA_ACK_req();
  *  that the confirmed transmission was performed successfully. There is no a common case failure that may be confirmed
  *  here.
  * \par     Documentation
- *  See IEEE 802.15.4-2006, subclause 6.2.1.2, table 7.<\br>
- *  See Atmel 8111C-MCU Wireless-09/09, subclause 7.1.3, figure 7-2.<\br>
+ *  See IEEE 802.15.4-2006, subclause 6.2.1.2, table 7.<br>
+ *  See Atmel 8111C-MCU Wireless-09/09, subclause 7.1.3, figure 7-2.<br>
  *  See Broadcom ZIGBEE MAC & HIF HARDWARE ON SOC 8/30/2013 (UPDATED ON 7/24/2014 FOR ACTUAL SOC IMPLEMENTATION),
  *  subclause INTERRUPTS INTO ZIGBEE ARC CPU, TX-BUFFER (4).
  */
-extern void PHY__DATA_conf(void);
+void HAL_Radio__DATA_conf(void);
 
 /**//**
  * \brief   Handles indication of a packet reception.
  * \details This function has implicit parameters which are assigned by the Radio Driver prior to call it:
- *  - PHY_FrmBuf__RX_PPDU       - array of bytes with PPDU of the received packet. Contains PHR at PPDU[0] and from 0 to
- *      127 octets of PSDU starting from PPDU[1]. Value of the FrameLength field of PHR is from 0 to 127.
+ *  - HAL_Radio_FrmBuf__RX_PPDU     - array of bytes with PPDU of the received packet. Contains PHR at PPDU[0] and from
+ *      0 to 127 octets of PSDU starting from PPDU[1]. Value of the FrameLength field of PHR is from 0 to 127.
  *  - PHY_FrmBuf__RX_Stuff      - structure containing LQI/CGT and RSSI/ED values of the received packet (given in the
  *      hardware-specific format), current channel page and channel, FCS validation status.
  *  - PHY_FrmBuf__RX_Tstamps    - start and end timestamps synchronized respectively on the onset of the PHR and on the
@@ -840,12 +739,12 @@ extern void PHY__DATA_conf(void);
  *  Driver persists in the RX_ON state at the moment of this function call and will keep staying in this state until a
  *  new request is issued by the higher-level layer.
  * \par     Documentation
- *  See IEEE 802.15.4-2006, subclauses 6.2.1.3, 6.9.7, 6.9.8, table 8.<\br>
- *  See Atmel 8111C-MCU Wireless-09/09, subclauses 7.1.3, 8.3, 8.6, figure 7-2.<\br>
+ *  See IEEE 802.15.4-2006, subclauses 6.2.1.3, 6.9.7, 6.9.8, table 8.<br>
+ *  See Atmel 8111C-MCU Wireless-09/09, subclauses 7.1.3, 8.3, 8.6, figure 7-2.<br>
  *  See Broadcom ZIGBEE MAC & HIF HARDWARE ON SOC 8/30/2013 (UPDATED ON 7/24/2014 FOR ACTUAL SOC IMPLEMENTATION),
  *  subclause INTERRUPTS INTO ZIGBEE ARC CPU, RX-BUFFER (3), LINK QUALITY INDICATOR (LQI).
  */
-extern void PHY__DATA_ind(void);
+void HAL_Radio__DATA_ind(void);
 
 /**//**
  * \brief   Initiates the Radio state switching.
@@ -886,7 +785,7 @@ extern void PHY__DATA_ind(void);
  * \par     Documentation
  *  See IEEE 802.15.4-2006, subclauses 6.2.2.7, 6.2.3, tables 14, 18.
  */
-void PHY__STATE_req(const enum PHY_Cmd_t cmd);
+void HAL_Radio__STATE_req(const enum HAL_Radio__CMD_Code_t cmd);
 
 /**//**
  * \brief   Handles confirmation of the Radio state switching.
@@ -900,10 +799,10 @@ void PHY__STATE_req(const enum PHY_Cmd_t cmd);
  *  means that the confirmed state switching was performed successfully. There is no a common case failure that may be
  *  confirmed here.
  * \par     Documentation
- *  See IEEE 802.15.4-2006, subclause 6.2.2.8, table 15.<\br>
+ *  See IEEE 802.15.4-2006, subclause 6.2.2.8, table 15.<br>
  *  See Atmel 8111C-MCU Wireless-09/09, subclause 7.1, figure 7-1.
  */
-extern void PHY__STATE_conf(void);
+void HAL_Radio__STATE_conf(void);
 
 /**//**
  * \brief   Initiates a Clear Channel Assessment (CCA) detection.
@@ -929,12 +828,12 @@ extern void PHY__STATE_conf(void);
  * \par     Documentation
  *  See IEEE 802.15.4-2006, subclauses 6.2.2.1, 6.9.9.
  */
-void PHY__CCA_req(void);
+void HAL_Radio__CCA_req(void);
 
 /**//**
  * \brief   Handles confirmation of the Clear Channel Assessment (CCA) detection.
  * \details This function has implicit parameter which is assigned by the Radio Driver prior to call it:
- *  - PHY_FrmBuf__Status.ccaIdle    - TRUE if the confirmed status is IDLE (0x04); FALSE if the confirmed status is
+ *  - HAL_Radio_FrmBuf__Status.ccaIdle  - TRUE if the confirmed status is IDLE (0x04); FALSE if the confirmed status is
  *      BUSY (0x00).
  *
  * \note    Take into account that the returned status has the boolean type, but not the PHY enumeration type.
@@ -950,7 +849,7 @@ void PHY__CCA_req(void);
  * \par     Documentation
  *  See IEEE 802.15.4-2006, subclauses 6.2.2.2, 6.2.3, tables 10, 18.
  */
-extern void PHY__CCA_conf(void);
+void HAL_Radio__CCA_conf(void);
 
 /**//**
  * \brief   Initiates an Energy Detection (ED) measurement.
@@ -972,12 +871,12 @@ extern void PHY__CCA_conf(void);
  * \par     Documentation
  *  See IEEE 802.15.4-2006, subclauses 6.2.2.3, 6.9.7.
  */
-void PHY__ED_req(void);
+void HAL_Radio__ED_req(void);
 
 /**//**
  * \brief   Handles confirmation of the Energy Detection (ED) measurement.
  * \details This function has implicit parameter which is assigned by the Radio Driver prior to call it:
- *  - PHY_FrmBuf__Status.edLevel    - Energy level detected, unsigned 8-bit integer, in hardware-specific units. Use
+ *  - HAL_Radio_FrmBuf__Status.edLevel  - Energy level detected, unsigned 8-bit integer, in hardware-specific units. Use
  *      conversion macro-function provided by the Radio Driver to obtain the ED value in dBm.
  *
  * \details This function must be provided by the higher-level layer. It will be called by the Driver when Radio reports
@@ -991,7 +890,7 @@ void PHY__ED_req(void);
  * \par     Documentation
  *  See IEEE 802.15.4-2006, subclause 6.2.2.4, table 11.
  */
-extern void PHY__ED_conf(void);
+void HAL_Radio__ED_conf(void);
 
 /**//**
  * \brief   Initiates the Radio channel and page switching.
@@ -1009,7 +908,7 @@ extern void PHY__ED_conf(void);
  * \par     Documentation
  *  See IEEE 802.15.4-2006, subclauses 6.1.2, 6.2.9.2, tables 2, 16, 23.
  */
-void PHY__CHANNEL_req(const PHY_PageChannel_t pgch);
+void HAL_Radio__CHANNEL_req(const HAL_Radio__PgCh_t pgch);
 
 /**//**
  * \brief   Handles confirmation of the channel and page switching.
@@ -1027,7 +926,7 @@ void PHY__CHANNEL_req(const PHY_PageChannel_t pgch);
  * \par     Documentation
  *  See IEEE 802.15.4-2006, subclause 6.2.2.10, table 17.
  */
-extern void PHY__CHANNEL_conf(void);
+void HAL_Radio__CHANNEL_conf(void);
 
 /**//**
  * \brief   Switches the Radio transceiver Clear Channel Assessment (CCA) Mode.
@@ -1035,7 +934,7 @@ extern void PHY__CHANNEL_conf(void);
  * \details This function switches the CCA Mode. Switching is performed synchronously; no confirmation is issued. Newly
  *  selected CCA Mode will take effect next time CCA detection is requested.
  */
-void PHY__CCAMode_set(const enum PHY_CCAMode_t ccaMode);
+void HAL_Radio__CCA_MODE_set(const enum HAL_Radio__CCA_mode_t ccaMode);
 
 /**//**
  * \brief   Tunes the Radio transceiver nominal transmit power.
@@ -1047,7 +946,7 @@ void PHY__CCAMode_set(const enum PHY_CCAMode_t ccaMode);
  *  function does not validate the specified value. If the requested transmit power is outside the actually implemented
  *  range, it is set to the corresponding (top or bottom) boundary.
  */
-void HAL_RadioSetTransmitPower(const PHY_TXPower_t txPower);
+void HAL_Radio__TX_POWER_set(const HAL_Radio__TX_power_t txPower);
 
 /**//**
  * \brief   Returns the current Received Signal Strength Indicator (RSSI) reported by the Radio hardware.
@@ -1059,7 +958,7 @@ void HAL_RadioSetTransmitPower(const PHY_TXPower_t txPower);
  *  value is returned. For the second case, the Radio Driver renews the stored RSSI value periodically on its own
  *  discretion.
  */
-PHY_RSSI_t PHY__RSSI_get(void);
+HAL_Radio__RSSI_t  HAL_Radio__RSSI_get(void);
 
 /**//**
  * \brief   Returns the current Radio Driver state.
@@ -1069,14 +968,30 @@ PHY_RSSI_t PHY__RSSI_get(void);
  * \note    The Radio Driver state may differ from the Radio hardware state during short periods of state switching when
  *  either the Radio Driver state is being updated after the Radio hardware state, or vice-versa.
  */
-enum PHY_State_t PHY__STATE_get(void);
+enum HAL_Radio__STATE_Code_t  HAL_Radio__STATE_get(void);
 
-#ifdef _PHY_TEST_HOST_INTERFACE_
-/******************************* Functions to switch return path to PHY_TEST module ***********************************/
-extern void PHY_Test_DataConf(void);
-extern void PHY_Test_DataInd(void);
-extern void PHY_Test_EdConf(void);
-extern void PHY_Test_SetTrxStateConf(void);
+/************************* INLINES ************************************************************************************/
+/**//**
+ * \brief   Checks if Radio Driver is currently busy with the previous request processing.
+ * \return  TRUE if Radio Driver is busy; FALSE if it's idle.
+ * \details Radio Driver is considered busy during the time from accepting a new request (calling the corresponding
+ *  request function of API) and until issuing confirmation on this request (calling the corresponding confirmation
+ *  callback function). While executing the confirmation callback function, Radio Driver is already idle.
+ * \note    Radio Driver must not be requested again until the previous request is confirmed. Hence, synchronous
+ *  functions (getters and setters) may be called at arbitrary moment.
+ */
+INLINE bool HAL_Radio__IS_BUSY_get(void)
+{
+    return (HAL_Radio__TASK != HAL_RADIO_TASK__IDLE);
+}
+
+/*
+ * Repeat pragma GCC optimize because function definitions (including inlined) turn these pragrmas off automatically
+ * when compiled by G++ but not GCC.
+ */
+#if (defined(__arm__) || defined(__i386__)) && !defined(__clang__)
+# pragma GCC optimize "short-enums"     /* Implement short enums. */
+# pragma GCC diagnostic ignored "-Wattributes"
 #endif
 
 #endif /* _BB_HAL_RADIO_H */

@@ -1,44 +1,6 @@
 /******************************************************************************
  * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
- *
- * Except as expressly set forth in the Authorized License,
- *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
- *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
- *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
- *****************************************************************************/
-
-/******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
- *
  * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
  * to the terms and conditions of a separate, written license agreement executed
@@ -79,7 +41,12 @@
  *****************************************************************************/
 
 #include "bstd.h"
+#include "bchp_common.h"
+#if (BCHP_CHIP == 7260)
+#include "bint_7260.h"
+#elif (BCHP_CHIP == 7268)
 #include "bint_7268.h"
+#endif
 #include "bkni.h"
 /* Include interrupt definitions from RDB */
 #include "bchp_hif_cpu_intr1.h"
@@ -98,14 +65,19 @@
 #include "bchp_bvnf_intr2_16.h"
 #include "bchp_bvnm_intr2_0.h"
 #include "bchp_clkgen_intr2.h"
+
+#ifdef BCHP_DVP_HR_INTR2_REG_START
 #include "bchp_dvp_hr_intr2.h"
+#include "bchp_dvp_ht.h"
+#include "bchp_dvp_hr.h"
+#endif
 #include "bchp_m2mc_l2.h"
+#ifdef BCHP_HDMI_RX_INTR2_0_REG_START
 #include "bchp_hdmi_rx_intr2_0.h"
+#endif
 #include "bchp_hdmi_tx_intr2.h"
 #include "bchp_hdmi_tx_scdc_intr2_0.h"
 #include "bchp_hdmi_tx_hae_intr2_0.h"
-#include "bchp_dvp_ht.h"
-#include "bchp_dvp_hr.h"
 #include "bchp_memc_l2_0_0.h"
 #include "bchp_memc_l2_0_1.h"
 #include "bchp_memc_l2_0_2.h"
@@ -195,24 +167,13 @@
 #include "bchp_timer.h"
 #include "bchp_scirq0.h"
 
+#ifdef BCHP_SFE_INTR2_REG_START
 #include "bchp_sfe_intr2.h"
-
-BDBG_MODULE(interruptinterface_7268);
-#if 0
-#define BINT_P_IRQ0_CASES \
-    case BCHP_IRQ0_IRQEN:
-
-#define BINT_P_IRQ0_ENABLE      0
-#define BINT_P_IRQ0_STATUS      4
 #endif
 
-#if 0
-#define BINT_P_IRQ0_AON_CASES \
-    case BCHP_IRQ0_AON_IRQEN:
+BDBG_MODULE(interruptinterface_7260);
 
-#define BINT_P_IRQ0_AON_ENABLE      0
-#define BINT_P_IRQ0_AON_STATUS      4
-#endif
+#ifdef BCHP_UPG_MAIN_IRQ_CPU_STATUS
 
 #define BINT_P_STD_RO_STATUS_STATUS      0x0
 #define BINT_P_STD_RO_STATUS_MASK_STATUS 0x4
@@ -225,6 +186,22 @@ BDBG_MODULE(interruptinterface_7268);
     case BCHP_UPG_MAIN_AON_IRQ_CPU_STATUS: \
     case BCHP_UPG_BSC_AON_IRQ_CPU_STATUS: \
     case BCHP_UPG_SPI_AON_IRQ_CPU_STATUS:
+
+#else
+
+#define BINT_P_IRQ0_CASES \
+    case BCHP_IRQ0_IRQEN:
+
+#define BINT_P_IRQ0_ENABLE      0
+#define BINT_P_IRQ0_STATUS      4
+
+#define BINT_P_IRQ0_AON_CASES \
+    case BCHP_IRQ0_AON_IRQEN:
+
+#define BINT_P_IRQ0_AON_ENABLE      0
+#define BINT_P_IRQ0_AON_STATUS      4
+
+#endif /* BCHP_UPG_MAIN_IRQ_CPU_STATUS */
 
 #define BINT_P_XPT_STATUS           0x00
 #define BINT_P_XPT_ENABLE           0x04
@@ -266,7 +243,6 @@ BDBG_MODULE(interruptinterface_7268);
 
 /* There is no constant address mapping from RAVE status to RAVE enable registers. */
 #define BINT_P_RAVE_STATUS          0x00
-
 
 #define BINT_P_XPT_RAVE_CASES \
     case BCHP_XPT_RAVE_INT_CX0: \
@@ -325,76 +301,184 @@ BDBG_MODULE(interruptinterface_7268);
 #define BINT_P_TIMER_CASES \
     case BCHP_TIMER_TIMER_IS:
 
-#define BINT_P_V3D_CTL_INT_STATUS 0x00
-#define BINT_P_V3D_CTL_INT_MASK   0x0C
-#define BINT_P_V3D_CTL_INT_CASES \
-    case BCHP_V3D_CTL_0_INT_STS:
-
-#define BCHP_INT_ID_V3D_INTR              BCHP_INT_ID_CREATE(BCHP_V3D_CTL_0_INT_STS, 0)
-
-#define BINT_P_V3D_HUB_CTL_INT_STATUS 0x00
-#define BINT_P_V3D_HUB_CTL_INT_MASK   0x0C
-#define BINT_P_V3D_HUB_CTL_INT_CASES \
-    case BCHP_V3D_HUB_CTL_INT_STS:
-
-#define BCHP_INT_ID_V3D_HUB_INTR          BCHP_INT_ID_CREATE(BCHP_V3D_HUB_CTL_INT_STS, 0)
-
 #define BINT_P_STAT_TIMER_TICKS_PER_USEC 27
 
 
-static void BINT_P_7268_ClearInt( BREG_Handle regHandle, uint32_t baseAddr, int shift );
-static void BINT_P_7268_SetMask( BREG_Handle regHandle, uint32_t baseAddr, int shift );
-static void BINT_P_7268_ClearMask( BREG_Handle regHandle, uint32_t baseAddr, int shift );
+static void BINT_P_ClearInt( BREG_Handle regHandle, uint32_t baseAddr, int shift );
+static void BINT_P_SetMask( BREG_Handle regHandle, uint32_t baseAddr, int shift );
+static void BINT_P_ClearMask( BREG_Handle regHandle, uint32_t baseAddr, int shift );
 
-static uint32_t BINT_P_7268_ReadStatus( BREG_Handle regHandle, uint32_t baseAddr );
+static uint32_t BINT_P_ReadStatus( BREG_Handle regHandle, uint32_t baseAddr );
 static uint32_t GetRaveIntEnableOffset( uint32_t BaseAddr );
 
 #if NEXUS_WEBCPU_core1_server
-static const BINT_P_IntMap bint_7268[] =
+static const BINT_P_IntMap bint_map[] =
 {
-    { BCHP_HIF_CPU_INTR1_INTR_W3_STATUS_M2MC1_CPU_INTR_SHIFT + 96,          BCHP_M2MC1_L2_CPU_STATUS,              0,                   "M2MC1"},
+#ifdef BCHP_M2MC1_L2_REG_START
+    BINT_MAP_STD(3, M2MC1, M2MC1_L2_CPU),
+#endif
     { -1, 0, 0, NULL}
 };
 #else
-static const BINT_P_IntMap bint_7268[] =
+static const BINT_P_IntMap bint_map[] =
 {
-    BINT_MAP_STD(0, BSP, BSP_CONTROL_INTR2_CPU),
-    BINT_MAP_STD(0, SCPU, SCPU_HOST_INTR2_CPU),
-    BINT_MAP_STD(0, AIO, AUD_INTH_R5F),
-    BINT_MAP_STD(0, GFX, M2MC_L2_CPU),
-    BINT_MAP_STD(0, VEC, VIDEO_ENC_INTR2_CPU),
-    BINT_MAP_STD(0, BVNB_0, BVNB_INTR2_CPU),
-    BINT_MAP_STD(0, BVNF_0, BVNF_INTR2_0_R5F),
-    BINT_MAP_STD(0, BVNF_1, BVNF_INTR2_1_R5F),
-    BINT_MAP_STD(0, BVNF_5, BVNF_INTR2_5_R5F),
-    BINT_MAP_STD(0, BVNF_9, BVNF_INTR2_9_R5F),
-    BINT_MAP_STD(0, BVNF_16, BVNF_INTR2_16_R5F),
-    BINT_MAP_STD(0, BVNM_0, BVNM_INTR2_0_R5F),
-    BINT_MAP_STD(0, BVNB_1, BVNB_INTR2_1_CPU),
-    BINT_MAP_STD(0, CLKGEN, CLKGEN_INTR2_CPU),
-    BINT_MAP_STD(0, DVP_HR, DVP_HR_INTR2_CPU),
-    BINT_MAP_STD(0, HDMI_TX, HDMI_TX_INTR2_CPU),
-    BINT_MAP_STD(0, HDMI_RX_0, HDMI_RX_INTR2_0_CPU),
-    BINT_MAP_STD(0, HDMI_TX, HDMI_TX_SCDC_INTR2_0_CPU),
-    BINT_MAP_STD(0, HDMI_TX, HDMI_TX_HAE_INTR2_0_CPU),
-    BINT_MAP_STD(3, CBUS, CBUS_INTR2_0_CPU),
-    BINT_MAP_STD(3, CBUS, CBUS_INTR2_1_CPU),
-    BINT_MAP_STD(1, HVD0_0, HVD_INTR2_0_CPU),
-    BINT_MAP_STD(1, RAAGA, RAAGA_DSP_INTH_HOST),
-    BINT_MAP_STD(1, RAAGA_FW, RAAGA_DSP_FW_INTH_HOST),
+    /* Memory controllers */
     BINT_MAP_STD(1, MEMC0, MEMC_L2_0_0_CPU),
     BINT_MAP_STD(1, MEMC0, MEMC_L2_0_1_CPU),
     BINT_MAP_STD(1, MEMC0, MEMC_L2_0_2_CPU),
+#ifdef BCHP_MEMC_L2_1_0_REG_START
+    BINT_MAP_STD(1, MEMC1, MEMC_L2_1_0_CPU),
+    BINT_MAP_STD(1, MEMC1, MEMC_L2_1_1_CPU),
+    BINT_MAP_STD(1, MEMC1, MEMC_L2_1_2_CPU),
+#endif
+#ifdef BCHP_MEMC_L2_2_0_REG_START
+    BINT_MAP_STD(3, MEMC2, MEMC_L2_2_0_CPU),
+    BINT_MAP_STD(3, MEMC2, MEMC_L2_2_1_CPU),
+    BINT_MAP_STD(3, MEMC2, MEMC_L2_2_2_CPU),
+#endif
+
+    /* Security */
+#ifdef BCHP_BSP_CONTROL_INTR2_REG_START
+    BINT_MAP_STD(0, BSP, BSP_CONTROL_INTR2_CPU),
+#endif
+#ifdef BCHP_SCPU_HOST_INTR2_REG_START
+    BINT_MAP_STD(0, SCPU, SCPU_HOST_INTR2_CPU),
+#endif
+
+    /* Graphics */
+#ifdef BCHP_M2MC_L2_REG_START
+    BINT_MAP_STD(0, GFX, M2MC_L2_CPU),
+#endif
+#if defined(BCHP_M2MC1_L2_REG_START) && !NEXUS_WEBCPU
+    /* in webcpu mode, core0 doesn't get M2MC1 L1 */
+    BINT_MAP_STD(3, M2MC1, M2MC1_L2_CPU),
+#endif
+
+    BINT_MAP_STD(0, AIO, AUD_INTH_R5F),
+
+    /* Display */
+#ifdef BCHP_HIF_CPU_INTR1_INTR_W0_STATUS_VEC_CPU_INTR_MASK
+    BINT_MAP_STD(0, VEC, VIDEO_ENC_INTR2_CPU),
+#elif defined(BCHP_HIF_CPU_INTR1_INTR_W2_STATUS_VEC_CPU_INTR_MASK)
+    BINT_MAP_STD(2, VEC, VIDEO_ENC_INTR2_CPU),
+#endif
+
+    BINT_MAP_STD(0, BVNB_0, BVNB_INTR2_CPU),
+    BINT_MAP_STD(0, BVNB_1, BVNB_INTR2_1_CPU),
+
+    BINT_MAP_STD(0, BVNF_0, BVNF_INTR2_0_R5F),
+    BINT_MAP_STD(0, BVNF_1, BVNF_INTR2_1_R5F),
+    BINT_MAP_STD(0, BVNF_5, BVNF_INTR2_5_R5F),
+#ifdef BCHP_BVNF_INTR2_8_REG_START
+    BINT_MAP_STD(0, BVNF_8, BVNF_INTR2_8_R5F),
+#endif
+    BINT_MAP_STD(0, BVNF_9, BVNF_INTR2_9_R5F),
+    BINT_MAP_STD(0, BVNF_16, BVNF_INTR2_16_R5F),
+
+    BINT_MAP_STD(0, BVNM_0, BVNM_INTR2_0_R5F),
+#ifdef BCHP_BVNM_INTR2_1_REG_START
+    BINT_MAP_STD(0, BVNM_1, BVNM_INTR2_0_R5F),
+#endif
+
+    BINT_MAP_STD(0, CLKGEN, CLKGEN_INTR2_CPU),
+
+#ifdef BCHP_DVP_HR_INTR2_REG_START
+    BINT_MAP_STD(0, DVP_HR, DVP_HR_INTR2_CPU),
+#endif
+    /* HDMI transmitter */
+    BINT_MAP_STD(0, HDMI_TX, HDMI_TX_INTR2_CPU),
+    BINT_MAP_STD(0, HDMI_TX, HDMI_TX_SCDC_INTR2_0_CPU),
+    BINT_MAP_STD(0, HDMI_TX, HDMI_TX_HAE_INTR2_0_CPU),
+
+    /* HDMI reciever */
+#ifdef BCHP_HDMI_RX_INTR2_0_REG_START
+    BINT_MAP_STD(0, HDMI_RX_0, HDMI_RX_INTR2_0_CPU),
+#endif
+
+    /* Audio DSP */
+    BINT_MAP_STD(1, RAAGA, RAAGA_DSP_INTH_HOST),
+    BINT_MAP_STD(1, RAAGA_FW, RAAGA_DSP_FW_INTH_HOST),
+#ifdef BCHP_RAAGA_DSP_INTH_1_REG_START
+    BINT_MAP_STD(1, RAAGA, RAAGA_DSP_INTH_1_HOST),
+#endif
+#ifdef BCHP_RAAGA_DSP_FW_INTH_1_REG_START
+    BINT_MAP_STD(1, RAAGA_FW, RAAGA_DSP_FW_INTH_1_HOST),
+#endif
+
+    /* Video decoder */
+    BINT_MAP_STD(1, HVD0_0, HVD_INTR2_0_CPU),
+#ifdef BCHP_HVD_INTR2_1_REG_START
+    BINT_MAP_STD(1, HVD1_0, HVD_INTR2_1_CPU),
+#endif
+#ifdef BCHP_HVD_INTR2_2_REG_START
+    BINT_MAP_STD(1, HVD2_0, HVD_INTR2_2_CPU),
+#endif
+
+    /* Still image decoder */
+#ifdef BCHP_HIF_CPU_INTR1_INTR_W1_STATUS_SID_CPU_INTR_DEFAULT
+    BINT_MAP_STD(1, SID, SID_L2_CPU),
+#elif defined(BCHP_HIF_CPU_INTR1_INTR_W1_STATUS_SID0_0_CPU_INTR_MASK)
+    BINT_MAP_STD(1, SID0_0, SID_L2_CPU),
+#elif defined(BCHP_HIF_CPU_INTR1_INTR_W3_STATUS_SID0_0_CPU_INTR_MASK)
+    BINT_MAP_STD(3, SID0_0, SID_L2_CPU),
+#endif
+
+#ifdef BCHP_HIF_CPU_INTR0_INTR_W3_STATUS_CBUS_CPU_INTR_MASK
+    BINT_MAP_STD(3, CBUS, CBUS_INTR2_0_CPU),
+    BINT_MAP_STD(3, CBUS, CBUS_INTR2_1_CPU),
+#elif BCHP_HIF_CPU_INTR1_INTR_W0_STATUS_CBUS_CPU_INTR_MASK
+    BINT_MAP_STD(0, CBUS, CBUS_INTR2_0_CPU),
+    BINT_MAP_STD(0, CBUS, CBUS_INTR2_1_CPU),
+#endif
+
+    /* Video encoder */
+#ifdef BCHP_VICE2_L2_0_REG_START
+    BINT_MAP_STD(2, VICE2_0, VICE2_L2_0_CPU),
+#endif
+#ifdef BCHP_VICE2_L2_1_REG_START
+    BINT_MAP_STD(2, VICE2_1, VICE2_L2_1_CPU),
+#endif
+
+    /* RF modulator */
+#ifdef BCHP_HIF_CPU_INTR1_INTR_W3_STATUS_RFM_CPU_INTR_MASK
+    BINT_MAP_STD(3, RFM, RFM_L2_CPU),
+#elif defined(BCHP_HIF_CPU_INTR1_INTR_W1_STATUS_RFM_CPU_INTR_MASK)
+    BINT_MAP_STD(1, RFM, RFM_L2_CPU),
+#endif
+
     BINT_MAP_STD(1, SYS_AON, AON_L2_CPU),
+
     BINT_MAP_STD(1, UPG_AUX_AON, UPG_AUX_AON_INTR2_CPU),
     BINT_MAP(1, UPG_BSC, "", UPG_BSC_IRQ_CPU_STATUS, REGULAR, SOME, 0x3 ),
+
+#ifdef BCHP_HIF_CPU_INTR1_INTR_W2_STATUS_UPG_BSC_AON_CPU_INTR_MASK
     BINT_MAP(2, UPG_BSC_AON, "", UPG_BSC_AON_IRQ_CPU_STATUS, REGULAR, SOME, 0x7 ),
     BINT_MAP(2, UPG_MAIN, "", UPG_MAIN_IRQ_CPU_STATUS, REGULAR, SOME, 0x3 ),
+#elif defined(BCHP_HIF_CPU_INTR1_INTR_W1_STATUS_UPG_BSC_AON_CPU_INTR_MASK)
+    BINT_MAP(1, UPG_BSC_AON, "", UPG_BSC_AON_IRQ_CPU_STATUS, REGULAR, SOME, 0x7 ),
+    BINT_MAP(1, UPG_MAIN, "", UPG_MAIN_IRQ_CPU_STATUS, REGULAR, SOME, 0x3 ),
+#endif
+
     BINT_MAP(2, UPG_MAIN_AON, "", UPG_MAIN_AON_IRQ_CPU_STATUS, REGULAR, SOME, 0x3f ),
+
     /*BINT_MAP(2, UPG_SPI, "", UPG_SPI_AON_IRQ_CPU_STATUS, REGULAR, SOME, 0x1 ),*/
+
+    BINT_MAP(2, UPG_SC, "", SCIRQ0_SCIRQEN, REGULAR, ALL, 0),
     BINT_MAP(2, UPG_TMR, "", TIMER_TIMER_IS, REGULAR, ALL, 0),
+
     BINT_MAP(2, V3D, "_INT", V3D_CTL_0_INT_STS, REGULAR, NONE, 0),
     BINT_MAP(2, V3D_HUB, "_INT", V3D_HUB_CTL_INT_STS, REGULAR, NONE, 0),
+
+    /* 7260 A0 specific block */
+#ifdef BCHP_SFE_INTR2_REG_START
+    BINT_MAP_STD(3, SFE, SFE_INTR2_CPU),
+#endif
+
+    /* MHL */
+#ifdef BCHP_MPM_HOST_L2_REG_START
+    BINT_MAP_STD(3, MPM_TOP, MPM_HOST_L2_CPU),
+#endif
+
     BINT_MAP(2, XPT_FE, "_STATUS0", XPT_FE_INTR_STATUS0_REG, REGULAR, ALL, 0),
     BINT_MAP(2, XPT_FE, "_STATUS1", XPT_FE_INTR_STATUS1_REG, REGULAR, ALL, 0),
     BINT_MAP(2, XPT_FE, "_IBP_PCC", XPT_FULL_PID_PARSER_IBP_PCC_INTR_STATUS_REG, REGULAR, ALL, 0),
@@ -463,24 +547,27 @@ static const BINT_P_IntMap bint_7268[] =
     BINT_MAP_STD(2, XPT_WMDMA, XPT_WDMA_OVERFLOW_INTR_L2_CPU),
     BINT_MAP_STD(2, XPT_WMDMA, XPT_WDMA_DESC_DONE_INTR_L2_CPU),
     BINT_MAP_STD(2, XPT_EXTCARD, XPT_TSIO_INTR_L2_CPU),
-    BINT_MAP_STD(3, SFE, SFE_INTR2_CPU),
-    BINT_MAP_STD(3, SID0_0, SID_L2_CPU),
-    BINT_MAP_STD(3, MPM_TOP, MPM_HOST_L2_CPU),
 
     BINT_MAP_LAST()
 };
 #endif
 
-static const BINT_Settings bint_7268Settings =
+static const BINT_Settings bint_Settings =
 {
     NULL,
-    BINT_P_7268_ClearInt,
-    BINT_P_7268_SetMask,
-    BINT_P_7268_ClearMask,
+    BINT_P_ClearInt,
+    BINT_P_SetMask,
+    BINT_P_ClearMask,
     NULL,
-    BINT_P_7268_ReadStatus,
-    bint_7268,
+    BINT_P_ReadStatus,
+    bint_map,
+#if (BCHP_CHIP == 7260)
+    "7260"
+#elif (BCHP_CHIP == 7268)
     "7268"
+#else
+    ""
+#endif
 };
 
 
@@ -491,15 +578,21 @@ static uint32_t getXptFeIntEnableRegAddr( uint32_t baseAddr )
 
     switch( baseAddr )
     {
+#ifdef BCHP_XPT_FE_INTR_STATUS0_REG
         case BCHP_XPT_FE_INTR_STATUS0_REG:
             enableRegAddr = BCHP_XPT_FE_INTR_STATUS0_REG_EN;
             break;
+#endif
+#ifdef BCHP_XPT_FE_INTR_STATUS1_REG
         case BCHP_XPT_FE_INTR_STATUS1_REG:
             enableRegAddr = BCHP_XPT_FE_INTR_STATUS1_REG_EN;
             break;
+#endif
+#ifdef BCHP_XPT_FE_INTR_STATUS2_REG
         case BCHP_XPT_FE_INTR_STATUS2_REG:
             enableRegAddr = BCHP_XPT_FE_INTR_STATUS2_REG_EN;
             break;
+#endif
         default:
             break;
     }
@@ -507,12 +600,11 @@ static uint32_t getXptFeIntEnableRegAddr( uint32_t baseAddr )
     return enableRegAddr;
 }
 
-static void BINT_P_7268_ClearInt( BREG_Handle regHandle, uint32_t baseAddr, int shift )
+static void BINT_P_ClearInt( BREG_Handle regHandle, uint32_t baseAddr, int shift )
 {
     BDBG_MSG(("ClearInt %#x:%d", baseAddr, shift));
     switch( baseAddr )
     {
-
         BINT_P_XPT_STATUS_CASES
             BREG_Write32( regHandle, baseAddr + BINT_P_XPT_STATUS, ~(1ul<<shift));
             break;
@@ -526,16 +618,17 @@ static void BINT_P_7268_ClearInt( BREG_Handle regHandle, uint32_t baseAddr, int 
             BREG_Write32( regHandle, baseAddr + BINT_P_TIMER_STATUS, 1ul<<shift);
             break;
         BINT_P_UPGSC_CASES
+#ifdef  BINT_P_STD_RO_STATUS_CASES
         BINT_P_STD_RO_STATUS_CASES
+#else
+        BINT_P_IRQ0_CASES
+        BINT_P_IRQ0_AON_CASES
+#endif
             /* Has to cleared at the source */
             break;
         BINT_P_PCROFFSET_CASES
             /* Write 0 to clear the int bit. Writing 1's are ingored. */
             BREG_Write32( regHandle, baseAddr + BINT_P_PCROFFSET_STATUS, ~( 1ul << shift ) );
-            break;
-       BINT_P_V3D_CTL_INT_CASES
-       BINT_P_V3D_HUB_CTL_INT_CASES
-            /* Has to cleared at the source */
             break;
         default:
             /* Other types of interrupts do not support clearing of interrupts (condition must be cleared) */
@@ -543,18 +636,15 @@ static void BINT_P_7268_ClearInt( BREG_Handle regHandle, uint32_t baseAddr, int 
     }
 }
 
-static void BINT_P_7268_SetMask( BREG_Handle regHandle, uint32_t baseAddr, int shift )
+static void BINT_P_SetMask( BREG_Handle regHandle, uint32_t baseAddr, int shift )
 {
     uint32_t intEnable;
-
     uint32_t RaveEnReg = 0;
 
     BDBG_MSG(("SetMask %#x:%d", baseAddr, shift));
 
-
     switch( baseAddr )
     {
-
     BINT_P_XPT_STATUS_CASES
         intEnable = BREG_Read32( regHandle, getXptFeIntEnableRegAddr(baseAddr));
         intEnable &= ~(1ul<<shift);
@@ -577,12 +667,24 @@ static void BINT_P_7268_SetMask( BREG_Handle regHandle, uint32_t baseAddr, int s
         BREG_Write32( regHandle, baseAddr + BINT_P_TIMER_MASK, intEnable);
         break;
 
+#ifdef BINT_P_STD_RO_STATUS_CASES
     BINT_P_STD_RO_STATUS_CASES
         intEnable = BREG_Read32( regHandle, baseAddr + BINT_P_STD_RO_STATUS_MASK_STATUS );
         intEnable |= 1ul<<shift;
         BREG_Write32( regHandle, baseAddr + BINT_P_STD_RO_STATUS_MASK_SET, intEnable );
         break;
-
+#else
+    BINT_P_IRQ0_CASES
+        intEnable = BREG_Read32( regHandle, baseAddr + BINT_P_IRQ0_ENABLE);
+        intEnable &= ~(1ul<<shift);
+        BREG_Write32( regHandle, baseAddr + BINT_P_IRQ0_ENABLE, intEnable);
+        break;
+    BINT_P_IRQ0_AON_CASES
+        intEnable = BREG_Read32( regHandle, baseAddr + BINT_P_IRQ0_AON_ENABLE);
+        intEnable &= ~(1ul<<shift);
+        BREG_Write32( regHandle, baseAddr + BINT_P_IRQ0_AON_ENABLE, intEnable);
+        break;
+#endif
     BINT_P_UPGSC_CASES
         intEnable = BREG_Read32( regHandle, baseAddr + BINT_P_UPGSC_ENABLE );
         intEnable &= ~(1ul<<shift);
@@ -594,10 +696,6 @@ static void BINT_P_7268_SetMask( BREG_Handle regHandle, uint32_t baseAddr, int s
         intEnable &= ~( 1ul << shift );
         BREG_Write32( regHandle, baseAddr + BINT_P_PCROFFSET_ENABLE, intEnable);
         break;
-    BINT_P_V3D_CTL_INT_CASES
-    BINT_P_V3D_HUB_CTL_INT_CASES
-        /* Dont support setting the v3d L2 via this interface */
-        break;
     default:
        BDBG_ERR(("NOT SUPPORTED baseAddr 0x%08x ,regHandle %p,  shift %d",
                  baseAddr, (void*)regHandle, shift));
@@ -608,7 +706,7 @@ static void BINT_P_7268_SetMask( BREG_Handle regHandle, uint32_t baseAddr, int s
     }
 }
 
-static void BINT_P_7268_ClearMask( BREG_Handle regHandle, uint32_t baseAddr, int shift )
+static void BINT_P_ClearMask( BREG_Handle regHandle, uint32_t baseAddr, int shift )
 {
     uint32_t intEnable;
 
@@ -635,12 +733,24 @@ static void BINT_P_7268_ClearMask( BREG_Handle regHandle, uint32_t baseAddr, int
         BREG_Write32( regHandle, baseAddr + BINT_P_XPT_BUF_ENABLE, intEnable);
         break;
 
+#ifdef BINT_P_STD_RO_STATUS_CASES
     BINT_P_STD_RO_STATUS_CASES
         intEnable = BREG_Read32( regHandle, baseAddr + BINT_P_STD_RO_STATUS_MASK_STATUS );
         intEnable |= 1ul<<shift;
         BREG_Write32( regHandle, baseAddr + BINT_P_STD_RO_STATUS_MASK_CLEAR, intEnable );
         break;
-
+#else
+    BINT_P_IRQ0_CASES
+        intEnable = BREG_Read32( regHandle, baseAddr + BINT_P_IRQ0_ENABLE);
+        intEnable |= (1ul<<shift);
+        BREG_Write32( regHandle, baseAddr + BINT_P_IRQ0_ENABLE, intEnable );
+        break;
+    BINT_P_IRQ0_AON_CASES
+        intEnable = BREG_Read32( regHandle, baseAddr + BINT_P_IRQ0_AON_ENABLE);
+        intEnable |= (1ul<<shift);
+        BREG_Write32( regHandle, baseAddr + BINT_P_IRQ0_AON_ENABLE, intEnable );
+        break;
+#endif
     BINT_P_UPGSC_CASES
         intEnable = BREG_Read32( regHandle, baseAddr + BINT_P_UPGSC_ENABLE );
         intEnable |= 1ul<<shift;
@@ -657,10 +767,6 @@ static void BINT_P_7268_ClearMask( BREG_Handle regHandle, uint32_t baseAddr, int
         intEnable |= ( 1ul << shift );
         BREG_Write32( regHandle, baseAddr + BINT_P_PCROFFSET_ENABLE, intEnable);
         break;
-    BINT_P_V3D_CTL_INT_CASES
-    BINT_P_V3D_HUB_CTL_INT_CASES
-        /* Dont support setting the v3d L2 via this interface */
-        break;
     default:
         /* Unhandled interrupt base address */
         BDBG_ASSERT( false );
@@ -669,7 +775,7 @@ static void BINT_P_7268_ClearMask( BREG_Handle regHandle, uint32_t baseAddr, int
 }
 
 
-static uint32_t BINT_P_7268_ReadStatus( BREG_Handle regHandle, uint32_t baseAddr )
+static uint32_t BINT_P_ReadStatus( BREG_Handle regHandle, uint32_t baseAddr )
 {
     BDBG_MSG(("ReadStatus %#x", baseAddr));
     switch( baseAddr )
@@ -682,28 +788,19 @@ static uint32_t BINT_P_7268_ReadStatus( BREG_Handle regHandle, uint32_t baseAddr
         return BREG_Read32( regHandle, baseAddr + BINT_P_XPT_BUF_STATUS );
     BINT_P_TIMER_CASES
         return BREG_Read32( regHandle, baseAddr + BINT_P_TIMER_STATUS );
+#ifdef BINT_P_STD_RO_STATUS_CASES
     BINT_P_STD_RO_STATUS_CASES
         return BREG_Read32( regHandle, baseAddr + BINT_P_STD_RO_STATUS_STATUS );
+#else
+    BINT_P_IRQ0_CASES
+        return BREG_Read32( regHandle, baseAddr + BINT_P_IRQ0_STATUS );
+    BINT_P_IRQ0_AON_CASES
+        return BREG_Read32( regHandle, baseAddr + BINT_P_IRQ0_AON_STATUS );
+#endif
     BINT_P_UPGSC_CASES
         return BREG_Read32( regHandle, baseAddr + BINT_P_UPGSC_ENABLE );
     BINT_P_PCROFFSET_CASES
         return BREG_Read32( regHandle, baseAddr + BINT_P_PCROFFSET_STATUS );
-    BINT_P_V3D_CTL_INT_CASES
-        {
-            uint32_t flags;
-            flags  = BREG_Read32( regHandle, baseAddr + BINT_P_V3D_CTL_INT_MASK );
-            flags &= BREG_Read32( regHandle, baseAddr + BINT_P_V3D_CTL_INT_STATUS );
-            return flags;
-        }
-        break;
-    BINT_P_V3D_HUB_CTL_INT_CASES
-        {
-            uint32_t flags;
-            flags  = BREG_Read32( regHandle, baseAddr + BINT_P_V3D_HUB_CTL_INT_MASK );
-            flags &= BREG_Read32( regHandle, baseAddr + BINT_P_V3D_HUB_CTL_INT_STATUS );
-            return flags;
-        }
-        break;
     default:
         /* Unhandled interrupt base address */
         BDBG_ASSERT( false );
@@ -711,11 +808,14 @@ static uint32_t BINT_P_7268_ReadStatus( BREG_Handle regHandle, uint32_t baseAddr
     }
 }
 
+#if (BCHP_CHIP == 7260)
+const BINT_Settings *BINT_7260_GetSettings( void )
+#elif (BCHP_CHIP == 7268)
 const BINT_Settings *BINT_7268_GetSettings( void )
+#endif
 {
-    return &bint_7268Settings;
+    return &bint_Settings;
 }
-
 
 static uint32_t GetRaveIntEnableOffset(
     uint32_t BaseAddr

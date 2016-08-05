@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2010 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,8 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  **************************************************************************/
 #ifndef NEXUS_VIDEO_ENCODER_PRIV_H__
 #define NEXUS_VIDEO_ENCODER_PRIV_H__
@@ -57,6 +49,10 @@ extern "C" {
 #endif
 
 unsigned NEXUS_VideoEncoder_GetIndex_isrsafe(NEXUS_VideoEncoderHandle encoder);
+NEXUS_Error NEXUS_VideoEncoder_GetBufferStatus_priv(
+    NEXUS_VideoEncoderHandle handle,
+    NEXUS_VideoEncoderStatus *pStatus /* [out] */
+    );
 
 #ifdef __cplusplus
 }
@@ -64,4 +60,3 @@ unsigned NEXUS_VideoEncoder_GetIndex_isrsafe(NEXUS_VideoEncoderHandle encoder);
 
 
 #endif /* NEXUS_VIDEO_ENCODER_PRIV_H__ */
-

@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2011 Broadcom Corporation
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,8 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  **************************************************************************/
 #ifndef NEXUS_MESSAGE_H__
 #define NEXUS_MESSAGE_H__
@@ -78,26 +70,30 @@ Note that some settings cannot be changed after NEXUS_Message_Open.
 typedef struct NEXUS_MessageSettings
 {
     /* The following settings can only be set at NEXUS_Message_Open */
-    unsigned bufferSize; /* Size in bytes. Only certain buffer sizes may be supported by HW. This size will be rounded down to the nearest supported value.
-                            If you want to control the allocation and use of memory, set this to zero; then set NEXUS_MessageStartSettings.buffer. */
-    unsigned maxContiguousMessageSize; /* The maximum size PSI message that is guaranteed to be returned as a whole message from NEXUS_Message_GetBuffer.
-                                          For high bitrate message capture, set this to zero. This will ensure no data copy and GetBuffer will not
-                                          guarantee to return whole messages.
-                                          This does not apply to PES/TS capture. */
-   unsigned recpumpIndex; /* Only required for RAVE-based software message filtering. Enabled with NEXUS_USE_SW_FILTER=y compilation option.
-       Indicates which recpump to use for the RAVE record. Recpump is opened internally. Application needs to make sure not to re-use this recpump for anything else.
-       Filters on the same stream, of the same format, can share a recpump. But filters of different formats need to use different recpumps.
-       ie use a different recpump for each format ie PSI, TS & PES.  */
+    unsigned bufferSize; /* Size in bytes. Only certain buffer sizes may be supported by HW. This size will be rounded
+                            down to the nearest supported value. If you want to control the allocation and use of memory,
+                            set this to zero; then set NEXUS_MessageStartSettings.buffer. */
+    unsigned maxContiguousMessageSize; /* The maximum size PSI message that is guaranteed to be returned as a whole
+                            message from NEXUS_Message_GetBuffer. For high bitrate message capture, set this to zero.
+                            This will ensure no data copy and GetBuffer will not guarantee to return whole messages.
+                            This does not apply to PES/TS capture. */
+   unsigned recpumpIndex; /* Only required for RAVE-based software message filtering. Enabled with NEXUS_USE_SW_FILTER=y
+       compilation option. Indicates which recpump to use for the RAVE record. Recpump is opened internally. Application needs
+       to make sure not to re-use this recpump for anything else. Filters on the same stream, of the same format, can share
+       a recpump. But filters of different formats need to use different recpumps. ie use a different recpump for each format ie PSI, TS & PES.  */
 
 
     /* The following settings can be changed with NEXUS_Message_SetSettings */
-    NEXUS_CallbackDesc dataReady; /* Callback fires when data is in the buffer. After you receive a callback, call NEXUS_Message_GetBuffer to determine how much data is present.
+    NEXUS_CallbackDesc dataReady; /* Callback fires when data is in the buffer. After you receive a callback,
+                                     call NEXUS_Message_GetBuffer to determine how much data is present.
                                      If NEXUS_Message_GetBuffer returns non-zero, you must call NEXUS_Message_ReadComplete to re-enable the callback.
-                                     Even if you don't want to consume any data, you can call NEXUS_Message_ReadComplete with 0, but you will likely receive another callback immediately.
+                                     Even if you don't want to consume any data, you can call NEXUS_Message_ReadComplete with 0,
+                                     but you will likely receive another callback immediately.
                                      If NEXUS_Message_GetBuffer returns zero, dataReady will be re-enabled immediately by NEXUS_Message_GetBuffer. */
     NEXUS_CallbackDesc overflow;  /* Callback fires when a buffer overflow occurs. No response required. */
 
-    NEXUS_CallbackDesc psiLengthError; /* Callback fires if there is an unexpected start of a PSI section in the middle of a current PSI section. The message will be dropped. */
+    NEXUS_CallbackDesc psiLengthError; /* Callback fires if there is an unexpected start of a PSI section in the middle of a
+                                          current PSI section. The message will be dropped. */
     NEXUS_CallbackDesc crcError;       /* Callback fires if there is a CRC error in the PSI section. The message will be dropped. */
     NEXUS_CallbackDesc pesLengthError; /* Callback fires if a PUSI bit is detected in the middle of a PES packet. */
     NEXUS_CallbackDesc pesStartCodeError; /* Callback fires if a packet with the PUSI set does not begin with 00 00 01. */
@@ -257,7 +253,8 @@ Open a filter for capturing messages.
 
 Description:
 By default, a message buffer will be allocated per filter.
-This buffer can be reused for multiple Start/Stop sessions without having to be reallocated. This reduces memory fragmentation in the system.
+This buffer can be reused for multiple Start/Stop sessions without having to be reallocated. This reduces
+memory fragmentation in the system.
 */
 NEXUS_MessageHandle NEXUS_Message_Open( /* attr{destructor=NEXUS_Message_Close} */
     const NEXUS_MessageSettings *pSettings /* attr{null_allowed=y} */
@@ -316,7 +313,8 @@ typedef struct NEXUS_MessageStartSettings
                             You must allocate this buffer with NEXUS_Memory_Allocate. Must be 1K aligned.
                             If NULL, Nexus will use the buffer allocated with NEXUS_MessageSettings.bufferSize.
                             See NEXUS_Message_Open for usage modes. */
-    unsigned bufferSize; /* Size in bytes. Only certain buffer sizes may be supported by HW. The actual size used will be rounded down to the nearest supported value. */
+    unsigned bufferSize; /* Size in bytes. Only certain buffer sizes may be supported by HW. The actual size used will be rounded
+                            down to the nearest supported value. */
 
     NEXUS_DssMessageType dssMessageType;
     bool useRPipe;
@@ -419,7 +417,8 @@ Get a pointer to a message captured for this filter.
 
 Description:
 Nexus will always return whole PSI messages if maxContiguousMessageSize is >= the largest PSI message and if the application always
-calls NEXUS_Message_ReadComplete on whole messages (including the pad). If you call NEXUS_Message_ReadComplete with partial message length, then NEXUS_Message_GetBuffer will return the partial amount remaining in the buffer.
+calls NEXUS_Message_ReadComplete on whole messages (including the pad). If you call NEXUS_Message_ReadComplete with partial message length,
+then NEXUS_Message_GetBuffer will return the partial amount remaining in the buffer.
 
 You can call NEXUS_Message_GetBuffer multiple times without changing Message state. It is not destructive.
 You cannot call NEXUS_Message_GetBuffer after calling NEXUS_Message_Stop.
@@ -444,7 +443,8 @@ See NEXUS_Message_GetBuffer for general usage.
 
 NEXUS_Message_GetBufferWithWrap requires maxContiguousMessageSize=0.
 
-If NEXUS_Message_GetBufferWithWrap returns non-zero sizes for pLength and pLength2, you may call NEXUS_Message_ReadComplete with any number <= their sum.
+If NEXUS_Message_GetBufferWithWrap returns non-zero sizes for pLength and pLength2, you may call
+NEXUS_Message_ReadComplete with any number <= their sum.
 **/
 NEXUS_Error NEXUS_Message_GetBufferWithWrap(
     NEXUS_MessageHandle handle,
@@ -466,7 +466,8 @@ You cannot call NEXUS_Message_ReadComplete after calling NEXUS_Message_Stop.
 
 You can call NEXUS_Message_ReadComplete with amountConsumed == 0.
 
-NEXUS_Message_ReadComplete must be called to re-enable the dataReady callback if you received a callback and NEXUS_Message_GetBuffer returns a non-zero value.
+NEXUS_Message_ReadComplete must be called to re-enable the dataReady callback if you received a callback and
+NEXUS_Message_GetBuffer returns a non-zero value.
 
 The transport message filtering hardware ensure 4 byte alignment by adding up to 3 padding bytes as needed.
 The length returned by NEXUS_Message_GetBuffer includes this pad.
@@ -482,7 +483,8 @@ you need to factor in this pad to your amountConsumed. For example:
 */
 NEXUS_Error NEXUS_Message_ReadComplete(
     NEXUS_MessageHandle handle,
-    size_t amountConsumed /* number of bytes the caller has processed. Must be <= the length returned by last call to NEXUS_Message_GetBuffer. */
+    size_t amountConsumed /* number of bytes the caller has processed. Must be <= the length returned by
+                             last call to NEXUS_Message_GetBuffer. */
     );
 
 /*

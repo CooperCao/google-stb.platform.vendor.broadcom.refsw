@@ -88,14 +88,17 @@ BERR_Code BVDC_P_GfxSurface_AllocShadowRegs
             pGfxSurface->ulRSurAddrReg[1] = BRDC_AllocScratchReg(hRdc);
             pGfxSurface->ulRegIdxReg = BRDC_AllocScratchReg(hRdc);
         }
-        BDBG_MSG((" %s [%d] \n ulVsyncCntrReg   %x ulRegIdxReg %x \n ulSurAddrReg %x   %x\n ulRSurAddrReg %x   %x",
+        BDBG_MSG((" %s [%d]",
             (pGfxSurface->eSrcId >= BAVC_SourceId_eVfd0) ? "vfd":
             ((pGfxSurface->eSrcId >= BAVC_SourceId_eGfx0)?"gfd":"mfd"),
             (pGfxSurface->eSrcId >= BAVC_SourceId_eVfd0) ? (pGfxSurface->eSrcId - BAVC_SourceId_eVfd0):
             ((pGfxSurface->eSrcId >= BAVC_SourceId_eGfx0)?
-                (pGfxSurface->eSrcId - BAVC_SourceId_eGfx0):(pGfxSurface->eSrcId - BAVC_SourceId_eMpeg0)),
-            pGfxSurface->ulVsyncCntrReg, pGfxSurface->ulRegIdxReg,
-            pGfxSurface->ulSurAddrReg[0],  pGfxSurface->ulSurAddrReg[1],
+                (pGfxSurface->eSrcId - BAVC_SourceId_eGfx0):(pGfxSurface->eSrcId - BAVC_SourceId_eMpeg0))));
+        BDBG_MSG((" ulVsyncCntrReg   %x ulRegIdxReg %x",
+            pGfxSurface->ulVsyncCntrReg, pGfxSurface->ulRegIdxReg));
+        BDBG_MSG((" ulSurAddrReg %x   %x",
+            pGfxSurface->ulSurAddrReg[0],  pGfxSurface->ulSurAddrReg[1]));
+        BDBG_MSG((" ulRSurAddrReg %x   %x",
             pGfxSurface->ulRSurAddrReg[0], pGfxSurface->ulRSurAddrReg[1]));
     }
 

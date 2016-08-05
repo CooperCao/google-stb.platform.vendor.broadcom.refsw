@@ -176,8 +176,6 @@ static struct srai_context {
     NEXUS_MemoryAllocationSettings allocSettings;
     NEXUS_MemoryAllocationSettings secureAllocSettings;
     NEXUS_MemoryAllocationSettings exportAllocSettings;
-    NEXUS_Addr secure_offset;
-    unsigned secure_size;
 
     /* Nexus SAGE handle. One per SRAI instance. i.e. One per application. */
     NEXUS_SageHandle sage;
@@ -243,9 +241,6 @@ static SRAI_Settings _srai_settings =
 #else
     {NEXUS_MEMC0_MAIN_HEAP, NEXUS_VIDEO_SECURE_HEAP, NEXUS_EXPORT_HEAP};
 #endif
-
-/* use .secure_* parameters to determine if a given memory block belongs to secure heap */
-#define _SRAI_IsMemoryInSecureHeap(MEM) (((MEM) >= _srai.secure_offset) && ((MEM) < (_srai.secure_offset + _srai.secure_size)))
 
 #ifdef SRAI_GLOBAL_LOCK_BKNI
 static BKNI_MutexHandle _srai_mutex = NULL;
@@ -1144,11 +1139,6 @@ static int _srai_init_settings(void)
         BDBG_ERR(("%s: --> check your NEXUS platform settings", __FUNCTION__));
         rc -= 0x3;
     }
-    else {
-        /* get secure heap boundaries for _SRAI_IsMemoryInSecureHeap() */
-        _srai.secure_offset = heapStatus.offset;
-        _srai.secure_size = heapStatus.size;
-    }
 
     return rc;
 }
@@ -1163,7 +1153,8 @@ static void * _srai_offset_to_addr(uint64_t offset)
 }
 static void _srai_flush_cache(const void *addr, size_t size)
 {
-    if (!_SRAI_IsMemoryInSecureHeap(_srai_addr_to_offset(addr))) {
+    if (NEXUS_GetAddrType(addr) == NEXUS_AddrType_eCached)
+    {
         NEXUS_FlushCache(addr, size);
     }
 }

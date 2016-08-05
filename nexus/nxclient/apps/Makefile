@@ -142,7 +142,7 @@ include $(NEXUS_TOP)/platforms/$(NEXUS_PLATFORM)/build/platform_app.inc
 endif
 
 # NEXUS flags
-CFLAGS += -g $(NEXUS_CFLAGS) $(addprefix -I,$(NEXUS_APP_INCLUDE_PATHS)) $(addprefix -D,$(NEXUS_APP_DEFINES))
+CFLAGS += -g $(NEXUS_CFLAGS) ${NEXUS_INTERNAL_CFLAGS} $(addprefix -I,$(NEXUS_APP_INCLUDE_PATHS)) $(addprefix -D,$(NEXUS_APP_DEFINES))
 
 # NXCLIENT flags
 include $(NEXUS_TOP)/nxclient/include/nxclient.inc
@@ -351,6 +351,8 @@ switched_decode: switched_decode.c server $(NXCLIENT_APPS_UTILS_LIB)
 	@echo [Compile... $(notdir $<)]
 	$(Q_)$(CC) -o $@ $(filter %.c %.s %.o %.a, $^) $(CFLAGS) $(NEXUS_LD_LIBRARIES) -lnxserver
 	$(CP) $@ ${NEXUS_BIN_DIR}
+
+playmosaic: LDFLAGS += -lm
 
 clean: clean_server clean_apps $(EXTRA_CLEAN_RULES)
 

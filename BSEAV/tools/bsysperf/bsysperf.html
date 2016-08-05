@@ -1,3 +1,4 @@
+<meta charset="utf-8"/>
 <!--
  * (c) 2014 Broadcom Corporation
  *
@@ -38,38 +39,18 @@
  *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
  *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  *
-<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Broadcom System Performance</title>
-                                                                             -->
-<html><head><title>Broadcom System Performance</title>
-    <meta http-equiv="X-UA-Compatible" content="IE=9">
-    <script type="text/javascript" src="bsysperf.js" ></script>
-    <script type="text/javascript" src="bsysperf_flame.js" ></script>
-    <style type="text/css">
-    textarea {
-    font-size: 8pt;
-    font-family: Courier New;
-    }
-    .allborders50 {
-        width:50px;
-        border-top: solid thin black;
-        border-right: solid thin black;
-        border-left: solid thin black;
-        border-bottom: solid thin black;
-    }
-    .whiteborders18 {
-        border-top:2px solid white;
-        border-left:2px solid white;
-        border-right:2px solid white;
-        font-size:18pt;
-    }
-    .popupdiv{
-        -moz-border-radius: 15px;
-        border-radius: 15px;
-    }
-	.func_g:hover { stroke:black; stroke-width:0.5; cursor:pointer; }
-    </style>
-    </head>
-<body onload="MyLoad();">
+-->
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head><title>Broadcom System Performance</title>
+<meta http-equiv="X-UA-Compatible" content="IE=9">
+<script type="text/javascript" src="bsysperf.js" ></script>
+<script type="text/javascript" src="bsysperf_flame.js" ></script>
+<script src="svgvml3d.js" LANGUAGE="JavaScript" TYPE="text/javascript"></script>
+<script src="boundingbox.js" LANGUAGE="JavaScript" TYPE="text/javascript"></script>
+<script src="chart1.js" LANGUAGE="JavaScript" TYPE="text/javascript"></script>
+<link rel="stylesheet" type="text/css" href="bsysperf.css" />
+</head>
+<body id="body001" bgcolor=#ffffff>
 <table border=0 style="border-collapse:collapse;" >
     <tr><td width=220 ><img src="brcm-logo-white.jpg" width="200" id="brcmlogo" onclick="MyClick(event);" /></td>
         <td valign=middle style="font-size:28pt;" ><b id=h1bsysperf onclick="MyClick(event);" >Bsysperf - System Profiling Tool</b></td>
@@ -83,13 +64,14 @@
 <!---------------------------------------------------------------------------------------------------------------------------------------------------------------->
 
 <tr id=row_checkboxes style="visibility:display;" ><th align=left valign=top id=CHECKBOXES colspan=2 >
-    <table >
+    <table border=0 style="border-collapse:collapse; border:1px solid white;" >
         <tr>
             <td width=150 ><input type=checkbox id=checkboxcpus onclick="MyClick(event);" checked >CPU Utilization</td>
-            <td width=150 ><input type=checkbox id=checkboxmemory onclick="MyClick(event);" >Memory</td>
+            <td width=120 ><input type=checkbox id=checkboxmemory onclick="MyClick(event);" >Memory</td>
             <td width=150 ><input type=checkbox id=checkboxnets onclick="MyClick(event);" checked >Network Stats</td>
-            <td width=150 ><input type=checkbox id=checkboxirqs onclick="MyClick(event);" checked >IRQ Counts</td>
-            <td width=150 ><input type=checkbox id=checkboxprofiling onclick="MyClick(event);" >Profiling</td>
+            <td width=100 ><input type=checkbox id=checkboxwifi onclick="MyClick(event);" >WiFi</td>
+            <td width=120 ><input type=checkbox id=checkboxirqs onclick="MyClick(event);" checked >IRQ Counts</td>
+            <td width=140 ><input type=checkbox id=checkboxprofiling onclick="MyClick(event);" >Profiling</td>
             <td width=150 ><input type=checkbox id=checkboxPerfFlame onclick="MyClick(event);" >Flame Graph</td>
         </tr>
     </table>
@@ -105,7 +87,44 @@
 
 <!---------------------------------------------------------------------------------------------------------------------------------------------------------------->
 
-<tr id=row_net_stats style="visibility:display;" ><th align=left valign=top id=NETSTATS colspan=2 ></th></tr>
+<tr id=row_net_stats style="visibility:display;" ><td colspan=2 ><table border=0 style="border-collapse:collapse;" >
+    <tr><th align=left valign=top id=NETSTATS  ></th></tr>
+    <tr id=row_iperf_client_server ><th align=left valign=top id=iperfInit ></th></tr></table></td>
+</tr>
+
+<!---------------------------------------------------------------------------------------------------------------------------------------------------------------->
+
+<tr id=row_wifi_stats style="visibility:hidden;" ><th align=left valign=top id=WIFIINIT  colspan=2 ></th></tr>
+<tr id=row_wifi_ampdu style="visibility:hidden;" >
+    <th align=left valign=top id=WIFIAMPDU colspan=2 >
+        <form id=svg3d_controls>
+        <table border=0><tr>
+        <td><input type="button" class="button" onClick="ZoomPicture(1)" value="+" title="zoom picture in" /></td>
+        <td><input type="button" class="button" onClick="ZoomPicture(-1)" value="-" title="zoom picture out" /></td>
+        <td><input type="button" class="button" onClick="Shift(-20,0)" value="&#9668;" title="move picture left" /></td>
+        <td><input type="button" class="button" onClick="Shift(0,-20)" value="&#9650;" title="move picture up" /></td>
+        <td><input type="button" class="button" onClick="Shift(0,20)" value="&#9660;" title="move picture down" /></td>
+        <td><input type="button" class="button" onClick="Shift(20,0)" value="&#9658;" title="move picture right" /></td>
+        <td><input type="button" class="button" onClick="ChangeLight(0,10)" value="&#8592;" title="rotate light to the left" /></td>
+        <td><input type="button" class="button" onClick="ChangeLight(-10,0)" value="&#8593;" title="move light up" /></td>
+        <td><input type="button" class="button" onClick="ChangeLight(10,0)" value="&#8595;" title="move light down" /></td>
+        <td><input type="button" class="button" onClick="ChangeLight(0,-10)" value="&#8594;" title="rotate light to the right" /></td>
+        <!--
+        <td><input type="button" class="button" onClick="ZoomViewer(1)" value="(+)" title="zoom viewer in" style="font-size:12pt;" /></td>
+        <td><input type="button" class="button" onClick="ZoomViewer(-1)" value="(-)" title="zoom viewer out" style="font-size:12pt;" /></td>
+        -->
+        <td><input type="button" class="button" onClick="ChangeViewer(0,5)" value="&lt;=" title="move viewer position left" /></td>
+        <td><input type="button" class="button" onClick="ChangeViewer(-10,0)" value="&#9794;" title="move viewer position up" /></td>
+        <td><input type="button" class="button" onClick="ChangeViewer(10,0)" value="&#9792;" title="move viewer position down" /></td>
+        <td><input type="button" class="button" onClick="ChangeViewer(0,-5)" value="=&gt;" title="move viewer position right" /></td>
+        <td width=50 ></td>
+        <td><label><input type="radio" name="radio_which_svg" value="RX" onclick="RadioClick(event);" checked >RX</label></td>
+        <td><label><input type="radio" name="radio_which_svg" value="TX" onclick="RadioClick(event);" >TX</label></td>
+        </tr></table>
+        <script src="chart2.js" LANGUAGE="JavaScript" TYPE="text/javascript"></script>
+        </form>
+    </th>
+</tr>
 
 <!---------------------------------------------------------------------------------------------------------------------------------------------------------------->
 

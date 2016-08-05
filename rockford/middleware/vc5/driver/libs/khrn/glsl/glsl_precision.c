@@ -101,13 +101,12 @@ PrecisionTable *glsl_prec_delete_table( PrecisionTable *current )
 
 /****************************************************************************/
 /**
-   Set default precisions in the given table, based on version and flavour.
+   Set default precisions in the given table, based on flavour.
 
    @param   tbl         Pointer to precision table
-   @param   version     Shader version
    @param   flavour     Shader flavour (vertex, fragment, etc)
 **/
-void glsl_prec_set_defaults( PrecisionTable *tbl, int version, ShaderFlavour flavour )
+void glsl_prec_set_defaults( PrecisionTable *tbl, ShaderFlavour flavour )
 {
    /* Set all precisions to unknown */
    for (unsigned int i = 0; i < NELEMS( tbl->prec ); i++ )
@@ -119,6 +118,11 @@ void glsl_prec_set_defaults( PrecisionTable *tbl, int version, ShaderFlavour fla
       tbl_set_floats( tbl, PREC_HIGHP );
       tbl_set_ints(   tbl, PREC_HIGHP );
    }
+
+   tbl->prec[PRIM_BOOL]  = PREC_NONE;
+   tbl->prec[PRIM_BVEC2] = PREC_NONE;
+   tbl->prec[PRIM_BVEC3] = PREC_NONE;
+   tbl->prec[PRIM_BVEC4] = PREC_NONE;
 
    tbl->prec[PRIM_SAMPLER2D]   = PREC_LOWP;
    tbl->prec[PRIM_SAMPLERCUBE] = PREC_LOWP;

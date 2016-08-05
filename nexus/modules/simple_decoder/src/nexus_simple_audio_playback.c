@@ -122,9 +122,7 @@ NEXUS_SimpleAudioPlaybackHandle NEXUS_SimpleAudioPlayback_Acquire(unsigned index
     NEXUS_SimpleAudioPlaybackHandle handle;
     NEXUS_Error rc;
 
-    if (!g_NEXUS_SimpleAudioDecoderServer) return NULL;
-
-    for (handle=BLST_S_FIRST(&g_NEXUS_SimpleAudioDecoderServer->playbacks); handle; handle = BLST_S_NEXT(handle, link)) {
+    for (handle=nexus_simple_audio_playback_p_first(); handle; handle = nexus_simple_audio_playback_p_next(handle)) {
         BDBG_OBJECT_ASSERT(handle, NEXUS_SimpleAudioPlayback);
         if (handle->index == index) {
             if (handle->acquired) {

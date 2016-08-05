@@ -89,7 +89,7 @@ const uint32_t BDSP_IMG_ilbc_encode_array1[] = {
 	0x945011cf,
 	0x74060f17,
 	0x74501bcf,
-	0x2b3ffe77,
+	0x2590fc77,
 	0x3dde4117,
 	0x00000042,
 	0x46114207,

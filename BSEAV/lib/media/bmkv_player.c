@@ -166,6 +166,7 @@ typedef enum b_mkv_codec_type {
     b_mkv_codec_type_vp9,
     b_mkv_codec_type_auxilary,
     b_mkv_codec_type_opus,
+    b_mkv_codec_type_pcm,
     b_mkv_codec_type_unknown
 } b_mkv_codec_type;
 
@@ -215,6 +216,11 @@ struct b_mkv_player_track {
             uint8_t waveFormatEx[BMEDIA_WAVEFORMATEX_BASE_SIZE];
             batom_vec meta[1+1];  /* one vector for WAV header, and 1 vector for Opus header */
         } opus;
+        struct {
+            unsigned packet_size;
+            uint8_t waveFormatEx[BMEDIA_WAVEFORMATEX_BASE_SIZE];
+            batom_vec meta[1];  /* vector for WAV header */
+        } pcm;
     } codec;
 
     struct {
@@ -1380,10 +1386,43 @@ b_mkv_player_prepare_opus_track(bmkv_player_t player, struct b_mkv_player_track 
     }
     wf.wFormatTag = 0xFFFD;
     wf.cbSize =  mkv_track->CodecPrivate.data_len;
-    wf_len=bmedia_write_waveformatex(track->codec.vorbis.waveFormatEx, &wf);
-    BDBG_ASSERT(wf_len==sizeof(track->codec.vorbis.waveFormatEx));
+    wf_len=bmedia_write_waveformatex(track->codec.opus.waveFormatEx, &wf);
+    BDBG_ASSERT(wf_len==sizeof(track->codec.opus.waveFormatEx));
     BATOM_VEC_INIT(track->codec.opus.meta + 1,  mkv_track->CodecPrivate.data,  mkv_track->CodecPrivate.data_len);
-    BATOM_VEC_INIT(track->codec.opus.meta + 0, track->codec.vorbis.waveFormatEx, sizeof(track->codec.vorbis.waveFormatEx));
+    BATOM_VEC_INIT(track->codec.opus.meta + 0, track->codec.opus.waveFormatEx, sizeof(track->codec.opus.waveFormatEx));
+    return true;
+}
+
+static bool
+b_mkv_player_prepare_pcm_track(bmkv_player_t player, struct b_mkv_player_track *track, const bmkv_TrackEntry *mkv_track, const bmkv_TrackEntryAudio *audio)
+{
+    bmedia_waveformatex_header wf;
+    size_t wf_len;
+    bmedia_waveformatex wf_pcm;
+
+    BSTD_UNUSED(player);
+    BSTD_UNUSED(mkv_track);
+
+    bmedia_init_waveformatex(&wf);
+    if(audio->validate.SamplingFrequency) {
+        wf.nSamplesPerSec = audio->SamplingFrequency;
+    }
+    if(audio->validate.Channels) {
+        wf.nChannels = audio->Channels;
+    }
+    if(audio->validate.BitDepth) {
+        wf.wBitsPerSample = audio->BitDepth;
+    }
+    wf.nBlockAlign = wf.nChannels * wf.wBitsPerSample/8;
+    wf.nAvgBytesPerSec = wf.nSamplesPerSec * wf.nBlockAlign;
+    wf.wFormatTag = BMEDIA_WAVFMTEX_AUDIO_PCM_TAG;
+    wf.cbSize =  0;
+
+    bmedia_waveformatex_from_header(&wf_pcm, &wf);
+    track->codec.pcm.packet_size = bmedia_waveformatex_pcm_block_size(&wf_pcm);
+    wf_len=bmedia_write_waveformatex(track->codec.pcm.waveFormatEx, &wf);
+    BDBG_ASSERT(wf_len==sizeof(track->codec.pcm.waveFormatEx));
+    BATOM_VEC_INIT(track->codec.pcm.meta, track->codec.pcm.waveFormatEx, sizeof(track->codec.pcm.waveFormatEx));
     return true;
 }
 
@@ -1644,6 +1683,13 @@ b_mkv_player_map_tracks(bmkv_player_t player)
                     continue;
                 }
                 track->codec_type = b_mkv_codec_type_opus;
+            } else if(bmkv_IsTrackAudioPcmInt(mkv_track)) {
+                BDBG_MSG(("%s:%p Vorbis audio track %u:(%p)", "b_mkv_player_map_tracks", (void *)player, (unsigned)mkv_track->TrackNumber, (void *)track));
+                if(!b_mkv_player_prepare_pcm_track(player, track, mkv_track, audio)) {
+                    BDBG_WRN(("%s:%p PCM audio track invalid format %u:(%p)", "b_mkv_player_map_tracks", (void *)player, (unsigned)mkv_track->TrackNumber, (void *)track));
+                    continue;
+                }
+                track->codec_type = b_mkv_codec_type_pcm;
             } else if(bmkv_IsTrackAudioACM(mkv_track)) {
                 batom_vec vec;
                 batom_cursor cursor;
@@ -2677,6 +2723,52 @@ err_payload:
 }
 
 static bool
+b_mkv_player_pcm_block(bmkv_player_t player, batom_accum_t src, batom_cursor *cursor, struct b_mkv_player_track *track)
+{
+    batom_accum_t dst = player->accum_dest;
+    unsigned i;
+
+    for(i=0;i<player->cluster.group.data.nframes;i++) {
+        size_t payload=player->cluster.group.data.frames[i];
+        unsigned offset;
+
+        for(offset=0;offset<payload;) {
+            batom_cursor block;
+            unsigned j;
+            unsigned packet_size = payload-offset;
+            uint8_t *hdr  = b_mkv_player_frame_buf_alloc(player, sizeof(uint32_t));
+
+            if(!hdr) {
+                goto err_no_mem;
+            }
+            if(packet_size > track->codec.pcm.packet_size) {
+                packet_size = track->codec.pcm.packet_size;
+            }
+            BDBG_MSG(("pcm_block:%p %u/%u/%u", (void *)track, offset,packet_size,(unsigned)payload));
+
+            BATOM_CLONE(&block, cursor);
+            if(batom_cursor_skip(cursor, packet_size) !=  packet_size) {
+                goto err_payload;
+            }
+            offset += packet_size;
+            if(track->pes_info.stream_id!=1) { /* not RAW */
+                B_MEDIA_SAVE_UINT32_BE(hdr, packet_size);
+                batom_accum_add_vec(dst, &bmedia_frame_bcma);
+                batom_accum_add_range(dst, hdr, sizeof(uint32_t));
+                for(j=0;j<sizeof(track->codec.pcm.meta)/sizeof(track->codec.pcm.meta[0]);j++) {
+                    batom_accum_add_vec(dst, track->codec.pcm.meta+j);
+                }
+            }
+            batom_accum_append(dst, src, &block, cursor);
+        }
+    }
+    return true;
+err_no_mem:
+err_payload:
+    return false;
+}
+
+static bool
 b_mkv_player_vp8_block(bmkv_player_t player, batom_accum_t src, batom_cursor *cursor, struct b_mkv_player_track *track)
 {
 	batom_accum_t dst = player->accum_dest;
@@ -2729,6 +2821,7 @@ b_mkv_player_vp9_block(bmkv_player_t player, batom_accum_t src, batom_cursor *cu
         }
 
         BATOM_CLONE(&block, cursor);
+        /* coverity[dead_error_condition: FALSE] */
         if(subdivide_superframe && payload>0) {
             int tail;
             BDBG_MSG(("VP9[%u] %u", i, (unsigned)payload));
@@ -2791,6 +2884,8 @@ b_mkv_player_vp9_block(bmkv_player_t player, batom_accum_t src, batom_cursor *cu
         }
         if(track->pes_info.stream_id!=1) { /* not RAW */
             B_MEDIA_SAVE_UINT32_BE(hdr, payload+header_len+bmedia_frame_bcmv.len); /* size */
+            /* coverity[CONSTANT_EXPRESSION_RESULT : FALSE] */
+            /* coverity[result_independent_of_operands] */
             B_MEDIA_SAVE_UINT16_BE(hdr+BMEDIA_FIELD_LEN("size",uint32_t), subdivide_superframe ? 0 : 1); /* type */;
             batom_accum_add_vec(dst, &bmedia_frame_bcmv);
             batom_accum_add_range(dst, hdr, header_len);
@@ -3132,6 +3227,9 @@ b_mkv_player_make_frame(bmkv_player_t player, struct b_mkv_player_track *track, 
             break;
         case b_mkv_codec_type_opus:
             success = b_mkv_player_opus_block(player, frame_data, frame_cursor, track);
+            break;
+        case b_mkv_codec_type_pcm:
+            success = b_mkv_player_pcm_block(player, frame_data, frame_cursor, track);
             break;
         case b_mkv_codec_type_vp8:
             success = b_mkv_player_vp8_block(player, frame_data, frame_cursor, track);

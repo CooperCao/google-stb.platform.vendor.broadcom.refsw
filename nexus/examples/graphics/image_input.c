@@ -126,7 +126,7 @@ int main(int argc, char **argv)
 #if NEXUS_NUM_HDMI_OUTPUTS
     NEXUS_HdmiOutputStatus hdmiStatus;
 #endif
-    int i=NEXUS_MEMC0_MAIN_HEAP;
+    int i = 0;
     bool moveWindow=false;
     bool vfd = false;
     bool stripe = false;

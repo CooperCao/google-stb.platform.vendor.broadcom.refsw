@@ -51,14 +51,12 @@ bool glxx_is_texture_filterable_api_fmt(GFX_LFMT_T api_fmt)
       case GFX_LFMT_R16_G16_B16_A16_FLOAT:
       case GFX_LFMT_R11G11B10_UFLOAT:
       case GFX_LFMT_R9G9B9SHAREDEXP5_UFLOAT:
-#if GL_BRCM_texture_norm16
       case GFX_LFMT_R16_UNORM:
       case GFX_LFMT_R16_G16_UNORM:
       case GFX_LFMT_R16_G16_B16_A16_UNORM:
       case GFX_LFMT_R16_SNORM:
       case GFX_LFMT_R16_G16_SNORM:
       case GFX_LFMT_R16_G16_B16_A16_SNORM:
-#endif
       return true;
    default:
       return false;
@@ -79,7 +77,8 @@ void glxx_hw_fmts_from_api_fmt(
    gfx_buffer_lfmts_none(hw_fmts);
 
    /* for some formats that are not supported by HW natively, like
-    * GFX_LFMT_R32_G32_B32_INT, pad up to 128-bits by adding _X32
+    * GFX_LFMT_R32_G32_B32_INT, pad up to 128-bits by adding _X32.
+    * BGRA is internally represented as RGBA and swizzled on upload.
     */
    switch (api_fmt)
    {
@@ -94,6 +93,7 @@ void glxx_hw_fmts_from_api_fmt(
    case GFX_LFMT_R16_G16_B16_UINT:  hw_fmts[0] = GFX_LFMT_R16_G16_B16_X16_UINT; break;
    case GFX_LFMT_R32_G32_B32_INT:   hw_fmts[0] = GFX_LFMT_R32_G32_B32_X32_INT; break;
    case GFX_LFMT_R32_G32_B32_UINT:  hw_fmts[0] = GFX_LFMT_R32_G32_B32_X32_UINT; break;
+   case GFX_LFMT_B8_G8_R8_A8_UNORM: hw_fmts[0] = GFX_LFMT_R8_G8_B8_A8_UNORM; break;
    case GFX_LFMT_D32_S8X24_FLOAT_UINT:
       hw_fmts[0] = GFX_LFMT_D32_FLOAT;
       hw_fmts[1] = GFX_LFMT_S8_UINT;
@@ -133,6 +133,7 @@ bool glxx_texture_are_legal_dimensions(GLenum target, int w, int h, int d)
          break;
       case GL_TEXTURE_2D_ARRAY:
       case GL_TEXTURE_2D_MULTISAMPLE_ARRAY:
+      case GL_TEXTURE_CUBE_MAP_ARRAY:
          ok = w <= MAX_TEXTURE_SIZE && h <= MAX_TEXTURE_SIZE &&
             d <= MAX_ARRAY_TEXTURE_LAYERS;
          break;
@@ -141,7 +142,7 @@ bool glxx_texture_are_legal_dimensions(GLenum target, int w, int h, int d)
             d <= MAX_3D_TEXTURE_SIZE;
          break;
       default:
-         UNREACHABLE();
+         unreachable();
    }
 
    return ok;
@@ -168,6 +169,7 @@ bool glxx_texture_is_legal_level(GLenum target, int level)
       case GL_TEXTURE_CUBE_MAP_POSITIVE_Z:
       case GL_TEXTURE_CUBE_MAP_NEGATIVE_Z:
       case GL_TEXTURE_CUBE_MAP:
+      case GL_TEXTURE_CUBE_MAP_ARRAY:
          max_legal_level = LOG2_MAX_TEXTURE_SIZE;
          break;
       case GL_TEXTURE_3D:
@@ -178,7 +180,7 @@ bool glxx_texture_is_legal_level(GLenum target, int level)
          max_legal_level = 0;
          break;
       default:
-         UNREACHABLE();
+         unreachable();
    }
 
    ok = (uint32_t)level <= max_legal_level;
@@ -195,13 +197,15 @@ bool glxx_texture_is_legal_layer(GLenum target, int layer)
    switch(target)
    {
       case GL_TEXTURE_2D_ARRAY:
+      case GL_TEXTURE_2D_MULTISAMPLE_ARRAY:
+      case GL_TEXTURE_CUBE_MAP_ARRAY:
          max_legal_layer = MAX_ARRAY_TEXTURE_LAYERS - 1;
          break;
       case GL_TEXTURE_3D:
          max_legal_layer = MAX_3D_TEXTURE_SIZE -1;
          break;
       default:
-         UNREACHABLE();
+         unreachable();
          max_legal_layer = -1;
          break;
    }
@@ -229,10 +233,11 @@ uint32_t glxx_texture_get_face(GLenum target)
       case GL_TEXTURE_2D_ARRAY:
       case GL_TEXTURE_2D_MULTISAMPLE:
       case GL_TEXTURE_2D_MULTISAMPLE_ARRAY:
+      case GL_TEXTURE_CUBE_MAP_ARRAY:
          face = 0;
          break;
       default:
-         UNREACHABLE();
+         unreachable();
    }
    return face;
 }
@@ -252,6 +257,20 @@ bool glxx_tex_target_valid_in_es1(GLenum target)
 bool glxx_tex_target_is_multisample(GLenum target) {
    return target == GL_TEXTURE_2D_MULTISAMPLE ||
           target == GL_TEXTURE_2D_MULTISAMPLE_ARRAY;
+}
+
+bool glxx_tex_target_has_layers(GLenum target)
+{
+   switch(target)
+   {
+   case GL_TEXTURE_3D:
+   case GL_TEXTURE_2D_ARRAY:
+   case GL_TEXTURE_CUBE_MAP_ARRAY:
+   case GL_TEXTURE_2D_MULTISAMPLE_ARRAY:
+      return true;
+   default:
+      return false;
+   }
 }
 
 /* unsized internalformats give the driver some flexibility as to what
@@ -317,6 +336,9 @@ bool glxx_texture_is_tex_target(GLenum target)
          break;
       case GL_TEXTURE_2D_MULTISAMPLE:
       case GL_TEXTURE_2D_MULTISAMPLE_ARRAY:
+#if V3D_HAS_TMU_WRAP_I
+      case GL_TEXTURE_CUBE_MAP_ARRAY:
+#endif
          ok = KHRN_GLES31_DRIVER ? true : false;
          break;
       default:

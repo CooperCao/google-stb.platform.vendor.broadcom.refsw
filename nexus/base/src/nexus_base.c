@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2008-2013 Broadcom Corporation
+*  Copyright (C) 2003-2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -1015,18 +1015,41 @@ static NEXUS_P_ThreadInfo *NEXUS_Base_P_AllocateThreadInfo_locked(void *threadId
 {
     unsigned i;
     unsigned min = 0;
+    bool found = false;
     NEXUS_P_ThreadInfo *threadInfo = NULL;
     NEXUS_P_ThreadInfo *insertedThreadInfo = NULL;
 
     BDBG_ASSERT(threadId!=NULL);
 
-    for(i=min+1;i<NEXUS_BASE_P_MAX_USER_THREADS;i++) {
+    for(i=min;i<NEXUS_BASE_P_MAX_USER_THREADS;i++) {
         if(!NEXUS_P_Base_State.userThreadInfo.info[i] || NEXUS_P_Base_State.userThreadInfo.lastUsed[i]==0) { /* BINGO found unused entry */
             min = i;
+            found = true;
             break;
-        } else if(NEXUS_P_Base_State.userThreadInfo.lastUsed[i] < NEXUS_P_Base_State.userThreadInfo.lastUsed[min]) { /* search minimal entry */
-            min = i;
+        } else {
+#if NEXUS_P_DEBUG_MODULE_LOCKS
+            if(BLIFO_READ_PEEK(&NEXUS_P_Base_State.userThreadInfo.info[i]->stack)==0) {
+                if(!found) {
+                    if(BLIFO_READ_PEEK(&NEXUS_P_Base_State.userThreadInfo.info[min]->stack)!=0) {
+                        min = i;
+                    }
+                }
+                if(NEXUS_P_Base_State.userThreadInfo.lastUsed[i] < NEXUS_P_Base_State.userThreadInfo.lastUsed[min]) { /* search minimal entry */
+                    min = i;
+                }
+                found = true;
+            }
+#else
+            if(!found || NEXUS_P_Base_State.userThreadInfo.lastUsed[i] < NEXUS_P_Base_State.userThreadInfo.lastUsed[min]) { /* search minimal entry */
+                min = i;
+            }
+            found = true;
+#endif
         }
+    }
+    if(!found) {
+        BDBG_ERR(("Can't allocate ThreadInfo"));
+        return NULL;
     }
     if (!NEXUS_P_Base_State.userThreadInfo.info[min]) {
         threadInfo = BKNI_Malloc(sizeof(*threadInfo));

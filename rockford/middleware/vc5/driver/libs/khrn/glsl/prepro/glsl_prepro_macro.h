@@ -50,7 +50,7 @@ typedef struct _MacroList {
 } MacroList;
 
 extern MacroList *glsl_macrolist_construct(Macro *macro, MacroList *next);
-extern MacroList *glsl_macrolist_construct_initial(void);
+extern MacroList *glsl_macrolist_construct_initial(int version);
 
 extern Macro *glsl_macrolist_find(MacroList *list, Token *name);
 

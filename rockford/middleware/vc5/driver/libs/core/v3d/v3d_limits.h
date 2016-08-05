@@ -19,7 +19,11 @@ FILE DESCRIPTION
 
 #define V3D_VPAR 16        //!< Virtual paralleism: 16 way (number of lanes)
 
+#if V3D_HAS_LARGE_REGFILE
+#define V3D_QPU_RF_SIZE 128    // Number of register file rows per QPU
+#else
 #define V3D_QPU_RF_SIZE 64     // Number of register file rows per QPU
+#endif
 
 #define V3D_MAX_SUPERTILES 256
 
@@ -57,9 +61,6 @@ FILE DESCRIPTION
 
 #define V3D_MAX_TF_BUFFERS 4
 #define V3D_MAX_TF_SPECS 16
-/* Including fixed-purpose outputs (x/y, point size, etc). Essentially maximum
- * number of rows of output from coord shader. TODO What is the actual limit? */
-#define V3D_MAX_TF_VALUES 256
 
 #define V3D_MAX_TILE_LIST_SETS 8
 
@@ -73,11 +74,8 @@ FILE DESCRIPTION
 /* Size of FIFOs per QPU. Need to divide by threadedness for usable space by a
  * single thread */
 #define V3D_TMU_INPUT_FIFO_SIZE  16 /* One entry used per TMU magic register write */
-#define V3D_TMU_CONFIG_FIFO_SIZE  8 /* Input FIFO for uniform/config data. One entry used per lookup. */
+#define V3D_TMU_CONFIG_FIFO_SIZE  8 /* Input FIFO for uniform/config data. One entry used per access. */
 #define V3D_TMU_OUTPUT_FIFO_SIZE 16 /* One entry popped by each ldtmu */
-
-/* We never use more than this many input FIFO entries for a single lookup */
-#define V3D_TMU_MAX_INPUT_SIZE_PER_LOOKUP 6
 
 #define V3D_GMP_PAGE_SIZE (128 * 1024)
 /* 32-bit address space / V3D_GMP_PAGE_SIZE = 32k pages
@@ -96,5 +94,10 @@ FILE DESCRIPTION
 
 #define V3D_MMU_PAGE_SIZE (4096)
 #define V3D_MMU_MEGAPAGE_SIZE (1u << 28u)
+
+#define V3D_MAX_PATCH_VERTICES 32u
+#define V3D_MAX_TESS_GEN_LEVEL 64u
+
+#define V3D_MAX_GEOMETRY_INVOCATIONS 32u
 
 #endif

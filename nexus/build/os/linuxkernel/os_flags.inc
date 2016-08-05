@@ -92,10 +92,6 @@ ifeq ($(LINUX_VER_GE_2_6),y)
  endif
 endif
 
-ifeq ($(B_REFSW_OPTIMIZER_LEVEL),)
-B_REFSW_OPTIMIZER_LEVEL = 2
-endif
-
 # Seperate MIPS and ARM here
 ifneq ($(filter ${B_REFSW_ARCH}, aarch64-linux arm-linux), ${B_REFSW_ARCH})
 NEXUS_CFLAGS += -fomit-frame-pointer -G 0 -mno-abicalls -fno-pic -Wa,--trap -DMODULE -mlong-calls

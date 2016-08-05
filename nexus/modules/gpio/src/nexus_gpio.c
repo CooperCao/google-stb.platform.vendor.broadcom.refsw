@@ -148,6 +148,19 @@ void NEXUS_GpioModule_GetDefaultSettings(NEXUS_GpioModuleSettings *pSettings)
     pSettings->common.enabledDuringActiveStandby = true;
 }
 
+static void NEXUS_GpioModule_P_Print(void)
+{
+#if BDBG_DEBUG_BUILD
+    NEXUS_GpioHandle gpio;
+    static const char *g_gpioTypeStr[NEXUS_GpioType_eMax] = {"std","special","tv","aon","aonspecial"};
+    static const char *g_gpioModeStr[NEXUS_GpioMode_eMax] = {"in","out(od)","out(pp)"};
+    static const char *g_gpioInterruptStr[NEXUS_GpioInterrupt_eMax] = {"disabled","rising","falling","edges","low","high"};
+    for (gpio=BLST_S_FIRST(&g_NEXUS_gpio.list); gpio; gpio = BLST_S_NEXT(gpio, link)) {
+        BDBG_LOG(("gpio%u: %s %s interrupt=%s value=%u", gpio->pin, g_gpioTypeStr[gpio->type], g_gpioModeStr[gpio->settings.mode], g_gpioInterruptStr[gpio->settings.interruptMode], gpio->settings.value));
+    }
+#endif
+}
+
 NEXUS_ModuleHandle NEXUS_GpioModule_Init(const NEXUS_GpioModuleSettings *pSettings)
 {
     NEXUS_ModuleSettings moduleSettings;
@@ -163,6 +176,8 @@ NEXUS_ModuleHandle NEXUS_GpioModule_Init(const NEXUS_GpioModuleSettings *pSettin
 
     NEXUS_Module_GetDefaultSettings(&moduleSettings);
     moduleSettings.priority = NEXUS_AdjustModulePriority(NEXUS_ModulePriority_eLow, &pSettings->common);
+    moduleSettings.dbgPrint = NEXUS_GpioModule_P_Print;
+    moduleSettings.dbgModules = "nexus_gpio";
     g_NEXUS_gpioModule = NEXUS_Module_Create("gpio", &moduleSettings);
     if (!g_NEXUS_gpioModule) {
         return NULL;

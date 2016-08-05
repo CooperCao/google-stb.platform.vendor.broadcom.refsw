@@ -41,8 +41,11 @@
 #include <errno.h>
 #include <signal.h>
 #include <sys/wait.h>
+#include <syscalls.h>
 
 #include "astra_tapp.h"
+
+extern "C" long syscall(long, ...);
 
 // Static non-const data from AstraTapp class
 tzioc_client_handle AstraTapp::hClient;
@@ -51,9 +54,11 @@ uint8_t AstraTapp::clientId;
 
 #if ENABLE_PROFILING
 #if ENABLE_ARM_PM_PROFILING
-uint32_t AstraTapp::pmccntr0, AstraTapp::pmccntr1;
+uint32_t AstraTapp::pmccntr0[NUM_PROFILING_LEVELS];
+uint32_t AstraTapp::pmccntr1[NUM_PROFILING_LEVELS];
 #else
-struct timespec AstraTapp::tv0, AstraTapp::tv1;
+struct timespec AstraTapp::tv0[NUM_PROFILING_LEVELS];
+struct timespec AstraTapp::tv1[NUM_PROFILING_LEVELS];
 #endif
 #endif
 
@@ -93,25 +98,30 @@ void AstraTapp::run()
     LOGI("Astra test app running!");
 
 #if (ENABLE_PROFILING & PROFILING_LEVEL_0)
-    printf("\n");
+    // Example of profiling
+    LOGI("Profiling level 0 starting...");
+    profilingStart(0);
 
-    for (int rep = 0; rep <= 10; rep++) {
+    // Code to be profiled
 
-        profilingStart();
+    profilingStop(0);
+    LOGI("Profiling level 0 stopped");
 
-        unsigned int a = 10, c = 0;
-        for (int i = 0; i < 1000 * rep; i++) {
-            c = c + a + i;
-        }
+    // Print profiling result
+    profilingPrint(0);
+#endif
 
-        profilingStop();
+#if (ENABLE_TRACELOG)
+    // Example of tracelog
+    LOGI("Tracelog starting...");
+    syscall(EXT_tracelog_inval); /* invalidate */
+    syscall(EXT_tracelog_start); /* start */
 
-        printf("Cumulator profiling: rep %d, result %ud, ", rep, c);
-        profilingPrint();
-        printf("\n");
-    }
+    // Log events
+    syscall(EXT_tracelog_add, 0x01, 0);
 
-    printf("\n");
+    syscall(EXT_tracelog_stop);
+    LOGI("Tracelog stopped");
 #endif
 
     while (1) {

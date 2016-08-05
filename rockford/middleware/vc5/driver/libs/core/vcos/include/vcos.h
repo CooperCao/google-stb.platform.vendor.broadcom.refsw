@@ -58,14 +58,6 @@ VideoCore OS Abstraction Layer - public header file
   *
   * \section thread_synch Threads and synchronisation
   *
-  * \subsection thread Threads
-  *
-  * The thread API is somewhat different to that found in Nucleus. In particular, threads
-  * cannot just be destroyed at arbitrary times and nor can they merely exit. This is so
-  * that the same API can be implemented across all interesting platforms without too much
-  * difficulty. See vcos_thread.h for details. Thread attributes are configured via
-  * the VCOS_THREAD_ATTR_T structure, found in vcos_thread_attr.h.
-  *
   * \subsection sema Semaphores
   *
   * Counted semaphores (c.f. Nucleus NU_SEMAPHORE) are created with VCOS_SEMAPHORE_T.
@@ -119,22 +111,6 @@ VideoCore OS Abstraction Layer - public header file
 #include "vcos_semaphore.h"
 #endif
 
-#ifndef VCOS_THREAD_H
-#include "vcos_thread.h"
-#endif
-
-#ifndef VCOS_MUTEX_H
-#include "vcos_mutex.h"
-#endif
-
-#ifndef VCOS_FAIR_MUTEX_H
-#include "vcos_fair_mutex.h"
-#endif
-
-#ifndef VCOS_RWLOCK_H
-#include "vcos_rwlock.h"
-#endif
-
 #ifndef VCOS_PROP_H
 #include "vcos_properties.h"
 #endif
@@ -147,31 +123,11 @@ VideoCore OS Abstraction Layer - public header file
 #include "vcos_event.h"
 #endif
 
-#ifndef VCOS_THREAD_ATTR_H
-#include "vcos_thread_attr.h"
-#endif
-
 #ifndef VCOS_TLS_H
 #include "vcos_tls.h"
 #endif
 
-#ifndef VCOS_REENTRANT_MUTEX_H
-#include "vcos_reentrant_mutex.h"
-#endif
-
-#ifndef VCOS_HAVE_MODULE_H
-#include "vcos_module.h"
-#endif
-
 /* Headers with predicates */
-
-#if VCOS_HAVE_TIMER
-#include "vcos_timer.h"
-#endif
-
-#if VCOS_HAVE_ATOMIC_FLAGS
-#include "vcos_atomic_flags.h"
-#endif
 
 #if VCOS_HAVE_ONCE
 #include "vcos_once.h"

@@ -50,6 +50,8 @@ BDBG_MODULE(BHSM);
 
 #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(3,0)
 
+BDBG_OBJECT_ID_DECLARE( BHSM_P_Handle );
+
 BERR_Code BHSM_UserRSA(
         BHSM_Handle         hHsm,
         BHSM_UserRSAIO_t    *pRsa
@@ -65,7 +67,9 @@ BERR_Code BHSM_UserRSA(
 
     BDBG_ENTER( BHSM_UserRSA );
 
-    if( hHsm == NULL || hHsm->ulMagicNumber != BHSM_P_HANDLE_MAGIC_NUMBER || pRsa == NULL )
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
+
+    if( pRsa == NULL )
     {
         return BERR_TRACE( BHSM_STATUS_FAILED );
     }

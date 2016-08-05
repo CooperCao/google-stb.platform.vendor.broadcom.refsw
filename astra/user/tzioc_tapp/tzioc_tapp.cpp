@@ -41,8 +41,11 @@
 #include <errno.h>
 #include <signal.h>
 #include <sys/wait.h>
+#include <syscalls.h>
 
 #include "tzioc_tapp.h"
+
+extern "C" long syscall(long, ...);
 
 // Static non-const data from TziocTapp class
 tzioc_client_handle TziocTapp::hClient;
@@ -51,9 +54,11 @@ uint8_t TziocTapp::clientId;
 
 #if ENABLE_PROFILING
 #if ENABLE_ARM_PM_PROFILING
-uint32_t TziocTapp::pmccntr0, TziocTapp::pmccntr1;
+uint32_t TziocTapp::pmccntr0[NUM_PROFILING_LEVELS];
+uint32_t TziocTapp::pmccntr1[NUM_PROFILING_LEVELS];
 #else
-struct timespec TziocTapp::tv0, TziocTapp::tv1;
+struct timespec TziocTapp::tv0[NUM_PROFILING_LEVELS];
+struct timespec TziocTapp::tv1[NUM_PROFILING_LEVELS];
 #endif
 #endif
 
@@ -93,25 +98,30 @@ void TziocTapp::run()
     LOGI("TZIOC test app running!");
 
 #if (ENABLE_PROFILING & PROFILING_LEVEL_0)
-    printf("\n");
+    // Example of profiling
+    LOGI("Profiling level 0 starting...");
+    profilingStart(0);
 
-    for (int rep = 0; rep <= 10; rep++) {
+    // Code to be profiled
 
-        profilingStart();
+    profilingStop(0);
+    LOGI("Profiling level 0 stopped");
 
-        unsigned int a = 10, c = 0;
-        for (int i = 0; i < 1000 * rep; i++) {
-            c = c + a + i;
-        }
+    // Print profiling result
+    profilingPrint(0);
+#endif
 
-        profilingStop();
+#if (ENABLE_TRACELOG)
+    // Example of tracelog
+    LOGI("Tracelog starting...");
+    syscall(EXT_tracelog_inval); /* invalidate */
+    syscall(EXT_tracelog_start); /* start */
 
-        printf("Cumulator profiling: rep %d, result %ud, ", rep, c);
-        profilingPrint();
-        printf("\n");
-    }
+    // Log events
+    syscall(EXT_tracelog_add, 0x01, 0);
 
-    printf("\n");
+    syscall(EXT_tracelog_stop);
+    LOGI("Tracelog stopped");
 #endif
 
     while (1) {

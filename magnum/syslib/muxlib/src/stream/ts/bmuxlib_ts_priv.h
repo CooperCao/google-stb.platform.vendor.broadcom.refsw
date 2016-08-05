@@ -61,12 +61,13 @@ extern "C" {
 
 #define BMUXLIB_TS_P_SCALE_MS_TO_27MHZ    (27000000 / 1000)
 
-#define BMUXLIB_TS_P_FIXED_MUX_SERVICE_PERIOD 1
-#define BMUXLIB_TS_P_MUX_SERVICE_PERIOD_DEFAULT 50
-#define BMUXLIB_TS_P_MUX_PCR_INTERVAL_DEFAULT 50
-#define BMUXLIB_TS_P_MUX_SYS_DATA_BR_DEFAULT 1000000
-#define BMUXLIB_TS_P_PES_HEADER_PAYLOAD_SIZE 13
-#define BMUXLIB_TS_P_A2PDELAY_DEFAULT (2000 * BMUXLIB_TS_P_SCALE_MS_TO_27MHZ)  /* 2 seconds @ 27Mhz */
+#define BMUXLIB_TS_P_FIXED_MUX_SERVICE_PERIOD     1
+#define BMUXLIB_TS_P_MUX_SERVICE_PERIOD_DEFAULT   50
+#define BMUXLIB_TS_P_MUX_PCR_INTERVAL_DEFAULT     50
+#define BMUXLIB_TS_P_MUX_SYS_DATA_BR_DEFAULT      1000000
+#define BMUXLIB_TS_P_PES_HEADER_MIN_PAYLOAD_SIZE  3
+#define BMUXLIB_TS_P_A2PDELAY_DEFAULT             (2000 * BMUXLIB_TS_P_SCALE_MS_TO_27MHZ)  /* 2 seconds @ 27Mhz */
+#define BMUXLIB_TS_P_PCR_ROLLBACK_INTERVALS       3 /* this must be at least 2 (required number of PCRs prior to A/V Data) */
 
 /* DEBUG */
 #if ( BMUXLIB_TS_P_DUMP_TRANSPORT_DESC || BMUXLIB_TS_P_DUMP_TRANSPORT_PES || BMUXLIB_TS_P_DUMP_PCR || BMUXLIB_TS_P_TEST_MODE)
@@ -96,12 +97,12 @@ extern "C" {
 #define BMUXLIB_TS_P_SIGNATURE_STARTSETTINGS    0x77858802
 #define BMUXLIB_TS_P_SIGNATURE_MUXSETTINGS      0x77858803
 #define BMUXLIB_TS_P_SIGNATURE_FINISHSETTINGS   0x77858804
-#define BMUXLIB_TS_P_SIGNATURE_CONTEXT          0x77858805
 
 /**************************/
 /* PES Header Definitions */
 /**************************/
 
+#define BMUXlib_TS_P_PESHeader_MINSIZE 9
 #define BMUXlib_TS_P_PESHeader_MAXSIZE 19
 typedef union BMUXlib_TS_P_PESHeader
 {
@@ -143,7 +144,8 @@ typedef union BMUXlib_TS_P_PESHeader
          _pesHeader[11] = ( ( ( _pts >> 14 ) & 0xFE ) | (0x01) ); \
          _pesHeader[10] = (   ( _pts >> 22 ) & 0xFF ); \
          _pesHeader[9] =  ( ( ( _pts >> 29 ) & 0x0E ) | (0x21) ); \
-         _pesHeader[7] |= 0x80;
+         _pesHeader[7] |= 0x80; \
+         BMUXlib_TS_P_PESHeader_AddHeaderLength(_pesHeader, 5 );
 
 #define BMUXlib_TS_P_PESHeader_SetDTS(_pesHeader, _pts) \
          _pesHeader[18] = ( ( ( _pts << 1  ) & 0xFE ) | (0x01) ); \
@@ -152,11 +154,18 @@ typedef union BMUXlib_TS_P_PESHeader
          _pesHeader[15] = (   ( _pts >> 22 ) & 0xFF ); \
          _pesHeader[14] = ( ( ( _pts >> 29 ) & 0x0E ) | (0x11) ); \
          _pesHeader[9] |= (0x30); \
-         _pesHeader[7] |= 0x40;
+         _pesHeader[7] |= 0x40; \
+         BMUXlib_TS_P_PESHeader_AddHeaderLength(_pesHeader, 5 );
 
 #define BMUXlib_TS_P_PESHeader_SetLength(_pesHeader, _length) \
-         _pesHeader[4] = ( ( _length >> 8 ) & 0xFF ); \
-         _pesHeader[5] = ( ( _length )      & 0xFF );
+         _pesHeader[4] = ( ( ( _length ) >> 8 ) & 0xFF ); \
+         _pesHeader[5] = ( ( ( _length ) )      & 0xFF );
+
+#define BMUXlib_TS_P_PESHeader_AddHeaderLength(_pesHeader, _headerLength ) \
+         (_pesHeader)[8] += (_headerLength);
+
+#define BMUXlib_TS_P_PESHeader_GetHeaderLength(_pesHeader ) \
+         (_pesHeader)[8]
 
 /*************************/
 /* TS Packet Definitions */
@@ -291,14 +300,14 @@ typedef enum BMUXlib_TS_P_SourceType
       BMUXlib_TS_P_SourceType_eMax
 } BMUXlib_TS_P_SourceType;
 
-#define BMUXLib_TS_P_STATS_MAX_MSP_COUNT 40
+#define BMUXLib_TS_P_STATS_MAX_MSP_COUNT 120
 typedef struct BMUXLib_TS_P_EfficiencyStats
 {
    uint32_t uiTotalBytesPerInput[BMUXlib_TS_P_DataType_eMax][BMUXlib_TS_P_SourceType_eMax];
    uint32_t uiTotalBytesPerDataType[BMUXlib_TS_P_DataType_eMax];
    uint32_t uiTotalBytesPerSourceType[BMUXlib_TS_P_SourceType_eMax];
    uint32_t uiTotalBytes;
-   uint32_t uiTotalBytesWritten;
+   uint64_t uiTotalBytesWritten;
 
    uint16_t uiTimeInMs[BMUXLib_TS_P_STATS_MAX_MSP_COUNT];
    uint32_t uiTotalTimeInMs;
@@ -333,11 +342,14 @@ typedef struct BMUXlib_TS_P_TransportDescriptorMetaData
 typedef struct BMUXlib_TS_P_PCRInfo
 {
       bool bInitialized;
-
+      bool bEarliestESCRValid;
+      bool bEarliestPTSValid;
       uint64_t uiBase;
       uint16_t uiExtension;
       uint64_t uiESCR;
       uint64_t uiNextESCR;
+      uint64_t uiEarliestPTS;
+      uint32_t uiEarliestESCR;
       uint32_t uiIntervalIn27Mhz;
 #ifdef BMUXLIB_TS_P_DUMP_PCR
       FILE *hPCRFile;
@@ -349,7 +361,6 @@ typedef struct BMUXlib_TS_P_SystemDataInfo
       bool bLastScheduledESCRValid;
       uint32_t uiESCR;
       uint32_t uiPacketsMuxedSoFar;
-      uint32_t uiPacket2PacketTimestampDelta;
       uint32_t uiPacketsUntilNextPCR;
       uint32_t uiLastScheduledESCR;
 #ifdef BMUXLIB_TS_P_TEST_MODE
@@ -369,7 +380,7 @@ typedef struct BMUXlib_TS_P_InputMetaData
    unsigned uiPIDIndex;
 
    /* State */
-   bool bEOSSeen; /* true if EOS descriptor has been seen */
+   bool bEOSSeen;  /* true if EOS descriptor has been seen */
 
    unsigned uiMetadataDescriptorsSkipped; /* Number of source metdata descriptors skipped */
 #if ( BMUXLIB_TS_P_DUMP_VIDEO_DESC | BMUXLIB_TS_P_DUMP_AUDIO_DESC )
@@ -382,6 +393,7 @@ typedef struct BMUXlib_TS_P_InputMetaData
    BAVC_FrameRateCode eSourceFrameRateCode;              /* used by userdata for dDTS verification */
 
    unsigned uiPreviousPacket2PacketTimestampDelta;
+   unsigned uiCurrentSegmentCount;
 } BMUXlib_TS_P_InputMetaData;
 
 typedef enum BMUXlib_TS_P_MemoryType
@@ -523,7 +535,7 @@ typedef struct BMUXlib_TS_P_Output_Info
 
 typedef struct BMUXlib_TS_P_Context
 {
-      uint32_t uiSignature;     /* [DO NOT MODIFY] Populated by BMUXlib_TS_Create() */
+      BDBG_OBJECT(BMUXlib_TS_P_Context)
 
       /* Create */
       BMUXlib_TS_CreateSettings stCreateSettings;
@@ -617,6 +629,7 @@ typedef struct BMUXlib_TS_P_Context
          BMUXlib_TS_P_InputMetaData stInputMetaData[BMUXLIB_TS_MAX_VIDEO_PIDS + BMUXLIB_TS_MAX_AUDIO_PIDS];
          unsigned uiNumInputs;
          bool bAllInputsReady;
+         bool bWaitForAllInputs;
 
          BMUXlib_InputGroup_Handle hInputGroup;
 
@@ -679,6 +692,8 @@ typedef struct BMUXlib_TS_P_Context
          BMUXlib_TS_P_Output_Info stOutput;
 
          BMUXlib_TS_Status stStatus;
+
+         unsigned uiCurrentSegmentCount;
       } status;
 
 } BMUXlib_TS_P_Context;
@@ -731,6 +746,11 @@ BMUXlib_TS_P_AddSystemDataBuffers(
          const BMUXlib_TS_SystemData *astSystemDataBuffer, /* Array of system data buffers */
          size_t uiCount, /* Count of system data buffers in array */
          size_t *puiQueuedCount /* Count of system data buffers queued by muxer (*puiQueuedCount <= uiCount) */
+         );
+
+void
+BMUXlib_TS_P_SeedPCR(
+         BMUXlib_TS_Handle hMuxTS
          );
 
 #ifdef __cplusplus

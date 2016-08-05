@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -546,7 +546,7 @@ BERR_Code BXPT_Playback_GetChannelSettings(
         ChannelSettings->UsePcrTimeBase = false;
     else if( Timebase > BXPT_NUM_PCRS )
     {
-        BDBG_ERR(( "Invalid timebase %u configured in hardware.", ( unsigned long ) Timebase ));
+        BDBG_ERR(( "Invalid timebase %u configured in hardware.", (unsigned) Timebase ));
         ChannelSettings->UsePcrTimeBase = false;
     }
     else
@@ -940,12 +940,12 @@ BERR_Code BXPT_Playback_StartChannel(
 
     BDBG_ASSERT( PlaybackHandle );
 
-    BDBG_MSG(( "Starting playback channel %d", ( unsigned long ) PlaybackHandle->ChannelNo ));
+    BDBG_MSG(( "Starting playback channel %u", PlaybackHandle->ChannelNo ));
 
     if( PlaybackHandle->Running == true )
     {
-        BDBG_ERR(( "Playback channel %d cannot be started because it's already running!",
-            ( unsigned long ) PlaybackHandle->ChannelNo ));
+        BDBG_ERR(( "Playback channel %u cannot be started because it's already running!",
+            PlaybackHandle->ChannelNo ));
         ExitCode = BERR_TRACE( BXPT_ERR_CHANNEL_ALREADY_RUNNING );
     }
 
@@ -989,12 +989,12 @@ BERR_Code BXPT_Playback_StopChannel(
 
     BDBG_ASSERT( PlaybackHandle );
 
-    BDBG_MSG(( "Stopping playback channel %d", ( unsigned long ) PlaybackHandle->ChannelNo ));
+    BDBG_MSG(( "Stopping playback channel %u", PlaybackHandle->ChannelNo ));
 
     if( PlaybackHandle->Running == false )
     {
-        BDBG_ERR(( "Playback channel %d cannot be stopped because it's not running!",
-            ( unsigned long ) PlaybackHandle->ChannelNo ));
+        BDBG_ERR(( "Playback channel %u cannot be stopped because it's not running!",
+            PlaybackHandle->ChannelNo ));
         ExitCode = BERR_TRACE( BXPT_ERR_CHANNEL_ALREADY_STOPPED );
     }
 
@@ -1072,7 +1072,7 @@ BERR_Code BXPT_Playback_StopChannel(
                 WaitCount--;
                 if( !WaitCount )
                 {
-                    BDBG_WRN(( "Playback channel %d timed-out waiting for BUSY bit to clear", ( unsigned long ) PlaybackHandle->ChannelNo ));
+                    BDBG_WRN(( "Playback channel %u timed-out waiting for BUSY bit to clear", PlaybackHandle->ChannelNo ));
                     break;
                 }
 
@@ -1111,7 +1111,7 @@ BERR_Code BXPT_Playback_StopChannel(
                 WaitCount--;
                 if( !WaitCount )
                 {
-                    BDBG_WRN(( "Playback channel %d timed-out waiting for CURR_DESC_NOT_DONE bit to clear", ( unsigned long ) PlaybackHandle->ChannelNo ));
+                    BDBG_WRN(( "Playback channel %u timed-out waiting for CURR_DESC_NOT_DONE bit to clear", PlaybackHandle->ChannelNo ));
                     break;
                 }
 
@@ -1136,7 +1136,7 @@ BERR_Code BXPT_Playback_StopChannel(
                 WaitCount--;
                 if( !WaitCount )
                 {
-                    BDBG_WRN(( "Playback channel %d timed-out waiting for BUSY bit to clear, 2nd loop", ( unsigned long ) PlaybackHandle->ChannelNo ));
+                    BDBG_WRN(( "Playback channel %u timed-out waiting for BUSY bit to clear, 2nd loop", PlaybackHandle->ChannelNo ));
                     break;
                 }
 

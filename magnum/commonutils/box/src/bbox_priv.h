@@ -36,7 +36,7 @@
  * ANY LIMITED REMEDY.
  *****************************************************************************/
 
-#ifndef BBOX_PRIV_H__
+ #ifndef BBOX_PRIV_H__
 #define BBOX_PRIV_H__
 
 
@@ -61,12 +61,16 @@ BERR_Code BBOX_P_Vdc_SetBoxMode
     ( uint32_t               ulBoxId,
       BBOX_Vdc_Capabilities *pBoxVdc );
 
+BERR_Code BBOX_P_Vdc_SelfCheck
+    ( const BBOX_MemConfig          *pMemConfig,
+      const BBOX_Vdc_Capabilities   *pVdcCap );
+
 BERR_Code BBOX_P_Vce_SetBoxMode
    ( uint32_t               ulBoxId,
      BBOX_Vce_Capabilities *pBoxVce );
 
 BERR_Code BBOX_P_Audio_SetBoxMode
-   ( uint32_t               ulBoxId,
+   ( uint32_t                 ulBoxId,
      BBOX_Audio_Capabilities *pBoxAudio );
 
 BERR_Code BBOX_P_Xvd_SetBoxMode
@@ -78,8 +82,8 @@ BERR_Code BBOX_P_LoadRts
       const uint32_t         ulBoxId );
 
 BERR_Code BBOX_P_GetMemConfig
-    ( uint32_t                       ulBoxId,
-      BBOX_MemConfig                *pBoxMemConfig );
+    ( uint32_t               ulBoxId,
+      BBOX_MemConfig        *pBoxMemConfig );
 
 /* Add module specific box mode functions here */
 

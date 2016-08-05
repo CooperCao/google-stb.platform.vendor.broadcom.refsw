@@ -66,14 +66,28 @@ TzTask::~TzTask() {
         terminate();
     }
 
+    PageTable *kernPageTable = PageTable::kernelPageTable();
+
     // Destroy the kernel mode stack.
     if (stackKernel != nullptr) {
-        TzMem::VirtAddr stackPage = (uint8_t *)stackKernel - PAGE_SIZE_4K_BYTES;
-        TzMem::PhysAddr stackPa = PageTable::kernelPageTable()->lookUp(stackPage);
+        TzMem::VirtAddr stackVa = (uint8_t *)stackKernel - PAGE_SIZE_4K_BYTES;
+        TzMem::PhysAddr stackPa = kernPageTable->lookUp(stackVa);
 
-        PageTable::kernelPageTable()->unmapPage(stackPage);
-
+        kernPageTable->unmapPage(stackVa);
         TzMem::freePage(stackPa);
+    }
+
+    if (quickPages != nullptr) {
+        kernPageTable->releaseAddrRange(quickPages, PAGE_SIZE_4K_BYTES*2);
+    }
+
+    // Destroy the TLS region
+    if (threadInfo != nullptr) {
+        TzMem::VirtAddr tiVa = PAGE_START_4K(threadInfo);
+        TzMem::PhysAddr tiPa = kernPageTable->lookUp(tiVa);
+
+        kernPageTable->unmapPage(tiVa);
+        TzMem::freePage(tiPa);
     }
 
     //printf("Task %d %p collected\n", tid, this);
@@ -194,14 +208,6 @@ void TzTask::terminate(int tcode, int tsignal) {
         if (futex != nullptr) {
             futex->wake(1);
         }
-    }
-
-    // Destroy the TLS region
-    if ((threadInfo != nullptr) && (!vmCloned)) {
-        TzMem::VirtAddr va = PAGE_START_4K(threadInfo);
-        TzMem::PhysAddr pa = pageTable->lookUp(va);
-        pageTable->unmapPage(va);
-        TzMem::freePage(pa);
     }
 
     // Destroy the associated elf image

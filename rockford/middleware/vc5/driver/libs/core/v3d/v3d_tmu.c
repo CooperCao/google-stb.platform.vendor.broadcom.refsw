@@ -10,8 +10,7 @@ All rights reserved.
 #include "libs/core/lfmt/lfmt_translate_v3d.h"
 
 v3d_tmu_blend_type_t v3d_maybe_get_tmu_blend_type(
-   v3d_tmu_type_t type, bool srgb, bool shadow, bool output_32,
-   int v3d_version)
+   v3d_tmu_type_t type, bool srgb, bool shadow, bool output_32)
 {
    switch (type)
    {
@@ -19,14 +18,20 @@ v3d_tmu_blend_type_t v3d_maybe_get_tmu_blend_type(
    case V3D_TMU_TYPE_RG8:
    case V3D_TMU_TYPE_RGBA8:
       assert(!shadow);
-      return ((v3d_version < V3D_MAKE_VER(3,3,0,0)) || srgb || !output_32) ?
-         V3D_TMU_BLEND_TYPE_FLOAT16 : V3D_TMU_BLEND_TYPE_UNORM16;
+#if V3D_VER_AT_LEAST(3,3,0,0)
+      return (output_32 && !srgb) ? V3D_TMU_BLEND_TYPE_UNORM16 : V3D_TMU_BLEND_TYPE_FLOAT16;
+#else
+      return V3D_TMU_BLEND_TYPE_FLOAT16;
+#endif
    case V3D_TMU_TYPE_R8_SNORM:
    case V3D_TMU_TYPE_RG8_SNORM:
    case V3D_TMU_TYPE_RGBA8_SNORM:
       assert(!srgb && !shadow);
-      return ((v3d_version < V3D_MAKE_VER(3,3,0,0)) || !output_32) ?
-         V3D_TMU_BLEND_TYPE_FLOAT16 : V3D_TMU_BLEND_TYPE_SNORM15;
+#if V3D_VER_AT_LEAST(3,3,0,0)
+      return output_32 ? V3D_TMU_BLEND_TYPE_SNORM15 : V3D_TMU_BLEND_TYPE_FLOAT16;
+#else
+      return V3D_TMU_BLEND_TYPE_FLOAT16;
+#endif
    case V3D_TMU_TYPE_RGB565:
    case V3D_TMU_TYPE_RGBA4:
    case V3D_TMU_TYPE_RGB5_A1:
@@ -131,11 +136,10 @@ GFX_LFMT_T v3d_tmu_blend_fmt_from_type(v3d_tmu_blend_type_t blend_type)
 }
 
 GFX_LFMT_T v3d_get_tmu_blend_fmt(
-   v3d_tmu_type_t type, bool srgb, bool shadow, bool output_32,
-   int v3d_version)
+   v3d_tmu_type_t type, bool srgb, bool shadow, bool output_32)
 {
    v3d_tmu_blend_type_t blend_type = v3d_maybe_get_tmu_blend_type(
-      type, srgb, shadow, output_32, v3d_version);
+      type, srgb, shadow, output_32);
    if (blend_type != V3D_TMU_BLEND_TYPE_INVALID)
       return v3d_tmu_blend_fmt_from_type(blend_type);
 
@@ -144,24 +148,21 @@ GFX_LFMT_T v3d_get_tmu_blend_fmt(
 
    switch (type)
    {
+   case V3D_TMU_TYPE_S8:      /* Pad to 4 channels for consistency. The   */
+   case V3D_TMU_TYPE_S16:     /* correct channels are returned to the QPU */
+      return GFX_LFMT_R32_G32_B32_A32_UINT;
+
+#if V3D_VER_AT_LEAST(3,3,0,0)
    case V3D_TMU_TYPE_R8I:
    case V3D_TMU_TYPE_RG8I:
    case V3D_TMU_TYPE_RGBA8I:
    case V3D_TMU_TYPE_R16I:
    case V3D_TMU_TYPE_RG16I:
    case V3D_TMU_TYPE_RGBA16I:
-      assert(v3d_version >= V3D_MAKE_VER(3,3,0,0));
-      return GFX_LFMT_R16_G16_B16_A16_INT;
-
    case V3D_TMU_TYPE_R32I:
    case V3D_TMU_TYPE_RG32I:
    case V3D_TMU_TYPE_RGBA32I:
-      assert(v3d_version >= V3D_MAKE_VER(3,3,0,0));
-      return output_32 ? GFX_LFMT_R32_G32_B32_A32_INT : GFX_LFMT_R16_G16_B16_A16_INT;
-
-   case V3D_TMU_TYPE_S8:      /* Pad to 4 channels for consistency. The   */
-   case V3D_TMU_TYPE_S16:     /* correct channels are returned to the QPU */
-      return GFX_LFMT_R32_G32_B32_A32_UINT;
+      return GFX_LFMT_R32_G32_B32_A32_INT;
 
    case V3D_TMU_TYPE_R8UI:
    case V3D_TMU_TYPE_RG8UI:
@@ -170,14 +171,11 @@ GFX_LFMT_T v3d_get_tmu_blend_fmt(
    case V3D_TMU_TYPE_RG16UI:
    case V3D_TMU_TYPE_RGBA16UI:
    case V3D_TMU_TYPE_RGB10_A2UI:
-      assert(v3d_version >= V3D_MAKE_VER(3,3,0,0));
-      return GFX_LFMT_R16_G16_B16_A16_UINT;
-
    case V3D_TMU_TYPE_R32UI:
    case V3D_TMU_TYPE_RG32UI:
    case V3D_TMU_TYPE_RGBA32UI:
-      assert(v3d_version >= V3D_MAKE_VER(3,3,0,0));
-      return output_32 ? GFX_LFMT_R32_G32_B32_A32_UINT : GFX_LFMT_R16_G16_B16_A16_UINT;
+      return GFX_LFMT_R32_G32_B32_A32_UINT;
+#endif
 
    case V3D_TMU_TYPE_R32F:
    case V3D_TMU_TYPE_RG32F:
@@ -445,13 +443,14 @@ uint32_t v3d_tmu_get_word_read_max(
    return get_num_words(num_channels, type, coefficient, output_32);
 }
 
-bool v3d_tmu_type_supports_srgb(v3d_tmu_type_t type, int v3d_version)
+bool v3d_tmu_type_supports_srgb(v3d_tmu_type_t type)
 {
    switch (type)
    {
+#if V3D_VER_AT_LEAST(3,3,0,0)
    case V3D_TMU_TYPE_R8:
    case V3D_TMU_TYPE_RG8:
-      return v3d_version >= V3D_MAKE_VER(3,3,0,0);
+#endif
    case V3D_TMU_TYPE_RGBA8:
    case V3D_TMU_TYPE_C_RGB8_ETC2:
    case V3D_TMU_TYPE_C_RGB8_PUNCHTHROUGH_ALPHA1_ETC2:
@@ -489,6 +488,9 @@ uint32_t v3d_tmu_ltype_num_dims(v3d_tmu_ltype_t ltype)
    case V3D_TMU_LTYPE_2D:
    case V3D_TMU_LTYPE_2D_ARRAY:
    case V3D_TMU_LTYPE_CUBE_MAP:
+#if V3D_HAS_NEW_TMU_CFG
+   case V3D_TMU_LTYPE_CUBE_MAP_ARRAY:
+#endif
    case V3D_TMU_LTYPE_CHILD_IMAGE:
       return 2;
    case V3D_TMU_LTYPE_3D:
@@ -511,6 +513,30 @@ bool v3d_tmu_ltype_is_array(v3d_tmu_ltype_t ltype)
       return false;
    case V3D_TMU_LTYPE_1D_ARRAY:
    case V3D_TMU_LTYPE_2D_ARRAY:
+#if V3D_HAS_NEW_TMU_CFG
+   case V3D_TMU_LTYPE_CUBE_MAP_ARRAY:
+#endif
+      return true;
+   default:
+      unreachable();
+      return false;
+   }
+}
+bool v3d_tmu_ltype_is_cube(v3d_tmu_ltype_t ltype)
+{
+   switch (ltype)
+   {
+   case V3D_TMU_LTYPE_1D:
+   case V3D_TMU_LTYPE_2D:
+   case V3D_TMU_LTYPE_3D:
+   case V3D_TMU_LTYPE_CHILD_IMAGE:
+   case V3D_TMU_LTYPE_1D_ARRAY:
+   case V3D_TMU_LTYPE_2D_ARRAY:
+      return false;
+   case V3D_TMU_LTYPE_CUBE_MAP:
+#if V3D_HAS_NEW_TMU_CFG
+   case V3D_TMU_LTYPE_CUBE_MAP_ARRAY:
+#endif
       return true;
    default:
       unreachable();
@@ -600,12 +626,9 @@ static void calc_logical_dims(struct v3d_tmu_cfg *cfg,
    cfg->logical_height = (dims > 1) ? (cfg->swapst ? raw_width : raw_height) : 1;
    cfg->logical_depth = (dims > 2) ? raw_depth : 1;
 
-   if (v3d_tmu_ltype_is_array(cfg->ltype))
-      cfg->num_array_elems = raw_depth;
-   else if (cfg->ltype == V3D_TMU_LTYPE_CUBE_MAP)
-      cfg->num_array_elems = 6;
-   else
-      cfg->num_array_elems = 1;
+   cfg->num_array_elems = v3d_tmu_ltype_is_array(cfg->ltype) ? raw_depth : 1;
+   if (v3d_tmu_ltype_is_cube(cfg->ltype))
+      cfg->num_array_elems *= 6;
 }
 
 static void raw_bcolour(struct v3d_tmu_cfg *cfg,
@@ -618,7 +641,11 @@ static void raw_bcolour(struct v3d_tmu_cfg *cfg,
 {
    if (v3d_tmu_is_depth_type(cfg->type))
    {
-      cfg->bcolour.fmt = gfx_lfmt_translate_from_tmu_type(cfg->type, cfg->srgb, V3D_VER);
+#if V3D_HAS_NEW_TMU_CFG
+      cfg->bcolour.fmt = GFX_LFMT_R32_FLOAT;
+      cfg->bcolour.u.ui32[0] = bcolour[0];
+#else
+      cfg->bcolour.fmt = gfx_lfmt_translate_from_tmu_type(cfg->type, cfg->srgb);
       switch (cfg->bcolour.fmt)
       {
       case GFX_LFMT_R16_UNORM:
@@ -632,6 +659,7 @@ static void raw_bcolour(struct v3d_tmu_cfg *cfg,
       default:
          unreachable();
       }
+#endif
    }
    else
    {
@@ -764,69 +792,107 @@ static void calc_miplvls_and_minlvl(struct v3d_tmu_cfg *cfg)
 }
 
 void v3d_tmu_calc_mip_levels(GFX_BUFFER_DESC_T *mip_levels,
-      size_t *size, size_t *align,
-      v3d_tmu_ltype_t ltype, bool srgb, v3d_tmu_type_t type,
-      bool uif_top, bool ub_xor, bool ub_pad, uint32_t arr_str,
-      uint32_t width, uint32_t height, uint32_t depth,
-      uint32_t num_mip_levels)
+   v3d_tmu_ltype_t ltype, bool srgb, v3d_tmu_type_t type,
+   const struct gfx_buffer_uif_cfg *uif_cfg, uint32_t arr_str,
+   uint32_t width, uint32_t height, uint32_t depth,
+   uint32_t num_mip_levels)
 {
    GFX_LFMT_T lfmt = gfx_lfmt_translate_from_tmu_type_and_ltype(
-      type, srgb, ltype, V3D_VER);
+      type, srgb, ltype);
 
    struct gfx_buffer_ml_cfg ml0_cfg;
-   gfx_buffer_default_ml_cfg(&ml0_cfg);
-   if (uif_top)
-   {
-      ml0_cfg.uif.force = true;
-      ml0_cfg.uif.ub_xor = ub_xor;
-      ml0_cfg.uif.ub_noutile = false;
-      ml0_cfg.uif.ub_pads[0] = ub_pad;
-   }
-   if (ltype == V3D_TMU_LTYPE_3D)
-   {
-      ml0_cfg.force_slice_pitch = true;
-      ml0_cfg.slice_pitch = arr_str;
-   }
+   ml0_cfg.uif = *uif_cfg;
+   ml0_cfg.force_slice_pitch = ltype == V3D_TMU_LTYPE_3D;
+   ml0_cfg.slice_pitch = arr_str;
 
-   assert(num_mip_levels <= V3D_MAX_MIP_COUNT);
+   size_t size, align;
    gfx_buffer_desc_gen_with_ml0_cfg(mip_levels,
-      size, align,
+      &size, &align,
       GFX_BUFFER_USAGE_V3D_TEXTURE,
       width, height, depth,
       num_mip_levels, 1, &lfmt, &ml0_cfg);
 }
 
-static void calc_derived(struct v3d_tmu_cfg *cfg)
+static v3d_tmu_op_class_t classify_op(v3d_tmu_op_t op, bool is_write)
+{
+   switch (op)
+   {
+   case V3D_TMU_OP_WR_ADD_RD_PREFETCH:
+   case V3D_TMU_OP_WR_SUB_RD_CLEAR:
+   case V3D_TMU_OP_WR_XCHG_RD_FLUSH:
+   case V3D_TMU_OP_WR_CMPXCHG_RD_CLEAN:
+   case V3D_TMU_OP_WR_UMIN_RD_FULL_L1_CLEAR:
+      return is_write ? V3D_TMU_OP_CLASS_ATOMIC : V3D_TMU_OP_CLASS_CACHE;
+   case V3D_TMU_OP_WR_UMAX:
+   case V3D_TMU_OP_WR_SMIN:
+   case V3D_TMU_OP_WR_SMAX:
+      assert(is_write);
+      /* Fall through... */
+   case V3D_TMU_OP_WR_AND_RD_INC:
+   case V3D_TMU_OP_WR_OR_RD_DEC:
+   case V3D_TMU_OP_WR_XOR_RD_NOT:
+      return V3D_TMU_OP_CLASS_ATOMIC;
+   case V3D_TMU_OP_REGULAR:
+      return V3D_TMU_OP_CLASS_REGULAR;
+   default:
+      unreachable();
+   }
+}
+
+static void calc_derived_texture(struct v3d_tmu_cfg *cfg)
 {
    calc_miplvls_and_minlvl(cfg);
 
-   size_t size_unused, align_unused;
-   v3d_tmu_calc_mip_levels(cfg->mip_levels, &size_unused, &align_unused,
+   assert(cfg->miplvls <= V3D_MAX_MIP_COUNT);
+   v3d_tmu_calc_mip_levels(cfg->mip_levels,
          cfg->ltype, cfg->srgb, cfg->type,
-         cfg->uif_top, cfg->ub_xor, cfg->ub_pad, cfg->arr_str,
+         &cfg->uif_cfg, cfg->arr_str,
          cfg->logical_width, cfg->logical_height, cfg->logical_depth,
          cfg->miplvls);
 
    cfg->base_addr = cfg->l0_addr - cfg->mip_levels[0].planes[0].offset;
-   cfg->blend_fmt = v3d_get_tmu_blend_fmt(cfg->type, cfg->srgb, cfg->shadow, cfg->output_32, V3D_VER);
+   cfg->blend_fmt = v3d_get_tmu_blend_fmt(cfg->type, cfg->srgb, cfg->shadow, cfg->output_32);
+
+   cfg->op_class = classify_op(cfg->op, cfg->is_write);
+   if ((cfg->op == V3D_TMU_OP_REGULAR) && cfg->is_write)
+   {
+      uint32_t bytes = gfx_lfmt_bytes_per_block(cfg->mip_levels[0].planes[0].lfmt);
+      if (bytes < 4)
+         cfg->bytes_per_data_word = bytes;
+      else
+         cfg->bytes_per_data_word = 4;
+      assert((bytes % cfg->bytes_per_data_word) == 0);
+      cfg->num_data_words = bytes / cfg->bytes_per_data_word;
+   }
 }
 
-static void check_config(const struct v3d_tmu_cfg *cfg)
+static void check_config_texture(const struct v3d_tmu_cfg *cfg)
 {
+   assert(cfg->texture);
+
    assert(v3d_addr_aligned(cfg->l0_addr, V3D_TMU_ML_ALIGN));
 
-   /* Must output at least one word */
-   assert(cfg->word_en[0] || cfg->word_en[1] || cfg->word_en[2] || cfg->word_en[3]);
-
-   switch (v3d_tmu_get_word_read_max(
-      cfg->type, cfg->coefficient, cfg->gather, cfg->output_32))
+   uint32_t out_words;
+   switch (cfg->op_class)
    {
-   case 1:  assert(!cfg->word_en[1]); /* Fall through... */
-   case 2:  assert(!cfg->word_en[2]); /* Fall through... */
-   case 3:  assert(!cfg->word_en[3]); /* Fall through... */
-   case 4:  break;
-   default: unreachable();
+   case V3D_TMU_OP_CLASS_REGULAR:
+      out_words = cfg->is_write ? 0 : v3d_tmu_get_word_read_max(
+         cfg->type, cfg->coefficient, cfg->gather, cfg->output_32);
+      break;
+   case V3D_TMU_OP_CLASS_ATOMIC:
+      out_words = 1;
+      break;
+   case V3D_TMU_OP_CLASS_CACHE:
+      out_words = 0;
+      break;
+   default:
+      unreachable();
    }
+   if (out_words != 0)
+      /* Must output at least one word */
+      assert(cfg->word_en[0] || cfg->word_en[1] || cfg->word_en[2] || cfg->word_en[3]);
+   for (uint32_t i = out_words; i != 4; ++i)
+      assert(!cfg->word_en[i]);
 
 #if !V3D_HAS_NEW_TMU_CFG
    assert((cfg->cxoff + cfg->logical_cwidth) <= cfg->logical_width);
@@ -843,8 +909,7 @@ static void check_config(const struct v3d_tmu_cfg *cfg)
    if (cfg->swapst)
    {
       /* swapst not supported with cubemaps or 1D lookups... */
-      assert(
-         (cfg->ltype != V3D_TMU_LTYPE_CUBE_MAP) &&
+      assert(!v3d_tmu_ltype_is_cube(cfg->ltype) &&
          (v3d_tmu_ltype_num_dims(cfg->ltype) != 1));
    }
 
@@ -854,6 +919,9 @@ static void check_config(const struct v3d_tmu_cfg *cfg)
       assert(cfg->aniso_level == 0);
       assert(cfg->minfilt == V3D_TMU_MIN_FILT_LINEAR || cfg->minfilt == V3D_TMU_MIN_FILT_LIN_MIP_NEAR);
       assert(cfg->magfilt == V3D_TMU_MAG_FILT_LINEAR);
+
+      /* Doesn't make sense to enable both gather and coefficient mode */
+      assert(!cfg->coefficient);
    }
 
 #if !V3D_VER_AT_LEAST(3,3,0,0)
@@ -867,7 +935,7 @@ static void check_config(const struct v3d_tmu_cfg *cfg)
    {
       assert(!cfg->pix_mask);
 
-      if (cfg->ltype == V3D_TMU_LTYPE_CUBE_MAP)
+      if (v3d_tmu_ltype_is_cube(cfg->ltype))
       {
          assert(cfg->minfilt == V3D_TMU_MIN_FILT_NEAREST);
          assert(cfg->magfilt == V3D_TMU_MAG_FILT_NEAREST);
@@ -880,12 +948,14 @@ static void check_config(const struct v3d_tmu_cfg *cfg)
    assert(!cfg->fetch || !cfg->unnorm);
 
    if (cfg->fetch || cfg->unnorm)
-      assert(cfg->ltype != V3D_TMU_LTYPE_CUBE_MAP);
+      assert(!v3d_tmu_ltype_is_cube(cfg->ltype));
 
    if (cfg->fetch)
    {
       assert(!cfg->bslod); /* fetch essentially implies bslod. Don't set them together. */
       assert(!cfg->shadow); /* Shadow compare not supported with fetch */
+      assert(!cfg->gather);
+      assert(!cfg->coefficient);
    }
 
    if (cfg->aniso_level != 0)
@@ -894,7 +964,7 @@ static void check_config(const struct v3d_tmu_cfg *cfg)
       assert(!cfg->bslod);
    }
 
-   if (cfg->ltype == V3D_TMU_LTYPE_CUBE_MAP)
+   if (v3d_tmu_ltype_is_cube(cfg->ltype))
    {
       assert(cfg->logical_width == cfg->logical_height);
       assert(!cfg->logical_flipx);
@@ -904,9 +974,16 @@ static void check_config(const struct v3d_tmu_cfg *cfg)
    if (cfg->tmuoff_4x)
    {
       assert(!cfg->fetch);
-      assert(cfg->ltype != V3D_TMU_LTYPE_CUBE_MAP);
+      assert(!v3d_tmu_ltype_is_cube(cfg->ltype));
       assert(cfg->ltype != V3D_TMU_LTYPE_3D);
    }
+
+   if ((cfg->op != V3D_TMU_OP_REGULAR) || cfg->is_write)
+      /* Only support atomic/cache/write ops with fetch config */
+      assert(cfg->fetch);
+
+   if (cfg->op_class == V3D_TMU_OP_CLASS_ATOMIC)
+      assert(gfx_lfmt_bytes_per_block(cfg->mip_levels[0].planes[0].lfmt) == 4);
 }
 
 #if V3D_HAS_NEW_TMU_CFG
@@ -982,7 +1059,7 @@ static void gen_bcolour(struct v3d_tmu_cfg *cfg, const bool one[4])
    }
 }
 
-void v3d_tmu_cfg_collect(struct v3d_tmu_cfg *cfg,
+void v3d_tmu_cfg_collect_texture(struct v3d_tmu_cfg *cfg,
    const struct v3d_tmu_reg_flags *written,
    const V3D_TMU_PARAM0_T *p0,
    const V3D_TMU_PARAM1_T *p1, /* May be NULL */
@@ -996,13 +1073,21 @@ void v3d_tmu_cfg_collect(struct v3d_tmu_cfg *cfg,
 
    memset(cfg, 0, sizeof(*cfg));
 
+   cfg->texture = true;
+
+   cfg->is_write = written->d;
    if (written->i)
    {
-      assert(!written->scm && !written->r); /* 3D/cubemap arrays not supported */
-      if (written->t)
-         cfg->ltype = V3D_TMU_LTYPE_2D_ARRAY;
+      if (written->scm)
+         cfg->ltype = V3D_TMU_LTYPE_CUBE_MAP_ARRAY;
       else
-         cfg->ltype = V3D_TMU_LTYPE_1D_ARRAY;
+      {
+         assert(!written->r); /* 3D arrays not supported */
+         if (written->t)
+            cfg->ltype = V3D_TMU_LTYPE_2D_ARRAY;
+         else
+            cfg->ltype = V3D_TMU_LTYPE_1D_ARRAY;
+      }
    }
    else if (written->scm)
       cfg->ltype = V3D_TMU_LTYPE_CUBE_MAP;
@@ -1021,7 +1106,7 @@ void v3d_tmu_cfg_collect(struct v3d_tmu_cfg *cfg,
    if (p1)
    {
       cfg->output_32 = p1->output_32;
-      cfg->unnorm = (cfg->ltype != V3D_TMU_LTYPE_CUBE_MAP) && !cfg->fetch && p1->unnorm;
+      cfg->unnorm = !v3d_tmu_ltype_is_cube(cfg->ltype) && !cfg->fetch && p1->unnorm;
       cfg->pix_mask = p1->pix_mask;
       assert(!p1->sampler_addr == !sampler);
    }
@@ -1041,7 +1126,14 @@ void v3d_tmu_cfg_collect(struct v3d_tmu_cfg *cfg,
       cfg->logical_tex_off_s = tex_state->swapst ? p2->offsets[1] : p2->offsets[0];
       cfg->logical_tex_off_t = tex_state->swapst ? p2->offsets[0] : p2->offsets[1];
       cfg->tex_off_r = p2->offsets[2];
+#if V3D_HAS_TMU_TEX_WRITE
+      cfg->op = p2->op;
+#else
+      cfg->op = V3D_TMU_OP_REGULAR;
+#endif
    }
+   else
+      cfg->op = V3D_TMU_OP_REGULAR;
    if (written->slod)
       cfg->bslod = true;
 
@@ -1059,10 +1151,10 @@ void v3d_tmu_cfg_collect(struct v3d_tmu_cfg *cfg,
    assert(!tex_state->extended == !tex_extension);
    if (tex_extension)
    {
-      cfg->ub_pad = tex_extension->ub_pad;
-      cfg->ub_xor = tex_extension->ub_xor;
-      cfg->uif_top = tex_extension->uif_top;
-      cfg->xor_dis = tex_extension->xor_dis;
+      cfg->uif_cfg.ub_pads[0] = tex_extension->ub_pad;
+      cfg->uif_cfg.ub_xor = tex_extension->ub_xor;
+      cfg->uif_cfg.force = tex_extension->uif_top;
+      cfg->uif_cfg.xor_dis = tex_extension->xor_dis;
    }
 
    cfg->min_lod = cfg->max_lod = (tex_state->base_level << 8);
@@ -1076,6 +1168,9 @@ void v3d_tmu_cfg_collect(struct v3d_tmu_cfg *cfg,
       cfg->logical_wrap_s = tex_state->swapst ? sampler->wrap_t : sampler->wrap_s;
       cfg->logical_wrap_t = tex_state->swapst ? sampler->wrap_s : sampler->wrap_t;
       cfg->wrap_r = sampler->wrap_r;
+#if V3D_HAS_TMU_WRAP_I
+      cfg->wrap_i = sampler->wrap_i;
+#endif
    }
    else
    {
@@ -1088,7 +1183,28 @@ void v3d_tmu_cfg_collect(struct v3d_tmu_cfg *cfg,
       cfg->logical_wrap_s = V3D_TMU_WRAP_BORDER;
       cfg->logical_wrap_t = V3D_TMU_WRAP_BORDER;
       cfg->wrap_r = V3D_TMU_WRAP_BORDER;
+#if V3D_HAS_TMU_WRAP_I
+      cfg->wrap_i = V3D_TMU_WRAP_I_BORDER;
+#endif
    }
+
+   /* Anisotropic filtering not supported with bslod or 3D textures. Just disable... */
+   if (cfg->bslod || (cfg->ltype == V3D_TMU_LTYPE_3D))
+      cfg->aniso_level = 0;
+
+   if (cfg->gather)
+   {
+      assert(p2->gather_comp < 4);
+      cfg->swizzles[0] = cfg->swizzles[p2->gather_comp];
+      cfg->aniso_level = 0;
+#if V3D_HAS_GATHER_LOD
+      cfg->minfilt = V3D_TMU_MIN_FILT_LIN_MIP_NEAR;
+#else
+      cfg->minfilt = V3D_TMU_MIN_FILT_LINEAR;
+#endif
+      cfg->magfilt = V3D_TMU_MAG_FILT_LINEAR;
+   }
+
    if (!cfg->fetch && (tex_state->base_level == tex_state->max_level))
    {
       /* See GFXS-732 */
@@ -1101,16 +1217,7 @@ void v3d_tmu_cfg_collect(struct v3d_tmu_cfg *cfg,
       cfg->max_lod = gfx_umin(cfg->max_lod, tex_state->max_level << 8);
    }
 
-   if (cfg->gather)
-   {
-      assert(p2->gather_comp < 4);
-      cfg->swizzles[0] = cfg->swizzles[p2->gather_comp];
-      cfg->aniso_level = 0;
-      cfg->minfilt = V3D_TMU_MIN_FILT_LINEAR;
-      cfg->magfilt = V3D_TMU_MAG_FILT_LINEAR;
-   }
-
-   calc_derived(cfg);
+   calc_derived_texture(cfg);
 
    /* Need to know blend format for raw_bcolour/gen_bcolour, so do this last... */
    assert((sampler && (sampler->std_bcol == V3D_TMU_STD_BCOL_NON_STD)) == !!bcolour);
@@ -1145,7 +1252,7 @@ void v3d_tmu_cfg_collect(struct v3d_tmu_cfg *cfg,
       gen_bcolour(cfg, one);
    }
 
-   check_config(cfg);
+   check_config_texture(cfg);
 }
 
 #else
@@ -1177,13 +1284,16 @@ static uint32_t get_miplvls_from_dims(const struct v3d_tmu_cfg *cfg)
       cfg->logical_depth)) + 1;
 }
 
-void v3d_tmu_cfg_collect(struct v3d_tmu_cfg *cfg,
+void v3d_tmu_cfg_collect_texture(struct v3d_tmu_cfg *cfg,
    const V3D_MISCCFG_T *misccfg,
    const V3D_TMU_PARAM0_T *p0,
    const V3D_TMU_PARAM1_CFG0_T *p1_cfg0, const V3D_TMU_PARAM1_CFG1_T *p1_cfg1,
    const V3D_TMU_INDIRECT_T *ind)
 {
    memset(cfg, 0, sizeof(*cfg));
+
+   cfg->texture = true;
+   cfg->op = V3D_TMU_OP_REGULAR;
 
    v3d_tmu_output_type_t output_type;
    bool border_rrra = false;
@@ -1299,10 +1409,10 @@ void v3d_tmu_cfg_collect(struct v3d_tmu_cfg *cfg,
          cfg->logical_cheight = cfg->logical_height;
          output_type = misccfg->ovrtmuout ? ind->u.not_child_image.output_type : V3D_TMU_OUTPUT_TYPE_AUTO;
       }
-      cfg->ub_pad = ind->ub_pad;
-      cfg->ub_xor = ind->ub_xor;
-      cfg->uif_top = ind->uif_top;
-      cfg->xor_dis = ind->xor_dis;
+      cfg->uif_cfg.ub_pads[0] = ind->ub_pad;
+      cfg->uif_cfg.ub_xor = ind->ub_xor;
+      cfg->uif_cfg.force = ind->uif_top;
+      cfg->uif_cfg.xor_dis = ind->xor_dis;
 
       break;
    default:
@@ -1312,12 +1422,50 @@ void v3d_tmu_cfg_collect(struct v3d_tmu_cfg *cfg,
    cfg->output_32 = v3d_tmu_output_type_32(output_type,
       cfg->type, cfg->shadow, cfg->coefficient);
 
-   calc_derived(cfg);
+   calc_derived_texture(cfg);
 
    /* Need to know blend format for raw_bcolour, so do this last... */
    raw_bcolour(cfg, border_rrra, bcolour);
 
-   check_config(cfg);
+   check_config_texture(cfg);
 }
 
 #endif
+
+void v3d_tmu_cfg_collect_general(struct v3d_tmu_cfg *cfg,
+   const struct v3d_tmu_reg_flags *written,
+   const V3D_TMU_GENERAL_CONFIG_T *general_cfg)
+{
+   memset(cfg, 0, sizeof(*cfg));
+   cfg->is_write = written->d;
+   cfg->pix_mask = general_cfg->per_pixel_enable;
+   cfg->op = general_cfg->op;
+   cfg->op_class = classify_op(cfg->op, cfg->is_write);
+   switch (cfg->op_class)
+   {
+   case V3D_TMU_OP_CLASS_REGULAR:
+      switch (general_cfg->type)
+      {
+      case V3D_TMU_GENERAL_TYPE_S8:    cfg->data_signed = true;  cfg->num_data_words = 1; cfg->bytes_per_data_word = 1; break;
+      case V3D_TMU_GENERAL_TYPE_S16:   cfg->data_signed = true;  cfg->num_data_words = 1; cfg->bytes_per_data_word = 2; break;
+      case V3D_TMU_GENERAL_TYPE_VEC2:  cfg->data_signed = false; cfg->num_data_words = 2; cfg->bytes_per_data_word = 4; break;
+      case V3D_TMU_GENERAL_TYPE_VEC3:  cfg->data_signed = false; cfg->num_data_words = 3; cfg->bytes_per_data_word = 4; break;
+      case V3D_TMU_GENERAL_TYPE_VEC4:  cfg->data_signed = false; cfg->num_data_words = 4; cfg->bytes_per_data_word = 4; break;
+      case V3D_TMU_GENERAL_TYPE_8:     cfg->data_signed = false; cfg->num_data_words = 1; cfg->bytes_per_data_word = 1; break;
+      case V3D_TMU_GENERAL_TYPE_16:    cfg->data_signed = false; cfg->num_data_words = 1; cfg->bytes_per_data_word = 2; break;
+      case V3D_TMU_GENERAL_TYPE_32:    cfg->data_signed = false; cfg->num_data_words = 1; cfg->bytes_per_data_word = 4; break;
+      default:                         unreachable();
+      }
+      if (!cfg->is_write)
+         for (unsigned i = 0; i != cfg->num_data_words; ++i)
+            cfg->word_en[i] = true;
+      break;
+   case V3D_TMU_OP_CLASS_ATOMIC:
+      cfg->word_en[0] = true;
+      break;
+   case V3D_TMU_OP_CLASS_CACHE:
+      break;
+   default:
+      unreachable();
+   }
+}

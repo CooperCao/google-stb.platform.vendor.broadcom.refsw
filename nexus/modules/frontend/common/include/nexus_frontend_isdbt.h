@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2013 Broadcom Corporation
+*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,19 +35,11 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * API Description:
 *   API name: Frontend ISDBT Status
 *    Generic APIs for ISDBT status.
 *    This is used in ISDB-T environment.
 *
-* Revision History:
-*
-* $brcm_Log: $
-* 
 ***************************************************************************/
 #ifndef NEXUS_FRONTEND_ISDBT_H__
 #define NEXUS_FRONTEND_ISDBT_H__
@@ -84,11 +76,13 @@ typedef struct NEXUS_FrontendIsdbtLayerStatus
     unsigned                           signalLevelPercent;     /* Layer Signal Level in percent */
     unsigned                           signalQualityPercent;   /* Layer Signal Quality in percent */
     NEXUS_FrontendBlockCounts          fecBlockCounts;         /* Accumulated since tune or NEXUS_Frontent_ResetStatus. */    
-    NEXUS_FrontendErrorRate            viterbiErrorRate;       /* Viterbi (aka pre-Reed-Solomon) bit counts. Only the rate is applicable for now. Accumulated since tune or NEXUS_Frontent_ResetStatus. */
+    NEXUS_FrontendErrorRate            viterbiErrorRate;       /* Viterbi (aka pre-Reed-Solomon) bit counts. Only the rate is applicable for now.
+        Accumulated since tune or NEXUS_Frontent_ResetStatus. */
     struct {
         bool                           locked;                 /* True if the BER tester is locked.  If so, see 'errorRate'. */
-        NEXUS_FrontendErrorRate        errorRate;              /* This is bit error rate only for test signals like pn15/pn23. Accumulated since tune or NEXUS_Frontent_ResetStatus. 
-                                                                                                                   To ensure the 32 bit total bits counters don't overflow, the status need to be read in less than three seconds intervals. */
+        NEXUS_FrontendErrorRate        errorRate;              /* This is bit error rate only for test signals like pn15/pn23. Accumulated since
+                                                                  tune or NEXUS_Frontent_ResetStatus. To ensure the 32 bit total bits counters don't
+                                                                  overflow, the status need to be read in less than three seconds intervals. */
     } bert;
 }NEXUS_FrontendIsdbtLayerStatus;
 

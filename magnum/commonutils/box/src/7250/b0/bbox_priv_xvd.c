@@ -101,6 +101,14 @@ const BBOX_Xvd_Config BBOX_P_Xvd_ConfigLUT[] =
          BBOX_XVD_DECODER_INFO_1080p30_V1( 0, BBOX_XVD_UNUSED, BAVC_VideoBitDepth_e8Bit, 0, 0),
       }
    },
+
+   {
+      9,
+      {
+         BBOX_XVD_DECODER_INFO_1080p30_V1( 0, BBOX_XVD_UNUSED, BAVC_VideoBitDepth_e8Bit, 0, 0),
+      }
+   },
+
 };
 
 const size_t BBOX_P_Xvd_ConfigLUT_size = sizeof( BBOX_P_Xvd_ConfigLUT );

@@ -15,22 +15,19 @@ GL-functions which do something on both skin and fruit
 #include "glxx_server.h"
 #include "glxx_draw.h"
 #include "glxx_server_internal.h"
-#include "glxx_extensions.h"
 #include "../common/khrn_process.h"
 
 #include "libs/util/snprintf.h"
 
-#define OPENGL_ES_NOT_11 ( OPENGL_ES_30 | OPENGL_ES_31 | OPENGL_ES_32 )
-
 static bool is_precision_type(GLenum type);
 static bool is_float_type(GLenum type);
 static void attrib_enable(uint32_t index, bool enabled) {
-   GLXX_SERVER_STATE_T *state = GL30_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
    if (!state) return;
 
    glintAttribEnable(state, index, enabled);
 
-   GL30_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_API void GL_APIENTRY glDisableVertexAttribArray(GLuint index)
@@ -58,7 +55,7 @@ static const char* get_string_renderer()
 
 GL_API const GLubyte * GL_APIENTRY glGetString(GLenum name)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
    const char *result = NULL;
 
    if (!state) return NULL;
@@ -81,45 +78,8 @@ GL_API const GLubyte * GL_APIENTRY glGetString(GLenum name)
          result = "OpenGL ES-CM 1.1";
          break;
       case GL_EXTENSIONS:
-         result =
-            "GL_OES_point_size_array "
-            "GL_OES_compressed_ETC1_RGB8_texture "
-            "GL_OES_compressed_paletted_texture "
-            "GL_OES_texture_npot "
-            "GL_OES_EGL_image "
-            "GL_OES_EGL_image_external "
-            "GL_EXT_discard_framebuffer "
-            "GL_OES_query_matrix "
-            "GL_OES_framebuffer_object "
-            "GL_OES_surfaceless_context "
-            "GL_OES_rgb8_rgba8 "
-            "GL_OES_depth24 "
-            "GL_OES_stencil8 "
-            "GL_OES_packed_depth_stencil "
-            "GL_OES_EGL_sync "
-            "GL_EXT_multisampled_render_to_texture "
-            "GL_KHR_debug "
-#if GL_OES_draw_texture
-            "GL_OES_draw_texture "
-#endif
-            "GL_OES_mapbuffer "
-#if GL_EXT_texture_format_BGRA8888
-            "GL_EXT_texture_format_BGRA8888 "
-#endif
-#if GL_OES_matrix_palette && 0 /* TODO Matrix palette shaders don't compile yet */
-            "GL_OES_matrix_palette "
-#endif
-#ifdef GL_EXT_debug_marker
-            "GL_EXT_debug_marker "
-#endif
-#if GL_EXT_texture_filter_anisotropic
-            "GL_EXT_texture_filter_anisotropic "
-#endif
-#if GL_EXT_robustness
-            "GL_EXT_robustness "
-#endif
-            ;
-            break;
+         result = khrn_get_gl11_exts_str();
+         break;
       default:
          glxx_server_state_set_error(state, GL_INVALID_ENUM);
       }
@@ -155,36 +115,31 @@ GL_API const GLubyte * GL_APIENTRY glGetString(GLenum name)
             result = "OpenGL ES GLSL ES 3.00";
          break;
       case GL_EXTENSIONS:
-         result = khrn_get_extensions();
+         result = khrn_get_gl3x_exts_str();
          break;
       default:
          glxx_server_state_set_error(state, GL_INVALID_ENUM);
       }
    }
 
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
    return (const GLubyte *)result;
 }
 
 GL_API const GLubyte* GL_APIENTRY glGetStringi(GLenum name, GLuint index)
 {
-   GLXX_SERVER_STATE_T *state;
-   const GLubyte* res = NULL;
-
-   state = GL30_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
    if (!state) return NULL;
 
-   if (name != GL_EXTENSIONS) {
+   const GLubyte* res = NULL;
+   if (name != GL_EXTENSIONS)
       glxx_server_state_set_error(state, GL_INVALID_ENUM);
-      goto end;
-   }
-
-   res = (const GLubyte *)glxx_get_extension(index);
-   if (res == NULL)
+   else if (index >= khrn_get_num_gl3x_exts())
       glxx_server_state_set_error(state, GL_INVALID_VALUE);
+   else
+      res = (const GLubyte *)khrn_get_gl3x_ext(index);
 
-end:
-   GL30_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
    return res;
 }
 
@@ -196,7 +151,7 @@ end:
 
 GL_API void GL_APIENTRY glGetVertexAttribPointerv(GLuint index, GLenum pname, void **pointer)
 {
-   GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
    if (!state) return;
 
    if (pname != GL_VERTEX_ATTRIB_ARRAY_POINTER) {
@@ -212,7 +167,7 @@ GL_API void GL_APIENTRY glGetVertexAttribPointerv(GLuint index, GLenum pname, vo
    *pointer = glintAttribGetPointer(state, index);
 
 end:
-   GL20_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_API void GL_APIENTRY glReleaseShaderCompiler(void)
@@ -221,13 +176,13 @@ GL_API void GL_APIENTRY glReleaseShaderCompiler(void)
 
 GL_API void GL_APIENTRY glShaderBinary(GLint n, const GLuint* shaders, GLenum binaryformat, const void* binary, GLint length)
 {
-   UNUSED(n);
-   UNUSED(shaders);
-   UNUSED(binaryformat);
-   UNUSED(binary);
-   UNUSED(length);
+   vcos_unused(n);
+   vcos_unused(shaders);
+   vcos_unused(binaryformat);
+   vcos_unused(binary);
+   vcos_unused(length);
 
-   glxx_set_error_api(OPENGL_ES_NOT_11, GL_INVALID_ENUM);
+   glxx_set_error_api(OPENGL_ES_3X, GL_INVALID_ENUM);
 }
 
 /* OES_shader_source + OES_shader_binary */
@@ -251,7 +206,7 @@ static bool is_float_type(GLenum type)
 
 GL_API void GL_APIENTRY glGetShaderPrecisionFormat(GLenum shadertype, GLenum precisiontype, GLint *range, GLint *precision)
 {
-   GLXX_SERVER_STATE_T *state = GL30_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
    const int ranges[2][2] = { { 127, 127 }, { 31, 30 } };
    const int precisions[2] = { 23, 0 };
    int idx;
@@ -275,70 +230,70 @@ GL_API void GL_APIENTRY glGetShaderPrecisionFormat(GLenum shadertype, GLenum pre
    if (precision) *precision = precisions[idx];
 
 end:
-   GL30_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 
 /* GLES 2.0 attrib functions: vertex_attrib */
 GL_API void GL_APIENTRY glVertexAttrib1f(GLuint indx, GLfloat x)
 {
-   glintAttrib(OPENGL_ES_NOT_11, indx, x, 0.0f, 0.0f, 1.0f);
+   glintAttrib(OPENGL_ES_3X, indx, x, 0.0f, 0.0f, 1.0f);
 }
 
 GL_API void GL_APIENTRY glVertexAttrib2f(GLuint indx, GLfloat x, GLfloat y)
 {
-   glintAttrib(OPENGL_ES_NOT_11, indx, x, y, 0.0f, 1.0f);
+   glintAttrib(OPENGL_ES_3X, indx, x, y, 0.0f, 1.0f);
 }
 
 GL_API void GL_APIENTRY glVertexAttrib3f(GLuint indx, GLfloat x, GLfloat y, GLfloat z)
 {
-   glintAttrib(OPENGL_ES_NOT_11, indx, x, y, z, 1.0f);
+   glintAttrib(OPENGL_ES_3X, indx, x, y, z, 1.0f);
 }
 
 GL_API void GL_APIENTRY glVertexAttrib4f(GLuint indx, GLfloat x, GLfloat y, GLfloat z, GLfloat w)
 {
-   glintAttrib(OPENGL_ES_NOT_11, indx, x, y, z, w);
+   glintAttrib(OPENGL_ES_3X, indx, x, y, z, w);
 }
 
 GL_API void GL_APIENTRY glVertexAttrib1fv(GLuint indx, const GLfloat *values)
 {
-   glintAttrib(OPENGL_ES_NOT_11, indx, values[0], 0.0f, 0.0f, 1.0f);
+   glintAttrib(OPENGL_ES_3X, indx, values[0], 0.0f, 0.0f, 1.0f);
 }
 
 GL_API void GL_APIENTRY glVertexAttrib2fv(GLuint indx, const GLfloat *values)
 {
-   glintAttrib(OPENGL_ES_NOT_11, indx, values[0], values[1], 0.0f, 1.0f);
+   glintAttrib(OPENGL_ES_3X, indx, values[0], values[1], 0.0f, 1.0f);
 }
 
 GL_API void GL_APIENTRY glVertexAttrib3fv(GLuint indx, const GLfloat *values)
 {
-   glintAttrib(OPENGL_ES_NOT_11, indx, values[0], values[1], values[2], 1.0f);
+   glintAttrib(OPENGL_ES_3X, indx, values[0], values[1], values[2], 1.0f);
 }
 
 GL_API void GL_APIENTRY glVertexAttrib4fv(GLuint indx, const GLfloat *values)
 {
-   glintAttrib(OPENGL_ES_NOT_11, indx, values[0], values[1], values[2], values[3]);
+   glintAttrib(OPENGL_ES_3X, indx, values[0], values[1], values[2], values[3]);
 }
 
 
 GL_API void GL_APIENTRY glVertexAttribI4i(GLuint index, GLint x, GLint y, GLint z, GLint w)
 {
-   glintAttribI(OPENGL_ES_NOT_11, index, x, y, z, w, GL_INT);
+   glintAttribI(OPENGL_ES_3X, index, x, y, z, w, true);
 }
 
 GL_API void GL_APIENTRY glVertexAttribI4iv(GLuint index, const GLint* v)
 {
-   glintAttribI(OPENGL_ES_NOT_11, index, v[0], v[1], v[2], v[3], GL_INT);
+   glintAttribI(OPENGL_ES_3X, index, v[0], v[1], v[2], v[3], true);
 }
 
 GL_API void GL_APIENTRY glVertexAttribI4ui(GLuint index, GLuint x, GLuint y, GLuint z, GLuint w)
 {
-   glintAttribI(OPENGL_ES_NOT_11, index, x, y, z, w, GL_UNSIGNED_INT);
+   glintAttribI(OPENGL_ES_3X, index, x, y, z, w, false);
 }
 
 GL_API void GL_APIENTRY glVertexAttribI4uiv(GLuint index, const GLuint* v)
 {
-   glintAttribI(OPENGL_ES_NOT_11, index, v[0], v[1], v[2], v[3], GL_UNSIGNED_INT);
+   glintAttribI(OPENGL_ES_3X, index, v[0], v[1], v[2], v[3], false);
 }
 
 GL_API void GL_APIENTRY glBindVertexArrayOES(GLuint array)

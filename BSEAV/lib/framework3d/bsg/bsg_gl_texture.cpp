@@ -50,7 +50,7 @@ PFNGLEGLIMAGETARGETTEXTURE2DOESPROC GLTexture::m_glEGLImageTargetTexture2DOES = 
 PFNEGLCREATEIMAGEKHRPROC            GLTexture::m_eglCreateImageKHR = NULL;
 PFNEGLDESTROYIMAGEKHRPROC           GLTexture::m_eglDestroyImageKHR = NULL;
 
-#ifdef EGL_BRCM_image_update_control
+#if EGL_BRCM_image_update_control
 PFNEGLIMAGEUPDATEPARAMETERIVBRCMPROC GLTexture::m_eglImageUpdateParameterivBRCM = NULL;
 PFNEGLIMAGEUPDATEPARAMETERIBRCMPROC  GLTexture::m_eglImageUpdateParameteriBRCM = NULL;
 #endif
@@ -70,12 +70,12 @@ void GLTexture::InitExtensions()
       if (!m_glEGLImageTargetTexture2DOES || !m_eglCreateImageKHR || !m_eglDestroyImageKHR)
          printf("Warning: EGLImage texturing is not supported\n");
 
-#ifdef EGL_BRCM_image_update_control
+#if EGL_BRCM_image_update_control
       m_eglImageUpdateParameterivBRCM = (PFNEGLIMAGEUPDATEPARAMETERIVBRCMPROC)eglGetProcAddress("eglImageUpdateParameterivBRCM");
       m_eglImageUpdateParameteriBRCM  = (PFNEGLIMAGEUPDATEPARAMETERIBRCMPROC)eglGetProcAddress("eglImageUpdateParameteriBRCM");
 #endif
 
-#ifdef GL_EXT_multisampled_render_to_texture
+#if GL_EXT_multisampled_render_to_texture
       m_glFramebufferTexture2DMultisampleEXT = (PFNGLFRAMEBUFFERTEXTURE2DMULTISAMPLEEXTPROC)eglGetProcAddress("glFramebufferTexture2DMultisampleEXT");
 #endif
    }
@@ -116,7 +116,7 @@ void GLTexture::TexImage2D(NativePixmap *pixmap, eVideoTextureMode mode)
          if (m_eglImage == EGL_NO_IMAGE_KHR)
             BSG_THROW("Failed to create EGLImage");
 
-#ifdef EGL_BRCM_image_update_control
+#if EGL_BRCM_image_update_control
          if (mode == eEGL_IMAGE_EXPLICIT && m_eglImageUpdateParameteriBRCM)
          {
             // Inform GL that we will tell it when the EGLimage actually updates
@@ -174,7 +174,7 @@ void GLTexture::ClearEGLImage()
 
 void GLTexture::SetUpdatedRegion(uint32_t x, uint32_t y, uint32_t width, uint32_t height)
 {
-#ifdef EGL_BRCM_image_update_control
+#if EGL_BRCM_image_update_control
    if (m_eglImage != NULL && m_eglImageUpdateParameterivBRCM)
    {
       EGLint rect[4] = { (EGLint)x, (EGLint)y, (EGLint)width, (EGLint)height };
@@ -186,6 +186,7 @@ void GLTexture::SetUpdatedRegion(uint32_t x, uint32_t y, uint32_t width, uint32_
 
 void GLTexture::Lock()
 {
+#if EGL_BRCM_image_update_control
 #ifdef EGL_IMAGE_UPDATE_CONTROL_SET_LOCK_STATE_BRCM
    if (m_eglImage != NULL && m_eglImageUpdateParameteriBRCM)
    {
@@ -194,10 +195,12 @@ void GLTexture::Lock()
                                      EGL_IMAGE_UPDATE_CONTROL_LOCK_BRCM);
    }
 #endif
+#endif
 }
 
 void GLTexture::Unlock()
 {
+#if EGL_BRCM_image_update_control
 #ifdef EGL_IMAGE_UPDATE_CONTROL_SET_LOCK_STATE_BRCM
    if (m_eglImage != NULL && m_eglImageUpdateParameteriBRCM)
    {
@@ -205,6 +208,7 @@ void GLTexture::Unlock()
                                      m_eglImage, EGL_IMAGE_UPDATE_CONTROL_SET_LOCK_STATE_BRCM,
                                      EGL_IMAGE_UPDATE_CONTROL_UNLOCK_BRCM);
    }
+#endif
 #endif
 }
 

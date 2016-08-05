@@ -125,7 +125,7 @@ void TzTask::initSignalState() {
     }
 
     kernelPageTable->mapPage(va, pa, MAIR_MEMORY, MEMORY_ACCESS_RW_KERNEL, true, false);
-    pageTable->mapPage(va, pa, MAIR_MEMORY, MEMORY_ACCESS_RO_USER, true, false);
+    pageTable->mapPage(va, pa, MAIR_MEMORY, MEMORY_ACCESS_RO_USER, true, true);
 
     sigParamsStack = (SigReturn *)va;
     sigParamsStackTop = -1;
@@ -181,7 +181,7 @@ void TzTask::inheritSignalState(const TzTask& parent) {
     }
 
     kernelPageTable->mapPage(va, pa, MAIR_MEMORY, MEMORY_ACCESS_RO_USER, true, false);
-    pageTable->mapPage(va, pa, MAIR_MEMORY, MEMORY_ACCESS_RO_USER, true, false);
+    pageTable->mapPage(va, pa, MAIR_MEMORY, MEMORY_ACCESS_RO_USER, true, true);
 
     sigParamsStack = (SigReturn *)va;
     sigParamsStackTop = -1;
@@ -602,8 +602,8 @@ void TzTask::createUContext() {
         return;
     }
 
-    kernPageTable->mapPage(ucontext, pa, MAIR_MEMORY, MEMORY_ACCESS_RW_KERNEL);
-    pageTable->mapPage(ucontext, pa, MAIR_MEMORY, MEMORY_ACCESS_RO_USER);
+    kernPageTable->mapPage(ucontext, pa, MAIR_MEMORY, MEMORY_ACCESS_RW_KERNEL, true, false);
+    pageTable->mapPage(ucontext, pa, MAIR_MEMORY, MEMORY_ACCESS_RO_USER, true, true);
 }
 
 void TzTask::destroyUContext() {

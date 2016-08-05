@@ -1035,6 +1035,8 @@ typedef enum BXVD_STC
    BXVD_STC_eSeven,
    BXVD_STC_eEight,
    BXVD_STC_eNine,
+   BXVD_STC_eTen,
+   BXVD_STC_eEleven,
 
    BXVD_STC_eMax
 } BXVD_STC;
@@ -5470,6 +5472,8 @@ BERR_Code BXVD_GetPulldown(
    BXVD_PulldownMode *pePulldownMode   /* [in] Pulldown state */
    );
 #endif /* !B_REFSW_MINIMAL SWSTB-461 */
+
+void BXVD_SetPictureParameterInfo_isrsafe(BXVD_PictureParameterInfo *pInfo, const BAVC_MFD_Picture *pstMFDPicture, const BXDM_Picture *pstUnifiedPicture);
 
 #ifdef __cplusplus
 }

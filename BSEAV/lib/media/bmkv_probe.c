@@ -436,6 +436,8 @@ b_mkv_probe_add_tracks(bmkv_probe_t probe, bmkv_probe_stream *stream)
                     track->media.info.audio.codec = baudio_format_vorbis;
                 } else if(bmkv_IsTrackAudioOpus(mkv_track)) {
                     track->media.info.audio.codec = baudio_format_opus;
+                } else if(bmkv_IsTrackAudioPcmInt(mkv_track)) {
+                    track->media.info.audio.codec = baudio_format_pcm;
                 } else if (bmkv_IsTrackAudioACM(mkv_track)) {
                     batom_vec vec;
                     batom_cursor cursor;

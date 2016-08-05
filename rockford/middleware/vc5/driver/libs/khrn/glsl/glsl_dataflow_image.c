@@ -17,21 +17,6 @@ FILE DESCRIPTION
 #include  "libs/core/lfmt/lfmt.h"
 #include  "libs/core/lfmt_translate_gl/lfmt_translate_gl.h"
 
-typedef struct
-{
-   Dataflow *lx_swizzling;
-   Dataflow *lx_addr;
-   Dataflow *lx_pitch;
-   Dataflow *lx_slice_pitch;
-}df_img_info;
-
-typedef struct
-{
-   Dataflow *bytes_per_texel;
-   Dataflow *ut_w;
-   Dataflow *ut_h;
-}df_base_detail;
-
 static GFX_LFMT_T fmt_qualifier_to_fmt(FormatQualifier fmt)
 {
    switch (fmt)
@@ -66,7 +51,7 @@ static GFX_LFMT_T fmt_qualifier_to_fmt(FormatQualifier fmt)
    case FMT_RGBA8_SNORM:
       return GFX_LFMT_R8_G8_B8_A8_SNORM;
    default:
-      UNREACHABLE();
+      unreachable();
       break;
    }
 }
@@ -79,6 +64,22 @@ GLenum glsl_fmt_qualifier_to_gl_enum(FormatQualifier fmt_qual)
    return internalformat;
 }
 
+#if !V3D_HAS_TMU_TEX_WRITE
+
+typedef struct
+{
+   Dataflow *lx_swizzling;
+   Dataflow *lx_addr;
+   Dataflow *lx_pitch;
+   Dataflow *lx_slice_pitch;
+}df_img_info;
+
+typedef struct
+{
+   Dataflow *bytes_per_texel;
+   Dataflow *ut_w;
+   Dataflow *ut_h;
+}df_base_detail;
 
 typedef struct
 {
@@ -106,53 +107,6 @@ static Dataflow* get_y_or_xor_y_in_ub(Dataflow *x_in_uif_col, Dataflow *img_swiz
    Dataflow *cond = glsl_dataflow_construct_binary_op(DATAFLOW_LOGICAL_AND, odd_col, xor_mode);
    return glsl_dataflow_construct_ternary_op(DATAFLOW_CONDITIONAL, cond, y_xor_in_ub, y_in_ub);
 }
-
-#ifdef LIKE_BUFFER_SLOW_CONV
-static Dataflow *get_ublinear_ub_number(const df_base_detail *df_bd, const df_img_info *img, Dataflow *ub_w,
-      Dataflow *x_in_ub, Dataflow *y_in_ub)
-{
-   Dataflow *c_one = glsl_dataflow_construct_const_uint(1);
-
-   //max_ub_w_in_bytes = 2 * ub_w * df_bd->bytes_per_texel
-   Dataflow *max_ub_w_in_bytes =
-      glsl_dataflow_construct_binary_op(DATAFLOW_SHL,
-            glsl_dataflow_construct_binary_op(DATAFLOW_MUL, df_bd->bytes_per_texel, ub_w), c_one);
-
-   // ubnumber = (plane_pitch == max_ub_w_in_bytes)  ? (2 * y_in_ub) + x_in_ub : y_in_ub
-   Dataflow *cond = glsl_dataflow_construct_binary_op(DATAFLOW_EQUAL, img->lx_pitch, max_ub_w_in_bytes);
-   return glsl_dataflow_construct_ternary_op(DATAFLOW_CONDITIONAL, cond,
-         glsl_dataflow_construct_binary_op(DATAFLOW_ADD,
-            glsl_dataflow_construct_binary_op(DATAFLOW_SHL, y_in_ub, c_one), x_in_ub), y_in_ub);
-}
-
-// for uif and uif_xor
-static Dataflow *get_uif_ub_number(const df_base_detail *df_bd,
-      const df_img_info *img, const df_ub_const *ub_const,
-      Dataflow *ub_w, Dataflow *ub_h, Dataflow *x_in_ub, Dataflow *y_in_ub)
-{
-   Dataflow *c_one = glsl_dataflow_construct_const_uint(1);
-
-   //uif_col_w = ub_w * UIF_COL_W_IN_UB;
-   Dataflow *uif_col_w = glsl_dataflow_construct_binary_op(DATAFLOW_MUL, ub_w, ub_const->uif_col_w_in_ub);
-
-   // padded_img_h_in_ub = (img_pitch * uif_col_w)/(UIF_COLW_IN_UB * UIF_UB_SIZE)
-   Dataflow *d1 = glsl_dataflow_construct_binary_op(DATAFLOW_MUL, img->lx_pitch, uif_col_w);
-   Dataflow *d2 = glsl_dataflow_construct_binary_op(DATAFLOW_MUL, ub_const->uif_col_w_in_ub, ub_const->uif_ub_size);
-   Dataflow *padded_img_h_in_ub = glsl_dataflow_construct_binary_op(DATAFLOW_DIV, d1, d2);
-
-   //x_in_uif_col = x_in_ub / UIF_COL_W_IN_UB
-   Dataflow *x_in_uif_col = glsl_dataflow_construct_binary_op(DATAFLOW_DIV, x_in_ub, ub_const->uif_col_w_in_ub);
-
-   //ub_number = (x_in_uif_col * (padded_img_h_in_ub - 1) +  get_y_or_xor_y_in_ub()) *  UIF_COL_W_IN_UB +
-   //            x_in_ub
-   Dataflow *ub_number = glsl_dataflow_construct_binary_op(DATAFLOW_MUL, x_in_uif_col,
-         glsl_dataflow_construct_binary_op(DATAFLOW_SUB, padded_img_h_in_ub, c_one));
-   ub_number = glsl_dataflow_construct_binary_op(DATAFLOW_ADD, ub_number,
-         get_y_or_xor_y_in_ub(x_in_uif_col, img->lx_swizzling, y_in_ub));
-   ub_number = glsl_dataflow_construct_binary_op(DATAFLOW_MUL, ub_number, ub_const->uif_col_w_in_ub);
-   return glsl_dataflow_construct_binary_op(DATAFLOW_ADD, ub_number, x_in_ub);
-}
-#endif
 
 static Dataflow *get_ublinear_ub_offset(const df_base_detail *df_bd,
       const df_img_info *img, const df_ub_const *ub_const,
@@ -218,22 +172,13 @@ static Dataflow *get_uif_ubl_offset(const df_base_detail *df_bd,
    Dataflow *x_in_ub = glsl_dataflow_construct_binary_op(DATAFLOW_DIV, x, ub_w);
    Dataflow *y_in_ub = glsl_dataflow_construct_binary_op(DATAFLOW_DIV, y, ub_h);
 
-   //ub_number = img->lx_swizzling == UBLINEAR ? get_ublinear_ub_number : get_uif
+   //ub_offset = img->lx_swizzling == UBLINEAR ? get_ublinear_ub_offset : get_uif_ub_offset
    Dataflow *cond = glsl_dataflow_construct_binary_op(DATAFLOW_EQUAL, img->lx_swizzling,
                            glsl_dataflow_construct_const_uint(GLSL_IMGUNIT_SWIZZLING_UBLINEAR));
-   Dataflow *ub_offset;
-#ifndef LIKE_BUFFER_SLOW_CONV
-   ub_offset = glsl_dataflow_construct_ternary_op(DATAFLOW_CONDITIONAL, cond,
+   Dataflow *ub_offset = glsl_dataflow_construct_ternary_op(DATAFLOW_CONDITIONAL, cond,
                              get_ublinear_ub_offset(df_bd, img, ub_const, ub_h, x_in_ub, y_in_ub),
                              get_uif_ub_offset(df_bd, img, ub_const, ub_w, x_in_ub, y_in_ub));
-#else
-   Dataflow *ub_number = glsl_dataflow_construct_ternary_op(DATAFLOW_CONDITIONAL, cond,
-                             get_ublinear_ub_number(df_bd, img, ub_w, x_in_ub, y_in_ub),
-                             get_uif_ub_number(df_bd, img, ub_const, ub_w, ub_h, x_in_ub, y_in_ub));
 
-   //ub_number * UIF_UB_SIZE
-   ub_offset = glsl_dataflow_construct_binary_op(DATAFLOW_MUL, ub_number, ub_const->uif_ub_size);
-#endif
    // ut_x_within_ub = (x_in_utiles) % 2;  ut_y_within_ub = (y_in_utiles) % 2;
    Dataflow *ut_x_within_ub = glsl_dataflow_construct_binary_op(DATAFLOW_BITWISE_AND, x_in_utiles, c_one);
    Dataflow *ut_y_within_ub = glsl_dataflow_construct_binary_op(DATAFLOW_BITWISE_AND, y_in_utiles, c_one);
@@ -316,6 +261,41 @@ static Dataflow  *construct_dataflow_img_addr(Dataflow *sampler, GFX_LFMT_T fmt,
    }
    return glsl_dataflow_construct_binary_op(DATAFLOW_ADD, img.lx_addr, offset);
 }
+
+static Dataflow *calculate_store_cond(const PrimSamplerInfo *sampler_info,
+      Dataflow *sampler, Dataflow *x, Dataflow *y, Dataflow *z)
+{
+   Dataflow *width = glsl_dataflow_construct_image_info_param(sampler, IMAGE_INFO_LX_WIDTH);
+   Dataflow *height = glsl_dataflow_construct_image_info_param(sampler, IMAGE_INFO_LX_HEIGHT);
+
+   assert(x != NULL && y!= NULL);
+
+   /* expr =  x < width && y < height;
+      if (z)
+         expr = expr && (z < depth);
+   */
+   Dataflow *expr = glsl_dataflow_construct_binary_op(DATAFLOW_LESS_THAN, x, width);
+   Dataflow *y_le = glsl_dataflow_construct_binary_op(DATAFLOW_LESS_THAN, y, height);
+   expr = glsl_dataflow_construct_binary_op(DATAFLOW_LOGICAL_AND, expr, y_le);
+
+   if (z)
+   {
+      Dataflow *depth;
+      if (sampler_info->cube)
+      {
+         assert(!sampler_info->array); //we should not have cubemap arrays in this version
+         depth = glsl_dataflow_construct_const_uint(6);
+      }
+      else
+         depth = glsl_dataflow_construct_image_info_param(sampler, IMAGE_INFO_LX_DEPTH);
+      Dataflow *z_le = glsl_dataflow_construct_binary_op(DATAFLOW_LESS_THAN, z, depth);
+      expr = glsl_dataflow_construct_binary_op(DATAFLOW_LOGICAL_AND, expr, z_le);
+   }
+
+   return expr;
+}
+
+#endif
 
 Dataflow *just_pack_uint_4x8(Dataflow *data[4])
 {
@@ -445,7 +425,7 @@ static Dataflow *construct_dataflow_pack_data(GFX_LFMT_T fmt, Dataflow *data[4])
             case 8:
                v[0] = just_pack_uint_4x8(data);
                break;
-            default:UNREACHABLE();
+            default: unreachable();
             }
          }
          break;
@@ -466,7 +446,7 @@ static Dataflow *construct_dataflow_pack_data(GFX_LFMT_T fmt, Dataflow *data[4])
          v[0] = pack_snorm_4x8(data);
          break;
       default:
-         UNREACHABLE();
+         unreachable();
       }
    }
 
@@ -494,66 +474,71 @@ static void get_x_y_z_elem_no(const PrimSamplerInfo *sampler_info, Dataflow *coo
    }
 }
 
-
-static Dataflow *calculate_store_cond(Dataflow *sampler, Dataflow *x, Dataflow *y, Dataflow *z)
-{
-   Dataflow *width = glsl_dataflow_construct_image_info_param(sampler, IMAGE_INFO_LX_WIDTH);
-   Dataflow *height = glsl_dataflow_construct_image_info_param(sampler, IMAGE_INFO_LX_HEIGHT);
-
-   assert(x != NULL && y!= NULL);
-
-   /* expr =  x < width && y < height;
-      if (z)
-         expr = expr && (z < depth);
-   */
-   Dataflow *expr = glsl_dataflow_construct_binary_op(DATAFLOW_LESS_THAN, x, width);
-   Dataflow *y_le = glsl_dataflow_construct_binary_op(DATAFLOW_LESS_THAN, y, height);
-   expr = glsl_dataflow_construct_binary_op(DATAFLOW_LOGICAL_AND, expr, y_le);
-
-   if (z)
-   {
-      Dataflow *depth = glsl_dataflow_construct_image_info_param(sampler, IMAGE_INFO_LX_DEPTH);
-      Dataflow *z_le = glsl_dataflow_construct_binary_op(DATAFLOW_LESS_THAN, z, depth);
-      expr = glsl_dataflow_construct_binary_op(DATAFLOW_LOGICAL_AND, expr, z_le);
+static DataflowFlavour df_atomic_from_intrinsic(glsl_intrinsic_index_t f) {
+   switch(f) {
+      case INTRINSIC_IMAGE_ADD:     return DATAFLOW_ATOMIC_ADD;
+      case INTRINSIC_IMAGE_MIN:     return DATAFLOW_ATOMIC_MIN;
+      case INTRINSIC_IMAGE_MAX:     return DATAFLOW_ATOMIC_MAX;
+      case INTRINSIC_IMAGE_AND:     return DATAFLOW_ATOMIC_AND;
+      case INTRINSIC_IMAGE_OR:      return DATAFLOW_ATOMIC_OR;
+      case INTRINSIC_IMAGE_XOR:     return DATAFLOW_ATOMIC_XOR;
+      case INTRINSIC_IMAGE_XCHG:    return DATAFLOW_ATOMIC_XCHG;
+      case INTRINSIC_IMAGE_CMPXCHG: return DATAFLOW_ATOMIC_CMPXCHG;
+      case INTRINSIC_IMAGE_STORE:   return DATAFLOW_ADDRESS_STORE;
+      default: unreachable(); return 0;
    }
-
-   return expr;
 }
 
-void glsl_calculate_dataflow_image_store(BasicBlock *ctx, Expr *expr)
+void glsl_calculate_dataflow_image_atomic(BasicBlock *ctx, Dataflow **scalar_values, Expr *expr)
 {
-   assert(expr->u.intrinsic.args->count == 3);
    ExprChain *args = expr->u.intrinsic.args;
    Expr *expr_sampler = args->first->expr;
-   Expr *expr_coord =   args->first->next->expr;
-   Expr *expr_data =    args->first->next->next->expr;
+   Expr *expr_coord   = args->first->next->expr;
+   Expr *expr_data    = args->first->next->next->expr;
 
    Dataflow *sampler;
    Dataflow *coord[3] = { NULL, };
    Dataflow *data[4] = { NULL };
+   Dataflow *cmp = NULL;
 
    glsl_expr_calculate_dataflow(ctx, &sampler, expr_sampler);
    glsl_expr_calculate_dataflow(ctx, coord, expr_coord);
    glsl_expr_calculate_dataflow(ctx, data, expr_data);
+   if (expr->u.intrinsic.args->count == 4)
+      glsl_expr_calculate_dataflow(ctx, &cmp, args->first->next->next->next->expr);
 
    PrimSamplerInfo *sampler_info = glsl_prim_get_image_info(expr_sampler->type->u.primitive_type.index);
 
    Dataflow *x , *y, *z, *elem_no;
    get_x_y_z_elem_no(sampler_info, coord, &x, &y, &z, & elem_no);
 
-   //if coordinates are outside image size --> don't do any stores
-   Dataflow *cond = calculate_store_cond(sampler, x, y, z ? z : elem_no);
-
    assert(sampler->u.load.fmt_valid);
    GFX_LFMT_T fmt = fmt_qualifier_to_fmt(sampler->u.load.fmt);
+
+   Dataflow *values;
+   if (expr->u.intrinsic.flavour == INTRINSIC_IMAGE_STORE)
+      values = construct_dataflow_pack_data(fmt, data);
+   else
+      values = glsl_dataflow_construct_vec4(data[0], cmp, NULL, NULL);
+
+#if V3D_HAS_TMU_TEX_WRITE
+   /* We use border wrap mode, which will cause the TMU to skip writes which
+    * are outside of the image. So no need for an explicit condition. */
+   Dataflow *cond = NULL;
+   Dataflow *addr = glsl_dataflow_construct_texture_addr(sampler, x, y, z, elem_no);
+#else
+   //if coordinates are outside image size --> don't do any stores
+   Dataflow *cond = calculate_store_cond(sampler_info, sampler, x, y, z ? z : elem_no);
    Dataflow *addr = construct_dataflow_img_addr(sampler, fmt, x, y, z, elem_no);
+#endif
 
-   //pack data from gvec4 to the destination format;
-   Dataflow *values = construct_dataflow_pack_data(fmt, data);
-
-   Dataflow *s = glsl_dataflow_construct_atomic(DATAFLOW_ADDRESS_STORE, DF_VOID,
-         addr, values, cond, ctx->memory_head);
+   DataflowType t = expr->u.intrinsic.flavour == INTRINSIC_IMAGE_STORE ? DF_VOID :
+                        glsl_prim_index_to_df_type(expr_data->type->u.primitive_type.index);
+   DataflowFlavour f = df_atomic_from_intrinsic(expr->u.intrinsic.flavour);
+   Dataflow *s = glsl_dataflow_construct_atomic(f, t, addr, values, cond, ctx->memory_head);
    ctx->memory_head = s;
+
+   if (expr->u.intrinsic.flavour != INTRINSIC_IMAGE_STORE) scalar_values[0] = s;
 }
 
 void glsl_calculate_dataflow_image_size(BasicBlock *ctx, Dataflow **scalar_values, Expr *expr)

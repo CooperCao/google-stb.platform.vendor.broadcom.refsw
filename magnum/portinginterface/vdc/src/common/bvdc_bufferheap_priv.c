@@ -70,7 +70,7 @@ static void BVDC_P_BufferHeap_DumpHeapNode_isr
 #if (BDBG_DEBUG_BUILD)
     /* ulBufIndex (ulNodeCntPerParent eOrigBufHeapId) (Continous)
      *       (Used - ulNumChildNodeUsed) at ulDeviceOffset (pvBufAddr) */
-    BDBG_MSG(("\t- Node %p %2d (%s) (%s) (%s - %d/%d) at 0x%x, block offset 0x%x",
+    BDBG_MSG(("    - Node %p %2d (%s) (%s) (%s - %d/%d) at 0x%x, block offset 0x%x",
     (void *)pBufferHeapNode,
     pBufferHeapNode->ulBufIndex,
     BVDC_P_BUFFERHEAP_GET_HEAP_ID_NAME(pBufferHeapNode->eOrigBufHeapId),
@@ -99,32 +99,32 @@ static  void BVDC_P_BufferHeap_DumpHeapInfo_isr
 
     if( pHeapInfo->pParentHeapInfo )
     {
-        BDBG_MODULE_MSG(BVDC_WIN_BUF, ("\tParent Heap        = %s",
+        BDBG_MODULE_MSG(BVDC_WIN_BUF, ("    Parent Heap        = %s",
             BVDC_P_BUFFERHEAP_GET_HEAP_ID_NAME(pHeapInfo->pParentHeapInfo->eBufHeapId)));
     }
     else
     {
-        BDBG_MODULE_MSG(BVDC_WIN_BUF, ("\tParent Heap        = NULL"));
+        BDBG_MODULE_MSG(BVDC_WIN_BUF, ("    Parent Heap        = NULL"));
     }
 
     if( pHeapInfo->pChildHeapInfo )
     {
-        BDBG_MODULE_MSG(BVDC_WIN_BUF, ("\tChild Heap         = %s",
+        BDBG_MODULE_MSG(BVDC_WIN_BUF, ("    Child Heap         = %s",
             BVDC_P_BUFFERHEAP_GET_HEAP_ID_NAME(pHeapInfo->pChildHeapInfo->eBufHeapId)));
     }
     else
     {
-        BDBG_MODULE_MSG(BVDC_WIN_BUF, ("\tChild Heap         = NULL"));
+        BDBG_MODULE_MSG(BVDC_WIN_BUF, ("    Child Heap         = NULL"));
     }
 
-    BDBG_MODULE_MSG(BVDC_WIN_BUF, ("\tpHeapInfo          = %p:",    (void *)pHeapInfo));
-    BDBG_MODULE_MSG(BVDC_WIN_BUF, ("\tulNodeCntPerParent = 0x%x:",  pHeapInfo->ulNodeCntPerParent));
-    BDBG_MODULE_MSG(BVDC_WIN_BUF, ("\tulPrimaryBufCnt    = %d:",    pHeapInfo->ulPrimaryBufCnt));
-    BDBG_MODULE_MSG(BVDC_WIN_BUF, ("\tulTotalBufCnt      = %d:",    pHeapInfo->ulTotalBufCnt));
-    BDBG_MODULE_MSG(BVDC_WIN_BUF, ("\tulBufSize          = %d:",    pHeapInfo->ulBufSize));
-    BDBG_MODULE_MSG(BVDC_WIN_BUF, ("\thMmaBlock          = %p:",    (void *)pHeapInfo->hMmaBlock));
-    BDBG_MODULE_MSG(BVDC_WIN_BUF, ("\tulBufUsed          = 0x%d:",  pHeapInfo->ulBufUsed));
-    BDBG_MSG(("\tNode list:"));
+    BDBG_MODULE_MSG(BVDC_WIN_BUF, ("    pHeapInfo          = %p:",    (void *)pHeapInfo));
+    BDBG_MODULE_MSG(BVDC_WIN_BUF, ("    ulNodeCntPerParent = 0x%x:",  pHeapInfo->ulNodeCntPerParent));
+    BDBG_MODULE_MSG(BVDC_WIN_BUF, ("    ulPrimaryBufCnt    = %d:",    pHeapInfo->ulPrimaryBufCnt));
+    BDBG_MODULE_MSG(BVDC_WIN_BUF, ("    ulTotalBufCnt      = %d:",    pHeapInfo->ulTotalBufCnt));
+    BDBG_MODULE_MSG(BVDC_WIN_BUF, ("    ulBufSize          = %d:",    pHeapInfo->ulBufSize));
+    BDBG_MODULE_MSG(BVDC_WIN_BUF, ("    hMmaBlock          = %p:",    (void *)pHeapInfo->hMmaBlock));
+    BDBG_MODULE_MSG(BVDC_WIN_BUF, ("    ulBufUsed          = 0x%d:",  pHeapInfo->ulBufUsed));
+    BDBG_MSG(("    Node list:"));
 
     for(i = 0; i < pHeapInfo->ulTotalBufCnt; i++)
     {
@@ -887,27 +887,6 @@ static BERR_Code BVDC_P_BufferHeap_DestroyHeapInfo
     return BERR_SUCCESS;
 }
 
-#if 0
-/***************************************************************************
- *
- */
- static void BVDC_P_BufferHeap_InitHeapInfo
-    ( BVDC_P_BufferHeap_Info      *pHeapInfo )
-{
-    uint32_t                  i;
-    BVDC_P_BufferHeapNode    *pBufferHeapNode;
-
-    for(i = 0; i < pHeapInfo->ulTotalBufCnt; i++)
-    {
-        pBufferHeapNode = &pHeapInfo->pBufList[i];
-        pBufferHeapNode->bUsed = false;
-    }
-
-    pHeapInfo->ulBufUsed = 0;
-    return;
-}
-#endif
-
 /***************************************************************************
  *
  */
@@ -1247,6 +1226,13 @@ static BERR_Code BVDC_P_BufferHeap_FreeNode_isr
 
     BDBG_ASSERT(pHeapInfo->ulBufUsed <= pHeapInfo->ulTotalBufCnt);
 
+    if(!pHeapInfo->ulBufUsed)
+    {
+        for(i = 0; i < pHeapInfo->ulTotalBufCnt; i++)
+        {
+            BDBG_ASSERT(!pHeapInfo->pBufList[i].bUsed);
+        }
+    }
     return BERR_SUCCESS;
 }
 
@@ -1429,6 +1415,13 @@ static BERR_Code BVDC_P_BufferHeap_FreeContNodes_isr
     }
 
     BDBG_ASSERT(pHeapInfo->ulBufUsed <= pHeapInfo->ulTotalBufCnt);
+    if(!pHeapInfo->ulBufUsed)
+    {
+        for(i = 0; i < pHeapInfo->ulTotalBufCnt; i++)
+        {
+            BDBG_ASSERT(!pHeapInfo->pBufList[i].bUsed);
+        }
+    }
     return BERR_SUCCESS;
 }
 
@@ -1547,29 +1540,6 @@ BERR_Code BVDC_P_BufferHeap_Destroy
     return BERR_SUCCESS;
 }
 
-
-#if 0
-/***************************************************************************
- *
- */
-void BVDC_P_BufferHeap_Init
-    ( BVDC_P_BufferHeap_Handle     hBufferHeap )
-{
-    uint32_t                  i;
-
-    BDBG_ENTER(BVDC_P_BufferHeap_Init);
-    BDBG_OBJECT_ASSERT(hBufferHeap, BVDC_BFH);
-
-    /* Re-Initialize fields that may changes during previous run. */
-    for( i = 0; i < BVDC_P_BufferHeapId_eCount; i++ )
-    {
-        BVDC_P_BufferHeap_InitHeapInfo(&(hBufferHeap->astHeapInfo[i]));
-    }
-
-    BDBG_LEAVE(BVDC_P_BufferHeap_Init);
-    return;
-}
-#endif
 
 /***************************************************************************
  * eBufferHeapIdPrefer is where the user prefer buffer node original comes
@@ -1854,10 +1824,6 @@ BERR_Code BVDC_P_BufferHeap_CheckHeapMemcIndex
                 BDBG_MODULE_MSG(BVDC_MEMC_INDEX_CHECK,
                     ("Disp[%d]Win[%d] Possible mismatch between Memory heap and Box mode settings:",
                     eDispId, eWinId));
-
-#if 0
-                return BERR_INVALID_PARAMETER;
-#endif
             }
         }
     }

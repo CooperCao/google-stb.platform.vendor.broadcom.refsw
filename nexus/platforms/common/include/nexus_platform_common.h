@@ -58,11 +58,9 @@ typedef struct NEXUS_ClientAuthenticationSettings
     } preferences; */
 } NEXUS_ClientAuthenticationSettings;
 
-typedef void *NEXUS_PlatformAnyObject;
-
 typedef struct NEXUS_PlatformObjectInstance {
     bool readOnly; /* set true for handles not owned by this client */
-    NEXUS_PlatformAnyObject object;
+    NEXUS_AnyObject object;
 } NEXUS_PlatformObjectInstance;
 
 #define NEXUS_INTERFACE_NAME_MAX   32

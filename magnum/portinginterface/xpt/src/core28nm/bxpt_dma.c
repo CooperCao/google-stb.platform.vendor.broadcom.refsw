@@ -1597,6 +1597,7 @@ BXPT_Dma_P_UpdateStatus_isr(BXPT_Dma_Handle dma)
     int completedIdx = -1, idx;
     BSTD_UNUSED(sleep);
 
+#if BXPT_DMA_HAS_MEMDMA_MCPB
     /* check for invalid PAUSE states */
 {
     uint32_t regs[5];
@@ -1609,6 +1610,7 @@ BXPT_Dma_P_UpdateStatus_isr(BXPT_Dma_Handle dma)
         BDBG_WRN(("%u: invalid PAUSE state %x %x %x %x %x", dma->channelNum, regs[0], regs[1], regs[2], regs[3], regs[4]));
     }
 }
+#endif
 
     BDBG_MSG_TRACE(("%u: start update (CDA %#lx)", dma->channelNum, reg));
     for (ctx=BLST_SQ_FIRST(&dma->activeCtxList), idx=0; ctx; ctx=BLST_SQ_NEXT(ctx, activeNode), idx++) {

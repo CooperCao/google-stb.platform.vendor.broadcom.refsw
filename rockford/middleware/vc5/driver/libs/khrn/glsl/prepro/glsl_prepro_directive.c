@@ -26,8 +26,6 @@ FILE DESCRIPTION
 #define strcasecmp _stricmp
 #endif
 
-//#define DEBUG_PREPRO
-
 extern int pplex(TokenData *tok_data);
 
 MacroList *directive_macros;
@@ -46,9 +44,9 @@ static struct {
 
 static int depth;
 
-void glsl_init_preprocessor(void)
+void glsl_init_preprocessor(int version)
 {
-   directive_macros = glsl_macrolist_construct_initial();
+   directive_macros = glsl_macrolist_construct_initial(version);
 
    allow_directive = true;
    allow_extension = true;
@@ -72,10 +70,6 @@ static void push(bool active)
    if_stack[depth].sticky = active;
    if_stack[depth].seen_else = false;
 
-#ifdef DEBUG_PREPRO
-   printf("push: depth = %d, active = %s\n", depth, active ? "true" : "false");
-#endif
-
    depth++;
 }
 
@@ -85,17 +79,11 @@ static void pop(void)
       glsl_compile_error(ERROR_PREPROCESSOR, 1, g_LineNumber, "unexpected #endif");
 
    depth--;
-
-#ifdef DEBUG_PREPRO
-   printf("pop: depth = %d, active = %s, sticky = %s, seen_else = %s\n", depth, if_stack[depth].active ? "true" : "false", if_stack[depth].sticky ? "true" : "false", if_stack[depth].seen_else ? "true" : "false");
-#endif
 }
 
 static bool is_active(int delta)
 {
-   int i;
-
-   for (i = 0; i < depth - delta; i++)
+   for (int i = 0; i < depth - delta; i++)
       if (!if_stack[i].active)
          return false;
 

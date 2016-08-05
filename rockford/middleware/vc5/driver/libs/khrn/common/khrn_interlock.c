@@ -24,12 +24,6 @@ void khrn_interlock_init(KHRN_INTERLOCK_T *interlock)
    memset(&interlock->pre_write, 0, sizeof(v3d_scheduler_deps));
 }
 
-static void reset_interlock(KHRN_INTERLOCK_T *interlock)
-{
-   interlock->is_writer = false;
-   memset(&interlock->users, 0, sizeof interlock->users);
-}
-
 bool khrn_interlock_flush_writer(KHRN_INTERLOCK_T *interlock)
 {
    assert(!interlock->in_begin_flags);
@@ -38,7 +32,9 @@ bool khrn_interlock_flush_writer(KHRN_INTERLOCK_T *interlock)
       return false;
 
    khrn_render_state_flush(interlock->users.writer.rs);
-   reset_interlock(interlock);
+   assert(!interlock->is_writer);
+   assert(!interlock->users.readers.bin);
+   assert(!interlock->users.readers.render);
    return true;
 }
 
@@ -76,7 +72,9 @@ static void flush_readers(KHRN_INTERLOCK_T *interlock,
       }
    }
 
-   reset_interlock(interlock);
+   assert(!interlock->is_writer);
+   assert(!interlock->users.readers.bin);
+   assert(!interlock->users.readers.render);
 #undef N
 }
 
@@ -101,9 +99,7 @@ void khrn_interlock_add_reader(KHRN_INTERLOCK_T *interlock,
 
    if (interlock->is_writer && interlock->users.writer.rs == rs)
    {
-      /* Already a writer, but keep the actions */
-      interlock->users.writer.actions |= actions;
-      interlock->users.writer.also_reading = true;
+      interlock->users.writer.read_actions |= actions;
       return;
    }
 
@@ -123,35 +119,42 @@ void khrn_interlock_add_writer(KHRN_INTERLOCK_T *interlock,
    assert(rs != NULL);
 
    bool already_there = interlock->is_writer && interlock->users.writer.rs == rs;
-   if (!already_there)
+   if (already_there)
+      interlock->users.writer.write_actions |= actions;
+   else
    {
       /* Whatever actions we were doing as a reader, we're still doing */
-      actions |= khrn_interlock_get_actions(interlock, rs);
+      khrn_interlock_action_t read_actions = khrn_interlock_get_actions(interlock, rs);
       flush_except_reader(interlock, rs);
 
       interlock->users.writer.rs = rs;
+      interlock->users.writer.write_actions = actions;
+      interlock->users.writer.read_actions = read_actions;
       interlock->is_writer = true;
       interlock->invalid = false;
    }
-   interlock->users.writer.actions |= actions;
 }
 
-bool khrn_interlock_add_writer_tf(KHRN_INTERLOCK_T *interlock,
+bool khrn_interlock_add_self_read_conflicting_writer(KHRN_INTERLOCK_T *interlock,
       khrn_interlock_action_t actions, KHRN_RENDER_STATE_T *rs)
 {
    assert(!interlock->in_begin_flags);
    assert(rs != NULL);
 
+   /* If writing only during render, no need to conflict with bin reads -- they
+    * will be done before we even start writing */
+   khrn_interlock_action_t conflicting_read_actions =
+      (actions & ACTION_BIN) ? ACTION_BOTH : ACTION_RENDER;
+
    if (interlock->is_writer)
    {
-      // This writing render state is also a reader.
-      if (interlock->users.writer.rs == rs && interlock->users.writer.also_reading)
+      if ((interlock->users.writer.rs == rs) &&
+            (interlock->users.writer.read_actions & conflicting_read_actions))
          return false;
    }
    else
    {
-      // This render state is one of the readers.
-      if (khrn_interlock_get_actions(interlock, rs))
+      if (khrn_interlock_get_actions(interlock, rs) & conflicting_read_actions)
          return false;
    }
 
@@ -232,7 +235,8 @@ bool khrn_interlock_remove_user(KHRN_INTERLOCK_T *interlock,
 
    if (interlock->is_writer && rs == interlock->users.writer.rs)
    {
-      reset_interlock(interlock);
+      interlock->is_writer = false;
+      memset(&interlock->users, 0, sizeof interlock->users);
       return true;
    }
 
@@ -248,7 +252,7 @@ static khrn_interlock_action_t get_all_actions(
    khrn_interlock_action_t actions = ACTION_NONE;
 
    if (interlock->is_writer)
-      return interlock->users.writer.actions;
+      return interlock->users.writer.write_actions | interlock->users.writer.read_actions;
 
    if (interlock->users.readers.bin)
       actions |= ACTION_BIN;
@@ -267,7 +271,7 @@ static khrn_interlock_action_t get_actions_for_user(
    if (interlock->is_writer)
    {
       if (interlock->users.writer.rs == rs)
-         return interlock->users.writer.actions;
+         return interlock->users.writer.write_actions | interlock->users.writer.read_actions;
       else
          return ACTION_NONE;
    }
@@ -300,7 +304,7 @@ void khrn_interlock_invalidate(KHRN_INTERLOCK_T *interlock)
    interlock->invalid = true;
 
    /* the content of this resource is invalid, so reading from it doesn't need
-    * to wait for the previous readers. */
+    * to wait for the previous writers. */
    memset(&interlock->pre_read, 0, sizeof(v3d_scheduler_deps));
 
    /* do not set interlock->pre_write to 0; though the content is invalid, any

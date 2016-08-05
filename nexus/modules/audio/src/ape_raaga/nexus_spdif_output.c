@@ -332,6 +332,26 @@ static NEXUS_Error NEXUS_SpdifOutput_P_SetChannelMode(void *pHandle, NEXUS_Audio
     return BERR_SUCCESS;
 }
 
+void NEXUS_SpdifOutput_P_PowerUp (
+    void *pHandle
+    )
+{
+    NEXUS_SpdifOutputHandle handle = (NEXUS_SpdifOutputHandle) pHandle;
+    BDBG_OBJECT_ASSERT(handle, NEXUS_SpdifOutput);
+
+    BAPE_SpdifOutput_PowerUp(handle->handle);
+}
+
+void NEXUS_SpdifOutput_P_PowerDown (
+    void *pHandle
+    )
+{
+    NEXUS_SpdifOutputHandle handle = (NEXUS_SpdifOutputHandle) pHandle;
+    BDBG_OBJECT_ASSERT(handle, NEXUS_SpdifOutput);
+
+    BAPE_SpdifOutput_PowerDown(handle->handle);
+}
+
 #else /* #if NEXUS_NUM_SPDIF_OUTPUTS */
 
 typedef struct NEXUS_SpdifOutput
@@ -406,6 +426,19 @@ NEXUS_Error NEXUS_SpdifOutput_SetRawChannelStatus(
     return BERR_TRACE(BERR_NOT_SUPPORTED);
 }
 
+void NEXUS_SpdifOutput_P_PowerUp (
+    void *pHandle
+    )
+{
+    BSTD_UNUSED(pHandle);
+}
+
+void NEXUS_SpdifOutput_P_PowerDown (
+    void *pHandle
+    )
+{
+    BSTD_UNUSED(pHandle);
+}
 #endif /* #if NEXUS_NUM_SPDIF_OUTPUTS */
 
 NEXUS_OBJECT_CLASS_MAKE_WITH_RELEASE(NEXUS_SpdifOutput, NEXUS_SpdifOutput_Close);

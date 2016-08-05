@@ -47,6 +47,8 @@
 
 BDBG_MODULE (BHSM);
 
+BDBG_OBJECT_ID_DECLARE( BHSM_P_Handle );
+
 BERR_Code BHSM_ProgramOTPPatternSequence (BHSM_Handle hHsm, BHSM_ProgramOtpPatSeqIO_t * pProgOtpPatSeqIO)
 {
     BERR_Code       rc = BERR_SUCCESS;
@@ -57,7 +59,9 @@ BERR_Code BHSM_ProgramOTPPatternSequence (BHSM_Handle hHsm, BHSM_ProgramOtpPatSe
 
     BDBG_ENTER (BHSM_ProgramOTPPatternSequence);
 
-    if ((hHsm == NULL) || (hHsm->ulMagicNumber != BHSM_P_HANDLE_MAGIC_NUMBER) || (pProgOtpPatSeqIO == NULL))
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle);
+
+    if (pProgOtpPatSeqIO == NULL)
     {
         return BERR_TRACE (BHSM_STATUS_FAILED);
     }
@@ -120,7 +124,9 @@ BERR_Code BHSM_ReadOTP (BHSM_Handle hHsm, BHSM_ReadOtpIO_t * pReadOtp)
 
     BDBG_ENTER (BHSM_ReadOTP);
 
-    if ((hHsm == NULL) || (hHsm->ulMagicNumber != BHSM_P_HANDLE_MAGIC_NUMBER) || (pReadOtp == NULL))
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle);
+
+    if (pReadOtp == NULL)
     {
         return BERR_TRACE (BHSM_STATUS_FAILED);
     }
@@ -177,7 +183,9 @@ BERR_Code BHSM_ProgramMSP (BHSM_Handle hHsm, BHSM_ProgramMspIO_t * pProgMspIO)
 
     BDBG_ENTER (BHSM_ProgramMSP);
 
-    if ((hHsm == NULL) || (hHsm->ulMagicNumber != BHSM_P_HANDLE_MAGIC_NUMBER) || (pProgMspIO == NULL))
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle);
+
+    if (pProgMspIO == NULL)
     {
         return BERR_TRACE (BHSM_STATUS_FAILED);
     }
@@ -246,7 +254,9 @@ BERR_Code BHSM_ReadMSP (BHSM_Handle hHsm, BHSM_ReadMspIO_t * pReadMsp)
 
     BDBG_ENTER (BHSM_ReadMSP);
 
-    if ((hHsm == NULL) || (hHsm->ulMagicNumber != BHSM_P_HANDLE_MAGIC_NUMBER) || (pReadMsp == NULL))
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle);
+
+    if (pReadMsp == NULL)
     {
         return BERR_TRACE (BHSM_STATUS_FAILED);
     }
@@ -305,7 +315,9 @@ BERR_Code BHSM_ReadMSP32 (BHSM_Handle hHsm, BHSM_ReadMsp32IO_t * pReadMsp32)
 
     BDBG_ENTER (BHSM_ReadMSP32);
 
-    if ((hHsm == NULL) || (hHsm->ulMagicNumber != BHSM_P_HANDLE_MAGIC_NUMBER) || (pReadMsp32 == NULL))
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle);
+
+    if (pReadMsp32 == NULL)
     {
         return BERR_TRACE (BHSM_STATUS_FAILED);
     }
@@ -401,7 +413,9 @@ BERR_Code BHSM_ReadDataSect (BHSM_Handle hHsm, BHSM_ReadDataSectIO_t * pReadData
 
     BDBG_ENTER (BHSM_ReadDataSect);
 
-    if ((hHsm == NULL) || (hHsm->ulMagicNumber != BHSM_P_HANDLE_MAGIC_NUMBER) || (pReadDataSect == NULL))
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle);
+
+    if (pReadDataSect == NULL)
     {
         return BERR_TRACE (BHSM_STATUS_FAILED);
     }
@@ -469,7 +483,9 @@ BERR_Code BHSM_ProgramDataSect (BHSM_Handle hHsm, BHSM_ProgramDataSectIO_t * pPr
 
     BDBG_ENTER (BHSM_ProgramDataSect);
 
-    if ((hHsm == NULL) || (hHsm->ulMagicNumber != BHSM_P_HANDLE_MAGIC_NUMBER) || (pProgDataSect == NULL))
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle);
+
+    if (pProgDataSect == NULL)
     {
         return BERR_TRACE (BHSM_STATUS_FAILED);
     }
@@ -548,3 +564,141 @@ BERR_Code BHSM_ProgramDataSect (BHSM_Handle hHsm, BHSM_ProgramDataSectIO_t * pPr
     BDBG_LEAVE (BHSM_ProgramDataSect);
     return rc;
 }
+
+#if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,1)
+
+BERR_Code BHSM_ReadAntiRollOverCounter (BHSM_Handle hHsm,
+                                        BHSM_AntiRollOverCounter_t * pCounter, BHSM_AntiRollOverCounterValue_t * pValue)
+{
+    BERR_Code       rc = BERR_SUCCESS;
+    BHSM_BspMsg_h   hMsg = NULL;
+    BHSM_BspMsgHeader_t header;
+    unsigned char   status;
+
+    BDBG_ENTER (BHSM_ReadAntiRollOverCounter);
+
+    rc = BHSM_BspMsg_Create (hHsm, &hMsg);
+    if (rc != BERR_SUCCESS)
+    {
+        return BERR_TRACE (rc);
+    }
+
+    BHSM_BspMsg_GetDefaultHeader (&header);
+    BHSM_BspMsg_Header (hMsg, BCMD_cmdType_eOTP_ROLLOVER_COUNTER_Op, &header);
+
+    BHSM_BspMsg_Pack8 (hMsg, BCMD_Otp_InCmdCounterOp_ePartition, pCounter->partition);
+    BHSM_BspMsg_Pack8 (hMsg, BCMD_Otp_InCmdCounterOp_eOperation, BPI_Otp_RolloverCounterOp_eRead);
+    BHSM_BspMsg_Pack8 (hMsg, BCMD_Otp_InCmdCounterOp_eFlag, pCounter->flags);
+
+    rc = BHSM_BspMsg_SubmitCommand (hMsg);
+    if (rc != BERR_SUCCESS)
+    {
+        BERR_TRACE (rc);
+        goto BHSM_P_DONE_LABEL;
+    }
+
+    BHSM_BspMsg_Get8 (hMsg, BCMD_CommonBufferFields_eStatus, &status);  /* check status */
+    if (status != 0)
+    {
+        BDBG_ERR(("%s  status[0x%X]", __FUNCTION__, status ));
+        rc = BHSM_STATUS_BSP_ERROR;
+        goto BHSM_P_DONE_LABEL;
+    }
+
+    BHSM_BspMsg_Get32 (hMsg, BCMD_Otp_OutCmdCounterOp_eCounterValue, &(pValue->count)); /* read count */
+    if (status != 0)
+    {
+        rc = BERR_TRACE (BHSM_STATUS_BSP_ERROR);
+        goto BHSM_P_DONE_LABEL;
+    }
+
+  BHSM_P_DONE_LABEL:
+
+    (void) BHSM_BspMsg_Destroy (hMsg);
+
+    BDBG_LEAVE (BHSM_ReadAntiRollOverCounter);
+    return rc;
+}
+
+BERR_Code BHSM_IncrementAntiRollOverCounter (BHSM_Handle hHsm, BHSM_AntiRollOverCounter_t * pCounter)
+{
+    BERR_Code       rc = BERR_SUCCESS;
+    BHSM_BspMsg_h   hMsg = NULL;
+    BHSM_BspMsgHeader_t header;
+    BHSM_ProgramOtpPatSeqIO_t progOtpPatSeqIO;
+    unsigned char   status;
+
+    BDBG_ENTER (BHSM_IncrementAntiRollOverCounter);
+
+    BKNI_Memset (&progOtpPatSeqIO, 0x0, sizeof (progOtpPatSeqIO));
+
+    if ((rc = BHSM_ProgramOTPPatternSequence (hHsm, &progOtpPatSeqIO)) != BERR_SUCCESS)
+    {
+        /* BUG in ROM code ... may  need to send OTP programming pattern twice */
+        if ((rc = BHSM_ProgramOTPPatternSequence (hHsm, &progOtpPatSeqIO)) != BERR_SUCCESS)
+        {
+            (void) BERR_TRACE (rc);
+            goto BHSM_P_DONE_LABEL;
+        }
+    }
+
+    rc = BHSM_BspMsg_Create (hHsm, &hMsg);
+    if (rc != BERR_SUCCESS)
+    {
+        (void) BERR_TRACE (rc);
+        goto BHSM_P_DONE_LABEL;
+    }
+
+    BHSM_BspMsg_GetDefaultHeader (&header);
+    BHSM_BspMsg_Header (hMsg, BCMD_cmdType_eOTP_ROLLOVER_COUNTER_Op, &header);
+
+    BHSM_BspMsg_Pack8 (hMsg, BCMD_Otp_InCmdCounterOp_ePartition, pCounter->partition);
+    BHSM_BspMsg_Pack8 (hMsg, BCMD_Otp_InCmdCounterOp_eOperation, BPI_Otp_RolloverCounterOp_eIncrement);
+    BHSM_BspMsg_Pack8 (hMsg, BCMD_Otp_InCmdCounterOp_eFlag, pCounter->flags);
+
+    rc = BHSM_BspMsg_SubmitCommand (hMsg);
+    if (rc != BERR_SUCCESS)
+    {
+        (void) BERR_TRACE (rc);
+        goto BHSM_P_DONE_LABEL;
+    }
+
+    BHSM_BspMsg_Get8 (hMsg, BCMD_CommonBufferFields_eStatus, &status);  /* check status */
+    if (status != 0)
+    {
+        BDBG_ERR(("%s  status[0x%X]", __FUNCTION__, status ));
+        rc = BHSM_STATUS_BSP_ERROR;
+        goto BHSM_P_DONE_LABEL;
+    }
+
+  BHSM_P_DONE_LABEL:
+
+    if (hMsg)
+    {
+        (void) BHSM_BspMsg_Destroy (hMsg);
+    }
+
+    BDBG_LEAVE (BHSM_IncrementAntiRollOverCounter);
+    return rc;
+}
+
+#else
+/* Anti rollover counter is not available on pre-Zeus 4.1 devices */
+
+BERR_Code BHSM_ReadAntiRollOverCounter (BHSM_Handle hHsm,
+                                        BHSM_AntiRollOverCounter_t * pCounter, BHSM_AntiRollOverCounterValue_t * pValue)
+{
+    BSTD_UNUSED (hHsm);
+    BSTD_UNUSED (pCounter);
+    BSTD_UNUSED (pValue);
+    return BERR_TRACE (BERR_NOT_SUPPORTED);
+}
+
+BERR_Code BHSM_IncrementAntiRollOverCounter (BHSM_Handle hHsm, BHSM_AntiRollOverCounter_t * pCounter)
+{
+    BSTD_UNUSED (hHsm);
+    BSTD_UNUSED (pCounter);
+    return BERR_TRACE (BERR_NOT_SUPPORTED);
+}
+
+#endif /* HSM_IS_ASKM_28NM_ZEUS_4_1 */

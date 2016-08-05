@@ -75,3 +75,31 @@ BERR_Code BDSP_Arm_P_ArmDspClose(
 
     return err;
 }
+
+/***********************************************************************
+ Name        :   BDSP_Arm_P_ArmHbcClose
+
+ Type        :   BDSP Internal
+
+ Input       :   pDeviceHandle -Device Handle which needs to be opened/created
+
+ Return      :   Error Code to return SUCCESS or FAILURE
+
+ Functionality   :
+
+***********************************************************************/
+
+BERR_Code BDSP_Arm_P_ArmHbcClose(
+            BDSP_Arm *pArm
+            )
+{
+    BERR_Code   err=BERR_SUCCESS;
+
+	BTEE_Connection_Close(pArm->armDspApp.hHbcConnection);
+
+    /* Close the application */
+    BTEE_Application_Close(pArm->armDspApp.hHbcApplication);
+
+
+    return err;
+}

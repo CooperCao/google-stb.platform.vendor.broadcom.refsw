@@ -43,6 +43,9 @@
 #if NEXUS_HAS_FILE
 #include "nexus_file_init.h"
 #endif
+#if NEXUS_HAS_HDMI_OUTPUT
+#include "priv/nexus_hdmi_output_priv.h"
+#endif
 
 BDBG_MODULE(nexus_platform_settings);
 
@@ -75,32 +78,32 @@ static void NEXUS_Platform_P_AdjustHeapSettings(NEXUS_PlatformSettings *pSetting
 #endif
 #ifdef NEXUS_MEMC0_GRAPHICS_HEAP
     pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].memcIndex = 0;
-    pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].memoryType = NEXUS_MemoryType_eApplication;
+    pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].memoryType |= NEXUS_MEMORY_TYPE_APPLICATION_CACHED;
 #endif
 #ifdef NEXUS_MEMC1_GRAPHICS_HEAP
     pSettings->heap[NEXUS_MEMC1_GRAPHICS_HEAP].memcIndex = 1;
-    pSettings->heap[NEXUS_MEMC1_GRAPHICS_HEAP].memoryType = NEXUS_MemoryType_eApplication;
+    pSettings->heap[NEXUS_MEMC1_GRAPHICS_HEAP].memoryType |= NEXUS_MEMORY_TYPE_APPLICATION_CACHED;
 #endif
 #ifdef NEXUS_MEMC2_GRAPHICS_HEAP
     pSettings->heap[NEXUS_MEMC2_GRAPHICS_HEAP].memcIndex = 2;
-    pSettings->heap[NEXUS_MEMC2_GRAPHICS_HEAP].memoryType = NEXUS_MemoryType_eApplication;
+    pSettings->heap[NEXUS_MEMC2_GRAPHICS_HEAP].memoryType |= NEXUS_MEMORY_TYPE_APPLICATION_CACHED;
 #endif
 #ifdef NEXUS_MEMC0_DRIVER_HEAP
     pSettings->heap[NEXUS_MEMC0_DRIVER_HEAP].memcIndex = 0;
-    pSettings->heap[NEXUS_MEMC0_DRIVER_HEAP].memoryType = NEXUS_MemoryType_eFull;
+    pSettings->heap[NEXUS_MEMC0_DRIVER_HEAP].memoryType |= NEXUS_MEMORY_TYPE_DRIVER_UNCACHED|NEXUS_MEMORY_TYPE_DRIVER_CACHED|NEXUS_MEMORY_TYPE_APPLICATION_CACHED;
 #endif
 #ifdef NEXUS_MEMC1_DRIVER_HEAP
     pSettings->heap[NEXUS_MEMC1_DRIVER_HEAP].memcIndex = 1;
-    pSettings->heap[NEXUS_MEMC1_DRIVER_HEAP].memoryType = NEXUS_MemoryType_eFull;
+    pSettings->heap[NEXUS_MEMC1_DRIVER_HEAP].memoryType |= NEXUS_MEMORY_TYPE_DRIVER_UNCACHED|NEXUS_MEMORY_TYPE_DRIVER_CACHED|NEXUS_MEMORY_TYPE_APPLICATION_CACHED;
 #endif
 #ifdef NEXUS_MEMC2_DRIVER_HEAP
     pSettings->heap[NEXUS_MEMC2_DRIVER_HEAP].memcIndex = 2;
-    pSettings->heap[NEXUS_MEMC2_DRIVER_HEAP].memoryType = NEXUS_MemoryType_eFull;
+    pSettings->heap[NEXUS_MEMC2_DRIVER_HEAP].memoryType |= NEXUS_MEMORY_TYPE_DRIVER_UNCACHED|NEXUS_MEMORY_TYPE_DRIVER_CACHED|NEXUS_MEMORY_TYPE_APPLICATION_CACHED;
 #endif
 #if defined(NEXUS_MEMC0_MAIN_HEAP)
     pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].heapType |= NEXUS_HEAP_TYPE_MAIN;
     pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].memcIndex = 0;
-    pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].memoryType = NEXUS_MemoryType_eFull;
+    pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].memoryType |= NEXUS_MEMORY_TYPE_DRIVER_UNCACHED|NEXUS_MEMORY_TYPE_DRIVER_CACHED|NEXUS_MEMORY_TYPE_APPLICATION_CACHED;
 #endif
 #if defined(NEXUS_VIDEO_SECURE_HEAP)
     pSettings->heap[NEXUS_VIDEO_SECURE_HEAP].heapType |= NEXUS_HEAP_TYPE_COMPRESSED_RESTRICTED_REGION;
@@ -110,8 +113,8 @@ static void NEXUS_Platform_P_AdjustHeapSettings(NEXUS_PlatformSettings *pSetting
 #endif
 #if NEXUS_HAS_SAGE
     pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].placement.sage = true;
-    pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].alignment = 16 * 1024 * 1024;
-    pSettings->heap[NEXUS_VIDEO_SECURE_HEAP].alignment = 16 * 1024 * 1024;
+    pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].alignment = 1 * 1024 * 1024;
+    pSettings->heap[NEXUS_VIDEO_SECURE_HEAP].alignment = 1 * 1024 * 1024;
     pSettings->heap[NEXUS_VIDEO_SECURE_HEAP].placement.sage = true;
     pSettings->heap[NEXUS_VIDEO_SECURE_HEAP].memoryType = NEXUS_MemoryType_eSecure;
 #if defined(NEXUS_EXPORT_HEAP)
@@ -121,7 +124,7 @@ static void NEXUS_Platform_P_AdjustHeapSettings(NEXUS_PlatformSettings *pSetting
     pSettings->heap[NEXUS_SAGE_SECURE_HEAP].size =  32*1024*1024; /*Sage Secure heap */
     pSettings->heap[NEXUS_SAGE_SECURE_HEAP].heapType |= NEXUS_HEAP_TYPE_SAGE_RESTRICTED_REGION;
     pSettings->heap[NEXUS_SAGE_SECURE_HEAP].memoryType = NEXUS_MemoryType_eSecure;
-    pSettings->heap[NEXUS_SAGE_SECURE_HEAP].alignment = 16 * 1024 * 1024;
+    pSettings->heap[NEXUS_SAGE_SECURE_HEAP].alignment = 1 * 1024 * 1024;
     pSettings->heap[NEXUS_SAGE_SECURE_HEAP].placement.first = true;
     pSettings->heap[NEXUS_SAGE_SECURE_HEAP].placement.sage = true;
 #endif
@@ -159,6 +162,7 @@ void NEXUS_Platform_Priv_GetDefaultSettings(const NEXUS_Core_PreInitState *preIn
     NEXUS_PlatformMemory *pMemory = &g_platformMemory;
     NEXUS_MemoryConfigurationSettings *pMemConfigSettings;
     NEXUS_MemoryRtsSettings rtsSettings;
+    unsigned i;
 
     BDBG_ASSERT(NULL != pSettings);
     BKNI_Memset(pSettings, 0, sizeof(*pSettings)); /* don't call BKNI_Memset prior to initializing magnum */
@@ -244,6 +248,14 @@ void NEXUS_Platform_Priv_GetDefaultSettings(const NEXUS_Core_PreInitState *preIn
     #endif
 #endif
 
+#if NEXUS_HAS_HDMI_OUTPUT
+    for (i=0;i<NEXUS_NUM_HDMI_OUTPUTS;i++) {
+        NEXUS_HdmiOutput_GetDefaultOpenSettings_isrsafe(&pSettings->hdmiOutputOpenSettings[i]);
+    }
+#else
+    BSTD_UNUSED(i);
+#endif
+
 #if NEXUS_HAS_SMARTCARD
     NEXUS_SmartcardModule_GetDefaultSettings(&pSettings->smartCardSettings);
     pSettings->smartCardSettings.clockSource= NEXUS_SmartcardClockSource_eInternalClock;
@@ -311,8 +323,7 @@ void NEXUS_Platform_Priv_GetDefaultSettings(const NEXUS_Core_PreInitState *preIn
     }
     NEXUS_Platform_P_AdjustBmemRegions(pMemory);
     NEXUS_P_GetDefaultMemoryRtsSettings(&rtsSettings);
-    NEXUS_Platform_P_GetPlatformHeapSettings(pSettings, g_pPreInitState->boxMode);
-    NEXUS_Platform_P_AdjustHeapSettings(pSettings);
+    NEXUS_Platform_P_GetDefaultHeapSettings(pSettings, g_pPreInitState->boxMode);
     errCode = NEXUS_P_ApplyMemoryConfiguration(preInitState, pMemConfigSettings, &rtsSettings, pSettings);
     if (errCode) {
         /* we can't fail the function, but we can make sure we don't squeak by */
@@ -381,22 +392,6 @@ static void NEXUS_Platform_P_AdjustBmemRegions(NEXUS_PlatformMemory *pMemory)
             BDBG_MSG(("dynamically creating bmem.%d because OS is not reporting it", availableBmem));
             pMemory->osRegion[availableBmem].base = 0x20000000;
             pMemory->osRegion[availableBmem].length = pMemory->memc[0].length - 0x10000000;
-        }
-    }
-#elif BCHP_CHIP == 7405 || BCHP_CHIP == 7420
-    if (pMemory->memc[1].length) {
-        unsigned availableBmem = NEXUS_MAX_HEAPS;
-        for (i=0;i<NEXUS_MAX_HEAPS;i++) {
-            if (pMemory->osRegion[i].length &&
-                pMemory->osRegion[i].base >= 0x60000000) break;
-            if (!pMemory->osRegion[i].length && availableBmem == NEXUS_MAX_HEAPS) {
-                availableBmem = i;
-            }
-        }
-        if (i == NEXUS_MAX_HEAPS && availableBmem != NEXUS_MAX_HEAPS) {
-            BDBG_MSG(("dynamically creating bmem.%d because OS is not reporting it", availableBmem));
-            pMemory->osRegion[availableBmem].base = 0x60000000;
-            pMemory->osRegion[availableBmem].length = pMemory->memc[1].length;
         }
     }
 #endif

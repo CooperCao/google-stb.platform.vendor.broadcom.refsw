@@ -867,6 +867,15 @@ typedef struct
     BXVD_P_PPB_OL_LOG_DATA ol_log_data;
 } BXVD_P_PPB_LOG_DATA;
 
+typedef struct
+{
+    unsigned int client_read;
+    unsigned int CAS;
+    unsigned int intra_penalty;
+    unsigned int post_penalty;
+
+} BXVD_P_PPB_DRAM_PERF;
+
 #endif /* #if BXVD_P_PPB_EXTENDED */
 
 typedef struct
@@ -954,7 +963,11 @@ typedef struct
    uint32_t                luma_chroma_bit_width;
 
    uint32_t                ppb_reserved[29];
-   BXVD_P_PPB_LOG_DATA     data_log;
+   union
+   {
+      BXVD_P_PPB_LOG_DATA  data_log;
+      BXVD_P_PPB_DRAM_PERF dram_perf;
+   } perf;
 
 #endif
 

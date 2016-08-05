@@ -1619,3 +1619,10 @@ bmkv_IsTrackAudioOpus(const bmkv_TrackEntry *track)
     BDBG_ASSERT(track);
     B_MKV_TEST_CODEC(track, "A_OPUS");
 }
+
+bool
+bmkv_IsTrackAudioPcmInt(const bmkv_TrackEntry *track)
+{
+    BDBG_ASSERT(track);
+    B_MKV_TEST_CODEC(track, "A_PCM/INT/LIT");
+}

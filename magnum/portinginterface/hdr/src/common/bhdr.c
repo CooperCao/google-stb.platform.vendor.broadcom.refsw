@@ -46,6 +46,7 @@
 
 #include "bhdr.h"
 #include "bhdr_priv.h"
+#include "bhdr_hdcp_priv.h"
 #include "bhdr_packet_priv.h"
 
 #include "bhdr_phy_priv.h"
@@ -1376,7 +1377,8 @@ static void BHDR_P_ProcessVerticalBlankEnd_isr(BHDR_Handle hHDR)
 		hHDR->ErrorFreePacketFrames --;
 	else if (hHDR->bPacketErrors)  /* report packet errors stopped once */
 	{
-		BDBG_WRN(("EXCESSIVE Packet errors have stopped...\n\n\n")) ;
+		BDBG_WRN(("EXCESSIVE Packet errors have stopped...")) ;
+		BDBG_WRN((" ")) ;
 		hHDR->bPacketErrors = false ;
 
 #if 0
@@ -1505,6 +1507,8 @@ static void BHDR_P_ClearScdcStatus_isr(BHDR_Handle hHDR)
 	ulOffset = hHDR->ulOffset ;
 
 	/* Clear any SCDC Status set by the Source */
+#if BHDR_CONFIG_MANUAL_SCDC_CLEAR
+	BDBG_MSG(("Manually clear SCDC registers")) ;
 	Register = BREG_Read32(hRegister, BCHP_DVP_HR_HDMI_RX_0_SW_INIT) ;
 		Register &= ~ BCHP_MASK(DVP_HR_HDMI_RX_0_SW_INIT, I2C) ;
 		Register |= BCHP_FIELD_DATA(DVP_HR_HDMI_RX_0_SW_INIT, I2C, 1) ;
@@ -1512,6 +1516,7 @@ static void BHDR_P_ClearScdcStatus_isr(BHDR_Handle hHDR)
 		Register &= ~ BCHP_MASK(DVP_HR_HDMI_RX_0_SW_INIT, I2C) ;
 		Register |= BCHP_FIELD_DATA(DVP_HR_HDMI_RX_0_SW_INIT, I2C, 0) ;
 	BREG_Write32(hRegister, BCHP_DVP_HR_HDMI_RX_0_SW_INIT, Register) ;
+#endif
 
 	/* enable SCDC and RDB writes */
 	Register = BREG_Read32(hRegister, BCHP_HDMI_RX_0_HDCP_RX_I2C_MISC_CFG_2 + ulOffset) ;
@@ -1661,6 +1666,12 @@ void BHDR_P_HandleInterrupt_isr(
 		BDBG_WRN(("BSTATUS After Ksv Update: %x", BStatus)) ;
 #endif
 
+		/* Received request to authenticate in HDCP 1.x mode. Need to enable Serial Key RAM
+		Refer to JIRA -CRDVP-674 for details on the HW issues that lead to a required of this work-around
+		for HDCP 2.x*/
+		BHDR_HDCP_P_EnableSerialKeyRam_isr(hHDR, true);
+
+
 		if (hHDR->pfHdcpStatusChangeCallback)
 		{
 			hHDR->pfHdcpStatusChangeCallback(hHDR->pvHdcpStatusChangeParm1, 0, NULL) ;
@@ -1766,9 +1777,6 @@ void BHDR_P_HandleInterrupt_isr(
 		break ;
 
 
-#if BHDR_CONFIG_RDB_MAPPING_WORKAROUND
-	case MAKE_INTR_ENUM(PACKET_SYNC_ERROR) :
-#endif
 	case MAKE_INTR_ENUM(RAM_PACKET_UPDATE) :
 		if (hHDR->bPacketErrors)
 		{
@@ -1789,11 +1797,9 @@ void BHDR_P_HandleInterrupt_isr(
 		break ;
 
 
-#if !BHDR_CONFIG_RDB_MAPPING_WORKAROUND
 	case MAKE_INTR_ENUM(PACKET_SYNC_ERROR) :
 		BDBG_WRN(("CH%d Packet Error", hHDR->eCoreId)) ;
 		break ;
-#endif
 
 	case MAKE_INTR_ENUM(LAYOUT_UPDATE) :
 		break ;

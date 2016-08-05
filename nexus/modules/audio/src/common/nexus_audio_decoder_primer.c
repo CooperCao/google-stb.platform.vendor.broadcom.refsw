@@ -112,6 +112,8 @@ static unsigned nexus_audiodecoder_p_cdb_depth(NEXUS_AudioDecoderPrimerHandle pr
     uint32_t valid, read;
     valid = BREG_Read32(g_pCoreHandles->reg, primer->cx_map.CDB_Valid);
     read = BREG_Read32(g_pCoreHandles->reg, primer->cx_map.CDB_Read);
+    if (valid != primer->cdb.base) valid++;
+    if (read != primer->cdb.base) read++;
     return (valid>=read?valid-read:(valid-primer->cdb.base)+(primer->cdb.end-read)) * 100 / (primer->cdb.end-primer->cdb.base);
 }
 
@@ -120,6 +122,8 @@ static unsigned nexus_audiodecoder_p_itb_depth(NEXUS_AudioDecoderPrimerHandle pr
     uint32_t valid, read;
     valid = BREG_Read32(g_pCoreHandles->reg, primer->cx_map.ITB_Valid);
     read = BREG_Read32(g_pCoreHandles->reg, primer->cx_map.ITB_Read);
+    if (valid != primer->itb.base) valid++;
+    if (read != primer->itb.base) read++;
     return (valid>=read?valid-read:(valid-primer->itb.base)+(primer->itb.end-read)) * 100 / (primer->itb.end-primer->itb.base);
 }
 
@@ -234,7 +238,6 @@ static void NEXUS_AudioDecoder_P_SetReadPtr(NEXUS_AudioDecoderPrimerHandle prime
     }
 
     {
-        /* CDB_READ has exclusive semantics (that is, it points to next byte to read), so no conversion is necessary. Nexus has exclusive logic. */
         unsigned temp = primer->gops[primer->consumed_gop].cdb_read;
         BREG_Write32(g_pCoreHandles->reg, primer->cx_map.CDB_Read, temp);
 
@@ -618,9 +621,8 @@ void NEXUS_AudioDecoderPrimer_Flush( NEXUS_AudioDecoderPrimerHandle primer )
     if (primer->active)
     {
         /* empty the buffer */
-        /* CDB_READ has exclusive semantics, but CDB_VALID is inclusive, so a conversion is needed. */
         valid = BREG_Read32(g_pCoreHandles->reg, primer->cx_map.CDB_Valid);
-        BREG_Write32(g_pCoreHandles->reg, primer->cx_map.CDB_Read, (valid == primer->cdb.base)?primer->cdb.base:valid+1);
+        BREG_Write32(g_pCoreHandles->reg, primer->cx_map.CDB_Read, valid);
 
         /* ITB_READ and ITB_VALID both have inclusive semantics, so we can copy directly to flush. */
         valid = BREG_Read32(g_pCoreHandles->reg, primer->cx_map.ITB_Valid);
@@ -679,9 +681,9 @@ static NEXUS_Error NEXUS_AudioDecoder_P_StartPrimer( NEXUS_AudioDecoderPrimerHan
 
     primer->cx_map    = raveStatus.xptContextMap;
     primer->itb.base  = BREG_Read32(g_pCoreHandles->reg, primer->cx_map.ITB_Base);
-    primer->itb.end   = BREG_Read32(g_pCoreHandles->reg, primer->cx_map.ITB_End);
+    primer->itb.end   = BREG_Read32(g_pCoreHandles->reg, primer->cx_map.ITB_End)+1;
     primer->cdb.base  = BREG_Read32(g_pCoreHandles->reg, primer->cx_map.CDB_Base);
-    primer->cdb.end   = BREG_Read32(g_pCoreHandles->reg, primer->cx_map.CDB_End);
+    primer->cdb.end   = BREG_Read32(g_pCoreHandles->reg, primer->cx_map.CDB_End)+1;
     primer->sitb_read = BREG_Read32(g_pCoreHandles->reg, primer->cx_map.ITB_Read);
     if (primer->sitb_read & 0xF) {
         /* READ ptr can come from HW as inclusive, but we treat it as exclusive */

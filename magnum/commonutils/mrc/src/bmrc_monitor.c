@@ -240,6 +240,7 @@ BMRC_P_Monitor_MaskAdd(BMRC_Monitor_P_Clients *mask, BMRC_Client client)
     BMRC_P_MONITOR_CLIENT_MASK_SET(mask->client_masks, client);
 }
 
+#ifdef BDBG_DEBUG_BUILD
 /* this function builds the hardware client id bit string */
 static const char *BMRC_P_Monitor_BuildClientIdString(const BMRC_Monitor_P_Clients *mask, char *buf, size_t buf_len)
 {
@@ -260,6 +261,7 @@ static const char *BMRC_P_Monitor_BuildClientIdString(const BMRC_Monitor_P_Clien
     }
     return buf;
 }
+#endif
 
 static void BMRC_P_Monitor_BuildMaskFromList(const struct BMRC_Monitor_P_ClientList *clientList, BMRC_Monitor_P_Clients *clients)
 {
@@ -975,6 +977,10 @@ BMRC_P_Monitor_Dump_isr(BMRC_Monitor_Handle hMonitor, unsigned arc_no, BMRC_Chec
 static void
 BMRC_Monitor_P_PrintAllocation_isrsafe(const BMRC_Monitor_P_AllocatedRegion *region, const char *kind)
 {
+#ifdef BDBG_DEBUG_BUILD
+#else
+    BSTD_UNUSED (kind);
+#endif
     if(region) {
         BDBG_WRN(("%s " BDBG_UINT64_FMT ".." BDBG_UINT64_FMT "", kind, BDBG_UINT64_ARG(region->addr), BDBG_UINT64_ARG(region->addr + region->size)));
     }

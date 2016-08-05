@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -88,7 +88,8 @@ typedef enum NEXUS_AudioCodec
     NEXUS_AudioCodec_eVorbis,         /* Vorbis audio codec.  Typically used with OGG or WebM container formats. */
     NEXUS_AudioCodec_eLpcm1394,       /* IEEE-1394 LPCM audio  */
     NEXUS_AudioCodec_eG711,           /* G.711 a-law and u-law companding.  Typically used for voice transmission. */
-    NEXUS_AudioCodec_eG723_1,         /* G.723.1 Dual Rate Speech Coder for Multimedia Communications.  Used in H.324 and 3GPP 3G-324M.  This is different from G.723, which was superceded by G.726. */
+    NEXUS_AudioCodec_eG723_1,         /* G.723.1 Dual Rate Speech Coder for Multimedia Communications.  Used in H.324 and 3GPP 3G-324M.
+                                         This is different from G.723, which was superceded by G.726. */
     NEXUS_AudioCodec_eG726,           /* G.726 ADPCM speech codec.  Supercedes G.723 and G.721. */
     NEXUS_AudioCodec_eG729,           /* G.729 CS-ACELP speech codec.  Often used in VOIP applications. */
     NEXUS_AudioCodec_eFlac,           /* Free Lossless Audio Codec (see http://flac.sourceforge.net) */
@@ -222,7 +223,7 @@ typedef enum NEXUS_AudioMode
 Summary:
 Audio Volume Constants
 ***************************************************************************/
-#define NEXUS_AUDIO_VOLUME_LINEAR_MAX 0x0fffffff
+#define NEXUS_AUDIO_VOLUME_LINEAR_MAX 0x00ffffff
 #define NEXUS_AUDIO_VOLUME_LINEAR_NORMAL 0x00800000
 #define NEXUS_AUDIO_VOLUME_LINEAR_MIN 0
 
@@ -277,7 +278,17 @@ NEXUS_AudioDecoder_GetConnector
 NEXUS_HdmiInput_GetAudioConnector
 NEXUS_SpdifInput_GetConnector
 **/
+#ifdef __cplusplus
+/* in C++  typeded struct A *A; is invalid, e.g. there is no separate namespace for structures */
 typedef struct NEXUS_AudioInputObject *NEXUS_AudioInput;
+#else
+typedef struct NEXUS_AudioInput *NEXUS_AudioInput;
+#endif
+/**
+Summary:
+NEXUS_AudioOutputHandle is synonym for NEXUS_AudioOutput
+**/
+typedef NEXUS_AudioInput NEXUS_AudioInputHandle;
 
 /**
 Summary:

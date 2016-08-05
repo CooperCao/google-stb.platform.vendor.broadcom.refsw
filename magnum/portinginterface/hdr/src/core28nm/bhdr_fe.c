@@ -562,7 +562,7 @@ BERR_Code BHDR_FE_P_GetPixelClockEstimate_isr(BHDR_FE_ChannelHandle hFeChannel,
 	/* Inform of changes */
 	if (bPixelClockChange)
 	{
-		BDBG_MSG(("FE_%d Estimated Pixel Clock Rate: %d.%d MHz; Range Pixel Clock: %d.%d MHz",
+		BDBG_MSG(("FE_%d Estimated Pixel Clock: %d.%d MHz; TMDS Clock: %d.%d MHz",
 			hFeChannel->eChannel,
 			FePixelClockStatus[BHDR_FE_P_CLOCK_eChRef].Frequency / 1000,
 			FePixelClockStatus[BHDR_FE_P_CLOCK_eChRef].Frequency % 1000,

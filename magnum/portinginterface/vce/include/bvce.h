@@ -197,7 +197,7 @@ void BVCE_GetDefaultPlatformSettings(
 
 typedef struct BVCE_OpenSettings
 {
-      uint32_t uiSignature;
+      uint32_t uiSignature;/* [DO NOT MODIFY] Populated by BVCE_GetDefaultOpenSettings() */
 
       unsigned uiInstance; /* VCE 0 or VCE 1 */
 
@@ -459,11 +459,11 @@ typedef struct BVCE_P_OutputBuffers *BVCE_OutputBuffers_Handle;
 
 typedef struct BVCE_Output_AllocBuffersSettings
 {
-      uint32_t uiSignature;
+      uint32_t uiSignature;         /* [DO NOT MODIFY] Populated by BVCE_Output_GetDefaultAllocBuffersSettings() */
 
-      BAVC_CdbItbConfig stConfig;  /* [in] Size and alignment for ITB and CDB */
-      BMMA_Heap_Handle hITBMem; /* [optional] If null, uses hSecureMem (if non-null) from VCE Handle. */
-      BMMA_Heap_Handle hCDBMem; /* [optional] If null, uses hSecureMem (if non-null) from VCE Handle. */
+      BAVC_CdbItbConfig stConfig;   /* [in] Size and alignment for ITB and CDB */
+      BMMA_Heap_Handle hITBMem;     /* [optional] If null, uses hSecureMem (if non-null) from VCE Handle. */
+      BMMA_Heap_Handle hCDBMem;     /* [optional] If null, uses hSecureMem (if non-null) from VCE Handle. */
 } BVCE_Output_AllocBuffersSettings;
 
 void
@@ -488,7 +488,7 @@ BVCE_Output_FreeBuffers(
 
 typedef struct BVCE_Output_OpenSettings
 {
-      uint32_t uiSignature;
+      uint32_t uiSignature;         /* [DO NOT MODIFY] Populated by BVCE_Output_GetDefaultOpenSettings() */
 
       unsigned uiInstance;
 

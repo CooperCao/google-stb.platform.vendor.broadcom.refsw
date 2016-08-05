@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2014 Broadcom Corporation
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  **************************************************************************/
 #ifndef NEXUS_PLAYBACK_H__
@@ -160,7 +152,8 @@ typedef struct NEXUS_PlaybackSettings
                           The downside to this algorithm is that for high bitrate streams, this seek time may be long.
                           Also, for streams with bad PTS's, the desired resume location may never occur.
                           This feature defaults off. */
-    bool enableStreamProcessing; /* enable use of extra stream processing, type of processing is depend on the stream type. For example some ES streams are converted to the PES streams for better navigation */
+    bool enableStreamProcessing; /* enable use of extra stream processing, type of processing is depend on the stream type. For example some ES streams are converted
+                                    to the PES streams for better navigation */
     unsigned ioTimeout; /* timeout for asynchronous I/O, ms */
     struct {
         unsigned endOfStreamGap; /* milliseconds to gap between end of playback and record which will not cause decode stuttering */

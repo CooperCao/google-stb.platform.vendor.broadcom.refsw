@@ -1333,7 +1333,7 @@ int main(int argc, const char *argv[])
         NEXUS_HdmiOutputStatus hdmiStatus;
         NEXUS_AudioDecoderHandle hdmiDecoder = audioDecoder;
         NEXUS_AudioConnectorType connectorType = NEXUS_AudioConnectorType_eStereo;
-        NEXUS_AudioInput connector;
+        NEXUS_AudioInputHandle connector;
         unsigned pollcnt = 10; /* 1 second = 10 loops of 100 msec */
 
         while (pollcnt--) {
@@ -1524,7 +1524,7 @@ int main(int argc, const char *argv[])
     }
 #endif
 
-    if (opts.graphics) {
+    if (opts.graphics || opts.gfx_bar) {
         NEXUS_SurfaceCreateSettings surfaceCreateSettings;
         NEXUS_SurfaceMemory mem;
         NEXUS_GraphicsSettings graphicsSettings;
@@ -1535,38 +1535,37 @@ int main(int argc, const char *argv[])
 
         NEXUS_Surface_GetDefaultCreateSettings(&surfaceCreateSettings);
         surfaceCreateSettings.width = 720;
-/*#define TEST_GFX_SDR_TO_HDR 1*/
-#if TEST_GFX_SDR_TO_HDR
-        surfaceCreateSettings.height = 480;
-#else
-        surfaceCreateSettings.height = videoFormatInfo.height;
-#endif
+        surfaceCreateSettings.height = (opts.gfx_bar)? 480 : videoFormatInfo.height;
         surfaceCreateSettings.heap = NEXUS_Platform_GetFramebufferHeap(0);
         framebuffer = NEXUS_Surface_Create(&surfaceCreateSettings);
         NEXUS_Surface_GetMemory(framebuffer, &mem);
-        for (i=0;i<surfaceCreateSettings.height;i++) {
-            for (j=0;j<surfaceCreateSettings.width;j++) {
-#if TEST_GFX_SDR_TO_HDR
-                if (j>=20 && j<700) {
-                    int c = (((j-20) / 68) * 255) / 9;
-                    if (i>=400 && i<410) {
-                        ((uint32_t*)((uint8_t*)mem.buffer + i*mem.pitch))[j] = (0xFF000000 | (c << 16));
-                    } else if (i>=410 && i<420) {
-                        ((uint32_t*)((uint8_t*)mem.buffer + i*mem.pitch))[j] = (0xFF000000 | (c << 8));
-                    } else if (i>=420 && i<430) {
-                        ((uint32_t*)((uint8_t*)mem.buffer + i*mem.pitch))[j] = (0xFF000000 | (c << 0));
-                    } else if (i>=430 && i<440) {
-                        ((uint32_t*)((uint8_t*)mem.buffer + i*mem.pitch))[j] = (0xFF000000 | (c << 0) | (c << 8) | (c << 16));
+        if (opts.gfx_bar) {
+            for (i=0;i<surfaceCreateSettings.height;i++) {
+                for (j=0;j<surfaceCreateSettings.width;j++) {
+                    if (j>=20 && j<700) {
+                        int c = (((j-20) / 68) * 255) / 9;
+                        if (i>=400 && i<410) {
+                            ((uint32_t*)((uint8_t*)mem.buffer + i*mem.pitch))[j] = (0xFF000000 | (c << 16));
+                        } else if (i>=410 && i<420) {
+                            ((uint32_t*)((uint8_t*)mem.buffer + i*mem.pitch))[j] = (0xFF000000 | (c << 8));
+                        } else if (i>=420 && i<430) {
+                            ((uint32_t*)((uint8_t*)mem.buffer + i*mem.pitch))[j] = (0xFF000000 | (c << 0));
+                        } else if (i>=430 && i<440) {
+                            ((uint32_t*)((uint8_t*)mem.buffer + i*mem.pitch))[j] = (0xFF000000 | (c << 0) | (c << 8) | (c << 16));
+                        } else {
+                            ((uint32_t*)((uint8_t*)mem.buffer + i*mem.pitch))[j] = 0;
+                        }
                     } else {
                         ((uint32_t*)((uint8_t*)mem.buffer + i*mem.pitch))[j] = 0;
                     }
-                } else {
-                    ((uint32_t*)((uint8_t*)mem.buffer + i*mem.pitch))[j] = 0;
                 }
-#else
-                /* create checker board */
-                ((uint32_t*)((uint8_t*)mem.buffer + i*mem.pitch))[j] = (((i/50)%2) ^ ((j/50)%2)) ? 0x00000000 : 0xFFFFFFFF;
-#endif
+            }
+        } else {
+            for (i=0;i<surfaceCreateSettings.height;i++) {
+                for (j=0;j<surfaceCreateSettings.width;j++) {
+                    /* create checker board */
+                    ((uint32_t*)((uint8_t*)mem.buffer + i*mem.pitch))[j] = (((i/50)%2) ^ ((j/50)%2)) ? 0x00000000 : 0xFFFFFFFF;
+                }
             }
         }
 
@@ -2719,7 +2718,7 @@ int main(int argc, const char *argv[])
                             BDBG_ERR(("Presentation %lu id: %lu", (unsigned long)i, (unsigned long)presentStatus.status.ac4.id));
                             BDBG_ERR(("  Presentation %lu name: %s", (unsigned long)i, presentStatus.status.ac4.name));
                             BDBG_ERR(("  Presentation %lu language: %s", (unsigned long)i, presentStatus.status.ac4.language));
-                            BDBG_ERR(("  Presentation %lu type: %lu", (unsigned long)i, (unsigned long)presentStatus.status.ac4.type));
+                            BDBG_ERR(("  Presentation %lu associateType: %lu", (unsigned long)i, (unsigned long)presentStatus.status.ac4.associateType));
                         }
                     }
                     BDBG_ERR(("Dialog Enhancer Max %lu", (unsigned long)audStatus.codecStatus.ac4.dialogEnhanceMax));

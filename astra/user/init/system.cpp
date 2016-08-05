@@ -43,9 +43,7 @@
  *      Author: gambhire
  */
 
-#include <hwtimer.h>
 #include <stdint.h>
-#include <waitqueue.h>
 
 #include "arm/arm.h"
 #include "arm/gic.h"
@@ -56,21 +54,21 @@
 #include "libfdt.h"
 #include "parse_utils.h"
 
-#include "platform.h"
 #include "kernel.h"
+#include "platform.h"
 #include "tzmemory.h"
 #include "pgtable.h"
-#include "objalloc.h"
 #include "interrupt.h"
+#include "hwtimer.h"
 #include "tztask.h"
 #include "scheduler.h"
 #include "svcutils.h"
 #include "smcutils.h"
-#include "console.h"
 #include "clock.h"
 #include "futex.h"
 #include "tzioc.h"
 #include "tracelog.h"
+#include "console.h"
 
 #include "system.h"
 
@@ -117,7 +115,6 @@ void System::init(const void *devTree) {
     Futex::init();
     TzIoc::init(tzDevTree);
     TraceLog::init();
-
     Console::init(!Platform::hasUart());
 
     int size = (int)&_initramfs_end - (int)&_initramfs_start;
@@ -133,8 +130,7 @@ void System::init(const void *devTree) {
     printf("File system loaded. Freed up %d kbytes\n", size/1024);
 
     /* Unmap the bootstrap part of the kernel */
-    PageTable *kernPageTable = PageTable::kernelPageTable();
-    kernPageTable->unmapBootstrap(devTree);
+    PageTable::kernelPageTable()->unmapBootstrap(devTree);
 
     PageTable::kernelPageTable()->dump();
     printf("System init done\n");

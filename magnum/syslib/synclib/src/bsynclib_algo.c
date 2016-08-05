@@ -1,22 +1,43 @@
 /***************************************************************************
-*     Copyright (c) 2004-2013, Broadcom Corporation
-*     All Rights Reserved
-*     Confidential Property of Broadcom Corporation
-*
-*  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
-*  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
-*  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
-*
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* Revision History:
-*
-* $brcm_Log: $
-* 
-***************************************************************************/
-
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ *  Except as expressly set forth in the Authorized License,
+ *
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+ *
+ * Module Description:
+ *
+ **************************************************************************/
 #include "bstd.h"
 #include "bsynclib_algo.h"
 #include "bsynclib_priv.h"
@@ -67,21 +88,15 @@ void BSYNClib_Algo_AudioAudio_Sync(BSYNClib_Channel_Path * psPath)
 	BDBG_LEAVE((BSYNClib_Algo_AudioAudio_Sync));
 }
 
-
-
-
-
-
 void BSYNClib_Algo_VideoVideo_Allocator(BSYNClib_Channel_Path * psPath)
 {
 	BSYSlib_List_IteratorHandle hIterator;
-	
+
 	BDBG_ENTER((BSYNClib_Algo_VideoVideo_Allocator));
 
 	BDBG_ASSERT(psPath);
 
 	/* TODO: this only allocates for sinks, need to handle multiple sources */
-	
 	/* allocate difference between max and current to all windows */
 
 	hIterator = BSYSlib_List_AcquireIterator(psPath->hSinks);
@@ -95,92 +110,51 @@ void BSYNClib_Algo_VideoVideo_Allocator(BSYNClib_Channel_Path * psPath)
 
 		if (psSink->sElement.sSnapshot.bSynchronize)
 		{
-		    if (psPath->sResults.bInconsistentSinkDomains)
-		    {
-		        delay_diff = 0;
-				BDBG_MSG(("[%d]  Allocating video sink %u delay: %u ms", psPath->hChn->iIndex, psSink->sElement.uiIndex, BSYNClib_P_Convert(delay_diff, BSYNClib_Units_e27MhzTicks, BSYNClib_Units_eMilliseconds)));
-		        psSink->sElement.sDelay.sResults.uiDesired = delay_diff;
-		    }
-		    else
-		    {
-    			/* PR21616 20061128 bandrews - don't bother applying delays to hidden windows, like PiP */
-    			if (psSink->sSnapshot.bVisible)
-    			{
-    				delay_diff = psPath->sResults.uiMaxSinkDelay - psSink->sElement.sDelay.sSnapshot.uiMeasured;
-    			}
-    			else /* hidden windows get no delay */
-    			{
-    				delay_diff = 0;
-    			}
-
-#if 1
-    /* 20081006 PR44510 bandrews */
-    			if (delay_diff <= psSink->sElement.sDelay.sData.uiCapacity)
-    			{
-    				BDBG_MSG(("[%d]  Allocating video sink %u delay: %u ms", psPath->hChn->iIndex, psSink->sElement.uiIndex, BSYNClib_P_Convert(delay_diff, BSYNClib_Units_e27MhzTicks, BSYNClib_Units_eMilliseconds)));
-    				psSink->sElement.sDelay.sResults.uiDesired = delay_diff;
-    			}
-    			else
-    			{
-    				BDBG_WRN(("[%d]  Delay capacity reached for video sink %u; requested delay: %u ms, capacity: %u ms", 
-    					psPath->hChn->iIndex, 
-    					psSink->sElement.uiIndex,
-    					BSYNClib_P_Convert(delay_diff, BSYNClib_Units_e27MhzTicks, BSYNClib_Units_eMilliseconds),
-    					BSYNClib_P_Convert(psSink->sElement.sDelay.sData.uiCapacity, BSYNClib_Units_e27MhzTicks, BSYNClib_Units_eMilliseconds)));
-    				delay_diff = psSink->sElement.sDelay.sData.uiCapacity;
-    				BDBG_MSG(("[%d]  Allocating video sink %u delay: %u ms", psPath->hChn->iIndex, psSink->sElement.uiIndex, BSYNClib_P_Convert(delay_diff, BSYNClib_Units_e27MhzTicks, BSYNClib_Units_eMilliseconds)));
-    				psSink->sElement.sDelay.sResults.uiDesired = delay_diff;
-    			}
-#else
+			if (psPath->sResults.bInconsistentSinkDomains)
 			{
-				unsigned int uiCumulativeHdDelayDiff = 0;
-				unsigned int uiCumulativeSdDelayDiff = 0;
-				unsigned int uiVsyncPeriod = 0;
-
-				uiVsyncPeriod = BSYNClib_VideoFormat_P_GetVsyncPeriod(&psSink->sFormat);
-
-				/* 20070212 PR27128 bandrews - limit bsync VDC buffer requests to what was allocated at init time */
-				/* 20080702 PR44521 bandrews - handle PAL SD height, too */
-				if (psSink->sFormat.sSnapshot.uiHeight > 576)
+				delay_diff = 0;
+				BDBG_MSG(("[%d]  Allocating video sink %u delay: %u ms",
+					psPath->hChn->iIndex, psSink->sElement.uiIndex,
+					BSYNClib_P_Convert_isrsafe(delay_diff, BSYNClib_Units_e27MhzTicks, BSYNClib_Units_eMilliseconds)));
+				psSink->sElement.sDelay.sResults.uiDesired = delay_diff;
+			}
+			else
+			{
+				/* PR21616 20061128 bandrews - don't bother applying delays to hidden windows, like PiP */
+				if (psSink->sSnapshot.bVisible)
 				{
-					uiCumulativeHdDelayDiff += delay_diff;
-					uiCumulativeSdDelayDiff += BSYNCLIB_P_SD_BUFFERS_PER_HD_BUFFER * delay_diff;
+					delay_diff = psPath->sResults.uiMaxSinkDelay - psSink->sElement.sDelay.sSnapshot.uiMeasured;
 				}
-				else
+				else /* hidden windows get no delay */
 				{
-#if B_HAS_LEGACY_VDC
-					/* 20070516 bandrews only increment the delay diff if there was already one to start */
-					if (delay_diff)
-					{
-						delay_diff += uiVsyncPeriod;
-					}
-#endif
-					uiCumulativeSdDelayDiff += delay_diff;
+					delay_diff = 0;
 				}
 
-				if ((uiCumulativeHdDelayDiff <= BSYNCLIB_P_MAX_CUMULATIVE_HD_VDC_DELAY * uiVsyncPeriod) 
-					&& (uiCumulativeSdDelayDiff <= BSYNCLIB_P_MAX_CUMULATIVE_SD_VDC_DELAY * uiVsyncPeriod))
+				/* 20081006 PR44510 bandrews */
+				if (delay_diff <= psSink->sElement.sDelay.sData.uiCapacity)
 				{
-					BDBG_MSG(("  Allocating video sink %u delay: %u ms", psSink->sElement.uiIndex, BSYNClib_P_Convert(delay_diff, BSYNClib_Units_e27MhzTicks, BSYNClib_Units_eMilliseconds)));
+					BDBG_MSG(("[%d]  Allocating video sink %u delay: %u ms",
+						psPath->hChn->iIndex, psSink->sElement.uiIndex,
+						BSYNClib_P_Convert_isrsafe(delay_diff, BSYNClib_Units_e27MhzTicks, BSYNClib_Units_eMilliseconds)));
 					psSink->sElement.sDelay.sResults.uiDesired = delay_diff;
 				}
 				else
 				{
-					/* 20070412 bandrews - added because this message should only print if we are trying to exceed the max */
-					if (delay_diff)
-					{
-						BDBG_WRN(("  Cumulative delay limit of %u HD or %u SD ms reached for syncing simul video sinks", 
-							BSYNClib_P_Convert(BSYNCLIB_P_MAX_CUMULATIVE_HD_VDC_DELAY * uiVsyncPeriod, BSYNClib_Units_e27MhzTicks, BSYNClib_Units_eMilliseconds), 
-							BSYNClib_P_Convert(BSYNCLIB_P_MAX_CUMULATIVE_SD_VDC_DELAY * uiVsyncPeriod, BSYNClib_Units_e27MhzTicks, BSYNClib_Units_eMilliseconds)));
-						BDBG_WRN(("  Video sink %u will not be synced", psSink->sElement.uiIndex));
-					}
+					BDBG_WRN(("[%d]  Delay capacity reached for video sink %u; requested delay: %u ms, capacity: %u ms",
+						psPath->hChn->iIndex,
+						psSink->sElement.uiIndex,
+						BSYNClib_P_Convert_isrsafe(delay_diff, BSYNClib_Units_e27MhzTicks, BSYNClib_Units_eMilliseconds),
+						BSYNClib_P_Convert_isrsafe(psSink->sElement.sDelay.sData.uiCapacity, BSYNClib_Units_e27MhzTicks, BSYNClib_Units_eMilliseconds)));
+					delay_diff = psSink->sElement.sDelay.sData.uiCapacity;
+					BDBG_MSG(("[%d]  Allocating video sink %u delay: %u ms",
+						psPath->hChn->iIndex, psSink->sElement.uiIndex,
+						BSYNClib_P_Convert_isrsafe(delay_diff, BSYNClib_Units_e27MhzTicks, BSYNClib_Units_eMilliseconds)));
+					psSink->sElement.sDelay.sResults.uiDesired = delay_diff;
 				}
 			}
-#endif
-    	    }
 		}
 	}
-	
+
 	BSYSlib_List_ReleaseIterator(hIterator);
 
 	BDBG_LEAVE((BSYNClib_Algo_VideoVideo_Allocator));
@@ -189,7 +163,7 @@ void BSYNClib_Algo_VideoVideo_Allocator(BSYNClib_Channel_Path * psPath)
 void BSYNClib_Algo_AudioAudio_Allocator(BSYNClib_Channel_Path * psPath)
 {
 	BSYSlib_List_IteratorHandle hIterator;
-	
+
 	BDBG_ENTER((BSYNClib_Algo_AudioAudio_Allocator));
 
 	BDBG_ASSERT(psPath);
@@ -209,14 +183,15 @@ void BSYNClib_Algo_AudioAudio_Allocator(BSYNClib_Channel_Path * psPath)
 		{
 			uiDelayDiff = psSink->sElement.sDelay.sSnapshot.uiMeasured - psPath->sResults.uiMaxSinkDelay;
 
-			BDBG_MSG(("[%d]  Allocating audio sink %u delay: %u ms", psPath->hChn->iIndex, psSink->sElement.uiIndex, 
-				BSYNClib_P_Convert(uiDelayDiff, BSYNClib_Units_e27MhzTicks, BSYNClib_Units_eMilliseconds)));
+			BDBG_MSG(("[%d]  Allocating audio sink %u delay: %u ms",
+				psPath->hChn->iIndex, psSink->sElement.uiIndex,
+				BSYNClib_P_Convert_isrsafe(uiDelayDiff, BSYNClib_Units_e27MhzTicks, BSYNClib_Units_eMilliseconds)));
 			psSink->sElement.sDelay.sResults.uiDesired = uiDelayDiff;
 		}
 	}
 
 	BSYSlib_List_ReleaseIterator(hIterator);
-	
+
 	BDBG_LEAVE((BSYNClib_Algo_AudioAudio_Allocator));
 }
 
@@ -229,7 +204,7 @@ void BSYNClib_Algo_AudioVideo_Allocator(BSYNClib_Channel_Path * psAudio, BSYNCli
 	unsigned int uiAdditionalVideoDelay;
 	int iJtiFactor;
 #endif
-	
+
 	BDBG_ENTER((BSYNClib_Algo_AudioVideo_Allocator));
 
 	BDBG_ASSERT(psAudio);
@@ -255,30 +230,34 @@ void BSYNClib_Algo_AudioVideo_Allocator(BSYNClib_Channel_Path * psAudio, BSYNCli
 
 			uiDelayDiff = psResults->uiMaxPathDelay - psVideo->sResults.uiMaxPathDelay;
 
-			if (BSYNClib_P_Convert(uiDelayDiff, BSYNClib_Units_e27MhzTicks, BSYNClib_Units_eMilliseconds) < BSYNCLIB_ALGO_MAX_SUPPORTED_DELAY_MS)
+			if (BSYNClib_P_Convert_isrsafe(uiDelayDiff, BSYNClib_Units_e27MhzTicks, BSYNClib_Units_eMilliseconds)
+				< BSYNCLIB_ALGO_MAX_SUPPORTED_DELAY_MS)
 			{
-                /* Requantize */
-                uiSourceFramePeriod = BSYNClib_VideoFormat_P_GetFramePeriod(&psSource->sFormat);
-                BSYNClib_Algo_RequantizeDelay(psVideo->hChn->iIndex, uiDelayDiff, uiSourceFramePeriod, &uiRequantizedVideoDelay);
-                uiAdditionalAudioDelay = uiRequantizedVideoDelay - uiDelayDiff;
-                psSource->sElement.sDelay.sResults.uiDesired = uiRequantizedVideoDelay;
+				/* Requantize */
+				uiSourceFramePeriod = BSYNClib_VideoFormat_P_GetFramePeriod_isrsafe(&psSource->sFormat);
+				BSYNClib_Algo_RequantizeDelay(psVideo->hChn->iIndex, uiDelayDiff, uiSourceFramePeriod, &uiRequantizedVideoDelay);
+				uiAdditionalAudioDelay = uiRequantizedVideoDelay - uiDelayDiff;
+				psSource->sElement.sDelay.sResults.uiDesired = uiRequantizedVideoDelay;
 
-    #if BSYNCLIB_JITTER_TOLERANCE_IMPROVEMENT_SUPPORT
-                /* JTI */
-                BSYNClib_Algo_CalculateJitterToleranceImprovementFactor(psVideo, psSource, uiRequantizedVideoDelay, &iJtiFactor, &uiAdditionalVideoDelay);
-                psSource->sElement.sDelay.sResults.uiDesired += uiAdditionalVideoDelay;
-                psSource->sElement.sDelay.sResults.uiDesired += iJtiFactor;
-    #endif
+#if BSYNCLIB_JITTER_TOLERANCE_IMPROVEMENT_SUPPORT
+				/* JTI */
+				BSYNClib_Algo_CalculateJitterToleranceImprovementFactor(psVideo, psSource, uiRequantizedVideoDelay, &iJtiFactor, &uiAdditionalVideoDelay);
+				psSource->sElement.sDelay.sResults.uiDesired += uiAdditionalVideoDelay;
+				psSource->sElement.sDelay.sResults.uiDesired += iJtiFactor;
+#endif
 
-                BDBG_MSG(("[%d]  Allocating video source %u delay: %u ms", psVideo->hChn->iIndex, psSource->sElement.uiIndex,
-                    BSYNClib_P_Convert(psSource->sElement.sDelay.sResults.uiDesired, BSYNClib_Units_e27MhzTicks, BSYNClib_Units_eMilliseconds)));
+				BDBG_MSG(("[%d]  Allocating video source %u delay: %u ms",
+					psVideo->hChn->iIndex, psSource->sElement.uiIndex,
+					BSYNClib_P_Convert_isrsafe(psSource->sElement.sDelay.sResults.uiDesired, BSYNClib_Units_e27MhzTicks, BSYNClib_Units_eMilliseconds)));
 			}
 			else
 			{
-                BDBG_MSG(("[%d]  Refusing to compensate video source %u delay: %u ms", psVideo->hChn->iIndex, psSource->sElement.uiIndex,
-                    BSYNClib_P_Convert(uiDelayDiff, BSYNClib_Units_e27MhzTicks, BSYNClib_Units_eMilliseconds)));
-                BDBG_MSG(("[%d]  Using previous video source %u delay: %u ms", psVideo->hChn->iIndex, psSource->sElement.uiIndex,
-                    BSYNClib_P_Convert(psSource->sElement.sDelay.sResults.uiDesired, BSYNClib_Units_e27MhzTicks, BSYNClib_Units_eMilliseconds)));
+				BDBG_MSG(("[%d]  Refusing to compensate video source %u delay: %u ms",
+					psVideo->hChn->iIndex, psSource->sElement.uiIndex,
+					BSYNClib_P_Convert_isrsafe(uiDelayDiff, BSYNClib_Units_e27MhzTicks, BSYNClib_Units_eMilliseconds)));
+				BDBG_MSG(("[%d]  Using previous video source %u delay: %u ms",
+					psVideo->hChn->iIndex, psSource->sElement.uiIndex,
+					BSYNClib_P_Convert_isrsafe(psSource->sElement.sDelay.sResults.uiDesired, BSYNClib_Units_e27MhzTicks, BSYNClib_Units_eMilliseconds)));
 			}
 		}
 	}
@@ -296,36 +275,36 @@ void BSYNClib_Algo_AudioVideo_Allocator(BSYNClib_Channel_Path * psAudio, BSYNCli
 		if (psSource->sElement.sSnapshot.bSynchronize)
 		{
 			uiDelayDiff = psResults->uiMaxPathDelay - psAudio->sResults.uiMaxPathDelay + uiAdditionalAudioDelay;
-            if (BSYNClib_P_Convert(uiDelayDiff, BSYNClib_Units_e27MhzTicks, BSYNClib_Units_eMilliseconds) < BSYNCLIB_ALGO_MAX_SUPPORTED_DELAY_MS)
-            {
-                BDBG_MSG(("[%d]  Allocating audio source %u delay: %u ms", psAudio->hChn->iIndex, psSource->sElement.uiIndex,
-                    BSYNClib_P_Convert(uiDelayDiff, BSYNClib_Units_e27MhzTicks, BSYNClib_Units_eMilliseconds)));
-                psSource->sElement.sDelay.sResults.uiDesired = uiDelayDiff;
-            }
-            else
-            {
-                BDBG_MSG(("[%d]  Refusing to compensate audio source %u delay: %u ms", psAudio->hChn->iIndex, psSource->sElement.uiIndex,
-                    BSYNClib_P_Convert(uiDelayDiff, BSYNClib_Units_e27MhzTicks, BSYNClib_Units_eMilliseconds)));
-                BDBG_MSG(("[%d]  Using previous audio source %u delay: %u ms", psAudio->hChn->iIndex, psSource->sElement.uiIndex,
-                    BSYNClib_P_Convert(psSource->sElement.sDelay.sResults.uiDesired, BSYNClib_Units_e27MhzTicks, BSYNClib_Units_eMilliseconds)));
-            }
+			if (BSYNClib_P_Convert_isrsafe(uiDelayDiff, BSYNClib_Units_e27MhzTicks, BSYNClib_Units_eMilliseconds)
+				< BSYNCLIB_ALGO_MAX_SUPPORTED_DELAY_MS)
+			{
+				BDBG_MSG(("[%d]  Allocating audio source %u delay: %u ms",
+					psAudio->hChn->iIndex, psSource->sElement.uiIndex,
+					BSYNClib_P_Convert_isrsafe(uiDelayDiff, BSYNClib_Units_e27MhzTicks, BSYNClib_Units_eMilliseconds)));
+				psSource->sElement.sDelay.sResults.uiDesired = uiDelayDiff;
+			}
+			else
+			{
+				BDBG_MSG(("[%d]  Refusing to compensate audio source %u delay: %u ms",
+					psAudio->hChn->iIndex, psSource->sElement.uiIndex,
+					BSYNClib_P_Convert_isrsafe(uiDelayDiff, BSYNClib_Units_e27MhzTicks, BSYNClib_Units_eMilliseconds)));
+				BDBG_MSG(("[%d]  Using previous audio source %u delay: %u ms",
+					psAudio->hChn->iIndex, psSource->sElement.uiIndex,
+					BSYNClib_P_Convert_isrsafe(psSource->sElement.sDelay.sResults.uiDesired, BSYNClib_Units_e27MhzTicks, BSYNClib_Units_eMilliseconds)));
+			}
 		}
 	}
-	
+
 	BSYSlib_List_ReleaseIterator(hIterator);
 
 	BDBG_LEAVE((BSYNClib_Algo_AudioVideo_Allocator));
 }
 
-
-
-
-
 void BSYNClib_Algo_AudioVideo_MaxFinder(BSYNClib_Channel_Path * psAudio, BSYNClib_Channel_Path * psVideo, BSYNClib_Channel_Results * psResults)
 {
 	unsigned int uiMaxPathDelay = 0;
 	BSYNClib_Channel_Path * psMaxDelayPath;
-	
+
 	BDBG_ENTER((BSYNClib_Algo_AudioVideo_MaxFinder));
 
 	BDBG_ASSERT(psAudio);
@@ -335,8 +314,10 @@ void BSYNClib_Algo_AudioVideo_MaxFinder(BSYNClib_Channel_Path * psAudio, BSYNCli
 	psAudio->sResults.uiMaxPathDelay = psAudio->sResults.uiMaxSinkDelay + psAudio->sResults.uiMaxSourceDelay;
 	psVideo->sResults.uiMaxPathDelay = psVideo->sResults.uiMaxSinkDelay + psVideo->sResults.uiMaxSourceDelay;
 
-	BDBG_MSG(("[%d]  Max audio path delay is %u ms", psAudio->hChn->iIndex, BSYNClib_P_Convert(psAudio->sResults.uiMaxPathDelay, BSYNClib_Units_e27MhzTicks, BSYNClib_Units_eMilliseconds)));
-	BDBG_MSG(("[%d]  Max video path delay is %u ms", psVideo->hChn->iIndex, BSYNClib_P_Convert(psVideo->sResults.uiMaxPathDelay, BSYNClib_Units_e27MhzTicks, BSYNClib_Units_eMilliseconds)));
+	BDBG_MSG(("[%d]  Max audio path delay is %u ms", psAudio->hChn->iIndex,
+		BSYNClib_P_Convert_isrsafe(psAudio->sResults.uiMaxPathDelay, BSYNClib_Units_e27MhzTicks, BSYNClib_Units_eMilliseconds)));
+	BDBG_MSG(("[%d]  Max video path delay is %u ms", psVideo->hChn->iIndex,
+		BSYNClib_P_Convert_isrsafe(psVideo->sResults.uiMaxPathDelay, BSYNClib_Units_e27MhzTicks, BSYNClib_Units_eMilliseconds)));
 
 	if (psVideo->sResults.uiMaxPathDelay > psAudio->sResults.uiMaxPathDelay)
 	{
@@ -352,7 +333,9 @@ void BSYNClib_Algo_AudioVideo_MaxFinder(BSYNClib_Channel_Path * psAudio, BSYNCli
 	/* keep max and window index for later */
 	psResults->uiMaxPathDelay = uiMaxPathDelay;
 	psResults->psMaxDelayPath = psMaxDelayPath;
-	BDBG_MSG(("[%d]  Max path delay is %u ms from %s", psAudio->hChn->iIndex, BSYNClib_P_Convert(psResults->uiMaxPathDelay, BSYNClib_Units_e27MhzTicks, BSYNClib_Units_eMilliseconds), psResults->psMaxDelayPath == psAudio ? "audio" : "video"));
+	BDBG_MSG(("[%d]  Max path delay is %u ms from %s", psAudio->hChn->iIndex,
+		BSYNClib_P_Convert_isrsafe(psResults->uiMaxPathDelay, BSYNClib_Units_e27MhzTicks, BSYNClib_Units_eMilliseconds),
+		psResults->psMaxDelayPath == psAudio ? "audio" : "video"));
 
 	BDBG_LEAVE((BSYNClib_Algo_AudioVideo_MaxFinder));
 }
@@ -362,7 +345,7 @@ void BSYNClib_Algo_VideoSink_MaxFinder(BSYNClib_Channel_Path * psPath)
 	BSYSlib_List_IteratorHandle hIterator;
 	int iMaxSinkDelay = -1;
 	BSYNClib_VideoSink * psMaxDelaySink = NULL;
-	
+
 	BDBG_ENTER((BSYNClib_Algo_VideoSink_MaxFinder));
 
 	BDBG_ASSERT(psPath);
@@ -385,9 +368,10 @@ void BSYNClib_Algo_VideoSink_MaxFinder(BSYNClib_Channel_Path * psPath)
 		}
 
 		uiSinkDelay = psSink->sElement.sDelay.sSnapshot.uiMeasured;
-		
-		BDBG_MSG(("[%d]  Current video sink delay, sink %u: %u ms", psPath->hChn->iIndex, psSink->sElement.uiIndex, 
-			BSYNClib_P_Convert(uiSinkDelay, BSYNClib_Units_e27MhzTicks, BSYNClib_Units_eMilliseconds)));
+
+		BDBG_MSG(("[%d]  Current video sink delay, sink %u: %u ms",
+			psPath->hChn->iIndex, psSink->sElement.uiIndex,
+			BSYNClib_P_Convert_isrsafe(uiSinkDelay, BSYNClib_Units_e27MhzTicks, BSYNClib_Units_eMilliseconds)));
 		if ((signed)uiSinkDelay > iMaxSinkDelay)
 		{
 			iMaxSinkDelay = uiSinkDelay;
@@ -405,8 +389,9 @@ void BSYNClib_Algo_VideoSink_MaxFinder(BSYNClib_Channel_Path * psPath)
 		/* keep max and window index for later */
 		psPath->sResults.uiMaxSinkDelay = iMaxSinkDelay;
 		psPath->sResults.pvMaxDelaySink = psMaxDelaySink;
-		BDBG_MSG(("[%d]  Max video postprocessing delay is %u ms from video sink %u", psPath->hChn->iIndex, 
-			BSYNClib_P_Convert(psPath->sResults.uiMaxSinkDelay, BSYNClib_Units_e27MhzTicks, BSYNClib_Units_eMilliseconds), 
+		BDBG_MSG(("[%d]  Max video postprocessing delay is %u ms from video sink %u",
+			psPath->hChn->iIndex,
+			BSYNClib_P_Convert_isrsafe(psPath->sResults.uiMaxSinkDelay, BSYNClib_Units_e27MhzTicks, BSYNClib_Units_eMilliseconds),
 			((BSYNClib_VideoSink *)(psPath->sResults.pvMaxDelaySink))->sElement.uiIndex));
 	}
 	else
@@ -425,7 +410,7 @@ void BSYNClib_Algo_VideoSource_MaxFinder(BSYNClib_Channel_Path * psPath)
 	BSYSlib_List_IteratorHandle hIterator;
 	int iMaxSourceDelay = -1;
 	BSYNClib_VideoSource * psMaxDelaySource = NULL;
-	
+
 	BDBG_ENTER((BSYNClib_Algo_VideoSource_MaxFinder));
 
 	BDBG_ASSERT(psPath);
@@ -450,9 +435,10 @@ void BSYNClib_Algo_VideoSource_MaxFinder(BSYNClib_Channel_Path * psPath)
 		/* PR42265 20080616 bandrews - need to include custom delay in measured, 
 		otherwise, sync won't compensate audio for this delay */
 		uiSourceDelay = psSource->sElement.sDelay.sSnapshot.uiMeasured + psSource->sElement.sDelay.sSnapshot.uiCustom;
-		
-		BDBG_MSG(("[%d]  Current video source delay, source %u: %u ms %s", psPath->hChn->iIndex, psSource->sElement.uiIndex, 
-			BSYNClib_P_Convert(uiSourceDelay, BSYNClib_Units_e27MhzTicks, BSYNClib_Units_eMilliseconds),
+
+		BDBG_MSG(("[%d]  Current video source delay, source %u: %u ms %s",
+			psPath->hChn->iIndex, psSource->sElement.uiIndex,
+			BSYNClib_P_Convert_isrsafe(uiSourceDelay, BSYNClib_Units_e27MhzTicks, BSYNClib_Units_eMilliseconds),
 			psSource->sElement.sDelay.sResults.bEstimated ? "estimated" : "measured"));
 		if ((signed)uiSourceDelay > iMaxSourceDelay)
 		{
@@ -470,7 +456,7 @@ void BSYNClib_Algo_VideoSource_MaxFinder(BSYNClib_Channel_Path * psPath)
 		psPath->sResults.pvMaxDelaySource = psMaxDelaySource;
 		BDBG_MSG(("[%d]  Max video decoder delay is %u ms from video source %u", 
 			psPath->hChn->iIndex, 
-			BSYNClib_P_Convert(psPath->sResults.uiMaxSourceDelay, BSYNClib_Units_e27MhzTicks, BSYNClib_Units_eMilliseconds), 
+			BSYNClib_P_Convert_isrsafe(psPath->sResults.uiMaxSourceDelay, BSYNClib_Units_e27MhzTicks, BSYNClib_Units_eMilliseconds),
 			((BSYNClib_VideoSource *)(psPath->sResults.pvMaxDelaySource))->sElement.uiIndex));
 	}
 	else
@@ -488,7 +474,7 @@ void BSYNClib_Algo_AudioSink_MaxFinder(BSYNClib_Channel_Path * psPath)
 	BSYSlib_List_IteratorHandle hIterator;
 	int iMaxSinkDelay = -1;
 	BSYNClib_AudioSink * psMaxDelaySink = NULL;
-	
+
 	BDBG_ENTER((BSYNClib_Algo_AudioSink_MaxFinder));
 
 	BDBG_ASSERT(psPath);
@@ -511,9 +497,9 @@ void BSYNClib_Algo_AudioSink_MaxFinder(BSYNClib_Channel_Path * psPath)
 		}
 
 		uiSinkDelay = psSink->sElement.sDelay.sSnapshot.uiMeasured;
-		
+
 		BDBG_MSG(("[%d]  Current audio sink delay, sink %u: %u ms", psPath->hChn->iIndex, psSink->sElement.uiIndex, 
-			BSYNClib_P_Convert(uiSinkDelay, BSYNClib_Units_e27MhzTicks, BSYNClib_Units_eMilliseconds)));
+			BSYNClib_P_Convert_isrsafe(uiSinkDelay, BSYNClib_Units_e27MhzTicks, BSYNClib_Units_eMilliseconds)));
 		if ((signed)uiSinkDelay > iMaxSinkDelay)
 		{
 			iMaxSinkDelay = uiSinkDelay;
@@ -530,7 +516,7 @@ void BSYNClib_Algo_AudioSink_MaxFinder(BSYNClib_Channel_Path * psPath)
 		psPath->sResults.pvMaxDelaySink = psMaxDelaySink;
 		BDBG_MSG(("[%d]  Max audio output delay is %u ms from audio sink %u", 
 			psPath->hChn->iIndex, 
-			BSYNClib_P_Convert(psPath->sResults.uiMaxSinkDelay, BSYNClib_Units_e27MhzTicks, BSYNClib_Units_eMilliseconds), 
+			BSYNClib_P_Convert_isrsafe(psPath->sResults.uiMaxSinkDelay, BSYNClib_Units_e27MhzTicks, BSYNClib_Units_eMilliseconds),
 			((BSYNClib_AudioSink *)(psPath->sResults.pvMaxDelaySink))->sElement.uiIndex));
 	}
 	else
@@ -548,7 +534,7 @@ void BSYNClib_Algo_AudioSource_MaxFinder(BSYNClib_Channel_Path * psPath)
 	BSYSlib_List_IteratorHandle hIterator;
 	int iMaxSourceDelay = -1;
 	BSYNClib_AudioSource * psMaxDelaySource = NULL;
-	
+
 	BDBG_ENTER((BSYNClib_Algo_AudioSource_MaxFinder));
 
 	BDBG_ASSERT(psPath);
@@ -571,9 +557,10 @@ void BSYNClib_Algo_AudioSource_MaxFinder(BSYNClib_Channel_Path * psPath)
 		}
 
 		uiSourceDelay = psSource->sElement.sDelay.sSnapshot.uiMeasured + psSource->sElement.sDelay.sSnapshot.uiCustom;
-		
-		BDBG_MSG(("[%d]  Current audio source delay, source %u: %u ms", psPath->hChn->iIndex, psSource->sElement.uiIndex, 
-			BSYNClib_P_Convert(uiSourceDelay, BSYNClib_Units_e27MhzTicks, BSYNClib_Units_eMilliseconds)));
+
+		BDBG_MSG(("[%d]  Current audio source delay, source %u: %u ms",
+			psPath->hChn->iIndex, psSource->sElement.uiIndex,
+			BSYNClib_P_Convert_isrsafe(uiSourceDelay, BSYNClib_Units_e27MhzTicks, BSYNClib_Units_eMilliseconds)));
 		if ((signed)uiSourceDelay > iMaxSourceDelay)
 		{
 			iMaxSourceDelay = uiSourceDelay;
@@ -590,7 +577,7 @@ void BSYNClib_Algo_AudioSource_MaxFinder(BSYNClib_Channel_Path * psPath)
 		psPath->sResults.pvMaxDelaySource = psMaxDelaySource;
 		BDBG_MSG(("[%d]  Max audio decoder delay is %u ms from audio source %u", 
 			psPath->hChn->iIndex, 
-			BSYNClib_P_Convert(psPath->sResults.uiMaxSourceDelay, BSYNClib_Units_e27MhzTicks, BSYNClib_Units_eMilliseconds), 
+			BSYNClib_P_Convert_isrsafe(psPath->sResults.uiMaxSourceDelay, BSYNClib_Units_e27MhzTicks, BSYNClib_Units_eMilliseconds),
 			((BSYNClib_AudioSource *)(psPath->sResults.pvMaxDelaySource))->sElement.uiIndex));
 	}
 	else
@@ -603,16 +590,10 @@ void BSYNClib_Algo_AudioSource_MaxFinder(BSYNClib_Channel_Path * psPath)
 	BDBG_LEAVE((BSYNClib_Algo_AudioSource_MaxFinder));
 }
 
-
-
-
-
-
-
 BERR_Code BSYNClib_Algo_VideoSink_Applicator(BSYNClib_Channel_Path * psPath, BSYNClib_Channel_SetDelay pfSetDelay, void * pvParm1, int iParm2)
 {
 	BERR_Code rc = BERR_SUCCESS;
-	
+
 	BDBG_ENTER((BSYNClib_Algo_VideoSink_Applicator));
 
 	BDBG_ASSERT(psPath);
@@ -622,7 +603,7 @@ BERR_Code BSYNClib_Algo_VideoSink_Applicator(BSYNClib_Channel_Path * psPath, BSY
 		BSYSlib_List_IteratorHandle hIterator;
 
 		hIterator = BSYSlib_List_AcquireIterator(psPath->hSinks);
-		
+
 		/* release all extra delay buffers first, to reduce memory required during transitions */
 		while (BSYSlib_List_HasNext(hIterator))
 		{
@@ -638,7 +619,7 @@ BERR_Code BSYNClib_Algo_VideoSink_Applicator(BSYNClib_Channel_Path * psPath, BSY
 					BSYNClib_UnsignedValue sDelay;
 					BDBG_MSG(("[%d]  Releasing %u ms of delay on video sink %u", 
 						psPath->hChn->iIndex, 
-						BSYNClib_P_Convert(psSink->sElement.sDelay.sResults.uiApplied, BSYNClib_Units_e27MhzTicks, BSYNClib_Units_eMilliseconds), 
+						BSYNClib_P_Convert_isrsafe(psSink->sElement.sDelay.sResults.uiApplied, BSYNClib_Units_e27MhzTicks, BSYNClib_Units_eMilliseconds),
 						psSink->sElement.uiIndex));
 
 					sDelay.uiValue = 0;
@@ -654,7 +635,7 @@ BERR_Code BSYNClib_Algo_VideoSink_Applicator(BSYNClib_Channel_Path * psPath, BSY
 
 		/* start at beginning of list again */
 		BSYSlib_List_ResetIterator(hIterator);
-		
+
 		/* apply desired */
 		while (BSYSlib_List_HasNext(hIterator))
 		{
@@ -670,16 +651,23 @@ BERR_Code BSYNClib_Algo_VideoSink_Applicator(BSYNClib_Channel_Path * psPath, BSY
 					BSYNClib_UnsignedValue sDesired;
 
 					BDBG_MSG(("[%d]  Applying video sink %u delay: %u ms", psPath->hChn->iIndex, psSink->sElement.uiIndex, 
-						BSYNClib_P_Convert(psSink->sElement.sDelay.sResults.uiDesired, BSYNClib_Units_e27MhzTicks, BSYNClib_Units_eMilliseconds)));
+						BSYNClib_P_Convert_isrsafe(psSink->sElement.sDelay.sResults.uiDesired, BSYNClib_Units_e27MhzTicks, BSYNClib_Units_eMilliseconds)));
 
-					sDesired.uiValue = BSYNClib_P_Convert(psSink->sElement.sDelay.sResults.uiDesired, BSYNClib_Units_e27MhzTicks, psSink->sElement.sDelay.sSnapshot.ePreferredUnits);
+					sDesired.uiValue = BSYNClib_P_Convert_isrsafe(
+						psSink->sElement.sDelay.sResults.uiDesired,
+						BSYNClib_Units_e27MhzTicks,
+						psSink->sElement.sDelay.sSnapshot.ePreferredUnits);
 					sDesired.eUnits = psSink->sElement.sDelay.sSnapshot.ePreferredUnits;
 
 					rc = pfSetDelay(pvParm1, iParm2, psSink->sElement.uiIndex, &sDesired);
 					if (rc) goto error;
-					
+
 					psSink->sElement.sDelay.sResults.uiApplied = psSink->sElement.sDelay.sResults.uiDesired;
-					psSink->sStatus.sAppliedDelay.uiValue = BSYNClib_P_Convert(psSink->sElement.sDelay.sResults.uiApplied, BSYNClib_Units_e27MhzTicks, psSink->sElement.sDelay.sSnapshot.ePreferredUnits);
+					psSink->sStatus.sAppliedDelay.uiValue =
+						BSYNClib_P_Convert_isrsafe(
+							psSink->sElement.sDelay.sResults.uiApplied,
+							BSYNClib_Units_e27MhzTicks,
+							psSink->sElement.sDelay.sSnapshot.ePreferredUnits);
 					psSink->sStatus.sAppliedDelay.eUnits = psSink->sElement.sDelay.sSnapshot.ePreferredUnits;
 				}
 			}
@@ -689,11 +677,11 @@ BERR_Code BSYNClib_Algo_VideoSink_Applicator(BSYNClib_Channel_Path * psPath, BSY
 	}
 
 	goto end;
-	
-error:
 
-end:
-	
+	error:
+
+	end:
+
 	BDBG_LEAVE((BSYNClib_Algo_VideoSink_Applicator));
 	return rc;
 }
@@ -701,7 +689,7 @@ end:
 BERR_Code BSYNClib_Algo_VideoSource_Applicator(BSYNClib_Channel_Path * psPath, BSYNClib_Channel_SetDelay pfSetDelay, void * pvParm1, int iParm2)
 {
 	BERR_Code rc = BERR_SUCCESS;
-	
+
 	BDBG_ENTER((BSYNClib_Algo_VideoSource_Applicator));
 
 	BDBG_ASSERT(psPath);
@@ -723,30 +711,41 @@ BERR_Code BSYNClib_Algo_VideoSource_Applicator(BSYNClib_Channel_Path * psPath, B
 			{
 				BSYNClib_UnsignedValue sDesired;
 
-				BDBG_MSG(("[%d]  Applying video source %u delay: %u ms", psPath->hChn->iIndex, psSource->sElement.uiIndex, 
-					BSYNClib_P_Convert(psSource->sElement.sDelay.sResults.uiDesired, BSYNClib_Units_e27MhzTicks, BSYNClib_Units_eMilliseconds)));
-				
-				sDesired.uiValue = BSYNClib_P_Convert(psSource->sElement.sDelay.sResults.uiDesired, BSYNClib_Units_e27MhzTicks, psSource->sElement.sDelay.sSnapshot.ePreferredUnits);
+				BDBG_MSG(("[%d]  Applying video source %u delay: %u ms",
+					psPath->hChn->iIndex, psSource->sElement.uiIndex,
+					BSYNClib_P_Convert_isrsafe(
+						psSource->sElement.sDelay.sResults.uiDesired,
+						BSYNClib_Units_e27MhzTicks,
+						BSYNClib_Units_eMilliseconds)));
+
+				sDesired.uiValue = BSYNClib_P_Convert_isrsafe(
+					psSource->sElement.sDelay.sResults.uiDesired,
+					BSYNClib_Units_e27MhzTicks,
+					psSource->sElement.sDelay.sSnapshot.ePreferredUnits);
 				sDesired.eUnits = psSource->sElement.sDelay.sSnapshot.ePreferredUnits;
 
 				rc = pfSetDelay(pvParm1, iParm2, psSource->sElement.uiIndex, &sDesired);
 				if (rc) goto error;
-				
+
 				psSource->sElement.sDelay.sResults.uiApplied = psSource->sElement.sDelay.sResults.uiDesired;
-				psSource->sStatus.sAppliedDelay.uiValue = BSYNClib_P_Convert(psSource->sElement.sDelay.sResults.uiApplied, BSYNClib_Units_e27MhzTicks, psSource->sElement.sDelay.sSnapshot.ePreferredUnits);
+				psSource->sStatus.sAppliedDelay.uiValue =
+					BSYNClib_P_Convert_isrsafe(
+						psSource->sElement.sDelay.sResults.uiApplied,
+						BSYNClib_Units_e27MhzTicks,
+						psSource->sElement.sDelay.sSnapshot.ePreferredUnits);
 				psSource->sStatus.sAppliedDelay.eUnits = psSource->sElement.sDelay.sSnapshot.ePreferredUnits;
 			}
 		}
 
 		BSYSlib_List_ReleaseIterator(hIterator);
 	}
-	
-	goto end;
-	
-error:
 
-end:
-	
+	goto end;
+
+	error:
+
+	end:
+
 	BDBG_LEAVE((BSYNClib_Algo_VideoSource_Applicator));
 	return rc;
 }
@@ -754,7 +753,7 @@ end:
 BERR_Code BSYNClib_Algo_AudioSink_Applicator(BSYNClib_Channel_Path * psPath, BSYNClib_Channel_SetDelay pfSetDelay, void * pvParm1, int iParm2)
 {
 	BERR_Code rc = BERR_SUCCESS;
-	
+
 	BDBG_ENTER((BSYNClib_Algo_AudioSink_Applicator));
 
 	BDBG_ASSERT(psPath);
@@ -777,30 +776,41 @@ BERR_Code BSYNClib_Algo_AudioSink_Applicator(BSYNClib_Channel_Path * psPath, BSY
 			{
 				BSYNClib_UnsignedValue sDesired;
 
-				BDBG_MSG(("[%d]  Applying audio sink %u delay: %u ms", psPath->hChn->iIndex, psSink->sElement.uiIndex, 
-					BSYNClib_P_Convert(psSink->sElement.sDelay.sResults.uiDesired, BSYNClib_Units_e27MhzTicks, BSYNClib_Units_eMilliseconds)));
-				
-				sDesired.uiValue = BSYNClib_P_Convert(psSink->sElement.sDelay.sResults.uiDesired, BSYNClib_Units_e27MhzTicks, psSink->sElement.sDelay.sSnapshot.ePreferredUnits);
+				BDBG_MSG(("[%d]  Applying audio sink %u delay: %u ms",
+					psPath->hChn->iIndex, psSink->sElement.uiIndex,
+					BSYNClib_P_Convert_isrsafe(
+						psSink->sElement.sDelay.sResults.uiDesired,
+						BSYNClib_Units_e27MhzTicks,
+						BSYNClib_Units_eMilliseconds)));
+
+				sDesired.uiValue = BSYNClib_P_Convert_isrsafe(
+					psSink->sElement.sDelay.sResults.uiDesired,
+					BSYNClib_Units_e27MhzTicks,
+					psSink->sElement.sDelay.sSnapshot.ePreferredUnits);
 				sDesired.eUnits = psSink->sElement.sDelay.sSnapshot.ePreferredUnits;
 
 				rc = pfSetDelay(pvParm1, iParm2, psSink->sElement.uiIndex, &sDesired);
 				if (rc) goto error;
-				
+
 				psSink->sElement.sDelay.sResults.uiApplied = psSink->sElement.sDelay.sResults.uiDesired;
-				psSink->sStatus.sAppliedDelay.uiValue = BSYNClib_P_Convert(psSink->sElement.sDelay.sResults.uiApplied, BSYNClib_Units_e27MhzTicks, psSink->sElement.sDelay.sSnapshot.ePreferredUnits);
+				psSink->sStatus.sAppliedDelay.uiValue =
+					BSYNClib_P_Convert_isrsafe(
+						psSink->sElement.sDelay.sResults.uiApplied,
+						BSYNClib_Units_e27MhzTicks,
+						psSink->sElement.sDelay.sSnapshot.ePreferredUnits);
 				psSink->sStatus.sAppliedDelay.eUnits = psSink->sElement.sDelay.sSnapshot.ePreferredUnits;
 			}
 		}
 
 		BSYSlib_List_ReleaseIterator(hIterator);
 	}
-	
-	goto end;
-	
-error:
 
-end:
-	
+	goto end;
+
+	error:
+
+	end:
+
 	BDBG_LEAVE((BSYNClib_Algo_AudioSink_Applicator));
 	return rc;
 }
@@ -808,7 +818,7 @@ end:
 BERR_Code BSYNClib_Algo_AudioSource_Applicator(BSYNClib_Channel_Path * psPath, BSYNClib_Channel_SetDelay pfSetDelay, void * pvParm1, int iParm2)
 {
 	BERR_Code rc = BERR_SUCCESS;
-	
+
 	BDBG_ENTER((BSYNClib_Algo_AudioSource_Applicator));
 
 	BDBG_ASSERT(psPath);
@@ -830,31 +840,42 @@ BERR_Code BSYNClib_Algo_AudioSource_Applicator(BSYNClib_Channel_Path * psPath, B
 			if (psSource->sElement.sSnapshot.bSynchronize)
 			{
 				BSYNClib_UnsignedValue sDesired;
-				
-				BDBG_MSG(("[%d]  Applying audio source %u delay: %u ms", psPath->hChn->iIndex, psSource->sElement.uiIndex, 
-					BSYNClib_P_Convert(psSource->sElement.sDelay.sResults.uiDesired, BSYNClib_Units_e27MhzTicks, BSYNClib_Units_eMilliseconds)));
 
-				sDesired.uiValue = BSYNClib_P_Convert(psSource->sElement.sDelay.sResults.uiDesired, BSYNClib_Units_e27MhzTicks, psSource->sElement.sDelay.sSnapshot.ePreferredUnits);
+				BDBG_MSG(("[%d]  Applying audio source %u delay: %u ms",
+					psPath->hChn->iIndex, psSource->sElement.uiIndex,
+					BSYNClib_P_Convert_isrsafe(
+						psSource->sElement.sDelay.sResults.uiDesired,
+						BSYNClib_Units_e27MhzTicks,
+						BSYNClib_Units_eMilliseconds)));
+
+				sDesired.uiValue = BSYNClib_P_Convert_isrsafe(
+					psSource->sElement.sDelay.sResults.uiDesired,
+					BSYNClib_Units_e27MhzTicks,
+					psSource->sElement.sDelay.sSnapshot.ePreferredUnits);
 				sDesired.eUnits = psSource->sElement.sDelay.sSnapshot.ePreferredUnits;
 
 				rc = pfSetDelay(pvParm1, iParm2, psSource->sElement.uiIndex, &sDesired);
 				if (rc) goto error;
-				
+
 				psSource->sElement.sDelay.sResults.uiApplied = psSource->sElement.sDelay.sResults.uiDesired;
-				psSource->sStatus.sAppliedDelay.uiValue = BSYNClib_P_Convert(psSource->sElement.sDelay.sResults.uiApplied, BSYNClib_Units_e27MhzTicks, psSource->sElement.sDelay.sSnapshot.ePreferredUnits);
+				psSource->sStatus.sAppliedDelay.uiValue =
+					BSYNClib_P_Convert_isrsafe(
+						psSource->sElement.sDelay.sResults.uiApplied,
+						BSYNClib_Units_e27MhzTicks,
+						psSource->sElement.sDelay.sSnapshot.ePreferredUnits);
 				psSource->sStatus.sAppliedDelay.eUnits = psSource->sElement.sDelay.sSnapshot.ePreferredUnits;
 			}
 		}
 
 		BSYSlib_List_ReleaseIterator(hIterator);
 	}
-	
-	goto end;
-	
-error:
 
-end:
-	
+	goto end;
+
+	error:
+
+	end:
+
 	BDBG_LEAVE((BSYNClib_Algo_AudioSource_Applicator));
 	return rc;
 }
@@ -866,14 +887,16 @@ void BSYNClib_Algo_RequantizeDelay(int iChannelIndex, unsigned int uiDelay, unsi
 	BDBG_ASSERT(puiRequantizedDelay);
 
 #if BDBG_NO_MSG
-    BSTD_UNUSED(iChannelIndex);
+	BSTD_UNUSED(iChannelIndex);
 #endif
 
 	if (uiQuantizationLevel)
 	{
 		BDBG_MSG(("[%d]  Performing delay requantization", iChannelIndex));
-		BDBG_MSG(("[%d]    delay: %u ms", iChannelIndex, BSYNClib_P_Convert(uiDelay, BSYNClib_Units_e27MhzTicks, BSYNClib_Units_eMilliseconds)));
-		BDBG_MSG(("[%d]    quantization level: %u ms", iChannelIndex, BSYNClib_P_Convert(uiQuantizationLevel, BSYNClib_Units_e27MhzTicks, BSYNClib_Units_eMilliseconds)));
+		BDBG_MSG(("[%d]    delay: %u ms", iChannelIndex,
+			BSYNClib_P_Convert_isrsafe(uiDelay, BSYNClib_Units_e27MhzTicks, BSYNClib_Units_eMilliseconds)));
+		BDBG_MSG(("[%d]    quantization level: %u ms", iChannelIndex,
+			BSYNClib_P_Convert_isrsafe(uiQuantizationLevel, BSYNClib_Units_e27MhzTicks, BSYNClib_Units_eMilliseconds)));
 
 		uiQuantizedDelay = uiDelay / uiQuantizationLevel;
 		if (uiDelay % uiQuantizationLevel)
@@ -883,7 +906,8 @@ void BSYNClib_Algo_RequantizeDelay(int iChannelIndex, unsigned int uiDelay, unsi
 
 		uiQuantizedDelay *= uiQuantizationLevel;
 
-		BDBG_MSG(("[%d]    requantized delay: %u ms", iChannelIndex, BSYNClib_P_Convert(uiQuantizedDelay, BSYNClib_Units_e27MhzTicks, BSYNClib_Units_eMilliseconds)));
+		BDBG_MSG(("[%d]    requantized delay: %u ms", iChannelIndex,
+			BSYNClib_P_Convert_isrsafe(uiQuantizedDelay, BSYNClib_Units_e27MhzTicks, BSYNClib_Units_eMilliseconds)));
 	}
 	else
 	{
@@ -894,30 +918,30 @@ void BSYNClib_Algo_RequantizeDelay(int iChannelIndex, unsigned int uiDelay, unsi
 	*puiRequantizedDelay = uiQuantizedDelay;
 }
 
-#define BSYNCLIB_IABS(x) (((x) < 0) ? ((unsigned)-(x)) : ((unsigned)(x))) 
-
+#if BSYNCLIB_JITTER_TOLERANCE_IMPROVEMENT_SUPPORT
+#define BSYNCLIB_IABS(x) (((x) < 0) ? ((unsigned)-(x)) : ((unsigned)(x)))
 void BSYNClib_Algo_CalculateJitterToleranceImprovementFactor(BSYNClib_Channel_Path * psVideo, BSYNClib_VideoSource * psSource, unsigned int uiCurrentDelay, int * piJtiFactor, unsigned int * puiAdditionalDelay)
 {
 	BSYSlib_List_IteratorHandle hIterator;
-    BSYNClib_VideoSource_JitterToleranceImprovementFactor * psLastFactor;
-    unsigned int uiDisplayVsyncPeriod = 0;
-    unsigned int uiTarget;
-    unsigned int uiThreshold;
-    unsigned int uiMeasurement;
-    unsigned int uiAdditionalDelay;
-    int iFactor;
-    int iError;
-    bool bAllowBottomFieldTarget;
-    bool bMeasurementValid = false;
+	BSYNClib_VideoSource_JitterToleranceImprovementFactor * psLastFactor;
+	unsigned int uiDisplayVsyncPeriod = 0;
+	unsigned int uiTarget;
+	unsigned int uiThreshold;
+	unsigned int uiMeasurement;
+	unsigned int uiAdditionalDelay;
+	int iFactor;
+	int iError;
+	bool bAllowBottomFieldTarget;
+	bool bMeasurementValid = false;
 
-    BDBG_ASSERT(psVideo);
-    BDBG_ASSERT(psSource);
-    BDBG_ASSERT(piJtiFactor);
-    BDBG_ASSERT(puiAdditionalDelay);
+	BDBG_ASSERT(psVideo);
+	BDBG_ASSERT(psSource);
+	BDBG_ASSERT(piJtiFactor);
+	BDBG_ASSERT(puiAdditionalDelay);
 
 	BDBG_ENTER((BSYNClib_Algo_CalculateJitterToleranceImprovementFactor));
 
-    BDBG_MSG(("[%d]  Jitter Tolerance Improvement", psVideo->hChn->iIndex));
+	BDBG_MSG(("[%d]  Jitter Tolerance Improvement", psVideo->hChn->iIndex));
 
 	hIterator = BSYSlib_List_AcquireIterator(psVideo->hSinks);
 
@@ -930,8 +954,8 @@ void BSYNClib_Algo_CalculateJitterToleranceImprovementFactor(BSYNClib_Channel_Pa
 		if (psSink->sElement.sSnapshot.bSynchronize && psSink->sSnapshot.bSyncLocked)
 		{
 			uiDisplayVsyncPeriod = BSYNClib_VideoFormat_P_GetVsyncPeriod(&psSink->sFormat);
-		    BDBG_MSG(("[%d]    Display %u vsync period: %u ms", psVideo->hChn->iIndex, psSink->sElement.uiIndex, 
-				BSYNClib_P_Convert(uiDisplayVsyncPeriod, BSYNClib_Units_e27MhzTicks, BSYNClib_Units_eMilliseconds)));
+			BDBG_MSG(("[%d]    Display %u vsync period: %u ms", psVideo->hChn->iIndex, psSink->sElement.uiIndex,
+				BSYNClib_P_Convert_isrsafe(uiDisplayVsyncPeriod, BSYNClib_Units_e27MhzTicks, BSYNClib_Units_eMilliseconds)));
 			break;
 		}
 	}
@@ -939,15 +963,15 @@ void BSYNClib_Algo_CalculateJitterToleranceImprovementFactor(BSYNClib_Channel_Pa
 	BSYSlib_List_ReleaseIterator(hIterator);
 
 	bAllowBottomFieldTarget = psSource->sFormat.sSnapshot.bInterlaced;
-    BDBG_MSG(("[%d]    Allow bottom field target: %s", psVideo->hChn->iIndex, bAllowBottomFieldTarget ? "true" : "false"));
-			
-    /* We want to avoid the following PTS/STC phase boundaries:
+	BDBG_MSG(("[%d]    Allow bottom field target: %s", psVideo->hChn->iIndex, bAllowBottomFieldTarget ? "true" : "false"));
+
+	/* We want to avoid the following PTS/STC phase boundaries:
        0, 1 field, and 1 frame
        Therefore, 1/2 the display vsync period gives the most amount of jitter tolerance */
-    uiTarget = uiDisplayVsyncPeriod / 2;
+	uiTarget = uiDisplayVsyncPeriod / 2;
 
-    BDBG_MSG(("[%d]    Jitter tolerance target: %u ms", psVideo->hChn->iIndex, 
-		BSYNClib_P_Convert(uiTarget, BSYNClib_Units_e27MhzTicks, BSYNClib_Units_eMilliseconds)));
+	BDBG_MSG(("[%d]    Jitter tolerance target: %u ms", psVideo->hChn->iIndex,
+		BSYNClib_P_Convert_isrsafe(uiTarget, BSYNClib_Units_e27MhzTicks, BSYNClib_Units_eMilliseconds)));
 
 	if (uiDisplayVsyncPeriod && psSource->sElement.sDelay.sSnapshot.bValid)
 	{
@@ -956,82 +980,82 @@ void BSYNClib_Algo_CalculateJitterToleranceImprovementFactor(BSYNClib_Channel_Pa
 		uiThreshold = psSource->sSnapshot.uiJitterToleranceImprovementThreshold;
 		psLastFactor = &psSource->sResults.sJtiFactor;
 		BDBG_MSG(("[%d]    Video source %u measurement: %u ms", psVideo->hChn->iIndex, psSource->sElement.uiIndex, 
-			BSYNClib_P_Convert(uiMeasurement, BSYNClib_Units_e27MhzTicks, BSYNClib_Units_eMilliseconds)));
+			BSYNClib_P_Convert_isrsafe(uiMeasurement, BSYNClib_Units_e27MhzTicks, BSYNClib_Units_eMilliseconds)));
 
-	    /* 
+		/*
 	        error = reference - output
-	    */
+		 */
 		iError = (signed)uiTarget - (signed)uiMeasurement;
-		
+
 		BDBG_MSG(("[%d]    Error: %d ms", psVideo->hChn->iIndex, 
-			BSYNClib_P_ConvertSigned(iError, BSYNClib_Units_e27MhzTicks, BSYNClib_Units_eMilliseconds)));
+			BSYNClib_P_ConvertSigned_isrsafe(iError, BSYNClib_Units_e27MhzTicks, BSYNClib_Units_eMilliseconds)));
 
 		if (bAllowBottomFieldTarget)
 		{
-		    int iBottomFieldError;
+			int iBottomFieldError;
 
-		    iBottomFieldError = (signed)(uiTarget + uiDisplayVsyncPeriod) - (signed)uiMeasurement;
+			iBottomFieldError = (signed)(uiTarget + uiDisplayVsyncPeriod) - (signed)uiMeasurement;
 
-	        BDBG_MSG(("[%d]    Bottom field error: %d ms", psVideo->hChn->iIndex, 
-				BSYNClib_P_ConvertSigned(iBottomFieldError, BSYNClib_Units_e27MhzTicks, BSYNClib_Units_eMilliseconds)));
+			BDBG_MSG(("[%d]    Bottom field error: %d ms", psVideo->hChn->iIndex,
+				BSYNClib_P_ConvertSigned_isrsafe(iBottomFieldError, BSYNClib_Units_e27MhzTicks, BSYNClib_Units_eMilliseconds)));
 
-	        if (BSYNCLIB_IABS(iBottomFieldError) < BSYNCLIB_IABS(iError))
-	        {
-	        	iError = iBottomFieldError;
-	        }
+			if (BSYNCLIB_IABS(iBottomFieldError) < BSYNCLIB_IABS(iError))
+			{
+				iError = iBottomFieldError;
+			}
 		}
 
-	    /* if the error is outside the threshold, might as well go ahead and correct for it */
+		/* if the error is outside the threshold, might as well go ahead and correct for it */
 		if (BSYNCLIB_IABS(iError) > uiThreshold)
 		{
 			iFactor = psLastFactor->iValue - iError;
 
-	        if (iFactor > (signed)(uiDisplayVsyncPeriod + uiThreshold))
-	        {
-	            iFactor -= 2 * (signed)uiDisplayVsyncPeriod;
-	        }
-	        else if (iFactor < -(signed)(uiDisplayVsyncPeriod + uiThreshold))
-	        {
-	        	iFactor += 2 * (signed)uiDisplayVsyncPeriod;
-	        }
+			if (iFactor > (signed)(uiDisplayVsyncPeriod + uiThreshold))
+			{
+				iFactor -= 2 * (signed)uiDisplayVsyncPeriod;
+			}
+			else if (iFactor < -(signed)(uiDisplayVsyncPeriod + uiThreshold))
+			{
+				iFactor += 2 * (signed)uiDisplayVsyncPeriod;
+			}
 
-	        /* save to last factor and mark as adjusted */
-	        psLastFactor->bAdjusted = true;
-	        psLastFactor->iValue = iFactor;
+			/* save to last factor and mark as adjusted */
+			psLastFactor->bAdjusted = true;
+			psLastFactor->iValue = iFactor;
 		}
 		else
 		{
-	        iFactor = psLastFactor->iValue;
-	        psLastFactor->bAdjusted = false;
-	        psLastFactor->iValue = 0;
+			iFactor = psLastFactor->iValue;
+			psLastFactor->bAdjusted = false;
+			psLastFactor->iValue = 0;
 		}
 	}
 	else
 	{
-        iFactor = 0;
-        uiAdditionalDelay = 0;
+		iFactor = 0;
+		uiAdditionalDelay = 0;
 	}
 
-    BDBG_MSG(("[%d]    JTI factor: %d ms", psVideo->hChn->iIndex, 
-		BSYNClib_P_ConvertSigned(iFactor, BSYNClib_Units_e27MhzTicks, BSYNClib_Units_eMilliseconds)));
+	BDBG_MSG(("[%d]    JTI factor: %d ms", psVideo->hChn->iIndex,
+		BSYNClib_P_ConvertSigned_isrsafe(iFactor, BSYNClib_Units_e27MhzTicks, BSYNClib_Units_eMilliseconds)));
 
-    /* negative correction factor means that we need to add one display period delay */
-    if ((iFactor < 0 && !uiCurrentDelay) || 
-        ((signed)uiCurrentDelay + iFactor < 0)) 
-    {
-        uiAdditionalDelay = uiDisplayVsyncPeriod;
-    }
-    else /* any other delay */
-    {
-        uiAdditionalDelay = 0;
-    }
+	/* negative correction factor means that we need to add one display period delay */
+	if ((iFactor < 0 && !uiCurrentDelay) ||
+		((signed)uiCurrentDelay + iFactor < 0))
+	{
+		uiAdditionalDelay = uiDisplayVsyncPeriod;
+	}
+	else /* any other delay */
+	{
+		uiAdditionalDelay = 0;
+	}
 
-    BDBG_MSG(("[%d]    Additional delay: %d ms", psVideo->hChn->iIndex, 
-		BSYNClib_P_Convert(uiAdditionalDelay, BSYNClib_Units_e27MhzTicks, BSYNClib_Units_eMilliseconds)));
+	BDBG_MSG(("[%d]    Additional delay: %d ms", psVideo->hChn->iIndex,
+		BSYNClib_P_Convert_isrsafe(uiAdditionalDelay, BSYNClib_Units_e27MhzTicks, BSYNClib_Units_eMilliseconds)));
 
 	*piJtiFactor = iFactor;
 	*puiAdditionalDelay = uiAdditionalDelay;
 
 	BDBG_LEAVE((BSYNClib_Algo_CalculateJitterToleranceImprovementFactor));
 }
-
+#endif /* BSYNCLIB_JITTER_TOLERANCE_IMPROVEMENT_SUPPORT */

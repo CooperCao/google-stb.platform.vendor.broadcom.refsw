@@ -65,6 +65,25 @@ struct tzioc_client *__tzioc_client_find_by_task(uint32_t task)
     return NULL;
 }
 
+struct tzioc_client *__tzioc_client_find_by_name_and_task(
+    const char *pName,
+    uint32_t task)
+{
+    uint8_t idx;
+
+    for (idx = 0; idx < TZIOC_CLIENT_NUM_MAX; idx++) {
+        if (pTziocClientCB->pClients[idx]) {
+            struct tzioc_client *pClient
+                = pTziocClientCB->pClients[idx];
+
+            if (!strncmp(pClient->name, pName, TZIOC_CLIENT_NAME_LEN_MAX) &&
+                pClient->task == task)
+                return pClient;
+        }
+    }
+    return NULL;
+}
+
 static inline uint8_t find_next_idx(void)
 {
     uint8_t idx;

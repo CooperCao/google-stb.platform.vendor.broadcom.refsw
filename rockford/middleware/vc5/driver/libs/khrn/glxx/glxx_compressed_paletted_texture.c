@@ -221,7 +221,7 @@ void glxx_compressed_paletted_teximageX(GLenum target, GLint level,
       GLenum internalformat, GLsizei width, GLsizei height, GLsizei depth, GLint border,
       GLsizei imageSize, const GLvoid *orig_pixels, unsigned dim)
 {
-   GLXX_SERVER_STATE_T *state   = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state   = glxx_lock_server_state(OPENGL_ES_ANY);
    GLXX_TEXTURE_T *texture = NULL;
    GLXX_BUFFER_T *pixel_buffer = NULL;
    GLenum error = GL_NO_ERROR;
@@ -307,5 +307,5 @@ end:
       unmap_src_pixels(pixel_buffer, orig_pixels, (size_t)imageSize, mapped_ptr);
    free(pixels);
    free(level_info);
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }

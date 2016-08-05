@@ -173,7 +173,7 @@ void framebuffer_term(void *v, size_t size)
 {
    GLXX_FRAMEBUFFER_T *fb = (GLXX_FRAMEBUFFER_T *)v;
    unsigned i;
-   UNUSED(size);
+   vcos_unused(size);
 
    for (i = 0; i < GLXX_ATT_COUNT; i++)
       attachment_reset(&fb->attachment[i]);
@@ -538,7 +538,7 @@ static bool attachment_acquire_specific_image(const GLXX_ATTACHMENT_T *att,
          KHRN_MEM_ASSIGN(*img, att->obj.fb_default.img);
       break;
    default:
-      UNREACHABLE();
+      unreachable();
       res = false;
    }
    return res;
@@ -578,7 +578,7 @@ bool glxx_attachment_acquire_image(const GLXX_ATTACHMENT_T *att,
          }
          break;
      default:
-         UNREACHABLE();
+         unreachable();
          res = false;
    }
 
@@ -694,7 +694,7 @@ static att_status_t attachment_status(const GLXX_ATTACHMENT_T *att,
          status = ATTACHMENT_COMPLETE;
          break;
       default:
-         UNREACHABLE();
+         unreachable();
          break;
    }
    KHRN_MEM_ASSIGN(img, NULL);
@@ -799,21 +799,6 @@ bool glxx_fb_is_complete(const GLXX_FRAMEBUFFER_T* fb)
    glxx_fb_status_t status;
    status = glxx_fb_completeness_status(fb);
    return status == GL_FRAMEBUFFER_COMPLETE;
-}
-
-bool glxx_fb_iterate_valid_draw_bufs(const GLXX_FRAMEBUFFER_T *fb,
-      unsigned *i, glxx_att_index_t *att_index)
-{
-   for ( ; *i < GLXX_MAX_RENDER_TARGETS; (*i)++)
-   {
-      if (glxx_fb_is_valid_draw_buf(fb, GLXX_COLOR0_ATT + *i))
-      {
-         *att_index = GLXX_COLOR0_ATT + *i;
-         (*i)++;
-         return true;
-      }
-   }
-   return false;
 }
 
 bool glxx_fb_is_valid_draw_buf(const GLXX_FRAMEBUFFER_T *fb,

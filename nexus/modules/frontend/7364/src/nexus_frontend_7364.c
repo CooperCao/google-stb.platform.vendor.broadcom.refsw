@@ -253,9 +253,8 @@ NEXUS_FrontendDeviceHandle NEXUS_FrontendDevice_P_Open7364(unsigned index, const
 
     if ( NULL == pDevice)
     {
-        pFrontendDevice = BKNI_Malloc(sizeof(*pFrontendDevice));
+        pFrontendDevice = NEXUS_FrontendDevice_P_Create();
         if (NULL == pFrontendDevice) { BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY); goto err; }
-        BKNI_Memset(pFrontendDevice, 0, sizeof(*pFrontendDevice));
 
         pDevice = BKNI_Malloc(sizeof(*pDevice));
         if (NULL == pDevice) { BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY); goto err; }

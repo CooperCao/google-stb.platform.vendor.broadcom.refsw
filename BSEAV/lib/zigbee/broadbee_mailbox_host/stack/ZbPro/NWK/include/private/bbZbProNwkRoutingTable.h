@@ -78,7 +78,8 @@ typedef enum _ZbProNwkRouteType_t
     NWK_ROUTE_TYPE_UNKNOWN,
     NWK_ROUTE_TYPE_FAIL,
     NWK_ROUTE_TYPE_INDIRECT,
-    NWK_ROUTE_TYPE_TO_NEIGHBOR,
+    NWK_ROUTE_TYPE_TO_NEIGHBOR_END_DEVICE,
+    NWK_ROUTE_TYPE_TO_NEIGHBOR_ROUTER,
     NWK_ROUTE_TYPE_MESH,
     NWK_ROUTE_TYPE_BROADCAST,
     NWK_ROUTE_TYPE_DIRECT,
@@ -115,6 +116,11 @@ NWK_PRIVATE ZBPRO_NWK_RoutingTableEntry_t* zbProNwkAllocRoutingEntry(void);
   \return None.
 ****************************************************************************************/
 NWK_PRIVATE void zbProNwkFreeRoutingEntry(const ZBPRO_NWK_NwkAddr_t dstAddr);
+
+/************************************************************************************//**
+  \brief Tries find a route loop into routing table and removes conflicted entries if they are exist.
+****************************************************************************************/
+NWK_PRIVATE void zbProNwkDeleteRoutingLoop(const ZBPRO_NWK_NwkAddr_t dstAddr, const ZBPRO_NWK_NwkAddr_t prevHopAddr);
 
 /************************************************************************************//**
   \brief Free all entries with the given next hop.

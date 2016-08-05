@@ -73,6 +73,13 @@ var GetCpuInfo = {Value: 0};
 var GetMemory = {Value: 0};
 var GetIrqInfo = {Value: 0};
 var GetNetStats =  {Value: 0};
+var GetWifiStats =  {Value: 0, Init:0, SecondsEnabled:0 };
+var GetWifiStatsCountdown = 0;
+var GetWifiScan =  {Value: 0, State:0, MaxNumAps:1, ServerIdx:0 };
+var GetWifiScanState = { UNINIT:0 ,SCANNING:1 };
+var GetWifiAmpduGraph =  {Value: 0, FirstTime:0 };
+var HIDE = false;
+var SHOW = true;
 var GetHeapStats =  {Value: 0};
 var GetSataUsb =  {Value: 0, Stop:0 };
 var GetProfiling =  {Value: 0};
@@ -113,6 +120,18 @@ var cpuUsageLongAverage = [0,0,0,0,0,0,0,0,0,0]; // 10-second average CPU utiliz
 var CPU_USAGE_LONG_AVERAGE_MAX = 5; // 10-second window
 var cpuUsageLongAverageIdx = 0; // index into 10-second average CPU utilization array (cpuUsageLongAverage)
 var cpuUsageLongAverageCount = 0; // number of 10-second average CPU utilization array (cpuUsageLongAverage)
+var iperfStateEnum = { UNINIT:0, INIT:1, RUNNING:2, STOP:3 };
+var iperfStateClient = iperfStateEnum.UNINIT;
+var iperfStateServer = iperfStateEnum.UNINIT;
+var iperfInit = false;
+var iperfStartTimeClient = 0;
+var iperfStartTimeServer = 0;
+var iperfTimeoutClient = 0;
+var iperfPidClient = 0;
+var iperfPidServer = 0;
+var iperfRunningClient = "";
+var iperfRunningServer = "";
+var iperfClientServerRow = 0;
 
 Number.prototype.padZero= function(len){
     var s= String(this), c= '0';
@@ -145,12 +164,14 @@ function getNumEntries ( arrayname )
 function hideOrShow ( elementid, trueOrFalse )
 {
     if (trueOrFalse) {
-        //alert("hideOrShow: " + elementid + "; starting to SHOW");
+        //if (elementid.indexOf('wifi') ) alert("hideOrShow: " + elementid + "; starting to SHOW");
         document.getElementById(elementid).style.display = '';
+        document.getElementById(elementid).style.visibility = '';
         //alert("hideOrShow: " + elementid + "; SHOW");
     } else {
-        //alert("hideOrShow: " + elementid + "; starting to HIDE");
+        //if (elementid.indexOf('wifi') ) alert("hideOrShow: " + elementid + "; starting to HIDE");
         document.getElementById(elementid).style.display = 'none';
+        document.getElementById(elementid).style.visibility = 'hidden';
         //alert("hideOrShow: " + elementid + "; HIDE");
     }
 }
@@ -194,6 +215,17 @@ function showRow ( rownum )
         rowobj.style.visibility = "";
     }
     //alert("showRow done");
+}
+
+function setButtonDisabled ( targetId, newState )
+{
+    //alert("setButtonDisabled  targetId (" + targetId + ") ... newState (" + newState + ")" );
+    var objButton = document.getElementById( targetId );
+    if (objButton) {
+        objButton.disabled = newState;
+    }
+
+    return true;
 }
 
 function SetCheckboxDisabled ( checkboxName, objStatus )
@@ -302,6 +334,16 @@ function AppendPolylineXY ( polylinenumber, newValue )
     }
 }
 
+// There is a bug that if the CPU row is not already checked in the HTML file, the blank space for the CPU rows
+// will still be seen. Created this delayed function to hide the CPU row if the checkbox is unchecked.
+function Wifi3DDelayed()
+{
+    var obj = document.getElementById('checkboxcpus');
+    if ( obj && obj.checked == false) {
+        hideOrShow("row_cpus", HIDE );
+    }
+}
+
 function MyLoad()
 {
     userAgent = navigator.userAgent;
@@ -315,9 +357,21 @@ function MyLoad()
     var svgobj;
 
     objdebug = document.getElementById("debugoutputbox");
+
     //alert("passcount==" + passcount + "; gNumCpus " + gNumCpus );
     if ( passcount == 0 ) {
         var local = new Date();
+
+        var obj2 = document.getElementById("checkboxwifi");
+        if ( obj2 ) {
+            obj2.checked = false;
+            GetWifiStats.Init = false;
+            hideOrShow("row_wifi_stats", HIDE );
+            hideOrShow("row_wifi_ampdu", HIDE );
+            GetWifiAmpduGraph.Value = 0;
+            setTimeout ('Wifi3DDelayed()', 100 );
+        }
+
         epochSeconds = Math.floor(local.getTime() / 1000);
         //alert("local Date " + epochSeconds );
         tzOffset = local.getTimezoneOffset();
@@ -348,9 +402,12 @@ function MyLoad()
         SetInternalCheckboxStatus ( "checkboxcpus", GetCpuInfo );
         SetInternalCheckboxStatus ( "checkboxmemory", GetMemory );
         SetInternalCheckboxStatus ( "checkboxnets", GetNetStats );
+        SetInternalCheckboxStatus ( "checkboxwifi", GetWifiStats );
         SetInternalCheckboxStatus ( "checkboxirqs", GetIrqInfo );
         SetInternalCheckboxStatus ( "checkboxprofiling", GetProfiling );
         SetInternalCheckboxStatus ( "checkboxPerfFlame", GetPerfFlame);
+
+        iperfInit = GetNetStats.Value;
 
         GetSataUsb.Stop = 1; // tell the server to stop any SATA/USB data collection that may have been started earlier
 
@@ -382,7 +439,7 @@ function MyLoad()
 
     sendCgiRequest();
 
-    //alert("end passcount==" + passcount);
+    //alert("MyLoad: end passcount==" + passcount);
 }
 
 function randomFromTo(from, to)
@@ -551,10 +608,77 @@ function GetPerfFlameSetStop()
     if (objButton) {
         objButton.value = "Start";
     }
-    objButton = document.getElementById('checkboxPerfFlame');
-    if (objButton) {
-        objButton.disabled = false;
+    setButtonDisabled( 'checkboxPerfFlame', false );
+}
+
+function ClearOutHtml ( tagName )
+{
+    var obj = document.getElementById( tagName );
+    if (obj) {
+        obj.innerHTML = "";
     }
+
+    return true;
+}
+
+function AddToHtml ( tagName, newHtml )
+{
+    var obj = document.getElementById( tagName );
+    if (obj) {
+        obj.innerHTML += newHtml;
+    }
+
+    return true;
+}
+
+var checkboxWifiAmpduGraph1stPass = true;
+
+function checkboxWifiAmpduGraphDoit ( fieldValue )
+{
+    SetInternalCheckboxStatus ( "checkboxWifiAmpduGraph", GetWifiAmpduGraph);
+    if ( fieldValue == false ) { // we unchecked the box ... stop recording
+        GetWifiAmpduGraph.Value = 0;
+        hideOrShow("row_wifi_ampdu", HIDE );
+    } else {
+        if ( userAgent.indexOf("Trident") > 0 ) { // agents like Trident do not render the SVG
+            alert("The AMPDU graph using SVG elements does not work on this browser!     (Try Chrome, Firefox, or Safari.)");
+            var obj2 = document.getElementById("checkboxWifiAmpduGraph");
+            if (obj2) {
+                obj2.disabled = true;
+                obj2.checked = false;
+            }
+        } else {
+            GetWifiAmpduGraph.Value = 1;
+            if ( GetWifiAmpduGraph.FirstTime == 0) { // if this is the first time, tell bsysperf_server to begin collecting data
+                GetWifiAmpduGraph.FirstTime = 1;
+            }
+        }
+        if (checkboxWifiAmpduGraph1stPass) {
+            checkboxWifiAmpduGraph1stPass = false;
+            for(sidx=0; sidx<2; sidx++) {
+                // rotate both SVG elements to the left a bit
+                for(var i=0; i<6; i++) {
+                    ChangeViewer(0,-5);
+                }
+                // shift both SVG elements up a bit
+                for(var i=0; i<1; i++) { // 2016-07-14 ... was 3
+                    Shift(0,-20);
+                }
+                S[sidx].ZoomAll = 26;
+            }
+            sidx=0;
+        }
+    }
+}
+
+function checkboxwifiDoit( fieldValue )
+{
+    SetInternalCheckboxStatus ( "checkboxwifi", GetWifiStats );
+    hideOrShow("row_wifi_stats", fieldValue);
+    if (fieldValue == false) {
+        hideOrShow("row_wifi_ampdu", fieldValue);
+    }
+    GetWifiStats.Init = fieldValue;
 }
 
 function setVariable(fieldName)
@@ -572,7 +696,7 @@ function setVariable(fieldName)
 
         if (obj.type == "checkbox" ) {
             fieldValue = obj.checked;
-            if (debug) alert("setVariable: checkbox; value " + fieldValue );
+            if (debug==1) alert("setVariable: " + fieldName + "; value " + fieldValue );
 
             if (fieldName == "checkboxcpus" ) {
                 SetInternalCheckboxStatus ( "checkboxcpus", GetCpuInfo );
@@ -580,6 +704,9 @@ function setVariable(fieldName)
             } else if (fieldName == "checkboxnets" ) {
                 SetInternalCheckboxStatus ( "checkboxnets", GetNetStats );
                 hideOrShow("row_net_stats", fieldValue);
+                iperfInit = fieldValue;
+            } else if (fieldName == "checkboxwifi" ) {
+                checkboxwifiDoit( fieldValue );
             } else if (fieldName == "checkboxirqs" ) {
                 SetInternalCheckboxStatus ( "checkboxirqs", GetIrqInfo );
                 hideOrShow("row_irqs", fieldValue);
@@ -709,6 +836,16 @@ function setVariable(fieldName)
                     SetInternalCheckboxStatus ( "checkboxPerfFlame", GetPerfFlame);
                     hideOrShow("row_PerfFlame", fieldValue);
                 }
+            } else if (fieldName == "checkboxWifiAmpduGraph" ) {
+                checkboxWifiAmpduGraphDoit( fieldValue );
+            } else if (fieldName == "checkboxiperfrow" ) {
+                if (fieldValue == false) {
+                    iperfClientServerRow = 0;
+                    hideOrShow("row_iperf_client_server", HIDE );
+                } else {
+                    iperfClientServerRow = 1;
+                    hideOrShow("row_iperf_client_server", SHOW );
+                }
             }
 
             if (obj.checked) {
@@ -717,6 +854,9 @@ function setVariable(fieldName)
             }
         } else if ( obj.type == "text" ) {
             fieldValue = obj.value;
+        } else if ( obj.type == "textarea" ) {
+            //alert("textarea ... " + fieldName );
+            HideThisDisplayOther(fieldName);
         } else if ( obj.type == "radio" ) {
         } else if ( obj.type == "button" ) {
             //alert("button:" + fieldName);
@@ -733,11 +873,10 @@ function setVariable(fieldName)
                             }
                             var local = new Date();
                             GetPerfFlameRecordingSeconds = Math.floor(local.getTime() / 1000);
+
                             // disable the checkbox until the user stops the perf record
-                            objButton = document.getElementById('checkboxPerfFlame');
-                            if (objButton) {
-                                objButton.disabled = true;
-                            }
+                            setButtonDisabled( 'checkboxPerfFlame', true );
+
                             // clear out the SVG container
                             objButton = document.getElementById('PerfFlameSvg');
                             if (objButton) {
@@ -749,6 +888,54 @@ function setVariable(fieldName)
                     }
                 } else if (GetPerfFlame.State == GetPerfFlameState.RECORDING) { // state is Running/Recording
                     GetPerfFlameSetStop();
+                }
+            } else if (fieldName == "WifiScan") {
+                if ( GetWifiScan.State == GetWifiScanState.UNINIT ) {
+                    GetWifiScan.Value = true;
+                    ClearOutHtml ( "WIFISCANRESULTS" );
+                    GetWifiScan.State = GetWifiScanState.INIT;
+                    setButtonDisabled ( fieldName, true );
+                }
+            } else if (fieldName == "iperf_start_stop_c") {
+                var obj=document.getElementById(fieldName);
+                if (obj) {
+                    if (obj.value == "START") {
+                        if ( document.getElementById('iperf_addr').value.length ) {
+                            set_iperf_count_value( fieldName, "" );
+                            iperfStateClient = iperfStateEnum.INIT;
+                            if (iperfTimeoutClient) {
+                                clearTimeout(iperfTimeoutClient);
+                                iperfTimeoutClient = 0;
+                            }
+                            var obj_duration = document.getElementById('iperf_duration');
+                            if (obj_duration && obj_duration.value ) {
+                                var seconds = Number(obj_duration.value * 1000);
+                                iperfTimeoutClient = setTimeout ( "set_iperf_stop()", seconds );
+                            }
+                            KeyupEntryBox( fieldName );
+                        } else {
+                            alert("You must specify a Server Address before starting iperf.");
+                        }
+                    } else {
+                        iperfStateClient = iperfStateEnum.STOP;
+                    }
+                    iperfPidClient = "";
+                    set_iperf_button( fieldName );
+                    sendCgiRequest();
+                }
+            } else if (fieldName == "iperf_start_stop_s") {
+                var obj=document.getElementById(fieldName);
+                if (obj) {
+                    if (obj.value == "START") {
+                        set_iperf_count_value( fieldName, "" );
+                        iperfStateServer = iperfStateEnum.INIT;
+                        KeyupEntryBox( fieldName );
+                    } else {
+                        iperfStateServer = iperfStateEnum.STOP;
+                    }
+                    iperfPidServer = "";
+                    set_iperf_button( fieldName );
+                    sendCgiRequest();
                 }
             }
         } else if ( obj.type == "select-one" ) {
@@ -847,8 +1034,73 @@ function sendCgiRequest( )
         url += "&irqinfo=1";
     }
 
+    var checkboxiperf=document.getElementById('checkboxiperfrow');
     if (GetNetStats.Value == true) {
         url += "&netstats=1";
+        if (iperfInit) {
+            url += "&iperfInit=1";
+            iperfInit = false;
+        }
+        if ( checkboxiperf && checkboxiperf.checked == true ) {
+            url += "&iperfRunningClient=1&iperfRunningServer=1";
+        }
+    }
+
+    if ( iperfStateClient == iperfStateEnum.INIT ) {
+        url += "&iperfCmdLine=" + CreateIperfString( "Client" );
+        iperfStateClient = iperfStateEnum.RUNNING;
+    } else if ( iperfStateClient == iperfStateEnum.STOP ) {
+        url += "&iperfCmdLine=STOP iperf -c";
+        iperfStateClient = iperfStateEnum.UNINIT;
+        if ( iperfPidClient != "terminated" && iperfPidClient != "Executable not found" ) iperfPidClient = "";
+        set_iperf_status_cell();
+        set_iperf_button( "Client" );
+    } else if ( iperfStateClient == iperfStateEnum.RUNNING && GetNetStats.Value && checkboxiperf && checkboxiperf.checked == true ) {
+        url += "&iperfPidClient=1";
+    }
+
+    if ( iperfStateServer == iperfStateEnum.INIT ) {
+        url += "&iperfCmdLine=" + CreateIperfString( "Server" );
+        iperfStateServer = iperfStateEnum.RUNNING;
+    } else if ( iperfStateServer == iperfStateEnum.STOP ) {
+        url += "&iperfCmdLine=STOP iperf -s";
+        iperfStateServer = iperfStateEnum.UNINIT;
+        if ( iperfPidServer != "terminated" && iperfPidServer != "Executable not found" ) iperfPidServer = "";
+        set_iperf_status_cell();
+        set_iperf_button( "Server" );
+    } else if ( iperfStateServer == iperfStateEnum.RUNNING && GetNetStats.Value && checkboxiperf && checkboxiperf.checked == true ) {
+        url += "&iperfPidServer=1";
+    }
+
+    var obj2 = document.getElementById("checkboxwifi");
+    if (obj2  && obj2.checked ) {
+        if (GetWifiStats.Init == true) {
+            url += "&wifiinit=1"; // the first time after the box is checked, request chip/driver version, board id, etc. ... stuff that does not change
+            GetWifiStats.Init = false;
+        }
+        if (GetWifiStats.Value == true) {
+            url += "&wifiStats=1";
+
+            if ( GetWifiAmpduGraph.Value == 1 ) {
+                url += "&wifiAmpduGraph=1";
+            }
+        }
+
+        if ( GetWifiAmpduGraph.FirstTime == 1) {
+            url += "&wifiAmpduStart=1";
+            GetWifiAmpduGraph.FirstTime = 2; // after we have told bsysperf_server to begin collecting data, do not do it again. wifiStats will be used thereafter
+        }
+
+        if (GetWifiScan.Value == true) {
+            url += "&wifiscanstart=1";
+            GetWifiScan.Value = false;
+            GetWifiScan.State = GetWifiScanState.SCANNING;
+            GetWifiScan.ServerIdx = 0;
+        }
+
+        if (GetWifiScan.State == GetWifiScanState.SCANNING ) {
+            url += "&wifiscanresults=" + GetWifiScan.ServerIdx;
+        }
     }
 
     if (GetHeapStats.Value == true) {
@@ -1035,24 +1287,24 @@ function ComputeNetBytes10SecondsAverage ( InterfaceIndex, RxTxIndex )
     var precision       = 0;
     var spacer          = "";
 
-    if (objdebug && InterfaceIndex == 1 ) objdebug.innerHTML += "ComputeAverage: num secs " + NetBytesRx10SecondsCount[InterfaceIndex] + ": ";
+    //if (objdebug && InterfaceIndex == 1 ) objdebug.innerHTML += "ComputeAverage: num secs " + NetBytesRx10SecondsCount[InterfaceIndex] + ": ";
     for(secs=0; secs<NetBytesRx10SecondsCount[InterfaceIndex]; secs++) {
         spacer = "";
         if (RxTxIndex == 0) {
             cummulativeMbps += NetBytesRx10Seconds[InterfaceIndex][secs];
-            if (objdebug && InterfaceIndex == 1 ) if (NetBytesRx10Seconds[InterfaceIndex][secs].toFixed(0) < 10 ) { spacer = " "; }
-            if (objdebug && InterfaceIndex == 1 ) objdebug.innerHTML += "[" + secs + "]=" + spacer + NetBytesRx10Seconds[InterfaceIndex][secs].toFixed(2) + ", ";
+            //if (objdebug && InterfaceIndex == 1 ) if (NetBytesRx10Seconds[InterfaceIndex][secs].toFixed(0) < 10 ) { spacer = " "; }
+            //if (objdebug && InterfaceIndex == 1 ) objdebug.innerHTML += "[" + secs + "]=" + spacer + NetBytesRx10Seconds[InterfaceIndex][secs].toFixed(2) + ", ";
         } else {
-            if (objdebug && InterfaceIndex == 1 ) if (NetBytesTx10Seconds[InterfaceIndex][secs].toFixed(0) < 10 ) { spacer = " "; }
+            //if (objdebug && InterfaceIndex == 1 ) if (NetBytesTx10Seconds[InterfaceIndex][secs].toFixed(0) < 10 ) { spacer = " "; }
             cummulativeMbps += NetBytesTx10Seconds[InterfaceIndex][secs];
-            if (objdebug && InterfaceIndex == 1 ) objdebug.innerHTML += "[" + secs + "]=" + spacer + NetBytesTx10Seconds[InterfaceIndex][secs].toFixed(2) + ", ";
+            //if (objdebug && InterfaceIndex == 1 ) objdebug.innerHTML += "[" + secs + "]=" + spacer + NetBytesTx10Seconds[InterfaceIndex][secs].toFixed(2) + ", ";
         }
     }
     if ( NetBytesRx10SecondsCount[InterfaceIndex] > 0) {
         averageMbps = Number ( cummulativeMbps / NetBytesRx10SecondsCount[InterfaceIndex] );
     }
-    if (objdebug && InterfaceIndex == 1 ) if (averageMbps.toFixed(0) < 10 ) { spacer = " "; }
-    if (objdebug && InterfaceIndex == 1 ) objdebug.innerHTML += "; avg=" + spacer + averageMbps.toFixed(2) + "\n";
+    //if (objdebug && InterfaceIndex == 1 ) if (averageMbps.toFixed(0) < 10 ) { spacer = " "; }
+    //if (objdebug && InterfaceIndex == 1 ) objdebug.innerHTML += "; avg=" + spacer + averageMbps.toFixed(2) + "\n";
     // if the average is less than one Mbps, increase the decimal precision to show kilobits
     if (averageMbps.toFixed(0) == 0) {
         precision = 2;
@@ -1133,6 +1385,117 @@ function GetSvgContents ()
     }
 }
 
+function HideThisDisplayOther( id )
+{
+    var len = id.length;
+    if ( len > 1 ) {
+        var sub=id.substr(len-1,1);
+        var other = "";
+        if ( sub == "t" ) { // if this is the title
+            // abc123t
+            other = id.substr(0,len-1) + "d"; // other is the detailed one
+        } else {
+            other = id.substr(0,len-1) + "t"; // other is the title one
+        }
+        //alert("id is (" + id + ") ... len (" + len + ") ... sub (" + sub + ") other (" + other + ")" );
+        var obj_this_row = document.getElementById(id + "r");
+        var obj_other_row = document.getElementById(other + "r");
+        //alert("id_row (" + id + "r" + ") - obj_this_row:" + obj_this_row + "\nid_row (" + other + "r" + ") ... obj_other_row:" + obj_other_row);
+        if ( obj_this_row && obj_other_row ) {
+            obj_this_row.style.display = "none";
+            obj_other_row.style.display = "";
+        } else {
+            //alert("obj_this_row:" + obj_this_row + " ... obj_other_row:" + obj_other_row);
+        }
+    }
+}
+
+var swap_pass=0;
+function SwapElementsValues( id1, id2 )
+{
+    var obj1 = document.getElementById( id1 );
+    var obj2 = document.getElementById( id2 );
+    //if ( swap_pass == 0 ) alert("SwapElementsValues: id1:" + id1 + ";   id2:" + id2 + ";  obj1:" + obj1 + ";  obj2:" + obj2 );
+    var temp = 0;
+
+    if (obj1 && obj2) {
+        //if ( swap_pass == 0 ) alert("SwapElementsValues: before obj1.value:" + obj1.value + ";  obj2.value:" + obj2.value );
+        temp = obj1.value;
+        obj1.value = obj2.value;
+        obj2.value = temp;
+        //if ( swap_pass == 0 ) alert("SwapElementsValues: after obj1.value:" + obj1.value + ";  obj2.value:" + obj2.value );
+    }
+}
+function SwapElementsInnerHTML( id1, id2 )
+{
+    var obj1 = document.getElementById( id1 );
+    var obj2 = document.getElementById( id2 );
+    var temp = 0;
+
+    if (obj1 && obj2) {
+        //if ( swap_pass == 0 ) alert("SwapElementsValues: before obj1.innerHTML:" + obj1.innerHTML+ ";  obj2.innerHTML:" + obj2.innerHTML );
+        temp = obj1.innerHTML;
+        obj1.innerHTML = obj2.innerHTML;
+        obj2.innerHTML = temp;
+        //alert("for id1 (" + id1 + ") ... id1.indexOf(s_x)=" + id1.indexOf("s_x") );
+        if ( id1.indexOf("s_x") == 0 || id1.indexOf("S_x") == 0 ) {
+            var rowid1 = "r" + id1.substr(1,99);
+            var rowid2 = "R" + id2.substr(1,99);
+            var objrow1 = document.getElementById( rowid1 );
+            var objrow2 = document.getElementById( rowid2 );
+            //alert("for rowid1 (" + rowid1 + ")   rowid2 (" + rowid2 + ") ... objrow1=" + objrow1 + ";   objrow2=" + objrow2 );
+            if(objrow1 && objrow2) {
+                temp = objrow1.getAttribute('style');
+                objrow1.setAttribute('style', objrow2.getAttribute('style'));
+                objrow2.setAttribute('style', temp);
+                //alert("SwapInnerHTML: (" + temp +"); row.style=(" + objrow1.getAttribute('style') + ");  row2:(" + objrow2.getAttribute('style') + ")  rowid1=(" + rowid1 + ")" );
+            }
+        }
+        //if ( swap_pass == 0 ) alert("SwapElementsValues: after obj1.innerHTML:" + obj1.innerHTML+ ";  obj2.innerHTML:" + obj2.innerHTML );
+    }
+}
+
+function SwapTxRx( which )
+{
+    var ii, jj;
+    var id1 = "";
+    var id2 = "";
+
+    //alert("SwapTxTx: which=" + which );
+    for(ii=0; ii<8; ii++) {
+        if (which == 0) {
+            id1 = "s_x" + ii;
+            id2 = "S_x" + ii;
+        } else {
+            id1 = "S_x" + ii;
+            id2 = "s_x" + ii;
+        }
+        SwapElementsInnerHTML( id1, id2 );
+
+        if (which == 0) {
+            id1 = "c_x" + ii;
+            id2 = "C_x" + ii;
+        } else {
+            id1 = "C_x" + ii;
+            id2 = "c_x" + ii;
+        }
+        SwapElementsValues( id1, id2 );
+
+        for(jj=0; jj<12; jj++) {
+            if (which == 0) {
+                id1 = "v" + ii + "_" + jj;
+                id2 = "V" + ii + "_" + jj;
+            } else {
+                id1 = "V" + ii + "_" + jj;
+                id2 = "v" + ii + "_" + jj;
+            }
+            SwapElementsValues( id1, id2 );
+        }
+        swap_pass++;
+    }
+    //alert("SwapTxRx done");
+}
+
 // This function runs as an asynchronous response to a previous server request
 function serverHttpResponse ()
 {
@@ -1195,16 +1558,28 @@ function serverHttpResponse ()
                 // loop through <response> elements, and add each nested
                 for (var i = 0; i < oResponses.length; i++) {
                     var entry = oResponses[i];
+                    //if ( entry.indexOf("WIFI") > 0 ) { debug=1; }
                     if ( debug==1 && entry.length>1 ) alert("Entry " + entry + "; len " + entry.length );
                     if ( entry == "ALLDONE" ) {
                         AddToDebugOutput ( entry + eol );
-                        if (debug==1) alert("response: calling sendCgiRequest()");
                         ResponseCount++;
+                        if (debug==1) alert(entry + " ... response: calling sendCgiRequest()");
                         CgiTimeoutId = setTimeout ('OneSecond()', REFRESH_IN_MILLISECONDS );
+                        if ( GetWifiStatsCountdown ) {
+                            GetWifiStatsCountdown--;
+                            if (GetWifiStatsCountdown == 0) {
+                                GetWifiStats.Value = 1;
+                            }
+                        }
+
                         //AddToDebugOutput ( entry + ": calling setTimeout(); ID (" + CgiTimeoutId + ")"  + eol );
                     } else if (entry == "FATAL") {
                         AddToDebugOutput ( entry + ":" + oResponses[i+1] + eol );
                         alert("FATAL ... " + oResponses[i+1]);
+                        i++;
+                    } else if ( entry == "DEBUG" ) {
+                        AddToDebugOutput ( entry + ":" + oResponses[i+1] + eol );
+                        if(debug) alert(entry + ":" + oResponses[i+1]);
                         i++;
                     } else if (entry == "VERSION") {
                         AddToDebugOutput ( entry + ":" + oResponses[i+1] + eol );
@@ -1213,7 +1588,7 @@ function serverHttpResponse ()
                         //AddToDebugOutput ( entry + ":" + oResponses[i+1] + eol );
                         var obj2=document.getElementById("stbtime");
                         if (obj2) {
-                            if (debug) alert("setting stbtime to " + oResponses[i+1] );
+                            //if (debug) alert("setting stbtime to " + oResponses[i+1] );
                             obj2.innerHTML = oResponses[i+1];
                             i++;
                         } else {
@@ -1347,7 +1722,7 @@ function serverHttpResponse ()
                                     obj2.innerHTML = oResponses[i+1];
                                 }
                                 validResponseReceived = 1;
-                                hideOrShow("row_memory", true );
+                                hideOrShow("row_memory", SHOW );
                             } else {
                                 AddToDebugOutput ( entry + ":ignored because checkbox is not checked" + eol );
                             }
@@ -1361,10 +1736,25 @@ function serverHttpResponse ()
                                 var obj2=document.getElementById("NETSTATS");
                                 if (obj2) {
                                     obj2.innerHTML = oResponses[i+1];
+                                    AddToDebugOutput ( entry + ":iperfClientServerRow:" + iperfClientServerRow + eol );
+                                    // because the checkboxbox gets updated every second, we have to remember the status of the previous second
+                                    if ( iperfClientServerRow == 1 ) { // if the previous status was checked, set current status to same
+                                        var objbox=document.getElementById('checkboxiperfrow');
+                                        if (objbox) {
+                                            objbox.checked = true;
+                                        }
+                                        hideOrShow("row_iperf_client_server", SHOW );
+                                    } else {
+                                        hideOrShow("row_iperf_client_server", HIDE );
+                                    }
                                 }
                             } else {
                                 AddToDebugOutput ( entry + ":ignored because checkbox is not checked" + eol );
                             }
+                        }
+                        if ( iperfStateClient != iperfStateEnum.UNINIT || iperfStateServer != iperfStateEnum.UNINIT ) {
+                            set_iperf_count_cell();
+                            set_iperf_status_cell();
                         }
                         i++;
                     } else if (entry == "NETBYTES") {
@@ -1465,6 +1855,274 @@ function serverHttpResponse ()
                             }
                         }
                         i++;
+                    } else if (entry == "iperfInit") {
+                        //alert(entry + " is (" + oResponses[i+1] + ")" );
+                        var obj2 = document.getElementById("checkboxnets");
+                        if (obj2) {
+                            if (obj2.checked) {
+                                var response = oResponses[i+1];
+                                var obj2=document.getElementById("iperfInit");
+                                if (obj2) {
+                                    obj2.innerHTML = oResponses[i+1];
+                                }
+                            } else {
+                                AddToDebugOutput ( entry + ":ignored because checkbox is not checked" + eol );
+                            }
+                        }
+                        i++;
+                    } else if (entry == "iperfPidClient") {
+                        var obj2 = document.getElementById("checkboxnets");
+                        if (obj2) {
+                            if (obj2.checked) {
+                                iperfPidClient = oResponses[i+1];
+                                if (iperfPidClient == 0 && iperfStateClient == iperfStateEnum.RUNNING) {
+                                    alert(entry + " is (" + oResponses[i+1] + ")" );
+                                    iperfStateClient = iperfStateEnum.STOP;
+                                    set_iperf_button( entry );
+                                    iperfPidClient = "terminated";
+                                }
+                            } else {
+                                AddToDebugOutput ( entry + ":ignored because checkbox is not checked" + eol );
+                            }
+                        }
+                        i++;
+                    } else if (entry == "iperfPidServer") {
+                        //alert(entry + " is (" + oResponses[i+1] + ")" );
+                        var obj2 = document.getElementById("checkboxnets");
+                        if (obj2) {
+                            if (obj2.checked) {
+                                iperfPidServer = oResponses[i+1];
+                                if (iperfPidServer == 0 && iperfStateServer == iperfStateEnum.RUNNING) {
+                                    iperfStateServer = iperfStateEnum.STOP;
+                                    set_iperf_button( entry );
+                                    iperfPidServer = "terminated";
+                                }
+                            } else {
+                                AddToDebugOutput ( entry + ":ignored because checkbox is not checked" + eol );
+                            }
+                        }
+                        i++;
+                    } else if (entry == "iperfErrorClient") {
+                        //alert(entry + " is (" + oResponses[i+1] + ")" );
+                        var obj2 = document.getElementById("checkboxnets");
+                        if (obj2) {
+                            if (obj2.checked) {
+                                iperfPidClient = oResponses[i+1];
+                                iperfStateClient = iperfStateEnum.UNINIT;
+                                set_iperf_button( entry );
+                                set_iperf_status_cell();
+                            } else {
+                                AddToDebugOutput ( entry + ":ignored because checkbox is not checked" + eol );
+                            }
+                        }
+                        i++;
+                    } else if (entry == "iperfErrorServer") {
+                        //alert(entry + " is (" + oResponses[i+1] + ")" );
+                        var obj2 = document.getElementById("checkboxnets");
+                        if (obj2) {
+                            if (obj2.checked) {
+                                iperfPidServer = oResponses[i+1];
+                                iperfStateServer = iperfStateEnum.UNINIT;
+                                set_iperf_button( entry );
+                                set_iperf_status_cell();
+                            } else {
+                                AddToDebugOutput ( entry + ":ignored because checkbox is not checked" + eol );
+                            }
+                        }
+                        i++;
+                    } else if (entry == "iperfRunningClient") {
+                        //alert(entry + " is (" + oResponses[i+1] + ")" );
+                        var obj2 = document.getElementById("checkboxnets");
+                        if (obj2) {
+                            if (obj2.checked) {
+                                iperfRunningClient = oResponses[i+1];
+                                if (iperfRunningClient.length) {
+                                    //fillin_iperf_entry_boxes();
+                                    var obj=document.getElementById("iperf_start_stop_c");
+                                    if (obj && obj.value == "START") {
+                                        obj.value = "STOP";
+                                        iperfStateClient = iperfStateEnum.RUNNING;
+                                        set_iperf_cmd ( iperfRunningClient.substr(iperfRunningClient.indexOf('iperf ')), entry );
+                                        set_iperf_count_value(entry, get_unix_seconds( iperfRunningClient ) ); // if we loaded the page and iperf is already running, set the start time
+                                    }
+                                }
+                            } else {
+                                AddToDebugOutput ( entry + ":ignored because checkbox is not checked" + eol );
+                            }
+                        }
+                        i++;
+                    } else if (entry == "iperfRunningServer") {
+                        //alert(entry + " is (" + oResponses[i+1] + ")" );
+                        var obj2 = document.getElementById("checkboxnets");
+                        if (obj2) {
+                            if (obj2.checked) {
+                                iperfRunningServer = oResponses[i+1];
+                                if (iperfRunningServer.length) {
+                                    //fillin_iperf_entry_boxes();
+                                    var obj=document.getElementById("iperf_start_stop_s");
+                                    if (obj && obj.value == "START") {
+                                        obj.value = "STOP";
+                                        iperfStateServer = iperfStateEnum.RUNNING;
+                                        set_iperf_cmd ( iperfRunningServer.substr(iperfRunningServer.indexOf('iperf ')), entry );
+                                        set_iperf_count_value(entry, get_unix_seconds( iperfRunningServer ) ); // if we loaded the page and iperf is already running, set the start time
+                                    }
+                                }
+                            } else {
+                                AddToDebugOutput ( entry + ":ignored because checkbox is not checked" + eol );
+                            }
+                        }
+                        i++;
+                    } else if (entry == "WIFIINIT") {
+                        var obj2 = document.getElementById("checkboxwifi");
+                        if (obj2) {
+                            if (obj2.checked) {
+                                //alert( entry + " - (" + oResponses[i+1] + ")" );
+                                var response = oResponses[i+1];
+                                var obj2=document.getElementById("WIFIINIT");
+                                if (obj2) {
+                                    obj2.innerHTML = oResponses[i+1];
+                                    //alert("responses added to element WIFIINIT");
+                                }
+                                GetWifiStatsCountdown = 10;
+                            } else {
+                                AddToDebugOutput ( entry + ":ignored because checkbox is not checked" + eol );
+                                //alert("checkboxwifi element not checked");
+                            }
+                        } else {
+                            alert("checkboxwifi element not found ");
+                        }
+                        i++;
+                    } else if (entry == "WIFISTATS") {
+                        var obj2 = document.getElementById("checkboxwifi");
+                        if (obj2) {
+                            if (obj2.checked) {
+                                //alert( entry + " - (" + oResponses[i+1] + ")" );
+                                var obj3=document.getElementById("WIFISTATS");
+                                if (obj3) {
+                                    obj3.innerHTML = oResponses[i+1];
+                                    GetWifiStats.Value = 0;
+                                }
+                                GetWifiStatsCountdown = 10;
+                            } else {
+                                var local = new Date();
+                                var Seconds = Math.floor(local.getTime() / 1000);
+                                AddToDebugOutput ( entry + ": SecondsEnabled:" + GetWifiStats.SecondsEnabled + " ... delta ... " + (Seconds - GetWifiStats.SecondsEnabled ) + eol );
+                                if ( GetWifiStats.SecondsEnabled ) {
+                                    if ( (Seconds - GetWifiStats.SecondsEnabled ) > 10 ) {
+                                        setButtonDisabled( 'checkboxwifi', false );
+                                    }
+                                }
+                            }
+                        }
+                        i++;
+                    } else if (entry == "WIFIRATE") {
+                        var obj2 = document.getElementById("checkboxwifi");
+                        if (obj2) {
+                            if (obj2.checked) {
+                                //alert( entry + " - (" + oResponses[i+1] + ")" );
+                                var obj3=document.getElementById("WIFIRATE");
+                                if (obj3) {
+                                    obj3.innerHTML = oResponses[i+1];
+                                }
+                            } else {
+                                AddToDebugOutput ( entry + ":ignored because checkbox is not checked" + eol );
+                            }
+                        }
+                        i++;
+                    } else if (entry == "WIFIDISABLED") {
+                        //alert( entry );
+                        var obj2 = document.getElementById("checkboxwifi");
+                        if (obj2) {
+                            obj2.disabled = true;
+                            obj2.checked = false;
+                            GetWifiStats.SecondsEnabled = 0;
+                            hideOrShow("row_wifi_stats", HIDE );
+                            hideOrShow("row_wifi_ampdu", HIDE );
+                        }
+                    } else if (entry == "WIFIENABLED") {
+                        //alert( entry );
+                        AddToDebugOutput ( entry + ": SecondsEnabled:" + GetWifiStats.SecondsEnabled + eol );
+                        var local = new Date();
+                        if ( GetWifiStats.SecondsEnabled == 0) {
+                            GetWifiStats.SecondsEnabled = Math.floor(local.getTime() / 1000);
+                        }
+                    } else if (entry == "WIFISCANMAXAPS") {
+                        // The interface with bsysperf_server can accommodate a certain number of access points; this is the maximum it can handle each second
+                        // If the max is 8 and we have 12 APs to send back to client, ask for 1st set of 8, and then ask for 2nd set of 8 of which only 4 will be returned
+                        if ( oResponses[i+1] ) {
+                            //alert( entry + "-" + oResponses[i+1] );
+                            GetWifiScan.MaxNumAps = oResponses[i+1];
+                        }
+                        i++;
+                    } else if (entry == "WIFISCANNUMAPS") {
+                        //alert( entry + "-" + oResponses[i+1] );
+                        var obj2 = document.getElementById("checkboxwifi");
+                        if (obj2 && obj2.checked ) {
+                            //alert(entry + "-" + oResponses[i+1] );
+                            if ( Number(oResponses[i+1]) < Number(GetWifiScan.MaxNumAps) ) {
+                                // if the number of APs returned from the server is less than the maximum, we have reached the end of the number of APs
+                                GetWifiScan.State = GetWifiScanState.UNINIT;
+                                setButtonDisabled ( "WifiScan", false );
+                            } else {
+                                // we have transferred 8 of 12 APs; increment the starting index from 0 to 8 and get the last 4
+                                GetWifiScan.ServerIdx = Number(GetWifiScan.ServerIdx) + Number(GetWifiScan.MaxNumAps);
+                                AddToDebugOutput ( entry + ": GetWifiScan.ServerIdx:" + GetWifiScan.ServerIdx + eol );
+                                //alert( entry + "- ServerIdx =" + GetWifiScan.ServerIdx );
+                            }
+                        }
+                        i++;
+                    } else if (entry == "WIFISCANRESULTS") {
+                        var obj2 = document.getElementById("checkboxwifi");
+                        if (obj2 && obj2.checked ) {
+                            //alert(entry + "-" + oResponses[i+1] );
+                            AddToHtml ( "WIFISCANRESULTS", oResponses[i+1] );
+                        }
+                        i++;
+                    } else if (entry == "wifiAmpduGraph") {
+                        var obj2 = document.getElementById("checkboxwifi");
+                        if (obj2 && obj2.checked ) {
+                            var objampdu = document.getElementById("checkboxWifiAmpduGraph");
+                            if (objampdu && objampdu.checked ) {
+                                var objdiv=document.getElementById('SVG_DATA_ARRAY');
+                                if (objdiv) {
+                                    var element_id = "";
+                                    //alert(entry + "-" + oResponses[i+1] );
+                                    objdiv.innerHTML = oResponses[i+1];
+
+                                    // the table may have some rows that are hidden based on the antenna strength
+                                    for (var idx=0; idx<8; idx++) {
+                                        element_id = "r_x" + idx;
+                                        var objrow = document.getElementById( element_id );
+                                        if (objrow) {
+                                            if (objrow.style.visibility == "hidden" ) {
+                                                //alert("row " + element_id + " is hidden");
+                                                hideOrShow ( element_id, HIDE );
+                                            }
+                                        }
+                                    }
+                                    for (var idx=0; idx<8; idx++) {
+                                        element_id = "R_x" + idx;
+                                        var objrow = document.getElementById( element_id );
+                                        if (objrow) {
+                                            if (objrow.style.visibility == "hidden" ) {
+                                                //alert("row " + element_id + " is hidden");
+                                                hideOrShow ( element_id, HIDE );
+                                            }
+                                        }
+                                    }
+
+                                    hideOrShow("row_wifi_ampdu", SHOW );
+                                    DrawScene(0);
+                                    SwapTxRx(0);
+                                    DrawScene(1);
+                                    SwapTxRx(1);
+                                    RadioClick(); // reset sidx based on the radio button selected
+                                }
+                            } else {
+                                //alert(entry + ": checkboxWifiAmpduGraphnot checked");
+                            }
+                        }
+                        i++;
                     } else if (entry == "IRQINFO") {
                         var obj2 = document.getElementById("checkboxirqs");
                         if (obj2) {
@@ -1514,6 +2172,13 @@ function serverHttpResponse ()
                         }
                         window.document.title = CurrentPlatform + " " + oResponses[i+1];
                         i++;
+                    } else if (entry == "UNAME") {
+                        //alert(entry + ":" + oResponses[i+1] );
+                        var objplatform = document.getElementById("platver");
+                        if (objplatform) {
+                            objplatform.innerHTML += "&nbsp;" + oResponses[i+1];
+                        }
+                        i++;
                     } else if (entry == "HEAPTABLE") { // used to populate the MEMORY_HTML TH with heap table and PerfCache
                         AddToDebugOutput ( entry + ": len " + oResponses[i+1].length + ";" + eol );
                         //alert(entry + ":" + oResponses[i+1] );
@@ -1551,7 +2216,7 @@ function serverHttpResponse ()
                             validResponseReceived = 1;
                             GetHeapStats.Value = 0;
                             SetCheckboxStatus ( "checkboxPerfDeep", GetHeapStats );
-                            hideOrShow("row_memory", true );
+                            hideOrShow("row_memory", SHOW );
                         } else {
                             if (objheapinfo) {
                                 //objheapinfo.innerHTML = "Response was invalid; trying again in 1 second!";
@@ -1741,7 +2406,7 @@ function serverHttpResponse ()
 
                             if (oResponses[i+1].length > 0) {
                                 validResponseReceived = 1;
-                                //hideOrShow("row_profiling", true );
+                                //hideOrShow("row_profiling", SHOW );
                             }
                         } else {
                             alert ("element PERFUTILS not found");
@@ -1856,6 +2521,11 @@ function serverHttpResponse ()
                         }
                     }
                 } // end for each response
+
+                var objwifi = document.getElementById('WIFICOUNTDOWN');
+                if (objwifi) {
+                    objwifi.innerHTML = "(" + Number(GetWifiStatsCountdown%10) + ")";
+                }
             }
         } else {
             var msg = "";
@@ -1883,4 +2553,390 @@ function serverHttpResponse ()
         }
 
     } //if (xmlhttp.readyState==4 )
+}
+
+function FetchSubmit()
+{
+    //alert("FetchSubmit returning true");
+    return true;
+}
+
+function GetRxTxRadioButtonSelected()
+{
+    return document.getElementById("svg3d_controls").elements["radio_which_svg"].value;
+}
+
+function RadioClick(event)
+{
+    if (GetRxTxRadioButtonSelected() == "RX") {
+        sidx=1;
+    } else {
+        sidx=0;
+    }
+    //alert("RadioClick: radio button (" + GetRxTxRadioButtonSelected() + "); sidx=" + sidx );
+    //console.log("RadioClick: radio button (" + GetRxTxRadioButtonSelected() + ")" );
+    return true;
+}
+
+var WalkResults = "";
+var WalkLevel=0;
+function WalkAllNodes ( node )
+{
+    var indentStr = "";
+    var visibilityStr = "";
+    var displayStr = "";
+    var hiddenStr = "";
+
+    if ( ! node ) {
+        return true;
+    }
+
+    WalkLevel++;
+    for(var i = 0; i < WalkLevel*4; i++ ) {
+        indentStr += " ";
+    }
+
+    if (node.hidden == true ) {
+        hiddenStr = ";  hidden";
+    }
+
+    if (node.style.visibility == "hidden" ) {
+        visibilityStr = ";  visibility=" + node.style.visibility;
+    }
+
+    if (node.style.display != "" ) {
+        displayStr = ";  display=" + node.style.display;
+    }
+
+    WalkResults += indentStr + node.nodeName + ":  id (" + node.id + ") ... nodes " + node.childNodes.length + hiddenStr + visibilityStr + displayStr + eol;
+    var children = node.childNodes;
+
+    for(var i = 0; i < node.childNodes.length; i++ ) {
+        if ( node.childNodes[i].nodeType == 1) {
+            //alert(typeof(node.childNodes[i]) + "- " + node.childNodes[i].nodeType + ": " + node.childNodes[i].tagName + " - " + node.childNodes[i].innerHTML);
+            WalkAllNodes ( node.childNodes[i] );
+        }
+    }
+    WalkLevel--;
+
+    return true;
+}
+function FocusEntryBox(event)
+{
+    //alert("FocusEntryBox:" + event.target.id );
+    iperfEntryBoxUpdate = true;
+    return true;
+}
+function BlurEntryBox(event)
+{
+    //alert("BlurEntryBox:" + event.target.id );
+    iperfEntryBoxUpdate = false;
+    return true;
+}
+
+// "Client" or "iperfRunningClient"
+function set_iperf_cmd( cmd, clientOrServer )
+{
+    var obj=0;
+    if (clientOrServer.indexOf("Client") >= 0 ) {
+        obj=document.getElementById('iperf_cmd_c');
+    } else {
+        obj=document.getElementById('iperf_cmd_s');
+    }
+
+    if (obj && cmd.length) {
+        if (cmd.indexOf(" -Q ") > 0 ) {
+            obj.innerHTML = cmd.substr(0,cmd.indexOf(" -Q ") );
+        } else {
+            obj.innerHTML = cmd;
+        }
+    }
+    return true;
+}
+
+// event if triggered from onkeyup event ... or could be from "iperf_start_stop_s" or "iperf_start_stop_c"
+function KeyupEntryBox(event)
+{
+    var clientOrServer = "Client";
+
+    //alert("KeyupEntryBox:" + event.target.id );
+    var iperfCmd="unknown";
+    if ( event == "iperf_start_stop_c") {
+        iperfCmd=CreateIperfString( "iperf_start_stop_c" );
+    } else if ( event == "iperf_start_stop_s" ) {
+        iperfCmd=CreateIperfString( "iperf_start_stop_s" );
+        clientOrServer = "Server";
+    } else if (event) {
+        if ( event.target.id.indexOf("Client") > 0 || event.target.id == "iperf_options_c" || event.target.id == "iperf_addr" || event.target.id == "iperf_duration" || event.target.id == "iperf_port_c" ) {
+            iperfCmd=CreateIperfString( "iperf_start_stop_c" );
+        } else if ( event.target.id.indexOf("Server") > 0 || event.target.id.indexOf("iperf_options_s") >= 0 ) {
+            iperfCmd=CreateIperfString( "iperf_start_stop_s" );
+            clientOrServer = "Server";
+        }
+    }
+    set_iperf_cmd(iperfCmd, clientOrServer );
+}
+
+function CreateIperfString( clientOrServer )
+{
+    var local = new Date();
+    var iperfCmd = "iperf ";
+
+    if ( clientOrServer == "iperf_start_stop_c" || clientOrServer == "Client" ) {
+        if ( document.getElementById('iperf_addr').value.length ) {
+            iperfCmd += " -c " + document.getElementById('iperf_addr').value;
+        }
+
+        if ( document.getElementById('iperf_duration').value.length ) {
+            iperfCmd += " -t " + document.getElementById('iperf_duration').value;
+        } else {
+            iperfCmd += " -t 100";
+        }
+
+        if ( document.getElementById('iperf_port_c').value.length ) {
+            iperfCmd += " -p " + document.getElementById('iperf_port_c').value;
+        } else {
+            iperfCmd += " -p 5001";
+        }
+
+        if ( document.getElementById('iperf_options_c').value.length ) {
+            iperfCmd += " " + document.getElementById('iperf_options_c').value;
+        }
+    } else {
+        iperfCmd += " -s";
+
+        if ( document.getElementById('iperf_port_s') && document.getElementById('iperf_port_s').value.length ) {
+            iperfCmd += " -p" + document.getElementById('iperf_port_s').value + " ";
+        } else {
+            iperfCmd += " -p 5001";
+        }
+
+        if ( document.getElementById('iperf_options_s') && document.getElementById('iperf_options_s').value.length ) {
+            iperfCmd += " " + document.getElementById('iperf_options_s').value;
+        }
+    }
+    // add a special option to the end of the command line to let other browsers know the start time of this thread
+    iperfCmd += " -Q " + Math.floor(local.getTime() / 1000);
+    return iperfCmd;
+}
+// iperf_start_stop_c, iperfRunningClient ... iperf_start_stop_s, iperfRunningServer
+function set_iperf_count_value( clientOrServer, user_seconds )
+{
+    var local = new Date();
+    var seconds = Number( Math.floor(local.getTime() / 1000) );
+
+    // if the caller provided a unix timestamp, use it instead of the current timestamp
+    if (user_seconds.length > 5) {
+        seconds = user_seconds;
+    }
+    if (clientOrServer == "iperf_start_stop_c" || clientOrServer == "iperfRunningClient" ) {
+        iperfStartTimeClient =  seconds;
+    } else {
+        iperfStartTimeServer =  seconds;
+    }
+    return true;
+}
+
+function create_duration_string( start_time )
+{
+    var local = new Date();
+    var delta = Math.floor(local.getTime() / 1000) - start_time;
+    var deltaStr = "";
+
+    // check for days
+    if (delta >= Number(24*60*60) ) {
+        deltaStr += Math.floor(delta/Number(24*60*60)) + "d";
+        delta = delta - Number(Math.floor(delta/Number(24*60*60))*Number(24*60*60));
+    }
+
+    // check for hours
+    if ( delta >= 3600) {
+        deltaStr += Math.floor(delta/3600) + "h";
+        delta = delta - Number(Math.floor(delta/3600)*3600);
+    } else {
+        if ( deltaStr.length ) {
+            deltaStr += "00h";
+        }
+    }
+
+    if ( deltaStr.length || delta>=60) {
+        if (deltaStr.length) { // if hours are present, pad minutes with zero
+            deltaStr += Math.floor(delta/60).padZero(2) + "m";
+        } else {
+            deltaStr += Math.floor(delta/60) + "m";
+        }
+        delta = delta - Number(Math.floor(delta/60)*60);
+    }
+    if (deltaStr.length) { // if hours or minutes are present, pad seconds with zero
+        deltaStr += delta.padZero(2) + "s";
+    } else {
+        deltaStr += delta + "s";
+    }
+    return deltaStr;
+}
+
+function set_iperf_count_cell()
+{
+    var obj=0;
+    if ( iperfStateClient != iperfStateEnum.UNINIT ) {
+        obj=document.getElementById('iperf_count_c');
+        if (obj && iperfStartTimeClient ) {
+            obj.innerHTML = create_duration_string( iperfStartTimeClient );
+        }
+    }
+
+    if ( iperfStateServer != iperfStateEnum.UNINIT ) {
+        obj=document.getElementById('iperf_count_s');
+        if (obj && iperfStartTimeServer ) {
+            obj.innerHTML = create_duration_string( iperfStartTimeServer );
+        }
+    }
+    return true;
+}
+
+function set_iperf_status_cell()
+{
+    var obj=document.getElementById('iperf_status_c');
+    if (obj ) {
+        if ( iperfStateClient == iperfStateEnum.UNINIT ) {
+            obj.innerHTML = "IDLE";
+        } else if ( iperfStateClient == iperfStateEnum.INIT ) {
+            obj.innerHTML = "INIT";
+        } else if ( iperfStateClient == iperfStateEnum.RUNNING ) {
+            obj.innerHTML = "RUNNING";
+        } else if ( iperfStateClient == iperfStateEnum.STOP ) {
+            obj.innerHTML = "STOP";
+        } else {
+            obj.innerHTML = "UKNOWN";
+        }
+
+        if (iperfPidClient.length > 8) { // terminated or Executable not found
+            obj.innerHTML += " ... " + iperfPidClient;
+        } else if (iperfPidClient.length > 1) { // 5-digit pid
+            obj.innerHTML += " ... PID " + iperfPidClient;
+        }
+    }
+
+    obj=document.getElementById('iperf_status_s');
+    if (obj ) {
+        if ( iperfStateServer == iperfStateEnum.UNINIT ) {
+            obj.innerHTML = "IDLE";
+        } else if ( iperfStateServer == iperfStateEnum.INIT ) {
+            obj.innerHTML = "INIT";
+        } else if ( iperfStateServer == iperfStateEnum.RUNNING ) {
+            obj.innerHTML = "RUNNING";
+        } else if ( iperfStateServer == iperfStateEnum.STOP ) {
+            obj.innerHTML = "STOP";
+        } else {
+            obj.innerHTML = "UKNOWN";
+        }
+
+        if (iperfPidServer.length > 8) { // terminated or Executable not found
+            obj.innerHTML += " ... " + iperfPidServer;
+        } else if (iperfPidServer.length > 1) { // 5-digit pid
+            obj.innerHTML += " ... PID " + iperfPidServer;
+        }
+    }
+    return true;
+}
+
+function set_iperf_stop()
+{
+    if ( iperfStateClient == iperfStateEnum.RUNNING ) {
+        iperfStateClient = iperfStateEnum.STOP;
+    }
+    iperfTimeoutClient = 0;
+    iperfPidClient = "";
+
+    return true;
+}
+// "iperfPidClient", "iperfErrorClient"
+function set_iperf_button( clientOrServer )
+{
+    var obj=0;
+    var state=0;
+    if (clientOrServer == "iperf_start_stop_c" || clientOrServer.indexOf("Client") >= 0 ) {
+        obj=document.getElementById('iperf_start_stop_c');
+        state = iperfStateClient;
+    } else {
+        obj=document.getElementById('iperf_start_stop_s');
+        state = iperfStateServer;
+    }
+    if (obj) {
+        if ( state == iperfStateEnum.INIT ) {
+            obj.value = "STOP";
+        } else  if ( state == iperfStateEnum.STOP || state == iperfStateEnum.UNINIT ) {
+            obj.value = "START";
+        }
+    }
+
+    return true;
+}
+
+function OnLoadEvent222(evt)
+{
+  //alert("OnLoadEvent222: " + evt.target.id );
+  parent.AddSVGObject(evt.target.ownerDocument, evt.target.id );
+}
+
+function OnLoadEvent333(evt)
+{
+  //alert("OnLoadEvent333: " + evt.target.id );
+  parent.AddSVGObject(evt.target.ownerDocument, evt.target.id );
+}
+
+function fillin_iperf_entry_boxes()
+{
+    //alert(iperfRunningClient.substr(iperfRunningClient.indexOf("iperf")));
+    var tokens = iperfRunningClient.substr(iperfRunningClient.indexOf("iperf")).split(" ");
+    var obj=0;
+    var extra = "";
+    for(var i=0; i<tokens.length; i++) {
+        var value = "";
+        if (tokens[i] > 2) {
+            value = tokens[i].substr(2);
+        } else {
+            value = tokens[i+1];
+        }
+        if (tokens[i] == "iperf") {
+        } else if (tokens[i] == "-t") {
+            SetInputValue ( "iperf_duration", value );
+            i++;
+        } else if (tokens[i] == "-c") {
+            SetInputValue ( "iperf_addr", value );
+            i++;
+        } else if (tokens[i] == "-p") {
+            SetInputValue ( "iperf_port", value );
+            i++;
+        } else {
+            if ( extra.length ) {
+                extra += " ";
+            }
+            extra += tokens[i];
+        }
+    }
+    if ( extra.length ) {
+        SetInputValue ( "iperf_options_c", extra );
+    }
+}
+
+// this function will try to return the unix seconds found in the iperf command line.
+function get_unix_seconds( mystring )
+{
+    var seconds = 0;
+    var offset=mystring.indexOf(' -Q');
+    if ( offset > 0) {
+        var partial=rtrim(mystring.substr(Number(offset+3)));
+        var pieces=partial.split(' ');
+        if (pieces.length==1) {
+            seconds = pieces[0];
+        } else if (pieces.length>1) {
+            seconds = pieces[1];
+        }
+    } else {
+        var local = new Date();
+        seconds = Math.floor(local.getTime() / 1000);
+    }
+
+    return seconds;
 }

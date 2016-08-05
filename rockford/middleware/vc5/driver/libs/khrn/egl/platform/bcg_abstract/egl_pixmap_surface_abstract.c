@@ -186,6 +186,8 @@ static EGLSurface egl_create_pixmap_surface_impl(
    if (!surface->image)
       goto end;   /* BAD ALLOC */
 
+   khrn_image_invalidate(surface->image);
+
    /* pixmaps need to be renderable */
    gfx_format = khrn_image_get_lfmt(surface->image, 0);
    if (!egl_can_render_format(gfx_format))
@@ -220,7 +222,6 @@ static EGLSurface egl_create_pixmap_surface_impl(
       goto end;
    }
 
-   egl_surface_invalidate(&surface->base, true);
    error = EGL_SUCCESS;
 
 end:
@@ -283,7 +284,7 @@ EGLAPI EGLBoolean EGLAPIENTRY eglCopyBuffers(EGLDisplay dpy, EGLSurface
    }
 
    EGL_CONTEXT_T *context = egl_thread_get_context();
-   if (!context || (context->read != surface && context->draw != surface))
+   if (!context || (context->read != surf && context->draw != surf))
    {
       error = EGL_BAD_SURFACE;
       goto end;
@@ -304,7 +305,9 @@ EGLAPI EGLBoolean EGLAPIENTRY eglCopyBuffers(EGLDisplay dpy, EGLSurface
       goto end;
    }
 
-   if (egl_surface_copy(surf, imageDst))
+   // TODO Invalidate aux buffers here??
+
+   if (!egl_context_copy_image(context, imageDst, egl_surface_get_back_buffer(surf)))
    {
       error = EGL_BAD_MATCH;
       goto end;

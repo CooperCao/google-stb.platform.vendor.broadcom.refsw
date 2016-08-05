@@ -1,615 +1,355 @@
 /*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
+Broadcom Proprietary and Confidential. (c)2016 Broadcom.
 All rights reserved.
-
-Tile list construction logic.
-
-See http://confluence/display/MobileMultimedia/GFX+VC5+Control+list+generation
-
 =============================================================================*/
 
-#include "glxx_hw_master_cl.h"
-#include "glxx_hw_render_state.h"
+#include "glxx_hw_tile_list.h"
 #include "glxx_hw.h"
-#include "../common/khrn_options.h"
-#include "libs/util/gfx_util/gfx_util_morton.h"
+
+#include "libs/core/gfx_buffer/gfx_buffer_translate_v3d.h"
 #include "libs/core/lfmt/lfmt_translate_v3d.h"
-#include "libs/core/v3d/v3d_util.h"
 
-#define MAX_BOPS 11     /* Should be large enough to hold all blits. TODO: it isn't */
-
-typedef enum {
-   OP_LOAD = RCFG_LOAD,
-   OP_STORE = RCFG_STORE
-} buf_op_t;
-
-typedef struct {
-   buf_op_t op;
-   KHRN_IMAGE_PLANE_T image;
-   bool ms;                   /* If true, load/store ms data, otherwise up/down sample */
-} BOP_T;
-
-typedef struct
+static bool prep_tlb_ldst(struct v3d_tlb_ldst_params *ls,
+   GLXX_HW_RENDER_STATE_T *rs, bool tlb_ms,
+   const KHRN_IMAGE_PLANE_T *img_plane, bool img_ms, bool color, bool load, bool store)
 {
-   BOP_T op[MAX_BOPS];
-   int n_ops;
-} LDST_BUFFER_T;
+   const KHRN_IMAGE_T *img = img_plane->image;
+   KHRN_BLOB_T *blob = img->blob;
 
-typedef struct
-{
-   LDST_BUFFER_T buffers[GLXX_MAX_RENDER_TARGETS + 2];
-} LDST_T;
+   assert(tlb_ms || !img_ms);
+   assert(load || store);
 
-static void buffer_ldst_term(LDST_BUFFER_T *ldst) {
-   for (int i=0; i<MAX_BOPS; i++) {
-      khrn_image_plane_assign(&ldst->op[i].image, NULL);
-   }
-}
+   if (!khrn_blob_alloc_storage(blob))
+      return false;
 
-static inline void ldst_init(LDST_T *ldst)
-{
-   memset(ldst, 0, sizeof(*ldst));
-}
+   uint32_t render_rw_flags =
+      (load ? GMEM_SYNC_CORE_READ : 0) |
+      (store ? GMEM_SYNC_CORE_WRITE : 0);
+   v3d_addr_t base_addr = khrn_fmem_lock_and_sync(&rs->fmem, blob->res_i->handle,
+      /*bin_rw_flags=*/0, render_rw_flags);
+   if (base_addr == 0)
+      return false;
 
-static inline void ldst_term(LDST_T *ldst)
-{
-   for (unsigned i = 0; i != countof(ldst->buffers); ++i)
-      buffer_ldst_term(&ldst->buffers[i]);
-}
-
-static void add_buffer_op(LDST_BUFFER_T *ldst, buf_op_t op, bool ms, KHRN_IMAGE_PLANE_T *image)
-{
-   int idx = ldst->n_ops++;
-   assert(idx < MAX_BOPS);
-   khrn_image_plane_assign(&ldst->op[idx].image, image);
-   ldst->op[idx].ms = ms;
-   ldst->op[idx].op = op;
-}
-
-static void load_or_store_buffer(LDST_BUFFER_T *ldst, bool load, bool store,
-                                 bool ms, KHRN_IMAGE_PLANE_T *image)
-{
-   if (load)  add_buffer_op(ldst, OP_LOAD, ms, image);
-   if (store) add_buffer_op(ldst, OP_STORE, ms, image);
-}
-
-static void flush_with_blit(GLXX_BUFSTATE_FLUSH_T *f, glxx_bufstate_t bufstate, bool does_blit)
-{
-   /* If the image hasn't changed (state MEM) then we will neither load nor
-    * store it. This is good for bandwidth use but bad if we're trying to blit
-    * it elsewhere. Here we force the image load if we're blitting it
-    */
-   glxx_bufstate_flush(f, bufstate);
-   if (does_blit && bufstate == GLXX_BUFSTATE_MEM) f->load = true;
-}
-
-static void ldst_from_renderstate(LDST_T *ldst, GLXX_HW_RENDER_STATE_T *rs)
-{
-   bool blits_color = false;
-   bool blits_depth = false;
-   bool blits_stencil = false;
-
-   for (unsigned i = 0; i<rs->num_blits; i++) {
-      if (rs->tlb_blits[i].color) blits_color = true;
-      if (rs->tlb_blits[i].depth) blits_depth = true;
-      if (rs->tlb_blits[i].stencil) blits_stencil = true;
-   }
-
-   /* TODO: Does this do the right things wrt color_draw_buffers? */
-   for (int b = 0; b < GLXX_MAX_RENDER_TARGETS; b++)
+   v3d_dither_t dither = V3D_DITHER_OFF;
+   if (color && rs->dither && !khrn_options.force_dither_off)
    {
-      GLXX_BUFSTATE_FLUSH_T f, f_ms;
-      flush_with_blit(&f, rs->color_buffer_state[b], blits_color);
-      flush_with_blit(&f_ms, rs->ms_color_buffer_state[b], blits_color);
-
-      /* If we have both a downsampled color buffer and a multisample color
-       * buffer, both load flags mean load from the multisample buffer. See the
-       * comments in GLXX_HW_RENDER_STATE_T for more details. */
-      if ((rs->color_buffer_state   [b] != GLXX_BUFSTATE_MISSING) &&
-          (rs->ms_color_buffer_state[b] != GLXX_BUFSTATE_MISSING)   )
-      {
-         assert(f.load == f_ms.load);
-         f.load = false;
-      }
-
-      load_or_store_buffer(&ldst->buffers[RCFG_COLOR(b)], f_ms.load, f_ms.store,
-                                            true, &rs->installed_fb.color_ms[b]);
-      load_or_store_buffer(&ldst->buffers[RCFG_COLOR(b)], f.load, f.store,
-                                            false, &rs->installed_fb.color[b]);
+      GFX_LFMT_T lfmt = khrn_image_plane_lfmt(img_plane);
+      if (gfx_lfmt_alpha_bits(lfmt) > 1)
+         dither = V3D_DITHER_RGBA;
+      else
+         dither = V3D_DITHER_RGB;
    }
 
-   GLXX_BUFSTATE_FLUSH_T f;
-   flush_with_blit(&f, rs->depth_buffer_state, blits_depth);
-   load_or_store_buffer(&ldst->buffers[RCFG_DEPTH], f.load, f.store, rs->installed_fb.ms, &rs->installed_fb.depth);
+   assert(img->level < blob->num_mip_levels);
+   assert(img->start_elem < blob->num_array_elems);
+   assert(img->num_array_elems == 1);
+   assert(img->num_slices == 1);
+   gfx_buffer_translate_tlb_ldst(ls,
+      base_addr + (img->start_elem * blob->array_pitch),
+      &blob->desc[img->level], img_plane->plane_idx, img->start_slice, color,
+      tlb_ms, img_ms, dither);
 
-   flush_with_blit(&f, rs->stencil_buffer_state, blits_stencil);
-   load_or_store_buffer(&ldst->buffers[RCFG_STENCIL], f.load, f.store, rs->installed_fb.ms, &rs->installed_fb.stencil);
-
-   for (unsigned i=0; i<rs->num_blits; i++) {
-      GLXX_BLIT_T *blit = &rs->tlb_blits[i];
-      if (blit->color)
-      {
-         for (int b=0; b<GLXX_MAX_RENDER_TARGETS; b++) {
-            if (blit->color_draw_to_buf[b]) {
-               KHRN_IMAGE_PLANE_T *plane = &blit->dst_fb.color[b];
-               bool is_ms_img = false;
-               if (blit->dst_fb.color_ms[b].image) {
-                  plane = &blit->dst_fb.color_ms[b];
-                  is_ms_img = true;
-               }
-
-               load_or_store_buffer(&ldst->buffers[RCFG_COLOR(blit->color_read_buffer)], false, true,
-                                    is_ms_img, plane);
-            }
-         }
-      }
-      if (blit->depth)
-         load_or_store_buffer(&ldst->buffers[RCFG_DEPTH], false, true, blit->dst_fb.ms, &blit->dst_fb.depth);
-      if (blit->stencil)
-         load_or_store_buffer(&ldst->buffers[RCFG_STENCIL], false, true, blit->dst_fb.ms, &blit->dst_fb.stencil);
-   }
-}
-
-static void deinit_tile_op(TILE_OP_T *op)
-{
-   khrn_image_plane_assign(&op->image_plane, NULL);
-}
-
-static void deinit_buffer_ops(BUFFER_OPS_T *ops)
-{
-   khrn_image_plane_assign(&ops->short_form_img_plane, NULL);
-}
-
-static void init_master_cl_info(MASTER_CL_INFO_T *info)
-{
-   memset(info, 0, sizeof(MASTER_CL_INFO_T));
-
-   for (unsigned i = 0; i < GLXX_MAX_RENDER_TARGETS; ++i)
-      info->rcfg.color_translation[i] = gfx_buffer_rcfg_color_translation_dummy();
-
-   info->rcfg.depth_type = V3D_DEPTH_TYPE_32F;
-   info->rcfg.depth_output_format = V3D_DEPTH_FORMAT_32F;
-   info->rcfg.depth_memory_format = V3D_MEMORY_FORMAT_LINEARTILE;
-   info->rcfg.stencil_memory_format = V3D_MEMORY_FORMAT_LINEARTILE;
-}
-
-static bool check_image_storages(const MASTER_CL_INFO_T *info)
-{
-   for (unsigned s = 0; s != countof(info->rcfg.tile_ops); ++s)
-   {
-      TILE_OPS_T const* ops = &info->rcfg.tile_ops[s];
-
-      // Short form loads/stores.
-      unsigned mask = ops->short_op_mask;
-      for (unsigned i = 0; mask && i != countof(info->rcfg.buffers); ++i, mask >>= 1)
-      {
-         if ((mask & 1) && !khrn_blob_alloc_storage(info->rcfg.buffers[i].short_form_img_plane.image->blob))
-            return false;
-      }
-
-      // General loads/stores.
-      for (unsigned i = 0; i != ops->num_general_ops; ++i)
-      {
-         if (!khrn_blob_alloc_storage(ops->general_ops[i].image_plane.image->blob))
-            return false;
-      }
-   }
+#if V3D_HAS_NEW_TLB_CFG
+   if (khrn_options.use_rgba5551_am && (ls->pixel_format == V3D_PIXEL_FORMAT_A1_BGR5))
+      ls->pixel_format = V3D_PIXEL_FORMAT_A1_BGR5_AM;
+#else
+   if (khrn_options.use_rgba5551_am && color && (ls->output_format.pixel == V3D_PIXEL_FORMAT_A1_BGR5))
+      ls->output_format.pixel = V3D_PIXEL_FORMAT_A1_BGR5_AM;
+#endif
 
    return true;
 }
 
-static void add_tile_op_general(bool cfg_non_ms,
-                                RCFG_INFO_T *rcfg,
-                                rcfg_buffer buf,
-                                const BOP_T *bop)
+/* Any loads/stores from/to fb_ops->depth_ls? */
+static bool have_depth_ldst(const struct glxx_hw_tile_list_fb_ops *fb_ops)
 {
-   TILE_OPS_T* ops = &rcfg->tile_ops[bop->op];
-
-   assert(ops->num_general_ops < TILE_OP_MAX_GENERAL);
-   TILE_OP_T* op = &ops->general_ops[ops->num_general_ops++];
-   op->raw = bop->ms && cfg_non_ms;
-   switch (buf)
-   {
-   default:
-      assert((buf - RCFG_COLOR0) < GLXX_MAX_RENDER_TARGETS);
-      op->buf = V3D_LDST_BUF_COLOR0 + (buf - RCFG_COLOR0);
-      break;
-   case RCFG_DEPTH:
-      op->buf = V3D_LDST_BUF_DEPTH;
-      break;
-   case RCFG_STENCIL:
-      op->buf = V3D_LDST_BUF_STENCIL;
-      break;
-   }
-   khrn_image_plane_assign(&op->image_plane, &bop->image);
+   return fb_ops->depth_load || fb_ops->depth_store ||
+      (fb_ops->stencil_in_depth && (fb_ops->stencil_load || fb_ops->stencil_store));
 }
 
-static inline void add_tile_op_short(RCFG_INFO_T *rcfg, bool load, rcfg_buffer buf)
+/* Any loads/stores from/to fb_ops->stencil_ls? */
+static bool have_stencil_ldst(const struct glxx_hw_tile_list_fb_ops *fb_ops)
 {
-   rcfg->tile_ops[load ? RCFG_LOAD : RCFG_STORE].short_op_mask |= 1 << buf;
+   return !fb_ops->stencil_in_depth && (fb_ops->stencil_load || fb_ops->stencil_store);
 }
 
-static bool blits_depth(const GLXX_HW_RENDER_STATE_T *rs)
-{
-   for (unsigned i = 0; i < rs->num_blits; ++i)
-      if (rs->tlb_blits[i].depth)
-         return true;
-
-   return false;
-}
-
-static bool choose_packed_depth_stencil_strategy(const GLXX_HW_RENDER_STATE_T *rs)
+bool glxx_hw_prep_tile_list_fb_ops(struct glxx_hw_tile_list_fb_ops *fb_ops,
+   GLXX_HW_RENDER_STATE_T *rs, bool tlb_ms)
 {
    const GLXX_HW_FRAMEBUFFER_T *fb = &rs->installed_fb;
-   // We can have packed DS even if one of the D or S are not attached.
-   const KHRN_IMAGE_PLANE_T *packed_image = fb->depth.image ? &fb->depth : &fb->stencil;
-   GFX_LFMT_T packed_lfmt;
 
-   if(!packed_image->image)
-      // If there is no depth or stencil attached, this doesnt really matter.
-      return false;
-
-   packed_lfmt = khrn_image_plane_lfmt(packed_image);
-
-   if ((gfx_lfmt_depth_bits(packed_lfmt) != 24) || (gfx_lfmt_stencil_bits(packed_lfmt) != 8))
-      return false;
-
-   // In multisample mode, we need to use all_samples if we want to use
-   // packed depth stencil. But we cannot use all_samples if there are
-   // any non_ms ldst operations. Only source for these would be TLB-blits
-   // with depth (stencil is currently never handled by TLB-blits).
-   if (fb->ms)
-      return !blits_depth(rs);
-
-   return true;
-}
-
-#ifndef NDEBUG
-static bool pixel_format_match(v3d_pixel_format_t lhs, v3d_pixel_format_t rhs)
-{
-   if (lhs == rhs)
-      return true;
-
-   if ((lhs == V3D_PIXEL_FORMAT_RGBA8 && rhs == V3D_PIXEL_FORMAT_RGBX8) ||
-       (lhs == V3D_PIXEL_FORMAT_RGBX8 && rhs == V3D_PIXEL_FORMAT_RGBA8))
-      return true;
-
-   return false;
-}
-#endif
-
-static bool lfmt_needs_short(GFX_LFMT_T lfmt) {
-   return !(gfx_lfmt_is_uif(lfmt) || gfx_lfmt_is_uif_xor(lfmt)) || gfx_lfmt_get_yflip(&lfmt);
-}
-
-static BOP_T *choose_short_image(LDST_BUFFER_T *ldst, bool raster_ms) {
-   for (int i=0; i<ldst->n_ops; i++)
-      if (lfmt_needs_short(khrn_image_plane_lfmt(&ldst->op[i].image)))
-         return &ldst->op[i];
-
-   /* If rasterising ms then any non-ms stores must be short-form */
-   if (raster_ms) {
-      for (int i=0; i<ldst->n_ops; i++) if (!ldst->op[i].ms) return &ldst->op[i];
-   }
-
-   /* Nothing forces us to use short form. Just set up using store[0] */
-   /* TODO: It's not obvious this is valid, but the old code did it */
-   return &ldst->op[0];
-}
-
-static void setup_rcfg(BUFFER_OPS_T *buf_ops, LDST_BUFFER_T *ldst, bool raster_ms)
-{
-   BOP_T *short_op;
-   /* Don't need an rcfg for unused buffers */
-   if (ldst->n_ops == 0) return;
-
-   short_op = choose_short_image(ldst, raster_ms);
-
-   khrn_image_plane_assign(&buf_ops->short_form_img_plane, &short_op->image);
-   buf_ops->short_form_ms = short_op->ms;
-}
-
-#ifndef NDEBUG
-static bool color_compatible(const BUFFER_OPS_T *op, const BOP_T *bop)
-{
-   GFX_BUFFER_RCFG_COLOR_TRANSLATION_T t1;
-   GFX_BUFFER_RCFG_COLOR_TRANSLATION_T t2;
-   /* TODO: Don't hackily use 0 here. It makes no difference to this code, but we have to say something */
-   khrn_image_plane_translate_rcfg_color(&op->short_form_img_plane, 0, 0, &t1);
-   khrn_image_plane_translate_rcfg_color(&bop->image, 0, 0, &t2);
-
-   if (t1.internal_type != t2.internal_type ||
-       t1.internal_bpp  != t2.internal_bpp    )
+   fb_ops->rt_clear_mask = 0;
+   fb_ops->rt_nonms_load_mask = 0;
+   fb_ops->rt_ms_load_mask = 0;
+   fb_ops->rt_nonms_store_mask = 0;
+   fb_ops->rt_ms_store_mask = 0;
+   for (unsigned b = 0; b != fb->rt_count; ++b)
    {
-      return false;
-   }
+      uint32_t bit = 1u << b;
 
-   v3d_pixel_format_t raw_format = v3d_pixel_format_raw_mode(t1.pixel_format);
-   if (!pixel_format_match(t2.pixel_format, t1.pixel_format) &&
-       !pixel_format_match(t2.pixel_format, raw_format)             )
-      return false;
+      if (glxx_bufstate_need_clear(rs->color_buffer_state[b]))
+         fb_ops->rt_clear_mask |= bit;
 
-   return true;
-}
-#endif
-
-#ifndef NDEBUG
-static bool depth_compatible(const BUFFER_OPS_T *op, const BOP_T *bop)
-{
-   GFX_LFMT_T lfmt = khrn_image_plane_lfmt(&bop->image);
-   assert(!gfx_lfmt_get_yflip(&lfmt));
-   v3d_depth_type_t depth_type = gfx_lfmt_translate_depth_type(lfmt);
-   v3d_depth_format_t output_format = gfx_lfmt_translate_depth_format(lfmt);
-
-   GFX_LFMT_T short_lfmt = khrn_image_plane_lfmt(&op->short_form_img_plane);
-   v3d_depth_type_t short_depth_type = gfx_lfmt_translate_depth_type(short_lfmt);
-   v3d_depth_format_t short_output_format = gfx_lfmt_translate_depth_format(short_lfmt);
-
-   if (depth_type != short_depth_type) return false;
-   if (output_format != short_output_format) return false;
-
-   return true;
-}
-#endif
-
-#ifndef NDEBUG
-static bool stencil_compatible(const BUFFER_OPS_T *buf_ops, const BOP_T *bop)
-{
-   /* TODO: This doesn't seem right, but it's all the checking that was here before */
-   return true;
-}
-#endif
-
-#ifndef NDEBUG
-static bool general_compatible(const BUFFER_OPS_T *buf_op, const BOP_T *bop, rcfg_buffer buf)
-{
-   if (lfmt_needs_short(khrn_image_plane_lfmt(&bop->image)))
-      return false;
-
-   switch (buf)
-   {
-   default:             return color_compatible(buf_op, bop);
-   case RCFG_DEPTH:     return depth_compatible(buf_op, bop);
-   case RCFG_STENCIL:   return stencil_compatible(buf_op, bop);
-   }
-}
-#endif
-
-static bool use_short_ldst(BUFFER_OPS_T *buffer_ops, const BOP_T *bop)
-{
-   return khrn_image_plane_equal(&buffer_ops->short_form_img_plane, &bop->image);
-}
-
-static void add_tileop_for_buffer(RCFG_INFO_T *rcfg, rcfg_buffer buf,
-                                  BOP_T *bop, bool packed_depth_stencil)
-{
-   rcfg_buffer ops_index = buf == RCFG_STENCIL && packed_depth_stencil ? RCFG_DEPTH : buf;
-   BUFFER_OPS_T *buffer_ops = &rcfg->buffers[ops_index];
-
-   if(use_short_ldst(buffer_ops, bop)) {
-      bool load = (bop->op == OP_LOAD);
-      if (load) buffer_ops->load = true;
-      else      buffer_ops->store = true;
-
-      assert(bop->ms == buffer_ops->short_form_ms);
-      add_tile_op_short(rcfg, load, buf);
-   } else {
-      assert(general_compatible(buffer_ops, bop, buf));
-      add_tile_op_general(!buffer_ops->short_form_ms, rcfg, buf, bop);
-   }
-}
-
-static void get_rcfgs(LDST_T *ldst, RCFG_INFO_T *rcfg, bool packed_depth_stencil, int width, int height, bool raster_ms)
-{
-   /* Choose the short form images to be used */
-   static_assrt(countof(rcfg->buffers) == countof(ldst->buffers));
-   for (unsigned b = 0; b != countof(rcfg->buffers); ++b)
-   {
-      setup_rcfg(&rcfg->buffers[b], &ldst->buffers[b], raster_ms);
-   }
-
-   /* Depth needs to be configured in rendering mode config even when only
-    * stencil part from packed depth and stencil image is used.            */
-   /* TODO: Packed depth stencil handling could be much, much better */
-   if (packed_depth_stencil && ldst->buffers[RCFG_DEPTH].n_ops == 0)
-   {
-      khrn_image_plane_assign(&rcfg->buffers[RCFG_DEPTH].short_form_img_plane, &rcfg->buffers[RCFG_STENCIL].short_form_img_plane);
-      rcfg->buffers[RCFG_DEPTH].short_form_ms = rcfg->buffers[RCFG_STENCIL].short_form_ms;
-   }
-
-   /* Classify ops into load/store, short/general */
-   for (unsigned b = 0; b != countof(ldst->buffers); ++b)
-   {
-      for (unsigned i = 0; i != ldst->buffers[b].n_ops; ++i)
+      if (glxx_bufstate_need_load(rs->color_buffer_state[b]))
       {
-         /* TODO: Packed depth stencil will hackily switch to the depth short image here */
-         add_tileop_for_buffer(rcfg, b, &ldst->buffers[b].op[i], packed_depth_stencil);
+         if (rs->color_load_from_ms[b])
+            fb_ops->rt_ms_load_mask |= bit;
+         else
+            fb_ops->rt_nonms_load_mask |= bit;
       }
+
+      if (glxx_bufstate_need_store(rs->color_buffer_state[b]))
+      {
+         if (fb->color[b].image)
+            fb_ops->rt_nonms_store_mask |= bit;
+         if (fb->color_ms[b].image && !rs->color_discard_ms)
+            fb_ops->rt_ms_store_mask |= bit;
+      }
+
+      if (((fb_ops->rt_nonms_load_mask | fb_ops->rt_nonms_store_mask) & bit) &&
+         !prep_tlb_ldst(&fb_ops->rt_nonms_ls[b], rs, tlb_ms,
+            &fb->color[b], /*img_ms=*/false, /*color=*/true,
+            !!(fb_ops->rt_nonms_load_mask & bit),
+            !!(fb_ops->rt_nonms_store_mask & bit)))
+         return false;
+
+      if (((fb_ops->rt_ms_load_mask | fb_ops->rt_ms_store_mask) & bit) &&
+         !prep_tlb_ldst(&fb_ops->rt_ms_ls[b], rs, tlb_ms,
+            &fb->color_ms[b], /*img_ms=*/true, /*color=*/true,
+            !!(fb_ops->rt_ms_load_mask & bit),
+            !!(fb_ops->rt_ms_store_mask & bit)))
+         return false;
    }
 
-   /* TODO: Don't calculate this stuff here to cache it. Just calculate it when
-    *       needed, later.
-    */
-   for (unsigned b=0; b<GLXX_MAX_RENDER_TARGETS; b++) {
-      GFX_BUFFER_RCFG_COLOR_TRANSLATION_T *rcfg_t = &rcfg->color_translation[b];
+   fb_ops->stencil_in_depth = khrn_image_plane_equal(&fb->depth, &fb->stencil);
+   fb_ops->depth_clear = glxx_bufstate_need_clear(rs->depth_buffer_state);
+   fb_ops->stencil_clear = glxx_bufstate_need_clear(rs->stencil_buffer_state);
+   fb_ops->depth_load = glxx_bufstate_need_load(rs->depth_buffer_state);
+   fb_ops->stencil_load = glxx_bufstate_need_load(rs->stencil_buffer_state);
+   fb_ops->depth_store = glxx_bufstate_need_store(rs->depth_buffer_state);
+   fb_ops->stencil_store = glxx_bufstate_need_store(rs->stencil_buffer_state);
 
-      BUFFER_OPS_T* buffer_ops = &rcfg->buffers[RCFG_COLOR(b)];
-      if (buffer_ops->short_form_img_plane.image == NULL) continue;
+   if (have_depth_ldst(fb_ops) &&
+      !prep_tlb_ldst(&fb_ops->depth_ls, rs, tlb_ms,
+         &fb->depth, fb->ms, /*color=*/false,
+         fb_ops->depth_load || (fb_ops->stencil_in_depth && fb_ops->stencil_load),
+         fb_ops->depth_store || (fb_ops->stencil_in_depth && fb_ops->stencil_store)))
+      return false;
 
-      if (buffer_ops->short_form_ms)
-         khrn_image_plane_translate_rcfg_color(&buffer_ops->short_form_img_plane, width*2, height*2, rcfg_t);
-      else
-         khrn_image_plane_translate_rcfg_color(&buffer_ops->short_form_img_plane, width, height, rcfg_t);
-   }
+   if (have_stencil_ldst(fb_ops) &&
+      !prep_tlb_ldst(&fb_ops->stencil_ls, rs, tlb_ms,
+         &fb->stencil, fb->ms, /*color=*/false,
+         fb_ops->stencil_load,
+         fb_ops->stencil_store))
+      return false;
 
-   BUFFER_OPS_T* depth_ops = &rcfg->buffers[RCFG_DEPTH];
-   if (depth_ops->short_form_img_plane.image != NULL) {
-      rcfg->depth_type = gfx_lfmt_translate_depth_type(khrn_image_plane_lfmt(&depth_ops->short_form_img_plane));
-      rcfg->depth_output_format = gfx_lfmt_translate_depth_format(khrn_image_plane_lfmt(&depth_ops->short_form_img_plane));
-      rcfg->depth_memory_format = khrn_image_plane_translate_memory_format(&depth_ops->short_form_img_plane);
-   }
-
-   BUFFER_OPS_T* stencil_ops = &rcfg->buffers[RCFG_STENCIL];
-   if (stencil_ops->short_form_img_plane.image != NULL)
-      rcfg->stencil_memory_format = khrn_image_plane_translate_memory_format(&stencil_ops->short_form_img_plane);
-
-   if (packed_depth_stencil && ldst->buffers[RCFG_DEPTH].n_ops && ldst->buffers[RCFG_STENCIL].n_ops)
-      assert(rcfg->depth_output_format == V3D_DEPTH_FORMAT_24_STENCIL8);
+   return true;
 }
 
-// Public API
+#if V3D_HAS_NEW_TLB_CFG
 
-void glxx_hw_build_master_cl_info(GLXX_HW_RENDER_STATE_T *rs, MASTER_CL_INFO_T *info_out)
+static void write_load(uint8_t **instr,
+   v3d_ldst_buf_t buf, const struct v3d_tlb_ldst_params *ls)
 {
-   LDST_T ldst;
-   ldst_init(&ldst);
-   ldst_from_renderstate(&ldst, rs);
-
-   init_master_cl_info(info_out);
-
-   // Choose if we should use packed depth stencil or not
-   bool packed_depth_stencil = choose_packed_depth_stencil_strategy(rs);
-
-   // Choose image format for short form images and classify loads and stores
-   get_rcfgs(&ldst, &info_out->rcfg, packed_depth_stencil,
-             rs->installed_fb.width, rs->installed_fb.height, rs->installed_fb.ms);
-
-   ldst_term(&ldst);
-
-   // Make sure images that are loaded/stored have storage
-   bool ok = check_image_storages(info_out);
-
-   assert(ok); // TODO This can actually happen due to out of memory - signal this and handle!
-   vcos_unused_in_release(ok);
-
-   // figure out if we can double buffer in the tlb
-   GLXX_HW_FRAMEBUFFER_T const *fb = &rs->installed_fb;
-   bool tlb_ms = khrn_options.force_multisample || fb->ms;
-   bool tlb_double_buffer = khrn_options.nonms_double_buffer && !tlb_ms;
-
-   // compute number of tiles
-   unsigned tilewidth;
-   unsigned tileheight;
-   v3d_tile_size_pixels(&tilewidth, &tileheight,
-      fb->rt_count,
-      tlb_double_buffer,
-      v3d_translate_from_rt_bpp(fb->max_bpp),
-      tlb_ms
-      );
-   assert(tilewidth >= 8);
-   assert(tileheight >= 8);
-   info_out->num_tiles_x = gfx_udiv_round_up(fb->width, tilewidth);
-   info_out->num_tiles_y = gfx_udiv_round_up(fb->height, tileheight);
-   info_out->tlb_ms = tlb_ms;
-   info_out->tlb_double_buffer = tlb_double_buffer;
+   v3d_cl_load(instr, buf, ls->memory_format, ls->flipy, ls->decimate,
+      ls->pixel_format, ls->stride, ls->flipy_height_px, ls->addr);
 }
 
-bool glxx_hw_generic_tile_list(GLXX_HW_RENDER_STATE_T *rs, const MASTER_CL_INFO_T *info)
+static bool write_begin_and_loads(GLXX_HW_RENDER_STATE_T *rs, const struct glxx_hw_tile_list_fb_ops *fb_ops)
 {
-   TILE_OPS_T const* loads = &info->rcfg.tile_ops[RCFG_LOAD];
-   TILE_OPS_T const* stores = &info->rcfg.tile_ops[RCFG_STORE];
-
-   // Quick upper bound for CL size.
-   unsigned cl_size  = 0
-      + (V3D_CL_LOAD_SIZE + V3D_CL_IMPLICIT_TILE_COORDS_SIZE)
-      + (V3D_CL_LOAD_GENERAL_SIZE + V3D_CL_IMPLICIT_TILE_COORDS_SIZE + V3D_CL_STORE_GENERAL_SIZE) * loads->num_general_ops
-      + (V3D_CL_ENABLE_Z_ONLY_SIZE + V3D_CL_DISABLE_Z_ONLY_SIZE)
-      + (V3D_CL_BRANCH_IMPLICIT_TILE_SIZE * rs->num_z_prepass_bins)
-      + (V3D_CL_BRANCH_IMPLICIT_TILE_SIZE * rs->fmem.br_info.num_bins)
-      + (V3D_CL_IMPLICIT_TILE_COORDS_SIZE + V3D_CL_STORE_GENERAL_SIZE) * stores->num_general_ops
-      + V3D_CL_STORE_SUBSAMPLE_SIZE
-      + V3D_CL_RETURN_SIZE;
-
-   if (rs->workaround_gfxh_1313)
-      cl_size += glxx_workaround_gfxh_1313_size();
-
-   uint8_t* instr = (uint8_t *)khrn_fmem_begin_cle(&rs->fmem, cl_size);
+   uint8_t *instr = khrn_fmem_begin_cle(&rs->fmem,
+      V3D_CL_IMPLICIT_TILE_COORDS_SIZE +
+      ((GLXX_MAX_RENDER_TARGETS + 2) * V3D_CL_LOAD_SIZE) +
+      V3D_CL_END_LOADS_SIZE);
    if (!instr)
       return false;
 
-   // Short form load. This will perform all non-general loads
-   unsigned load_short = loads->short_op_mask;
-   if (load_short != 0)
-   {
-      v3d_cl_load(&instr,
-         (load_short & RCFG_STENCIL_MASK) != 0,
-         (load_short & RCFG_DEPTH_MASK) != 0,
-         ~(load_short >> RCFG_COLOR0) & gfx_mask(GLXX_MAX_RENDER_TARGETS)  );
-   }
-
-   // General loads.
-   for (unsigned i = 0; i != loads->num_general_ops; ++i)
-   {
-      // If not the first load.
-      if (load_short != 0 || i > 0)
-      {
-         v3d_cl_implicit_tile_coords(&instr);
-
-         // Dummy store general.
-         v3d_cl_store_general(&instr,
-            V3D_LDST_BUF_NONE,   // buffer
-            false,               // raw mode
-            true, true, true,    // disable clears
-            false,               // eof
-            true,                // disable double buffer swap
-            V3D_LDST_MEMORY_FORMAT_UIF_NO_XOR,
-            0, 0);
-      }
-
-      TILE_OP_T const* op = &loads->general_ops[i];
-      v3d_cl_load_general(&instr,
-         op->buf,
-         op->raw,
-         v3d_memory_format_to_ldst(khrn_image_plane_translate_memory_format(&op->image_plane)),
-         khrn_image_plane_uif_height_in_ub(&op->image_plane),
-         khrn_image_plane_lock(&op->image_plane, &rs->fmem, 0, GMEM_SYNC_CORE_READ));
-   }
-
-   // Tile coords.
    v3d_cl_implicit_tile_coords(&instr);
 
-   if (rs->workaround_gfxh_1313 && !glxx_workaround_gfxh_1313(&instr, &rs->fmem))
+   for (uint32_t b = 0, nonms_mask = fb_ops->rt_nonms_load_mask, ms_mask = fb_ops->rt_ms_load_mask;
+      nonms_mask || ms_mask; ++b, nonms_mask >>= 1, ms_mask >>= 1)
+   {
+      if (nonms_mask & 1)
+      {
+         assert(!(ms_mask & 1));
+         write_load(&instr, v3d_ldst_buf_color(b), &fb_ops->rt_nonms_ls[b]);
+      }
+      if (ms_mask & 1)
+         write_load(&instr, v3d_ldst_buf_color(b), &fb_ops->rt_ms_ls[b]);
+   }
+
+   bool stencil_in_depth_load = fb_ops->stencil_in_depth && fb_ops->stencil_load;
+   if (fb_ops->depth_load || stencil_in_depth_load)
+      write_load(&instr, v3d_ldst_buf_ds(fb_ops->depth_load, stencil_in_depth_load), &fb_ops->depth_ls);
+   if (!fb_ops->stencil_in_depth && fb_ops->stencil_load)
+      write_load(&instr, V3D_LDST_BUF_STENCIL, &fb_ops->stencil_ls);
+
+   v3d_cl_end_loads(&instr);
+
+   khrn_fmem_end_cle(&rs->fmem, instr);
+
+   return true;
+}
+
+static void count_ops(
+   unsigned num_rt_stores[GLXX_MAX_RENDER_TARGETS],
+   uint32_t *rt_store_mask, bool *ds_load, bool *ds_store,
+   const GLXX_HW_RENDER_STATE_T *rs, const struct glxx_hw_tile_list_fb_ops *fb_ops)
+{
+   memset(num_rt_stores, 0, GLXX_MAX_RENDER_TARGETS * sizeof(*num_rt_stores));
+   *rt_store_mask = 0;
+   *ds_load = false;
+   *ds_store = false;
+
+   for (unsigned i = 0; i != rs->num_blits; ++i)
+   {
+      const GLXX_BLIT_T *blit = &rs->tlb_blits[i];
+      if (blit->color)
+      {
+         num_rt_stores[blit->color_read_buffer] += gfx_num_set_bits(blit->color_draw_to_buf);
+         if (blit->color_draw_to_buf)
+            *rt_store_mask |= 1u << blit->color_read_buffer;
+      }
+      if (blit->depth)
+         *ds_store = true;
+   }
+
+   for (uint32_t b = 0, nonms_mask = fb_ops->rt_nonms_store_mask, ms_mask = fb_ops->rt_ms_store_mask;
+      nonms_mask || ms_mask; ++b, nonms_mask >>= 1, ms_mask >>= 1)
+   {
+      if (nonms_mask & 1)
+         ++num_rt_stores[b];
+      if (ms_mask & 1)
+         ++num_rt_stores[b];
+   }
+   *rt_store_mask |= fb_ops->rt_nonms_store_mask | fb_ops->rt_ms_store_mask;
+   if (fb_ops->depth_load || fb_ops->stencil_load)
+      *ds_load = true;
+   if (fb_ops->depth_store || fb_ops->stencil_store)
+      *ds_store = true;
+}
+
+static void write_store(uint8_t **instr,
+   v3d_ldst_buf_t buf, const struct v3d_tlb_ldst_params *ls, bool clear)
+{
+   v3d_cl_store(instr, buf, ls->memory_format, ls->flipy, ls->dither, ls->decimate,
+      ls->pixel_format, clear, ls->stride, ls->flipy_height_px, ls->addr);
+}
+
+static void write_rt_store(uint8_t **instr, unsigned remaining_rt_stores[GLXX_MAX_RENDER_TARGETS],
+   unsigned b, const struct v3d_tlb_ldst_params *ls)
+{
+   write_store(instr, v3d_ldst_buf_color(b), ls, --remaining_rt_stores[b] == 0);
+}
+
+static bool write_blit_stores(uint8_t **instr, unsigned remaining_rt_stores[GLXX_MAX_RENDER_TARGETS],
+   GLXX_HW_RENDER_STATE_T *rs, bool tlb_ms, const GLXX_BLIT_T *blit)
+{
+   if (blit->color)
+   {
+      for (uint32_t b = 0, mask = blit->color_draw_to_buf; mask; ++b, mask >>= 1)
+      {
+         if (mask & 1)
+         {
+            struct v3d_tlb_ldst_params ls;
+            if (!prep_tlb_ldst(&ls, rs, tlb_ms,
+                  &blit->dst_fb.color[b], /*img_ms=*/false, /*color=*/true,
+                  /*load=*/false, /*store=*/true))
+               return false;
+            write_rt_store(instr, remaining_rt_stores, blit->color_read_buffer, &ls);
+         }
+      }
+   }
+
+   if (blit->depth)
+   {
+      struct v3d_tlb_ldst_params ls;
+      if (!prep_tlb_ldst(&ls, rs, tlb_ms,
+            &blit->dst_fb.depth, /*img_ms=*/blit->dst_fb.ms, /*color=*/false,
+            /*load=*/false, /*store=*/true))
+         return false;
+      write_store(instr, V3D_LDST_BUF_DEPTH, &ls, /*clear=*/false);
+   }
+
+   return true;
+}
+
+static void write_fb_stores(uint8_t **instr, unsigned remaining_rt_stores[GLXX_MAX_RENDER_TARGETS],
+   const struct glxx_hw_tile_list_fb_ops *fb_ops)
+{
+   for (uint32_t b = 0, nonms_mask = fb_ops->rt_nonms_store_mask, ms_mask = fb_ops->rt_ms_store_mask;
+      nonms_mask || ms_mask; ++b, nonms_mask >>= 1, ms_mask >>= 1)
+   {
+      if (ms_mask & 1)
+         write_rt_store(instr, remaining_rt_stores, b, &fb_ops->rt_ms_ls[b]);
+      if (nonms_mask & 1)
+         write_rt_store(instr, remaining_rt_stores, b, &fb_ops->rt_nonms_ls[b]);
+   }
+
+   bool stencil_in_depth_store = fb_ops->stencil_in_depth && fb_ops->stencil_store;
+   if (fb_ops->depth_store || stencil_in_depth_store)
+      write_store(instr, v3d_ldst_buf_ds(fb_ops->depth_store, stencil_in_depth_store), &fb_ops->depth_ls, /*clear=*/false);
+   if (!fb_ops->stencil_in_depth && fb_ops->stencil_store)
+      write_store(instr, V3D_LDST_BUF_STENCIL, &fb_ops->stencil_ls, /*clear=*/false);
+}
+
+static bool write_stores_clears_end_and_rcfg(
+   struct glxx_hw_tile_list_rcfg *rcfg,
+   GLXX_HW_RENDER_STATE_T *rs, bool tlb_ms, bool double_buffer,
+   const struct glxx_hw_tile_list_fb_ops *fb_ops)
+{
+   unsigned remaining_rt_stores[GLXX_MAX_RENDER_TARGETS];
+   uint32_t rt_store_mask;
+   bool ds_load, ds_store;
+   count_ops(remaining_rt_stores, &rt_store_mask, &ds_load, &ds_store, rs, fb_ops);
+
+   uint8_t *instr = khrn_fmem_begin_cle(&rs->fmem,
+      (rs->num_blits * ((GLXX_MAX_RENDER_TARGETS + 1) * V3D_CL_STORE_SIZE)) + /* Blit stores */
+      (((2 * GLXX_MAX_RENDER_TARGETS) + 2) * V3D_CL_STORE_SIZE) + /* Framebuffer stores */
+      V3D_CL_CLEAR_SIZE +
+      V3D_CL_END_TILE_SIZE +
+      V3D_CL_RETURN);
+   if (!instr)
       return false;
 
-   // Play tile-lists.
-   if (rs->num_z_prepass_bins)
-   {
-      v3d_cl_enable_z_only(&instr);
-      for (unsigned i = 0; i != rs->num_z_prepass_bins; ++i)
-      {
-         v3d_cl_branch_implicit_tile(&instr, i);
-      }
-      v3d_cl_disable_z_only(&instr);
-   }
-   for (unsigned i = 0; i != rs->fmem.br_info.num_bins; ++i)
-   {
-      v3d_cl_branch_implicit_tile(&instr, i);
-   }
+   for (unsigned i = 0; i != rs->num_blits; ++i)
+      if (!write_blit_stores(&instr, remaining_rt_stores, rs, tlb_ms, &rs->tlb_blits[i]))
+         return false;
 
-   // General stores
-   for (unsigned i = 0; i != stores->num_general_ops; ++i)
-   {
-      TILE_OP_T const* op = &stores->general_ops[i];
-      v3d_cl_store_general(&instr,
-         op->buf,                   // buffer
-         op->raw,                   // raw mode
-         true,                      // disable depth clear
-         true,                      // disable stencil clear
-         true,                      // disable color clear
-         false,                     // eof (never set using flag)
-         true,                      // disable double buffer swap
-         v3d_memory_format_to_ldst( // memory format
-            khrn_image_plane_translate_memory_format(&op->image_plane)
-         ),
-         khrn_image_plane_uif_height_in_ub(&op->image_plane),
-         khrn_image_plane_lock(&op->image_plane, &rs->fmem, 0, GMEM_SYNC_CORE_WRITE)
-         );
+   write_fb_stores(&instr, remaining_rt_stores, fb_ops);
 
-      v3d_cl_implicit_tile_coords(&instr);
-   }
+   for (unsigned i = 0; i != countof(remaining_rt_stores); ++i)
+      assert(remaining_rt_stores[i] == 0);
 
-   // Short form store (can be dummy).
-   v3d_cl_store_subsample(&instr);
+   /* Need at least one store. Put a dummy one in if necessary... */
+   if (!rt_store_mask && !ds_store)
+      v3d_cl_store(&instr,
+         V3D_LDST_BUF_NONE,
+         V3D_MEMORY_FORMAT_RASTER,
+         /*flipy=*/false,
+         V3D_DITHER_OFF,
+         V3D_DECIMATE_SAMPLE0,
+         V3D_PIXEL_FORMAT_SRGB8_ALPHA8,
+         /*clear=*/false,
+         /*stride=*/0,
+         /*height=*/0,
+         /*addr=*/0);
+
+   /* We always set the clear flag on the last store of each RT. If an RT is
+    * not stored but needs to be cleared we do a full clear of all RTs at the
+    * end. */
+   bool clear_all_rts_at_end = (fb_ops->rt_clear_mask & ~rt_store_mask) != 0;
+
+   /* Can enable early depth/stencil clear optimisation in HW if we are not
+    * loading or storing depth/stencil. Never enable in double-buffer mode --
+    * doesn't make sense. */
+   rcfg->early_ds_clear = !double_buffer && !ds_load && !ds_store;
+
+   if (clear_all_rts_at_end || !rcfg->early_ds_clear)
+      v3d_cl_clear(&instr, clear_all_rts_at_end, !rcfg->early_ds_clear);
+
+   v3d_cl_end_tile(&instr);
+
    v3d_cl_return(&instr);
 
    khrn_fmem_end_cle(&rs->fmem, instr);
@@ -617,104 +357,423 @@ bool glxx_hw_generic_tile_list(GLXX_HW_RENDER_STATE_T *rs, const MASTER_CL_INFO_
    return true;
 }
 
-static void master_cl_supertile_range(
-   uint32_t *morton_flags, uint32_t *begin_supertile, uint32_t *end_supertile,
-   uint32_t num_cores, uint32_t core,
-   unsigned int num_supertiles_x, unsigned int num_supertiles_y)
+static v3d_empty_tile_mode calc_et_mode(const GLXX_HW_RENDER_STATE_T *rs,
+   const struct glxx_hw_tile_list_fb_ops *fb_ops)
 {
-   uint32_t num_supertiles = num_supertiles_y * num_supertiles_x;
+   /* Not currently supported with new TLB config stuff. See GFXH-1392 & GFXH-1393. */
+   return V3D_EMPTY_TILE_MODE_NONE;
+}
 
-   *morton_flags = 0;
+#else
 
-   if (khrn_options.partition_supertiles_in_sw)
+/* Framebuffer loads/stores done with LOAD & STORE_SUBSAMPLE instructions,
+ * except for multisample color buffer loads/stores which are done with raw
+ * mode LOAD_GENERAL/STORE_GENERAL instructions.
+ *
+ * TLB blits are done with STORE_GENERAL instructions. It is assumed that all
+ * blits in rs->tlb_blits[] are compatible with STORE_GENERAL! eg The target
+ * buffers are all UIF. */
+
+static bool write_begin_and_loads(GLXX_HW_RENDER_STATE_T *rs, const struct glxx_hw_tile_list_fb_ops *fb_ops)
+{
+   uint8_t *instr = khrn_fmem_begin_cle(&rs->fmem,
+      V3D_CL_LOAD_SIZE +
+      (GLXX_MAX_RENDER_TARGETS * (V3D_CL_IMPLICIT_TILE_COORDS_SIZE + V3D_CL_STORE_GENERAL_SIZE + V3D_CL_LOAD_GENERAL_SIZE)) + /* Multisample color loads */
+      V3D_CL_IMPLICIT_TILE_COORDS_SIZE);
+   if (!instr)
+      return false;
+
+   bool loaded = fb_ops->rt_nonms_load_mask || fb_ops->depth_load || fb_ops->stencil_load;
+   if (loaded)
+      v3d_cl_load(&instr, fb_ops->stencil_load, fb_ops->depth_load,
+         ~fb_ops->rt_nonms_load_mask & gfx_mask(V3D_MAX_RENDER_TARGETS));
+
+   for (uint32_t b = 0, mask = fb_ops->rt_ms_load_mask; mask; ++b, mask >>= 1)
    {
-      /* Same supertile order for all cores, but give each core an exclusive
-       * subset of the supertiles... */
+      if (!(mask & 1))
+         continue;
 
-      uint32_t supertiles_per_core = num_supertiles / num_cores;
-      uint32_t extra_supertiles = num_supertiles - (num_cores * supertiles_per_core);
+      if (loaded)
+      {
+         v3d_cl_implicit_tile_coords(&instr);
 
-      *begin_supertile = core * supertiles_per_core;
-      *end_supertile = (core + 1) * supertiles_per_core;
+         // Dummy store general.
+         v3d_cl_store_general(&instr,
+            V3D_LDST_BUF_NONE,
+            false,               // raw mode
+            true, true, true,    // disable clears
+            false,               // eof
+            true,                // disable double buffer swap
+            V3D_LDST_MEMORY_FORMAT_UIF_NO_XOR,
+            0, 0);
+      }
+      loaded = true;
 
-      /* Distribute extra supertiles */
-      *begin_supertile += gfx_umin(core, extra_supertiles);
-      *end_supertile += gfx_umin(core + 1, extra_supertiles);
+      const struct v3d_tlb_ldst_params *ls = &fb_ops->rt_ms_ls[b];
+      assert(!ls->flipy);
+      assert(ls->decimate == V3D_DECIMATE_ALL_SAMPLES);
+      assert(ls->output_format.pixel == v3d_raw_mode_pixel_format(
+         rs->installed_fb.color_internal_type[b],
+         rs->installed_fb.color_internal_bpp[b]));
+      v3d_cl_load_general(&instr,
+         v3d_ldst_buf_color(b), /*raw_mode=*/true,
+         v3d_memory_format_to_ldst(ls->memory_format),
+         ls->stride,
+         ls->addr);
+   }
 
-      assert(*begin_supertile <= *end_supertile);
-      assert(*end_supertile <= num_supertiles);
+   v3d_cl_implicit_tile_coords(&instr);
+
+   khrn_fmem_end_cle(&rs->fmem, instr);
+
+   return true;
+}
+
+static void rcfg_init_unused_params(struct v3d_tlb_ldst_params *ls, bool color)
+{
+   memset(ls, 0, sizeof(*ls));
+   ls->dither = V3D_DITHER_INVALID;
+   ls->decimate = V3D_DECIMATE_INVALID;
+   if (color)
+      ls->output_format.pixel = V3D_PIXEL_FORMAT_INVALID;
+   else
+      ls->output_format.depth = V3D_DEPTH_FORMAT_INVALID;
+}
+
+static void rcfg_init(struct glxx_hw_tile_list_rcfg *rcfg, const struct glxx_hw_tile_list_fb_ops *fb_ops)
+{
+   for (unsigned b = 0; b != GLXX_MAX_RENDER_TARGETS; ++b)
+      if ((fb_ops->rt_nonms_load_mask | fb_ops->rt_nonms_store_mask) & (1u << b))
+         rcfg->rt_ls[b] = fb_ops->rt_nonms_ls[b];
+      else
+         rcfg_init_unused_params(&rcfg->rt_ls[b], /*color=*/true);
+   rcfg->rt_store_mask = fb_ops->rt_nonms_store_mask;
+
+   bool stencil_ldst = have_stencil_ldst(fb_ops);
+   rcfg->sep_stencil = stencil_ldst && (fb_ops->stencil_ls.output_format.depth == V3D_DEPTH_FORMAT_INVALID); /* S8 stencil */
+   if (have_depth_ldst(fb_ops))
+   {
+      assert(!stencil_ldst || rcfg->sep_stencil);
+      rcfg->depth_ls = fb_ops->depth_ls;
+   }
+   else if (stencil_ldst && !rcfg->sep_stencil)
+      rcfg->depth_ls = fb_ops->stencil_ls;
+   else
+      rcfg_init_unused_params(&rcfg->depth_ls, /*color=*/false);
+   if (rcfg->sep_stencil)
+      rcfg->sep_stencil_ls = fb_ops->stencil_ls;
+   else
+      rcfg_init_unused_params(&rcfg->sep_stencil_ls, /*color=*/false);
+   rcfg->depth_store = fb_ops->depth_store;
+   rcfg->stencil_store = fb_ops->stencil_store;
+}
+
+static void rcfg_finalise_params(struct v3d_tlb_ldst_params *ls, bool color)
+{
+   /* Ensure all fields are set to valid values... */
+
+   if (ls->dither == V3D_DITHER_INVALID)
+      ls->dither = V3D_DITHER_OFF;
+
+   if (ls->decimate == V3D_DECIMATE_INVALID)
+      ls->decimate = V3D_DECIMATE_SAMPLE0;
+
+   if (color)
+   {
+      if (ls->output_format.pixel == V3D_PIXEL_FORMAT_INVALID)
+         ls->output_format.pixel = V3D_PIXEL_FORMAT_SRGB8_ALPHA8;
    }
    else
    {
-      /* All cores are given all supertiles, but in a different order */
-
-      /* TODO Experiment with this */
-      switch (khrn_options.all_cores_same_st_order ? 0 :
-         /* TODO Quick hack for 8 cores */
-         (core & 3))
-      {
-      case 0:  break;
-      case 1:  *morton_flags |= GFX_MORTON_REVERSE; break;
-      case 2:  *morton_flags |= GFX_MORTON_FLIP_Y; break;
-      case 3:  *morton_flags |= GFX_MORTON_FLIP_Y | GFX_MORTON_REVERSE; break;
-      default: not_impl();
-      }
-
-      *begin_supertile = 0;
-      *end_supertile = num_supertiles;
-   }
-
-   /* TODO Is this sensible? */
-   if (num_supertiles_x < num_supertiles_y)
-   {
-      *morton_flags |= GFX_MORTON_TRANSPOSE;
+      if (ls->output_format.depth == V3D_DEPTH_FORMAT_INVALID)
+         ls->output_format.depth = V3D_DEPTH_FORMAT_32F;
    }
 }
 
-void glxx_hw_populate_master_cl_supertiles(
-   GLXX_HW_RENDER_STATE_T *rs,
-   unsigned num_cores,
-   unsigned core,
-   uint8_t **instr_ptr,
-   unsigned int num_supertiles_x,
-   unsigned int num_supertiles_y
-   )
+static void rcfg_finalise(struct glxx_hw_tile_list_rcfg *rcfg)
 {
-   uint32_t morton_flags, begin_supertile, end_supertile;
-   master_cl_supertile_range(
-      &morton_flags, &begin_supertile, &end_supertile,
-      num_cores, core,
-      num_supertiles_x, num_supertiles_y
-      );
-
-   GFX_MORTON_STATE_T morton;
-   gfx_morton_init(&morton, num_supertiles_x, num_supertiles_y, morton_flags);
-
-   uint8_t *instr = *instr_ptr; // use local ptr for iteration
-   uint32_t x, y;
-   for (unsigned i = 0; gfx_morton_next(&morton, &x, &y, NULL); ++i)
+   if (rcfg->sep_stencil)
    {
-      if (i >= begin_supertile && i < end_supertile)
-      {
-         v3d_cl_supertile_coords(&instr, x, y);
-      }
+      /* Any depth format without stencil will do... */
+      if (rcfg->depth_ls.output_format.depth == V3D_DEPTH_FORMAT_INVALID)
+         rcfg->depth_ls.output_format.depth = V3D_DEPTH_FORMAT_32F;
+      else
+         assert(!v3d_depth_format_has_stencil(rcfg->depth_ls.output_format.depth));
    }
-   *instr_ptr = instr;
+
+   for (unsigned b = 0; b != GLXX_MAX_RENDER_TARGETS; ++b)
+      rcfg_finalise_params(&rcfg->rt_ls[b], /*color=*/true);
+   rcfg_finalise_params(&rcfg->depth_ls, /*color=*/false);
+   rcfg_finalise_params(&rcfg->sep_stencil_ls, /*color=*/false);
 }
 
-void glxx_hw_destroy_master_cl_info(MASTER_CL_INFO_T *info)
+static void write_store_general(uint8_t **instr,
+   struct glxx_hw_tile_list_rcfg *rcfg, /* Needed only when raw_mode=false */
+   const GLXX_HW_FRAMEBUFFER_T *hw_fb, /* Needed only when raw_mode=true */
+   v3d_ldst_buf_t buf, const struct v3d_tlb_ldst_params *ls, bool raw_mode)
 {
-   for (unsigned s = 0; s != countof(info->rcfg.tile_ops); ++s)
+   v3d_ldst_buf_class_t buf_class = v3d_classify_ldst_buf(buf);
+
+   assert(!ls->flipy);
+   if (raw_mode)
    {
-      TILE_OPS_T* ops = &info->rcfg.tile_ops[s];
-      for (unsigned i = 0; i != ops->num_general_ops; ++i)
+      assert(ls->decimate == V3D_DECIMATE_ALL_SAMPLES);
+      assert(buf_class == V3D_LDST_BUF_CLASS_COLOR);
+      unsigned b = v3d_ldst_buf_rt(buf);
+      assert(ls->output_format.pixel == v3d_raw_mode_pixel_format(
+         hw_fb->color_internal_type[b], hw_fb->color_internal_bpp[b]));
+   }
+   else
+   {
+      /* Non-raw-mode STORE_GENERAL uses some fields from the main rendering
+       * mode config! Ensure these fields are set appropriately... */
+      assert(rcfg);
+
+      struct v3d_tlb_ldst_params *rcfg_ls;
+      if (buf_class == V3D_LDST_BUF_CLASS_COLOR)
       {
-         deinit_tile_op(&ops->general_ops[i]);
+         rcfg_ls = &rcfg->rt_ls[v3d_ldst_buf_rt(buf)];
+
+         if (rcfg_ls->output_format.pixel == V3D_PIXEL_FORMAT_INVALID)
+            rcfg_ls->output_format.pixel = ls->output_format.pixel;
+         else
+            assert(v3d_pixel_format_equiv_for_store(rcfg_ls->output_format.pixel, ls->output_format.pixel));
+      }
+      else
+      {
+         assert(buf == V3D_LDST_BUF_DEPTH);
+         rcfg_ls = &rcfg->depth_ls;
+
+         if (rcfg_ls->output_format.depth == V3D_DEPTH_FORMAT_INVALID)
+            rcfg_ls->output_format.depth = ls->output_format.depth;
+         else
+            assert(rcfg_ls->output_format.depth == ls->output_format.depth);
+      }
+
+      if (rcfg_ls->dither == V3D_DITHER_INVALID)
+         rcfg_ls->dither = ls->dither;
+
+      if (rcfg_ls->decimate == V3D_DECIMATE_INVALID)
+         rcfg_ls->decimate = ls->decimate;
+      else
+         assert(rcfg_ls->decimate == ls->decimate);
+   }
+
+   v3d_cl_store_general(instr, buf, raw_mode,
+      true, true, true, // disable clears
+      false,            // eof (never set using flag)
+      true,             // disable double buffer swap
+      v3d_memory_format_to_ldst(ls->memory_format),
+      ls->stride,
+      ls->addr);
+}
+
+static bool write_blit_stores(uint8_t **instr, struct glxx_hw_tile_list_rcfg *rcfg,
+   GLXX_HW_RENDER_STATE_T *rs, bool tlb_ms, const GLXX_BLIT_T *blit)
+{
+   if (blit->color)
+   {
+      for (uint32_t b = 0, mask = blit->color_draw_to_buf; mask; ++b, mask >>= 1)
+      {
+         if (mask & 1)
+         {
+            struct v3d_tlb_ldst_params ls;
+            if (!prep_tlb_ldst(&ls, rs, tlb_ms,
+                  &blit->dst_fb.color[b], /*img_ms=*/false, /*color=*/true,
+                  /*load=*/false, /*store=*/true))
+               return false;
+            write_store_general(instr, rcfg, NULL,
+               v3d_ldst_buf_color(blit->color_read_buffer), &ls, /*raw_mode=*/false);
+            v3d_cl_implicit_tile_coords(instr);
+         }
       }
    }
 
-   for (unsigned i = 0; i != countof(info->rcfg.buffers); ++i)
+   if (blit->depth)
    {
-      deinit_buffer_ops(&info->rcfg.buffers[i]);
+      struct v3d_tlb_ldst_params ls;
+      if (!prep_tlb_ldst(&ls, rs, tlb_ms,
+            &blit->dst_fb.depth, /*img_ms=*/blit->dst_fb.ms, /*color=*/false,
+            /*load=*/false, /*store=*/true))
+         return false;
+      write_store_general(instr, rcfg, NULL,
+         V3D_LDST_BUF_DEPTH, &ls, /*raw_mode=*/false);
+      v3d_cl_implicit_tile_coords(instr);
    }
+
+   return true;
+}
+
+static bool write_stores_clears_end_and_rcfg(
+   struct glxx_hw_tile_list_rcfg *rcfg,
+   GLXX_HW_RENDER_STATE_T *rs, bool tlb_ms, bool double_buffer,
+   const struct glxx_hw_tile_list_fb_ops *fb_ops)
+{
+   rcfg_init(rcfg, fb_ops);
+
+   uint8_t *instr = khrn_fmem_begin_cle(&rs->fmem,
+      (rs->num_blits * ((GLXX_MAX_RENDER_TARGETS + 1) * (V3D_CL_STORE_GENERAL_SIZE + V3D_CL_IMPLICIT_TILE_COORDS_SIZE))) + /* Blit stores */
+      (GLXX_MAX_RENDER_TARGETS * (V3D_CL_STORE_GENERAL_SIZE + V3D_CL_IMPLICIT_TILE_COORDS_SIZE)) + /* Multisample color stores */
+      V3D_CL_STORE_SUBSAMPLE_SIZE +
+      V3D_CL_RETURN_SIZE);
+   if (!instr)
+      return false;
+
+   for (unsigned i = 0; i != rs->num_blits; ++i)
+      if (!write_blit_stores(&instr, rcfg, rs, tlb_ms, &rs->tlb_blits[i]))
+         return false;
+
+   for (uint32_t b = 0, mask = fb_ops->rt_ms_store_mask; mask; ++b, mask >>= 1)
+   {
+      if (mask & 1)
+      {
+         write_store_general(&instr, NULL, &rs->installed_fb,
+            v3d_ldst_buf_color(b), &fb_ops->rt_ms_ls[b], /*raw_mode=*/true);
+         v3d_cl_implicit_tile_coords(&instr);
+      }
+   }
+
+   // Short form store. Might not actually store anything. Clears all buffers.
+   v3d_cl_store_subsample(&instr);
+
+   v3d_cl_return(&instr);
+
+   khrn_fmem_end_cle(&rs->fmem, instr);
+
+   rcfg_finalise(rcfg);
+
+   return true;
+}
+
+/* For restricitons on empty tile processing, see CT1CFG Register */
+
+static bool store_compatible_with_tile_blaster(
+   const struct v3d_tlb_ldst_params *ls, bool color)
+{
+   if ((ls->addr & 0xf) || ls->flipy)
+      return false;
+
+   if (color)
+   {
+      if (ls->output_format.pixel == V3D_PIXEL_FORMAT_BSTC)
+         return false;
+
+      GFX_LFMT_T fmt = gfx_lfmt_translate_from_pixel_format(ls->output_format.pixel);
+      assert(gfx_lfmt_block_is_single_elem(fmt));
+      uint32_t bytes_per_pixel = gfx_lfmt_bytes_per_block(fmt);
+      if (bytes_per_pixel == 3)
+         return false;
+
+      if (ls->memory_format == V3D_MEMORY_FORMAT_RASTER)
+      {
+         uint32_t stride_in_bytes = ls->stride * bytes_per_pixel;
+         if (stride_in_bytes & 0xf)
+            return false;
+      }
+   }
+   else
+      assert(ls->memory_format != V3D_MEMORY_FORMAT_RASTER);
+
+   return true;
+}
+
+static bool stores_compatible_with_tile_blaster(const struct glxx_hw_tile_list_fb_ops *fb_ops)
+{
+   /* All MS color stores done with STORE_GENERAL, which the tile blaster does
+    * not understand */
+   if (fb_ops->rt_ms_store_mask)
+      return false;
+
+   for (uint32_t b = 0, mask = fb_ops->rt_nonms_store_mask; mask; ++b, mask >>= 1)
+      if ((mask & 1) && !store_compatible_with_tile_blaster(&fb_ops->rt_nonms_ls[b], /*color=*/true))
+         return false;
+
+   if ((fb_ops->depth_store || (fb_ops->stencil_in_depth && fb_ops->stencil_store)) &&
+      !store_compatible_with_tile_blaster(&fb_ops->depth_ls, /*color=*/false))
+      return false;
+   if (!fb_ops->stencil_in_depth && fb_ops->stencil_store &&
+      !store_compatible_with_tile_blaster(&fb_ops->stencil_ls, /*color=*/false))
+      return false;
+
+   return true;
+}
+
+static v3d_empty_tile_mode calc_et_mode(const GLXX_HW_RENDER_STATE_T *rs,
+   const struct glxx_hw_tile_list_fb_ops *fb_ops)
+{
+   /* Empty tile filtering/blasting not supported before 3.3.
+    * Cannot skip empty tiles if doing any blitting. */
+   if (V3D_VER_AT_LEAST(3,3,0,0) && (rs->num_blits == 0))
+   {
+      /* If storing either undefined data or what's already there, we can skip
+       * empty tiles */
+      if (!khrn_options.no_empty_tile_skip &&
+         ((fb_ops->rt_nonms_store_mask & fb_ops->rt_clear_mask) == 0) &&
+         /* If loading from non-MS buffer that implies MS buffer was invalid
+          * before this frame. Need MS stores in that case... */
+         ((fb_ops->rt_ms_store_mask & (fb_ops->rt_clear_mask | fb_ops->rt_nonms_load_mask)) == 0) &&
+         (!fb_ops->depth_store || !fb_ops->depth_clear) &&
+         (!fb_ops->stencil_store || !fb_ops->stencil_clear))
+         return V3D_EMPTY_TILE_MODE_SKIP;
+
+      /* If storing either undefined data or clear value, we can use tile
+       * blaster (assuming stores are compatible with tile blaster) */
+      if (!khrn_options.no_empty_tile_fill && khrn_options.no_gfxh_1385 &&
+         (((fb_ops->rt_nonms_store_mask | fb_ops->rt_ms_store_mask) & (fb_ops->rt_nonms_load_mask | fb_ops->rt_ms_load_mask)) == 0) &&
+         (!fb_ops->depth_store || !fb_ops->depth_load) &&
+         (!fb_ops->stencil_store || !fb_ops->stencil_load) &&
+         stores_compatible_with_tile_blaster(fb_ops))
+         return V3D_EMPTY_TILE_MODE_FILL;
+   }
+
+   return V3D_EMPTY_TILE_MODE_NONE;
+}
+
+#endif
+
+static bool write_tile_list_branches(GLXX_HW_RENDER_STATE_T *rs)
+{
+   uint8_t *instr = khrn_fmem_begin_cle(&rs->fmem,
+      (rs->workaround_gfxh_1313 ? glxx_workaround_gfxh_1313_size() : 0) +
+      V3D_CL_ENABLE_Z_ONLY_SIZE +
+      (rs->num_z_prepass_bins * V3D_CL_BRANCH_IMPLICIT_TILE_SIZE) +
+      V3D_CL_DISABLE_Z_ONLY_SIZE +
+      (rs->fmem.br_info.num_bins * V3D_CL_BRANCH_IMPLICIT_TILE_SIZE));
+   if (!instr)
+      return false;
+
+   if (rs->workaround_gfxh_1313 && !glxx_workaround_gfxh_1313(&instr, &rs->fmem))
+      return false;
+
+   if (rs->num_z_prepass_bins)
+   {
+      v3d_cl_enable_z_only(&instr);
+      for (unsigned i = 0; i != rs->num_z_prepass_bins; ++i)
+         v3d_cl_branch_implicit_tile(&instr, i);
+      v3d_cl_disable_z_only(&instr);
+   }
+
+   for (unsigned i = 0; i != rs->fmem.br_info.num_bins; ++i)
+      v3d_cl_branch_implicit_tile(&instr, i);
+
+   khrn_fmem_end_cle(&rs->fmem, instr);
+
+   return true;
+}
+
+bool glxx_hw_create_generic_tile_list(v3d_addr_t addrs[2],
+   struct glxx_hw_tile_list_rcfg *rcfg,
+   GLXX_HW_RENDER_STATE_T *rs, bool tlb_ms, bool double_buffer,
+   const struct glxx_hw_tile_list_fb_ops *fb_ops)
+{
+   rs->fmem.br_info.empty_tile_mode = calc_et_mode(rs, fb_ops);
+
+   addrs[0] = khrn_fmem_begin_clist(&rs->fmem);
+   if (!addrs[0] ||
+      !write_begin_and_loads(rs, fb_ops) ||
+      !write_tile_list_branches(rs) ||
+      !write_stores_clears_end_and_rcfg(rcfg, rs, tlb_ms, double_buffer, fb_ops))
+      return false;
+   addrs[1] = khrn_fmem_end_clist(&rs->fmem);
+   return true;
 }

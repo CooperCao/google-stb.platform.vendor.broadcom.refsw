@@ -257,6 +257,7 @@ typedef struct BXPT_P_PcrHandle_Impl
     unsigned PcrInc;
     BXPT_PCR_TimeRef eTimeRef;
 #endif
+    bool pidChnlConfigured;
 }
 BXPT_P_PcrHandle_Impl;
 

@@ -390,7 +390,7 @@ openNexusLivePidChannels(
     if (ipStreamerCfg->enableAllpass) {
         NEXUS_PidChannelSettings pidCfg0;
         NEXUS_PidChannel_GetDefaultSettings(&pidCfg0) ;
-        NEXUS_ParserBand_GetAllPassPidChannelIndex(ipStreamerCtx->parserBandPtr->parserBand, (unsigned *) &pidCfg0.pidChannelIndex);
+        NEXUS_ParserBand_GetAllPassPidChannelIndex(ipStreamerCtx->parserBandPtr->parserBand, &pidCfg0.pidChannelIndex);
         /* The pid number is redundant here. */
         if ((ipStreamerCtx->videoPidChannel = NEXUS_PidChannel_Open(ipStreamerCtx->parserBandPtr->parserBand, 0x0, &pidCfg0)) == NULL) {
             BDBG_ERR(("%s: Failed to create pid channel for all pass case", __FUNCTION__));

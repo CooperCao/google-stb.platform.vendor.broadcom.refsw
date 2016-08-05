@@ -6,8 +6,8 @@ Project  :  khronos
 Module   :  Broadcom EGL extensions header
 
 FILE DESCRIPTION
-Extensions which we invented. Included by gl_public_api.h (used in the driver).
-If applications want to use these they must include this file explicitly.
+Extensions which we invented. If applications want to use these they must
+include this file explicitly.
 =============================================================================*/
 
 #ifndef __eglext_brcm_h_

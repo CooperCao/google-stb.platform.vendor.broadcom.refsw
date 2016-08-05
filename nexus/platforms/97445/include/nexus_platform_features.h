@@ -146,7 +146,6 @@ upon the chip usage. See below */
 #define NEXUS_MEMC2_SECURE_GRAPHICS_HEAP 14
 #define NEXUS_EXPORT_HEAP               15
 
-#define NEXUS_PLATFORM_P_GET_FRAMEBUFFER_HEAP_INDEX 1
 
 #define NEXUS_AVS_MONITOR           0
 #endif /* #ifndef NEXUS_PLATFORM_FEATURES_H__ */

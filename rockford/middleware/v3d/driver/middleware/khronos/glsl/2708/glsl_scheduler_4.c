@@ -777,11 +777,7 @@ bool glsl_backend_schedule(Dataflow *root, uint32_t type, bool *allow_thread)
    xxx_num_varying_nodes = 0;
    xxx_num_stencil_nodes = 0;
 
-#ifdef XXX_OFFLINE
-   isvtx = (type & GLSL_BACKEND_TYPE_VERTEX_OR_COORD || type & GLSL_BACKEND_TYPE_OFFLINE_VERTEX);
-#else
    isvtx = ((type & GLSL_BACKEND_TYPE_VERTEX) || (type & GLSL_BACKEND_TYPE_COORD));
-#endif
 
    /*
       Compute the "bushiness" at each node, starting from the leaves.

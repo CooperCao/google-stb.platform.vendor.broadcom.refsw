@@ -62,11 +62,10 @@
 #define MAX_USAGE_TABLE_SIZE         (6544)
 #define OVERWRITE_USAGE_TABLE_ON_ROOTFS  (1)
 
-#define MAX_NUMBER_SESSIONS  (12)
-
 #define INVALID_KEYSLOT_ID   (-1)
 
-static Drm_WVOemCryptoHostSessionCtx_t gHostSessionCtx[MAX_NUMBER_SESSIONS];
+static uint32_t gNumSessions;
+static Drm_WVOemCryptoHostSessionCtx_t *gHostSessionCtx;
 
 /* #define DEBUG 1 */
 void dump(const unsigned char* data, unsigned length, const char* prompt)
@@ -119,7 +118,7 @@ static uint8_t *gPadding = NULL;
 #define BTP_SIZE 188
 
 /* Scatter/gather definitions */
-static DmaBlockInfo_t *gWvDmaBlockInfoList[MAX_NUMBER_SESSIONS];
+static DmaBlockInfo_t **gWvDmaBlockInfoList;
 #define MAX_SG_DMA_BLOCKS DRM_COMMON_TL_MAX_DMA_BLOCKS
 #define WV_OEMCRYPTO_FIRST_SUBSAMPLE 1
 #define WV_OEMCRYPTO_LAST_SUBSAMPLE 2
@@ -238,6 +237,18 @@ DrmRC DRM_WVOemCrypto_UnInit(int *wvRc)
     }
 
     DRM_Common_TL_Finalize();
+
+    if(gHostSessionCtx != NULL)
+    {
+        free(gHostSessionCtx);
+        gHostSessionCtx = NULL;
+    }
+
+    if(gWvDmaBlockInfoList != NULL)
+    {
+        free(gWvDmaBlockInfoList);
+        gWvDmaBlockInfoList = NULL;
+    }
 
     BDBG_LEAVE(DRM_WVOemCrypto_UnInit);
     return Drm_Success;
@@ -459,6 +470,37 @@ DrmRC DRM_WVOemCrypto_OpenSession(uint32_t* session,int *wvRc)
 
     BDBG_MSG(("%s: opened session with id = %d",__FUNCTION__,container->basicOut[1] ));
 
+    if(gNumSessions == 0)
+    {
+        rc = DRM_WVOemCrypto_GetMaxNumberOfSessions(&gNumSessions, wvRc);
+        if(rc != Drm_Success)
+        {
+            BDBG_ERR(("%s - Error obtaining maximum number of sessions (0x%08x)", __FUNCTION__, container->basicOut[0]));
+            goto ErrorExit;
+        }
+    }
+
+    if(gHostSessionCtx == NULL)
+    {
+        gHostSessionCtx = calloc(gNumSessions, sizeof(Drm_WVOemCryptoHostSessionCtx_t));
+        if(gHostSessionCtx == NULL)
+        {
+            BDBG_ERR(("%s - Error allocating memory for session context", __FUNCTION__ ));
+            rc = Drm_Err;
+            goto ErrorExit;
+        }
+    }
+
+    if(gWvDmaBlockInfoList == NULL)
+    {
+        gWvDmaBlockInfoList = calloc(gNumSessions, sizeof(DmaBlockInfo_t *));
+        if(gWvDmaBlockInfoList == NULL)
+        {
+            BDBG_ERR(("%s - Error allocationg memory for DMA block list", __FUNCTION__ ));
+            rc = Drm_Err;
+            goto ErrorExit;
+        }
+    }
 
 ErrorExit:
     if(container != NULL)
@@ -2231,8 +2273,7 @@ DrmRC drm_WVOemCrypto_DecryptCTR(uint32_t session,
         *wvRc = container->basicOut[2];
         if (container->basicOut[0] != BERR_SUCCESS)
         {
-        BDBG_ERR(("%s - Command was sent succuessfully to load iv in decryptCTR but actual operation failed (0x%08x), wvRc = %d ",
-                         __FUNCTION__, container->basicOut[0], *wvRc));
+            BDBG_ERR(("%s - Command was sent succuessfully to load iv in decryptCTR but actual operation failed (0x%08x)", __FUNCTION__, container->basicOut[0]));
             rc = Drm_Err;
             goto ErrorExit;
         }
@@ -4522,17 +4563,13 @@ DrmRC DRM_WVOemCrypto_UpdateUsageTable(int *wvRc)
         goto ErrorExit;
     }
 
-    *wvRc = container->basicOut[2];
-
     /* if success, extract status from container */
     if (container->basicOut[0] != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s - Command '%u' was sent succuessfully but SAGE specific error occured (0x%08x), wvRC = %d ", __FUNCTION__, DrmWVOEMCrypto_CommandId_eDeactivateUsageEntry, container->basicOut[0],container->basicOut[2]));
+        BDBG_ERR(("%s - Command '%u' was sent succuessfully but SAGE specific error occured (0x%08x)", __FUNCTION__, DrmWVOEMCrypto_CommandId_eDeactivateUsageEntry, container->basicOut[0]));
         rc = Drm_Err;
         goto ErrorExit;
     }
-
-
 
     /* Possible encrypted Usage Table returned from SAGE */
     if(container->basicOut[2] == OVERWRITE_USAGE_TABLE_ON_ROOTFS)
@@ -4544,6 +4581,8 @@ DrmRC DRM_WVOemCrypto_UpdateUsageTable(int *wvRc)
             goto ErrorExit;
         }
     }
+
+    *wvRc = SAGE_OEMCrypto_SUCCESS;
 
 ErrorExit:
     if(container != NULL)
@@ -5389,7 +5428,7 @@ static DrmRC DRM_WvOemCrypto_P_OverwriteUsageTable(uint8_t *pEncryptedUsageTable
     uint8_t digest[SHA256_DIGEST_SIZE] = {0x00};
     char *pActiveUsageTableFilePath = NULL;
     uint32_t ii =0;
-
+    int fd;
 
     /* DRM_MSG_PRINT_BUF("pEncryptedUsageTable (before writing)", pEncryptedUsageTable, 144); */
 
@@ -5442,22 +5481,6 @@ static DrmRC DRM_WvOemCrypto_P_OverwriteUsageTable(uint8_t *pEncryptedUsageTable
             goto ErrorExit;
         }
 
-        /* close file descriptor */
-        if(fptr != NULL)
-        {
-            fclose(fptr);
-            fptr = NULL;
-        }
-
-        /* append SHA256 to file */
-        fptr = fopen(pActiveUsageTableFilePath, "ab");
-        if(fptr == NULL)
-        {
-            BDBG_ERR(("%s - Error opening Usage Table file (%s) in 'ab' mode.  '%s'", __FUNCTION__, pActiveUsageTableFilePath, strerror(errno)));
-            rc = Drm_FileErr;
-            goto ErrorExit;
-        }
-
         write_size = fwrite(digest, 1, SHA256_DIGEST_SIZE, fptr);
         if(write_size != SHA256_DIGEST_SIZE)
         {
@@ -5465,6 +5488,9 @@ static DrmRC DRM_WvOemCrypto_P_OverwriteUsageTable(uint8_t *pEncryptedUsageTable
             rc = Drm_FileErr;
             goto ErrorExit;
         }
+
+        fd = fileno(fptr);
+        fsync(fd);
 
         /* close file descriptor */
         if(fptr != NULL)

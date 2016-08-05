@@ -70,17 +70,22 @@
  */
 #if defined(__arc__)
 #
-# if defined(__i386__)
-#  error Platform signature conflict between ARC and i386 has been detected. Build is terminated.
-# elif (_ARCVER != 0x25)
+# if (_ARCVER != 0x25)
 #  error Only ARC601 chip is supported for the ARC family target. Build is terminated.
+# endif
+# if !defined(__SoC__) && !defined(__ML507__)
+#  error Either SoC or ML507 must be selected explicitly for ARC platform.
 # endif
 #
 # /* ARC601 is supported. */
 #
-#elif defined(__i386__)
+#elif defined(__arm__) || defined(__i386__)
 #
-# /* i386 is supported. */
+# if defined(__SoC__) || defined(__ML507__)
+#  error Neither SoC nor ML507 must be used for ARM and i386 platforms.
+# endif
+#
+# /* ARM and i386 are supported. */
 #
 #else
 # error Platform is not recognized and is not supported. Build is terminated.
@@ -90,8 +95,8 @@
 /*
  * Validate Unit-tests environment usage.
  */
-#if defined(_UNIT_TEST_) && defined(__arc__)
-# error Unit-tests environment is not allowed for ARC platform.
+#if defined(_UNIT_TEST_) && !defined(__i386__)
+# error Unit-tests environment is allowed only for i386 platform.
 #endif
 
 
@@ -159,9 +164,9 @@
 
 
 /*
- * Set up GNU C compiler for i386 target platform.
+ * Set up GNU C compiler for ARM and i386 target platforms.
  */
-#if defined (__i386__) && !defined (__clang__)
+#if (defined(__arm__) || defined(__i386__)) && !defined(__clang__)
 # pragma GCC optimize "short-enums"     /* Implement short enums. */
 # pragma GCC diagnostic ignored "-Wattributes"
 #endif

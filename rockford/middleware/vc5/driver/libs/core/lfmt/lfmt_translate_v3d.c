@@ -116,6 +116,13 @@ v3d_pixel_format_t gfx_lfmt_maybe_translate_pixel_format(GFX_LFMT_T lfmt)
    case GFX_LFMT_R8_G8_B8_X8_UNORM:                return V3D_PIXEL_FORMAT_RGBX8;
    case GFX_LFMT_BSTC_RGBA_UNORM:
    case GFX_LFMT_BSTCYFLIP_RGBA_UNORM:             return V3D_PIXEL_FORMAT_BSTC;
+#if V3D_HAS_NEW_TLB_CFG
+   case GFX_LFMT_D32_FLOAT:                        return V3D_PIXEL_FORMAT_D32F;
+   case GFX_LFMT_D24X8_UNORM:                      return V3D_PIXEL_FORMAT_D24;
+   case GFX_LFMT_D16_UNORM:                        return V3D_PIXEL_FORMAT_D16;
+   case GFX_LFMT_S8D24_UINT_UNORM:                 return V3D_PIXEL_FORMAT_D24S8;
+   case GFX_LFMT_S8_UINT:                          return V3D_PIXEL_FORMAT_S8;
+#endif
    default:                                        return V3D_PIXEL_FORMAT_INVALID;
    }
 }
@@ -171,9 +178,18 @@ GFX_LFMT_T gfx_lfmt_translate_from_pixel_format(v3d_pixel_format_t pixel_format)
    case V3D_PIXEL_FORMAT_SRGBX8:          return GFX_LFMT_R8_G8_B8_X8_SRGB;
    case V3D_PIXEL_FORMAT_RGBX8:           return GFX_LFMT_R8_G8_B8_X8_UNORM;
    case V3D_PIXEL_FORMAT_BSTC:            return GFX_LFMT_BSTC_RGBA_UNORM;
+#if V3D_HAS_NEW_TLB_CFG
+   case V3D_PIXEL_FORMAT_D32F:            return GFX_LFMT_D32_FLOAT;
+   case V3D_PIXEL_FORMAT_D24:             return GFX_LFMT_D24X8_UNORM;
+   case V3D_PIXEL_FORMAT_D16:             return GFX_LFMT_D16_UNORM;
+   case V3D_PIXEL_FORMAT_D24S8:           return GFX_LFMT_S8D24_UINT_UNORM;
+   case V3D_PIXEL_FORMAT_S8:              return GFX_LFMT_S8_UINT;
+#endif
    default:                               unreachable(); return GFX_LFMT_NONE;
    }
 }
+
+#if !V3D_HAS_NEW_TLB_CFG
 
 GFX_LFMT_T gfx_lfmt_translate_internal_raw_mode(GFX_LFMT_T output_lfmt)
 {
@@ -205,6 +221,22 @@ v3d_depth_format_t gfx_lfmt_translate_depth_format(GFX_LFMT_T lfmt)
    return depth_format;
 }
 
+GFX_LFMT_T gfx_lfmt_translate_from_depth_format(v3d_depth_format_t depth_format)
+{
+   switch (depth_format)
+   {
+   case V3D_DEPTH_FORMAT_32F:          return GFX_LFMT_D32_FLOAT;
+   case V3D_DEPTH_FORMAT_24:           return GFX_LFMT_D24X8_UNORM;
+   case V3D_DEPTH_FORMAT_16:           return GFX_LFMT_D16_UNORM;
+   case V3D_DEPTH_FORMAT_24_STENCIL8:  return GFX_LFMT_S8D24_UINT_UNORM;
+   default:                            unreachable(); return GFX_LFMT_NONE;
+   }
+}
+
+#endif
+
+/** TLB internal depth type */
+
 v3d_depth_type_t gfx_lfmt_translate_depth_type(GFX_LFMT_T depth_lfmt)
 {
    GFX_LFMT_T fmt = gfx_lfmt_fmt(depth_lfmt);
@@ -217,18 +249,6 @@ v3d_depth_type_t gfx_lfmt_translate_depth_type(GFX_LFMT_T depth_lfmt)
    case GFX_LFMT_D32_FLOAT:            return V3D_DEPTH_TYPE_32F;
    case GFX_LFMT_D32_S8X24_FLOAT_UINT: return V3D_DEPTH_TYPE_32F;
    default:                            unreachable(); return V3D_DEPTH_TYPE_INVALID;
-   }
-}
-
-GFX_LFMT_T gfx_lfmt_translate_from_depth_format(v3d_depth_format_t depth_format)
-{
-   switch (depth_format)
-   {
-   case V3D_DEPTH_FORMAT_32F:          return GFX_LFMT_D32_FLOAT;
-   case V3D_DEPTH_FORMAT_24:           return GFX_LFMT_D24X8_UNORM;
-   case V3D_DEPTH_FORMAT_16:           return GFX_LFMT_D16_UNORM;
-   case V3D_DEPTH_FORMAT_24_STENCIL8:  return GFX_LFMT_S8D24_UINT_UNORM;
-   default:                            unreachable(); return GFX_LFMT_NONE;
    }
 }
 
@@ -362,7 +382,9 @@ static v3d_tmu_type_t try_get_tmu_type_and_out_fmt(
    }
 }
 
-static bool try_get_swizzles(v3d_tmu_swizzle_t swizzles[4], GFX_LFMT_T tmu_out_fmt)
+static bool try_get_swizzles(v3d_tmu_swizzle_t swizzles[4], GFX_LFMT_T tmu_out_fmt,
+   /* Use G/B/A rather than 0/0/1 when fewer than 2/3/4 channels in tmu_out_fmt? */
+   bool use_missing_channels)
 {
    #define S(R,G,B,A)                        \
       do                                     \
@@ -375,16 +397,16 @@ static bool try_get_swizzles(v3d_tmu_swizzle_t swizzles[4], GFX_LFMT_T tmu_out_f
 
    switch (gfx_lfmt_get_channels(&tmu_out_fmt))
    {
-   case GFX_LFMT_CHANNELS_R:     S(R,G,B,A); return true;
-   case GFX_LFMT_CHANNELS_A:     S(0,0,0,R); return true;
-   case GFX_LFMT_CHANNELS_L:     S(R,R,R,1); return true;
+   case GFX_LFMT_CHANNELS_R:     if (use_missing_channels) S(R,G,B,A); else S(R,0,0,1); return true;
+   case GFX_LFMT_CHANNELS_A:     if (use_missing_channels) S(0,G,B,R); else S(0,0,0,R); return true;
+   case GFX_LFMT_CHANNELS_L:     if (use_missing_channels) S(R,R,R,A); else S(R,R,R,1); return true;
 
-   case GFX_LFMT_CHANNELS_RG:    S(R,G,B,A); return true;
-   case GFX_LFMT_CHANNELS_RX:    S(R,0,0,1); return true;
+   case GFX_LFMT_CHANNELS_RG:    if (use_missing_channels) S(R,G,B,A); else S(R,G,0,1); return true;
+   case GFX_LFMT_CHANNELS_RX:    if (use_missing_channels) S(R,0,B,A); else S(R,0,0,1); return true;
    case GFX_LFMT_CHANNELS_LA:    S(R,R,R,G); return true;
 
-   case GFX_LFMT_CHANNELS_RGB:   S(R,G,B,A); return true;
-   case GFX_LFMT_CHANNELS_BGR:   S(B,G,R,1); return true;
+   case GFX_LFMT_CHANNELS_RGB:   if (use_missing_channels) S(R,G,B,A); else S(R,G,B,1); return true;
+   case GFX_LFMT_CHANNELS_BGR:   if (use_missing_channels) S(B,G,R,A); else S(B,G,R,1); return true;
 
    case GFX_LFMT_CHANNELS_RGBA:  S(R,G,B,A); return true;
    case GFX_LFMT_CHANNELS_BGRA:  S(B,G,R,A); return true;
@@ -402,10 +424,9 @@ static bool try_get_swizzles(v3d_tmu_swizzle_t swizzles[4], GFX_LFMT_T tmu_out_f
    #undef S
 }
 
-static bool srgb_ok(v3d_tmu_type_t tmu_type, GFX_LFMT_T tmu_out_fmt,
-   v3d_tfu_rgbord_t rgbord, int v3d_version)
+static bool srgb_ok(v3d_tmu_type_t tmu_type, GFX_LFMT_T tmu_out_fmt, v3d_tfu_rgbord_t rgbord)
 {
-   if (!v3d_tmu_type_supports_srgb(tmu_type, v3d_version))
+   if (!v3d_tmu_type_supports_srgb(tmu_type))
       return false;
 
    uint32_t chan_mask = gfx_lfmt_valid_chan_mask(tmu_out_fmt);
@@ -426,6 +447,8 @@ static bool srgb_ok(v3d_tmu_type_t tmu_type, GFX_LFMT_T tmu_out_fmt,
    }
    return gfx_lfmt_get_type(&tmu_out_fmt) == exp_type;
 }
+
+#if !V3D_VER_AT_LEAST(3,3,0,0)
 
 static void replace_in_swizzles(v3d_tmu_swizzle_t swizzles[4],
    v3d_tmu_swizzle_t to_replace, v3d_tmu_swizzle_t replace_with)
@@ -523,8 +546,10 @@ static void avoid_integer_types(GFX_LFMT_TMU_TRANSLATION_T *t)
    }
 }
 
+#endif
+
 bool gfx_lfmt_maybe_translate_tmu(GFX_LFMT_TMU_TRANSLATION_T *t,
-   GFX_LFMT_T lfmt, gfx_lfmt_tmu_depth_pref_t depth_pref, int v3d_version)
+   GFX_LFMT_T lfmt, gfx_lfmt_tmu_depth_pref_t depth_pref)
 {
    GFX_LFMT_T tmu_out_fmt;
    t->type = try_get_tmu_type_and_out_fmt(&tmu_out_fmt, lfmt);
@@ -557,30 +582,38 @@ bool gfx_lfmt_maybe_translate_tmu(GFX_LFMT_TMU_TRANSLATION_T *t,
    }
 
    t->srgb = gfx_lfmt_contains_srgb(tmu_out_fmt);
-   if (t->srgb && !srgb_ok(t->type, tmu_out_fmt, V3D_TFU_RGBORD_RGBA_OR_RG_YUYV_OR_UV, v3d_version))
+   if (t->srgb && !srgb_ok(t->type, tmu_out_fmt, V3D_TFU_RGBORD_RGBA_OR_RG_YUYV_OR_UV))
       return false;
 
-   if (!try_get_swizzles(t->swizzles, tmu_out_fmt))
+   /* There are two reasons for passing use_missing_channels=false here:
+    * - For border texels the HW just uses what is in the border color for
+    *   missing channels, rather than 0/0/1 as we want
+    * - This function is called for the destination in
+    *   gfx_lfmt_maybe_translate_to_tfu_type, for which 0/1 swizzles
+    *   essentially mean "don't care". So using 0/1 swizzles where possible
+    *   will cause the function to succeed in more cases. */
+   if (!try_get_swizzles(t->swizzles, tmu_out_fmt, /*use_missing_channels=*/false))
       return false;
 
    t->ret = GFX_LFMT_TMU_RET_AUTO;
    t->shader_swizzle = false;
-   if (v3d_version < V3D_MAKE_VER(3,3,0,0))
-      /* Integer types not supported... */
-      avoid_integer_types(t);
+#if !V3D_VER_AT_LEAST(3,3,0,0)
+   /* Integer types not supported... */
+   avoid_integer_types(t);
+#endif
 
    return true;
 }
 
 void gfx_lfmt_translate_tmu(GFX_LFMT_TMU_TRANSLATION_T *t,
-   GFX_LFMT_T lfmt, gfx_lfmt_tmu_depth_pref_t depth_pref, int v3d_version)
+   GFX_LFMT_T lfmt, gfx_lfmt_tmu_depth_pref_t depth_pref)
 {
-   bool success = gfx_lfmt_maybe_translate_tmu(t, lfmt, depth_pref, v3d_version);
+   bool success = gfx_lfmt_maybe_translate_tmu(t, lfmt, depth_pref);
    assert(success);
    vcos_unused_in_release(success);
 }
 
-GFX_LFMT_T gfx_lfmt_translate_from_tmu_type(v3d_tmu_type_t tmu_type, bool srgb, int v3d_version)
+GFX_LFMT_T gfx_lfmt_translate_from_tmu_type(v3d_tmu_type_t tmu_type, bool srgb)
 {
    GFX_LFMT_T lfmt;
    switch (tmu_type)
@@ -667,7 +700,7 @@ GFX_LFMT_T gfx_lfmt_translate_from_tmu_type(v3d_tmu_type_t tmu_type, bool srgb, 
 
    if (srgb)
    {
-      assert(v3d_tmu_type_supports_srgb(tmu_type, v3d_version));
+      assert(v3d_tmu_type_supports_srgb(tmu_type));
       assert(gfx_lfmt_get_type(&lfmt) == GFX_LFMT_TYPE_UNORM);
       if (v3d_tmu_get_num_channels(tmu_type) == 4)
          gfx_lfmt_set_type(&lfmt, GFX_LFMT_TYPE_SRGB_SRGB_SRGB_UNORM);
@@ -792,8 +825,7 @@ static void reorder_tfu_fmts(
 
 void gfx_lfmt_translate_from_tfu_type(
    GFX_LFMT_T *fmts, uint32_t *num_planes, v3d_tfu_yuv_col_space_t *yuv_col_space,
-   v3d_tfu_type_t tfu_type, v3d_tfu_rgbord_t rgbord, bool srgb, int v3d_version,
-   bool is_sand)
+   v3d_tfu_type_t tfu_type, v3d_tfu_rgbord_t rgbord, bool srgb, bool is_sand)
 {
    gfx_buffer_lfmts_none(fmts);
    *num_planes = 1;
@@ -830,7 +862,7 @@ void gfx_lfmt_translate_from_tfu_type(
    default:
       assert(!is_sand);
       /* the tfu ttype should be a valid tmu ttype */
-      fmts[0] = gfx_lfmt_translate_from_tmu_type((v3d_tmu_type_t)tfu_type, srgb, v3d_version);
+      fmts[0] = gfx_lfmt_translate_from_tmu_type((v3d_tmu_type_t)tfu_type, srgb);
    }
 
    if (is_sand)
@@ -916,15 +948,19 @@ static GFX_LFMT_T fudge_lfmt_for_tfu(GFX_LFMT_T lfmt)
    }
 }
 
+static bool swizzle_01_or(v3d_tmu_swizzle_t a, v3d_tmu_swizzle_t b)
+{
+   return (a == V3D_TMU_SWIZZLE_0) || (a == V3D_TMU_SWIZZLE_1) || (a == b);
+}
+
 bool gfx_lfmt_maybe_translate_to_tfu_type(
    v3d_tfu_type_t *tfu_type, bool *srgb, v3d_tfu_rgbord_t *rgbord,
    const GFX_LFMT_T *src_lfmts, uint32_t src_num_planes,
    v3d_tfu_yuv_col_space_t src_yuv_col_space,
-   GFX_LFMT_T dst_lfmt, int v3d_version)
+   GFX_LFMT_T dst_lfmt)
 {
    GFX_LFMT_TMU_TRANSLATION_T dst_t;
-   if (!gfx_lfmt_maybe_translate_tmu(&dst_t, fudge_lfmt_for_tfu(dst_lfmt),
-         GFX_LFMT_TMU_DEPTH_DONT_CARE, v3d_version))
+   if (!gfx_lfmt_maybe_translate_tmu(&dst_t, fudge_lfmt_for_tfu(dst_lfmt), GFX_LFMT_TMU_DEPTH_DONT_CARE))
       return false;
    assert(dst_t.ret == GFX_LFMT_TMU_RET_AUTO);
 
@@ -933,10 +969,10 @@ bool gfx_lfmt_maybe_translate_to_tfu_type(
    {
       /* Only support yuv -> rgba8 */
       if (dst_t.type != V3D_TMU_TYPE_RGBA8 ||
-          dst_t.swizzles[0] != V3D_TMU_SWIZZLE_R ||
-          dst_t.swizzles[1] != V3D_TMU_SWIZZLE_G ||
-          dst_t.swizzles[2] != V3D_TMU_SWIZZLE_B ||
-          dst_t.swizzles[3] != V3D_TMU_SWIZZLE_A)
+          !swizzle_01_or(dst_t.swizzles[0], V3D_TMU_SWIZZLE_R) ||
+          !swizzle_01_or(dst_t.swizzles[1], V3D_TMU_SWIZZLE_G) ||
+          !swizzle_01_or(dst_t.swizzles[2], V3D_TMU_SWIZZLE_B) ||
+          !swizzle_01_or(dst_t.swizzles[3], V3D_TMU_SWIZZLE_A))
          return false;
 
       *rgbord = V3D_TFU_RGBORD_RGBA_OR_RG_YUYV_OR_UV;
@@ -964,13 +1000,14 @@ bool gfx_lfmt_maybe_translate_to_tfu_type(
                return false;
             }
             break;
+#if V3D_VER_AT_LEAST(3,3,0,0)
          case 3:
-            if ((v3d_version < V3D_MAKE_VER(3,3,0,0)) ||
-               (gfx_lfmt_fmt(src_lfmts[1]) != GFX_LFMT_V8_2X2_UNORM) ||
+            if ((gfx_lfmt_fmt(src_lfmts[1]) != GFX_LFMT_V8_2X2_UNORM) ||
                (gfx_lfmt_fmt(src_lfmts[2]) != GFX_LFMT_U8_2X2_UNORM))
                return false;
             *tfu_type = v3d_tfu_type_yuv_420_3plane(src_yuv_col_space);
             break;
+#endif
          default:
             return false;
          }
@@ -1006,8 +1043,10 @@ bool gfx_lfmt_maybe_translate_to_tfu_type(
       return false;
    *tfu_type = (v3d_tfu_type_t)src_tmu_type;
 
+   /* We can set use_missing_channels=true, which will cause maybe_get_rgbord
+    * to succeed in more cases, because TFU will expand correctly */
    v3d_tmu_swizzle_t src_swizzles[4];
-   if (!try_get_swizzles(src_swizzles, src_out_fmt))
+   if (!try_get_swizzles(src_swizzles, src_out_fmt, /*use_missing_channels=*/true))
       return false;
 
    uint32_t num_channels = v3d_tmu_get_num_channels(src_tmu_type);
@@ -1019,16 +1058,16 @@ bool gfx_lfmt_maybe_translate_to_tfu_type(
 
    *srgb = gfx_lfmt_contains_srgb(src_out_fmt);
    return (*srgb == dst_t.srgb) &&
-      (!*srgb || srgb_ok(src_tmu_type, src_out_fmt, *rgbord, v3d_version));
+      (!*srgb || srgb_ok(src_tmu_type, src_out_fmt, *rgbord));
 }
 
 extern void gfx_lfmt_translate_to_tfu_type(
    v3d_tfu_type_t *tfu_type, bool *srgb, v3d_tfu_rgbord_t *rgbord,
    const GFX_LFMT_T *src_lfmts, uint32_t src_num_planes,
    v3d_tfu_yuv_col_space_t src_yuv_col_space,
-   GFX_LFMT_T dst_lfmt, int v3d_version)
+   GFX_LFMT_T dst_lfmt)
 {
    bool ok = gfx_lfmt_maybe_translate_to_tfu_type(tfu_type, srgb, rgbord, src_lfmts,
-      src_num_planes, src_yuv_col_space, dst_lfmt, v3d_version);
+      src_num_planes, src_yuv_col_space, dst_lfmt);
    assert(ok);
 }

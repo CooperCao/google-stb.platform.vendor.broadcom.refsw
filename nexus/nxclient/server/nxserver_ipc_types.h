@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2011-2014 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  *****************************************************************************/
 #ifndef NXSERVER_IPC_TYPES_H__
@@ -75,8 +67,9 @@ enum nxclient_p_general_param_type
     nxclient_p_general_param_type_unregister_acknowledge_standby,
     nxclient_p_general_param_type_acknowledge_standby,
     nxclient_p_general_param_type_load_hdcp_keys,
+    nxclient_p_general_param_type_set_slave_display_graphics,
     nxclient_p_general_param_type_max
-} nxclient_p_general_param_type;
+};
 typedef union nxclient_p_general_param {
     struct {
         unsigned surfaceClientId;
@@ -136,6 +129,10 @@ typedef union nxclient_p_general_param {
         unsigned blockOffset;
         unsigned size;
     } load_hdcp_keys;
+    struct {
+        unsigned slaveDisplay;
+        NEXUS_SurfaceHandle surface;
+    } set_slave_display_graphics;
 } nxclient_p_general_param;
 typedef union nxclient_p_general_output {
     struct {

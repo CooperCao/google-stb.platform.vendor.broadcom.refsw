@@ -57,6 +57,8 @@
 typedef struct BVC5_P_Client
 {
    uint32_t          uiClientId;
+   uint64_t          uiPlatformToken;
+
    void             *pContext;      /* Pointer to calling context (e.g. a Nexusv3d handle) */
 
    /* Lifetime of a job:
@@ -95,8 +97,18 @@ typedef struct BVC5_P_Client
 
    uint64_t             uiMaxJobId;             /* max job ID submitted                */
 
+   uint32_t             uiWorkWanted;           /* Scheduler uses these to keep track  */
+   uint32_t             uiWorkGiven;            /* of who has beeen given what work    */
+
    BLST_S_ENTRY(BVC5_P_Client) sChain;
 } BVC5_P_Client;
+
+enum
+{
+   BVC5_CLIENT_BIN    = 1,
+   BVC5_CLIENT_RENDER = 2,
+   BVC5_CLIENT_TFU    = 4
+};
 
 typedef struct BVC5_P_Client     *BVC5_ClientHandle;
 typedef struct BVC5_P_ClientMap  *BVC5_ClientMapHandle;
@@ -113,7 +125,8 @@ typedef struct BVC5_P_ClientMap  *BVC5_ClientMapHandle;
 BERR_Code BVC5_P_ClientCreate(
    BVC5_Handle        hVC5,
    BVC5_ClientHandle *phClient,
-   uint32_t           uiClientId
+   uint32_t           uiClientId,
+   uint64_t           uiPlatformToken
 );
 
 /***************************************************************************/
@@ -180,7 +193,8 @@ BERR_Code BVC5_P_ClientMapCreateAndInsert(
    BVC5_Handle             hVC5,
    BVC5_ClientMapHandle    hClientMap,
    void                   *pContext,
-   uint32_t                uiClientId
+   uint32_t                uiClientId,
+   uint64_t                uiPlatformToken
 );
 
 /***************************************************************************/
@@ -330,6 +344,25 @@ bool BVC5_P_ClientSetMaxJobId(
 );
 
 void BVC5_P_ClientMarkJobsFlushedV3D(
+   BVC5_ClientHandle hClient
+);
+
+/****************************************************************************/
+
+bool BVC5_P_ClientSatisifed(
+   BVC5_ClientHandle hClient
+);
+
+void BVC5_P_ClientSetWanted(
+   BVC5_ClientHandle hClient
+);
+
+void BVC5_P_ClientSetGiven(
+   BVC5_ClientHandle hClient,
+   uint32_t          uiGiven
+);
+
+bool BVC5_P_ClientHasHardJobs(
    BVC5_ClientHandle hClient
 );
 

@@ -1,7 +1,7 @@
 #############################################################################
-#    (c)2012-2015 Broadcom Corporation
+# Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
-# This program is the proprietary software of Broadcom Corporation and/or its licensors,
+# This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
 # conditions of a separate, written license agreement executed between you and Broadcom
 # (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
 # LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 # ANY LIMITED REMEDY.
 #
-# $brcm_Workfile: $
-# $brcm_Revision: $
-# $brcm_Date: $
-#
 # Module Description:
-#
-# Revision History:
-#
-# $brcm_Log: $
 #
 #############################################################################
 #Module descriptioin: DTCP-IP Makefile for nexus build
@@ -71,23 +63,19 @@ include $(NEXUS_TOP)/platforms/$(NEXUS_PLATFORM)/build/platform_app.inc
 include dtcp_ip_lib.inc
 
 # Define the default target.
-#.PHONY: all
+.PHONY: all
 all:  install
 
-#.PHONY: prep_bcrypt
-#prep_bcrypt:
-#	@echo [Compiling Bcrypt dependency ....];
-#	$(Q_)$(MAKE) -C $(B_LIB_TOP)/../../BSEAV/lib/security/bcrypt install
+prep_drmrootfs:
+	@echo [..... prep_drmrootfs target];
+	@if [ ! -f "${B_REFSW_OBJ_ROOT}/BSEAV/lib/drmrootfs/${DRMROOTFS_LIBDIR}/libdrmrootfs.so" ]; then \
+	    echo [ building drmrootfs .... ]; \
+		$(MAKE) -C $(B_LIB_TOP)/../../BSEAV/lib/drmrootfs install > /dev/null; \
+	fi
 
-#.PHONY: prep_cmndrm_tl
-#prep_cmndrm_tl:
-#ifeq ($(SAGE_SUPPORT), y)
-#	@echo [..... Common DRM target with j option]
-#	$(Q_)$(MAKE) -C $(B_LIB_TOP)/../../BSEAV/lib/security/common_drm install
-#endif
 
 .PHONY: install
-install:
+install: prep_drmrootfs
 	@echo [Compiling Bcrypt dependency ....];
 	$(Q_)$(MAKE) -C $(B_LIB_TOP)/../../BSEAV/lib/security/bcrypt install
 	@echo [..... Common DRM target with j option]

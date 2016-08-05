@@ -58,8 +58,7 @@
     #include "automation/bvdc_automation_vftable_v1_priv.c"
     #include "bvdc_vffilter_ntsc_v1_priv.c"
 #else
-    #include "automation/bvdc_automation_vftable_v0_priv.c"
-    #include "bvdc_vffilter_ntsc_v0_priv.c"
+    #error Unsupported VF_VER
 #endif
 
 /****************************************************************

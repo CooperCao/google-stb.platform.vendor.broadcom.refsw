@@ -1223,7 +1223,7 @@ BSAGElib_P_Boot_ResetSage(
         rc = BHSM_RegionVerification_Configure(hSAGElib->core_handles.hHsm, 0x18, &verifyIO);
         BSAGElib_iUnlockHsm();
         if ( rc != 0 ) {
-            BDBG_ERR(("\nBHSM_RegionVerification_Configure fails - region = 0x%x, status = %x\n", 0x18, rc));
+            BDBG_ERR(("BHSM_RegionVerification_Configure fails - region = 0x%x, status = %x", 0x18, rc));
             goto end;
         }
 
@@ -1231,7 +1231,7 @@ BSAGElib_P_Boot_ResetSage(
         rc = BHSM_RegionVerification_Enable(hSAGElib->core_handles.hHsm);
         BSAGElib_iUnlockHsm();
         if ( rc != 0) {
-            BDBG_ERR(("\nBHSM_RegionVerification_Enable fails - status = %x\n", rc));
+            BDBG_ERR(("BHSM_RegionVerification_Enable fails - status = %x", rc));
             goto end;
         }
 

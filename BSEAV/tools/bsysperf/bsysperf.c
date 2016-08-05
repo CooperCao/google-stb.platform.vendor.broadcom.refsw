@@ -51,9 +51,10 @@
 #include <sys/time.h>
 #include <sys/stat.h>
 #include <ctype.h>
-#include <signal.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <pthread.h>
+#include <sys/utsname.h>
 
 #include "bstd.h"
 #include "bmemperf_server.h"
@@ -62,6 +63,10 @@
 #include "bmemperf_info.h"
 #include "nexus_platform.h"
 #include "bheaps.h"
+#ifdef BWL_SUPPORT
+#include "bsysperf_wifi.h"
+#include "bwl.h"
+#endif
 
 #define MAXHOSTNAME       80
 #define CONTENT_TYPE_HTML "Content-type: text/html\n\n"
@@ -77,12 +82,12 @@ bool          gPerfError = false;
 
 typedef struct
 {
-    unsigned long int rxErrors;
-    unsigned long int txErrors;
-    unsigned long int rxBytes;
-    unsigned long int txBytes;
-    char              name[16];
-    char              ipAddress[32];
+    unsigned long long int rxErrors;
+    unsigned long long int txErrors;
+    unsigned long long int rxBytes;
+    unsigned long long int txBytes;
+    char                   name[16];
+    char                   ipAddress[32];
 } bsysperf_netStatistics;
 
 #define NET_STATS_MAX       10
@@ -109,14 +114,14 @@ typedef enum {
  *  Function: This function will format an integer to output an indicator for kilo, mega, or giga.
  **/
 char *formatul(
-    unsigned long int value
+    unsigned long long int value
     )
 {
     float fValue = value;
 
     if (value < 1024)
     {
-        sprintf( outString, "%lu", value );
+        sprintf( outString, "%llu", value );
     }
     else if (value < 1024 * 1024)
     {
@@ -139,20 +144,21 @@ char *formatul(
  *  found on the line, the converted integer value will be returned.
  **/
 int scan_for_tag(
-    const char        *line,
-    const char        *tag,
-    unsigned long int *value
+    const char             *line,
+    const char             *tag,
+    unsigned long long int *value
     )
 {
-    char             *pos    = NULL;
-    unsigned long int lvalue = 0;
-    char              valueStr[64];
+    int                     rc     = -1;
+    char                   *pos    = NULL;
+    unsigned long long int  lvalue = 0;
+    char                    valueStr[64];
 
     pos = strstr( line, tag );
     if (pos)
     {
         pos   += strlen( tag );
-        lvalue = strtoul( pos, NULL, BSYSPERF_VALUE_BASE );
+        lvalue = strtoull( pos, NULL, BSYSPERF_VALUE_BASE );
         if (strstr( tag, "RX packets:" ) && ( lvalue > 0 ))
         {
             valueStr[0] = 0;
@@ -164,8 +170,11 @@ int scan_for_tag(
         {
             *value = lvalue;
         }
+
+        rc = 0;
     }
-    return( 0 );
+    /* -1 is used to indicate the tag was not found; rc=0 indicates the tag was found and some values were scanned */
+    return( rc );
 }                                                          /* scan_for_tag */
 
 /**
@@ -217,13 +226,14 @@ int output_profiling_controls(
     printf( "~%s~", whichTop );
     printf( "<table cols=5 style=\"border-collapse:collapse;\" border=0 cellpadding=3 >" );
     printf( "<tr><th colspan=5 class=whiteborders18 align=left >Profiling</th></tr>" );
-    printf( "<tr><th colspan=5 class=whiteborders18 align=left >\n<table border=0 ><tr>" );
-    printf( "<td width=100 ><input type=checkbox id=checkboxPerfTop    onclick=\"MyClick(event);\" >Perf&nbsp;Top</td>\n" );
-    printf( "<td width=100 ><input type=checkbox id=checkboxLinuxTop   onclick=\"MyClick(event);\" >Linux&nbsp;Top</td>\n" );
-    printf( "<td width=150 ><input type=checkbox id=checkboxPerfDeep onclick=\"MyClick(event);\" >Deep "
-            "(<input type=input id=PerfDeepDuration style=\"width:2em;\" value=4>sec)</td>\n" );
-    printf( "<td width=250 ><table><tr><td><input type=checkbox id=checkboxContextSwitch onclick=\"MyClick(event);\" >Context&nbsp;Switches<span id=spanContextSwitches></span></td></tr></table></td>\n" );
-    printf( "</tr></table></th></tr>" );
+    printf( "<tr><td colspan=5 class=whiteborders18 align=left ><table border=0 ><tr>" );
+    printf( "<td width=100 ><table><tr><td><input type=checkbox id=checkboxPerfTop    onclick=\"MyClick(event);\" ></td><td style=\"font-size:12.0pt;font-weight:normal;\" >Perf&nbsp;Top</td></tr></table></td>\n" );
+    printf( "<td width=100 ><table><tr><td><input type=checkbox id=checkboxLinuxTop   onclick=\"MyClick(event);\" ></td><td style=\"font-size:12.0pt;font-weight:normal;\" >Linux&nbsp;Top</td></tr></table></td>\n" );
+    printf( "<td width=150 ><table><tr><td><input type=checkbox id=checkboxPerfDeep onclick=\"MyClick(event);\" ></td><td style=\"font-size:12.0pt;font-weight:normal;\" >Deep</td>"
+            "<td style=\"font-size:12.0pt;font-weight:normal;\" >(<input type=input id=PerfDeepDuration style=\"width:2em;\" value=4>sec)</td></tr></table></td>\n" );
+    printf( "<td width=250 ><table><tr><td><input type=checkbox id=checkboxContextSwitch onclick=\"MyClick(event);\" ></td>"
+            "<td style=\"font-size:12.0pt;font-weight:normal;\" >Context&nbsp;Switches<span id=spanContextSwitches></span></td></tr></table></td>\n" );
+    printf( "</tr></table></td></tr>" );
     printf( "<tr id=row_profiling_html style=\"display:none;\"><th colspan=5 class=whiteborders18 align=left ></th></tr>" );
 
     return( 0 );
@@ -259,13 +269,13 @@ int GetLinuxTopData(
     printf( "<tr><td colspan=5 ><textarea cols=120 rows=24 id=textareaTopResults >" );
 
     PrependTempDirectory( tempFilename, sizeof( tempFilename ), LINUX_TOP_OUTPUT_FILE );
-    PRINTF( "~Prepended (%s)~", tempFilename ); fflush( stdout ); fflush( stderr );
+    PRINTF( "~Prepended (%s)~", tempFilename );
     contents = GetFileContents( tempFilename );
 
     if (contents != NULL)
     {
         printf( "%s", contents );
-        free( contents );
+        Bsysperf_Free( contents );
     }
     else
     {
@@ -384,7 +394,7 @@ int get_PerfCache_Results(
     if (contents != NULL)
     {
         printf( "%s", contents );
-        free( contents );
+        Bsysperf_Free( contents );
     }
     else
     {
@@ -439,7 +449,7 @@ void get_PerfDeep_Results(
     if (contents != NULL)
     {
         printf( "%s", contents );
-        free( contents );
+        Bsysperf_Free( contents );
     }
     else
     {
@@ -506,6 +516,8 @@ int get_netstat_data(
             /* if we haven't found the first interface name yet, keep looking for the next line */
             if (g_netStatsIdx >= 0)
             {
+                int rc = 0;
+
                 /* if line has IP address on it */
                 if (( pos = strstr( line, "inet addr:" )))
                 {
@@ -524,14 +536,35 @@ int get_netstat_data(
                         PRINTF( "IF (%s) has IP addr (%s)<br>\n", pNetStats[g_netStatsIdx].name, pNetStats[g_netStatsIdx].ipAddress );
                     }
                 }
-                scan_for_tag( line, "RX packets:", &pNetStats[g_netStatsIdx].rxErrors );
-                scan_for_tag( line, "TX packets:", &pNetStats[g_netStatsIdx].txErrors );
+                /*
+                eth0      Link encap:Ethernet  HWaddr 00:10:18:D2:C3:C9
+                          inet addr:10.14.244.188  Bcast:10.14.245.255  Mask:255.255.254.0
+                          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+                          RX packets:11832 errors:0 dropped:0 overruns:0 frame:0
+                          TX packets:2150 errors:0 dropped:0 overruns:0 carrier:0
+                          collisions:0 txqueuelen:1000
+                          RX bytes:2429458 (2.3 MiB)  TX bytes:632148 (617.3 KiB)
+                */
+
+                rc = scan_for_tag( line, "RX packets:", &pNetStats[g_netStatsIdx].rxErrors );
+                /* if the RX packets tag was found, now scan for errors tag on the same line */
+                if (rc == 0)
+                {
+                    rc = scan_for_tag( line, " errors:", &pNetStats[g_netStatsIdx].rxErrors );
+                }
+
+                rc = scan_for_tag( line, "TX packets:", &pNetStats[g_netStatsIdx].txErrors );
+                /* if the TX packets tag was found, now scan for errors tag on the same line */
+                if (rc == 0)
+                {
+                    rc = scan_for_tag( line, " errors:", &pNetStats[g_netStatsIdx].txErrors );
+                }
                 scan_for_tag( line, "RX bytes:", &pNetStats[g_netStatsIdx].rxBytes );
                 scan_for_tag( line, "TX bytes:", &pNetStats[g_netStatsIdx].txBytes );
+                /*printf("~DEBUG~ip_addr (%s) ... TX bytes (%lld)~", pNetStats[g_netStatsIdx].ipAddress, pNetStats[g_netStatsIdx].txBytes );*/
             }
         }
-    }
-    while (strlen( line ));
+    } while (strlen( line ));
     PRINTF( "\n" );
 
     pclose( cmd );
@@ -635,6 +668,25 @@ int create_uuid( char * strUuid )
 }
 
 /**
+ *  Function: This function will attempt to find the IP address of the wlan0 interface.
+ **/
+static char *Bsysperf_FindWlan0Address( void )
+{
+     int idx = 0;
+     static char address[32] = "192.168.0.100";
+
+     for (idx=0; idx<=g_netStatsIdx; idx++)
+     {
+         if ( strcmp(g_netStats[idx].name, "wlan0") == 0 )
+         {
+             strncpy( address, g_netStats[idx].ipAddress, sizeof(address) -1 );
+             break;
+         }
+     }
+     return ( address );
+}
+
+/**
  *  Function: This function is the main entry point for the BSYSPERF client app.
  **/
 int main(
@@ -647,11 +699,9 @@ int main(
     int                   cpu = 0;
     int                   irq = 0;
     struct sockaddr_in    server;
-    struct hostent       *hp = NULL;
     char                  ThisHost[80];
     bmemperf_request      request;
     bmemperf_response     response;
-    char                  ServerIpAddr[INET6_ADDRSTRLEN];
     bmemperf_version_info versionInfo;
     char                  valueStr[64];
     int                   numCpusConf =  sysconf( _SC_NPROCESSORS_CONF );
@@ -665,6 +715,17 @@ int main(
     int   cpuInfo          = 0;
     int   memory           = 0;
     int   netStats         = 0;
+    int   iperfInit        = 0;
+    int   iperfPidClient   = 0;
+    int   iperfPidServer   = 0;
+    int   iperfRunningClient= 0;
+    int   iperfRunningServer= 0;
+    int   wifiInit         = 0; /* set to true when checkbox is checked; get versions and ids that do not change */
+    int   wifiStats        = 0;
+    int   wifiScanStart    = 0;
+    int   wifiAmpduStart   = 0;
+    int   wifiAmpduGraph   = 0;
+    int   wifiScanResults  = -1;
     int   irqInfo          = 0;
     int   heapStats        = 0;
     int   sataUsb          = 0;
@@ -682,6 +743,9 @@ int main(
     int   LinuxTop         = 0;
     int   ContextSwitches  = 0;
     char  perfVersion[MAX_LINE_LENGTH];
+    AMPDU_DATA_T lAmpduData;
+    char  iperfCmdLine[sizeof(request.request.strCmdLine)];
+    struct utsname uname_info;
 
     if (argc > 1) {printf( "%s: no arguments are expected\n", argv[0] ); }
 
@@ -690,6 +754,8 @@ int main(
     memset( &irqTotalStr, 0, sizeof( irqTotalStr ));
     memset( &PerfFlameCmdLine, 0, sizeof( PerfFlameCmdLine ));
     memset( strUuid, 0, sizeof(strUuid) );
+    memset( iperfCmdLine, 0, sizeof(iperfCmdLine) );
+    memset( &uname_info, 0, sizeof(uname_info));
 
     queryString   = getenv( "QUERY_STRING" );
 
@@ -700,6 +766,18 @@ int main(
         scanForInt( queryString, "cpuinfo=", &cpuInfo );
         scanForInt( queryString, "memory=", &memory );
         scanForInt( queryString, "netstats=", &netStats );
+        scanForInt( queryString, "iperfInit=", &iperfInit );
+        scanForInt( queryString, "iperfPidClient=", &iperfPidClient);
+        scanForInt( queryString, "iperfPidServer=", &iperfPidServer);
+        scanForInt( queryString, "iperfRunningClient=", &iperfRunningClient);
+        scanForInt( queryString, "iperfRunningServer=", &iperfRunningServer);
+        scanForStr( queryString, "iperfCmdLine=", sizeof( iperfCmdLine ), iperfCmdLine );
+        scanForInt( queryString, "wifiinit=", &wifiInit);
+        scanForInt( queryString, "wifiStats=", &wifiStats );
+        scanForInt( queryString, "wifiscanstart=", &wifiScanStart );
+        scanForInt( queryString, "wifiscanresults=", &wifiScanResults );
+        scanForInt( queryString, "wifiAmpduGraph=", &wifiAmpduGraph );
+        scanForInt( queryString, "wifiAmpduStart=", &wifiAmpduStart ); /* set to one when use first checks the AMPDU Graph checkbox */
         scanForInt( queryString, "irqinfo=", &irqInfo );
         scanForInt( queryString, "heapstats=", &heapStats );
         scanForInt( queryString, "satausb=", &sataUsb );
@@ -739,15 +817,6 @@ int main(
         }
     }
 
-    strncpy( versionInfo.platform, getPlatform(), sizeof( versionInfo.platform ) - 1 );
-    strncpy( versionInfo.platVersion, getPlatformVersion(), sizeof( versionInfo.platVersion ) - 1 );
-    versionInfo.majorVersion   = MAJOR_VERSION;
-    versionInfo.minorVersion   = MINOR_VERSION;
-    versionInfo.sizeOfResponse = sizeof( response );
-    printf( "~PLATFORM~%s", versionInfo.platform );
-    printf( "~PLATVER~%s", versionInfo.platVersion );
-    printf( "~VERSION~Ver: %u.%u~", versionInfo.majorVersion, versionInfo.minorVersion );
-
     if (ChangeCpuState != 0)
     {
         change_cpu_state( ChangeCpuState );
@@ -759,6 +828,18 @@ int main(
         int            leftright    = 0;
         int            leftrightmax = 1;
         struct timeval now          = {1400000000, 0};
+
+        strncpy( versionInfo.platform, getPlatform(), sizeof( versionInfo.platform ) - 1 );
+        strncpy( versionInfo.platVersion, getPlatformVersion(), sizeof( versionInfo.platVersion ) - 1 );
+        versionInfo.majorVersion   = MAJOR_VERSION;
+        versionInfo.minorVersion   = MINOR_VERSION;
+        versionInfo.sizeOfResponse = sizeof( response );
+        printf( "~PLATFORM~%s", versionInfo.platform );
+        printf( "~PLATVER~%s", versionInfo.platVersion );
+        printf( "~VERSION~Ver: %u.%u~", versionInfo.majorVersion, versionInfo.minorVersion );
+
+        uname(&uname_info);
+        printf("~UNAME~%d-bit %s %s~", (sizeof(char*) == 8)?64:32, uname_info.machine , uname_info.release );
 
         if (numCpusConf % 2 == 0)
         {
@@ -835,30 +916,31 @@ int main(
 
     printf( "~STBTIME~%s~", DayMonDateYear( 0 ));
 
-    /* if the checkbox for CPU Utilization OR Network Stats OR IRQ Counts is checked (any one of these needs to request data from bmemperf_server) */
-    if (cpuInfo || netStats || irqInfo || PerfDeep || PerfCache || sataUsb || LinuxTop || ContextSwitches || PerfFlame )
+    if ( wifiAmpduStart == 0 )
     {
+        wifiAmpduStart = wifiStats; /* every time we get the wifi stats (every 10 seconds), reset the AMPUD collection and start collecting again */
+    }
+
+    /* if the checkbox for CPU Utilization OR Network Stats OR IRQ Counts is checked (any one of these needs to request data from bmemperf_server) */
+    if (cpuInfo || netStats || wifiScanStart || (wifiScanResults != -1) || wifiAmpduStart || irqInfo || PerfDeep || PerfCache || sataUsb ||
+        LinuxTop || ContextSwitches || PerfFlame || strlen(iperfCmdLine) )
+    {
+        struct in_addr sin_temp_addr;
+
         strncpy( ThisHost, "localhost", sizeof( ThisHost ));
         getservbyname( "echo", "tcp" );
 
         strncpy( ThisHost, "localhost", sizeof( ThisHost ));
 
-        if (( hp = gethostbyname2( ThisHost, AF_INET )) == NULL)
-        {
-            fprintf( stderr, "Can't find host %s\n", "localhost" );
-            exit( -1 );
-        }
-        bcopy( hp->h_addr, &( server.sin_addr ), hp->h_length );
-        printf( "~TCP/Client running at HOST (%s) at INET ADDRESS : (%s)~", ThisHost, inet_ntoa( server.sin_addr ));
+        sin_temp_addr.s_addr = get_my_ip4_addr();
 
-        rc = gethostbyaddr2( ThisHost, BSYSPERF_SERVER_PORT, ServerIpAddr, sizeof( ServerIpAddr ));
-        if (rc != 0)
+        if ( sin_temp_addr.s_addr == 0 )
         {
-            perror( "ERROR getting address for port" );
+            printf( "~FATAL~get_my_ip4_addr() failed to determine IP address.~" );
             return( -1 );
         }
-
-        inet_pton( AF_INET, ServerIpAddr, &server.sin_addr );
+        bcopy( &sin_temp_addr.s_addr, &( server.sin_addr ), sizeof( sin_temp_addr.s_addr ) );
+        /*printf( "~TCP/Client running at HOST (%s) at INET ADDRESS : (%s)~", ThisHost, inet_ntoa( server.sin_addr ));*/
 
         /* Construct name of socket to send to. */
         server.sin_family = AF_INET;
@@ -992,10 +1074,56 @@ int main(
             request.cmdSecondaryOption = request.cmdSecondary;
         }
 
+        if ( wifiScanStart )
+        {
+            PRINTF( "~Sending BMEMPERF_CMD_WIFI_SCAN_START request %d ~", BMEMPERF_CMD_WIFI_SCAN_START );
+            request.cmdSecondary       = BMEMPERF_CMD_WIFI_SCAN_START;
+            request.cmdSecondaryOption = 0;
+        }
+        else if ( wifiScanResults != -1 )
+        {
+            PRINTF( "~Sending BMEMPERF_CMD_WIFI_SCAN_RESULTS request ... ServerIdx %d~", wifiScanResults );
+            request.cmdSecondary       = BMEMPERF_CMD_WIFI_SCAN_GET_RESULTS;
+            request.cmdSecondaryOption = wifiScanResults;
+        }
+
+        if ( wifiAmpduStart == 1 )
+        {
+            PRINTF( "~DEBUG~Sending BMEMPERF_CMD_WIFI_AMPDU_START request~" );
+            request.cmdSecondary       = BMEMPERF_CMD_WIFI_AMPDU_START;
+        }
+
+        if ( strlen(iperfCmdLine) )
+        {
+            const char * fullpath = executable_fullpath( "iperf" );
+            if ( strlen( fullpath ) )
+            {
+                if (strncmp(iperfCmdLine, "STOP", 4) == 0 )
+                {
+                    request.cmdSecondary       = BMEMPERF_CMD_IPERF_STOP;
+                }
+                else
+                {
+                    request.cmdSecondary       = BMEMPERF_CMD_IPERF_START;
+                    strncpy ( (char*) &request.request.strCmdLine, iperfCmdLine, sizeof(request.request.strCmdLine) - 1 );
+                    decodeURL( request.request.strCmdLine );
+                    printf( "~DEBUG~iperfCmdLine; cmdLine (%s)~", iperfCmdLine );
+                }
+                request.cmdSecondaryOption = (strstr( iperfCmdLine, "-c")) ? 0 : 1;
+                printf( "~DEBUG~iperfCmdLine; cmdLine (%s) ... fullpath (%s) ... secondary (%d) ~", iperfCmdLine, fullpath, (int) request.cmdSecondaryOption );
+            }
+            else
+            {
+                printf( "~iperfErrorClient~Executable not found~" );
+                printf( "~iperfErrorServer~Executable not found~" );
+            }
+        }
+
+        PRINTF( "~DEBUG~Sending request ... cmdSecondary 0x%x ... option 0x%lx ~", request.cmdSecondary, request.cmdSecondaryOption );
         rc = send_request_read_response( &server, (unsigned char*) &request, sizeof(request), (unsigned char*) &response, sizeof(response), BSYSPERF_SERVER_PORT, BMEMPERF_CMD_GET_CPU_IRQ_INFO );
         if (rc < 0)
         {
-            printf( "error sending BMEMPERF_CMD_GET_CPU_IRQ_INFO request; rc %d \n", rc );
+            PRINTF( "error sending BMEMPERF_CMD_GET_CPU_IRQ_INFO request; rc %d \n", rc );
             printf( "~FATAL~ERROR connecting to server. Make sure bsysperf_server is running.~" );
             return( -1 );
         }
@@ -1004,17 +1132,17 @@ int main(
 
         if (PerfDeep)
         {
-            PRINTF( "~PERFDEEPSTARTED~SUCCESS~" );
+            printf( "~PERFDEEPSTARTED~SUCCESS~" );
         }
         else if (PerfCache)
         {
-            PRINTF( "~PERFCACHESTARTED~SUCCESS~" );
+            printf( "~PERFCACHESTARTED~SUCCESS~" );
         }
         else if (PerfFlame)
         {
             printf( "~PERFFLAMESTATUS~%lu~", (unsigned long int) response.response.overallStats.fileSize );
             printf( "~PERFFLAMEPIDCOUNT~%lu~", response.response.overallStats.pidCount );
-            PRINTF( "PERFFLAMESIZE %lu; PIDCOUNT %lu~", (unsigned long int) response.response.overallStats.fileSize, (unsigned long int) response.response.overallStats.pidCount );
+            printf( "PERFFLAMESIZE %lu; PIDCOUNT %lu~", (unsigned long int) response.response.overallStats.fileSize, (unsigned long int) response.response.overallStats.pidCount );
         }
     }
 
@@ -1051,7 +1179,7 @@ int main(
         qsort( &response.response.cpuIrqData.irqData.irqDetails[0], BMEMPERF_IRQ_MAX_TYPES,
             sizeof( response.response.cpuIrqData.irqData.irqDetails[0] ), sort_on_irq0 );
 
-        printf( "irqTotal (%lu); irqTotal2 (%lu)\n", irqTotal, irqTotal2 );
+        PRINTF( "~DEBUG~irqTotal (%lu); irqTotal2 (%lu)~", irqTotal, irqTotal2 );
         /* convert 999999 to 999,999 ... e.g. add commas */
         convert_to_string_with_commas( irqTotal,  irqTotalStr, sizeof( irqTotalStr ));
 
@@ -1119,13 +1247,21 @@ int main(
     /* if the checkbox for Network Stats is checked */
     if (netStats)
     {
-        printf( "~NETSTATS~" );
-        printf( "<table cols=7 style=\"border-collapse:collapse;\" border=0 cellpadding=3 >" );
-
         get_netstat_data( &g_netStats[0] );
 
-        printf( "<tr><th colspan=7 class=whiteborders18 align=left >Network Interface Statistics</th></tr>" );
-        printf( "<tr><td colspan=7><table style=\"border-collapse:collapse;\" border=1 cellpadding=3 >\n" );
+        printf( "~NETSTATS~" );
+        printf( "<table cols=8 style=\"border-collapse:collapse;\" border=0 cellpadding=3 >" );
+
+        printf( "<tr><td class=whiteborders18 align=left style=\"font-weight:bold;width:320px;\" >Network Interface Statistics</td>" );
+        printf( "<td style=\"width:20px;\" ><input type=checkbox id=checkboxiperfrow onclick=\"MyClick(event);\" ></td>");
+        printf( "<td style=\"width:50px;\" align=left >iperf</td>" );
+        printf( "<td>&nbsp;</td>" );
+        printf( "<td>&nbsp;</td>" );
+        printf( "<td>&nbsp;</td>" );
+        printf( "<td>&nbsp;</td>" );
+        printf( "<td>&nbsp;</td>" );
+        printf( "</tr>" );
+        printf( "<tr><td colspan=8><table style=\"border-collapse:collapse;\" border=1 cellpadding=3 >\n" );
         printf( "<tr bgcolor=lightgray ><th>Name</th><th>IP Addr</th><th>Rx Bytes</th><th>Tx Bytes</th><th>Rx Errors</th><th>Tx Errors</th>"
                 "<th>Rx Mbps (Avg)</th><th>Tx Mbps (Avg)</th></tr>\n" );
         for (idx = 0; idx <= g_netStatsIdx; idx++) {
@@ -1143,11 +1279,381 @@ int main(
         /* output some of the above information again in an unformatted way to make it easier to compute bits per second */
         printf( "~NETBYTES~" );
         for (idx = 0; idx <= g_netStatsIdx; idx++) {
-            printf( "%lu ", g_netStats[idx].rxBytes );
-            printf( "%lu,", g_netStats[idx].txBytes );
+            printf( "%llu ", g_netStats[idx].rxBytes );
+            printf( "%llu,", g_netStats[idx].txBytes );
         }
         printf( "~" );
+
+        if (iperfInit)
+        {
+            char *wlan0Address = Bsysperf_FindWlan0Address();
+
+            printf( "~iperfInit~" );
+            printf( "<span style=\"display:inline-block; font-size:18pt; margin-bottom:10px; margin-top:5px; \" >&nbsp;iperf</span><div style=\"border:1px solid black;\" >" );
+            printf( "<table cols=\"3\" style=\"border-collapse:collapse;borders:1px solid black;\" border=\"0\" cellpadding=\"3\" width=900 >" );
+            printf( "   <tr>" );
+            printf( "       <td width=\"110\" align=\"left\" nowrap ><b>Server:&nbsp;</b>iperf&nbsp;-s&nbsp;</td>" );
+            printf( "       <td width=\"40\" align=\"left\" >" );
+            printf( "           <input type=\"text\" id=iperf_options_s placeholder=\"Extra Options\" style=\"border:1px solid black;width:200px;\" onfocus=\"FocusEntryBox(event);\" onblur=\"BlurEntryBox(event);\" onkeyup=\"KeyupEntryBox(event);\" value=\"-w4096K -N\" title=\"Extra Options\" >" );
+            printf( "       </td>" );
+            printf( "       <td>" );
+            printf( "           <table style=\"border-collapse:collapse;\" border=\"0\" cellpadding=\"0\" style=\"border:1px solid black;\" >" );
+            printf( "               <tr>" );
+            printf( "                   <td style=\"border:none;\" width=\"30\" nowrap>&nbsp;</td>" );
+            printf( "                   <td align=\"left\" class=whiteborders18 style=\"width:40px;\" align=\"left\" ><input type=\"button\" id=iperf_start_stop_s value=\"START\" onclick=\"MyClick(event);\" ></td>" );
+            printf( "                   <td style=\"border:none;\" width=\"20\" nowrap>&nbsp;</td>" );
+            printf( "                   <td align=\"left\" class=whiteborders18 style=\"width:20px;font-size:12pt;\" id=iperf_count_s ></td>" );
+            printf( "                   <td style=\"border:none;\" width=\"20\" nowrap>&nbsp;</td>" );
+            printf( "                   <td align=\"left\" class=whiteborders18 style=\"width:400px;font-size:12pt;\" id=iperf_status_s ></td>" );
+            printf( "               </tr>" );
+            printf( "           </table>" );
+            printf( "       </td>" );
+            printf( "   </tr>" );
+            printf( "   <tr><td colspan=\"3\" id=iperf_cmd_s align=\"left\" style=\"color:red;font-style:italic;\" ></td></tr>" );
+
+            printf( "   <tr>" );
+            printf( "       <td width=\"110\" align=\"left\" nowrap ><b>Client:&nbsp;</b>iperf&nbsp;-c&nbsp;</td>" );
+            printf( "       <td><table border=0 style=\"border-collapse:collapse;\" >" );
+            printf( "           <tr>" );
+            printf( "               <td><input type=\"text\" id=iperf_addr placeholder=\"Server IP\" style=\"border:1px solid black;\" size=\"10\" value=\"%s\" onfocus=\"FocusEntryBox(event);\" onblur=\"BlurEntryBox(event);\" onkeyup=\"KeyupEntryBox(event);\" title=\"Server Address\" > </td>",  wlan0Address );
+            printf( "               <td style=\"border:none;\" width=\"25\" nowrap align=right >-t&nbsp;</td>" );
+            printf( "               <td style=\"border:none;\" ><input type=\"text\" id=iperf_duration placeholder=\"Duration\" style=\"border:1px solid black;\" size=\"3\" value=\"100\" onfocus=\"FocusEntryBox(event);\" onblur=\"BlurEntryBox(event);\" onkeyup=\"KeyupEntryBox(event);\" title=\"Duration\" ></td>" );
+            printf( "           </tr>" );
+            printf( "       </table></td>" );
+            printf( "       <td >" );
+            printf( "           <table style=\"border-collapse:collapse;\" border=\"0\" cellpadding=\"0\" >" );
+            printf( "               <tr>" );
+            printf( "                   <td style=\"border:none;\" width=\"20\" nowrap align>-p&nbsp;</td>" );
+            printf( "                   <td><input type=\"text\" id=iperf_port_c placeholder=\"# Streams\" style=\"border:1px solid black;\" size=\"3\" value=\"5001\" onfocus=\"FocusEntryBox(event);\" onblur=\"BlurEntryBox(event);\" onkeyup=\"KeyupEntryBox(event);\" title=\"# Streams\" ></td>" );
+            printf( "                   <td style=\"border:none;\" width=\"20\" nowrap>&nbsp;</td>" );
+            printf( "                   <td><input type=\"text\" id=iperf_options_c placeholder=\"Extra Options\" style=\"border:1px solid black;\" size=\"20\" value=\"-w4096K -N\" onfocus=\"FocusEntryBox(event);\" onblur=\"BlurEntryBox(event);\" onkeyup=\"KeyupEntryBox(event);\" title=\"Extra Options\" ></td>" );
+            printf( "                   <td style=\"border:none;\" width=\"30\" nowrap>&nbsp;</td>" );
+            printf( "                   <td align=\"left\" class=whiteborders18 style=\"width:40px;\" ><input type=\"button\" id=iperf_start_stop_c value=\"START\" onclick=\"MyClick(event);\" ></td>" );
+            printf( "                   <td align=\"left\" class=whiteborders18 style=\"width:10px;\" >&nbsp;</td>" );
+            printf( "                   <td align=\"left\" class=whiteborders18 style=\"width:20px;font-size:12pt;\" id=iperf_count_c ></td>" );
+            printf( "                   <td align=\"left\" class=whiteborders18 style=\"width:10px;\" >&nbsp;</td>" );
+            printf( "                   <td align=\"left\" class=whiteborders18 style=\"width:400px;font-size:12pt;\" id=iperf_status_c ></td>" );
+            printf( "               </tr>" );
+            printf( "           </table>" );
+            printf( "       </td>" );
+            printf( "   </tr>" );
+            printf( "   <tr><td colspan=\"3\" id=iperf_cmd_c align=\"left\" style=\"color:red;font-style:italic;\" > </td></tr>" );
+            printf( "</table></div>~" ); /* end iperfInit */
+        }
+
+        if ( iperfRunningClient || iperfRunningServer )
+        {
+            char *iperf_processes = Bsysperf_GetProcessCmdline( "iperf -" );
+            if ( iperf_processes )
+            {
+                char *posEol   = NULL;
+                /*printf("~DEBUG~iperf_processes (%s)~", iperf_processes );*/
+                if ( iperfRunningClient )
+                {
+                    char * line=strstr( iperf_processes, "iperf -c" ); /* check to see if iperf client is already running */
+                    /* could get something like this: root      6424  iperf -c 192.168.1.209 -t 100 -p 5001 -w4096K -N */
+                    /*                                      ^                 */
+                    /*                                      -10               */
+                    if ( line )
+                    {
+                        posEol = Bsysperf_ReplaceNewlineWithNull( line );
+                        printf("~DEBUG~iperfRunningClient (%s)~", line );
+                        printf( "~iperfRunningClient~%s~", line );
+                        Bsysperf_RestoreNewline( posEol );
+
+                        if ( iperfPidClient && line && strlen(line) )
+                        {
+                            unsigned long int pid = 0;
+                            sscanf( &line[-10], "%lu", &pid ); /* backup 10 characters to get access to the pid */
+                            printf( "~iperfPidClient~%lu~", pid );
+                        }
+                    }
+                    else
+                    {
+                        printf( "~iperfPidClient~0~" );
+                    }
+                }
+
+                if ( iperfRunningServer )
+                {
+                    char * line=strstr( iperf_processes, "iperf -s" ); /* check to see if iperf server is already running */
+                    /* could get something like this: root      6424  iperf -s -p 5001 -w4096K -N -Q 1469667343 */
+                    /*                                      ^                 */
+                    /*                                      -10               */
+                    if ( line )
+                    {
+                        posEol = Bsysperf_ReplaceNewlineWithNull( line );
+                        printf("~DEBUG~iperfRunningServer (%s)~", line );
+                        printf( "~iperfRunningServer~%s~", line );
+                        Bsysperf_RestoreNewline( posEol );
+
+                        if ( iperfPidServer && line && strlen(line) )
+                        {
+                            unsigned long int pid = 0;
+                            sscanf( &line[-10], "%lu", &pid ); /* backup 10 characters to get access to the pid */
+                            printf( "~iperfPidServer~%lu~", pid );
+                        }
+                    }
+                    else
+                    {
+                        printf( "~iperfPidServer~0~" );
+                    }
+                }
+
+                Bsysperf_Free ( iperf_processes );
+            }
+        }
     }
+
+#ifdef BWL_SUPPORT
+    /* if the checkbox for WiFi Statistics is checked */
+    if ( wifiInit )
+    {
+        printf( "~WIFIINIT~" );
+        printf( "<table cols=8 style=\"border-collapse:collapse;\" border=0 cellpadding=3 >" );
+
+        printf( "<tr><th style=\"vertical-align:middle;font-size:18.0pt; \" align=left width=250 ><span>WiFi&nbsp;Statistics</span></th>");
+        printf( "<th colspan=6 style=\"vertical-align:middle;\" >");
+        printf( "<table border=0 style=\"border-collapse:collapse;\" ><tr><td><input type=button id=WifiScan value=Scan onclick=\"MyClick(event);\" ></td>");
+        printf( "<td width=30 >&nbsp;</td>");
+        printf(" <td><table border=0 ><tr><td><input type=checkbox checked>Stats</td><td id=WIFICOUNTDOWN >ab</td></tr></table></td>");
+        printf( "<td width=30 >&nbsp;</td>");
+        printf(" <td><table border=0 ><tr><td><input type=checkbox id=checkboxWifiAmpduGraph onclick=\"MyClick(event);\" >AMPDU Graph</td><td id=countWifiAmpduGraph ></td></tr></table></td>");
+        printf( "<td width=30 >&nbsp;</td>");
+        printf( "</tr></table></td>" );
+        printf(" </tr>");
+
+        /* this row is where the wifi statistics will be put */
+        printf( "<tr><td colspan=8><div id=WIFISTATS></div></td></tr>");
+
+        /* this row is where the results from the SCAN will be put */
+        printf( "<tr><td colspan=8 ><table border=0 style=\"border-collapse:collapse;\" ><tbody id=WIFISCANRESULTS ></tbody></table></td></tr>");
+
+        #if 0
+        /* this row is where the AMPDU results will be put */
+        printf( "<tr><td colspan=8 ><table border=0 style=\"border-collapse:collapse;\" ><tbody id=WIFIAMPDURESULTS >\n");
+        Bsysperf_WifiAmpduInit();
+        printf( "</tbody></table></td></tr>");
+        #endif
+
+        printf("</table>");
+
+        printf( "~WIFISCANMAXAPS~%d~", wl_bss_info_t_max_num );
+    }
+
+    if ( wifiStats )
+    {
+        int             tRetCode = BWL_ERR_SUCCESS;
+        uint32_t        nrate    = 0;
+        int             rate     = 0;
+        float           frate    = 0.0;
+        RevInfo_t       tRevInfo;
+        ScanInfo_t      tScanInfo;
+        WiFiCounters_t  tCounters;
+        char            mac_addr[32];
+        BSYSPERF_PHY_RSSI_ANT_T tRssiAnt;
+
+        memset( &tRevInfo, 0, sizeof(tRevInfo) );
+        memset( &tScanInfo, 0, sizeof(tScanInfo) );
+        memset( &tCounters, 0, sizeof(tCounters) );
+        memset( &tRssiAnt, 0, sizeof(tRssiAnt) );
+
+        if ( (tRetCode == BWL_ERR_SUCCESS) && (tRetCode = Bsysperf_WifiGetRevs( WIFI_INTERFACE_NAME, &tRevInfo )) != BWL_ERR_SUCCESS)
+        {
+            printf("%s:%u: Bsysperf_WifiGetRevs() failed ... rc %d \n", __FILE__, __LINE__, tRetCode );
+
+            /* if wifi is not supported, disable the WiFi checkbox and uncheck it */
+            printf("~WIFIDISABLED~");
+        }
+        else
+        {
+            printf("~WIFIENABLED~");
+        }
+
+        if ( (tRetCode == BWL_ERR_SUCCESS) && (tRetCode = Bsysperf_WifiGetConnectedInfo( WIFI_INTERFACE_NAME, &tScanInfo )) != BWL_ERR_SUCCESS)
+        {
+            printf("%s:%u: Bsysperf_WifiGetConnectedInfo() failed ... rc %d \n", __FILE__, __LINE__, tRetCode );
+        }
+
+        if ( (tRetCode == BWL_ERR_SUCCESS) && (tRetCode = Bsysperf_WifiGetCounters( WIFI_INTERFACE_NAME, &tCounters )) != BWL_ERR_SUCCESS)
+        {
+            printf("%s:%u: Bsysperf_WifiGetCounters() failed ... rc %d \n", __FILE__, __LINE__, tRetCode );
+        }
+
+        if ( (tRetCode == BWL_ERR_SUCCESS) && (tRetCode = Bsysperf_WifiGetNRate( WIFI_INTERFACE_NAME, &nrate )) != BWL_ERR_SUCCESS)
+        {
+            printf("%s:%u: Bsysperf_WifiGetNRate() failed ... rc %d \n", __FILE__, __LINE__, tRetCode );
+        }
+
+        if ( (tRetCode == BWL_ERR_SUCCESS) && (tRetCode = Bsysperf_WifiGetRssiAnt( WIFI_INTERFACE_NAME, &tRssiAnt )) != BWL_ERR_SUCCESS)
+        {
+            printf("%s:%u: Bsysperf_WifiGetRssiAnt() failed ... rc %d \n", __FILE__, __LINE__, tRetCode );
+        }
+
+
+        printf( "~WIFISTATS~" );
+        printf( "<table cols=8 style=\"border-collapse:collapse;\" border=0 cellpadding=3 ><tr>" );
+        printf( "<td align=left colspan=2 class=silver_allborders style=\"border-top: solid thin black;border-left: solid thin black;\" >Chip Number:<span class=bluetext>%d (0x%x)</span></td> ",
+                tRevInfo.ulChipNum, tRevInfo.ulChipNum );
+        printf( "<td align=left colspan=2 class=silver_allborders style=\"border-top: solid thin black;\" >Driver Version:<span class=bluetext>%d.%d.%d.%d </span></td> ",
+                (uint8_t)( tRevInfo.ulDriverRev>>24 ), (uint8_t)( tRevInfo.ulDriverRev>>16 ), (uint8_t)( tRevInfo.ulDriverRev>>8 ), (uint8_t)tRevInfo.ulDriverRev );
+        printf( "<td align=left colspan=2 class=silver_allborders style=\"border-top: solid thin black;\" >PCI vendor id:<span class=bluetext>0x%x </span></td> ", tRevInfo.ulVendorId );
+        printf( "<td align=left colspan=2 class=silver_allborders style=\"border-top: solid thin black;border-right: solid thin black;\" >Device id of chip:<span class=bluetext>0x%x </span></td> ",
+                tRevInfo.ulDeviceId );
+        printf( "</tr>\n");
+
+        #if 0
+        printf( "<tr>");
+        printf( "<td align=right >Radio Revision:</td><td align=left >    0x%08x </td><td width=30></td> ", tRevInfo.ulRadioRev );
+        printf( "<td align=right >Chip Revision:</td><td align=left >     0x%08x </td><td width=30></td> ", tRevInfo.ulChipRev );
+        printf( "<td align=right >Core Revision:</td><td align=left >     0x%08x </td><td width=30></td> ", tRevInfo.ulCoreRev );
+        printf( "<td align=right >Board Identifier:</td><td align=left >  0x%08x </td><td width=30></td> ", tRevInfo.ulBoardId );
+        printf( "</tr>\n<tr>");
+        printf( "<td align=right >Board Vendor:</td><td align=left >      0x%08x </td><td width=30></td> ", tRevInfo.ulBoardVendor );
+        printf( "<td align=right >Board Revision:</td><td align=left >    0x%08x </td><td width=30></td> ", tRevInfo.ulBoardRev );
+        printf( "<td align=right >Microcode Version:</td><td align=left > 0x%08x </td><td width=30></td> ", tRevInfo.ulUcodeRev );
+        printf( "<td align=right >Bus Type:</td><td align=left >          0x%08x </td><td width=30></td> ", tRevInfo.ulBus );
+        printf( "</tr>\n<tr>");
+        printf( "<td align=right >Phy Type:</td><td align=left >          0x%08x </td><td width=30></td> ", tRevInfo.ulPhyType );
+        printf( "<td align=right >Phy Revision:</td><td align=left >      0x%08x </td><td width=30></td> ", tRevInfo.ulPhyRev );
+        printf( "<td align=right >Anacore Rev:</td><td align=left >       0x%08x </td><td width=30></td> ", tRevInfo.ulAnaRev );
+        printf( "<td align=right >Chip Package Info:</td><td align=left > 0x%08x </td><td width=30></td> ", tRevInfo.ulChipPkg );
+        printf( "</tr>");
+        #endif
+
+        printf( "<tr>");
+        printf( "<td align=left colspan=2 class=silver_allborders style=\"border-left: solid thin black;\" >RSSI:<span class=bluetext>%d (%s)</span></td> ", tScanInfo.lRSSI, Bsysperf_WifiDbStrength ( tScanInfo.lRSSI ) );
+        printf( "<td align=left colspan=2 class=silver_allborders style=\"border-left: solid thin black;\" >PHY_RSSI_ANT:<span class=bluetext nowrap >" );
+        for (idx=0; idx<BSYSPERF_RSSI_ANT_MAX; idx++)
+        {
+            printf( "&nbsp;&nbsp;%d", tRssiAnt.rssi_ant[idx] );
+        }
+        printf(" </span></td>" );
+        printf( "<td align=left colspan=2 class=silver_allborders >PHY Noise:<span class=bluetext>%d (%s)</span></td> ", tScanInfo.lPhyNoise, Bsysperf_WifiDbStrength ( tScanInfo.lPhyNoise )  );
+        printf( "<td align=left colspan=2 class=silver_allborders style=\"border-right: solid thin black;\" >802.11 Modes:<span class=bluetext>%d </span></td> ", tScanInfo.ul802_11Modes );
+        printf( "</tr>");
+
+        printf( "<tr>");
+        printf( "<td align=left colspan=2 class=silver_allborders style=\"border-left: solid thin black;\" >Chan:<span class=bluetext>%d </span></td> ", tScanInfo.ulChan );
+        printf( "<td align=left colspan=2 class=silver_allborders >PrimChan:<span class=bluetext>%d </span></td> ", tScanInfo.ulPrimChan );
+        printf( "<td align=left colspan=2 class=silver_allborders >Locked:<span class=bluetext>%s </span></td> ", TRUE_OR_FALSE(tScanInfo.bLocked) );
+        printf( "<td align=left colspan=2 class=silver_allborders style=\"border-right: solid thin black;\" >WPS:<span class=bluetext>%s</span></td> ", TRUE_OR_FALSE(tScanInfo.bWPS) );
+        printf( "</tr>");
+
+        printf( "<tr>");
+        printf( "<td align=left colspan=2 class=silver_allborders style=\"border-left: solid thin black;\" >Rate:<span class=bluetext>%d </span></td> ", tScanInfo.lRate );
+        printf( "<td align=left colspan=2 class=silver_allborders >Bandwidth:<span class=bluetext>%s </span></td> ", Bsysperf_WifiBandwidthStr( tScanInfo.tBandwidth ) );
+        printf( "<td align=left colspan=2 class=silver_allborders >ChanSpec:<span class=bluetext>%s </span></td> ", tScanInfo.cChanSpec );
+        {
+            char rate_buf[128];
+            memset(rate_buf, 0, sizeof(rate_buf) );
+            wl_rate_print(rate_buf, nrate );
+            replace_space_with_nbsp(rate_buf, sizeof(rate_buf) );
+            printf( "<td align=left colspan=2 style=\"width:310px;border-right: solid thin black;\" >NRate:<span class=bluetext nowrap >%s</span></td> ", rate_buf );
+
+        }
+        printf( "</tr>");
+
+        memset(mac_addr, 0, sizeof(mac_addr));
+        snprintf (mac_addr, sizeof(mac_addr), "%02X:%02X:%02X:%02X:%02X:%02X",
+               tScanInfo.BSSID.octet[0], tScanInfo.BSSID.octet[1], tScanInfo.BSSID.octet[2],
+               tScanInfo.BSSID.octet[3], tScanInfo.BSSID.octet[4], tScanInfo.BSSID.octet[5]);
+
+        if ( wifiAmpduGraph )
+        {
+            memset( &lAmpduData, 0, sizeof(lAmpduData) );
+
+            Bsysperf_WifiReadAmpduData( &lAmpduData );
+        }
+
+        /*printf( "<tr><td colspan=8 >&nbsp;</td></tr>");*/ /* blank row */
+        printf( "<tr><td align=left nowrap colspan=2 class=silver_allborders style=\"border-left: solid thin black;\" >SSID:<span class=bluetext>%s</span></td> ", tScanInfo.tCredentials.acSSID );
+        printf( "<td align=left colspan=2 class=silver_allborders >MAC Addr:<span class=bluetext>%s</span></td> ", mac_addr );
+        printf( "<td align=left colspan=2 class=silver_allborders ><table style=\"border-collapse:collapse;\" ><tr><td>Rate (Mbps):</td><td><span class=bluetext><div id=WIFIRATE ></div></span></td></tr></table></td> " );
+        printf( "<td align=left colspan=2 class=silver_allborders style=\"border-right: solid thin black;\" >AuthType:<span class=bluetext>%d</span></td>", tScanInfo.ulAuthType );
+        printf( "</tr>");
+        /*printf( "<tr><td colspan=8 >&nbsp;</td></tr>");*/ /* blank row */
+
+        printf( "<tr><td align=left nowrap colspan=2 class=silver_allborders style=\"border-left: solid thin black;\" >Tot_mpdus:<span class=bluetext>%u</span></td> ", lAmpduData.tot_mpdus );
+        printf( "<td align=left colspan=2 class=silver_allborders >Tot_ampdus:<span class=bluetext>%u</span></td> ", lAmpduData.tot_ampdus );
+        printf( "<td align=left colspan=2 class=silver_allborders >MpdusPerAmdpu:<span class=bluetext>%u</span></td> ", lAmpduData.mpduperampdu );
+        printf( "<td align=left colspan=2 class=silver_allborders style=\"border-right: solid thin black;\" >&nbsp;</td> " );
+        printf( "</tr>");
+
+        printf( "<tr>");
+        printf( "<td align=left colspan=2 class=silver_allborders style=\"border-left: solid thin black;\" >Tx Bytes:<span class=bluetext>%s </span></td> ", formatul( tCounters.txbyte ) );
+        printf( "<td align=left colspan=2 class=silver_allborders >Tx Frames:<span class=bluetext>%s </span></td> ", formatul( tCounters.txframe ) );
+        printf( "<td align=left colspan=2 class=silver_allborders >Tx Errors:<span class=bluetext>%s </span></td> ", formatul( tCounters.txerror ) );
+        printf( "<td align=left colspan=2 class=silver_allborders style=\"border-right: solid thin black;\" >Tx Re-trans:<span class=bluetext>%s </span></td> ", formatul( tCounters.txretrans ) );
+        printf( "</tr>");
+
+        printf( "<tr>");
+        printf( "<td align=left colspan=2 class=silver_allborders style=\"border-left: solid thin black;border-bottom: solid thin black;\" >Rx Bytes:<span class=bluetext>%s </span></td> ", formatul( tCounters.rxbyte ) );
+        printf( "<td align=left colspan=2 class=silver_allborders style=\"border-bottom: solid thin black;\" >Rx Frames:<span class=bluetext>%s </span></td> ", formatul( tCounters.rxframe ) );
+        printf( "<td align=left colspan=2 class=silver_allborders style=\"border-bottom: solid thin black;\" >Rx Errors:<span class=bluetext>%s </span></td> ", formatul( tCounters.rxerror ) );
+        printf( "<td align=left colspan=2 class=silver_allborders style=\"border-right: solid thin black;border-bottom: solid thin black;\" >&nbsp;</td> " );
+        printf( "</tr>");
+        printf( "</table>~" );
+
+        Bsysperf_WifiGetRate( WIFI_INTERFACE_NAME, &rate );
+        frate = rate / 2.0;
+        printf("~WIFIRATE~%5.3f~", frate );
+
+        if ( wifiAmpduGraph )
+        {
+            printf("~wifiAmpduGraph~");
+            Bsysperf_WifiOutputAntennasHtml( &lAmpduData.antennas );
+            printf("~");
+        }
+    }
+
+    if ( wifiScanResults != -1 )
+    {
+        printf("~DEBUG~WIFISCANNUMAPS-%lu~", response.response.overallStats.ulWifiScanApCount );
+        if ( response.response.overallStats.ulWifiScanApCount > 0 )
+        {
+            int i = 0;
+            unsigned char *pbssInfo = (unsigned char *)&response.response.overallStats.bssInfo;
+            char           bssPrintBuffer[1024];
+            int            line_count = 0;
+            int            buffer_len = 0;
+            char           tempFilename[TEMP_FILE_FULL_PATH_LEN];
+
+            PrependTempDirectory( tempFilename, sizeof( tempFilename ), "stdout_redirected.txt" );
+
+            printf("~WIFISCANNUMAPS~%lu~DEBUG~sizeof(wl_bss_info_t) %d ~", response.response.overallStats.ulWifiScanApCount, wl_bss_info_t_size );
+
+            for (i=0; i<response.response.overallStats.ulWifiScanApCount; i++)
+            {
+                int serverIdx = i + wifiScanResults;
+                unsigned char *pTemp = (unsigned char*) pbssInfo;
+
+                memset(bssPrintBuffer, 0, sizeof(bssPrintBuffer) );
+
+                printf( "~WIFISCANRESULTS~");
+                BWL_escanresults_print1( pbssInfo, bssPrintBuffer, sizeof(bssPrintBuffer), tempFilename );
+
+                buffer_len = strlen( bssPrintBuffer );
+                /* if the buffer ends with a newline character, remove the last character */
+                if ( buffer_len && bssPrintBuffer[buffer_len-1] == '\n' )
+                {
+                    bssPrintBuffer[buffer_len-1] = 0;
+                }
+
+                line_count = BWL_count_lines(bssPrintBuffer, 120 );
+                if (line_count == 0)
+                {
+                    line_count++;
+                }
+                printf( "<tr id=wifiscantextarea%ddr style=\"visibility:display;\" ><th align=left valign=top class=black_allborders220 >", serverIdx );
+                printf( "<textarea id=wifiscantextarea%dd onclick=\"MyClick(event);\" cols=120 rows=%d style=\"border:none;\" >%s</textarea></th></tr>", serverIdx, line_count, bssPrintBuffer);
+                pTemp += wl_bss_info_t_size;
+                pbssInfo = pTemp;
+            }
+        }
+    }
+
+#endif /* BWL_SUPPORT */
 
     /* if the memory row is displaying, output the controls */
     if (memory)

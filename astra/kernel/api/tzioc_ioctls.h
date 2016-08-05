@@ -126,6 +126,7 @@ struct tzioc_ioctl_client_getid_data {
 
     uint32_t hClient;
     char name[TZIOC_CLIENT_NAME_LEN_MAX];
+    uint32_t pid;
 
     uint32_t id;
 };

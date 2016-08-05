@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -1135,6 +1135,44 @@ void BAPE_MixerGroup_P_GetOutputFciIds(
     {
         pFciGroup->ids[i] = (BAPE_FCI_BASE_MIXER | (handle->mixerIds[i]*BAPE_CHIP_MAX_MIXER_OUTPUTS) | outputIndex);
     }
+}
+
+BERR_Code BAPE_MixerGroup_P_ApplyOutputVolume(
+    BAPE_MixerGroupHandle handle,
+    const BAPE_OutputVolume * pVolume,
+    const BAPE_FMT_Descriptor * pFormat,
+    unsigned outputIndex
+    )
+{
+    bool pcm;
+    unsigned i;
+    BERR_Code errCode;
+    BAPE_MixerGroupOutputSettings outputSettings;
+
+    BDBG_ASSERT(handle != NULL);
+    BDBG_ASSERT(pFormat != NULL);
+    BDBG_ASSERT(pVolume != NULL);
+
+    BAPE_MixerGroup_P_GetOutputSettings(handle, outputIndex, &outputSettings);
+
+    pcm = BAPE_FMT_P_IsLinearPcm_isrsafe(pFormat);
+
+    for ( i = 0; i < BAPE_Channel_eMax; i++ )
+    {
+        outputSettings.coefficients[i] = (pcm) ? pVolume->volume[i] : BAPE_VOLUME_NORMAL;
+        BDBG_MSG(("Apply Volume %x for mixergroup %d,... , output %d(PCM=%d)", outputSettings.coefficients[i], handle->mixerIds[0], outputIndex, pcm));
+    }
+
+    outputSettings.muted = pVolume->muted;
+    outputSettings.volumeRampDisabled = !pcm;  /* Disable volume ramp if input is compressed for a pseudo-compressed-mute */
+
+    errCode = BAPE_MixerGroup_P_SetOutputSettings(handle, outputIndex, &outputSettings);
+    if ( errCode )
+    {
+        return BERR_TRACE(errCode);
+    }
+
+    return BERR_SUCCESS;
 }
 
 unsigned BAPE_Mixer_P_MixerFormatToNumChannels(

@@ -33,9 +33,13 @@ extern void v3d_platform_shutdown(void);
  * v3d_platform_fence_close(V3D_PLATFORM_NULL_FENCE) is a no-op. */
 #define V3D_PLATFORM_NULL_FENCE (-1)
 
-/*
- * Waits on a fence to signal completion;
- */
+/* Create a fence */
+int v3d_platform_fence_create(void);
+
+/* Signal a fence */
+void v3d_platform_fence_signal(int fence);
+
+/*Waits on a fence to signal completion */
 void v3d_platform_fence_wait(int fence);
 
 enum v3d_fence_status

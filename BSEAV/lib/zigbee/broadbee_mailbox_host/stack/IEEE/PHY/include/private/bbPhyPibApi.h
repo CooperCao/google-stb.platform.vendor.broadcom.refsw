@@ -55,8 +55,9 @@
 
 
 /************************* INCLUDES *****************************************************/
-#include "bbPhySapPib.h"            /* PHY-PIB for PHY-SAP definitions. */
-#include "private/bbPhyMemory.h"    /* PHY Memory interface. */
+#include "bbPhySapPib.h"
+#include "bbPhySapDefs.h"
+#include "private/bbPhyMemory.h"
 
 
 /************************* PROTOTYPES ***************************************************/
@@ -139,7 +140,7 @@ INLINE void phyPibApiSetTransmitPower(const PHY_TransmitPower_t newValue)
 
     ATOMIC_SECTION_ENTER(ATM_phyPibApiSetTransmitPower)
         PHY_MEMORY_PIB().phyTransmitPower.txPower = newTxPower;
-        HAL_RadioSetTransmitPower(newTxPower);
+        HAL_Radio__TX_POWER_set(newTxPower);
     ATOMIC_SECTION_LEAVE(ATM_phyPibApiSetTransmitPower)
 }
 
@@ -169,7 +170,7 @@ INLINE void phyPibApiSetCcaMode(const enum PHY_CCAMode_t newValue)
 
     ATOMIC_SECTION_ENTER(ATM_phyPibApiSetCcaMode)
         PHY_MEMORY_PIB().phyCcaMode = newCcaMode;
-        PHY__CCAMode_set(newCcaMode);
+        HAL_Radio__CCA_MODE_set(newCcaMode);
     ATOMIC_SECTION_LEAVE(ATM_phyPibApiSetCcaMode)
 }
 
@@ -195,7 +196,7 @@ INLINE void phyPibApiSetCurrentChannelOnPage(const PHY_PageChannel_t newChannelO
 
     ATOMIC_SECTION_ENTER(ATM_phyPibApiSetCurrentChannelOnPage)
         PHY_MEMORY_PIB().phyCurrentChannelOnPage = newChannelOnPage;
-        PHY__CHANNEL_req(newChannelOnPage);
+        HAL_Radio__CHANNEL_req(newChannelOnPage);
     ATOMIC_SECTION_LEAVE(ATM_phyPibApiSetCurrentChannelOnPage)
 }
 
@@ -275,7 +276,7 @@ INLINE PHY_SymbolsPerOctetX10_t phyPibApiGetSymbolsPerOctetX10(void)
 *****************************************************************************************/
 INLINE PHY_RSSI_t phyPibApiGetRssi(void)
 {
-    return PHY__RSSI_get();
+    return HAL_Radio__RSSI_get();
 }
 #endif /* RF4CE_TARGET */
 

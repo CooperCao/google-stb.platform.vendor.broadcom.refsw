@@ -64,7 +64,7 @@
 #endif
 
 BDBG_MODULE(BVDC_MCVP);
-BDBG_FILE_MODULE(deinterlacer_mosaic);
+BDBG_FILE_MODULE(BVDC_DEINTERLACER_MOSAIC);
 BDBG_FILE_MODULE(BVDC_WIN_BUF);
 BDBG_OBJECT_ID(BVDC_MVP);
 
@@ -146,6 +146,10 @@ BERR_Code BVDC_P_Mcvp_Create
     /* in case creation failed */
     BDBG_ASSERT(phMcvp);
     *phMcvp = NULL;
+
+    /* Ascertain that VDC MCVP enum and count complies to BOX's */
+    BDBG_CASSERT(BBOX_VDC_DEINTERLACER_COUNT >= BVDC_P_SUPPORT_MCVP);
+    BDBG_CASSERT(BBOX_Vdc_Deinterlacer_eDeinterlacer5 == (BBOX_Vdc_DeinterlacerId)BVDC_P_McvpId_eMcvp5);
 
     pMcvp = (BVDC_P_McvpContext *) (BKNI_Malloc(sizeof(BVDC_P_McvpContext)));
     if( pMcvp )
@@ -511,7 +515,7 @@ static void BVDC_P_Mcvp_AllocBuf_isr
     ppHeapNode      = &(hMcvp->hMcdi->apHeapNode[ulChannelId][0]);
     stMcvpMode      = pPicture->stVnetMode;
 
-    BDBG_MODULE_MSG(deinterlacer_mosaic,
+    BDBG_MODULE_MSG(BVDC_DEINTERLACER_MOSAIC,
         ("0 Mvp[%d] allocate channel %d/%d pxl buffer %d x %s qm %d x %s",
         hMcvp->eId, ulChannelId, pPicture->ulMosaicCount,
         ulPixelBufCnt, BVDC_P_BUFFERHEAP_GET_HEAP_ID_NAME(ePixelBufHeapId),
@@ -584,7 +588,7 @@ static void BVDC_P_Mcvp_AllocBuf_isr
             hMcvp->hMcdi->ulQmBufCnt[ulChannelId] = ulQmBufCnt;
         }
 
-        BDBG_MODULE_MSG(deinterlacer_mosaic,
+        BDBG_MODULE_MSG(BVDC_DEINTERLACER_MOSAIC,
         ("1 Mvp[%d] allocated channel %d/%d pxl buffer %d x %s qm %d x %s",
         hMcvp->eId, ulChannelId, pPicture->ulMosaicCount,
         hMcvp->hMcdi->ulPxlBufCnt[ulChannelId], BVDC_P_BUFFERHEAP_GET_HEAP_ID_NAME(ePixelBufHeapId),
@@ -992,7 +996,7 @@ static void BVDC_P_MCVP_SetSingleInfo_isr
     if((hMcvp->hMcdi->astRect[ulChannelId].ulWidth != ulWidth)||
         (hMcvp->hMcdi->astRect[ulChannelId].ulHeight != ulHeight ))
     {
-        BDBG_MODULE_MSG(deinterlacer_mosaic,("channel %d cur size %d x %d new %d x %d ",
+        BDBG_MODULE_MSG(BVDC_DEINTERLACER_MOSAIC,("channel %d cur size %d x %d new %d x %d ",
             ulChannelId, hMcvp->hMcdi->astRect[ulChannelId].ulWidth, hMcvp->hMcdi->astRect[ulChannelId].ulHeight,
             ulWidth, ulHeight));
         hMcvp->hMcdi->astRect[ulChannelId].ulWidth  = ulWidth ;
@@ -1012,7 +1016,7 @@ static void BVDC_P_MCVP_SetSingleInfo_isr
         (ePixelBufHeapId != pPicture->eMadPixelHeapId) ||
         (eQmBufHeapId != pPicture->eMadQmHeapId))
     {
-        BDBG_MODULE_MSG(deinterlacer_mosaic,("channel %d cur %d x %s  %d x %s new %d x %s  %d x %s ",
+        BDBG_MODULE_MSG(BVDC_DEINTERLACER_MOSAIC,("channel %d cur %d x %s  %d x %s new %d x %s  %d x %s ",
             ulChannelId,
             hMcvp->hMcdi->ulPxlBufCnt[ulChannelId],BVDC_P_BUFFERHEAP_GET_HEAP_ID_NAME(ePixelBufHeapId),
             hMcvp->hMcdi->ulQmBufCnt[ulChannelId], BVDC_P_BUFFERHEAP_GET_HEAP_ID_NAME(eQmBufHeapId),
@@ -1183,6 +1187,15 @@ void BVDC_P_Mcvp_BuildRul_isr
                     (bMcdiDirty || bInit))
                     BVDC_P_BUILD_RESET_NOOPS(pList->pulCurrent,
                         hMcvp->ulCoreResetAddr, hMcvp->ulCoreResetMask);
+#if (BVDC_P_MADR_VER_10 == BVDC_P_SUPPORT_MADR_VER)
+                /* SW_INIT needs to reprogram every channel size information */
+                if(pPicture->bMosaicMode)
+                {
+                    uint32_t i=0;
+                    for(i=0; i<pPicture->ulMosaicCount; i++)
+                        hMcvp->ulUpdateAll[i] = BVDC_P_RUL_UPDATE_THRESHOLD;
+                }
+#endif
 #endif
 
             }

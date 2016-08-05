@@ -64,7 +64,7 @@ bool gl11_cache_uniforms(GLXX_SERVER_STATE_T *state, KHRN_FMEM_T *fmem)
       float u_dot_p;
       float u[3] = { (float)state->viewport.x + (float)state->viewport.width / 2.0f,
                      (float)state->viewport.y + (float)state->viewport.height / 2.0f,
-                     state->viewport.internal_wscale };
+                     state->viewport.internal_zoffset };
 
       gl11_matrix_invert_4x4(inv, s->current_projection);
       gl11_matrix_mult_row(s->projected_clip_plane, s->planes[0], inv);

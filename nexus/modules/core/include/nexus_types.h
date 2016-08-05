@@ -195,6 +195,7 @@ This is the larger of the number of MTSIF channels on either the backend or fron
 It was moved here because it is used both by the transport module and the frontend module.
 **/
 #define NEXUS_MAX_MTSIF        4
+#define NEXUS_MAX_HDMI_OUTPUTS 2
 
 /**
 Summary:
@@ -233,12 +234,6 @@ Summary:
 Handle which represents a remux channel.
 */
 typedef struct NEXUS_Remux *NEXUS_RemuxHandle;
-
-/*
-Summary:
-Handle which represents a TSMF channel.
-*/
-typedef struct NEXUS_Tsmf *NEXUS_TsmfHandle;
 
 /**
 Summary:
@@ -685,82 +680,6 @@ typedef struct NEXUS_Certificate
 
 /***************************************************************************
 Summary:
-Modes supported for accepting TSMF packets.
-
-Description:
-This enum represents the modes that TSMF supports when there is a change for
-the version number field inside a frame header.
-***************************************************************************/
-typedef enum NEXUS_TsmfVersionChangeMode
-{
-    NEXUS_TsmfVersionChangeMode_eAllFrame,       /* Accept all Frame Header packets */
-    NEXUS_TsmfVersionChangeMode_eFrameChangeVer, /* Accept only Frame Header packets that has a change in version number field */
-    NEXUS_TsmfVersionChangeMode_eMax
-} NEXUS_TsmfVersionChangeMode;
-
-/***************************************************************************
-Summary:
-Structure for field verification configuration of a TSMF module
-
-Description:
-This structure represents configurations for enabling/disabling of certain
-field verification of a TSMF module.
-***************************************************************************/
-typedef struct NEXUS_TsmfFieldVerifyConfig
-{
-    bool crcCheckDisable;         /* TSMF Frame Header CRC check */
-    bool relTsStatusCheckDisable; /* TSMF Frame Header Rel_TS_Status check */
-    bool frameTypeCheckDisable;   /* TSMF Frame Header Frame_Type check */
-    bool relTsModeCheckDisable;   /* TSMF Frame Header REL_TS_MODE check */
-    bool syncCheckDisable;        /* TSMF Frame Header SYNC check */
-    bool ccCheckDisable;          /* TSMF Frame Header CC check */
-    bool adapCheckDisable;        /* TSMF Frame Header ADAP check */
-    bool scCheckDisable;          /* TSMF Frame Header SC check */
-    bool tsPriorCheckDisable;     /* TSMF Frame Header TS_PRIOR check */
-    bool pusiCheckDisable;        /* TSMF Frame Header PUSI check */
-    bool teiCheckDisable;         /* TSMF Frame Header TEI check */
-    NEXUS_TsmfVersionChangeMode versionChangeMode;
-} NEXUS_TsmfFieldVerifyConfig;
-
-/***************************************************************************
-Description:
-Used in NEXUS_TsmfSettings to specify the type of input to the TSMF.
-***************************************************************************/
-typedef enum NEXUS_TsmfSourceType
-{
-    NEXUS_TsmfSourceType_eInputBand,
-    NEXUS_TsmfSourceType_eRemux,
-    NEXUS_TsmfSourceType_eMtsif, /* MTSIF-based frontend */
-    NEXUS_TsmfSourceType_eMax
-} NEXUS_TsmfSourceType;
-
-/***************************************************************************
-Description:
-Settings to control TSMF module in transport and frontend blocks.
-***************************************************************************/
-typedef struct NEXUS_TsmfSettings
-{
-    NEXUS_TsmfSourceType sourceType;
-    struct {
-        NEXUS_InputBand inputBand;
-        NEXUS_RemuxHandle remux;
-        NEXUS_FrontendConnectorHandle mtsif;
-    } sourceTypeSettings;
-
-    bool enabled;
-
-    NEXUS_TsmfFieldVerifyConfig fieldVerifyConfig;
-    unsigned relativeTsNum; /* TSMF Relative TS Number */
-    bool semiAutomaticMode; /* Set true for semi-automatic mode.
-                               If false, it is automatic mode and the following settings params are ignored */
-
-    /* semi-automatic mode settings */
-    uint32_t slotMapLo; /* Lower 32 bits (LSBs) of the 52-bit TSMF Slot Map vector */
-    uint32_t slotMapHi; /* Upper 21 bits of the 53-bit Slot Map vector for TSMF Demultiplex */
-} NEXUS_TsmfSettings;
-
-/***************************************************************************
-Summary:
 Callback function prototype used in NEXUS_CoreInterruptInterface.pConnectInterrupt
 ****************************************************************************/
 typedef void (*NEXUS_Core_InterruptFunction)(void *, int);
@@ -870,4 +789,3 @@ typedef struct NEXUS_MasteringDisplayColorVolume
 #endif
 
 #endif
-

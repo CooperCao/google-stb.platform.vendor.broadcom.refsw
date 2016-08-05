@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2011 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2008-2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,6 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  *****************************************************************************/
 /* Nexus example app: all pass record */
 
@@ -89,7 +79,7 @@ int main(void) {
 
     NEXUS_PidChannel_GetDefaultSettings(&pidCfg0) ;
     /* allPass mode requires a hardware-specific PID channel */
-    NEXUS_ParserBand_GetAllPassPidChannelIndex(parserBand, (unsigned *) &pidCfg0.pidChannelIndex);
+    NEXUS_ParserBand_GetAllPassPidChannelIndex(parserBand, &pidCfg0.pidChannelIndex);
     /* The pid number is redundant here. */
     pidCh0 = NEXUS_PidChannel_Open(parserBand, 0x0, &pidCfg0) ;
 

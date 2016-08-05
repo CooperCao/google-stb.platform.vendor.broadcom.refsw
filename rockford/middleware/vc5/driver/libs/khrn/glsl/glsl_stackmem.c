@@ -46,11 +46,9 @@ void *glsl_stack_malloc(size_t element_size, size_t element_count) {
 }
 
 void glsl_stack_free(void *v) {
-   glsl_allocation_list_t *cur;
-
    assert(v == &allocations->data);
 
-   cur = allocations;
+   glsl_allocation_list_t *cur = allocations;
    allocations = allocations->next;
    free(cur);
 }
@@ -58,9 +56,8 @@ void glsl_stack_free(void *v) {
 int glsl_stack_cleanup() {
    glsl_allocation_list_t *cur;
    glsl_allocation_list_t *next;
-   int frees;
 
-   frees = 0;
+   int frees = 0;
    for(cur = allocations; cur; cur = next) {
       next = cur->next;
 

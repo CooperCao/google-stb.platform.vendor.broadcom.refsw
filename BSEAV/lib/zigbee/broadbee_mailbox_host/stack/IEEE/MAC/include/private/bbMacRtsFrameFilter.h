@@ -53,7 +53,7 @@
 #define _BB_MAC_RTS_FRAME_FILTER_H
 
 /************************* INCLUDES ***********************************************************************************/
-#include "bbHalRadio.h"
+#include "bbPhySapForMac.h"
 
 /************************* PROTOTYPES *********************************************************************************/
 /**//**
@@ -65,7 +65,7 @@
  * \note    This value must be ignored if the Frame Filter rejected the received frame.
  * \details This value is set after the SN field of the received frame and used for issuing ACK frame if its requested.
  */
-extern Octet_t  MRTS_FF__BDC_SN;
+extern PHY_Octet_t  MRTS_FF__BDC_SN;
 
 /**//**
  * \brief   Actual modified value of the Ack. Request (AR) subfield of the Frame Control field of the received frame.
@@ -130,8 +130,9 @@ extern uint8_t  MRTS_FF__BDC_Contexts;
  * \details When Frame Filter is in the waiting for ACK state it passes only valid ACK frame having matching SN. All
  *  other frames are rejected.
  */
-extern Octet_t  MRTS_FF__ACK_SN;
+extern PHY_Octet_t  MRTS_FF__ACK_SN;
 
+#if defined(_MAC_CONTEXT_ZBPRO_)
 /**//**
  * \brief   Actual value of the Frame Pending (FP) subfield of the Frame Control field of the received ACK frame.
  * \note    This flag must be ignored if the Frame Filter rejected the received ACK frame.
@@ -148,6 +149,7 @@ extern Octet_t  MRTS_FF__ACK_SN;
  *      (if such polling is enabled with macAutoRequest).
  */
 extern Bool8_t  MRTS_FF__ACK_FP;
+#endif /* _MAC_CONTEXT_ZBPRO_ */
 /**@}*/
 
 /**//**

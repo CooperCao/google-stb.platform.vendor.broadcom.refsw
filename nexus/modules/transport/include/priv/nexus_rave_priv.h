@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2013 Broadcom Corporation
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  **************************************************************************/
 #ifndef NEXUS_RAVE_PRIV_H__
@@ -52,12 +44,14 @@
 #include "nexus_types.h"
 #include "nexus_rave.h"
 #include "nexus_pid_channel.h"
-#include "bavc_xpt.h"
 #include "bmma.h"
+#include "bavc_xpt.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+NEXUS_OBJECT_CLASS_DECLARE(NEXUS_Rave);
 
 typedef struct NEXUS_RaveOpenSettings
 {
@@ -71,7 +65,7 @@ void NEXUS_Rave_GetDefaultOpenSettings_priv(
     NEXUS_RaveOpenSettings *pSettings /* [out] */
     );
 
-NEXUS_RaveHandle NEXUS_Rave_Open_priv(
+NEXUS_RaveHandle NEXUS_Rave_Open_priv(  /* attr{destructor=NEXUS_Rave_Close_priv} */
     const NEXUS_RaveOpenSettings *pOpenSettings
     );
 
@@ -91,6 +85,7 @@ typedef struct NEXUS_RaveSettings
     bool numOutputBytesEnabled; /* if true, count numOutputBytes for this RAVE context.
                              this requires a SW poll, so it's not an always-on feature. */
     bool nonRealTime;
+    bool includeRepeatedItbStartCodes;
 } NEXUS_RaveSettings;
 
 void NEXUS_Rave_GetDefaultSettings_priv(

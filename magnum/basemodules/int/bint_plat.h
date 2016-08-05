@@ -87,7 +87,7 @@ also, if the number of L1 registers changes in the future, consider a macro whos
 #elif ((BCHP_CHIP==7435) || (BCHP_CHIP==7445) || (BCHP_CHIP==7145)  || \
        (BCHP_CHIP==7366) || (BCHP_CHIP==7439)) || (BCHP_CHIP==7364) || \
        (BCHP_CHIP==7250) || (BCHP_CHIP==74371) || (BCHP_CHIP==7586)|| \
-       (BCHP_CHIP==7271) || (BCHP_CHIP==7268)
+       (BCHP_CHIP==7271) || (BCHP_CHIP==7268)  || (BCHP_CHIP==7260)
 #define BINT_INTC_SIZE 4
 #elif ((BCHP_CHIP==7400) || (BCHP_CHIP==7403))
 #define BINT_INTC_SIZE 2

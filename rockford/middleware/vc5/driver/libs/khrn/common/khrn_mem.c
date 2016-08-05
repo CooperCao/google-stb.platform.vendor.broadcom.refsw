@@ -12,30 +12,24 @@ Khronos memory management API - backed by either reloc heap or malloc
 #include "vcos.h"
 #include "khrn_int_util.h"
 
-KHRN_MEM_HANDLE_T khrn_mem_handle_zero_size;
 KHRN_MEM_HANDLE_T khrn_mem_handle_empty_string;
 
 KHRN_MEM_HANDLE_T khrn_mem_alloc_ex(size_t size, const char *desc, bool init, bool resizeable, bool discardable)
 {
-   uint8_t *alloc;
-   KHRN_MEM_HEADER_T *header;
-   void *result;
-
    /* Ignore resizeable and discardable */
-
-   alloc = malloc(size + sizeof(KHRN_MEM_HEADER_T));
+   uint8_t *alloc = malloc(size + sizeof(KHRN_MEM_HEADER_T));
    if (!alloc)
    {
       return KHRN_MEM_HANDLE_INVALID;
    }
 
-   header = (KHRN_MEM_HEADER_T *)alloc;
+   KHRN_MEM_HEADER_T *header = (KHRN_MEM_HEADER_T *)alloc;
    header->magic = KHRN_MEM_HEADER_MAGIC;
    header->ref_count = 1;
    header->term = NULL;
    header->size = size;
 
-   result = (uint8_t *)alloc + sizeof(KHRN_MEM_HEADER_T);
+   void *result = (uint8_t *)alloc + sizeof(KHRN_MEM_HEADER_T);
    if (init)
    {
       khrn_memset(result, 0, size);
@@ -48,14 +42,11 @@ KHRN_MEM_HANDLE_T khrn_mem_alloc_ex(size_t size, const char *desc, bool init, bo
 
 void khrn_mem_release(KHRN_MEM_HANDLE_T handle)
 {
-   int before_dec;
-   KHRN_MEM_HEADER_T *header;
-
    if (handle == KHRN_MEM_HANDLE_INVALID)
       return;
 
-   header = khrn_mem_header(handle);
-   before_dec = vcos_atomic_dec(&header->ref_count);
+   KHRN_MEM_HEADER_T *header = khrn_mem_header(handle);
+   int before_dec = vcos_atomic_dec(&header->ref_count);
    assert(before_dec > 0);
 
    if (before_dec == 1)
@@ -69,12 +60,10 @@ void khrn_mem_release(KHRN_MEM_HANDLE_T handle)
 
 bool khrn_mem_try_release(KHRN_MEM_HANDLE_T handle)
 {
-   KHRN_MEM_HEADER_T *header;
-
    if (handle == KHRN_MEM_HANDLE_INVALID)
       return false;
 
-   header = khrn_mem_header(handle);
+   KHRN_MEM_HEADER_T *header = khrn_mem_header(handle);
    assert(header->ref_count > 0);
    if (header->ref_count == 1)
       return false;
@@ -85,28 +74,23 @@ bool khrn_mem_try_release(KHRN_MEM_HANDLE_T handle)
 
 bool khrn_mem_resize(KHRN_MEM_HANDLE_T *handle_inout, size_t size)
 {
-   KHRN_MEM_HEADER_T *header;
-   size_t old_size;
-   KHRN_MEM_HANDLE_T new_handle;
    KHRN_MEM_HANDLE_T handle = *handle_inout;
-   void *src, *dst;
-
    assert(handle != KHRN_MEM_HANDLE_INVALID);
 
-   header = khrn_mem_header(handle);
+   KHRN_MEM_HEADER_T *header = khrn_mem_header(handle);
    assert(header->ref_count == 1);
-   old_size = header->size;
+   size_t old_size = header->size;
 
    if (old_size == size)
       return true;
 
    /* TODO: realloc? */
-   new_handle = khrn_mem_alloc_ex(size, "realloc", false, true, false);
+   KHRN_MEM_HANDLE_T new_handle = khrn_mem_alloc_ex(size, "realloc", false, true, false);
    if (new_handle == KHRN_MEM_HANDLE_INVALID)
       return false;
 
-   src = khrn_mem_lock(handle);
-   dst = khrn_mem_lock(new_handle);
+   void *src = khrn_mem_lock(handle);
+   void *dst = khrn_mem_lock(new_handle);
    if (size > old_size)
    {
       khrn_memcpy(dst, src, old_size);
@@ -125,25 +109,15 @@ bool khrn_mem_resize(KHRN_MEM_HANDLE_T *handle_inout, size_t size)
 
 bool khrn_mem_init(void)
 {
-   khrn_mem_handle_zero_size = khrn_mem_alloc_ex(0, "KHRN_MEM_HANDLE_ZERO_SIZE", false, false, false);
-   if (khrn_mem_handle_zero_size == KHRN_MEM_HANDLE_INVALID)
-      goto fail0;
-
    khrn_mem_handle_empty_string = khrn_mem_strdup("");
    if (khrn_mem_handle_empty_string == KHRN_MEM_HANDLE_INVALID)
-      goto fail1;
+      return false;
 
    return true;
-
-fail1:
-   khrn_mem_release(khrn_mem_handle_zero_size);
-fail0:
-   return false;
 }
 
 void khrn_mem_term(void)
 {
-   khrn_mem_release(khrn_mem_handle_zero_size);
    khrn_mem_release(khrn_mem_handle_empty_string);
 }
 

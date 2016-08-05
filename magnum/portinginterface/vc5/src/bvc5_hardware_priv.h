@@ -113,18 +113,24 @@ typedef struct BVC5_P_CoreState
 
    /* Watchdog */
    uint32_t             uiTimeoutCount;
+
+   /* Bin/Render MMU state tracking */
+   uint32_t             uiBRCurrentPagetable;
 }
 BVC5_P_CoreState;
 
-/* BVC5_P_HardwareIsUnitAvailable
+bool BVC5_P_HardwareIsRendererAvailable(
+   BVC5_Handle hVC5,
+   uint32_t    uiCoreIndex
+);
 
-   Checks if a unit is available
+bool BVC5_P_HardwareIsBinnerAvailable(
+   BVC5_Handle hVC5,
+   uint32_t    uiCoreIndex
+);
 
- */
-bool BVC5_P_HardwareIsUnitAvailable(
-   BVC5_Handle             hVC5,
-   uint32_t                uiCoreIndex,
-   BVC5_P_HardwareUnitType eHardwareType
+bool BVC5_P_HardwareIsTFUAvailable(
+   BVC5_Handle hVC5
 );
 
 /* BVC5_P_HardwareIsUnitStalled
@@ -179,7 +185,7 @@ void BVC5_P_HardwareResetWatchdog(
 /* BVC5_P_HardwareIssueBinnerJob
 
    Submit a job to the binner.  Increments power-on count.
-   Returns false if bin memory could not be acquired.
+   Returns false if enough bin memory could not be acquired.
 
  */
 bool BVC5_P_HardwareIssueBinnerJob(
@@ -193,7 +199,7 @@ bool BVC5_P_HardwareIssueBinnerJob(
    Submit a job to the renderer.  Increments power-on count.
 
  */
-bool BVC5_P_HardwareIssueRenderJob(
+void BVC5_P_HardwareIssueRenderJob(
    BVC5_Handle          hVC5,
    uint32_t             uiCoreIndex,
    BVC5_P_InternalJob  *pJob
@@ -204,7 +210,7 @@ bool BVC5_P_HardwareIssueRenderJob(
    Submit a job to the TFU.  Increments power-on count.
 
  */
-bool BVC5_P_HardwareIssueTFUJob(
+void BVC5_P_HardwareIssueTFUJob(
    BVC5_Handle          hVC5,
    BVC5_P_InternalJob  *pJob
 );
@@ -437,5 +443,24 @@ void BVC5_P_HardwareClearEventFifos(
    BVC5_Handle hVC5,
    uint32_t    uiCoreIndex
    );
+
+/* Hardware must be powered on */
+bool BVC5_P_SwitchSecurityMode(
+   BVC5_Handle          hVC5,
+   BVC5_P_InternalJob   *pJob
+);
+
+void BVC5_P_HardwareSetupCoreMmu(
+   BVC5_Handle hVC5,
+   uint32_t uiCoreIndex,
+   uint64_t uiPagetablePhysical,
+   uint32_t uiMaxVirtualAddress
+);
+
+void BVC5_P_HardwareSetupTfuMmu(
+   BVC5_Handle hVC5,
+   uint64_t uiPagetablePhysical,
+   uint32_t uiMaxVirtualAddress
+);
 
 #endif /* BVC5_HARDWARE_H__ */

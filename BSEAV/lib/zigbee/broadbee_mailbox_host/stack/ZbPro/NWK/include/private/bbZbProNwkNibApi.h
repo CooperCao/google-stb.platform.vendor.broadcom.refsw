@@ -181,6 +181,22 @@ INLINE ZBPRO_NWK_NIB_TxTotal_t zbProNwkNibApiGetTxTotal(void)
 }
 
 /*************************************************************************************//**
+  \brief Increments value of the NWK-NIB attribute nwkTxTotal.
+*****************************************************************************************/
+INLINE ZBPRO_NWK_NIB_TxTotal_t zbProNwkNibApiGetAndIncTxTotal(void)
+{
+    zbProNwkNibCheckState();
+    zbProNwkNib()->nwkTxTotal++;
+
+    /* Reset transmission failure counters on nwkTxTotal roll over 0xFFFF;
+     * see ZigBee Document 053474r20, table 3.44, attribute nwkTxTotal. */
+    if (0x0000 == zbProNwkNib()->nwkTxTotal)
+        zbProNwkNTResetTransmissionFailures();
+
+    return zbProNwkNib()->nwkTxTotal;
+}
+
+/*************************************************************************************//**
   \brief Returns NWK-NIB attribute nwkSymLink value.
 *****************************************************************************************/
 INLINE ZBPRO_NWK_NIB_SymLink_t zbProNwkNibApiGetSymLink(void)
@@ -648,22 +664,6 @@ INLINE void *zbProNwkNibApiSetTxTotal(ZBPRO_NWK_NIB_TxTotal_t newValue)
     /* Reset transmission failure counters in the nwkNeighborTable when nwkTxTotal is assigned;
      * see ZigBee Document 053474r20, table 3.44, attribute nwkTxTotal. */
     zbProNwkNTResetTransmissionFailures();
-
-    return &zbProNwkNib()->nwkTxTotal;
-}
-
-/*************************************************************************************//**
-  \brief Increments value of the NWK-NIB attribute nwkTxTotal.
-*****************************************************************************************/
-INLINE void *zbProNwkNibApiIncTxTotal(void)
-{
-    zbProNwkNibCheckState();
-    zbProNwkNib()->nwkTxTotal++;
-
-    /* Reset transmission failure counters on nwkTxTotal roll over 0xFFFF;
-     * see ZigBee Document 053474r20, table 3.44, attribute nwkTxTotal. */
-    if (0x0000 == zbProNwkNib()->nwkTxTotal)
-        zbProNwkNTResetTransmissionFailures();
 
     return &zbProNwkNib()->nwkTxTotal;
 }

@@ -43,6 +43,7 @@
 #include "bmxt.h"
 #include "bmxt_rdb.h"
 #include "bmxt_rdb_wakeup.h"
+#include "bmxt_rdb_dcbg.h"
 
 BDBG_MODULE(bmxt);
 
@@ -52,8 +53,10 @@ void BMXT_P_SetPlatform(
     BMXT_Chip chip, BMXT_ChipRev rev, unsigned **pNumElem
     )
 {
-    const uint32_t *pNum = 0, *pOff = 0, *pStep = 0, *pOffWakeup = 0;
-    uint32_t base = 0, baseWakeup = 0;
+    const uint32_t *pNum = 0, *pOff = 0, *pStep = 0;
+    const uint32_t *pOffWakeup = 0;
+    const uint32_t *pNumDcbg = 0, *pOffDcbg = 0, *pStepDcbg = 0;
+    uint32_t base = 0, baseWakeup = 0, baseDcbg = 0;
     BMXT_P_PlatformType type;
 
     if (mxt) {
@@ -80,7 +83,8 @@ void BMXT_P_SetPlatform(
         case BMXT_Chip_e45216: pNum = BMXT_NUMELEM_45216; base = BMXT_REGBASE_45216; pOff = BMXT_REGOFFSETS_4538; pStep = BMXT_STEPSIZE_4538; break;
 
         /* 45308-family */
-        case BMXT_Chip_e45308: pNum = BMXT_NUMELEM_45308; base = BMXT_REGBASE_45308; pOff = BMXT_REGOFFSETS_45308; pStep = BMXT_STEPSIZE_45308; break;
+        case BMXT_Chip_e45308: pNum = BMXT_NUMELEM_45308; base = BMXT_REGBASE_45308; pOff = BMXT_REGOFFSETS_45308; pStep = BMXT_STEPSIZE_45308;
+            pNumDcbg = BMXT_NUMELEM_DCBG_45308; baseDcbg = BMXT_REGBASE_DCBG_45308; pOffDcbg = BMXT_REGOFFSETS_DCBG_45308; pStepDcbg = BMXT_STEPSIZE_DCBG_45308; break;
 
         /* 3158-family */
         case BMXT_Chip_e3158:  pNum = BMXT_NUMELEM_3158;  base = BMXT_REGBASE_3158;  pOff = BMXT_REGOFFSETS_3158;  pStep = BMXT_STEPSIZE_3158;
@@ -120,6 +124,11 @@ void BMXT_P_SetPlatform(
 
         mxt->platform.regbaseWakeup = baseWakeup;
         mxt->platform.regoffsetsWakeup = (uint32_t*)pOffWakeup;
+
+        mxt->platform.numDcbg = (uint32_t*)pNumDcbg;
+        mxt->platform.regbaseDcbg = baseDcbg;
+        mxt->platform.regoffsetsDcbg = (uint32_t*)pOffDcbg;
+        mxt->platform.stepsizeDcbg = (uint32_t*)pStepDcbg;
     }
     else {
         *pNumElem = (uint32_t*)pNum;

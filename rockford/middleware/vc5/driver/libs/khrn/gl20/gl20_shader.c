@@ -71,7 +71,7 @@ void gl20_shader_term(void *v, size_t size)
 {
    GL20_SHADER_T *shader = v;
 
-   UNUSED(size);
+   vcos_unused(size);
 
    gl20_shader_free_source(shader);
 

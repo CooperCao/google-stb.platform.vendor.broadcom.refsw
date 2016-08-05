@@ -1,22 +1,43 @@
 /***************************************************************************
-*	  Copyright (c) 2004-2013, Broadcom Corporation
-*	  All Rights Reserved
-*	  Confidential Property of Broadcom Corporation
-*
-*  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
-*  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
-*  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
-*
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* Revision History:
-*
-* $brcm_Log: $
-* 
-***************************************************************************/
-
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ *  Except as expressly set forth in the Authorized License,
+ *
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+ *
+ * Module Description:
+ *
+ **************************************************************************/
 #include "bstd.h"
 #include "bsyslib.h"
 #include "bsyslib_list.h"
@@ -31,15 +52,13 @@ BDBG_MODULE(synclib);
 
 /*
 Summary:
-*/
+ */
 void BSYNClib_RateMismatchDetector_GetDefaultSettings(
 	BSYNClib_RateMismatchDetector_Settings * psSettings /* [out] */
 )
 {
 	BDBG_ENTER(BSYNClib_RateMismatchDetector_GetDefaultSettings);
-
 	BDBG_ASSERT(psSettings);
-
 	BKNI_Memset(psSettings, 0, sizeof(BSYNClib_RateMismatchDetector_Settings));
 	psSettings->bEnabled = true;
 	psSettings->sMismatch.uiTimeout = BSYNCLIB_VIDEO_RATE_MISMATCH_DETECTION_TIMER_DEFAULT_TIMEOUT;
@@ -48,37 +67,30 @@ void BSYNClib_RateMismatchDetector_GetDefaultSettings(
 	psSettings->sMismatch.uiAcceptableTtlc = BSYNCLIB_VIDEO_RATE_MISMATCH_DETECTION_DEFAULT_ACCEPTABLE_TTLC;
 	psSettings->sRematch.uiTimeout = BSYNCLIB_VIDEO_RATE_REMATCH_DETECTION_TIMER_DEFAULT_TIMEOUT;
 	psSettings->sRematch.uiAcceptableTtlc = BSYNCLIB_VIDEO_RATE_REMATCH_DETECTION_DEFAULT_ACCEPTABLE_TTLC;
-
 	BDBG_LEAVE(BSYNClib_RateMismatchDetector_GetDefaultSettings);
 }
 
 void BSYNClib_RateMismatchDetector_P_GetDefaultConfig(BSYNClib_RateMismatchDetector_Config * psConfig)
 {
 	BDBG_ENTER(BSYNClib_RateMismatchDetector_P_GetDefaultConfig);
-
 	BDBG_ASSERT(psConfig);
-
 	psConfig->uiVideoSourceCount = 0;
 	psConfig->uiVideoSinkCount = 0;
-
 	BDBG_LEAVE(BSYNClib_RateMismatchDetector_P_GetDefaultConfig);
 }
 
 void BSYNClib_RateMismatchDetector_P_GetDefaultStatus(BSYNClib_RateMismatchDetector_Status * psStatus)
 {
 	BDBG_ENTER(BSYNClib_RateMismatchDetector_P_GetDefaultStatus);
-
 	BDBG_ASSERT(psStatus);
-
 	psStatus->bSourceSinkMatched = true;
 	psStatus->bSinkSinkMatched = true;
-
 	BDBG_LEAVE(BSYNClib_RateMismatchDetector_P_GetDefaultStatus);
 }
 
 /*
 Summary:
-*/
+ */
 BERR_Code BSYNClib_RateMismatchDetector_Open(
 	BSYNClib_Channel_Handle hParent,
 	const BSYNClib_RateMismatchDetector_Settings * psSettings,
@@ -127,11 +139,11 @@ BERR_Code BSYNClib_RateMismatchDetector_Open(
 
 	goto end;
 
-error:
+	error:
 
 	*phDetector = NULL;
 
-end:
+	end:
 
 	BDBG_LEAVE(BSYNClib_RateMismatchDetector_Open);
 	return rc;
@@ -139,7 +151,7 @@ end:
 
 /*
 Summary:
-*/
+ */
 void BSYNClib_RateMismatchDetector_Close(
 	BSYNClib_RateMismatchDetector_Handle hDetector
 )
@@ -183,12 +195,9 @@ void BSYNClib_RateMismatchDetector_GetConfig(
 )
 {
 	BDBG_ENTER(BSYNClib_RateMismatchDetector_GetConfig);
-
 	BDBG_ASSERT(hDetector);
 	BDBG_ASSERT(psConfig);
-
 	*psConfig = hDetector->sConfig;
-
 	BDBG_LEAVE(BSYNClib_RateMismatchDetector_GetConfig);
 }
 
@@ -198,17 +207,11 @@ BERR_Code BSYNClib_RateMismatchDetector_SetConfig(
 )
 {
 	BERR_Code rc = BERR_SUCCESS;
-
 	BDBG_ENTER(BSYNClib_RateMismatchDetector_SetConfig);
-
 	BDBG_ASSERT(hDetector);
 	BDBG_ASSERT(psConfig);
-
-	/* copy config */
 	hDetector->sConfig = *psConfig;
-
 	rc = BSYNClib_RateMismatchDetector_P_ProcessConfig(hDetector);
-
 	BDBG_LEAVE(BSYNClib_RateMismatchDetector_SetConfig);
 	return rc;
 }
@@ -308,9 +311,9 @@ BERR_Code BSYNClib_RateMismatchDetector_P_ProcessConfig(
 
 	goto end;
 
-error:
+	error:
 
-end:
+	end:
 
 	BDBG_LEAVE(BSYNClib_Channel_P_ProcessConfig);
 	return rc;
@@ -337,7 +340,6 @@ BERR_Code BSYNClib_RateMismatchDetector_ResetSourceMeasurements_isr(
 		psSource->lMeanTimeBetweenCallbacks = 0;
 		psSource->uiDelayCallbackCount = 0;
 		psSource->ulLastCallbackTime = 0;
-
 		/* TODO: restart any active rmd timers */
 	}
 
@@ -347,7 +349,7 @@ BERR_Code BSYNClib_RateMismatchDetector_ResetSourceMeasurements_isr(
 
 /*
 Summary:
-*/
+ */
 BERR_Code BSYNClib_RateMismatchDetector_ResetSourceData_isr(
 	BSYNClib_RateMismatchDetector_Handle hDetector,
 	unsigned int uiSource
@@ -369,9 +371,7 @@ BERR_Code BSYNClib_RateMismatchDetector_ResetSourceData_isr(
 		psSource->uiDelayCallbackCount = 0;
 		psSource->ulLastCallbackTime = 0;
 		psSource->sFormat.sData.bValid = false;
-
 		hDetector->sStatus.bSourceSinkMatched = true;
-
 		/* TODO: restart any active rmd timers */
 	}
 
@@ -381,7 +381,7 @@ BERR_Code BSYNClib_RateMismatchDetector_ResetSourceData_isr(
 
 /*
 Summary:
-*/
+ */
 BERR_Code BSYNClib_RateMismatchDetector_SetVideoSourceFormat_isr(
 	BSYNClib_RateMismatchDetector_Handle hDetector,
 	unsigned int uiSource,
@@ -411,12 +411,12 @@ BERR_Code BSYNClib_RateMismatchDetector_SetVideoSourceFormat_isr(
 		hIterator = BSYSlib_List_AcquireIterator_isr(hDetector->sData.hSinks);
 		while (BSYSlib_List_HasNext_isr(hIterator))
 		{
-    		psSink = (BSYNClib_RateMismatchDetector_Sink *)BSYSlib_List_Next_isr(hIterator);
-    		if (psSink->bSyncLocked)
-    		{
-                psSyncLockedSink = psSink;
-                break;
-    		}
+			psSink = (BSYNClib_RateMismatchDetector_Sink *)BSYSlib_List_Next_isr(hIterator);
+			if (psSink->bSyncLocked)
+			{
+				psSyncLockedSink = psSink;
+				break;
+			}
 		}
 		BSYSlib_List_ReleaseIterator_isr(hIterator);
 
@@ -426,7 +426,7 @@ BERR_Code BSYNClib_RateMismatchDetector_SetVideoSourceFormat_isr(
 		}
 		else
 		{
-            BDBG_MSG(("No sync-locked sink found."));
+			BDBG_MSG(("No sync-locked sink found."));
 		}
 	}
 
@@ -436,7 +436,7 @@ BERR_Code BSYNClib_RateMismatchDetector_SetVideoSourceFormat_isr(
 
 /*
 Summary:
-*/
+ */
 BERR_Code BSYNClib_RateMismatchDetector_SetVideoSinkFormat_isr(
 	BSYNClib_RateMismatchDetector_Handle hDetector,
 	unsigned int uiSink,
@@ -485,7 +485,7 @@ BERR_Code BSYNClib_RateMismatchDetector_SetVideoSinkFormat_isr(
 
 /*
 Summary:
-*/
+ */
 BERR_Code BSYNClib_RateMismatchDetector_DelayNotificationHandler_isr(
 	BSYNClib_RateMismatchDetector_Handle hDetector,
 	unsigned int uiSource,
@@ -567,23 +567,19 @@ BERR_Code BSYNClib_RateMismatchDetector_DelayNotificationHandler_isr(
 
 /*
 Summary:
-*/
+ */
 BERR_Code BSYNClib_RateMismatchDetector_GetStatus(
 	BSYNClib_RateMismatchDetector_Handle hDetector,
 	BSYNClib_RateMismatchDetector_Status * psStatus
 )
 {
 	BERR_Code rc = BERR_SUCCESS;
-
 	BDBG_ENTER(BSYNClib_RateMismatchDetector_GetStatus);
-
 	BDBG_ASSERT(hDetector);
 	BDBG_ASSERT(psStatus);
-
 	BKNI_EnterCriticalSection();
 	*psStatus = hDetector->sStatus;
 	BKNI_LeaveCriticalSection();
-
 	BDBG_LEAVE(BSYNClib_RateMismatchDetector_GetStatus);
 	return rc;
 }
@@ -688,17 +684,8 @@ BERR_Code BSYNClib_RateMismatchDetector_MismatchTimerExpired(void * pvParm1, int
 		if (rc) goto error;
 	}
 
-#if 0 /* TODO: figure out how to rematch */
-	if (!is_rate_matched)
-	{
-		/* reschedule another timer to see if we have come back on track */
-		BDBG_MSG(("  Scheduling rate rematch detection in %lu ms", settings.video.rate_rematch_detection.timeout));
-		sync->video.rate_mismatch_detection_timer = b_timer_schedule(settings.video.rate_rematch_detection.timeout, &bsync_p_rate_mismatch_detection_timer_event_handler, sync);
-	}
-#endif
-
-error:
-end:
+	error:
+	end:
 
 	rc = BSYNClib_Channel_P_TimerExpired(hDetector->hParent, hTimer);
 
@@ -750,10 +737,10 @@ bool BSYNClib_RateMismatchDetector_P_LooseRateMatchCheck_isr(
 	BDBG_ASSERT(psFormatB);
 
 	bLooseRateMatch = false;
-	uiFormatA = BSYNClib_VideoFormat_P_GetFramePeriod_isr(psFormatA);
-	uiOriginalFormatB = BSYNClib_VideoFormat_P_GetFramePeriod_isr(psFormatB);
-	uiUpconvertedFormatB = BSYNClib_VideoFormat_P_GetUpconvertedFramePeriod_isr(psFormatB);
-	uiDownconvertedFormatB = BSYNClib_VideoFormat_P_GetDownconvertedFramePeriod_isr(psFormatB);
+	uiFormatA = BSYNClib_VideoFormat_P_GetFramePeriod_isrsafe(psFormatA);
+	uiOriginalFormatB = BSYNClib_VideoFormat_P_GetFramePeriod_isrsafe(psFormatB);
+	uiUpconvertedFormatB = BSYNClib_VideoFormat_P_GetUpconvertedFramePeriod_isrsafe(psFormatB);
+	uiDownconvertedFormatB = BSYNClib_VideoFormat_P_GetDownconvertedFramePeriod_isrsafe(psFormatB);
 
 	if
 	(
@@ -806,55 +793,55 @@ void BSYNClib_RateMismatchDetector_P_CompareSinkFormats_isr(
 	bIsMatched = true;
 	psMaster = NULL;
 
-    hIterator = BSYSlib_List_AcquireIterator_isr(hDetector->sData.hSinks);
+	hIterator = BSYSlib_List_AcquireIterator_isr(hDetector->sData.hSinks);
 
-    while (BSYSlib_List_HasNext_isr(hIterator))
-    {
-        psSink = (BSYNClib_RateMismatchDetector_Sink *)BSYSlib_List_Next_isr(hIterator);
-        if (psSink->bSyncLocked)
-        {
-            psMaster = psSink;
-            break;
-        }
-    }
+	while (BSYSlib_List_HasNext_isr(hIterator))
+	{
+		psSink = (BSYNClib_RateMismatchDetector_Sink *)BSYSlib_List_Next_isr(hIterator);
+		if (psSink->bSyncLocked)
+		{
+			psMaster = psSink;
+			break;
+		}
+	}
 
-    BSYSlib_List_ReleaseIterator_isr(hIterator);
+	BSYSlib_List_ReleaseIterator_isr(hIterator);
 
-    if (psMaster)
-    {
-        hIterator = BSYSlib_List_AcquireIterator_isr(hDetector->sData.hSinks);
+	if (psMaster)
+	{
+		hIterator = BSYSlib_List_AcquireIterator_isr(hDetector->sData.hSinks);
 
-        while (BSYSlib_List_HasNext_isr(hIterator))
-        {
-            psSlave = (BSYNClib_RateMismatchDetector_Sink *)BSYSlib_List_Next_isr(hIterator);
+		while (BSYSlib_List_HasNext_isr(hIterator))
+		{
+			psSlave = (BSYNClib_RateMismatchDetector_Sink *)BSYSlib_List_Next_isr(hIterator);
 
-            if (psSlave && (psSlave->uiIndex != psMaster->uiIndex) && psMaster->sFormat.sData.bValid && psSlave->sFormat.sData.bValid)
-            {
-                BDBG_MSG(("[%d] sink%u = %s Fps %s, sink%u = %s Fps %s",
-                    hDetector->hParent->iIndex,
-                    psMaster->uiIndex,
-                    BSYNClib_VideoFormat_P_GetFrameRateName_isr(psMaster->sFormat.sData.eFrameRate),
-                    psMaster->sFormat.sData.bInterlaced ? "interlaced" : "progressive",
-                    psSlave->uiIndex,
-                    BSYNClib_VideoFormat_P_GetFrameRateName_isr(psSlave->sFormat.sData.eFrameRate),
-                    psSlave->sFormat.sData.bInterlaced ? "interlaced" : "progressive"));
+			if (psSlave && (psSlave->uiIndex != psMaster->uiIndex) && psMaster->sFormat.sData.bValid && psSlave->sFormat.sData.bValid)
+			{
+				BDBG_MSG(("[%d] sink%u = %s Fps %s, sink%u = %s Fps %s",
+					hDetector->hParent->iIndex,
+					psMaster->uiIndex,
+					BSYNClib_VideoFormat_P_GetFrameRateName_isrsafe(psMaster->sFormat.sData.eFrameRate),
+					psMaster->sFormat.sData.bInterlaced ? "interlaced" : "progressive",
+						psSlave->uiIndex,
+						BSYNClib_VideoFormat_P_GetFrameRateName_isrsafe(psSlave->sFormat.sData.eFrameRate),
+						psSlave->sFormat.sData.bInterlaced ? "interlaced" : "progressive"));
 
-                bIsMatched &= BSYNClib_RateMismatchDetector_P_LooseRateMatchCheck_isr(&psMaster->sFormat, &psSlave->sFormat);
-            }
-        }
+				bIsMatched &= BSYNClib_RateMismatchDetector_P_LooseRateMatchCheck_isr(&psMaster->sFormat, &psSlave->sFormat);
+			}
+		}
 
-        BSYSlib_List_ReleaseIterator_isr(hIterator);
+		BSYSlib_List_ReleaseIterator_isr(hIterator);
 
-        BDBG_MSG(("[%d] sink rates %s", hDetector->hParent->iIndex, bIsMatched ? "matched" : "not matched"));
-        hDetector->sStatus.bSinkSinkMatched = bIsMatched;
-    }
-    else
-    {
-        BDBG_MSG(("Sync locked master sink not yet found"));
-        hDetector->sStatus.bSinkSinkMatched = false;
-    }
+		BDBG_MSG(("[%d] sink rates %s", hDetector->hParent->iIndex, bIsMatched ? "matched" : "not matched"));
+		hDetector->sStatus.bSinkSinkMatched = bIsMatched;
+	}
+	else
+	{
+		BDBG_MSG(("Sync locked master sink not yet found"));
+		hDetector->sStatus.bSinkSinkMatched = false;
+	}
 
-    BDBG_LEAVE(BSYNClib_RateMismatchDetector_P_TestSourceAndSinkFormats_isr);
+	BDBG_LEAVE(BSYNClib_RateMismatchDetector_P_TestSourceAndSinkFormats_isr);
 }
 
 
@@ -877,10 +864,10 @@ bool BSYNClib_RateMismatchDetector_P_StrictRateMatchCheck_isr(
 	BDBG_ASSERT(psFormatB);
 
 	bStrictRateMatch = false;
-	uiFormatA = BSYNClib_VideoFormat_P_GetFramePeriod_isr(psFormatA);
-	uiOriginalFormatB = BSYNClib_VideoFormat_P_GetFramePeriod_isr(psFormatB);
-	uiUpconvertedFormatB = BSYNClib_VideoFormat_P_GetUpconvertedFramePeriod_isr(psFormatB);
-	uiDownconvertedFormatB = BSYNClib_VideoFormat_P_GetDownconvertedFramePeriod_isr(psFormatB);
+	uiFormatA = BSYNClib_VideoFormat_P_GetFramePeriod_isrsafe(psFormatA);
+	uiOriginalFormatB = BSYNClib_VideoFormat_P_GetFramePeriod_isrsafe(psFormatB);
+	uiUpconvertedFormatB = BSYNClib_VideoFormat_P_GetUpconvertedFramePeriod_isrsafe(psFormatB);
+	uiDownconvertedFormatB = BSYNClib_VideoFormat_P_GetDownconvertedFramePeriod_isrsafe(psFormatB);
 
 	if
 	(
@@ -946,11 +933,11 @@ void BSYNClib_RateMismatchDetector_P_TestSourceAndSinkFormats_isr(
 	{
 		BDBG_MSG(("[%d] source = %s Fps %s, sink = %s Fps %s (master frame rate %s)",
 			hDetector->hParent->iIndex,
-			BSYNClib_VideoFormat_P_GetFrameRateName_isr(psSource->sFormat.sData.eFrameRate),
+			BSYNClib_VideoFormat_P_GetFrameRateName_isrsafe(psSource->sFormat.sData.eFrameRate),
 			psSource->sFormat.sData.bInterlaced ? "interlaced" : "progressive",
-			BSYNClib_VideoFormat_P_GetFrameRateName_isr(psSink->sFormat.sData.eFrameRate),
-			psSink->sFormat.sData.bInterlaced ? "interlaced" : "progressive",
-			psSink->bMasterFrameRateEnabled ? "enabled" : "disabled"));
+				BSYNClib_VideoFormat_P_GetFrameRateName_isrsafe(psSink->sFormat.sData.eFrameRate),
+				psSink->sFormat.sData.bInterlaced ? "interlaced" : "progressive",
+					psSink->bMasterFrameRateEnabled ? "enabled" : "disabled"));
 
 		bIsMatched = BSYNClib_RateMismatchDetector_P_StrictRateMatchCheck_isr(&psSource->sFormat, &psSink->sFormat, psSink->bMasterFrameRateEnabled, psSink->bSyncLocked);
 
@@ -1009,7 +996,7 @@ BERR_Code BSYNClib_RateMismatchDetector_P_StaticRateMatchTimerExpired(void * pvP
 
 	BSYNClib_Channel_P_Process(hDetector->hParent, 0);
 
-end:
+	end:
 
 	BDBG_LEAVE(BSYNClib_RateMismatchDetector_P_StaticRateMatchTimerExpired);
 	return rc;
@@ -1039,9 +1026,8 @@ BERR_Code BSYNClib_RateMismatchDetector_P_StaticRateMismatchTimerExpired(void * 
 
 	BSYNClib_Channel_P_Process(hDetector->hParent, 0);
 
-end:
+	end:
 
 	BDBG_LEAVE(BSYNClib_RateMismatchDetector_P_StaticRateMismatchTimerExpired);
 	return rc;
 }
-

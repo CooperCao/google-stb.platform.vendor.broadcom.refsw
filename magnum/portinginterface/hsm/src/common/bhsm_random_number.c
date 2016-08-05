@@ -47,6 +47,8 @@
 
 BDBG_MODULE(BHSM);
 
+BDBG_OBJECT_ID_DECLARE( BHSM_P_Handle );
+
 BERR_Code BHSM_UserRandomNumber (
         BHSM_Handle                hHsm,
         BHSM_UserRandomNumberIO_t *pRandomNumber
@@ -59,9 +61,7 @@ BERR_Code BHSM_UserRandomNumber (
 
     BDBG_ENTER( BHSM_UserRandomNumber );
 
-    if( ( hHsm == NULL ) || ( hHsm->ulMagicNumber != BHSM_P_HANDLE_MAGIC_NUMBER ) ) {
-        return BERR_TRACE( BHSM_STATUS_FAILED );
-    }
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
 
     /* only fill the command specific input parameters */
     if ( pRandomNumber->RandomNumType >= BSP_RNG_RNG_CORE_CTRL_RNG_TYPE_MAX ) {

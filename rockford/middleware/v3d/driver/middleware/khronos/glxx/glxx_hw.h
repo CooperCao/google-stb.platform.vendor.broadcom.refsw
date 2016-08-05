@@ -27,9 +27,6 @@ typedef struct
    uint32_t num_varyings;
    bool threaded;
    bool has_point_size;
-#ifdef XXX_OFFLINE
-   bool use_offline;
-#endif
    uint32_t cattribs_order[GLXX_CONFIG_MAX_VERTEX_ATTRIBS*2];
    uint32_t vattribs_order[GLXX_CONFIG_MAX_VERTEX_ATTRIBS*2];
 } GLXX_LINK_RESULT_DATA_T;

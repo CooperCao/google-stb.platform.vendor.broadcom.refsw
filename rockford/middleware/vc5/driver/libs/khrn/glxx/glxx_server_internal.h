@@ -20,8 +20,11 @@ needed by glxx/glxx_server.c, gl11/server.c and gl20/server.c
 extern void glxx_clear_color_internal(float red, float green, float blue, float alpha);
 extern void glxx_clear_depth_internal(float depth);
 
-bool glxx_get_boolean(GLXX_SERVER_STATE_T *state, GLenum pname, GLboolean *params);
-bool glxx_get_fixed(GLXX_SERVER_STATE_T *state, GLenum pname, GLfixed *params);
+GLenum glxx_get_booleans(const GLXX_SERVER_STATE_T *state, GLenum pname, GLboolean *params);
+#if KHRN_GLES31_DRIVER
+GLenum glxx_get_booleans_i(const GLXX_SERVER_STATE_T *state, GLenum pname, GLuint index, GLboolean *params);
+#endif
+GLenum glxx_get_fixeds(const GLXX_SERVER_STATE_T *state, GLenum pname, GLfixed *params);
 extern uint32_t glxx_get_texparameter_internal(GLXX_SERVER_STATE_T *state, GLenum target, GLenum pname, GLint *params);
 
 extern uint32_t glxx_get_stencil_size(GLXX_SERVER_STATE_T const* state);
@@ -36,6 +39,7 @@ extern bool glxx_is_int_texparam(GLXX_SERVER_STATE_T *state, GLenum target, GLen
 extern bool glxx_valid_draw_frame_buffer(GLXX_SERVER_STATE_T *state);
 extern bool glxx_valid_read_frame_buffer(GLXX_SERVER_STATE_T *state);
 extern bool glxx_is_float_texparam(GLenum pname);
+extern bool glxx_is_vector_texparam(GLenum pname);
 extern bool glxx_is_int_sampler_texparam(GLXX_SERVER_STATE_T *state, GLenum pname);
 
 
@@ -46,12 +50,7 @@ static inline void glxx_elements_per_group(GLenum format, GLenum type, uint32_t 
 
    switch (format) {
    case GL_RGBA:
-#if GL_EXT_texture_format_BGRA8888
    case GL_BGRA_EXT:
-#endif
-#if GL_texture_format_RGBX8888_BRCM
-   case GL_RGBX_BRCM:
-#endif
    case GL_RGBA_INTEGER:
       switch (type) {
       case GL_BYTE:
@@ -81,7 +80,7 @@ static inline void glxx_elements_per_group(GLenum format, GLenum type, uint32_t 
          s = 2;
          break;
       default:
-         UNREACHABLE();
+         unreachable();
          break;
       }
       break;
@@ -118,7 +117,7 @@ static inline void glxx_elements_per_group(GLenum format, GLenum type, uint32_t 
          s = 1;
          break;
       default:
-         UNREACHABLE();
+         unreachable();
          break;
       }
       break;
@@ -133,7 +132,7 @@ static inline void glxx_elements_per_group(GLenum format, GLenum type, uint32_t 
          s = 4;
          break;
       default:
-         UNREACHABLE();
+         unreachable();
       }
       break;
    case GL_RG:
@@ -203,7 +202,7 @@ static inline void glxx_elements_per_group(GLenum format, GLenum type, uint32_t 
       }
       break;
    default:
-      UNREACHABLE();
+      unreachable();
       break;
    }
 
@@ -340,7 +339,7 @@ static inline void glxx_readpixels_impldefined_formats(GLenum *format, GLenum *t
    gfx_lfmt_to_format_type_maybe(format, type, *dst_lfmt);
 }
 
-extern bool glxx_tf_validate_draw_arrays(GLXX_SERVER_STATE_T *state,
+extern bool glxx_tf_validate_draw(const GLXX_SERVER_STATE_T *state,
    GLenum primitive_mode, GLsizei count, GLsizei instance_count);
 extern void glxx_tf_write_primitives(GLXX_SERVER_STATE_T *state,
    v3d_prim_mode_t primitive_mode, GLsizei count, GLsizei instance_count);
@@ -350,8 +349,6 @@ extern void glxx_tf_delete_buffer(struct GLXX_TRANSFORM_FEEDBACK_T_ *tf, GLXX_BU
 extern GLXX_BUFFER_BINDING_T *glxx_tf_get_buffer_binding(GLXX_SERVER_STATE_T *state);
 bool glxx_tf_bind_buffer_valid(GLXX_SERVER_STATE_T *state);
 GLXX_INDEXED_BINDING_POINT_T *glxx_tf_get_indexed_bindings(GLXX_SERVER_STATE_T *state);
-extern void glxx_tf_get_integer64i(const GLXX_SERVER_STATE_T *state, GLenum target, GLuint index, GLint64 *data);
-extern void glxx_tf_get_integeri(const GLXX_SERVER_STATE_T *state, GLenum target, GLuint index, GLint *data);
 
 bool glxx_tf_is_active(const GLXX_SERVER_STATE_T *state);
 bool glxx_tf_is_paused(const GLXX_SERVER_STATE_T *state);
@@ -367,6 +364,8 @@ extern void glxx_pipeline_state_term(GLXX_SERVER_STATE_T *state);
 
 extern GLXX_QUERY_T *glxx_get_query(GLXX_SERVER_STATE_T *state, GLuint id);
 extern GLXX_TRANSFORM_FEEDBACK_T *glxx_get_transform_feedback(GLXX_SERVER_STATE_T *state, uint32_t id);
+extern bool glxx_server_has_active_query_type(enum glxx_query_type type,
+   const GLXX_SERVER_STATE_T *state, const GLXX_HW_RENDER_STATE_T *rs);
 
 // If offset == -1, do not bind indexed binding point
 // If size == -1, use full buffer size, dynamically evaluated each time binding is used

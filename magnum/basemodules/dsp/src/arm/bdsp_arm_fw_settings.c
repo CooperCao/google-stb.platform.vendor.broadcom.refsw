@@ -90,7 +90,8 @@ const  BDSP_P_Audio_FrameSyncTsmConfigParams   BDSP_ARM_sDefaultFrameSyncTsmSett
             0,
                 0
             }},
-        0                                           /* eForceCompleteFirstFrame */
+        0,                                           /* eForceCompleteFirstFrame */
+		BDSP_Raaga_Audio_DatasyncType_eNone
     },
     {                                       /* sTsmConfigParams */
         90,                                 /* i32TSMSmoothThreshold */

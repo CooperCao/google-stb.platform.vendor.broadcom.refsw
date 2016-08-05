@@ -74,9 +74,13 @@ typedef struct BDSP_ArmDspApp{
     BTEE_ClientHandle hClient;
     BTEE_ApplicationHandle hApplication;
 	BTEE_ConnectionHandle hConnection;
+
+	/* Handle for HBC */
+    BTEE_ApplicationHandle hHbcApplication;
+	BTEE_ConnectionHandle hHbcConnection;
+
     /* msg lock and count */
     BKNI_MutexHandle    msgLock;
-    volatile int msgCnt;
 
 }BDSP_ArmDspApp;
 
@@ -120,6 +124,14 @@ typedef struct BDSP_Arm_P_MemoryGrant
     BDSP_Arm_P_DwnldMemInfo       sDwnldMemInfo;
 }BDSP_Arm_P_MemoryGrant;
 
+typedef struct BDSP_Arm_P_HbcInfo
+{
+	uint32_t hbcValid;
+	uint32_t hbc;
+
+}BDSP_Arm_P_HbcInfo;
+
+
 typedef struct BDSP_Arm
 {
     BDBG_OBJECT(BDSP_Arm)
@@ -145,9 +157,13 @@ typedef struct BDSP_Arm
     BDSP_AF_P_sDRAM_CIRCULAR_BUFFER *armInterfaceQHndl; /*[BDSP_ARM_NUM_INTERFACE_QUEUE_HANDLE];*/ /* Stores the physical address of Interface Queue Handle */
     BDSP_Arm_P_MsgQueueHandle hCmdQueue;         /* Cmd queue handle*/
     BDSP_Arm_P_MsgQueueHandle hGenRspQueue;      /* Generic Response queue handle*/
+    bool                    deviceWatchdogFlag;
     BKNI_MutexHandle armInterfaceQHndlMutex;
     BKNI_MutexHandle captureMutex;
+	BKNI_MutexHandle    watchdogMutex;
     BDSP_Arm_MapTableEntry       sDeviceMapTable[BDSP_ARM_MAX_ALLOC_DEVICE];
+	BDSP_Arm_P_HbcInfo          *psHbcInfo;
+
 }BDSP_Arm;
 
 typedef struct BDSP_ArmContext
@@ -286,6 +302,8 @@ BERR_Code BDSP_Arm_P_DownloadFwToAstra(
 	BDSP_Arm *pDevice,
 	BDSP_Arm_SystemImgId ImgId);
 
+BERR_Code BDSP_Arm_P_StartHbcMonitor(
+	BDSP_Arm *pDevice);
 
 BERR_Code BDSP_Arm_P_Open(
     void *pDeviceHandle);
@@ -324,6 +342,23 @@ BERR_Code BDSP_Arm_P_CreateTask(
 
 void BDSP_Arm_P_DestroyTask(
     void *pTaskHandle);
+
+/***********************************************************************
+Name        :   BDSP_Arm_P_ProcessWatchdogInterrupt
+
+Type        :   PI Interface
+
+Input       :   pContextHandle  -   Context handle provided by the PI.
+
+Return      :   Error Code to return SUCCESS or FAILURE
+
+Functionality   :   On occurance of an watchdog, call the Arm Open function.
+                On completion, clear the watchdog flag of the Device handle and Context handle
+***********************************************************************/
+
+BERR_Code BDSP_Arm_P_ProcessWatchdogInterrupt(
+    void *pContextHandle);
+
 
 BERR_Code BDSP_Arm_P_PopulateGateOpenFMMStages(
     void *pPrimaryStageHandle,

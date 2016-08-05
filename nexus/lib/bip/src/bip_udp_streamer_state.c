@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -248,6 +248,19 @@ static BIP_Status startPBipLiveStreamer(
         {
             liveStreamingOpenSettings.recpumpHandle = hUdpStreamer->pStreamer->hRecpump;
             liveStreamingOpenSettings.heapHandle = getStreamerHeapHandle(hUdpStreamer->output.settings.heapHandle);
+            if(hUdpStreamer->startSettings.streamingMethod == BIP_StreamingMethod_eRaveInterruptBased)
+            {
+                liveStreamingOpenSettings.streamingMethod = B_PlaybackIpStreamingMethod_eRaveInterruptBased;
+                liveStreamingOpenSettings.timeOutIntervalInMs =
+                    hUdpStreamer->startSettings.streamingSettings.raveInterruptBasedSettings.timeOutIntervalInMs;
+            }
+            else if(hUdpStreamer->startSettings.streamingMethod == BIP_StreamingMethod_eSystemTimerBased)
+            {
+                liveStreamingOpenSettings.streamingMethod = B_PlaybackIpStreamingMethod_eSystemTimerBased;
+                liveStreamingOpenSettings.timeOutIntervalInMs =
+                    hUdpStreamer->startSettings.streamingSettings.systemTimerBasedSettings.timeOutIntervalInMs;
+            }
+
         }
 
         hUdpStreamer->playbackIpState.hLiveStreamer = B_PlaybackIp_LiveStreamingOpen( &liveStreamingOpenSettings );
@@ -548,8 +561,15 @@ void processUdpStreamerState(
             hUdpStreamer->startSettings = *hUdpStreamer->startApi.pSettings;
 
             BIP_Streamer_GetDefaultPrepareSettings( &prepareSettings );
-            prepareSettings.recpumpOpenSettings.data.dataReadyThreshold = prepareSettings.recpumpOpenSettings.data.atomSize * 2;
-            hUdpStreamer->completionStatus = BIP_Streamer_Prepare( hUdpStreamer->hStreamer, NULL );
+
+            /*  This always have to set irrespective of whether we are running in RaveInterruptbased or systemTimer based mode,
+                since Rave interrupt internally is always enable only we don't wait for that event in systemTimer mode.
+                Now in system timer mode since we are running based on systemTimer,
+                so we can set dataReadyThreshold high which eventually reduce the number of interrupt.*/
+            prepareSettings.recpumpOpenSettings.data.dataReadyThreshold =
+                prepareSettings.recpumpOpenSettings.data.atomSize * hUdpStreamer->startSettings.streamingSettings.raveInterruptBasedSettings.dataReadyScaleFactor;
+
+            hUdpStreamer->completionStatus = BIP_Streamer_Prepare( hUdpStreamer->hStreamer, &prepareSettings );
             if ( hUdpStreamer->completionStatus == BIP_SUCCESS )
             {
                 hUdpStreamer->completionStatus = BIP_Streamer_Start( hUdpStreamer->hStreamer, NULL );

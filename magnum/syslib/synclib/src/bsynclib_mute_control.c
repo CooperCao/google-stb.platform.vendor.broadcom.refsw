@@ -1,22 +1,43 @@
 /***************************************************************************
-*     Copyright (c) 2004-2013, Broadcom Corporation
-*     All Rights Reserved
-*     Confidential Property of Broadcom Corporation
-*
-*  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
-*  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
-*  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
-*
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* Revision History:
-*
-* $brcm_Log: $
-* 
-***************************************************************************/
-
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ *  Except as expressly set forth in the Authorized License,
+ *
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+ *
+ * Module Description:
+ *
+ **************************************************************************/
 #include "bstd.h"
 #include "bsyslib.h"
 #include "bsyslib_list.h"
@@ -43,23 +64,9 @@ BERR_Code BSYNClib_MuteControl_ScheduleTask_isr(BSYNClib_Channel_Handle hChn)
 
 	if (!psResults->bMuteTaskScheduled)
 	{
-#ifdef BSYSLIB_TASK_SUPPORT
-		if (hChn->sSettings.cbTask.pfSchedule_isr)
-		{
-			BSYSlib_Task_Settings sTask;
-
-			sTask.pvParm1 = hChn;
-			sTask.iParm2 = 0;
-			sTask.pfDoTask = &BSYNClib_MuteControl_P_Process;
-
-			rc = hChn->sSettings.cbTask.pfSchedule_isr(hChn->sSettings.cbTask.pvParm1,
-				hChn->sSettings.cbTask.iParm2, &sTask);
-		}
-#else
-	rc = BSYNClib_Channel_P_StartTimer_isr(hChn,
-		hChn->psMuteControlTaskTimer, 0,
-		&BSYNClib_MuteControl_P_TaskTimerExpired, hChn, 0);
-#endif
+		rc = BSYNClib_Channel_P_StartTimer_isr(hChn,
+			hChn->psMuteControlTaskTimer, 0,
+			&BSYNClib_MuteControl_P_TaskTimerExpired, hChn, 0);
 
 		if (!rc)
 		{
@@ -79,9 +86,9 @@ BERR_Code BSYNClib_MuteControl_ScheduleTask_isr(BSYNClib_Channel_Handle hChn)
 
 	goto end;
 
-error:
+	error:
 
-end:
+	end:
 	BDBG_LEAVE(BSYNClib_MuteControl_ScheduleTask_isr);
 	return rc;
 }
@@ -119,13 +126,13 @@ BERR_Code BSYNClib_MuteControl_CancelUnmuteTimers_isr(BSYNClib_Channel_Handle hC
 
 	goto end;
 
-error:
+	error:
 	if (hIterator)
 	{
 		BSYSlib_List_ReleaseIterator_isr(hIterator);
 	}
 
-end:
+	end:
 	return rc;
 }
 
@@ -145,8 +152,8 @@ BERR_Code BSYNClib_MuteControl_StartUnmuteTimers(BSYNClib_Channel_Handle hChn)
 	{
 		psVideoSource = (BSYNClib_VideoSource *)BSYSlib_List_Next(hIterator);
 
-        /* if we've already applied delays, we shouldn't be muting */
-        psVideoSource->sResults.bMutePending = false;
+		/* if we've already applied delays, we shouldn't be muting */
+		psVideoSource->sResults.bMutePending = false;
 
 		if (psVideoSource->sStatus.bMuted)
 		{
@@ -166,7 +173,7 @@ BERR_Code BSYNClib_MuteControl_StartUnmuteTimers(BSYNClib_Channel_Handle hChn)
 	{
 		psAudioSource = (BSYNClib_AudioSource *)BSYSlib_List_Next(hIterator);
 
-        /* if we've already applied delays, we shouldn't be muting */
+		/* if we've already applied delays, we shouldn't be muting */
 		psAudioSource->sResults.bMutePending = false;
 
 		if (psAudioSource->sStatus.bMuted)
@@ -189,13 +196,13 @@ BERR_Code BSYNClib_MuteControl_StartUnmuteTimers(BSYNClib_Channel_Handle hChn)
 
 	goto end;
 
-error:
+	error:
 	if (hIterator)
 	{
 		BSYSlib_List_ReleaseIterator(hIterator);
 	}
 
-end:
+	end:
 	return rc;
 }
 
@@ -216,7 +223,7 @@ BERR_Code BSYNClib_MuteControl_P_TaskTimerExpired(void * pvParm1, int iParm2, BS
 
 	rc = BSYNClib_MuteControl_P_Process(hChn, 0);
 
-end:
+	end:
 	return rc;
 }
 
@@ -260,36 +267,36 @@ BERR_Code BSYNClib_MuteControl_P_Process(void * pvParm1, int iParm2)
 				BKNI_EnterCriticalSection();
 				bMutePending = psVideoSource->sResults.bMutePending;
 				bStarted = psVideoSource->sElement.sData.bStarted;
-                bStartUnconditionalUnmute = psVideoSource->sElement.sData.bStarted && !psVideoSource->sResults.bMuteLastStarted;
+				bStartUnconditionalUnmute = psVideoSource->sElement.sData.bStarted && !psVideoSource->sResults.bMuteLastStarted;
 				psVideoSource->sResults.bMuteLastStarted = psVideoSource->sElement.sData.bStarted;
 				BKNI_LeaveCriticalSection();
 
 #if BSYNCLIB_UNCONDITIONAL_VIDEO_UNMUTE_SUPPORT
-                /*
-                 * if mute control is enabled (as above), then we will start muted
-                 * and need to start the unconditional unmute timer on start event.
-                 * However, we may immediately unmute, so the unconditional timer
-                 * needs to be started before we handle the mute.
-                 */
-                if (bStartUnconditionalUnmute)
-                {
-                    count++;
-                    /* need to start this when video is started, not when it is muted */
-                    if (!psVideoSource->psUnconditionalUnmuteTimer->bScheduled)
-                    {
-                        BDBG_MSG(("[%d]  Scheduling video unconditional unmute timer", hChn->iIndex));
-                        /* schedule unconditional unmute timer */
-                        BKNI_EnterCriticalSection();
-                        rc = BSYNClib_Channel_P_StartTimer_isr(hChn, psVideoSource->psUnconditionalUnmuteTimer,
-                            hChn->hParent->sSettings.sVideo.uiUnconditionalUnmuteTimeout,
-                            &BSYNClib_MuteControl_P_VideoSourceUnconditionalUnmuteTimerExpired, psVideoSource, 0);
-                        BKNI_LeaveCriticalSection();
-                        if (rc) goto end;
-                    }
-                }
+				/*
+				 * if mute control is enabled (as above), then we will start muted
+				 * and need to start the unconditional unmute timer on start event.
+				 * However, we may immediately unmute, so the unconditional timer
+				 * needs to be started before we handle the mute.
+				 */
+				if (bStartUnconditionalUnmute)
+				{
+					count++;
+					/* need to start this when video is started, not when it is muted */
+					if (!psVideoSource->psUnconditionalUnmuteTimer->bScheduled)
+					{
+						BDBG_MSG(("[%d]  Scheduling video unconditional unmute timer", hChn->iIndex));
+						/* schedule unconditional unmute timer */
+						BKNI_EnterCriticalSection();
+						rc = BSYNClib_Channel_P_StartTimer_isr(hChn, psVideoSource->psUnconditionalUnmuteTimer,
+							hChn->hParent->sSettings.sVideo.uiUnconditionalUnmuteTimeout,
+							&BSYNClib_MuteControl_P_VideoSourceUnconditionalUnmuteTimerExpired, psVideoSource, 0);
+						BKNI_LeaveCriticalSection();
+						if (rc) goto end;
+					}
+				}
 #endif
 
-                if (bMutePending)
+				if (bMutePending)
 				{
 					count++;
 					rc = BSYNClib_MuteControl_P_HandleVideoSourceMutePending(hChn, psVideoSource, bStarted);
@@ -312,36 +319,36 @@ BERR_Code BSYNClib_MuteControl_P_Process(void * pvParm1, int iParm2)
 				BKNI_EnterCriticalSection();
 				bMutePending = psAudioSource->sResults.bMutePending;
 				bStarted = psAudioSource->sElement.sData.bStarted;
-                bStartUnconditionalUnmute = psAudioSource->sElement.sData.bStarted && !psAudioSource->sResults.bMuteLastStarted;
+				bStartUnconditionalUnmute = psAudioSource->sElement.sData.bStarted && !psAudioSource->sResults.bMuteLastStarted;
 				psAudioSource->sResults.bMuteLastStarted = psAudioSource->sElement.sData.bStarted;
 				BKNI_LeaveCriticalSection();
 
 #if BSYNCLIB_UNCONDITIONAL_AUDIO_UNMUTE_SUPPORT
-                /*
-                 * if mute control is enabled (as above), then we will start muted
-                 * and need to start the unconditional unmute timer on start event.
-                 * However, we may immediately unmute, so the unconditional timer
-                 * needs to be started before we handle the mute.
-                 */
-                if (bStartUnconditionalUnmute)
-                {
-                    count++;
-                    /* need to start this when audio is started, not when it is muted */
-                    if (!psAudioSource->psUnconditionalUnmuteTimer->bScheduled)
-                    {
-                        BDBG_MSG(("[%d]  Scheduling audio unconditional unmute timer", hChn->iIndex));
-                        /* schedule unconditional unmute timer */
-                        BKNI_EnterCriticalSection();
-                        rc = BSYNClib_Channel_P_StartTimer_isr(hChn, psAudioSource->psUnconditionalUnmuteTimer,
-                            hChn->hParent->sSettings.sAudio.uiUnconditionalUnmuteTimeout,
-                            &BSYNClib_MuteControl_P_AudioSourceUnconditionalUnmuteTimerExpired, psAudioSource, 0);
-                        BKNI_LeaveCriticalSection();
-                        if (rc) goto end;
-                    }
-                }
+				/*
+				 * if mute control is enabled (as above), then we will start muted
+				 * and need to start the unconditional unmute timer on start event.
+				 * However, we may immediately unmute, so the unconditional timer
+				 * needs to be started before we handle the mute.
+				 */
+				if (bStartUnconditionalUnmute)
+				{
+					count++;
+					/* need to start this when audio is started, not when it is muted */
+					if (!psAudioSource->psUnconditionalUnmuteTimer->bScheduled)
+					{
+						BDBG_MSG(("[%d]  Scheduling audio unconditional unmute timer", hChn->iIndex));
+						/* schedule unconditional unmute timer */
+						BKNI_EnterCriticalSection();
+						rc = BSYNClib_Channel_P_StartTimer_isr(hChn, psAudioSource->psUnconditionalUnmuteTimer,
+							hChn->hParent->sSettings.sAudio.uiUnconditionalUnmuteTimeout,
+							&BSYNClib_MuteControl_P_AudioSourceUnconditionalUnmuteTimerExpired, psAudioSource, 0);
+						BKNI_LeaveCriticalSection();
+						if (rc) goto end;
+					}
+				}
 #endif
 
-                if (bMutePending)
+				if (bMutePending)
 				{
 					count++;
 					rc = BSYNClib_MuteControl_P_HandleAudioSourceMutePending(hChn, psAudioSource, bStarted);
@@ -360,7 +367,7 @@ BERR_Code BSYNClib_MuteControl_P_Process(void * pvParm1, int iParm2)
 		BDBG_MSG(("[%d] Mute control process called while mute control disabled", hChn->iIndex));
 	}
 
-end:
+	end:
 	return rc;
 }
 
@@ -416,19 +423,19 @@ BERR_Code BSYNClib_MuteControl_P_HandleVideoSourceMutePending(BSYNClib_Channel_H
 	}
 	else
 	{
-	    if (bStarted && !hChn->sConfig.sMuteControl.bAllowIncrementalStart)
-	    {
-	        BDBG_MSG(("[%d]    No synchronized audio sources, video started, unmuting", hChn->iIndex));
-            rc = BSYNClib_VideoSource_SetMute(psSource, false);
-            if (rc) goto end;
-	    }
-	    else
-	    {
-            BDBG_MSG(("[%d]    No synchronized audio sources, pending video mute postponed", hChn->iIndex));
-	    }
+		if (bStarted && !hChn->sConfig.sMuteControl.bAllowIncrementalStart)
+		{
+			BDBG_MSG(("[%d]    No synchronized audio sources, video started, unmuting", hChn->iIndex));
+			rc = BSYNClib_VideoSource_SetMute(psSource, false);
+			if (rc) goto end;
+		}
+		else
+		{
+			BDBG_MSG(("[%d]    No synchronized audio sources, pending video mute postponed", hChn->iIndex));
+		}
 	}
 
-end:
+	end:
 
 	return rc;
 }
@@ -485,19 +492,19 @@ BERR_Code BSYNClib_MuteControl_P_HandleAudioSourceMutePending(BSYNClib_Channel_H
 	}
 	else
 	{
-        if (bStarted && !hChn->sConfig.sMuteControl.bAllowIncrementalStart)
-        {
-            BDBG_MSG(("[%d]    No synchronized video sources, audio started, unmuting", hChn->iIndex));
-            rc = BSYNClib_AudioSource_SetMute(psSource, false);
-            if (rc) goto end;
-        }
-        else
-        {
-            BDBG_MSG(("[%d]    No synchronized video sources, pending audio mute postponed", hChn->iIndex));
-        }
+		if (bStarted && !hChn->sConfig.sMuteControl.bAllowIncrementalStart)
+		{
+			BDBG_MSG(("[%d]    No synchronized video sources, audio started, unmuting", hChn->iIndex));
+			rc = BSYNClib_AudioSource_SetMute(psSource, false);
+			if (rc) goto end;
+		}
+		else
+		{
+			BDBG_MSG(("[%d]    No synchronized video sources, pending audio mute postponed", hChn->iIndex));
+		}
 	}
 
-end:
+	end:
 
 	return rc;
 }
@@ -565,13 +572,13 @@ BERR_Code BSYNClib_MuteControl_P_UnmuteAll(BSYNClib_Channel_Handle hChn)
 
 	goto end;
 
-error:
+	error:
 	if (hIterator)
 	{
 		BSYSlib_List_ReleaseIterator(hIterator);
 	}
 
-end:
+	end:
 	return rc;
 }
 
@@ -607,7 +614,7 @@ BERR_Code BSYNClib_MuteControl_P_VideoSourceUnmuteTimerExpired(void * pvParm1, i
 		if (rc) goto end;
 	}
 
-end:
+	end:
 	BDBG_LEAVE(BSYNClib_MuteControl_P_VideoSourceUnmuteTimerExpired);
 	return rc;
 }
@@ -643,7 +650,7 @@ BERR_Code BSYNClib_MuteControl_P_AudioSourceUnmuteTimerExpired(void * pvParm1, i
 		rc = BSYNClib_AudioSource_SetMute(psSource, false);
 	}
 
-end:
+	end:
 
 	BDBG_LEAVE(BSYNClib_MuteControl_P_AudioSourceUnmuteTimerExpired);
 	return rc;
@@ -681,7 +688,7 @@ BERR_Code BSYNClib_MuteControl_P_AudioSourceUnconditionalUnmuteTimerExpired(void
 		rc = BSYNClib_AudioSource_SetMute(psSource, false);
 	}
 
-end:
+	end:
 
 	BDBG_LEAVE(BSYNClib_MuteControl_P_AudioSourceUnconditionalUnmuteTimerExpired);
 	return rc;
@@ -720,10 +727,9 @@ BERR_Code BSYNClib_MuteControl_P_VideoSourceUnconditionalUnmuteTimerExpired(void
 		rc = BSYNClib_VideoSource_SetMute(psSource, false);
 	}
 
-end:
+	end:
 
 	BDBG_LEAVE(BSYNClib_MuteControl_P_VideoSourceUnconditionalUnmuteTimerExpired);
 	return rc;
 }
 #endif
-

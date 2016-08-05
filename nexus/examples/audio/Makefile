@@ -56,6 +56,7 @@ THEAPPS = \
     audio_mixer \
     audio_playback \
     audio_playback_loop \
+    audio_playback_upmix \
     audio_track_change \
     dts_encode \
     i2s_input \

@@ -1,42 +1,39 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *****************************************************************************/
 
 #include "band.h"
@@ -63,7 +60,7 @@ CEncode::CEncode(
     _allocated(false),
     _currentVideo(NULL),
     _encoder(NULL),
-    _mixer(NULL),
+    _cmixer(NULL),
     _pDecodeParserBand(NULL),
     _pRecordParserBand(NULL),
     _pRecord(NULL),
@@ -169,6 +166,8 @@ eRet CEncode::simple_encoder_create()
     NEXUS_Error nerror = NEXUS_SUCCESS;
     NEXUS_VideoEncoderCapabilities cap;
 
+
+    /* Using NxClient I don't need to do Encoder Create */
     if (_encoder == NULL)
     {
         _encoder = NEXUS_SimpleEncoder_Create(_pModel->getSimpleEncoderServer(), _number);
@@ -187,27 +186,38 @@ eRet CEncode::simple_encoder_create()
     BDBG_MSG(("Opening Display %d", _encoderServerSettings.transcodeDisplayIndex));
     /* window is opened internally */
 
+
 #if 0 /* DONOT */
     _encoderServerSettings.displayEncode.display = mainDisplay;
 #endif
-    /* Will be in another Class for 14.3 */
+    /*TODO move to another Atlas class but no one uses AudioMux Currently  */
     _encoderServerSettings.audioMuxOutput = NEXUS_AudioMuxOutput_Create(NULL);
     CHECK_PTR_ERROR_GOTO("Cannot open Audio Mux ", _encoderServerSettings.audioMuxOutput, ret, eRet_NotAvailable, error);
 
     {
         NEXUS_AudioMixerSettings mixerSettings;
 
+#if 0
         NEXUS_AudioMixer_GetDefaultSettings(&mixerSettings);
         mixerSettings.mixUsingDsp = true;
         _mixer                    = NEXUS_AudioMixer_Open(&mixerSettings);
-        CHECK_PTR_ERROR("_mixer issue", _mixer, ret, eRet_ExternalError);
+#endif
+        _cmixer = (CMixer *)_pBoardResources->checkoutResource(getCheckedOutId(),  eBoardResource_mixer);
+        CHECK_PTR_ERROR("Cmixer issue", _cmixer, ret, eRet_ExternalError);
+
+        mixerSettings = _cmixer->getSettings();
+        mixerSettings.mixUsingDsp = true;
+        _cmixer->setSettings(mixerSettings);
+        ret = _cmixer->open();
+        CHECK_ERROR_GOTO("error adding input to mixer", ret, error);
+
     }
 
-    _encoderServerSettings.mixer = _mixer;
+    _encoderServerSettings.mixer = _cmixer->getMixer();
 
     _pOutputAudioDummy->disconnect();
 
-    NEXUS_AudioOutput_AddInput(_pOutputAudioDummy->getConnectorA(), NEXUS_AudioMixer_GetConnector(_mixer));
+    NEXUS_AudioOutput_AddInput(_pOutputAudioDummy->getConnectorA(), _cmixer->getConnector());
     if (_encoderServerSettings.videoEncoder == NULL)
     {
         _encoderServerSettings.videoEncoder = NEXUS_VideoEncoder_Open(_number, NULL);
@@ -246,8 +256,10 @@ eRet CEncode::simple_encoder_create()
 
     BDBG_MSG(("Success in creating Encoder Server!!!"));
 
+    return (ret);
 error:
 
+    checkinResources();
     return(ret);
 } /* simple_encoder_create */
 
@@ -295,7 +307,10 @@ eRet CEncode::createVideo()
     _currentVideo->getPidMgr()->addPid(pPid);
 
     BDBG_MSG(("create audio/video pids"));
+    return ret;
+
 error:
+    checkinResources();
     return(ret);
 } /* createVideo */
 
@@ -321,11 +336,12 @@ void CEncode::checkinResources()
     {
         _pVideoDecode->stop();
     }
-    if (_mixer)
+    if (_cmixer)
     {
-        NEXUS_AudioMixer_Close(_mixer);
-        _mixer                       = NULL;
+        _cmixer->disconnect();
+        _pBoardResources->checkinResource(_cmixer);
         _encoderServerSettings.mixer = NULL;
+        _cmixer = NULL;
     }
 
     if (NULL != _pOutputAudioDummy)
@@ -353,12 +369,14 @@ void CEncode::checkinResources()
 
     if (_pAudioDecode)
     {
+        BDBG_ERR(("CLOSE Simple Audio Decode"));
         _pAudioDecode->close();
         _pBoardResources->checkinResource(_pAudioDecode);
         _pAudioDecode = NULL;
     }
     if (NULL != _pVideoDecode)
     {
+        BDBG_ERR(("CLOSE Simple Video Decode"));
         _pVideoDecode->close();
         _pBoardResources->checkinResource(_pVideoDecode);
         _pVideoDecode = NULL;
@@ -373,10 +391,11 @@ eRet CEncode::open()
     _pVideoDecode = (CSimpleVideoDecode *)_pBoardResources->checkoutResource(getCheckedOutId(), eBoardResource_simpleDecodeVideo);
     CHECK_PTR_ERROR_GOTO("Unable to open video decode", _pVideoDecode, ret, eRet_ExternalError, error);
 
+    _pVideoDecode->setResources(getCheckedOutId(), _pBoardResources);
+    _pVideoDecode->setModel(_pModel);
+
     _pStc = (CStc *)_pBoardResources->checkoutResource(getCheckedOutId(), eBoardResource_stcChannel);
     CHECK_PTR_ERROR_GOTO("Unable to open STC channel", _pStc, ret, eRet_ExternalError, error);
-
-    _pVideoDecode->setResources(getCheckedOutId(), _pBoardResources);
 
     ret = _pStc->open();
     CHECK_ERROR_GOTO("stc failed to open", ret, error);
@@ -407,10 +426,12 @@ eRet CEncode::open()
     _pAudioDecode = (CSimpleAudioDecode *)_pBoardResources->checkoutResource(getCheckedOutId(), eBoardResource_simpleDecodeAudio);
     CHECK_PTR_ERROR_GOTO("Unable to open audio decode", _pAudioDecode, ret, eRet_ExternalError, error);
 
+    _pAudioDecode->setResources(getCheckedOutId(), _pBoardResources);
+    _pAudioDecode->setModel(_pModel);
+    _pAudioDecode->enablePrimer(false);
+
     _pOutputAudioDummy = (COutputAudioDummy *) _pBoardResources->checkoutResource(getCheckedOutId(), eBoardResource_outputAudioDummy);
     CHECK_PTR_ERROR_GOTO("Unable to open audio decode", _pOutputAudioDummy, ret, eRet_ExternalError, error);
-
-    _pAudioDecode->setResources(getCheckedOutId(), _pBoardResources);
 
     /* give audio outputs to simple audio decoder */
     _pAudioDecode->setOutputDummy(_pOutputAudioDummy);
@@ -613,6 +634,7 @@ error:
         NEXUS_SimpleEncoder_Stop(_encoder);
     }
 
+    checkinResources();
     return(ret);
 } /* start */
 

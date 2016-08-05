@@ -14,6 +14,7 @@ DESC
 #include "display_nexus.h"
 
 #include "memory_nexus.h"
+#include "memory_drm.h"
 #include "sched_nexus.h"
 
 #include <malloc.h>
@@ -37,7 +38,12 @@ void NXPL_RegisterNexusDisplayPlatform(NXPL_PlatformHandle *handle, NEXUS_DISPLA
 
    if (platform != NULL)
    {
-      platform->memoryInterface = CreateMemoryInterface();
+      platform->memoryInterface = CreateDRMMemoryInterface();
+      if (platform->memoryInterface != NULL)
+         platform->drm = true;
+      else
+         platform->memoryInterface = CreateMemoryInterface();
+
       platform->schedInterface  = CreateSchedInterface(platform->memoryInterface);
       platform->displayInterface = CreateDisplayInterface(display, ctx, platform->schedInterface);
 
@@ -68,7 +74,11 @@ void NXPL_UnregisterNexusDisplayPlatform(NXPL_PlatformHandle handle)
       BEGL_RegisterSchedInterface(NULL);
 
       DestroyDisplayInterface(data->displayInterface);
-      DestroyMemoryInterface(data->memoryInterface);
+      if (data->drm)
+         DestroyDRMMemoryInterface(data->memoryInterface);
+      else
+         DestroyMemoryInterface(data->memoryInterface);
+
       DestroySchedInterface(data->schedInterface);
 
       memset(data, 0, sizeof(NXPL_InternalPlatformHandle));

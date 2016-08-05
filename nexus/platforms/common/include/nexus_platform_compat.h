@@ -111,6 +111,7 @@ typedef void *NEXUS_HdmiDvoHandle;
 
 #ifndef NEXUS_HAS_HDMI_OUTPUT
 typedef void *NEXUS_HdmiOutputHandle;
+typedef unsigned NEXUS_HdmiOutputOpenSettings;
 #endif
 
 #ifndef NEXUS_HAS_CEC

@@ -1,23 +1,40 @@
-/***************************************************************************
- *     Copyright (c) 2003-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
  *
- * Module Description:
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * Revision History:
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
- *
- ***************************************************************************/
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ ******************************************************************************/
 #include "bstd.h"
 #include "bkir.h"
 #include "bkir_priv.h"
@@ -67,8 +84,6 @@
 
 
 BDBG_MODULE(bkir);
-
-#define DEV_MAGIC_ID            ((BERR_KIR_ID<<16) | 0xFACE)
 
 #define BKIR_CHK_RETCODE( rc, func )        \
 do {                                        \
@@ -757,10 +772,8 @@ static const CIR_Param giSatParam = {
 
 static const CIR_Param directvUHFParam = {
     270-1,            /* count divisor */
-    { {600,0}, {120,3}, {0,0}, {0,0} },    /* pa[], preamble A pulse
-sequence */
-    { {300,0}, {120,3}, {0,0}, {0,0} },        /* pb[], preamble B pulse
-sequence */
+    { {600,0}, {120,3}, {0,0}, {0,0} },    /* pa[], preamble A pulse sequence */
+    { {300,0}, {120,3}, {0,0}, {0,0} },    /* pb[], preamble B pulse sequence */
     2,                /* number of entries in pa[] */
     2,                /* number of entries in pb[] */
     1,                /* measure preamble pulse: */
@@ -809,11 +822,8 @@ sequence */
     0
 };
 
+/* CIR configuration parameters for RC6 Mode 0 */
 static const CIR_Param rC6Mode0Param = {
-/*
- * CIR configuration parameters for RC6 Mode 0
- *
- */
     125-1,      /* count divisor: count period = T/96 @ 27MHz, T=444.44.us */
     { {576,1}, {192,1}, {96,1}, {0,0} },
             /* pa[], preamble A pulse sequence */
@@ -882,11 +892,8 @@ static const CIR_Param rC6Mode0Param = {
 };
 
 
+/* CIR configuration parameters for RC6 Mode 6A */
 static const CIR_Param rC6Mode6AParam = {
-/*
- * CIR configuration parameters for RC6 Mode 6A
- *
- */
     125-1,      /* count divisor: count period = T/96 @ 27MHz, T=444.44.us */
     { {576,1}, {192,1}, {96,1}, {0,0} },
                 /* pa[], preamble A pulse sequence */
@@ -1552,9 +1559,12 @@ static const CIR_Param xipParam = {
 *
 *******************************************************************************/
 
+BDBG_OBJECT_ID(BKIR_Handle);
+
 typedef struct BKIR_P_Handle
 {
     uint32_t        magicId;                    /* Used to check if structure is corrupt */
+    BDBG_OBJECT(BKIR_Handle)
     BCHP_Handle     hChip;
     BREG_Handle     hRegister;
     BINT_Handle     hInterrupt;
@@ -1562,9 +1572,12 @@ typedef struct BKIR_P_Handle
     BKIR_ChannelHandle hKirChn[BKIR_N_CHANNELS];
 } BKIR_P_Handle;
 
+BDBG_OBJECT_ID(BKIR_ChannelHandle);
+
 typedef struct BKIR_P_ChannelHandle
 {
     uint32_t            magicId;                    /* Used to check if structure is corrupt */
+    BDBG_OBJECT(BKIR_ChannelHandle)
     BKIR_Handle         hKir;
     uint32_t            chnNo;
     uint32_t            coreOffset;
@@ -1641,6 +1654,7 @@ BERR_Code BKIR_Open(
     BERR_Code retCode = BERR_SUCCESS;
     BKIR_Handle hDev;
     unsigned int chnIdx;
+
     BSTD_UNUSED(pDefSettings);
 
     /* Sanity check on the handles we've been given. */
@@ -1654,11 +1668,11 @@ BERR_Code BKIR_Open(
     {
         *pKir = NULL;
         retCode = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
-        BDBG_ERR(("BKIR_Open: BKNI_malloc() failed\n"));
+        BDBG_ERR(("BKIR_Open: BKNI_malloc() failed"));
         goto done;
     }
 
-    hDev->magicId   = DEV_MAGIC_ID;
+    BDBG_OBJECT_SET(hDev, BKIR_Handle);
     hDev->hChip     = hChip;
     hDev->hRegister = hRegister;
     hDev->hInterrupt = hInterrupt;
@@ -1680,10 +1694,9 @@ BERR_Code BKIR_Close(
 {
     BERR_Code retCode = BERR_SUCCESS;
 
+    BDBG_OBJECT_ASSERT(hDev, BKIR_Handle);
 
-    BDBG_ASSERT( hDev );
-    BDBG_ASSERT( hDev->magicId == DEV_MAGIC_ID );
-
+    BDBG_OBJECT_DESTROY(hDev, BKIR_Handle);
     BKNI_Free( (void *) hDev );
 
     return( retCode );
@@ -1710,9 +1723,7 @@ BERR_Code BKIR_GetTotalChannels(
 {
     BERR_Code retCode = BERR_SUCCESS;
 
-
-    BDBG_ASSERT( hDev );
-    BDBG_ASSERT( hDev->magicId == DEV_MAGIC_ID );
+    BDBG_OBJECT_ASSERT(hDev, BKIR_Handle);
 
     *totalChannels = hDev->numChannels;
 
@@ -1731,9 +1742,7 @@ BERR_Code BKIR_GetChannelDefaultSettings(
 #if !BDBG_DEBUG_BUILD
     BSTD_UNUSED(hDev);
 #endif
-
-    BDBG_ASSERT( hDev );
-    BDBG_ASSERT( hDev->magicId == DEV_MAGIC_ID );
+    BDBG_OBJECT_ASSERT(hDev, BKIR_Handle);
 
     switch (channelNo)
     {
@@ -1774,10 +1783,14 @@ BERR_Code BKIR_GetDefaultCirParam (
     CIR_Param           *pCustomCirParam /* [output] Returns default setting */
 )
 {
-    BERR_Code           retCode = BERR_SUCCESS;
-    const CIR_Param         *pCirParam = NULL;
+    BERR_Code retCode = BERR_SUCCESS;
+    const CIR_Param *pCirParam = NULL;
 
+#if !BDBG_DEBUG_BUILD
     BSTD_UNUSED(hChn);
+#endif
+    BDBG_OBJECT_ASSERT(hChn, BKIR_ChannelHandle);
+
     switch (device)
     {
         case BKIR_KirDevice_eCirGI:
@@ -1868,11 +1881,10 @@ BERR_Code BKIR_OpenChannel(
     const BKIR_ChannelSettings *pChnDefSettings /* Channel default setting */
     )
 {
-    BERR_Code           retCode = BERR_SUCCESS;
-    BKIR_ChannelHandle  hChnDev;
+    BERR_Code retCode = BERR_SUCCESS;
+    BKIR_ChannelHandle hChnDev;
 
-    BDBG_ASSERT( hDev );
-    BDBG_ASSERT( hDev->magicId == DEV_MAGIC_ID );
+    BDBG_OBJECT_ASSERT(hDev, BKIR_Handle);
 
     hChnDev = NULL;
 
@@ -1886,12 +1898,13 @@ BERR_Code BKIR_OpenChannel(
             {
                 *phChn = NULL;
                 retCode = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
-                BDBG_ERR(("BKIR_OpenChannel: BKNI_malloc() failed\n"));
+                BDBG_ERR(("BKIR_OpenChannel: BKNI_malloc() failed"));
                 goto done;
             }
 
+            BDBG_OBJECT_INIT(hChnDev, BKIR_ChannelHandle);
+
             BKIR_CHK_RETCODE( retCode, BKNI_CreateEvent( &(hChnDev->hChnEvent) ) );
-            hChnDev->magicId    = DEV_MAGIC_ID;
             hChnDev->hKir       = hDev;
             hChnDev->chnNo      = channelNo;
             hChnDev->irPort     = pChnDefSettings->irPort;
@@ -1901,9 +1914,7 @@ BERR_Code BKIR_OpenChannel(
             hChnDev->customDevice = pChnDefSettings->customDevice;
             hDev->hKirChn[channelNo] = hChnDev;
 
-            /*
-             * Offsets are based off of BSCA
-             */
+            /* Offsets are based off of BSCA */
             if (channelNo == 0)
                 hChnDev->coreOffset = 0;
 #if BKIR_N_CHANNELS > 1
@@ -1918,13 +1929,10 @@ BERR_Code BKIR_OpenChannel(
 #endif
 #endif
 #endif
-
             /* initialize the CMD register to the default value. */
             BREG_Write32(hDev->hRegister, hChnDev->coreOffset + BCHP_KBD1_CMD, 0x07);
 
-            /*
-             * Enable interrupt for this channel
-             */
+            /* Enable interrupt for this channel */
             hChnDev->intMode = pChnDefSettings->intMode;
             if (hChnDev->intMode == true)
             {
@@ -1942,17 +1950,13 @@ BERR_Code BKIR_OpenChannel(
 #endif
                 };
 
-                /*
-                 * Register and enable L2 interrupt.
-                 */
+                /* Register and enable L2 interrupt.  */
                 BKIR_CHK_RETCODE( retCode, BINT_CreateCallback(
                     &(hChnDev->hChnCallback), hDev->hInterrupt, IntId[channelNo],
                     BKIR_P_HandleInterrupt_Isr, (void *) hChnDev, 0x00 ) );
                 BKIR_CHK_RETCODE( retCode, BINT_EnableCallback( hChnDev->hChnCallback ) );
 
-                /*
-                 * Enable KIR interrupt
-                 */
+                /* Enable KIR interrupt */
                 BKNI_EnterCriticalSection();
                 BKIR_P_EnableInt (hChnDev);
                 BKNI_LeaveCriticalSection();
@@ -1961,9 +1965,7 @@ BERR_Code BKIR_OpenChannel(
             {
                 hChnDev->hChnCallback = NULL;
 
-                /*
-                 * Disable KIR interrupt
-                 */
+                /* Disable KIR interrupt */
                 BKNI_EnterCriticalSection();
                 BKIR_P_DisableInt (hChnDev);
                 BKNI_LeaveCriticalSection();
@@ -2003,14 +2005,11 @@ BERR_Code BKIR_CloseChannel(
     BKIR_Handle hDev;
     unsigned int chnNo;
 
-
-    BDBG_ASSERT( hChn );
-    BDBG_ASSERT( hChn->magicId == DEV_MAGIC_ID );
+    BDBG_OBJECT_ASSERT(hChn, BKIR_ChannelHandle);
 
     hDev = hChn->hKir;
-    /*
-     * Disable interrupt for this channel
-     */
+
+    /* Disable interrupt for this channel */
     BKNI_EnterCriticalSection();
     BKIR_P_DisableInt (hChn);
     BKNI_LeaveCriticalSection();
@@ -2019,11 +2018,14 @@ BERR_Code BKIR_CloseChannel(
         BKIR_CHK_RETCODE( retCode, BINT_DisableCallback( hChn->hChnCallback ) );
         BKIR_CHK_RETCODE( retCode, BINT_DestroyCallback( hChn->hChnCallback ) );
     }
+
     hChn->kirCb     = NULL;
     hChn->cbData    = NULL;
     BKNI_DestroyEvent( hChn->hChnEvent );
     chnNo = hChn->chnNo;
+    BDBG_OBJECT_DESTROY(hChn, BKIR_ChannelHandle);
     BKNI_Free( hChn );
+
     hDev->hKirChn[chnNo] = NULL;
 
 done:
@@ -2038,9 +2040,7 @@ BERR_Code BKIR_GetDevice(
 {
     BERR_Code retCode = BERR_SUCCESS;
 
-
-    BDBG_ASSERT( hChn );
-    BDBG_ASSERT( hChn->magicId == DEV_MAGIC_ID );
+    BDBG_OBJECT_ASSERT(hChn, BKIR_ChannelHandle);
 
     *phDev = hChn->hKir;
 
@@ -2057,10 +2057,9 @@ BERR_Code BKIR_EnableIrDevice (
     uint32_t lval;
     BKIR_Handle hDev;
     bool isCirDevice = false;
-    BKIR_KirDevice      tempDevice;
+    BKIR_KirDevice tempDevice;
 
-    BDBG_ASSERT( hChn );
-    BDBG_ASSERT( hChn->magicId == DEV_MAGIC_ID );
+    BDBG_OBJECT_ASSERT(hChn, BKIR_ChannelHandle);
 
     hDev = hChn->hKir;
 
@@ -2205,8 +2204,7 @@ BERR_Code BKIR_DisableIrDevice (
     uint32_t lval;
     BKIR_Handle hDev;
 
-    BDBG_ASSERT( hChn );
-    BDBG_ASSERT( hChn->magicId == DEV_MAGIC_ID );
+    BDBG_OBJECT_ASSERT(hChn, BKIR_ChannelHandle);
 
     hDev = hChn->hKir;
 
@@ -2278,8 +2276,7 @@ BERR_Code BKIR_EnableDataFilter (
         uint32_t lval;
         BKIR_Handle hDev;
 
-        BDBG_ASSERT( hChn );
-        BDBG_ASSERT( hChn->magicId == DEV_MAGIC_ID );
+        BDBG_OBJECT_ASSERT(hChn, BKIR_ChannelHandle);
 
         hDev = hChn->hKir;
 
@@ -2329,8 +2326,7 @@ BERR_Code BKIR_DisableDataFilter (
     uint32_t lval;
     BKIR_Handle hDev;
 
-    BDBG_ASSERT( hChn );
-    BDBG_ASSERT( hChn->magicId == DEV_MAGIC_ID );
+    BDBG_OBJECT_ASSERT(hChn, BKIR_ChannelHandle);
 
     hDev = hChn->hKir;
 
@@ -2355,8 +2351,7 @@ BERR_Code BKIR_EnableFilter1 (
     uint32_t lval;
     BKIR_Handle hDev;
 
-    BDBG_ASSERT( hChn );
-    BDBG_ASSERT( hChn->magicId == DEV_MAGIC_ID );
+    BDBG_OBJECT_ASSERT(hChn, BKIR_ChannelHandle);
 
     hDev = hChn->hKir;
 
@@ -2378,8 +2373,7 @@ BERR_Code BKIR_DisableFilter1 (
     uint32_t lval;
     BKIR_Handle hDev;
 
-    BDBG_ASSERT( hChn );
-    BDBG_ASSERT( hChn->magicId == DEV_MAGIC_ID );
+    BDBG_OBJECT_ASSERT(hChn, BKIR_ChannelHandle);
 
     hDev = hChn->hKir;
 
@@ -2401,8 +2395,7 @@ BERR_Code BKIR_DisableAllIrDevices (
     uint32_t lval;
     BKIR_Handle hDev;
 
-    BDBG_ASSERT( hChn );
-    BDBG_ASSERT( hChn->magicId == DEV_MAGIC_ID );
+    BDBG_OBJECT_ASSERT(hChn, BKIR_ChannelHandle);
 
     hDev = hChn->hKir;
 
@@ -2427,9 +2420,7 @@ BERR_Code BKIR_GetEventHandle(
 {
     BERR_Code retCode = BERR_SUCCESS;
 
-
-    BDBG_ASSERT( hChn );
-    BDBG_ASSERT( hChn->magicId == DEV_MAGIC_ID );
+    BDBG_OBJECT_ASSERT(hChn, BKIR_ChannelHandle);
 
     *phEvent = hChn->hChnEvent;
 
@@ -2445,8 +2436,7 @@ BERR_Code BKIR_IsDataReady (
     uint32_t lval;
     BKIR_Handle hDev;
 
-    BDBG_ASSERT( hChn );
-    BDBG_ASSERT( hChn->magicId == DEV_MAGIC_ID );
+    BDBG_OBJECT_ASSERT(hChn, BKIR_ChannelHandle);
 
     hDev = hChn->hKir;
 
@@ -2461,20 +2451,19 @@ BERR_Code BKIR_IsDataReady (
 }
 #endif
 
-BERR_Code BKIR_Read_Isr(
+BERR_Code BKIR_Read_isr(
     BKIR_ChannelHandle      hChn,           /* Device channel handle */
     BKIR_KirInterruptDevice *pDevice,       /* [output] pointer to IR device type that generated the key */
     unsigned char           *data           /* [output] pointer to data received */
     )
 {
-    BERR_Code       retCode = BERR_SUCCESS;
-    uint32_t        lval;
-    BKIR_Handle     hDev;
+    BERR_Code retCode = BERR_SUCCESS;
+    uint32_t lval;
+    BKIR_Handle hDev;
     uint32_t data0;
     uint32_t data1;
 
-    BDBG_ASSERT( hChn );
-    BDBG_ASSERT( hChn->magicId == DEV_MAGIC_ID );
+    BDBG_OBJECT_ASSERT(hChn, BKIR_ChannelHandle);
 
     hDev = hChn->hKir;
 
@@ -2507,22 +2496,21 @@ BERR_Code BKIR_Read(
     BERR_Code rc;
 
     BKNI_EnterCriticalSection();
-    rc = BKIR_Read_Isr (hChn, pDevice, data);
+    rc = BKIR_Read_isr(hChn, pDevice, data);
     BKNI_LeaveCriticalSection();
 
     return rc;
 }
 #endif
 
-BERR_Code BKIR_IsRepeated(
+BERR_Code BKIR_IsRepeated_isr(
     BKIR_ChannelHandle      hChn,           /* [in] Device channel handle */
     bool                    *repeatFlag     /* [out] flag to remote A repeat condition */
     )
 {
-    BERR_Code       retCode = BERR_SUCCESS;
+    BERR_Code retCode = BERR_SUCCESS;
 
-    BDBG_ASSERT( hChn );
-    BDBG_ASSERT( hChn->magicId == DEV_MAGIC_ID );
+    BDBG_OBJECT_ASSERT(hChn, BKIR_ChannelHandle);
 
     *repeatFlag = hChn->repeatFlag;
 
@@ -2534,10 +2522,9 @@ BERR_Code BKIR_IsPreambleA(
     bool                    *preambleFlag   /* [out] flag to remote A repeat condition */
     )
 {
-    BERR_Code       retCode = BERR_SUCCESS;
+    BERR_Code retCode = BERR_SUCCESS;
 
-    BDBG_ASSERT( hChn );
-    BDBG_ASSERT( hChn->magicId == DEV_MAGIC_ID );
+    BDBG_OBJECT_ASSERT(hChn, BKIR_ChannelHandle);
 
     *preambleFlag = hChn->cir_pa;
 
@@ -2549,14 +2536,29 @@ BERR_Code BKIR_IsPreambleB(
     bool                    *preambleFlag   /* [out] flag to remote A repeat condition */
     )
 {
-    BERR_Code       retCode = BERR_SUCCESS;
+    BERR_Code retCode = BERR_SUCCESS;
 
-    BDBG_ASSERT( hChn );
-    BDBG_ASSERT( hChn->magicId == DEV_MAGIC_ID );
+    BDBG_OBJECT_ASSERT(hChn, BKIR_ChannelHandle);
 
     *preambleFlag = hChn->cir_pb;
 
     return( retCode );
+}
+
+void BKIR_GetLastKey(
+    BKIR_ChannelHandle hChn,  /* [in] Device channel handle */
+    uint32_t *code,           /* [out] lower 32-bits of returned code */
+    uint32_t *codeHigh        /* [out] upper 32-bits of returned code */
+    )
+{
+    BKIR_Handle hDev;
+
+    BDBG_OBJECT_ASSERT(hChn, BKIR_ChannelHandle);
+
+    hDev = hChn->hKir;
+
+    *code     = BREG_Read32(hDev->hRegister, hChn->coreOffset + BCHP_KBD1_DATA0);
+    *codeHigh = BREG_Read32(hDev->hRegister, hChn->coreOffset + BCHP_KBD1_DATA1);
 }
 
 void BKIR_SetCustomDeviceType (
@@ -2582,8 +2584,7 @@ void BKIR_RegisterCallback (
     void                *pData      /* Data passed to callback function */
 )
 {
-    BDBG_ASSERT( hChn );
-    BDBG_ASSERT( hChn->magicId == DEV_MAGIC_ID );
+    BDBG_OBJECT_ASSERT(hChn, BKIR_ChannelHandle);
 
     hChn->kirCb = callback;
     hChn->cbData = pData;
@@ -2593,8 +2594,7 @@ void BKIR_UnregisterCallback (
     BKIR_ChannelHandle  hChn        /* Device channel handle */
 )
 {
-    BDBG_ASSERT( hChn );
-    BDBG_ASSERT( hChn->magicId == DEV_MAGIC_ID );
+    BDBG_OBJECT_ASSERT(hChn, BKIR_ChannelHandle);
 
     hChn->kirCb = NULL;
     hChn->cbData = NULL;
@@ -2609,7 +2609,7 @@ void BKIR_P_EnableInt(
     BKIR_ChannelHandle  hChn            /* Device channel handle */
     )
 {
-    uint32_t    lval;
+    uint32_t lval;
     BKIR_Handle hDev;
 
     hDev = hChn->hKir;
@@ -2617,14 +2617,13 @@ void BKIR_P_EnableInt(
     lval = BREG_Read32(hDev->hRegister, hChn->coreOffset + BCHP_KBD1_CMD);
     lval |= BCHP_KBD1_CMD_kbd_irqen_MASK;
     BREG_Write32(hDev->hRegister, hChn->coreOffset + BCHP_KBD1_CMD, lval);
-
 }
 
 void BKIR_P_DisableInt(
     BKIR_ChannelHandle  hChn            /* Device channel handle */
     )
 {
-    uint32_t    lval;
+    uint32_t lval;
     BKIR_Handle hDev;
 
     hDev = hChn->hKir;
@@ -2642,14 +2641,16 @@ static void BKIR_P_HandleInterrupt_Isr
 )
 {
     BKIR_ChannelHandle  hChn;
-    BKIR_Handle         hDev;
-    uint32_t            lval;
+    BKIR_Handle hDev;
+    uint32_t lval;
+
     BSTD_UNUSED(parm2);
 
     hChn = (BKIR_ChannelHandle) pParam1;
     BDBG_ASSERT( hChn );
 
     hDev = hChn->hKir;
+
     /* Clear interrupt */
     lval = BREG_Read32(hDev->hRegister, hChn->coreOffset + BCHP_KBD1_STATUS);
 
@@ -2674,9 +2675,7 @@ static void BKIR_P_HandleInterrupt_Isr
     lval &= ~BCHP_KBD1_STATUS_irq_MASK;
     BREG_Write32(hDev->hRegister, hChn->coreOffset + BCHP_KBD1_STATUS, lval);
 
-    /*
-     * Call any callback function if installed
-     */
+    /* Call any callback function if installed */
     if (hChn->kirCb)
     {
         (*hChn->kirCb)( hChn, hChn->cbData );
@@ -2692,7 +2691,7 @@ void BKIR_P_WriteCirParam (
     uint32_t                data
 )
 {
-    BKIR_Handle         hDev;
+    BKIR_Handle hDev;
 
     hDev = hChn->hKir;
     BREG_Write32(hDev->hRegister, hChn->coreOffset + BCHP_KBD1_CIR_ADDR, addr);
@@ -2705,10 +2704,10 @@ void BKIR_P_ConfigCir (
     BKIR_KirDevice      device      /* device type to enable */
 )
 {
-    uint32_t        ulData;
-    uint32_t        uli, ulj;
+    uint32_t ulData;
+    uint32_t uli, ulj;
     const CIR_Param *pCirParam;
-    BKIR_Handle     hDev;
+    BKIR_Handle hDev;
 
     hDev = hChn->hKir;
     switch (device)
@@ -2789,32 +2788,32 @@ void BKIR_P_ConfigCir (
     BKIR_P_WriteCirParam (hChn, 0, pCirParam->frameTimeout);
 
     ulData = (pCirParam->stop.tol << 10) | (pCirParam->stop.val);
-    BKIR_P_WriteCirParam (hChn, 1, ulData);
+    BKIR_P_WriteCirParam(hChn, 1, ulData);
 
     ulData = (pCirParam->pbCount << 3) | pCirParam->paCount;
-    BKIR_P_WriteCirParam (hChn, 2, ulData);
+    BKIR_P_WriteCirParam(hChn, 2, ulData);
 
     for (uli=0, ulj=3; uli<4; uli++) {
         ulData = ((pCirParam->pa)[uli].tol << 10) | (pCirParam->pa)[uli].val;
-        BKIR_P_WriteCirParam (hChn, ulj++, ulData);
+        BKIR_P_WriteCirParam(hChn, ulj++, ulData);
         ulData = ((pCirParam->pb)[uli].tol << 10) | (pCirParam->pb)[uli].val;
-        BKIR_P_WriteCirParam (hChn, ulj++, ulData);
+        BKIR_P_WriteCirParam(hChn, ulj++, ulData);
     }
 
     /* 6th bit needed 48 bit support for symbol A is in bit 11 for backward compatibility. */
     ulData = (pCirParam->nSymB << 5) | (pCirParam->nSymA & 0x1F) | ((pCirParam->nSymA >> 5) << 11);
-    BKIR_P_WriteCirParam (hChn, 11, ulData);
+    BKIR_P_WriteCirParam(hChn, 11, ulData);
 
     ulData = (pCirParam->symPulseWidth.tol << 10) | pCirParam->symPulseWidth.val;
-    BKIR_P_WriteCirParam (hChn, 12, ulData);
+    BKIR_P_WriteCirParam(hChn, 12, ulData);
 
     ulData = (pCirParam->spacingTol.tol << 10) | pCirParam->spacingTol.val;
-    BKIR_P_WriteCirParam (hChn, 13, ulData);
+    BKIR_P_WriteCirParam(hChn, 13, ulData);
 
-    BKIR_P_WriteCirParam (hChn, 14, pCirParam->t0);
-    BKIR_P_WriteCirParam (hChn, 15, pCirParam->delT);
-    BKIR_P_WriteCirParam (hChn, 16, pCirParam->countDivisor);
-    BKIR_P_WriteCirParam (hChn, 17, pCirParam->pulseTol);
+    BKIR_P_WriteCirParam(hChn, 14, pCirParam->t0);
+    BKIR_P_WriteCirParam(hChn, 15, pCirParam->delT);
+    BKIR_P_WriteCirParam(hChn, 16, pCirParam->countDivisor);
+    BKIR_P_WriteCirParam(hChn, 17, pCirParam->pulseTol);
 
     ulData = (pCirParam->varLenData << 11)
         | (pCirParam->chkStopSym << 10)
@@ -2827,12 +2826,12 @@ void BKIR_P_ConfigCir (
         | (pCirParam->measureSymPulse << 3)
         | (pCirParam->fixSymPulseLast << 2)
         | (pCirParam->bitsPerSym & 3);
-    BKIR_P_WriteCirParam (hChn, 18, ulData);
+    BKIR_P_WriteCirParam(hChn, 18, ulData);
 
-    BKIR_P_WriteCirParam (hChn, 19, pCirParam->timeoutDivisor);
-    BKIR_P_WriteCirParam (hChn, 20, pCirParam->edgeTimeout);
-    BKIR_P_WriteCirParam (hChn, 21, pCirParam->faultDeadTime);
-    BKIR_P_WriteCirParam (hChn, 22, pCirParam->dataSymTimeout);
+    BKIR_P_WriteCirParam(hChn, 19, pCirParam->timeoutDivisor);
+    BKIR_P_WriteCirParam(hChn, 20, pCirParam->edgeTimeout);
+    BKIR_P_WriteCirParam(hChn, 21, pCirParam->faultDeadTime);
+    BKIR_P_WriteCirParam(hChn, 22, pCirParam->dataSymTimeout);
 
     BKIR_P_WriteCirParam(hChn, 23, pCirParam->repeatTimeout);
 

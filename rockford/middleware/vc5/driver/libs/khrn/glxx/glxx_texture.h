@@ -28,6 +28,7 @@ OpenGL ES texture structure declaration.
 #include "../glsl/glsl_gadgettype.h"
 #include "../glsl/glsl_imageunit_swizzling.h"
 #include "glxx_utils.h"
+#include "glxx_render_state.h"
 
 #define enumify(x) E_##x=x
 
@@ -48,7 +49,8 @@ enum glxx_tex_target
    enumify(GL_TEXTURE_3D),
    enumify(GL_TEXTURE_2D_ARRAY),
    enumify(GL_TEXTURE_2D_MULTISAMPLE),
-   enumify(GL_TEXTURE_2D_MULTISAMPLE_ARRAY)
+   enumify(GL_TEXTURE_2D_MULTISAMPLE_ARRAY),
+   enumify(GL_TEXTURE_CUBE_MAP_ARRAY),
 };
 
 enum glxx_min_filter
@@ -84,7 +86,7 @@ typedef struct glxx_tex_sampler_state {
     * GL_CLAMP_TO_BORDER & GL_CLAMP_TO_EDGE will be treated as one of
     * BORDER/CLAMP_TO_EDGE. */
    bool unnormalised_coords;
-   float border_color[4];
+   uint32_t border_color[4];
    char   *debug_label;
 }GLXX_TEXTURE_SAMPLER_STATE_T;
 
@@ -166,6 +168,11 @@ typedef struct glxx_texture
 
    char *debug_label;
 
+   /* Set from glTexParameter with GL_TEXTURE_PROTECTED_EXT
+      and controls whether texture is created secure when TexStorage is
+      called */
+   bool create_secure;
+
 } GLXX_TEXTURE_T;
 
 
@@ -216,8 +223,7 @@ glxx_texture_ensure_contiguous_blob_if_complete(GLXX_TEXTURE_T *texture, const
 
 typedef struct
 {
-   uint32_t hw_param0;
-   uint32_t hw_param1;
+   uint32_t hw_param[2];
 #if !V3D_HAS_NEW_TMU_CFG
    uint32_t hw_param1_gather[4];
    uint32_t hw_param1_fetch;
@@ -232,26 +238,28 @@ typedef struct
    uint32_t base_level;
 #endif
 
+#if !V3D_VER_AT_LEAST(3,3,1,0)
    /* To workaround GFXH-1371 */
    bool force_no_pixmask;
+#endif
 
+#if !V3D_HAS_TMU_TEX_WRITE
    /* for imageStore */
    uint32_t arr_stride; /* array_stride */
    glsl_imgunit_swizzling lx_swizzling;
    uint32_t lx_addr; /* address for bound level */
    uint32_t lx_pitch, lx_slice_pitch;
+#endif
 } GLXX_TEXTURE_UNIF_T;
 
 struct glxx_calc_image_unit;
-/*
- * If sampler is NULL or texture is a 2D_MULTISAMPLE texture, uses
- * texture->sampler. Note that they aren't necessarily the same!
- */
 extern enum glxx_tex_completeness
 glxx_texture_key_and_uniforms(GLXX_TEXTURE_T *texture, const struct glxx_calc_image_unit *calc_image_unit,
       const GLXX_TEXTURE_SAMPLER_STATE_T *sampler, bool used_in_bin, bool is_32bit,
-      KHRN_FMEM_T *fmem,
-      GLXX_TEXTURE_UNIF_T *texture_unif, glsl_gadgettype_t *gadgettype,
+      glxx_render_state *rs, GLXX_TEXTURE_UNIF_T *texture_unif,
+#if !V3D_VER_AT_LEAST(3,3,0,0)
+      glsl_gadgettype_t *gadgettype,
+#endif
       glxx_context_fences *fences);
 
 extern bool glxx_texture_is_cube_complete(GLXX_TEXTURE_T *texture);
@@ -261,7 +269,7 @@ static inline unsigned glxx_texture_clamped_base_level(const GLXX_TEXTURE_T *tex
    /* For an immutable texture, texture->base_level must be clamped (see page
     * 153, mipmapping) */
    return (texture->immutable_levels == 0) ? texture->base_level :
-      MIN(texture->base_level, texture->immutable_levels - 1);
+      gfx_umin(texture->base_level, texture->immutable_levels - 1);
 }
 
 /* Returns true if the texture is complete (base complete or mipmap

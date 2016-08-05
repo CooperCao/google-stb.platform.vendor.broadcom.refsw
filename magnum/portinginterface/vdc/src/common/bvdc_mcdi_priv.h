@@ -106,6 +106,8 @@
 #define BVDC_P_MADR_VER_9                        (9)
 /* 7445Dx MDI_TOP_1_MULTI_CONTEXT_TO/FROM  */
 #define BVDC_P_MADR_VER_10                       (10)
+/* 7268/7271 SW7552-178/HW7425-1196 SW workaround removal  */
+#define BVDC_P_MADR_VER_11                       (11)
 
 #ifdef __cplusplus
 extern "C" {

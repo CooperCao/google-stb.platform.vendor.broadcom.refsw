@@ -1,14 +1,39 @@
 /***************************************************************************
- *     Copyright (c) 2004,2005 Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- ***************************************************************************
- *  Video Decoder API
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  ***************************************************************************/
 
 /* vdec_api.h
@@ -34,8 +59,8 @@ This is the basic format of all command issued to the AVC
 */
 typedef struct
 {
-      uint32_t 	cmd;
-      uint32_t	params[BXVD_P_MAX_HST_CMDQ_SIZE-2];
+      uint32_t  cmd;
+      uint32_t  params[BXVD_P_MAX_HST_CMDQ_SIZE-2];
 } BXVD_Cmd, BXVD_Rsp;
 
 /* common response structure */
@@ -49,7 +74,7 @@ typedef struct
 /* Decoder context structure */
 typedef struct
 {
-      BINT_CallbackHandle pCbAVC_MBX_ISR;    	  /* AVC Mailbox L2 ISR */
+      BINT_CallbackHandle pCbAVC_MBX_ISR;         /* AVC Mailbox L2 ISR */
       BINT_CallbackHandle pCbAVC_PicDataRdy_ISR;  /* AVC Picture Data Ready Display 0 L2 ISR */
       BINT_CallbackHandle pCbAVC_PicDataRdy1_ISR; /* AVC Picture Data Ready Display 1 L2 ISR */
       BINT_CallbackHandle pCbAVC_StillPicRdy_ISR; /* AVC Still Picture L2 ISR */
@@ -61,11 +86,11 @@ typedef struct
       BINT_CallbackHandle pCbAVC_VICHBLInstrRd_ISR; /* AVC VICH BL instruction read L2 ISR */
       BINT_CallbackHandle pCbAVC_StereoSeqError_ISR; /* AVC StereoSeqError L2 ISR */
       BKNI_EventHandle    hFWCmdDoneEvent;        /* FW Command handshake done event */
-      bool                bIfBusy;		  /* TRUE if awaiting AVC response */
-      bool                bInitialized;	          /* Initialized already? */
-      BXVD_Handle 	  hXvd;                   /* Pointer back to XVD command structure */
-      unsigned long       ulCmdBufferAddr;	  /* addr of cmd buffer */
-      unsigned long       ulRspBufferAddr;	  /* addr of rsp buffer */
+      bool                bIfBusy;                /* TRUE if awaiting AVC response */
+      bool                bInitialized;           /* Initialized already? */
+      BXVD_Handle         hXvd;                   /* Pointer back to XVD command structure */
+      unsigned long       ulCmdBufferAddr;    /* addr of cmd buffer */
+      unsigned long       ulRspBufferAddr;    /* addr of rsp buffer */
 } BXVD_DecoderContext;
 
 #define  BXVD_CMD_INITIALIZE         (0x73760001)
@@ -77,6 +102,7 @@ typedef struct
 #define  BXVD_CMD_CONFIG             (0x73760007)
 #define  BXVD_CMD_DBGLOGCONTROL      (0x73760008)
 #define  BXVD_CMD_DBGLOGCOMMAND      (0x73760009)
+#define  BXVD_CMD_DRAMPERF           (0x7376000a)
 
 #if BXVD_P_FW_HIM_API
 #define  BXVD_CMD_RESPONSE           (0x80000000)
@@ -365,8 +391,8 @@ typedef struct
 
 typedef struct
 {
-   unsigned int	command;
-   unsigned int	status;
+   unsigned int command;
+   unsigned int status;
 } BXVD_Rsp_DbgLogControl;
 
 
@@ -386,6 +412,30 @@ typedef struct
    unsigned int status;
 } BXVD_Rsp_DbgLogCommand;
 
+typedef struct
+{
+   unsigned int  command; /* 0x7376000a */
+   unsigned int  ddr_stat_ctrl_reg;  /* MEMC_DDR_0/1_STAT_CONTROL */
+   unsigned int  ddr_stat_ctrl_val;  /* This will have clock_gate set 0,
+                                        and bits 07: 00 set to the client id */
+
+   unsigned int  ddr_stat_ctrl_enable; /* stat_enable bit set to one  in CTRL register*/
+   unsigned int  ddr_stat_timer_reg;   /* MEMC_DDR_0/1_STAT_TIMER */
+
+   /* Set of 4 registers to read */
+
+   unsigned int  client_read;   /* MEMC_DDR_0/1_STAT_CLIENT_SERVICE_TRANS_READ */
+   unsigned int  cas;           /* MEMC_DDR_0_STAT_CAS_CLIENT_126. This is for client id 126. If the client ID passed in is different
+                                   then we need a different client ID here */
+   unsigned int  intra_penalty; /* MEMC_DDR_0/1_STAT_CLIENT_SERVICE_INTR_PENALTY */
+   unsigned int  post_penalty;  /* MEMC_DDR_0/1_STAT_CLIENT_SERVICE_POST_PENALTY */
+} BXVD_Cmd_DramPerf;
+
+typedef struct
+{
+   unsigned int  command;
+   unsigned int  status;
+} BXVD_Rsp_DramPerf;
 
 typedef union
 {
@@ -399,6 +449,7 @@ typedef union
       BXVD_Cmd_Config        config;
       BXVD_Cmd_DbgLogControl dbgLogControl;
       BXVD_Cmd_DbgLogCommand dbgLogCommand;
+      BXVD_Cmd_DramPerf      dramPerf;
 } BXVD_FW_Cmd;
 
 typedef union
@@ -413,6 +464,7 @@ typedef union
       BXVD_Rsp_Config        config;
       BXVD_Rsp_DbgLogControl dbgLogControl;
       BXVD_Rsp_DbgLogCommand dbgLogCommand;
+      BXVD_Rsp_DramPerf      dramPerf;
 } BXVD_FW_Rsp;
 
 

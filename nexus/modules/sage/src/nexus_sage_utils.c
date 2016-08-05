@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2013 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,18 +34,9 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
  **************************************************************************/
+
+
 
 #include "nexus_sage_module.h"
 #include "priv/nexus_core.h" /* get access to g_pCoreHandles */
@@ -84,7 +75,7 @@ int NEXUS_Sage_P_IsHeapValid(NEXUS_HeapHandle heap, NEXUS_MemoryType memoryType)
         && status.memcIndex == 0                    /* on Zeus30 chips, SAGE-side can only access MEMC0 */
 #endif
         ) {
-        BDBG_MSG(("%s: VALID heap=%p [offset=" BDBG_UINT64_FMT ", size=%u]\n", __FUNCTION__, (void *)heap, BDBG_UINT64_ARG(status.offset), status.size));
+        BDBG_MSG(("%s: VALID heap=%p [offset=" BDBG_UINT64_FMT ", size=%u]", __FUNCTION__, (void *)heap, BDBG_UINT64_ARG(status.offset), status.size));
         return 1; /* the heap is valid */
     }
 

@@ -321,9 +321,13 @@ bool egl_surface_base_init_aux_bufs(EGL_SURFACE_T *surface)
       /* multisample */
       {
          color_format,
+#if V3D_HAS_NEW_TLB_CFG
+         color_format,
+         GFX_BUFFER_USAGE_V3D_RENDER_TARGET,
+#else
          gfx_lfmt_translate_internal_raw_mode(color_format),
-         GFX_BUFFER_USAGE_V3D_RENDER_TARGET |
-         GFX_BUFFER_USAGE_V3D_TLB_RAW,
+         GFX_BUFFER_USAGE_V3D_RENDER_TARGET | GFX_BUFFER_USAGE_V3D_TLB_RAW,
+#endif
          2,
          0,
       }
@@ -334,7 +338,9 @@ bool egl_surface_base_init_aux_bufs(EGL_SURFACE_T *surface)
       for (i = AUX_DEPTH; i <= AUX_STENCIL; i++)
       {
          params[i].multiplier *= 2;
+#if !V3D_HAS_NEW_TLB_CFG
          params[i].flags |= GFX_BUFFER_USAGE_V3D_TLB_RAW;
+#endif
       }
    }
    else

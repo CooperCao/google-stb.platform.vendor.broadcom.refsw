@@ -245,4 +245,13 @@ uint8_t ZBPRO_NWK_NeighborTableCount(void);
 ****************************************************************************************/
 ZBPRO_NWK_Neighbor_t * ZBPRO_NWK_NeighborTableEntry(uint8_t elementIndex);
 
+/*
+ * Repeat pragma GCC optimize because function definitions (including inlined) turn these pragrmas off automatically
+ * when compiled by G++ but not GCC.
+ */
+#if (defined(__arm__) || defined(__i386__)) && !defined(__clang__)
+# pragma GCC optimize "short-enums"     /* Implement short enums. */
+# pragma GCC diagnostic ignored "-Wattributes"
+#endif
+
 #endif /* _ZBPRO_NWK_NEIGHBOR_H */

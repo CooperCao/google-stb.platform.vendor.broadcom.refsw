@@ -153,17 +153,34 @@ end:
 
 EGLAPI EGLBoolean EGLAPIENTRY eglWaitGL(void)
 {
-   EGLenum api;
+   EGL_THREAD_T *thread;
+   egl_api_t current_api;
+   EGL_CONTEXT_T *context;
+   EGLint error = EGL_BAD_CURRENT_SURFACE;
 
    if (!egl_initialized(0, false))
       return EGL_FALSE;
 
-   api = eglQueryAPI();
-   eglBindAPI(EGL_OPENGL_ES_API);
-   eglWaitClient();
-   eglBindAPI(api);
+   thread = egl_thread_get();
+   current_api = thread->current_api;
+   thread->current_api = API_OPENGL;
+   context = egl_thread_get_context();
 
-   return EGL_TRUE;
+   if (!context)
+   {
+      thread->current_api = current_api;
+      return EGL_TRUE;
+   }
+
+   if (!context->draw) goto end;
+
+   egl_context_wait(context);
+
+   error = EGL_SUCCESS;
+end:
+   thread->current_api = current_api;
+   egl_thread_set_error(error);
+   return error == EGL_SUCCESS;
 }
 
 EGLAPI EGLBoolean EGLAPIENTRY eglWaitNative(EGLint engine)
@@ -198,16 +215,16 @@ void egl_context_flush(EGL_CONTEXT_T *context)
    context->fns->flush(context, false);
 }
 
-v3d_scheduler_deps* egl_context_flush_rendering(EGL_CONTEXT_T *context,
-      EGL_SURFACE_T *surface)
+bool egl_context_copy_image(EGL_CONTEXT_T *context,
+      KHRN_IMAGE_T *dst, KHRN_IMAGE_T *src)
 {
-   return context->fns->flush_rendering(context, surface);
+   return context->fns->copy_image(context, dst, src);
 }
 
-bool egl_context_copy_surface(EGL_CONTEXT_T *context,
-      EGL_SURFACE_T *surface, KHRN_IMAGE_T *dst)
+void egl_context_invalidate_draw(EGL_CONTEXT_T *context,
+   bool color, bool color_ms, bool other_aux)
 {
-   return context->fns->copy_surface(context, surface, dst);
+   context->fns->invalidate_draw(context, color, color_ms, other_aux);
 }
 
 bool egl_context_try_delete(EGL_CONTEXT_T *context)
@@ -233,13 +250,4 @@ int egl_context_client_version(const EGL_CONTEXT_T *context)
 void egl_context_wait(EGL_CONTEXT_T *context)
 {
    context->fns->flush(context, true);
-}
-
-void egl_context_add_fence(EGL_CONTEXT_T *context,
-      const EGL_SURFACE_T *surface, int fence)
-{
-   if (context == NULL)
-      context = egl_thread_get_context();
-
-   context->fns->add_fence(context, surface, fence);
 }

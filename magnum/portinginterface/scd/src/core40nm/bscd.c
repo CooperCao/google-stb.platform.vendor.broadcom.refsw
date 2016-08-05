@@ -2686,7 +2686,7 @@ BERR_Code BSCD_Channel_SetVccLevel(
 											BREG_Write32 (in_channelHandle->moduleHandle->regHandle, BCHP_AON_PIN_CTRL_PIN_MUX_CTRL_1,ulValue );
 											break;
                                 }
-#elif (BCHP_CHIP == 7271) || (BCHP_CHIP == 7268)
+#elif (BCHP_CHIP == 7271) || (BCHP_CHIP == 7268) || (BCHP_CHIP == 7260)
 							switch( in_channelHandle->ucChannelNumber){
 										case 0:
 												ulValue = BREG_Read32 (in_channelHandle->moduleHandle->regHandle,
@@ -2752,7 +2752,7 @@ BERR_Code BSCD_Channel_SetVccLevel(
             BREG_AtomicUpdate32 (in_channelHandle->moduleHandle->regHandle, BCHP_GIO_DATA_EXT_HI, 1 << (93 - 88), 1 << (93 - 88));
 #elif (BCHP_CHIP==7429)||(BCHP_CHIP==7241)||(BCHP_CHIP==74295)
             BREG_AtomicUpdate32 (in_channelHandle->moduleHandle->regHandle, BCHP_GIO_DATA_EXT, 1 << (86 - 64 + 4), 1 << (86 - 64 + 4));
-#elif (BCHP_CHIP==7439)||(BCHP_CHIP==7366)||(BCHP_CHIP==7145)||(BCHP_CHIP==7364)||(BCHP_CHIP==7250)|| (BCHP_CHIP==7586)||(BCHP_CHIP==7563)|| (BCHP_CHIP==75635)||(BCHP_CHIP == 7346) || (BCHP_CHIP==73465)||(BCHP_CHIP==7271)||(BCHP_CHIP==7268)
+#elif (BCHP_CHIP==7439)||(BCHP_CHIP==7366)||(BCHP_CHIP==7145)||(BCHP_CHIP==7364)||(BCHP_CHIP==7250)|| (BCHP_CHIP==7586)||(BCHP_CHIP==7563)|| (BCHP_CHIP==75635)||(BCHP_CHIP == 7346) || (BCHP_CHIP==73465)||(BCHP_CHIP==7271)||(BCHP_CHIP==7268)||(BCHP_CHIP==7260)
             ulValue =  BCHP_SCA_SC_IF_CMD_3_vpp_MASK | BREG_Read32(
                     in_channelHandle->moduleHandle->regHandle,
                     (in_channelHandle->ulRegStartAddr + BSCD_P_IF_CMD_3)) ;

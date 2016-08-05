@@ -311,12 +311,7 @@ typedef struct
 }
 BVDC_P_HdmiRmLookup;
 
-#if (BVDC_P_SUPPORT_HDMI_RM_VER == BVDC_P_HDMI_RM_VER_4)
-static const BVDC_P_HdmiRmLookup s_HdmiLU[] =
-{
-#include "bvdc_hdmirm_tmds_lookup_65nm_priv.h"
-};
-#elif (BVDC_P_SUPPORT_HDMI_RM_VER == BVDC_P_HDMI_RM_VER_5)
+#if (BVDC_P_SUPPORT_HDMI_RM_VER == BVDC_P_HDMI_RM_VER_5)
 static const BVDC_P_HdmiRmLookup s_HdmiLU[] =
 {
 #include "bvdc_hdmirm_tmds_lookup_40nm_priv.h"
@@ -326,6 +321,8 @@ static const BVDC_P_HdmiRmLookup s_HdmiLU[] =
 {
 #include "bvdc_hdmirm_tmds_lookup_28nm_priv.h"
 };
+#else
+#error Unknown/undefined HDMI Rate Manager hardware version
 #endif
 #define BVDC_P_RM_LU_ENTRIES \
     (sizeof(s_HdmiLU) / sizeof(BVDC_P_HdmiRmLookup))
@@ -333,11 +330,7 @@ static const BVDC_P_HdmiRmLookup s_HdmiLU[] =
 /* HDMI Rate Manager */
 static const BVDC_P_RateInfo s_HdmiRm[] =
 {
-#if (BVDC_P_SUPPORT_HDMI_RM_VER == BVDC_P_HDMI_RM_VER_4)
-
-#include "bvdc_hdmirm_65nm_priv.h"
-
-#elif (BVDC_P_SUPPORT_HDMI_RM_VER == BVDC_P_HDMI_RM_VER_5)
+#if (BVDC_P_SUPPORT_HDMI_RM_VER == BVDC_P_HDMI_RM_VER_5)
 
 #include "bvdc_hdmirm_40nm_priv.h"
 
@@ -1757,12 +1750,7 @@ void BVDC_P_FillVfTable_isr
     bool                      bRgbEdit     = false;
     bool                      bHsyncEdit   = false;
 
-    /* to make coverity check silent */
-    if (eOutputColorSpace >= BVDC_P_Output_eUnknown)
-    {
-        BDBG_ASSERT(eOutputColorSpace <= BVDC_P_Output_eUnknown);
-        return;
-    }
+    BDBG_ASSERT(eOutputColorSpace <= BVDC_P_Output_eUnknown);
 
     /* Programming note: For VF Table, RGB is handled as a modification of
      * ----------------  YPrPb VF Table. Because automation.
@@ -1901,7 +1889,7 @@ void BVDC_P_FillVfTable_isr
  *  Extracts SUM_OF_TAPS from VF_n_MISC register and converts it to a
  *  meaningful number.
  **************************************************************************/
-uint32_t BVDC_P_ExtractSumOfTaps (uint32_t vfMiscRegVal)
+uint32_t BVDC_P_ExtractSumOfTaps_isr (uint32_t vfMiscRegVal)
 {
     uint32_t val;
 
@@ -2154,10 +2142,10 @@ const char* BVDC_P_GetRmString_isr
  */
 /* HDMI color depth support */
 
-static uint64_t BVDC_P_HdmiRm_HalfRate (uint64_t ulPixelClkRate)
+static uint64_t BVDC_P_HdmiRm_HalfRate_isr (uint64_t ulPixelClkRate)
 {
     unsigned int index;
-    static uint64_t P_half[][2] =
+    static const uint64_t P_half[][2] =
     {
         {BFMT_PXL_594MHz          , BFMT_PXL_297MHz          },
         {BFMT_PXL_594MHz_DIV_1_001, BFMT_PXL_297MHz_DIV_1_001}
@@ -2227,7 +2215,7 @@ bool BVDC_P_HdmiRmTable_isr
     {
     case BAVC_Colorspace_eYCbCr420:
         /* Use the 4:4:4 info for the half frequency */
-        ulPixelBaseRate = BVDC_P_HdmiRm_HalfRate (ulPixelBaseRate);
+        ulPixelBaseRate = BVDC_P_HdmiRm_HalfRate_isr (ulPixelBaseRate);
         break;
     case BAVC_Colorspace_eYCbCr422:
         /* Use the 8 bit-per-pixel 4:4:4 info */

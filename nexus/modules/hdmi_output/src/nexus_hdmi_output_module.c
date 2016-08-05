@@ -202,10 +202,6 @@ error:
 void NEXUS_HdmiOutputModule_Uninit(void)
 {
     BDBG_ASSERT(NULL != g_NEXUS_hdmiOutputModule);
-    NEXUS_LockModule();
-
-    NEXUS_HdmiOutput_P_Shutdown();
-    NEXUS_UnlockModule();
     NEXUS_Module_Destroy(g_NEXUS_hdmiOutputModule);
     BKNI_Memset(&g_NEXUS_hdmiOutputModuleSettings, 0, sizeof(g_NEXUS_hdmiOutputModuleSettings));
 

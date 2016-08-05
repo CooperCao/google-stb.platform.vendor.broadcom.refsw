@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -47,9 +47,10 @@
 #include "bxdm_pp_priv.h"
 #include "bxdm_pp_dbg.h"
 #include "bxdm_pp_qm.h"
-
+#include "bxdm_pp_dbg_common.h"
 
 BDBG_MODULE(BXDM_PPDBG);
+BDBG_FILE_MODULE(BXDM_PPDBG);
 BDBG_FILE_MODULE(BXDM_MFD1);
 BDBG_FILE_MODULE(BXDM_MFD2);
 BDBG_FILE_MODULE(BXDM_MFD3);
@@ -57,371 +58,18 @@ BDBG_FILE_MODULE(BXDM_PPQM);
 BDBG_FILE_MODULE(BXDM_CFG);
 BDBG_FILE_MODULE(BXDM_PPDBG2);
 BDBG_FILE_MODULE(BXDM_PPDBC);
+BDBG_FILE_MODULE(BXDM_PPFRD);
+BDBG_FILE_MODULE(BXDM_PPFIC);
+BDBG_FILE_MODULE(BXDM_PPCB);
+BDBG_FILE_MODULE(BXDM_PPCLIP);
+BDBG_FILE_MODULE(BXDM_PPOUT);
+BDBG_FILE_MODULE(BXDM_PPTSM);
+BDBG_FILE_MODULE(BXDM_PPVTSM);
+BDBG_FILE_MODULE(BXDM_PPV2);
 
-#if BDBG_DEBUG_BUILD
+#if BDBG_DEBUG_BUILD && !BXDM_DEBUG_FIFO
 
 extern uint32_t BXDM_PPTMR_lutVsyncsPersSecond[];
-
-/*
- * Lookup tables mapping variables to strings.
- */
-static const char sInterruptPolarityNameLUT[BAVC_Polarity_eFrame + 1] =
-{
-  't', /* BAVC_Polarity_eTopField */
-  'b', /* BAVC_Polarity_eBotField */
-  'f'  /* BAVC_Polarity_eFrame */
-};
-
-static const char sPicturePolarityNameLUT[BXDM_PictureProvider_P_InterruptType_eMax][BAVC_Polarity_eFrame + 1] =
-{
- /* BXDM_PictureProvider_P_InterruptType_eSingle */
- {
-  'T', /* BAVC_Polarity_eTopField */
-  'B', /* BAVC_Polarity_eBotField */
-  'F'  /* BAVC_Polarity_eFrame */
- },
-
- /* BXDM_PictureProvider_P_InterruptType_eBase (or Primary) */
- {
-  'p', /* BAVC_Polarity_eTopField */
-  'p', /* BAVC_Polarity_eBotField */
-  'p'  /* BAVC_Polarity_eFrame */
- },
-
- /* BXDM_PictureProvider_P_InterruptType_eDependent */
- {
-  'd', /* BAVC_Polarity_eTopField */
-  'd', /* BAVC_Polarity_eBotField */
-  'd'  /* BAVC_Polarity_eFrame */
- }
-};
-
-
-static const char sHexToCharLUT[16] =
-{
-   '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'
-};
-
-static const char sSelectionLUT[BXDM_PPDBG_Selection_eMax] =
-{
-   '-', /* BXDM_PPDBG_Selection_ePPBNotFound */
-   '+', /* BXDM_PPDBG_Selection_ePPBFound */
-   'P', /* BXDM_PPDBG_Selection_ePass */
-   'F', /* BXDM_PPDBG_Selection_eForce */
-   'L', /* BXDM_PPDBG_Selection_eLate */
-   'W', /* BXDM_PPDBG_Selection_eWait */
-   'Z', /* BXDM_PPDBG_Selection_eFreeze */
-   'E', /* BXDM_PPDBG_Selection_eTooEarly */
-   'D', /* BXDM_PPDBG_Selection_eDrop */
-   'R', /* BXDM_PPDBG_Selection_eDelay */
-   'd', /* BXDM_PPDBG_Selection_eDependentPicture */
-
-#if 0
-   'b', /* BXDM_PPDBG_Selection_PolarityOverride_eBothField */
-   'p', /* BXDM_PPDBG_Selection_PolarityOverride_eProgressive */
-#endif
-
-   '1', /* BXDM_PPDBG_Selection_PolarityOverride_e1stTo2ndSlot */
-   '2', /* BXDM_PPDBG_Selection_PolarityOverride_e2ndTo1stSlot */
-   'n', /* BXDM_PPDBG_Selection_PolarityOverride_e2ndSlotNextElement */
-   'p', /* BXDM_PPDBG_Selection_PolarityOverride_eSelectPrevious */
-   'r', /* BXDM_PPDBG_Selection_PolarityOverride_eRepeatPrevious */
-   '0', /* BXDM_PPDBG_Selection_PolarityOverride_eFICReset */
-   'w', /* BXDM_PPDBG_Selection_PolarityOverride_eFICForceWait */
-   'i', /* BXDM_PPDBG_Selection_eStcInvalidForceWait */
-   'm', /* BXDM_PPDBG_Selection_eMulliganLogicForceWait */
-   't', /* BXDM_PPDBG_Selection_eTSMResultCallbackForceWait */
-};
-
-static const char * const s_aPolarityToStrLUT[BAVC_Polarity_eFrame+1] =
-{
-   "T",  /* Top field */
-   "B",  /* Bottom field */
-   "F",  /* Progressive frame */
-};
-
-static const char * const s_aBAVCFrameRateToStrLUT[BXDM_PictureProvider_P_MAX_FRAMERATE] =
-{
-   "ukn",      /* Unknown */
-   "23.97",    /* 23.976 */
-   "24",       /* 24 */
-   "25",       /* 25 */
-   "29.97",    /* 29.97 */
-   "30",       /* 30 */
-   "50",       /* 50 */
-   "59.94",    /* 59.94 */
-   "60",       /* 60 */
-   "14.98",    /* 14.985 */
-   "7.49",     /* 7.493 */
-   "10",       /* 10 */
-   "15",       /* 15 */
-   "20",       /* 20 */
-   "12.5",     /* SW7584-331: add support for BAVC_FrameRateCode_e12_5 */
-   "100",
-   "119.88",
-   "120",
-   "19.98",    /* SWSTB-378: add support for BAVC_FrameRateCode_e19_98 */
-   "7.5",      /* SWSTB-1401: add support for BAVC_FrameRateCode_e7_5 */
-   "12",       /* SWSTB-1401: add support for BAVC_FrameRateCode_e12 */
-   "11.988",   /* SWSTB-1401: add support for BAVC_FrameRateCode_e11_988 */
-   "9.99",     /* SWSTB-1401: add support for BAVC_FrameRateCode_e9_99 */
-};
-
-static const char * const s_aFrameRateTypeToStrLUT[BXDM_PictureProvider_P_FrameRateType_eMax] =
-{
-   "cod",   /* coded in the stream */
-   "def",   /* as specified by BXDM_PictureProvider_SetDefaultFrameRate_isr   */
-   "ovr",   /* as specified by BXDM_PictureProvider_SetFrameRateOverride_isr  */
-   "frd",   /* calculated in the FRD code using the PTS values                */
-   "hcd"    /* using the values hardcoded in BXDM_PPTSM_P_PtsCalculateParameters_isr */
-};
-
-static const char * const s_aOrientationToStrLUT[BFMT_Orientation_eLeftRight_Enhanced+1] =
-{
-   "2D",       /* 2D */
-   "LftRgt",   /* 3D left right */
-   "OvrUnd",   /* 3D over under */
-   "FF-Lf",    /* 3D left */
-   "FF-Rt",    /* 3D right */
-   "LR-En"     /* 3D left right, enhancement picture */
-};
-
-static const char * const s_aBAVCPictureCodingToStrLUT[BAVC_PictureCoding_eMax] =
-{
-   "u",     /* Picture Coding Type Unknown */
-   "I",     /* Picture Coding Type I */
-   "P",     /* Picture Coding Type P */
-   "B"      /* Picture Coding Type B */
-};
-
-static const char * const s_aBXDMPictureCodingToStrLUT[BXDM_Picture_Coding_eMax] =
-{
-   "u",     /* BXDM_Picture_Coding_eUnknown */
-   "I",     /* BXDM_Picture_Coding_eI */
-   "P",     /* BXDM_Picture_Coding_eP */
-   "B"      /* BXDM_Picture_Coding_eB */
-};
-
-static const char * const s_aAspectRatioToStrLUT[BFMT_AspectRatio_eSAR+1] =
-{
-  "Ukn",    /* Unkown/Reserved */
-  "Sqr",    /* square pixel */
-  "4x3",    /* 4:3 */
-  "16x9",   /* 16:9 */
-  "221x1",  /* 2.21:1 */
-  "15x9",   /* 15:9 */
-  "SAR"     /* no DAR available, use SAR instead */
-};
-
-static const char * const s_aMonitorRefreshRateToStrLUT[BXDM_PictureProvider_MonitorRefreshRate_eMax] =
-{
-   "Ukn",      /* BXDM_PictureProvider_MonitorRefreshRate_eUnknown */
-   "7.493",    /* BXDM_PictureProvider_MonitorRefreshRate_e7_493Hz */
-   "7.5",      /* BXDM_PictureProvider_MonitorRefreshRate_e7_5Hz */
-   "9.99",     /* BXDM_PictureProvider_MonitorRefreshRate_e9_99Hz */
-   "10",       /* BXDM_PictureProvider_MonitorRefreshRate_e10Hz */
-   "11.988",   /* BXDM_PictureProvider_MonitorRefreshRate_e11_988Hz */
-   "12",       /* BXDM_PictureProvider_MonitorRefreshRate_e12Hz */
-   "12.5",     /* BXDM_PictureProvider_MonitorRefreshRate_e12_5Hz */
-   "14.985",   /* BXDM_PictureProvider_MonitorRefreshRate_e14_985Hz */
-   "15",       /* BXDM_PictureProvider_MonitorRefreshRate_e15Hz */
-   "19.98",    /* BXDM_PictureProvider_MonitorRefreshRate_e19_98Hz */
-   "20",       /* BXDM_PictureProvider_MonitorRefreshRate_e20Hz */
-   "23.97",    /* BXDM_PictureProvider_MonitorRefreshRate_e23_976Hz */
-   "24",       /* BXDM_PictureProvider_MonitorRefreshRate_e24Hz */
-   "25",       /* BXDM_PictureProvider_MonitorRefreshRate_e25Hz */
-   "29.97",    /* BXDM_PictureProvider_MonitorRefreshRate_e29_97Hz */
-   "30",       /* BXDM_PictureProvider_MonitorRefreshRate_e30Hz */
-   "48",       /* BXDM_PictureProvider_MonitorRefreshRate_e48Hz */
-   "50",       /* BXDM_PictureProvider_MonitorRefreshRate_e50Hz */
-   "59.94",    /* BXDM_PictureProvider_MonitorRefreshRate_e59_94Hz */
-   "60",       /* BXDM_PictureProvider_MonitorRefreshRate_e60Hz */
-   "100",      /* BXDM_PictureProvider_MonitorRefreshRate_e100Hz */
-   "119.88",   /* BXDM_PictureProvider_MonitorRefreshRate_e119_88Hz */
-   "120"       /* BXDM_PictureProvider_MonitorRefreshRate_e120Hz */
-};
-
-static const char * const s_aSTCTrickModeToStrLUT[BXDM_PictureProvider_P_STCTrickMode_eMax] =
-{
-   "Off",   /* BXDM_PictureProvider_P_STCTrickMode_eOff */
-   "FstFwd",   /* BXDM_PictureProvider_P_STCTrickMode_eFastForward */
-   "SlwFwd",   /* BXDM_PictureProvider_P_STCTrickMode_eSlowMotion */
-   "Pause",   /* BXDM_PictureProvider_P_STCTrickMode_ePause */
-   "FstRwd",   /* BXDM_PictureProvider_P_STCTrickMode_eFastRewind */
-   "SlwRwd"    /* BXDM_PictureProvider_P_STCTrickMode_eSlowRewind */
-};
-
-static const char * const s_aTSMResultToStrLUT[BXDM_PictureProvider_TSMResult_eMax] =
-{
-   "e",  /* BXDM_PictureProvider_TSMResult_eTooEarly */
-   "w",  /* BXDM_PictureProvider_TSMResult_eWait */
-   "p",  /* BXDM_PictureProvider_TSMResult_ePass */
-   "l",  /* BXDM_PictureProvider_TSMResult_eTooLate */
-   "d"   /* BXDM_PictureProvider_TSMResult_eDrop */
-};
-
-
-static const char * const s_aPullDownEnumToStrLUT[BXDM_Picture_PullDown_eMax] =
-{
-   "ukn",   /* x */
-   "T  ",   /* BXDM_Picture_PullDown_eTop */
-   "B  ",   /* BXDM_Picture_PullDown_eBottom*/
-   "TB ",   /* BXDM_Picture_PullDown_eTopBottom */
-   "BT ",   /* BXDM_Picture_PullDown_eBottomTop*/
-   "TBT",   /* BXDM_Picture_PullDown_eTopBottomTop */
-   "BTB",   /* BXDM_Picture_PullDown_eBottomTopBottom */
-   "X2 ",   /* BXDM_Picture_PullDown_eFrameX2 */
-   "X3 ",   /* BXDM_Picture_PullDown_eFrameX3 */
-   "X1 ",   /* BXDM_Picture_PullDown_eFrameX1 */
-   "X4 "    /* BXDM_Picture_PullDown_eFrameX4 */
-};
-
-/* SW7445-586: H265/HEVC split interlaced. Use an "s" to highlight that there are
- * two separate picture buffers.  Should only see Ts, Bs, TBs or BTs. */
-static const char * const s_aSiPullDownEnumToStrLUT[BXDM_Picture_PullDown_eMax] =
-{
-   "ukn",    /* x */
-   "Ts  ",   /* BXDM_Picture_PullDown_eTop */
-   "Bs  ",   /* BXDM_Picture_PullDown_eBottom*/
-   "TBs ",   /* BXDM_Picture_PullDown_eTopBottom */
-   "BTs ",   /* BXDM_Picture_PullDown_eBottomTop*/
-   "TBTs",   /* BXDM_Picture_PullDown_eTopBottomTop */
-   "BTBs",   /* BXDM_Picture_PullDown_eBottomTopBottom */
-   "X2s ",   /* BXDM_Picture_PullDown_eFrameX2 */
-   "X3s ",   /* BXDM_Picture_PullDown_eFrameX3 */
-   "X1s ",   /* BXDM_Picture_PullDown_eFrameX1 */
-   "X4s "    /* BXDM_Picture_PullDown_eFrameX4 */
-};
-
-/* SW7445-1638: for split interlaced, highlight when the repeat flag is
- * set to aid with debug. */
-static const char * const s_aSiRepeatPullDownEnumToStrLUT[BXDM_Picture_PullDown_eMax] =
-{
-   "ukn",    /* x */
-   "Tsr ",   /* BXDM_Picture_PullDown_eTop */
-   "Bsr ",   /* BXDM_Picture_PullDown_eBottom*/
-   "TBsr",   /* BXDM_Picture_PullDown_eTopBottom */
-   "BTsr",   /* BXDM_Picture_PullDown_eBottomTop*/
-   "TBTsr",   /* BXDM_Picture_PullDown_eTopBottomTop */
-   "BTBsr",   /* BXDM_Picture_PullDown_eBottomTopBottom */
-   "X2sr",   /* BXDM_Picture_PullDown_eFrameX2 */
-   "X3sr",   /* BXDM_Picture_PullDown_eFrameX3 */
-   "X1sr",   /* BXDM_Picture_PullDown_eFrameX1 */
-   "X4sr"    /* BXDM_Picture_PullDown_eFrameX4 */
-};
-
-static const char * const s_aDisplayFieldModeToStrLUT[BXDM_PictureProvider_DisplayFieldMode_eMax]=
-{
-   "bf",       /* BXDM_PictureProvider_DisplayFieldMode_eBothField */
-   "to",       /* BXDM_PictureProvider_DisplayFieldMode_eTopFieldOnly */
-   "bo",       /* BXDM_PictureProvider_DisplayFieldMode_eBottomFieldOnly */
-   "sf",       /* BXDM_PictureProvider_DisplayFieldMode_eSingleField */
-   "at",       /* BXDM_PictureProvider_DisplayFieldMode_eAuto */
-};
-
-static const char * const s_aPPOrientationToStrLUT[BXDM_PictureProvider_Orientation_eMax]=
-{
-   "2D",
-   "LfRt",
-   "OvUn",
-   "LRff",
-   "RLff"
-};
-
-static const char * const s_aPulldownModeToStrLUT[BXDM_PictureProvider_PulldownMode_eMax] =
-{
-   "TB",    /* BXDM_PictureProvider_PulldownMode_eTopBottom */
-   "BT",    /* BXDM_PictureProvider_PulldownMode_eBottomTop */
-   "En"     /* BXDM_PictureProvider_PulldownMode_eUseEncodedFormat */
-};
-
-static const char * const s_aFrameAdvanceModeToStrLUT[BXDM_PictureProvider_FrameAdvanceMode_eMax]=
-{
-   "Off",      /* BXDM_PictureProvider_FrameAdvanceMode_eOff */
-   "Fld",      /* BXDM_PictureProvider_FrameAdvanceMode_eField */
-   "Frm",      /* BXDM_PictureProvider_FrameAdvanceMode_eFrame */
-   "FbF"       /* BXDM_PictureProvider_FrameAdvanceMode_eFrameByField */
-};
-
-#define BXDM_PPDBG_S_MAX_VIDEO_PROTOCOL 21
-
-static const char * const s_aVideoCompressionStdToStrLUT[BXDM_PPDBG_S_MAX_VIDEO_PROTOCOL]=
-{
-   "H264",           /* H.264 */
-   "MPEG2",          /* MPEG-2 */
-   "H261",           /* H.261 */
-   "H263",           /* H.263 */
-   "VC1",            /* VC1 Advanced profile */
-   "MPEG1",          /* MPEG-1 */
-   "MPEG2DTV",       /* MPEG-2 DirecTV DSS ES */
-   "VC1SimpleMain",  /* VC1 Simple & Main profile */
-   "MPEG4Part2",     /* MPEG 4, Part 2. */
-   "AVS",            /* AVS Jinzhun profile. */
-   "MPEG2_DSS_PES",  /* MPEG-2 DirecTV DSS PES */
-   "SVC",            /* Scalable Video Codec */
-   "SVC_BL",         /* Scalable Video Codec Base Layer */
-   "MVC",            /* MVC Multi View Coding */
-   "VP6",            /* VP6 */
-   "VP7",            /* VP7 */
-   "VP8",            /* VP8 */
-   "RV9",            /* Real Video 9 */
-   "SPARK",          /* Sorenson Spark */
-   "MJPEG",          /* Motion Jpeg */
-   "HEVC"            /* H.265 */
-};
-
-static const char * const s_aTrickModeToStrLUT[BXDM_PictureProvider_TrickMode_eMax]=
-{
-   "auto",     /* BXDM_PictureProvider_TrickMode_eAuto */
-   "normal",   /* BXDM_PictureProvider_TrickMode_eNormal */
-   "sparse",   /* BXDM_PictureProvider_TrickMode_eSparsePictures */
-   "pause",    /* BXDM_PictureProvider_TrickMode_ePause */
-   "rew",      /* BXDM_PictureProvider_TrickMode_eRewind */
-   "ff"        /* BXDM_PictureProvider_TrickMode_eFastForward */
-
-};
-
-static const char * const s_aFrameRateDetectionModeToStrLUT[BXDM_PictureProvider_FrameRateDetectionMode_eMax]=
-{
-   "off",   /* BXDM_PictureProvider_FrameRateDetectionMode_eOff */
-   "fast",  /* BXDM_PictureProvider_FrameRateDetectionMode_eFast */
-   "stable" /* BXDM_PictureProvider_FrameRateDetectionMode_eStable */
-};
-
-static const char * const s_aErrorHandlingModeToStrLUT[BXDM_PictureProvider_ErrorHandlingMode_eMax]=
-{
-   "off",      /* BXDM_PictureProvider_ErrorHandlingMode_eOff */
-   "pic",      /* BXDM_PictureProvider_ErrorHandlingMode_ePicture */
-   "prog"      /* BXDM_PictureProvider_ErrorHandlingMode_ePrognostic */
-};
-
-static const char * const s_aBFMTRefreshRateToStrLUT[BFMT_Vert_eLast]=
-{
-   "Ukn",      /* BFMT_Vert_eInvalid */
-   "12.5",     /* BFMT_Vert_e12_5Hz */
-   "14.985",   /* BFMT_Vert_e14_985Hz */
-   "15",       /* BFMT_Vert_e15Hz */
-   "20",       /* BFMT_Vert_e20Hz */
-   "23.97",    /* BFMT_Vert_e23_976Hz */
-   "24",       /* BFMT_Vert_e24Hz */
-   "25",       /* BFMT_Vert_e25Hz */
-   "29.97",    /* BFMT_Vert_e29_97Hz */
-   "30",       /* BFMT_Vert_e30Hz */
-   "48",       /* BFMT_Vert_e48Hz */
-   "50",       /* BFMT_Vert_e50Hz */
-   "59.94",    /* BFMT_Vert_e59_94Hz */
-   "60",       /* BFMT_Vert_e60Hz */
-   "100",
-   "119.88",
-   "120"
-   "7.493",    /* BFMT_Vert_e7_493Hz */
-   "7.5",      /* BFMT_Vert_e7_5Hz */
-   "9.99",     /* BFMT_Vert_e9_99Hz */
-   "10",       /* BFMT_Vert_e10Hz */
-   "11.988",   /* BFMT_Vert_e11_988Hz */
-   "12",       /* BFMT_Vert_e12Hz */
-   "19.98",    /* BFMT_Vert_e19_98Hz */
-};
 
 /*
  * Functions
@@ -496,7 +144,7 @@ BERR_Code BXDM_PPDBG_P_PrintString(
 {
    BERR_Code rc = BERR_SUCCESS;
 
-   BXVD_DBG_MSG(hXdmPP, ("%s", pStringInfo->szDebugStr));
+   BDBG_MODULE_MSG(BXDM_PPDBG, ("%s", pStringInfo->szDebugStr));
 
    if (pStringInfo->uiDebugStrOffset >= sizeof(pStringInfo->szDebugStr))
    {
@@ -552,12 +200,12 @@ BERR_Code BXDM_PPDBG_P_OutputLog_isr(
    BXDM_PPDBG_S_AppendChar_isrsafe(
          &(pDebugInfo->stInterruptString),
          8,
-         sInterruptPolarityNameLUT[pMFDPicture->eInterruptPolarity],
-         sPicturePolarityNameLUT[pLocalState->eInterruptType][pMFDPicture->eSourcePolarity],
+         BXDM_P_InterruptPolarityToStrLUT[pMFDPicture->eInterruptPolarity],
+         BXDM_P_PicturePolaritytoStrLUT[pLocalState->eInterruptType][pMFDPicture->eSourcePolarity],
          ':',
-         sHexToCharLUT[ (uiPPBIndex >> 8) & 0xF ],
-         sHexToCharLUT[ (uiPPBIndex >> 4) & 0xF ],
-         sHexToCharLUT[ uiPPBIndex & 0xF ],
+         BXDM_P_HexToCharLUT[ (uiPPBIndex >> 8) & 0xF ],
+         BXDM_P_HexToCharLUT[ (uiPPBIndex >> 4) & 0xF ],
+         BXDM_P_HexToCharLUT[ uiPPBIndex & 0xF ],
          iInfoFlag,
          ' ' );
 
@@ -583,13 +231,13 @@ BERR_Code BXDM_PPDBG_P_OutputSPOLog_isr(
       BXDM_PPDBG_S_AppendChar_isrsafe(
          pStr,
          8,
-         sHexToCharLUT[ pDebugInfo->uiVsyncCount ],
+         BXDM_P_HexToCharLUT[ pDebugInfo->uiVsyncCount ],
          ':',
-         sHexToCharLUT[ (uiOverrideBits >> 16) & 0xF ],
-         sHexToCharLUT[ (uiOverrideBits >> 12) & 0xF ],
-         sHexToCharLUT[ (uiOverrideBits >> 8) & 0xF ],
-         sHexToCharLUT[ (uiOverrideBits >> 4) & 0xF ],
-         sHexToCharLUT[ uiOverrideBits & 0xF ],
+         BXDM_P_HexToCharLUT[ (uiOverrideBits >> 16) & 0xF ],
+         BXDM_P_HexToCharLUT[ (uiOverrideBits >> 12) & 0xF ],
+         BXDM_P_HexToCharLUT[ (uiOverrideBits >> 8) & 0xF ],
+         BXDM_P_HexToCharLUT[ (uiOverrideBits >> 4) & 0xF ],
+         BXDM_P_HexToCharLUT[ uiOverrideBits & 0xF ],
          ' ' );
    }
    else
@@ -600,7 +248,7 @@ BERR_Code BXDM_PPDBG_P_OutputSPOLog_isr(
       BXDM_PPDBG_S_AppendChar_isrsafe(
          pStr,
          8,
-         sHexToCharLUT[ pDebugInfo->uiVsyncCount ],
+         BXDM_P_HexToCharLUT[ pDebugInfo->uiVsyncCount ],
          ':',
          ' ' ,
          ' ' ,
@@ -641,7 +289,7 @@ BERR_Code BXDM_PPDBG_P_SelectionLog_isr(
       BXDM_PPDBG_S_AppendChar_isrsafe(
             pStr,
             2,
-            sHexToCharLUT[ pDebugInfo->uiVsyncCount & 0xF ],
+            BXDM_P_HexToCharLUT[ pDebugInfo->uiVsyncCount & 0xF ],
             ':' );
 
       pDebugInfo->abSelectionLogHeader[pDebugInfo->uiVsyncCount] = true;
@@ -654,7 +302,7 @@ BERR_Code BXDM_PPDBG_P_SelectionLog_isr(
       BXDM_PPDBG_S_AppendChar_isrsafe( pStr, 1, '(' );
    }
 
-   BXDM_PPDBG_S_AppendChar_isrsafe( pStr, 1, sSelectionLUT[eSelectionInfo] );
+   BXDM_PPDBG_S_AppendChar_isrsafe( pStr, 1, BXDM_P_PictureSelectionLUT[eSelectionInfo] );
 
    if ( BXDM_PPDBG_Selection_PolarityOverride_eSelectPrevious == eSelectionInfo
         || BXDM_PPDBG_Selection_PolarityOverride_eRepeatPrevious == eSelectionInfo
@@ -688,13 +336,13 @@ BERR_Code BXDM_PPDBG_P_CallbackTriggeredLog_isr(
       BXDM_PPDBG_S_AppendChar_isrsafe(
          pStr,
          8,
-         sHexToCharLUT[ pDebugInfo->uiVsyncCount ],
+         BXDM_P_HexToCharLUT[ pDebugInfo->uiVsyncCount ],
          ':',
-         sHexToCharLUT[ (uiCallbackTriggeredBits >> 16) & 0xF ],
-         sHexToCharLUT[ (uiCallbackTriggeredBits >> 12) & 0xF ],
-         sHexToCharLUT[ (uiCallbackTriggeredBits >> 8) & 0xF ],
-         sHexToCharLUT[ (uiCallbackTriggeredBits >> 4) & 0xF ],
-         sHexToCharLUT[ uiCallbackTriggeredBits & 0xF ],
+         BXDM_P_HexToCharLUT[ (uiCallbackTriggeredBits >> 16) & 0xF ],
+         BXDM_P_HexToCharLUT[ (uiCallbackTriggeredBits >> 12) & 0xF ],
+         BXDM_P_HexToCharLUT[ (uiCallbackTriggeredBits >> 8) & 0xF ],
+         BXDM_P_HexToCharLUT[ (uiCallbackTriggeredBits >> 4) & 0xF ],
+         BXDM_P_HexToCharLUT[ uiCallbackTriggeredBits & 0xF ],
          ' ' );
    }
    else
@@ -705,7 +353,7 @@ BERR_Code BXDM_PPDBG_P_CallbackTriggeredLog_isr(
       BXDM_PPDBG_S_AppendChar_isrsafe(
          pStr,
          8,
-         sHexToCharLUT[ pDebugInfo->uiVsyncCount ],
+         BXDM_P_HexToCharLUT[ pDebugInfo->uiVsyncCount ],
          ':',
          ' ' ,
          ' ' ,
@@ -740,13 +388,13 @@ BERR_Code BXDM_PPDBG_P_StateLog_isr(
    BXDM_PPDBG_S_AppendChar_isrsafe(
          pStr,
          8,
-         sHexToCharLUT[ pDebugInfo->uiVsyncCount ],
+         BXDM_P_HexToCharLUT[ pDebugInfo->uiVsyncCount ],
          ':',
-         sHexToCharLUT[ (uiStateBits >> 16) & 0xF ],
-         sHexToCharLUT[ (uiStateBits >> 12) & 0xF ],
-         sHexToCharLUT[ (uiStateBits >> 8) & 0xF ],
-         sHexToCharLUT[ (uiStateBits >> 4) & 0xF ],
-         sHexToCharLUT[ uiStateBits & 0xF ],
+         BXDM_P_HexToCharLUT[ (uiStateBits >> 16) & 0xF ],
+         BXDM_P_HexToCharLUT[ (uiStateBits >> 12) & 0xF ],
+         BXDM_P_HexToCharLUT[ (uiStateBits >> 8) & 0xF ],
+         BXDM_P_HexToCharLUT[ (uiStateBits >> 4) & 0xF ],
+         BXDM_P_HexToCharLUT[ uiStateBits & 0xF ],
          ' ' );
 
    return BERR_SUCCESS;
@@ -772,13 +420,13 @@ BERR_Code BXDM_PPDBG_P_State2Log_isr(
       BXDM_PPDBG_S_AppendChar_isrsafe(
          pStr,
          8,
-         sHexToCharLUT[ pDebugInfo->uiVsyncCount ],
+         BXDM_P_HexToCharLUT[ pDebugInfo->uiVsyncCount ],
          ':',
-         sHexToCharLUT[ (uiStateBits >> 16) & 0xF ],
-         sHexToCharLUT[ (uiStateBits >> 12) & 0xF ],
-         sHexToCharLUT[ (uiStateBits >> 8) & 0xF ],
-         sHexToCharLUT[ (uiStateBits >> 4) & 0xF ],
-         sHexToCharLUT[ uiStateBits & 0xF ],
+         BXDM_P_HexToCharLUT[ (uiStateBits >> 16) & 0xF ],
+         BXDM_P_HexToCharLUT[ (uiStateBits >> 12) & 0xF ],
+         BXDM_P_HexToCharLUT[ (uiStateBits >> 8) & 0xF ],
+         BXDM_P_HexToCharLUT[ (uiStateBits >> 4) & 0xF ],
+         BXDM_P_HexToCharLUT[ uiStateBits & 0xF ],
          ' ' );
    }
    else
@@ -789,7 +437,7 @@ BERR_Code BXDM_PPDBG_P_State2Log_isr(
       BXDM_PPDBG_S_AppendChar_isrsafe(
          pStr,
          8,
-         sHexToCharLUT[ pDebugInfo->uiVsyncCount ],
+         BXDM_P_HexToCharLUT[ pDebugInfo->uiVsyncCount ],
          ':',
          ' ' ,
          ' ' ,
@@ -828,13 +476,13 @@ BERR_Code BXDM_PPDBG_P_StcDeltaLog_isr(
    BXDM_PPDBG_S_AppendChar_isrsafe(
          pStr,
          8,
-         sHexToCharLUT[ pDebugInfo->uiVsyncCount ],
+         BXDM_P_HexToCharLUT[ pDebugInfo->uiVsyncCount ],
          ':',
-         sHexToCharLUT[ (uiStcDelta >> 16) & 0xF ],
-         sHexToCharLUT[ (uiStcDelta >> 12) & 0xF ],
-         sHexToCharLUT[ (uiStcDelta >> 8) & 0xF ],
-         sHexToCharLUT[ (uiStcDelta >> 4) & 0xF ],
-         sHexToCharLUT[ uiStcDelta & 0xF ],
+         BXDM_P_HexToCharLUT[ (uiStcDelta >> 16) & 0xF ],
+         BXDM_P_HexToCharLUT[ (uiStcDelta >> 12) & 0xF ],
+         BXDM_P_HexToCharLUT[ (uiStcDelta >> 8) & 0xF ],
+         BXDM_P_HexToCharLUT[ (uiStcDelta >> 4) & 0xF ],
+         BXDM_P_HexToCharLUT[ uiStcDelta & 0xF ],
          ' ' );
 
    return BERR_SUCCESS;
@@ -860,13 +508,13 @@ BERR_Code BXDM_PPDBG_P_DecoderDropLog_isr(
       BXDM_PPDBG_S_AppendChar_isrsafe(
          pStr,
          8,
-         sHexToCharLUT[ pDebugInfo->uiVsyncCount ],
+         BXDM_P_HexToCharLUT[ pDebugInfo->uiVsyncCount ],
          ':',
-         sHexToCharLUT[ (uiPendingDrop >> 16) & 0xF ],
-         sHexToCharLUT[ (uiPendingDrop >> 12) & 0xF ],
-         sHexToCharLUT[ (uiPendingDrop >> 8) & 0xF ],
-         sHexToCharLUT[ (uiPendingDrop >> 4) & 0xF ],
-         sHexToCharLUT[ uiPendingDrop & 0xF ],
+         BXDM_P_HexToCharLUT[ (uiPendingDrop >> 16) & 0xF ],
+         BXDM_P_HexToCharLUT[ (uiPendingDrop >> 12) & 0xF ],
+         BXDM_P_HexToCharLUT[ (uiPendingDrop >> 8) & 0xF ],
+         BXDM_P_HexToCharLUT[ (uiPendingDrop >> 4) & 0xF ],
+         BXDM_P_HexToCharLUT[ uiPendingDrop & 0xF ],
          ' ' );
    }
    else
@@ -877,7 +525,7 @@ BERR_Code BXDM_PPDBG_P_DecoderDropLog_isr(
       BXDM_PPDBG_S_AppendChar_isrsafe(
          pStr,
          8,
-         sHexToCharLUT[ pDebugInfo->uiVsyncCount ],
+         BXDM_P_HexToCharLUT[ pDebugInfo->uiVsyncCount ],
          ':',
          ' ' ,
          ' ' ,
@@ -894,6 +542,55 @@ BERR_Code BXDM_PPDBG_P_DecoderDropLog_isr(
 
    return BERR_SUCCESS;
 }
+
+void BXDM_MODULE_MSG_isr(
+   const BXDM_PictureProvider_Handle hXdmPP,
+   const BXDM_Debug_MsgType eMessageType,
+   char * psFormat,
+   ...
+   )
+{
+   va_list argList;
+   char szString[128];
+
+   BDBG_ENTER( BXDM_MODULE_MSG_isr );
+
+   BDBG_ASSERT( hXdmPP );
+
+   va_start( argList, psFormat );
+   BKNI_Vsnprintf(szString, 128, psFormat, argList );
+   va_end(argList);
+
+   switch ( eMessageType )
+   {
+      case BXDM_Debug_MsgType_eQM:   BDBG_MODULE_MSG( BXDM_PPQM, (szString) );    break;
+      case BXDM_Debug_MsgType_eDBG:  BDBG_MODULE_MSG( BXDM_PPDBG, (szString) );   break;
+      case BXDM_Debug_MsgType_eDBG2: BDBG_MODULE_MSG( BXDM_PPDBG2, (szString) );  break;
+      case BXDM_Debug_MsgType_eDBGC: BDBG_MODULE_MSG( BXDM_PPDBC, (szString) );   break;
+      case BXDM_Debug_MsgType_eMFD1: BDBG_MODULE_MSG( BXDM_MFD1, (szString) );    break;
+      case BXDM_Debug_MsgType_eMFD2: BDBG_MODULE_MSG( BXDM_MFD2, (szString) );    break;
+      case BXDM_Debug_MsgType_eMFD3: BDBG_MODULE_MSG( BXDM_MFD3, (szString) );    break;
+      case BXDM_Debug_MsgType_eCFG:  BDBG_MODULE_MSG( BXDM_CFG, (szString) );     break;
+      case BXDM_Debug_MsgType_eFRD:  BDBG_MODULE_MSG( BXDM_PPFRD, (szString) );   break;
+      case BXDM_Debug_MsgType_eFIC:  BDBG_MODULE_MSG( BXDM_PPFIC, (szString) );   break;
+      case BXDM_Debug_MsgType_eCB:   BDBG_MODULE_MSG( BXDM_PPCB, (szString) );    break;
+      case BXDM_Debug_MsgType_eCLIP: BDBG_MODULE_MSG( BXDM_PPCLIP, (szString) );  break;
+      case BXDM_Debug_MsgType_eOUT:  BDBG_MODULE_MSG( BXDM_PPOUT, (szString) );   break;
+      case BXDM_Debug_MsgType_eTSM:  BDBG_MODULE_MSG( BXDM_PPTSM, (szString) );   break;
+      case BXDM_Debug_MsgType_eVTSM: BDBG_MODULE_MSG( BXDM_PPVTSM, (szString) );  break;
+      case BXDM_Debug_MsgType_ePPV2: BDBG_MODULE_MSG( BXDM_PPV2, (szString) );    break;
+
+      case BXDM_Debug_MsgType_eUnKnown:
+      default:
+         BDBG_MODULE_MSG( BXDM_PPDBG, (szString));
+         break;
+   }
+
+   BDBG_LEAVE( BXDM_MODULE_MSG_isr );
+
+   return;
+}
+
 
 BERR_Code BXDM_PPDBG_P_Print_isr(
    const BXDM_PictureProvider_Handle hXdmPP,
@@ -942,47 +639,47 @@ BERR_Code BXDM_PPDBG_P_Print_isr(
       }
 
 
-      BXVD_DBG_MSG(hXdmPP, (" DM Log (ch:%02x stc:%08x%c mr:%sHz edSTC:%u adSTC:%d.%u pbr:%d%c tm:%s %s)",
+      BDBG_MODULE_MSG(BXDM_PPDBG, (" DM Log (ch:%02x stc:%08x%c mr:%sHz edSTC:%u adSTC:%d.%u pbr:%d%c tm:%s %s)",
                                 BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                                 pLocalState->uiStcSnapshot,
                                 (hXdmPP->stDMState.stDecode.iStcJitterCorrectionOffset != 0)?'*':' ',
-                                s_aMonitorRefreshRateToStrLUT[eMonitorRefreshRate],
+                                BXDM_P_MonitorRefreshRateToStrLUT[eMonitorRefreshRate],
                                 pLocalState->stSTCDelta.uiWhole,
                                 iAverageStcDelta,
                                 uiAverageFractionBase10,
                                 ( pLocalState->uiSlowMotionRate / BXDM_PICTUREPROVIDER_NORMAL_PLAYBACK_RATE_EXTRA_DECIMALS ),
                                 '%',
                                 ( pLocalState->eSTCTrickMode < BXDM_PictureProvider_P_STCTrickMode_eMax) ?
-                                          s_aSTCTrickModeToStrLUT[ pLocalState->eSTCTrickMode ] : "error",
+                                          BXDM_P_STCTrickModeToStrLUT[ pLocalState->eSTCTrickMode ] : "error",
                                 hXdmPP->stDMConfig.bPlayback?"pb":"lv"
                                 ));
 
       /* Print TSM Logs */
-      BXVD_DBG_MSG(hXdmPP, ("%s", (char *)&pDebugInfo->stTSMString.szDebugStr));
+      BDBG_MODULE_MSG(BXDM_PPDBG, ("%s", (char *)&pDebugInfo->stTSMString.szDebugStr));
 
       /* Print Decoder Drop Logs */
       if ( true ==  pDebugInfo->bPrintDropCount )
       {
-         BXVD_DBG_MSG(hXdmPP, ("%s", (char *)&pDebugInfo->stPendingDropString.szDebugStr));
+         BDBG_MODULE_MSG(BXDM_PPDBG, ("%s", (char *)&pDebugInfo->stPendingDropString.szDebugStr));
       }
 
       /* Print picture selecton log */
-      BXVD_DBG_MSG(hXdmPP, ("%s", (char *)&pDebugInfo->stInterruptString.szDebugStr));
+      BDBG_MODULE_MSG(BXDM_PPDBG, ("%s", (char *)&pDebugInfo->stInterruptString.szDebugStr));
 
       /* Print stats for Source Polarity Override */
       if ( true == pDebugInfo->bPrintSPO )
       {
-         BXVD_DBG_MSG(hXdmPP, ("%s", (char *)&pDebugInfo->stSourcePolarityOverrideString.szDebugStr));
+         BDBG_MODULE_MSG(BXDM_PPDBG, ("%s", (char *)&pDebugInfo->stSourcePolarityOverrideString.szDebugStr));
       }
 
       /* Print stats for Callbacks */
       if ( true == pDebugInfo->bPrintCallbacks )
       {
-         BXVD_DBG_MSG(hXdmPP, ("%s", (char *)&pDebugInfo->stCallbackString.szDebugStr));
+         BDBG_MODULE_MSG(BXDM_PPDBG, ("%s", (char *)&pDebugInfo->stCallbackString.szDebugStr));
       }
 
       /* Print State Logs: */
-      BXVD_DBG_MSG(hXdmPP, ("%s", (char *)&pDebugInfo->stStateString.szDebugStr));
+      BDBG_MODULE_MSG(BXDM_PPDBG, ("%s", (char *)&pDebugInfo->stStateString.szDebugStr));
 
       /* Print stats for state 2 */
       if ( true == pDebugInfo->bPrintState2 )
@@ -1010,7 +707,7 @@ void BXDM_PPDBG_P_PrintStartDecode_isr(
    BXDM_PictureProvider_P_State_Decode *pDecode = &hXdmPP->stDMState.stDecode;
    BXDM_PPDBG_P_Info *pDebug = &pDecode->stDebug;
 
-   BXVD_DBG_MSG(hXdmPP, ("--- %x:[%02x.xxx] BXDM_PictureProvider_StartDecode_isr has been called ---",
+   BDBG_MODULE_MSG(BXDM_PPDBG, ("--- %x:[%02x.xxx] BXDM_PictureProvider_StartDecode_isr has been called ---",
                               pDebug->uiVsyncCount,
                               BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP )
                               ));
@@ -1024,7 +721,7 @@ void BXDM_PPDBG_P_PrintStopDecode_isr(
    BXDM_PictureProvider_P_State_Decode *pDecode = &hXdmPP->stDMState.stDecode;
    BXDM_PPDBG_P_Info *pDebug = &pDecode->stDebug;
 
-   BXVD_DBG_MSG(hXdmPP, ("--- %x:[%02x.xxx] BXDM_PictureProvider_StopDecode_isr has been called ---",
+   BDBG_MODULE_MSG(BXDM_PPDBG, ("--- %x:[%02x.xxx] BXDM_PictureProvider_StopDecode_isr has been called ---",
                               pDebug->uiVsyncCount,
                               BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP )
                               ));
@@ -1131,19 +828,19 @@ void BXDM_PPDBG_P_PrintMFD_isr(
                                  pstSelectedPicture->stPicParms.uiPPBIndex & 0xFFF,
                                  pMFD->ulDecodePictureId,
                                  pMFD->ulOrigPTS,
-                                 s_aPolarityToStrLUT[ pMFD->eSourcePolarity ],
-                                 s_aPolarityToStrLUT[ pMFD->eInterruptPolarity ],
+                                 BXDM_P_PolarityToStrLUT[ pMFD->eSourcePolarity ],
+                                 BXDM_P_PolarityToStrLUT[ pMFD->eInterruptPolarity ],
                                  pMFD->ulSourceHorizontalSize,
                                  pMFD->ulSourceVerticalSize,
                                  pMFD->ulDisplayHorizontalSize,
                                  pMFD->ulDisplayVerticalSize,
-                                 s_aAspectRatioToStrLUT[ eAspectRatio ],
+                                 BXDM_P_AspectRatioToStrLUT[ eAspectRatio ],
                                  pMFD->uiSampleAspectRatioX,
                                  pMFD->uiSampleAspectRatioY,
                                  pMFD->ulAdjQp,
-                                 s_aBAVCFrameRateToStrLUT[ pMFD->eFrameRateCode ],
-                                 s_aBFMTRefreshRateToStrLUT[ pMFD->eInterruptRefreshRate],
-                                 s_aOrientationToStrLUT[ pMFD->eOrientation ],
+                                 BXDM_P_BAVCFrameRateToStrLUT[ pMFD->eFrameRateCode ],
+                                 BXDM_P_BFMTRefreshRateToStrLUT[ pMFD->eInterruptRefreshRate],
+                                 BXDM_P_OrientationToStrLUT[ pMFD->eOrientation ],
                                  ( pMFD->bPictureRepeatFlag ) ? " rp" : " ",
                                  ( pMFD->bRepeatField ) ? " rf" : " ",
                                  ( pMFD->bIgnoreCadenceMatch ) ? " ic" : " ",
@@ -1213,7 +910,7 @@ void BXDM_PPDBG_P_PrintMFD_isr(
                                  pMFD->eColorPrimaries,
                                  pMFD->eTransferCharacteristics,
                                  pMFD->eMatrixCoefficients,
-                                 s_aBAVCPictureCodingToStrLUT[ pMFD->ePictureType ],
+                                 BXDM_P_BAVCPictureCodingToStrLUT[ pMFD->ePictureType ],
                                  ( BAVC_VideoBitDepth_e10Bit == pMFDPicture->eBitDepth ) ? "10" : "8",
                                  pMFD->ulChunkId,
                                  ( pMFD->bFrameProgressive ) ? " fp" : " ",
@@ -1317,7 +1014,7 @@ void BXDM_PPDBG_P_PrintUnifiedPicture_isr(
 
       /* Range check the variables used to index lookup tables. */
 
-      bProtocolValid = ( pstUnified->stProtocol.eProtocol < BXDM_PPDBG_S_MAX_VIDEO_PROTOCOL ) ? true : false ;
+      bProtocolValid = ( pstUnified->stProtocol.eProtocol < BXDM_P_MAX_VIDEO_PROTOCOL ) ? true : false ;
 
       if ( pstPicture->stPicParms.stTSM.stStatic.eFrameRateXVD < BXDM_PictureProvider_P_MAX_FRAMERATE )
       {
@@ -1337,20 +1034,20 @@ void BXDM_PPDBG_P_PrintUnifiedPicture_isr(
                              pstPicture->stPicParms.uiPPBIndex & 0xFFF,
                              pstUnified->stBufferInfo.stSource.uiWidth,
                              pstUnified->stBufferInfo.stSource.uiHeight,
-                             ( bProtocolValid ) ? s_aVideoCompressionStdToStrLUT[ pstUnified->stProtocol.eProtocol ] : "ukn" ,
+                             ( bProtocolValid ) ? BXDM_P_VideoCompressionStdToStrLUT[ pstUnified->stProtocol.eProtocol ] : "ukn" ,
                              ( pstUnified->stBufferInfo.eBufferFormat == BXDM_Picture_BufferFormat_eSplitInterlaced ) ?  "-si," : "," ,
                              pstUnified->stFrameRate.stRate.uiNumerator,
                              pstUnified->stFrameRate.stRate.uiDenominator,
-                             s_aBAVCFrameRateToStrLUT[ eFrameRate ],
-                             s_aFrameRateTypeToStrLUT[ pstPicture->stPicParms.stTSM.stStatic.eFrameRateType ],
-                             s_aAspectRatioToStrLUT[ eAspectRatio ],
+                             BXDM_P_BAVCFrameRateToStrLUT[ eFrameRate ],
+                             BXDM_P_FrameRateTypeToStrLUT[ pstPicture->stPicParms.stTSM.stStatic.eFrameRateType ],
+                             BXDM_P_AspectRatioToStrLUT[ eAspectRatio ],
                              pstUnified->stAspectRatio.uiSampleAspectRatioX,
                              pstUnified->stAspectRatio.uiSampleAspectRatioY,
                              pstUnified->stAspectRatio.bValid,
                              pstPicture->stPicParms.stTSM.stDynamic.uiSwPcrOffsetUsedForEvaluation,
                              stDeltaPTSAvg.uiWhole,
                              uiAverageFractionBase10,
-                             s_aDisplayFieldModeToStrLUT[ pstPicture->stPicParms.stDisplay.stDynamic.eDisplayFieldMode ],
+                             BXDM_P_DisplayFieldModeToStrLUT[ pstPicture->stPicParms.stDisplay.stDynamic.eDisplayFieldMode ],
                              ( pstPicture->stPicParms.stDisplay.stDynamic.bForceSingleFieldMode ) ? "-f" :
                                  ( BXDM_PictureProvider_DisplayFieldMode_eAuto == hXdmPP->stDMConfig.eDisplayFieldMode ) ? "-a" : ""
                              ));
@@ -1458,14 +1155,14 @@ void BXDM_PPDBG_P_PrintUnifiedPicture_isr(
                              cErrorOnThisPicture,
                              cSelectionMode,
                              ( true == pstPicture->stPicParms.stDisplay.stDynamic.bAppendedToPreviousPicture ) ? '^' : ':',
-                             s_aTSMResultToStrLUT[ pstPicture->stPicParms.stTSM.stDynamic.eTsmResult],
+                             BXDM_P_TSMResultToStrLUT[ pstPicture->stPicParms.stTSM.stDynamic.eTsmResult],
                              ( BXDM_Picture_BufferFormat_eSplitInterlaced == pstUnified->stBufferInfo.eBufferFormat ) ?
                                 ( BXDM_Picture_BufferHandlingMode_eSiRepeat == pstUnified->stBufferInfo.eBufferHandlingMode ) ?
-                                   s_aSiRepeatPullDownEnumToStrLUT[ ePulldown ] : s_aSiPullDownEnumToStrLUT[ ePulldown ] :
-                                 s_aPullDownEnumToStrLUT[ ePulldown ],
+                                   BXDM_P_SiRepeatPullDownEnumToStrLUT[ ePulldown ] : BXDM_P_SiPullDownEnumToStrLUT[ ePulldown ] :
+                                 BXDM_P_PullDownEnumToStrLUT[ ePulldown ],
                              cSourceFormat,
                              cProgressiveSequence,
-                             s_aBXDMPictureCodingToStrLUT[ eCoding ],
+                             BXDM_P_BXDMPictureCodingToStrLUT[ eCoding ],
                              pstUnified->stPTS.uiValue,
                              pstUnified->stPTS.bValid,
                              uiDisplayOffset,
@@ -1505,14 +1202,14 @@ void BXDM_PPDBG_P_PrintUnifiedPicture_isr(
                              cErrorOnThisPicture,
                              cSelectionMode,
                              ( true == pstPicture->stPicParms.stDisplay.stDynamic.bAppendedToPreviousPicture ) ? '^' : ':',
-                             s_aTSMResultToStrLUT[ pstPicture->stPicParms.stTSM.stDynamic.eTsmResult],
+                             BXDM_P_TSMResultToStrLUT[ pstPicture->stPicParms.stTSM.stDynamic.eTsmResult],
                              ( BXDM_Picture_BufferFormat_eSplitInterlaced == pstUnified->stBufferInfo.eBufferFormat ) ?
                                 ( BXDM_Picture_BufferHandlingMode_eSiRepeat == pstUnified->stBufferInfo.eBufferHandlingMode ) ?
-                                   s_aSiRepeatPullDownEnumToStrLUT[ ePulldown ] : s_aSiPullDownEnumToStrLUT[ ePulldown ] :
-                                 s_aPullDownEnumToStrLUT[ ePulldown ],
+                                   BXDM_P_SiRepeatPullDownEnumToStrLUT[ ePulldown ] : BXDM_P_SiPullDownEnumToStrLUT[ ePulldown ] :
+                                 BXDM_P_PullDownEnumToStrLUT[ ePulldown ],
                              cSourceFormat,
                              cProgressiveSequence,
-                             s_aBXDMPictureCodingToStrLUT[ eCoding ],
+                             BXDM_P_BXDMPictureCodingToStrLUT[ eCoding ],
                              pstUnified->stPTS.uiValue,
                              pstUnified->stPTS.bValid,
                              uiDisplayOffset,
@@ -1580,7 +1277,7 @@ void BXDM_PPDBG_P_PrintDMConfig_isr(
                   hXdmPP->stDMConfig.stPlaybackRate.uiNumerator,
                   hXdmPP->stDMConfig.stPlaybackRate.uiDenominator,
                   ( hXdmPP->stDMConfig.uiDirtyBits_1 & BXDM_PictureProvider_P_DIRTY_1_PLAYBACK_RATE ) ? 1 : 0,
-                  s_aDisplayFieldModeToStrLUT[ hXdmPP->stDMConfig.eDisplayFieldMode ],
+                  BXDM_P_DisplayFieldModeToStrLUT[ hXdmPP->stDMConfig.eDisplayFieldMode ],
                   ( hXdmPP->stDMConfig.uiDirtyBits_1 & BXDM_PictureProvider_P_DIRTY_1_DISPLAY_FIELD_MODE ) ? 1 : 0
                   ));
 
@@ -1608,18 +1305,18 @@ void BXDM_PPDBG_P_PrintDMConfig_isr(
                   ( hXdmPP->stDMConfig.uiDirtyBits_2 & BXDM_PictureProvider_P_DIRTY_2_DISPLAY_MODE ) ? 1 : 0,
                   ( hXdmPP->stDMConfig.bPlayback == true ) ? "pb" : "lv",
                   ( hXdmPP->stDMConfig.uiDirtyBits_1 & BXDM_PictureProvider_P_DIRTY_1_PLAYBACK ) ? 1 : 0,
-                  s_aVideoCompressionStdToStrLUT[ hXdmPP->stDMConfig.eProtocol ],
+                  BXDM_P_VideoCompressionStdToStrLUT[ hXdmPP->stDMConfig.eProtocol ],
                   ( hXdmPP->stDMConfig.uiDirtyBits_2 & BXDM_PictureProvider_P_DIRTY_1_PROTOCOL ) ? 1 : 0,
-                  s_aMonitorRefreshRateToStrLUT[ hXdmPP->stDMConfig.eMonitorRefreshRate ],
+                  BXDM_P_MonitorRefreshRateToStrLUT[ hXdmPP->stDMConfig.eMonitorRefreshRate ],
                   ( hXdmPP->stDMConfig.uiDirtyBits_1 & BXDM_PictureProvider_P_DIRTY_1_MONITOR_REFRESH_RATE ) ? 1 : 0,
-                  s_aBAVCFrameRateToStrLUT[ hXdmPP->stDMConfig.eDefaultFrameRate ],
+                  BXDM_P_BAVCFrameRateToStrLUT[ hXdmPP->stDMConfig.eDefaultFrameRate ],
                   ( hXdmPP->stDMConfig.uiDirtyBits_1 & BXDM_PictureProvider_P_DIRTY_1_DEFAULT_FRAME_RATE ) ? 1 : 0,
                   hXdmPP->stDMConfig.stFrameRateOverride.stRate.uiNumerator,
                   hXdmPP->stDMConfig.stFrameRateOverride.stRate.uiDenominator,
                   hXdmPP->stDMConfig.stFrameRateOverride.bValid,
                   hXdmPP->stDMConfig.stFrameRateOverride.bTreatAsSingleElement,
                   ( hXdmPP->stDMConfig.uiDirtyBits_1 & BXDM_PictureProvider_P_DIRTY_1_FRAMERATE_OVERRIDE ) ? 1 : 0,
-                  s_aTrickModeToStrLUT[ hXdmPP->stDMConfig.eTrickMode ],
+                  BXDM_P_TrickModeToStrLUT[ hXdmPP->stDMConfig.eTrickMode ],
                   ( hXdmPP->stDMConfig.uiDirtyBits_1 & BXDM_PictureProvider_P_DIRTY_1_TRICK_MODE ) ? 1 : 0,
                   ( hXdmPP->stDMConfig.bFreeze == true ) ? 't' : 'f',
                   ( hXdmPP->stDMConfig.uiDirtyBits_2 & BXDM_PictureProvider_P_DIRTY_1_FREEZE ) ? 1 : 0
@@ -1670,9 +1367,9 @@ void BXDM_PPDBG_P_PrintDMConfig_isr(
                   ( hXdmPP->stDMConfig.uiDirtyBits_1 & BXDM_PictureProvider_P_DIRTY_1_1080P_SCAN_MODE ) ? 1 : 0,
                   ( hXdmPP->stDMConfig.ePictureDropMode == BXDM_PictureProvider_PictureDropMode_eField ) ? "fld" : "Frm" ,
                   ( hXdmPP->stDMConfig.uiDirtyBits_1 & BXDM_PictureProvider_P_DIRTY_1_PICTURE_DROP_MODE ) ? 1 : 0,
-                  s_aPulldownModeToStrLUT[ hXdmPP->stDMConfig.e480pPulldownMode ],
+                  BXDM_P_PulldownModeToStrLUT[ hXdmPP->stDMConfig.e480pPulldownMode ],
                   ( hXdmPP->stDMConfig.uiDirtyBits_1 & BXDM_PictureProvider_P_DIRTY_1_480P_PULLDOWN_MODE ) ? 1 : 0,
-                  s_aPulldownModeToStrLUT[ hXdmPP->stDMConfig.e1080pPulldownMode ],
+                  BXDM_P_PulldownModeToStrLUT[ hXdmPP->stDMConfig.e1080pPulldownMode ],
                   ( hXdmPP->stDMConfig.uiDirtyBits_1 & BXDM_PictureProvider_P_DIRTY_1_1080P_PULLDOWN_MODE ) ? 1 : 0,
                   ( hXdmPP->stDMConfig.e240iScanMode == BXDM_PictureProvider_240iScanMode_eForceProgressive ) ? "fp" : "en" ,
                   ( hXdmPP->stDMConfig.uiDirtyBits_1 & BXDM_PictureProvider_P_DIRTY_1_240I_SCAN_MODE ) ? 1 : 0,
@@ -1702,20 +1399,20 @@ void BXDM_PPDBG_P_PrintDMConfig_isr(
                   ( bLastCall ) ? '*' : ' ',
                   hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                   BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
-                  s_aFrameAdvanceModeToStrLUT[hXdmPP->stDMConfig.eFrameAdvanceMode],
+                  BXDM_P_FrameAdvanceModeToStrLUT[hXdmPP->stDMConfig.eFrameAdvanceMode],
                   ( hXdmPP->stDMConfig.uiDirtyBits_1 & BXDM_PictureProvider_P_DIRTY_1_FRAME_ADVANCE_MODE ) ? 1 : 0,
                   ( hXdmPP->stDMConfig.bReverseFields == true ) ? 't' : 'f' ,
                   ( hXdmPP->stDMConfig.uiDirtyBits_1 & BXDM_PictureProvider_P_DIRTY_1_REVERSE_FIELDS ) ? 1 : 0,
                   ( hXdmPP->stDMConfig.bAutoValidateStcOnPause == true ) ? 't' : 'f' ,
                   ( hXdmPP->stDMConfig.uiDirtyBits_1 & BXDM_PictureProvider_P_DIRTY_1_AUTO_VALIDATE_ON_PAUSE ) ? 1 : 0,
-                  s_aPPOrientationToStrLUT[ hXdmPP->stDMConfig.st3DSettings.eOrientation ],
+                  BXDM_P_PPOrientationToStrLUT[ hXdmPP->stDMConfig.st3DSettings.eOrientation ],
                   hXdmPP->stDMConfig.st3DSettings.bOverrideOrientation,
                   ( hXdmPP->stDMConfig.uiDirtyBits_1 & BXDM_PictureProvider_P_DIRTY_1_3D_SETTINGS ) ? 1 : 0,
                   ( hXdmPP->stDMConfig.bJitterToleranceImprovement == true ) ? "on" : "off" ,
                   ( hXdmPP->stDMConfig.uiDirtyBits_1 & BXDM_PictureProvider_P_DIRTY_1_JITTER_TOLERANCE ) ? 1 : 0,
-                  s_aFrameRateDetectionModeToStrLUT[ hXdmPP->stDMConfig.eFrameRateDetectionMode ],
+                  BXDM_P_FrameRateDetectionModeToStrLUT[ hXdmPP->stDMConfig.eFrameRateDetectionMode ],
                   ( hXdmPP->stDMConfig.uiDirtyBits_1 & BXDM_PictureProvider_P_DIRTY_1_FRAME_RATE_DETECTION_MODE ) ? 1 : 0,
-                  s_aErrorHandlingModeToStrLUT[ hXdmPP->stDMConfig.eErrorHandlingMode ],
+                  BXDM_P_ErrorHandlingModeToStrLUT[ hXdmPP->stDMConfig.eErrorHandlingMode ],
                   ( hXdmPP->stDMConfig.uiDirtyBits_1 & BXDM_PictureProvider_P_DIRTY_1_ERROR_HANDLING_MODE ) ? 1 : 0,
                   hXdmPP->stDMConfig.uiErrorThreshold,
                   ( hXdmPP->stDMConfig.uiDirtyBits_1 & BXDM_PictureProvider_P_DIRTY_2_ERROR_THRESHOLD ) ? 1 : 0,

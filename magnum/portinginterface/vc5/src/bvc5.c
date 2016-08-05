@@ -71,6 +71,18 @@ BMMA_Heap_Handle BVC5_P_GetMMAHeap(
    return (hVC5->bSecure && hVC5->hSecureMMAHeap) ? hVC5->hSecureMMAHeap : hVC5->hMMAHeap;
 }
 
+uint32_t BVC5_P_TranslateBinAddress(
+   BVC5_Handle hVC5,
+   uint32_t    uiAddr,
+   bool        bSecure
+)
+{
+   if (!bSecure)
+      return (uint64_t)uiAddr - hVC5->iUnsecureBinTranslation;
+   else
+      return (uint64_t)uiAddr - hVC5->iSecureBinTranslation;
+}
+
 /***************************************************************************/
 
 void BVC5_GetDefaultOpenParameters(
@@ -95,7 +107,39 @@ void BVC5_GetDefaultOpenParameters(
       openParams->bMemDumpOnStall = false;
 
       openParams->bNoBurstSplitting = false;
+
+#ifdef BVC5_USE_DRM
+      openParams->bDoDRMClientTerm = true;
+#else
+      openParams->bDoDRMClientTerm = false;
+#endif
+      openParams->uiDRMDevice = 0;
    }
+}
+
+
+static bool BVC5_P_InitMmuSafePage(
+   BVC5_Handle hVC5
+)
+{
+   const uint32_t size = 4 * 1024;
+
+   if (hVC5->hMmuSafePage != NULL)
+      return true;
+
+   hVC5->hMmuSafePage = BMMA_Alloc(hVC5->hMMAHeap, size, size, NULL);
+   if (hVC5->hMmuSafePage == NULL)
+      return false;
+
+   hVC5->uiMmuSafePageOffset = BMMA_LockOffset(hVC5->hMmuSafePage);
+   if (hVC5->uiMmuSafePageOffset == 0)
+   {
+      BMMA_Free(hVC5->hMmuSafePage);
+      hVC5->hMmuSafePage = NULL;
+      return false;
+   }
+
+   return true;
 }
 
 /***************************************************************************/
@@ -143,6 +187,12 @@ BERR_Code BVC5_Open(
    hVC5->hSecureHeap    = hSecureHeap;
    hVC5->hSecureMMAHeap = hSecureMMAHeap;
 
+   if (!BVC5_P_InitMmuSafePage(hVC5))
+   {
+      err = BERR_OUT_OF_DEVICE_MEMORY;
+      goto exit;
+   }
+
    /* Parameters */
    hVC5->sOpenParams = *sOpenParams;
    hVC5->sCallbacks  = *sCallbacks;
@@ -166,14 +216,18 @@ BERR_Code BVC5_Open(
       " GPUMon dependencies = %s\n"
       " Reset on stall = %s\n"
       " Dump on stall = %s\n"
-      " No burst splitting = %s\n",
+      " No burst splitting = %s\n"
+      " Do DRM client termination = %s\n"
+      " DRM Device Number = %u\n",
       hVC5->sOpenParams.bUsePowerGating ? "on" : "off",
       hVC5->sOpenParams.bUseClockGating ? "on" : "off",
       hVC5->sOpenParams.bUseStallDetection ? "on" : "off",
       hVC5->sOpenParams.bGPUMonDeps ? "on" : "off",
       hVC5->sOpenParams.bResetOnStall ? "on" : "off",
       hVC5->sOpenParams.bMemDumpOnStall ? "on" : "off",
-      hVC5->sOpenParams.bNoBurstSplitting ? "on" : "off"
+      hVC5->sOpenParams.bNoBurstSplitting ? "on" : "off",
+      hVC5->sOpenParams.bDoDRMClientTerm ? "on" : "off",
+      hVC5->sOpenParams.uiDRMDevice
       ));
 
    err = BKNI_CreateMutex(&hVC5->hModuleMutex);
@@ -192,7 +246,7 @@ BERR_Code BVC5_Open(
    if (err != BERR_SUCCESS)
       goto exit;
 
-   err = BVC5_P_SchedulerStateConstruct(&hVC5->sSchedulerState);
+   err = BVC5_P_SchedulerStateConstruct(&hVC5->sSchedulerState, hVC5->hClientMap);
    if (err != BERR_SUCCESS)
       goto exit;
 
@@ -203,6 +257,13 @@ BERR_Code BVC5_Open(
    if (hSecureMMAHeap)
    {
       err = BVC5_P_BinPoolCreate(hSecureMMAHeap, &hVC5->hSecureBinPool);
+      if (err != BERR_SUCCESS)
+         goto exit;
+   }
+
+   if(hVC5->sOpenParams.bDoDRMClientTerm)
+   {
+      err = BVC5_P_DRMOpen(hVC5->sOpenParams.uiDRMDevice);
       if (err != BERR_SUCCESS)
          goto exit;
    }
@@ -222,6 +283,11 @@ BERR_Code BVC5_Open(
    /* Note: must do this before calling BVC5_P_HardwarePowerAcquire */
    if (!hVC5->sOpenParams.bUsePowerGating)
       BVC5_P_HardwareBPCMPowerUp(hVC5);
+
+   /* on platforms with PLL_CH, hold it open using reference count for performance reasons. */
+#ifdef BCHP_PWR_RESOURCE_GRAPHICS3D_PLL_CH
+   BCHP_PWR_AcquireResource(hVC5->hChp, BCHP_PWR_RESOURCE_GRAPHICS3D_PLL_CH);
+#endif
 
    /* Turn on the clocks now if we don't want to use clock gating */
    if (!hVC5->sOpenParams.bUseClockGating)
@@ -289,7 +355,12 @@ BERR_Code BVC5_Close(
       BKNI_LeaveCriticalSection();
 
       /* ... and wait until it has */
-      BKNI_WaitForEvent(hVC5->hSchedulerSyncEvent, BKNI_INFINITE);
+      err = BKNI_WaitForEvent(hVC5->hSchedulerSyncEvent, BKNI_INFINITE);
+      if (err != BERR_SUCCESS)
+      {
+         err = BERR_UNKNOWN;
+         goto exit;
+      }
    }
 
    /* Make sure that we leave SAGE with secure mode off */
@@ -314,6 +385,9 @@ BERR_Code BVC5_Close(
    if (hVC5->hGMPTable)
       BMMA_Free(hVC5->hGMPTable);
 
+   if (hVC5->hMmuSafePage)
+      BMMA_Free(hVC5->hMmuSafePage);
+
 #ifdef BVC5_HARDWARE_REAL
    /* remove IRQ handler */
    if (hVC5->callback_intctl != NULL)
@@ -327,6 +401,10 @@ BERR_Code BVC5_Close(
    /* Shut everything down */
    if (!hVC5->sOpenParams.bUseClockGating)
       BVC5_P_HardwarePowerRelease(hVC5, ~0u);
+
+#ifdef BCHP_PWR_RESOURCE_GRAPHICS3D_PLL_CH
+   BCHP_PWR_ReleaseResource(hVC5->hChp, BCHP_PWR_RESOURCE_GRAPHICS3D_PLL_CH);
+#endif
 
    if (!hVC5->sOpenParams.bUsePowerGating)
       BVC5_P_HardwareBPCMPowerDown(hVC5);
@@ -382,7 +460,10 @@ uint32_t BVC5_P_GetFreeClientId(BVC5_Handle hVC5)
 BERR_Code BVC5_RegisterClient(
    BVC5_Handle  hVC5,
    void        *pContext,
-   uint32_t    *puiClientId
+   uint32_t    *puiClientId,
+   int64_t      iUnsecureBinTranslation,
+   int64_t      iSecureBinTranslation,
+   uint64_t     uiPlatformToken
 )
 {
    BERR_Code         err = BERR_SUCCESS;
@@ -397,9 +478,35 @@ BERR_Code BVC5_RegisterClient(
 
    BKNI_AcquireMutex(hVC5->hModuleMutex);
 
+   /*
+    * When the MMU is in use, all clients using the MMU must have the same
+    * pagetable mappings for the secure and unsecure heaps from which bin
+    * memory is being allocated by this module.
+    *
+    * It is however allowable to have a mix of clients that are and are not
+    * using the MMU. A client not using the MMU will have set zero for both
+    * translations.
+    */
+   if (iUnsecureBinTranslation != 0 || iSecureBinTranslation != 0)
+   {
+      if (hVC5->iUnsecureBinTranslation != 0 && (hVC5->iUnsecureBinTranslation != iUnsecureBinTranslation))
+      {
+         err = BERR_INVALID_PARAMETER;
+         goto exit;
+      }
+      hVC5->iUnsecureBinTranslation = iUnsecureBinTranslation;
+
+      if (hVC5->iSecureBinTranslation != 0 && (hVC5->iSecureBinTranslation != iSecureBinTranslation))
+      {
+         err = BERR_INVALID_PARAMETER;
+         goto exit;
+      }
+      hVC5->iSecureBinTranslation = iSecureBinTranslation;
+   }
+
    *puiClientId = BVC5_P_GetFreeClientId(hVC5);
 
-   err = BVC5_P_ClientMapCreateAndInsert(hVC5, hVC5->hClientMap, pContext, *puiClientId);
+   err = BVC5_P_ClientMapCreateAndInsert(hVC5, hVC5->hClientMap, pContext, *puiClientId, uiPlatformToken);
    if (err != BERR_SUCCESS)
       goto exit1;
 
@@ -450,7 +557,6 @@ BERR_Code BVC5_P_UnregisterClient(
    BVC5_P_ClientMapRemoveAndDestroy(hVC5, hVC5->hClientMap, uiClientId);
    BVC5_P_FenceClientDestroy(hVC5->hFences, uiClientId);
    BVC5_P_FenceClientCheckDestroy(hVC5->hFences, uiClientId);
-   BVC5_P_SchedulerStateResetFirst(&hVC5->sSchedulerState);
 
    /* Remove any acquire locks current held be event or perf counters */
    BVC5_P_PerfCountersRemoveClient(hVC5, uiClientId);
@@ -517,9 +623,7 @@ exit:
 
    Add a new job into the system
    Jobs go into the waiting jobs queue, then move to the runnable queue when
-   their dependencies have completed.  They then proceed to the appropriate hardware
-   unit in order.  When the hardware completes, the job goes into the completed queue.
-   When the completed queue is emptied the jobs are retired.
+   their dependencies have completed.
 
 */
 static void BVC5_P_AddJob(
@@ -529,6 +633,7 @@ static void BVC5_P_AddJob(
 )
 {
    BVC5_P_ClientJobToWaiting(hVC5, hClient, psJob);
+   BVC5_P_SchedulerPump(hVC5);
 }
 
 BERR_Code BVC5_NullJob(
@@ -564,7 +669,6 @@ BERR_Code BVC5_NullJob(
    }
 
    BVC5_P_AddJob(hVC5, hClient, pNullJob);
-   BVC5_P_PumpClient(hVC5, hClient);
 
    err = BERR_SUCCESS;
 
@@ -609,7 +713,6 @@ BERR_Code BVC5_UsermodeJob(
    }
 
    BVC5_P_AddJob(hVC5, hClient, pUsermodeJob);
-   BVC5_P_PumpClient(hVC5, hClient);
 
    err = BERR_SUCCESS;
 
@@ -678,7 +781,6 @@ BERR_Code BVC5_BinRenderJob(
       pRenderJob->jobData.sRender.bRenderOnlyJob = true;
 
    BVC5_P_AddJob(hVC5, hClient, pRenderJob);
-   BVC5_P_PumpClient(hVC5, hClient);
 
    err = BERR_SUCCESS;
 
@@ -723,7 +825,6 @@ BERR_Code BVC5_TestJob(
    }
 
    BVC5_P_AddJob(hVC5, hClient, pTestJob);
-   BVC5_P_PumpClient(hVC5, hClient);
 
    err = BERR_SUCCESS;
 
@@ -769,7 +870,6 @@ BERR_Code BVC5_FenceWaitJob(
    }
 
    BVC5_P_AddJob(hVC5, hClient, pWaitJob);
-   BVC5_P_PumpClient(hVC5, hClient);
 
    err = BERR_SUCCESS;
 
@@ -793,7 +893,7 @@ BERR_Code BVC5_TFUJobs(
    BVC5_ClientHandle     hClient;
    uint32_t              i;
 
-   BDBG_ENTER(BVC5_TFUJob);
+   BDBG_ENTER(BVC5_TFUJobs);
 
    if (pTFUJobs == NULL || uiNumJobs > 32)
       return BERR_INVALID_PARAMETER;
@@ -834,13 +934,12 @@ BERR_Code BVC5_TFUJobs(
       {
          BVC5_P_AddJob(hVC5, hClient, pInternalJobs[i]);
       }
-      BVC5_P_PumpClient(hVC5, hClient);
    }
 
 exit:
    BKNI_ReleaseMutex(hVC5->hModuleMutex);
 
-   BDBG_LEAVE(BVC5_TFUJob);
+   BDBG_LEAVE(BVC5_TFUJobs);
 
    return err;
 }
@@ -899,7 +998,7 @@ BERR_Code BVC5_Query(
       goto exit;
    }
 
-   BVC5_P_PumpClient(hVC5, hClient);
+   BVC5_P_SchedulerPump(hVC5);
 
    pResponse->uiStateAchieved = BVC5_P_HaveDepsCompleted(hClient, pCompletedDeps) &&
                                 BVC5_P_HaveDepsFinalized(hClient, pFinalizedDeps);
@@ -965,6 +1064,7 @@ BERR_Code BVC5_MakeFenceForAnyNonFinalizedJob(
 BERR_Code BVC5_FenceRegisterWaitCallback(
    BVC5_Handle    hVC5,
    int            iFence,
+   uint32_t       uiClientId,
    void         (*pfnCallback)(void *, void *),
    void          *pContext,
    void          *pParam
@@ -978,7 +1078,8 @@ BERR_Code BVC5_FenceRegisterWaitCallback(
 
    BDBG_ASSERT(pfnCallback != NULL);
 
-   BVC5_P_FenceAddCallback(hFenceArr, iFence, pfnCallback, pContext, pParam);
+   BVC5_P_FenceAddCallback(hFenceArr, iFence, uiClientId,
+         pfnCallback, pContext, pParam);
 
    BDBG_LEAVE(BVC5_FenceRegisterWaitCallback);
 
@@ -987,16 +1088,25 @@ BERR_Code BVC5_FenceRegisterWaitCallback(
 
 BERR_Code BVC5_FenceUnregisterWaitCallback(
    BVC5_Handle    hVC5,
-   int            iFence
+   int            iFence,
+   uint32_t       uiClientId,
+   void         (*pfnCallback)(void *, void *),
+   void          *pContext,
+   void          *pParam,
+   bool          *bSignalled
 )
 {
    BVC5_FenceArrayHandle hFenceArr = hVC5->hFences;
+   bool signalled;
 
    BDBG_ENTER(BVC5_FenceUnregisterWaitCallback);
 
    BDBG_MSG(("BVC5_FenceUnregisterWaitCallback fence %d\n", iFence));
 
-   BVC5_P_FenceRemoveCallback(hFenceArr, iFence);
+   signalled = BVC5_P_FenceRemoveCallback(hFenceArr, iFence, uiClientId,
+         pfnCallback, pContext, pParam);
+   if (bSignalled)
+      *bSignalled = signalled;
 
    BDBG_LEAVE(BVC5_FenceUnregisterWaitCallback);
 
@@ -1053,6 +1163,21 @@ BERR_Code BVC5_FenceMakeLocal(
    return *pFence != -1 ? BERR_SUCCESS : BERR_OUT_OF_SYSTEM_MEMORY;
 }
 
+BERR_Code BVC5_FenceKeep(
+   BVC5_Handle hVC5,
+   int         iFence
+)
+{
+   int result;
+   BDBG_ENTER(BVC5_FenceKeep);
+
+   result = BVC5_P_FenceKeep(hVC5->hFences, iFence);
+
+   BDBG_LEAVE(BVC5_FenceKeep);
+
+   return result == 0 ? BERR_SUCCESS : BERR_INVALID_PARAMETER;
+}
+
 /***************************************************************************/
 BERR_Code BVC5_GetUsermode(
    BVC5_Handle                 hVC5,
@@ -1083,7 +1208,7 @@ BERR_Code BVC5_GetUsermode(
 
          usermodeState->psRunningJob = NULL;
 
-         BVC5_P_PumpClient(hVC5, hClient);
+         BVC5_P_SchedulerPump(hVC5);
       }
    }
 
@@ -1144,7 +1269,7 @@ BERR_Code BVC5_GetCompletions(
       BVC5_P_ClientJobFinalizingToFinalized(hVC5, hClient, puiFinalizedJobs[u]);
    }
 
-   BVC5_P_PumpClient(hVC5, hClient);
+   BVC5_P_SchedulerPump(hVC5);
 
    /* How many completions are pending */
    uiNumPending = BVC5_P_JobQSize(hClient->hFinalizableQ);
@@ -1246,7 +1371,7 @@ BERR_Code BVC5_Resume(
 #endif
 
    /* Get the pump going again */
-   BVC5_P_PumpAllClients(hVC5);
+   BKNI_SetEvent(hVC5->hSchedulerWakeEvent);
 
    BKNI_ReleaseMutex(hVC5->hModuleMutex);
 

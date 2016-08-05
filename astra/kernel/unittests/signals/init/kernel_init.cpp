@@ -37,102 +37,62 @@
  ***************************************************************************/
 
 
-#include <hwtimer.h>
 #include <stdint.h>
-#include <waitqueue.h>
 
 #include "arm/arm.h"
 #include "arm/gic.h"
 #include "fs/ramfs.h"
 #include "config.h"
 
-#include "lib_printf.h"
-#include "libfdt.h"
-#include "parse_utils.h"
-
 #include "kernel.h"
-#include "tzmemory.h"
-#include "pgtable.h"
-#include "objalloc.h"
-#include "interrupt.h"
 #include "tztask.h"
 #include "scheduler.h"
-#include "svcutils.h"
-#include "console.h"
-#include "clock.h"
-#include "system.h"
 
-static uint8_t tzDevTree[MAX_DT_SIZE_BYTES];
+#include "system.h"
 
 #define assert(cond) if (!(cond)) { err_msg("%s:%d - Assertion failed", __PRETTY_FUNCTION__, __LINE__); while (true) {} }
 
-TzTask *testT;
-TzTask *nswT;
+TzTask *idler;
+TzTask *userT;
 
-extern "C" unsigned long _binary_ramfs_cpio_start;
+int idleTask(void *task, void *ctx) {
+    UNUSED(task);
+    UNUSED(ctx);
 
-void tzKernelSecondary() {
+    printf("starting idler\n");
+    asm volatile("cpsie aif":::);
 
-    System::initSecondaryCpu();
+    while (true) {
+        asm volatile("wfi": : :);
+    }
 
-    asm volatile("cpsid if":::);
-
-    schedule();
+    return 0;
 }
 
 void tzKernelInit(const void *devTree) {
 
-    if (arm::smpCpuNum() != 0) {
-        tzKernelSecondary();
-        return;
-    }
+    printf("%s: User space signals tests\n", __FUNCTION__);
 
-    printf("%s: user space tests\n", __FUNCTION__);
-
-    // The bootstrap code has mapped device tree memory one-to-one VA and PA.
-    int rc = fdt_check_header(devTree);
-    if (rc) {
-        err_msg("Corrupted device tree at %p.\n", devTree);
-        return;
-    }
-
-    int dtSize = fdt_totalsize(devTree);
-    if (dtSize > MAX_DT_SIZE_BYTES) {
-        err_msg("Device tree is too large (size %d) . Increase MAX_DT_SIZE_BYTES\n", dtSize);
-        return;
-    }
-
-    rc = fdt_move(devTree, tzDevTree, dtSize);
-    if (rc) {
-        err_msg("Device tree could not be relocated to tzDevTree: %s\n", fdt_strerror(rc));
-        return;
-    }
-
-    TzMem::init(tzDevTree);
-    PageTable::init(devTree);
-
-    System::init(tzDevTree);
+    System::init(devTree);
 
     IDirectory *root = System::root();
-    IFile *userHello;
+    IFile *userFile;
     IDirectory *dir;
-    rc = root->resolvePath("signals/sig_self.elf", &dir, &userHello);
+
+    int rc = root->resolvePath("user.elf", &dir, &userFile);
     assert(rc == 0);
     assert(dir == nullptr);
+    printf("%s: resolved user.elf\n", __FUNCTION__);
 
-    testT = new TzTask(userHello, 50, dir, "sigself");
-    if (testT == nullptr) {
-        err_msg("Init task creation failed\n");
-        kernelHalt("Could not create init task");
-    }
-    else if (testT->status() != TzTask::State::Ready) {
-        err_msg("Init task did not reach ready state\n");
-        kernelHalt("Init task creation failed");
-    }
+    idler = new TzTask(idleTask, nullptr, 10, "idler");
+    userT = new TzTask(userFile, 50, dir, "userT");
 
-    printf("tasks created\n");
+    assert(idler);
+    assert(userT);
+    printf("%s: tasks created\n", __FUNCTION__);
 
-    Scheduler::addTask(testT);
+    Scheduler::addTask(idler);
+    Scheduler::addTask(userT);
 
     asm volatile("cpsid if":::);
 
@@ -140,8 +100,7 @@ void tzKernelInit(const void *devTree) {
 }
 
 void kernelHalt(const char *reason) {
-
-    UNUSED(reason);
+    err_msg("%s\n", reason);
     while (true) {}
 }
 

@@ -75,14 +75,14 @@ static inline void *khrn_mem_lock(KHRN_MEM_HANDLE_T handle)
 static inline void khrn_mem_unlock(KHRN_MEM_HANDLE_T handle)
 {
    /* Nothing to do */
-   UNUSED(handle);
+   vcos_unused(handle);
 }
 static inline size_t khrn_mem_get_size(KHRN_MEM_HANDLE_T handle)
 {
    KHRN_MEM_HEADER_T *header = khrn_mem_header(handle);
    return header->size;
 }
-static inline void khrn_mem_set_desc(KHRN_MEM_HANDLE_T handle, const char *desc) { /*ignored*/ UNUSED(handle); UNUSED(desc); }
+static inline void khrn_mem_set_desc(KHRN_MEM_HANDLE_T handle, const char *desc) { /*ignored*/ vcos_unused(handle); vcos_unused(desc); }
 static inline KHRN_MEM_TERM_T khrn_mem_get_term(KHRN_MEM_HANDLE_T handle)
 {
    KHRN_MEM_HEADER_T *header = khrn_mem_header(handle);
@@ -107,11 +107,9 @@ static inline unsigned khrn_mem_get_ref_count(KHRN_MEM_HANDLE_T handle)
 }
 extern bool khrn_mem_try_release(KHRN_MEM_HANDLE_T handle);
 static inline bool khrn_mem_retain(KHRN_MEM_HANDLE_T handle) { return khrn_mem_get_size(handle) != 0; }
-static inline void khrn_mem_unretain(KHRN_MEM_HANDLE_T handle) { /* ignore */ UNUSED(handle); }
+static inline void khrn_mem_unretain(KHRN_MEM_HANDLE_T handle) { /* ignore */ vcos_unused(handle); }
 
-#define KHRN_MEM_HANDLE_ZERO_SIZE khrn_mem_handle_zero_size
 #define KHRN_MEM_HANDLE_EMPTY_STRING khrn_mem_handle_empty_string
-extern KHRN_MEM_HANDLE_T khrn_mem_handle_zero_size;
 extern KHRN_MEM_HANDLE_T khrn_mem_handle_empty_string;
 
 /* The lhs of KHRN_MEM_ASSIGN(lhs, rhs) may be evaluated multiple times. The

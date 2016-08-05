@@ -82,6 +82,9 @@
 #include "bchp_v3d_vpm_0.h"
 #include "bchp_v3d_pctr_0.h"
 #include "bchp_v3d_err_0.h"
+#include "bchp_v3d_mmu_0.h"
+#include "bchp_v3d_mmu_t.h"
+#include "bchp_v3d_mmuc.h"
 #else
 /* These files were not per core */
 #include "bchp_v3d_qpudbg.h"
@@ -237,6 +240,7 @@
 #define BCHP_V3D_TFU_TFUIIS         BCHP_V3D_TFU_IIS
 #define BCHP_V3D_TFU_TFUIIA         BCHP_V3D_TFU_IIA
 #define BCHP_V3D_TFU_TFUICA         BCHP_V3D_TFU_ICA
+#define BCHP_V3D_TFU_TFUIUA         BCHP_V3D_TFU_IUA
 #define BCHP_V3D_TFU_TFUSU          BCHP_V3D_TFU_SU
 #define BCHP_V3D_TFU_TFUIOA         BCHP_V3D_TFU_IOA
 #define BCHP_V3D_TFU_TFUIOS         BCHP_V3D_TFU_IOS
@@ -250,10 +254,6 @@
 #define BCHP_V3D_TFU_TFUSYNC        BCHP_V3D_TFU_SYNC
 #define BCHP_V3D_TFU_TFUINT_CLR     BCHP_V3D_TFU_INT_CLR
 #define BCHP_V3D_TFU_TFUINT_MSK_STS BCHP_V3D_TFU_INT_MSK_STS
-#define BCHP_V3D_TFU_TFUICFG        BCHP_V3D_TFU_ICFG
-#define BCHP_V3D_TFU_TFUIIS         BCHP_V3D_TFU_IIS
-#define BCHP_V3D_TFU_TFUIIA         BCHP_V3D_TFU_IIA
-#define BCHP_V3D_TFU_TFUICA         BCHP_V3D_TFU_ICA
 #define BCHP_V3D_PTB_BPOA           BCHP_V3D_PTB_0_BPOA
 #define V3D_TFU_TFUINT_STS_INT      V3D_TFU_INT_STS_INT
 #define V3D_TFU_TFUIOS              V3D_TFU_IOS

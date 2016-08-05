@@ -53,6 +53,102 @@ version32:
    highp void imageStore(writeonly iimageCubeArray image, ivec3 coord, ivec4 data);
    highp void imageStore(writeonly uimageCubeArray image, ivec3 coord, uvec4 data);
 
+   highp  int imageAtomicAdd(iimage2D        image, ivec2 coord,  int data);
+   highp uint imageAtomicAdd(uimage2D        image, ivec2 coord, uint data);
+   highp  int imageAtomicAdd(iimage3D        image, ivec3 coord,  int data);
+   highp uint imageAtomicAdd(uimage3D        image, ivec3 coord, uint data);
+   highp  int imageAtomicAdd(iimageCube      image, ivec3 coord,  int data);
+   highp uint imageAtomicAdd(uimageCube      image, ivec3 coord, uint data);
+   highp  int imageAtomicAdd(iimage2DArray   image, ivec3 coord,  int data);
+   highp uint imageAtomicAdd(uimage2DArray   image, ivec3 coord, uint data);
+   highp  int imageAtomicAdd(iimageCubeArray image, ivec3 coord,  int data);
+   highp uint imageAtomicAdd(uimageCubeArray image, ivec3 coord, uint data);
+
+   highp  int imageAtomicMin(iimage2D        image, ivec2 coord,  int data);
+   highp uint imageAtomicMin(uimage2D        image, ivec2 coord, uint data);
+   highp  int imageAtomicMin(iimage3D        image, ivec3 coord,  int data);
+   highp uint imageAtomicMin(uimage3D        image, ivec3 coord, uint data);
+   highp  int imageAtomicMin(iimageCube      image, ivec3 coord,  int data);
+   highp uint imageAtomicMin(uimageCube      image, ivec3 coord, uint data);
+   highp  int imageAtomicMin(iimage2DArray   image, ivec3 coord,  int data);
+   highp uint imageAtomicMin(uimage2DArray   image, ivec3 coord, uint data);
+   highp  int imageAtomicMin(iimageCubeArray image, ivec3 coord,  int data);
+   highp uint imageAtomicMin(uimageCubeArray image, ivec3 coord, uint data);
+
+   highp  int imageAtomicMax(iimage2D        image, ivec2 coord,  int data);
+   highp uint imageAtomicMax(uimage2D        image, ivec2 coord, uint data);
+   highp  int imageAtomicMax(iimage3D        image, ivec3 coord,  int data);
+   highp uint imageAtomicMax(uimage3D        image, ivec3 coord, uint data);
+   highp  int imageAtomicMax(iimageCube      image, ivec3 coord,  int data);
+   highp uint imageAtomicMax(uimageCube      image, ivec3 coord, uint data);
+   highp  int imageAtomicMax(iimage2DArray   image, ivec3 coord,  int data);
+   highp uint imageAtomicMax(uimage2DArray   image, ivec3 coord, uint data);
+   highp  int imageAtomicMax(iimageCubeArray image, ivec3 coord,  int data);
+   highp uint imageAtomicMax(uimageCubeArray image, ivec3 coord, uint data);
+
+   highp  int imageAtomicAnd(iimage2D        image, ivec2 coord,  int data);
+   highp uint imageAtomicAnd(uimage2D        image, ivec2 coord, uint data);
+   highp  int imageAtomicAnd(iimage3D        image, ivec3 coord,  int data);
+   highp uint imageAtomicAnd(uimage3D        image, ivec3 coord, uint data);
+   highp  int imageAtomicAnd(iimageCube      image, ivec3 coord,  int data);
+   highp uint imageAtomicAnd(uimageCube      image, ivec3 coord, uint data);
+   highp  int imageAtomicAnd(iimage2DArray   image, ivec3 coord,  int data);
+   highp uint imageAtomicAnd(uimage2DArray   image, ivec3 coord, uint data);
+   highp  int imageAtomicAnd(iimageCubeArray image, ivec3 coord,  int data);
+   highp uint imageAtomicAnd(uimageCubeArray image, ivec3 coord, uint data);
+
+   highp  int imageAtomicOr(iimage2D        image, ivec2 coord,  int data);
+   highp uint imageAtomicOr(uimage2D        image, ivec2 coord, uint data);
+   highp  int imageAtomicOr(iimage3D        image, ivec3 coord,  int data);
+   highp uint imageAtomicOr(uimage3D        image, ivec3 coord, uint data);
+   highp  int imageAtomicOr(iimageCube      image, ivec3 coord,  int data);
+   highp uint imageAtomicOr(uimageCube      image, ivec3 coord, uint data);
+   highp  int imageAtomicOr(iimage2DArray   image, ivec3 coord,  int data);
+   highp uint imageAtomicOr(uimage2DArray   image, ivec3 coord, uint data);
+   highp  int imageAtomicOr(iimageCubeArray image, ivec3 coord,  int data);
+   highp uint imageAtomicOr(uimageCubeArray image, ivec3 coord, uint data);
+
+   highp  int imageAtomicXor(iimage2D        image, ivec2 coord,  int data);
+   highp uint imageAtomicXor(uimage2D        image, ivec2 coord, uint data);
+   highp  int imageAtomicXor(iimage3D        image, ivec3 coord,  int data);
+   highp uint imageAtomicXor(uimage3D        image, ivec3 coord, uint data);
+   highp  int imageAtomicXor(iimageCube      image, ivec3 coord,  int data);
+   highp uint imageAtomicXor(uimageCube      image, ivec3 coord, uint data);
+   highp  int imageAtomicXor(iimage2DArray   image, ivec3 coord,  int data);
+   highp uint imageAtomicXor(uimage2DArray   image, ivec3 coord, uint data);
+   highp  int imageAtomicXor(iimageCubeArray image, ivec3 coord,  int data);
+   highp uint imageAtomicXor(uimageCubeArray image, ivec3 coord, uint data);
+
+   highp float imageAtomicExchange( image2D        image, ivec2 coord, float data);
+   highp   int imageAtomicExchange(iimage2D        image, ivec2 coord,   int data);
+   highp  uint imageAtomicExchange(uimage2D        image, ivec2 coord,  uint data);
+   highp float imageAtomicExchange( image3D        image, ivec3 coord, float data);
+   highp   int imageAtomicExchange(iimage3D        image, ivec3 coord,   int data);
+   highp  uint imageAtomicExchange(uimage3D        image, ivec3 coord,  uint data);
+   highp float imageAtomicExchange( imageCube      image, ivec3 coord, float data);
+   highp   int imageAtomicExchange(iimageCube      image, ivec3 coord,   int data);
+   highp  uint imageAtomicExchange(uimageCube      image, ivec3 coord,  uint data);
+   highp float imageAtomicExchange( image2DArray   image, ivec3 coord, float data);
+   highp   int imageAtomicExchange(iimage2DArray   image, ivec3 coord,   int data);
+   highp  uint imageAtomicExchange(uimage2DArray   image, ivec3 coord,  uint data);
+   highp float imageAtomicExchange( imageCubeArray image, ivec3 coord, float data);
+   highp   int imageAtomicExchange(iimageCubeArray image, ivec3 coord,   int data);
+   highp  uint imageAtomicExchange(uimageCubeArray image, ivec3 coord,  uint data);
+
+   highp  int imageAtomicCompSwap(iimage2D        image, ivec2 coord,  int compare,  int data);
+   highp uint imageAtomicCompSwap(uimage2D        image, ivec2 coord, uint compare, uint data);
+   highp  int imageAtomicCompSwap(iimage3D        image, ivec3 coord,  int compare,  int data);
+   highp uint imageAtomicCompSwap(uimage3D        image, ivec3 coord, uint compare, uint data);
+   highp  int imageAtomicCompSwap(iimageCube      image, ivec3 coord,  int compare,  int data);
+   highp uint imageAtomicCompSwap(uimageCube      image, ivec3 coord, uint compare, uint data);
+   highp  int imageAtomicCompSwap(iimage2DArray   image, ivec3 coord,  int compare,  int data);
+   highp uint imageAtomicCompSwap(uimage2DArray   image, ivec3 coord, uint compare, uint data);
+   highp  int imageAtomicCompSwap(iimageCubeArray image, ivec3 coord,  int compare,  int data);
+   highp uint imageAtomicCompSwap(uimageCubeArray image, ivec3 coord, uint compare, uint data);
+
+   void EmitVertex();
+   void EndPrimitive();
+
 #
 # Global Variables
 #
@@ -61,10 +157,24 @@ version32:
    in highp int gl_InvocationID;
    patch out highp float gl_TessLevelOuter[4];
    patch out highp float gl_TessLevelInner[2];
+   patch out highp vec4  gl_BoundingBox[2];
 
    in highp vec3 gl_TessCoord;
    patch in highp float gl_TessLevelOuter[4];
    patch in highp float gl_TessLevelInner[2];
+
+   in highp int gl_PrimitiveIDIn;
+
+   out highp int gl_PrimitiveID;
+   out highp int gl_Layer;
+
+   in  highp   int  gl_Layer;
+   in  lowp    int  gl_SampleID;
+   in  mediump vec2 gl_SamplePosition;
+   in  highp   int  gl_SampleMaskIn[1];
+   out highp   int  gl_SampleMask[1];
+
+   uniform lowp int gl_NumSamples;
 
 #
 # Constants
@@ -87,3 +197,13 @@ version32:
    const mediump int gl_MaxTessPatchComponents;
    const mediump int gl_MaxPatchVertices;
    const mediump int gl_MaxTessGenLevel;
+   const mediump int gl_MaxGeometryInputComponents;
+   const mediump int gl_MaxGeometryOutputComponents;
+   const mediump int gl_MaxGeometryImageUniforms;
+   const mediump int gl_MaxGeometryTextureImageUnits;
+   const mediump int gl_MaxGeometryOutputVertices;
+   const mediump int gl_MaxGeometryTotalOutputComponents;
+   const mediump int gl_MaxGeometryUniformComponents;
+   const mediump int gl_MaxGeometryAtomicCounters;
+   const mediump int gl_MaxGeometryAtomicCounterBuffers;
+   const mediump int gl_MaxSamples;

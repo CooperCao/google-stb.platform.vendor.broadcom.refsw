@@ -172,7 +172,7 @@ Establish list of Revoked KSV's
 **/
 NEXUS_Error NEXUS_HdmiOutput_SetHdcpRevokedKsvs(
     NEXUS_HdmiOutputHandle handle,
-    const NEXUS_HdmiOutputHdcpKsv *pRevokedKsvs,    /* attr{nelem=numKsvs;nelem_convert=NEXUS_P_HDMI_OUTPUT_HDCP_KSV_SIZE} array of revoked ksv's */
+    const NEXUS_HdmiOutputHdcpKsv *pRevokedKsvs,    /* attr{nelem=numKsvs} array of revoked ksv's */
     uint16_t numKsvs                                /* Number of ksvs in the array provided */
     );
 
@@ -292,8 +292,8 @@ typedef struct NEXUS_HdmiOutputHdcpStatus
     NEXUS_HdmiOutputHdcpState hdcpState;    /* Current HDCP State */
     NEXUS_HdmiOutputHdcpError hdcpError;    /* Last HDCP error */
 
-    bool linkReadyForEncryption;    /* Link is ready for encryption */
-    bool transmittingEncrypted;     /* Encryption is enabled */
+    bool linkReadyForEncryption;    /* True when link is ready for encryption or when link is encrypted */
+    bool transmittingEncrypted;     /* True indicates Encryption is enabled */
 
     bool isHdcpRepeater;            /* Receiver is a repeater */
     bool ksvFifoReady;              /* Receiver ksv FIFO is ready */

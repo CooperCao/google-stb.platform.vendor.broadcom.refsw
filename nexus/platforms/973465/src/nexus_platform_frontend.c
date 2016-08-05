@@ -66,7 +66,91 @@ BDBG_MODULE(nexus_platform_frontend);
 #define ISL9492_CH1_I2C_ADDR 0x09
 
 
-#if NEXUS_PLATFORM_97346_SV
+#if NEXUS_PLATFORM_97346_H43
+
+static NEXUS_GpioHandle gpioHandleInt = NULL;
+
+#define NEXUS_PLATFORM_H43_GPIO_INTERRUPT 2
+
+NEXUS_Error NEXUS_Platform_InitFrontend(void)
+{
+    NEXUS_PlatformConfiguration *pConfig = &g_NEXUS_platformHandles.config;
+    NEXUS_FrontendDeviceHandle device;
+    NEXUS_FrontendUserParameters userParams;
+    unsigned i=0;
+    NEXUS_FrontendDeviceOpenSettings deviceSettings;
+    NEXUS_GpioSettings gpioSettings;
+    unsigned i2c = 2;
+    unsigned i2c_addr = 0x68;
+    unsigned intGpio = NEXUS_PLATFORM_H43_GPIO_INTERRUPT;
+    NEXUS_GpioType intGpioType = NEXUS_GpioType_eStandard;
+
+    NEXUS_FrontendDevice_GetDefaultOpenSettings(&deviceSettings);
+
+    deviceSettings.reset.enable = true;
+    deviceSettings.reset.pin = 3;
+    deviceSettings.reset.type = NEXUS_GpioType_eStandard;
+    deviceSettings.reset.value = NEXUS_GpioValue_eHigh;
+
+    deviceSettings.i2cDevice = pConfig->i2c[i2c];
+    deviceSettings.i2cAddress = i2c_addr;
+#if 0
+    deviceSettings.satellite.diseqc.i2cAddress= 0x0B;
+    deviceSettings.satellite.diseqc.i2cDevice = pConfig->i2c[NEXUS_PLATFORM_SAT_I2C];
+#endif
+
+    {
+        NEXUS_FrontendProbeResults probeResults;
+
+        BSTD_UNUSED(userParams);
+
+        NEXUS_FrontendDevice_Probe(&deviceSettings, &probeResults);
+        if (probeResults.chip.familyId != 0) {
+            BDBG_WRN(("Opening %x...",probeResults.chip.familyId));
+            deviceSettings.satellite.enabled = true;
+
+            BDBG_MSG(("Setting up interrupt on GPIO %d",intGpio));
+            NEXUS_Gpio_GetDefaultSettings(intGpioType, &gpioSettings);
+            gpioSettings.mode = NEXUS_GpioMode_eInput;
+            gpioSettings.interruptMode = NEXUS_GpioInterrupt_eLow;
+            gpioHandleInt = NEXUS_Gpio_Open(intGpioType, intGpio, &gpioSettings);
+            BDBG_ASSERT(NULL != gpioHandleInt);
+
+            deviceSettings.gpioInterrupt = gpioHandleInt;
+            device = NEXUS_FrontendDevice_Open(0, &deviceSettings);
+
+            if (device) {
+                NEXUS_FrontendDeviceCapabilities capabilities;
+
+                NEXUS_FrontendDevice_GetCapabilities(device, &capabilities);
+                BDBG_MSG(("Opening %d %x frontends",capabilities.numTuners,probeResults.chip.familyId));
+                for (i=0; i < capabilities.numTuners ; i++)
+                {
+                    NEXUS_FrontendChannelSettings channelSettings;
+                    channelSettings.device = device;
+                    channelSettings.channelNumber = i;
+                    channelSettings.type = NEXUS_FrontendChannelType_eSatellite;
+                    pConfig->frontend[i] = NEXUS_Frontend_Open(&channelSettings);
+                    if ( NULL == (pConfig->frontend[i]) )
+                    {
+                        BDBG_ERR(("Unable to open %x demod %d (as frontend[%d])",probeResults.chip.familyId,i,i));
+                        continue;
+                    }
+                    BDBG_MSG(("%xfe: %d(%d):%p",probeResults.chip.familyId,i,i,(void *)pConfig->frontend[i]));
+                }
+
+            } else {
+                BDBG_ERR(("Unable to open detected %x frontend", probeResults.chip.familyId));
+            }
+        } else {
+            BDBG_ERR(("No frontend found."));
+        }
+    }
+
+    return NEXUS_SUCCESS;
+}
+
+#elif NEXUS_PLATFORM_97346_SV
 
 #define NEXUS_PLATFORM_SAT_GPIO_INTERRUPT 62
 #define NEXUS_PLATFORM_SAT_I2C 2
@@ -341,7 +425,7 @@ void NEXUS_Platform_UninitFrontend(void)
             deviceHandles[i] = NULL;
         }
     }
-#if NEXUS_PLATFORM_97346_SV
+#if NEXUS_PLATFORM_97346_SV || NEXUS_PLATFORM_97346_H43
     if (gpioHandleInt) {
        NEXUS_Gpio_Close(gpioHandleInt);
        gpioHandleInt = NULL;

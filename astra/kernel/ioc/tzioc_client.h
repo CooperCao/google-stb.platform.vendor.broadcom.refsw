@@ -58,6 +58,7 @@ public:
     static struct tzioc_client *clientFindById(uint8_t id);
     static struct tzioc_client *clientFindByName(const char *pName);
     static struct tzioc_client *clientFindByTask(const TzTask *pTask);
+    static struct tzioc_client *clientFindByNameAndTask(const char *pName, const TzTask *pTask);
 
     static struct tzioc_client *kernelClientOpen(
         const char *pName,

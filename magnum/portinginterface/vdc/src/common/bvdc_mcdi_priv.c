@@ -126,7 +126,7 @@ static const BVDC_P_McdiGameModeInfo s_aMadrGameModeInfo[] =
 #include "bchp_mdi_top_1.h"
 #endif
 BDBG_MODULE(BVDC_MCDI);
-BDBG_FILE_MODULE(deinterlacer_mosaic);
+BDBG_FILE_MODULE(BVDC_DEINTERLACER_MOSAIC);
 BDBG_OBJECT_ID(BVDC_MDI);
 
 /***************************************************************************
@@ -942,33 +942,34 @@ static void BVDC_P_Mcdi_BuildRul_Madr_SetEnable_isr
         BCHP_FIELD_DATA(MDI_TOP_0_MODE_CONTROL_0, BVB_VIDEO, eOrientation);
     switch(hMcdi->eGameMode)
     {
-    default:
-    case BVDC_MadGameMode_eOff:
-    case BVDC_MadGameMode_e5Fields_2Delay:
-    case BVDC_MadGameMode_e4Fields_2Delay:
-    case BVDC_MadGameMode_e3Fields_2Delay:
-        ulModeCtrl0 |=
-            BCHP_FIELD_ENUM(MDI_TOP_0_MODE_CONTROL_0, LOW_DELAY_COUNT, NORMAL_DELAY);
-        break;
+        default:
+        case BVDC_MadGameMode_eOff:
+        case BVDC_MadGameMode_e5Fields_2Delay:
+        case BVDC_MadGameMode_e4Fields_2Delay:
+        case BVDC_MadGameMode_e3Fields_2Delay:
+            ulModeCtrl0 |=
+                BCHP_FIELD_ENUM(MDI_TOP_0_MODE_CONTROL_0, LOW_DELAY_COUNT, NORMAL_DELAY);
+            break;
 
-    case BVDC_MadGameMode_e5Fields_1Delay:
-    case BVDC_MadGameMode_e4Fields_1Delay:
-    case BVDC_MadGameMode_e3Fields_1Delay:
-        ulModeCtrl0 |=
-            BCHP_FIELD_ENUM(MDI_TOP_0_MODE_CONTROL_0, LOW_DELAY_COUNT, ONE_FIELD_DELY);
-        break;
+        case BVDC_MadGameMode_e5Fields_1Delay:
+        case BVDC_MadGameMode_e4Fields_1Delay:
+        case BVDC_MadGameMode_e3Fields_1Delay:
+            ulModeCtrl0 |=
+                BCHP_FIELD_ENUM(MDI_TOP_0_MODE_CONTROL_0, LOW_DELAY_COUNT, ONE_FIELD_DELY);
+            break;
 
-    case BVDC_MadGameMode_e5Fields_0Delay:
-    case BVDC_MadGameMode_e4Fields_0Delay:
-    case BVDC_MadGameMode_e3Fields_0Delay:
+        case BVDC_MadGameMode_e5Fields_0Delay:
+        case BVDC_MadGameMode_e4Fields_0Delay:
+        case BVDC_MadGameMode_e3Fields_0Delay:
 
-    /* fall thru */
-    case BVDC_MadGameMode_e5Fields_ForceSpatial:
-    case BVDC_MadGameMode_e4Fields_ForceSpatial:
-    case BVDC_MadGameMode_e3Fields_ForceSpatial:
-        ulModeCtrl0 |=
-            BCHP_FIELD_ENUM(MDI_TOP_0_MODE_CONTROL_0, LOW_DELAY_COUNT, ZERO_FIELD_DELAY);
-        break;
+        /* fall thru */
+        case BVDC_MadGameMode_e5Fields_ForceSpatial:
+        case BVDC_MadGameMode_e4Fields_ForceSpatial:
+        case BVDC_MadGameMode_e3Fields_ForceSpatial:
+        case BVDC_MadGameMode_eMinField_ForceSpatial:
+            ulModeCtrl0 |=
+                BCHP_FIELD_ENUM(MDI_TOP_0_MODE_CONTROL_0, LOW_DELAY_COUNT, ZERO_FIELD_DELAY);
+            break;
     }
 
     BVDC_P_SUBRUL_ONE_REG(pList, ulRegModeCtrl0, ulRegOffset, ulModeCtrl0);
@@ -1736,7 +1737,7 @@ static void BVDC_P_Mcdi_BuildRul_Mcdi_SrcInit_isr
             BCHP_FIELD_DATA(MDI_TOP_0_SRC_PIC_SIZE, HSIZE, ulHSize) |
             BCHP_FIELD_DATA(MDI_TOP_0_SRC_PIC_SIZE, VSIZE, ulVSize));
 
-    BDBG_MODULE_MSG(deinterlacer_mosaic, ("init pPicture mosaic %d %d x %d ",
+    BDBG_MODULE_MSG(BVDC_DEINTERLACER_MOSAIC, ("init pPicture mosaic %d %d x %d ",
         pPicture->bMosaicMode, ulHSize, ulVSize));
 
     BVDC_P_Mcdi_BuildRul_Mcdi_SiobInit_isr(hMcdi, pList, pPicture->bEnable10Bit);
@@ -1899,33 +1900,34 @@ static void BVDC_P_Mcdi_BuildRul_Mcdi_SetEnable_isr
 #endif
     switch(hMcdi->eGameMode)
     {
-    default:
-    case BVDC_MadGameMode_eOff:
-    case BVDC_MadGameMode_e5Fields_2Delay:
-    case BVDC_MadGameMode_e4Fields_2Delay:
-    case BVDC_MadGameMode_e3Fields_2Delay:
-        ulModeCtrl0 |=
-            BCHP_FIELD_ENUM(MDI_TOP_0_MODE_CONTROL_0, LOW_DELAY_COUNT, NORMAL_DELAY);
-        break;
+        default:
+        case BVDC_MadGameMode_eOff:
+        case BVDC_MadGameMode_e5Fields_2Delay:
+        case BVDC_MadGameMode_e4Fields_2Delay:
+        case BVDC_MadGameMode_e3Fields_2Delay:
+            ulModeCtrl0 |=
+                BCHP_FIELD_ENUM(MDI_TOP_0_MODE_CONTROL_0, LOW_DELAY_COUNT, NORMAL_DELAY);
+            break;
 
-    case BVDC_MadGameMode_e5Fields_1Delay:
-    case BVDC_MadGameMode_e4Fields_1Delay:
-    case BVDC_MadGameMode_e3Fields_1Delay:
-        ulModeCtrl0 |=
-            BCHP_FIELD_ENUM(MDI_TOP_0_MODE_CONTROL_0, LOW_DELAY_COUNT, ONE_FIELD_DELY);
-        break;
+        case BVDC_MadGameMode_e5Fields_1Delay:
+        case BVDC_MadGameMode_e4Fields_1Delay:
+        case BVDC_MadGameMode_e3Fields_1Delay:
+            ulModeCtrl0 |=
+                BCHP_FIELD_ENUM(MDI_TOP_0_MODE_CONTROL_0, LOW_DELAY_COUNT, ONE_FIELD_DELY);
+            break;
 
-    case BVDC_MadGameMode_e5Fields_0Delay:
-    case BVDC_MadGameMode_e4Fields_0Delay:
-    case BVDC_MadGameMode_e3Fields_0Delay:
+        case BVDC_MadGameMode_e5Fields_0Delay:
+        case BVDC_MadGameMode_e4Fields_0Delay:
+        case BVDC_MadGameMode_e3Fields_0Delay:
 
-    /* fall thru */
-    case BVDC_MadGameMode_e5Fields_ForceSpatial:
-    case BVDC_MadGameMode_e4Fields_ForceSpatial:
-    case BVDC_MadGameMode_e3Fields_ForceSpatial:
-        ulModeCtrl0 |=
-            BCHP_FIELD_ENUM(MDI_TOP_0_MODE_CONTROL_0, LOW_DELAY_COUNT, ZERO_FIELD_DELAY);
-        break;
+        /* fall thru */
+        case BVDC_MadGameMode_e5Fields_ForceSpatial:
+        case BVDC_MadGameMode_e4Fields_ForceSpatial:
+        case BVDC_MadGameMode_e3Fields_ForceSpatial:
+        case BVDC_MadGameMode_eMinField_ForceSpatial:
+            ulModeCtrl0 |=
+                BCHP_FIELD_ENUM(MDI_TOP_0_MODE_CONTROL_0, LOW_DELAY_COUNT, ZERO_FIELD_DELAY);
+            break;
     }
 
     BVDC_P_SUBRUL_ONE_REG(pList, BCHP_MDI_TOP_0_MODE_CONTROL_0, ulRegOffset, ulModeCtrl0);
@@ -1999,7 +2001,7 @@ static void BVDC_P_Mcdi_BuildRul_Mosaic_isr
     BVDC_P_SUBRUL_ONE_REG(pList, BCHP_MDI_TOP_0_MULTI_CONTEXT_TO, ulRegOffset,
             BCHP_FIELD_DATA(MDI_TOP_0_MULTI_CONTEXT_TO, STREAM_PROCESSED, ulPictureIdx));
 #endif
-    BDBG_MODULE_MSG(deinterlacer_mosaic, ("mcdi[%d] stream %d", hMcdi->eId, ulPictureIdx));
+    BDBG_MODULE_MSG(BVDC_DEINTERLACER_MOSAIC, ("mcdi[%d] stream %d", hMcdi->eId, ulPictureIdx));
 
     /* size */
     ulHSize = pPicture->pMadIn->ulWidth;
@@ -2062,7 +2064,7 @@ static void BVDC_P_Mcdi_BuildRul_Mosaic_isr
     *pList->pulCurrent++ = ulAddr2; /* PIXEL_FIELD_MSTART_2 */
     *pList->pulCurrent++ = ulAddr3; /* PIXEL_FIELD_MSTART_3 */
 
-    BDBG_MODULE_MSG(deinterlacer_mosaic, ("mcdi[%d] stream[%d] %4d x%4d continusou %s pxl buffer %s offset %d %x %x %x %x",
+    BDBG_MODULE_MSG(BVDC_DEINTERLACER_MOSAIC, ("mcdi[%d] stream[%d] %4d x%4d continusou %s pxl buffer %s offset %d %x %x %x %x",
         hMcdi->eId, ulPictureIdx, ulHSize, ulVSize, pPicture->bContinuous?"true":"false",
         BVDC_P_BUFFERHEAP_GET_HEAP_ID_NAME(hMcdi->apHeapNode[ulPictureIdx][0]->pHeapInfo->eBufHeapId),
         ulPxlBufSize, ulAddr0, ulAddr1, ulAddr2, ulAddr3));
@@ -2086,7 +2088,7 @@ static void BVDC_P_Mcdi_BuildRul_Mosaic_isr
     BVDC_P_SUBRUL_START_BLOCK(pList, BCHP_MDI_TOP_0_QM_FIELD_MSTART_1, ulRegOffset,
         BVDC_P_REGS_ENTRIES(MDI_TOP_0_QM_FIELD_MSTART_1, MDI_TOP_0_QM_FIELD_MSTART_4));
 
-    BDBG_MODULE_MSG(deinterlacer_mosaic,("Qm buffer offset %d size %x %x %x %x",
+    BDBG_MODULE_MSG(BVDC_DEINTERLACER_MOSAIC,("Qm buffer offset %d size %x %x %x %x",
         ulQmBufSize, ulAddr0, ulAddr1, ulAddr2, ulAddr3));
 
     *pList->pulCurrent++ = ulAddr0;
@@ -2117,7 +2119,7 @@ static void BVDC_P_Mcdi_BuildRul_Mosaic_isr
         *pList->pulCurrent++ = ulAddr2;
         *pList->pulCurrent++ = ulAddr3;
 
-        BDBG_MODULE_MSG(deinterlacer_mosaic,("Qm buffer Mcdi %x %x %x %x", ulAddr0, ulAddr1, ulAddr2, ulAddr3));
+        BDBG_MODULE_MSG(BVDC_DEINTERLACER_MOSAIC,("Qm buffer Mcdi %x %x %x %x", ulAddr0, ulAddr1, ulAddr2, ulAddr3));
     }
 #endif
     /* 5. To do list:golden set update */

@@ -117,25 +117,21 @@ bool v3d_build_tfu_cmd(V3D_TFU_COMMAND_T *cmd,
       const GFX_BUFFER_DESC_T *src_desc,
       const GFX_BUFFER_DESC_T *dst_desc,
       unsigned num_dst_levels, bool skip_dst_level_0,
-      v3d_addr_t src_base_addr, v3d_addr_t dst_base_addr,
-      int v3d_version)
+      v3d_addr_t src_base_addr, v3d_addr_t dst_base_addr)
 {
-   GFX_LFMT_T src_lfmt[2];
+   GFX_LFMT_T src_lfmt[3];
 
+   assert(src_desc->num_planes <= 3);
    assert(!skip_dst_level_0 || num_dst_levels > 1);
 
-   /* This is not implemented yet but we can use the other path for the moment
-    * Comment this part out until it is implemented
-   if (src_desc->num_planes > 2 && v3d_version >= V3D_MAKE_VER(3,3,0,0))
-   {
-      TODO Support for 3-plane YUV
-      printf("3-plane TFU conversion needs adding for 3.3 hardware\n");
-      not_impl();
+   /* TFU on HW < 3.3 can't converts more that 2 planes */
+   /* There is another code path for YV12               */
+#if !V3D_VER_AT_LEAST(3,3,0,0)
+   if (src_desc->num_planes > 2)
       return false;
-   }
-   */
+#endif
 
-   if (dst_desc->num_planes != 1 || src_desc->num_planes > 2)
+   if (dst_desc->num_planes != 1)
       return false;
 
    if (dst_desc->width > V3D_TFU_MAX_WIDTH || dst_desc->height > V3D_TFU_MAX_HEIGHT)
@@ -160,7 +156,7 @@ bool v3d_build_tfu_cmd(V3D_TFU_COMMAND_T *cmd,
             /* TODO Color space should be specified in src_desc? Currently just
              * assuming Rec. 601... */
             V3D_TFU_YUV_COL_SPACE_REC601,
-            dst_desc->planes[0].lfmt, v3d_version))
+            dst_desc->planes[0].lfmt))
       return false;
 
    assert(dst_desc->width <= src_desc->width &&  dst_desc->height <= src_desc->height);
@@ -191,12 +187,13 @@ bool v3d_build_tfu_cmd(V3D_TFU_COMMAND_T *cmd,
 
    cmd->src_memory_format = gfx_buffer_desc_get_tfu_iformat_and_stride(&cmd->src_strides[0],
          src_desc, 0);
-   if (src_desc->num_planes == 2)
+   if (src_desc->num_planes > 1)
    {
       v3d_tfu_iformat_t iformat;
       iformat = gfx_buffer_desc_get_tfu_iformat_and_stride(&cmd->src_strides[1], src_desc, 1);
       assert(iformat == cmd->src_memory_format);
    }
+
    cmd->dst_memory_format = gfx_buffer_desc_get_tfu_oformat_and_height_pad_in_ub(&cmd->dst_pad_in_uif_blocks,
          dst_desc, 0);
 

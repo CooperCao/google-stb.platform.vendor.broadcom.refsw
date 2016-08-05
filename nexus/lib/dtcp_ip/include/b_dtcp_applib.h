@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2009-2015 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  *****************************************************************************/
 #ifndef B_DTCP_APPLIB_H
@@ -206,6 +198,22 @@ typedef enum b_retention_state
     B_Retention_90minutes
 }B_Retention_State;
 
+/* Device info for
+ * diagnostic purposes
+ */
+typedef struct B_DTCP_Info
+{
+    bool AL;                   /* Additional Localization Flag */
+    bool CommonDeviceCert;     /* is the device using a common device certificate? */
+    unsigned char SrmGen;      /* SRM Generation */
+    unsigned short SrmVersion; /* SRM version */
+    unsigned short SrmLength;  /* SRM Length */
+}B_DTCP_Info;
+
+/*
+ * Get some common device info for diagnostic purposes.
+ */
+BERR_Code DtcpAppLib_GetDeviceInfo(void * ctx, B_DTCP_Info *info);
 
 /*!\brief exproted library startup function,must be called before any other AKE function call.
  * \param[in] mode device mode source/sink

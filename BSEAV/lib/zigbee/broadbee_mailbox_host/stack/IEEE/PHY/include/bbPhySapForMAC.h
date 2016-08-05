@@ -52,9 +52,70 @@
 #ifndef _BB_PHY_SAP_FOR_MAC_H
 #define _BB_PHY_SAP_FOR_MAC_H
 
-/************************* INCLUDES *****************************************************/
+/************************* INCLUDES ***********************************************************************************/
+#include "bbPhySapDefs.h"
+#include "bbPhySapTypesData.h"
+#include "bbPhySapTypesState.h"
+#include "bbPhySapTypesChannel.h"
+#include "bbPhySapTypesEnergy.h"
 #include "bbPhySapPib.h"
 
-/* !!! This file is obsolete !!! */
+/************************* PROTOTYPES *********************************************************************************/
+/**//**
+ * \name    Aliases for Radio Driver interface to TX and RX Frame Buffers.
+ */
+/**{@*/
+#define PHY_FrmBuf__TX_BDC_PHR      (HAL_Radio_FrmBuf__TX_BDC_PHR)
+#define PHY_FrmBuf__TX_BDC_PSDU     (HAL_Radio_FrmBuf__TX_BDC_PSDU)
+#define PHY_FrmBuf__TX_ACK_PSDU     (HAL_Radio_FrmBuf__TX_ACK_PSDU)
+#define PHY_FrmBuf__RX_PPDU         (HAL_Radio_FrmBuf__RX_PPDU)
+/**}@*/
+
+/**//**
+ * \name    Aliases for Radio Driver interface to Auxiliary Data of Frame Buffer.
+ */
+/**{@*/
+#define PHY_FrmBuf__RX_Stuff        (HAL_Radio_FrmBuf__RX_Stuff)
+#define PHY_FrmBuf__TX_Tstamps      (HAL_Radio_FrmBuf__TX_Tstamps)
+#define PHY_FrmBuf__RX_Tstamps      (HAL_Radio_FrmBuf__RX_Tstamps)
+#define PHY_FrmBuf__Status          (HAL_Radio_FrmBuf__Status)
+/**}@*/
+
+/**//**
+ * \name    Aliases for Radio Driver interface to PHY Primitives.
+ * \note    PHY's Confirmation and Indication callback functions are aliased only for conventional build.
+ */
+/**{@*/
+#define PHY__Init                   (HAL_Radio__Init)
+#define PHY__DATA_req               (HAL_Radio__DATA_req)
+#define PHY__DATA_ACK_req           (HAL_Radio__DATA_ACK_req)
+#define PHY__STATE_req              (HAL_Radio__STATE_req)
+#define PHY__CCA_req                (HAL_Radio__CCA_req)
+#define PHY__ED_req                 (HAL_Radio__ED_req)
+#define PHY__CHANNEL_req            (HAL_Radio__CHANNEL_req)
+#define PHY__CCA_MODE_set           (HAL_Radio__CCA_MODE_set)
+#define PHY__TX_POWER_set           (HAL_Radio__TX_POWER_set)
+#define PHY__RSSI_get               (HAL_Radio__RSSI_get)
+#define PHY__STATE_get              (HAL_Radio__STATE_get)
+#define PHY__IS_BUSY_get            (HAL_Radio__IS_BUSY_get)
+
+/* PHY Test interface is to be used with normal stack together in test.
+    So, normal MAC required PHY return path and IEEE compliant PHY
+    should exist at same time with different names. They are handled
+    in HAL_Radio__XXXX_XXX. -wzz
+
+/**}@*/
+
+/**//**
+ * \name    PHY's Confirmation and Indication callback functions for MAC in the case of Host-test build.
+ */
+/**@{*/
+extern void PHY__DATA_conf(void);
+extern void PHY__DATA_ind(void);
+extern void PHY__STATE_conf(void);
+extern void PHY__CCA_conf(void);
+extern void PHY__ED_conf(void);
+extern void PHY__CHANNEL_conf(void);
+/**@}*/
 
 #endif /* _BB_PHY_SAP_FOR_MAC_H */

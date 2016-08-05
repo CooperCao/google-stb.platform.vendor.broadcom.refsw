@@ -312,12 +312,14 @@ sub GenerateLegacySignatures {
     print $SignCommandFile $Line;
 
 #Processing of SID image
-    $Line='add_param_bin -in='.$SidBin.' -in_endian=le -cpu_type=sid -mid='.$MarketId.' -mid_mask='.$MarketIdMask.' -epo_sel='.$EpochSel.' -epo='.$SidEpoch.' -epo_mask='.$EpochMask.' -sig_type='.$SigType.' -sig_ver='.$SigVer.' -out='.$SidPreBin."\n";
-    print $SignCommandFile $Line;
-    $Line='sign -in='.$SidPreBin.' -out_endian=le -out_type=binary -out='.$SidSigBin."\n";
-    print $SignCommandFile $Line;
-    $Line='post_process_sid -in='.$SidSigBin.' -out='.$OutputDir."/nexus_sid_firmware_signature.c\n";
-    print $SignCommandFile $Line;
+    if ($NumChipId != 7360 && $NumChipId != 7425 && $NumChipId != 7563 && $NumChipId != 75635) {
+        $Line='add_param_bin -in='.$SidBin.' -in_endian=le -cpu_type=sid -mid='.$MarketId.' -mid_mask='.$MarketIdMask.' -epo_sel='.$EpochSel.' -epo='.$SidEpoch.' -epo_mask='.$EpochMask.' -sig_type='.$SigType.' -sig_ver='.$SigVer.' -out='.$SidPreBin."\n";
+        print $SignCommandFile $Line;
+        $Line='sign -in='.$SidPreBin.' -out_endian=le -out_type=binary -out='.$SidSigBin."\n";
+        print $SignCommandFile $Line;
+        $Line='post_process_sid -in='.$SidSigBin.' -out='.$OutputDir."/nexus_sid_firmware_signature.c\n";
+        print $SignCommandFile $Line;
+    }
 
 #Processing of AUDIO image
     $Line='add_param_bin -in='.$RaagaBin.' -in_endian=le -cpu_type=raaga -mid='.$MarketId.' -fw_epo='.$RaagaFwEpoch.' -mid_mask='.$MarketIdMask.' -epo_sel='.$EpochSel.' -epo='.$RaagaEpoch.' -epo_mask='.$EpochMask.' -sig_type='.$SigType.' -sig_ver='.$SigVer.' -out='.$RaagaPreBin."\n";
@@ -336,7 +338,7 @@ sub GenerateLegacySignatures {
     print $SignCommandFile $Line;
 
 #Processing of VCE image
-    if ($NumChipId != 74371 && $NumChipId != 7271 && $NumChipId != 7250) {
+    if ($NumChipId != 74371 && $NumChipId != 7271 && $NumChipId != 7250 && $NumChipId != 7360 && $NumChipId != 7425 && $NumChipId != 7563 && $NumChipId != 75635) {
         $Line='add_param_bin -in='.$VcePicBin.' -in_endian=le -cpu_type=vice -mid='.$MarketId.' -mid_mask='.$MarketIdMask.' -fw_epo='.$VceFwEpoch.' -epo_sel='.$EpochSel.' -epo='.$VceEpoch.' -epo_mask='.$EpochMask.' -sig_type='.$SigType.' -sig_ver='.$SigVer.' -out='.$VcePicPreBin."\n";
         print $SignCommandFile $Line;
         $Line='sign -in='.$VcePicPreBin.' -out_endian=le -out_type=binary -out='.$VcePicSigBin."\n";
@@ -359,12 +361,17 @@ sub GenerateLegacySignatures {
 	}
 
 #Processing of AVD image
-    $Line='add_param_bin -in='.$AvdOlBin.' -in_endian=le -cpu_type=hvd -mid='.$MarketId.' -mid_mask='.$MarketIdMask.' -fw_epo='.$AvdFwEpoch.' -epo_sel='.$EpochSel.' -epo='.$AvdEpoch.' -epo_mask='.$EpochMask.' -sig_type='.$SigType.' -sig_ver='.$SigVer.' -out='.$AvdOlPreBin."\n";
+    my $CpuType = "hvd";
+    if ($NumChipId == 7360) {
+        $CpuType = "avd";
+    }
+
+    $Line='add_param_bin -in='.$AvdOlBin.' -in_endian=le -cpu_type='.$CpuType.' -mid='.$MarketId.' -mid_mask='.$MarketIdMask.' -fw_epo='.$AvdFwEpoch.' -epo_sel='.$EpochSel.' -epo='.$AvdEpoch.' -epo_mask='.$EpochMask.' -sig_type='.$SigType.' -sig_ver='.$SigVer.' -out='.$AvdOlPreBin."\n";
     print $SignCommandFile $Line;
     $Line='sign -in='.$AvdOlPreBin.' -out_endian=le -out_type=binary -out='.$AvdOlSigBin."\n";
     print $SignCommandFile $Line;
 
-    $Line='add_param_bin -in='.$AvdIlBin.' -in_endian=le -cpu_type=hvd -mid='.$MarketId.' -mid_mask='.$MarketIdMask.' -fw_epo='.$AvdFwEpoch.' -epo_sel='.$EpochSel.' -epo='.$AvdEpoch.' -epo_mask='.$EpochMask.' -sig_type='.$SigType.' -sig_ver='.$SigVer.' -out='.$AvdIlPreBin."\n";
+    $Line='add_param_bin -in='.$AvdIlBin.' -in_endian=le -cpu_type='.$CpuType.' -mid='.$MarketId.' -mid_mask='.$MarketIdMask.' -fw_epo='.$AvdFwEpoch.' -epo_sel='.$EpochSel.' -epo='.$AvdEpoch.' -epo_mask='.$EpochMask.' -sig_type='.$SigType.' -sig_ver='.$SigVer.' -out='.$AvdIlPreBin."\n";
     print $SignCommandFile $Line;
     $Line='sign -append -in='.$AvdIlPreBin.' -out_endian=le -out_type=binary -out='.$AvdOlSigBin."\n";
     print $SignCommandFile $Line;
@@ -372,7 +379,7 @@ sub GenerateLegacySignatures {
     $Line='sign -append -in='.$AvdIlPreBin.' -out_endian=le -out_type=binary -out='.$AvdOlSigBin."\n";
     print $SignCommandFile $Line;
 
-    if ($NumChipId != 74371 && $NumChipId != 7271 && $NumChipId != 7250) {
+	if ($NumChipId != 74371 && $NumChipId != 7271 && $NumChipId != 7250 && $NumChipId != 7360 && $NumChipId != 7425 && $NumChipId != 7563 && $NumChipId != 75635) {
         if (($NumChipId == 7445) || ($NumChipId == 7439)) {
             $Line='sign -append -in='.$AvdOlPreBin.' -out_endian=le -out_type=binary -out='.$AvdOlSigBin."\n";
             print $SignCommandFile $Line;
@@ -407,15 +414,20 @@ sub GenerateSignatures {
     $Line='load_pub_key -in='.$PublicKey."\n";
     print $SignCommandFile $Line;
 
+    my $Append="";
+
 #Processing of SID image
-    $Line='add_param_bin -in='.$SidBin.' -in_endian=be -cpu_type=sid -mid='.$MarketId.' -mid_mask='.$MarketIdMask.' -epo_sel='.$EpochSel.' -epo='.$SidEpoch.' -epo_mask='.$EpochMask.' -sig_type='.$SigType.' -sig_ver='.$SigVer.' -out='.$SidPreBin."\n";
-    print $SignCommandFile $Line;
-    $Line='sign -in='.$SidPreBin.' -out_endian=le -out_type=binary -out='.$SidSigBin."\n";
-    print $SignCommandFile $Line;
-    $Line='add_param_bin -in='.$SidSigBin.' -in_endian=be -cpu_type=sid -mid='.$MarketId.' -mid_mask='.$MarketIdMask.' -epo_sel='.$EpochSel.' -epo='.$SidEpoch.' -epo_mask='.$EpochMask.' -sig_type='.$SigType.' -sig_ver='.$SigVer.' -out='.$SidSigParamBin."\n";
-    print $SignCommandFile $Line;
-    $Line='post_process -in='.$SidSigParamBin.' -in_endian=be -region=0x11 -out='.$OutputDir."/nexus_security_regver_signatures.h\n";
-    print $SignCommandFile $Line;
+    if ($NumChipId != 7360 && $NumChipId != 7425 && $NumChipId != 7563 && $NumChipId != 75635) {
+        $Line='add_param_bin -in='.$SidBin.' -in_endian=be -cpu_type=sid -mid='.$MarketId.' -mid_mask='.$MarketIdMask.' -epo_sel='.$EpochSel.' -epo='.$SidEpoch.' -epo_mask='.$EpochMask.' -sig_type='.$SigType.' -sig_ver='.$SigVer.' -out='.$SidPreBin."\n";
+        print $SignCommandFile $Line;
+        $Line='sign -in='.$SidPreBin.' -out_endian=le -out_type=binary -out='.$SidSigBin."\n";
+        print $SignCommandFile $Line;
+        $Line='add_param_bin -in='.$SidSigBin.' -in_endian=be -cpu_type=sid -mid='.$MarketId.' -mid_mask='.$MarketIdMask.' -epo_sel='.$EpochSel.' -epo='.$SidEpoch.' -epo_mask='.$EpochMask.' -sig_type='.$SigType.' -sig_ver='.$SigVer.' -out='.$SidSigParamBin."\n";
+        print $SignCommandFile $Line;
+        $Line='post_process'.$Append.' -in='.$SidSigParamBin.' -in_endian=be -region=0x11 -out='.$OutputDir."/nexus_security_regver_signatures.h\n";
+        print $SignCommandFile $Line;
+        $Append=" -append";
+    }
 
 #Processing of AUDIO image
     $Line='add_param_bin -in='.$RaagaBin.' -in_endian=be -cpu_type=raaga -mid='.$MarketId.' -mid_mask='.$MarketIdMask.' -fw_epo='.$RaagaFwEpoch.' -epo_sel='.$EpochSel.' -epo='.$RaagaEpoch.' -epo_mask='.$EpochMask.' -sig_type='.$SigType.' -sig_ver='.$SigVer.' -out='.$RaagaPreBin."\n";
@@ -424,12 +436,13 @@ sub GenerateSignatures {
     print $SignCommandFile $Line;
     $Line='add_param_bin -in='.$RaagaSigBin.' -in_endian=be -cpu_type=raaga -mid='.$MarketId.' -mid_mask='.$MarketIdMask.' -fw_epo='.$RaagaFwEpoch.' -epo_sel='.$EpochSel.' -epo='.$RaagaEpoch.' -epo_mask='.$EpochMask.' -sig_type='.$SigType.' -sig_ver='.$SigVer.' -out='.$RaagaSigParamBin."\n";
     print $SignCommandFile $Line;
-    $Line='post_process -append -in='.$RaagaSigParamBin.' -in_endian=be -region=0x9 -out='.$OutputDir."/nexus_security_regver_signatures.h\n";
+    $Line='post_process'.$Append.' -in='.$RaagaSigParamBin.' -in_endian=be -region=0x9 -out='.$OutputDir."/nexus_security_regver_signatures.h\n";
     print $SignCommandFile $Line;
+    $Append=" -append";
     if ($NumChipId == 7445) {
-        $Line='post_process -append -in='.$RaagaSigParamBin.' -in_endian=be -region=0x12 -out='.$OutputDir."/nexus_security_regver_signatures.h\n";
+        $Line='post_process'.$Append.' -in='.$RaagaSigParamBin.' -in_endian=be -region=0x12 -out='.$OutputDir."/nexus_security_regver_signatures.h\n";
         print $SignCommandFile $Line;
-	}
+    }
 
 #Processing RAVE image
     $Line='add_param_bin -in='.$RaveBin.' -in_endian=be -cpu_type=rave -mid='.$MarketId.' -mid_mask='.$MarketIdMask.' -fw_epo='.$RaveFwEpoch.' -epo_sel='.$EpochSel.' -epo='.$RaveEpoch.' -epo_mask='.$EpochMask.' -sig_type='.$SigType.' -sig_ver='.$SigVer.' -out='.$RavePreBin."\n";
@@ -438,18 +451,18 @@ sub GenerateSignatures {
     print $SignCommandFile $Line;
     $Line='add_param_bin -in='.$RaveSigBin.' -in_endian=be -cpu_type=rave -mid='.$MarketId.' -mid_mask='.$MarketIdMask.' -fw_epo='.$RaveFwEpoch.' -epo_sel='.$EpochSel.' -epo='.$RaveEpoch.' -epo_mask='.$EpochMask.' -sig_type='.$SigType.' -sig_ver='.$SigVer.' -out='.$RaveSigParamBin."\n";
     print $SignCommandFile $Line;
-    $Line='post_process -append -in='.$RaveSigParamBin.' -in_endian=be -region=0x8 -out='.$OutputDir."/nexus_security_regver_signatures.h\n";
+    $Line='post_process'.$Append.' -in='.$RaveSigParamBin.' -in_endian=be -region=0x8 -out='.$OutputDir."/nexus_security_regver_signatures.h\n";
     print $SignCommandFile $Line;
 
 #Processing VCE image
-    if ($NumChipId != 74371 && $NumChipId != 7271 && $NumChipId != 7250) {
+    if ($NumChipId != 74371 && $NumChipId != 7271 && $NumChipId != 7250 && $NumChipId != 7360 && $NumChipId != 7425 && $NumChipId != 7563 && $NumChipId != 75635) {
         $Line='add_param_bin -in='.$VcePicBin.' -in_endian=be -cpu_type=vice -mid='.$MarketId.' -mid_mask='.$MarketIdMask.' -fw_epo='.$VceFwEpoch.' -epo_sel='.$EpochSel.' -epo='.$VceEpoch.' -epo_mask='.$EpochMask.' -sig_type='.$SigType.' -sig_ver='.$SigVer.' -out='.$VcePicPreBin."\n";
         print $SignCommandFile $Line;
         $Line='sign -in='.$VcePicPreBin.' -out_endian=le -out_type=binary -out='.$VcePicSigBin."\n";
         print $SignCommandFile $Line;
         $Line='add_param_bin -in='.$VcePicSigBin.' -in_endian=be -cpu_type=vice -mid='.$MarketId.' -mid_mask='.$MarketIdMask.' -fw_epo='.$VceFwEpoch.' -epo_sel='.$EpochSel.' -epo='.$VceEpoch.' -epo_mask='.$EpochMask.' -sig_type='.$SigType.' -sig_ver='.$SigVer.' -out='.$VcePicSigParamBin."\n";
         print $SignCommandFile $Line;
-        $Line='post_process -append -in='.$VcePicSigParamBin.' -in_endian=be -region=0xF -out='.$OutputDir."/nexus_security_regver_signatures.h\n";
+        $Line='post_process'.$Append.' -in='.$VcePicSigParamBin.' -in_endian=be -region=0xF -out='.$OutputDir."/nexus_security_regver_signatures.h\n";
         print $SignCommandFile $Line;
 
 
@@ -459,51 +472,56 @@ sub GenerateSignatures {
         print $SignCommandFile $Line;
         $Line='add_param_bin -in='.$VceMbSigBin.' -in_endian=be -cpu_type=vice -mid='.$MarketId.' -mid_mask='.$MarketIdMask.' -fw_epo='.$VceFwEpoch.' -epo_sel='.$EpochSel.' -epo='.$VceEpoch.' -epo_mask='.$EpochMask.' -sig_type='.$SigType.' -sig_ver='.$SigVer.' -out='.$VceMbSigParamBin."\n";
         print $SignCommandFile $Line;
-        $Line='post_process -append -in='.$VceMbSigParamBin.' -in_endian=be -region=0x10 -out='.$OutputDir."/nexus_security_regver_signatures.h\n";
+        $Line='post_process'.$Append.' -in='.$VceMbSigParamBin.' -in_endian=be -region=0x10 -out='.$OutputDir."/nexus_security_regver_signatures.h\n";
         print $SignCommandFile $Line;
 
         if ($NumChipId == 7445) {
-            $Line='post_process -append -in='.$VcePicSigParamBin.' -in_endian=be -region=0x13 -out='.$OutputDir."/nexus_security_regver_signatures.h\n";
+            $Line='post_process'.$Append.' -in='.$VcePicSigParamBin.' -in_endian=be -region=0x13 -out='.$OutputDir."/nexus_security_regver_signatures.h\n";
             print $SignCommandFile $Line;
-            $Line='post_process -append -in='.$VceMbSigParamBin.' -in_endian=be -region=0x14 -out='.$OutputDir."/nexus_security_regver_signatures.h\n";
+            $Line='post_process'.$Append.' -in='.$VceMbSigParamBin.' -in_endian=be -region=0x14 -out='.$OutputDir."/nexus_security_regver_signatures.h\n";
             print $SignCommandFile $Line;
 		}
 	}
 
 #Processing AVD image
-    $Line='add_param_bin -in='.$AvdOlBin.' -in_endian=be -cpu_type=hvd -mid='.$MarketId.' -mid_mask='.$MarketIdMask.' -fw_epo='.$AvdFwEpoch.' -epo_sel='.$EpochSel.' -epo='.$AvdEpoch.' -epo_mask='.$EpochMask.' -sig_type='.$SigType.' -sig_ver='.$SigVer.' -out='.$AvdOlPreBin."\n";
+    my $CpuType = "hvd";
+    if ($NumChipId == 7360) {
+        $CpuType = "avd";
+    }
+
+    $Line='add_param_bin -in='.$AvdOlBin.' -in_endian=be -cpu_type='.$CpuType.' -mid='.$MarketId.' -mid_mask='.$MarketIdMask.' -fw_epo='.$AvdFwEpoch.' -epo_sel='.$EpochSel.' -epo='.$AvdEpoch.' -epo_mask='.$EpochMask.' -sig_type='.$SigType.' -sig_ver='.$SigVer.' -out='.$AvdOlPreBin."\n";
     print $SignCommandFile $Line;
     $Line='sign -in='.$AvdOlPreBin.' -out_endian=le -out_type=binary -out='.$AvdOlSigBin."\n";
     print $SignCommandFile $Line;
-    $Line='add_param_bin -in='.$AvdOlSigBin.' -in_endian=be -cpu_type=hvd -mid='.$MarketId.' -mid_mask='.$MarketIdMask.' -fw_epo='.$AvdFwEpoch.' -epo_sel='.$EpochSel.' -epo='.$AvdEpoch.' -epo_mask='.$EpochMask.' -sig_type='.$SigType.' -sig_ver='.$SigVer.' -out='.$AvdOlSigParamBin."\n";
+    $Line='add_param_bin -in='.$AvdOlSigBin.' -in_endian=be -cpu_type='.$CpuType.' -mid='.$MarketId.' -mid_mask='.$MarketIdMask.' -fw_epo='.$AvdFwEpoch.' -epo_sel='.$EpochSel.' -epo='.$AvdEpoch.' -epo_mask='.$EpochMask.' -sig_type='.$SigType.' -sig_ver='.$SigVer.' -out='.$AvdOlSigParamBin."\n";
     print $SignCommandFile $Line;
-    $Line='post_process -append -in='.$AvdOlSigParamBin.' -in_endian=be -region=0xD -out='.$OutputDir."/nexus_security_regver_signatures.h\n";
+    $Line='post_process'.$Append.' -in='.$AvdOlSigParamBin.' -in_endian=be -region=0xD -out='.$OutputDir."/nexus_security_regver_signatures.h\n";
     print $SignCommandFile $Line;
 
-    $Line='add_param_bin -in='.$AvdIlBin.' -in_endian=be -cpu_type=hvd -mid='.$MarketId.' -mid_mask='.$MarketIdMask.' -fw_epo='.$AvdFwEpoch.' -epo_sel='.$EpochSel.' -epo='.$AvdEpoch.' -epo_mask='.$EpochMask.' -sig_type='.$SigType.' -sig_ver='.$SigVer.' -out='.$AvdIlPreBin."\n";
+    $Line='add_param_bin -in='.$AvdIlBin.' -in_endian=be -cpu_type='.$CpuType.' -mid='.$MarketId.' -mid_mask='.$MarketIdMask.' -fw_epo='.$AvdFwEpoch.' -epo_sel='.$EpochSel.' -epo='.$AvdEpoch.' -epo_mask='.$EpochMask.' -sig_type='.$SigType.' -sig_ver='.$SigVer.' -out='.$AvdIlPreBin."\n";
     print $SignCommandFile $Line;
     $Line='sign -in='.$AvdIlPreBin.' -out_endian=le -out_type=binary -out='.$AvdIlSigBin."\n";
     print $SignCommandFile $Line;
-    $Line='add_param_bin -in='.$AvdIlSigBin.' -in_endian=be -cpu_type=hvd -mid='.$MarketId.' -mid_mask='.$MarketIdMask.' -fw_epo='.$AvdFwEpoch.' -epo_sel='.$EpochSel.' -epo='.$AvdEpoch.' -epo_mask='.$EpochMask.' -sig_type='.$SigType.' -sig_ver='.$SigVer.' -out='.$AvdIlSigParamBin."\n";
+    $Line='add_param_bin -in='.$AvdIlSigBin.' -in_endian=be -cpu_type='.$CpuType.' -mid='.$MarketId.' -mid_mask='.$MarketIdMask.' -fw_epo='.$AvdFwEpoch.' -epo_sel='.$EpochSel.' -epo='.$AvdEpoch.' -epo_mask='.$EpochMask.' -sig_type='.$SigType.' -sig_ver='.$SigVer.' -out='.$AvdIlSigParamBin."\n";
     print $SignCommandFile $Line;
-    $Line='post_process -append -in='.$AvdIlSigParamBin.' -in_endian=be -region=0xC -out='.$OutputDir."/nexus_security_regver_signatures.h\n";
-    print $SignCommandFile $Line;
-
-    $Line='post_process -append -in='.$AvdIlSigParamBin.' -in_endian=be -region=0xB -out='.$OutputDir."/nexus_security_regver_signatures.h\n";
+    $Line='post_process'.$Append.' -in='.$AvdIlSigParamBin.' -in_endian=be -region=0xC -out='.$OutputDir."/nexus_security_regver_signatures.h\n";
     print $SignCommandFile $Line;
 
-    if ($NumChipId != 74371 && $NumChipId != 7271 && $NumChipId != 7250) {
+    $Line='post_process'.$Append.' -in='.$AvdIlSigParamBin.' -in_endian=be -region=0xB -out='.$OutputDir."/nexus_security_regver_signatures.h\n";
+    print $SignCommandFile $Line;
+
+    if ($NumChipId != 74371 && $NumChipId != 7271 && $NumChipId != 7250 && $NumChipId != 7360 && $NumChipId != 7425 && $NumChipId != 7563 && $NumChipId != 75635) {
         if (($NumChipId == 7445) || ($NumChipId == 7439)) {
-            $Line='post_process -append -in='.$AvdOlSigParamBin.' -in_endian=be -region=0x16 -out='.$OutputDir."/nexus_security_regver_signatures.h\n";
+            $Line='post_process'.$Append.' -in='.$AvdOlSigParamBin.' -in_endian=be -region=0x16 -out='.$OutputDir."/nexus_security_regver_signatures.h\n";
             print $SignCommandFile $Line;
-            $Line='post_process -append -in='.$AvdIlSigParamBin.' -in_endian=be -region=0x15 -out='.$OutputDir."/nexus_security_regver_signatures.h\n";
+            $Line='post_process'.$Append.' -in='.$AvdIlSigParamBin.' -in_endian=be -region=0x15 -out='.$OutputDir."/nexus_security_regver_signatures.h\n";
             print $SignCommandFile $Line;
 		}
 
         if ($NumChipId == 7445) {
-            $Line='post_process -append -in='.$AvdOlSigParamBin.' -in_endian=be -region=0x1D -out='.$OutputDir."/nexus_security_regver_signatures.h\n";
+            $Line='post_process'.$Append.' -in='.$AvdOlSigParamBin.' -in_endian=be -region=0x1D -out='.$OutputDir."/nexus_security_regver_signatures.h\n";
             print $SignCommandFile $Line;
-            $Line='post_process -append -in='.$AvdIlSigParamBin.' -in_endian=be -region=0x1C -out='.$OutputDir."/nexus_security_regver_signatures.h\n";
+            $Line='post_process'.$Append.' -in='.$AvdIlSigParamBin.' -in_endian=be -region=0x1C -out='.$OutputDir."/nexus_security_regver_signatures.h\n";
             print $SignCommandFile $Line;
 		}
 	}
@@ -512,101 +530,116 @@ sub GenerateSignatures {
 
 sub GeneratePostProcess {
     open (my $SignCommandFile, ">", $OutputDir."/".$ChipId."_signature.in");
-
+    my $Append="";
+    my $Line="";
 #Processing of SID image
-    my $Line='swap_signature -in='.$SidSigBeBin.' -out='.$SidSigBin."\n";
-    print $SignCommandFile $Line;
-    $Line='add_param_bin -in='.$SidSigBin.' -in_endian=be -cpu_type=sid -mid='.$MarketId.' -mid_mask='.$MarketIdMask.' -epo_sel='.$EpochSel.' -epo='.$SidEpoch.' -epo_mask='.$EpochMask.' -sig_type='.$SigType.' -sig_ver='.$SigVer.' -out='.$SidSigParamBin."\n";
-    print $SignCommandFile $Line;
-    $Line='post_process -in='.$SidSigParamBin.' -in_endian=be -region=0x11 -out='.$OutputDir."/nexus_security_regver_signatures.h\n";
-    print $SignCommandFile $Line;
+    if ($NumChipId != 7360 && $NumChipId != 7425 && $NumChipId != 7563 && $NumChipId != 75635) {
+        $Line='swap_signature -in='.$SidSigBeBin.' -out='.$SidSigBin."\n";
+        print $SignCommandFile $Line;
+        $Line='add_param_bin -in='.$SidSigBin.' -in_endian=be -cpu_type=sid -mid='.$MarketId.' -mid_mask='.$MarketIdMask.' -epo_sel='.$EpochSel.' -epo='.$SidEpoch.' -epo_mask='.$EpochMask.' -sig_type='.$SigType.' -sig_ver='.$SigVer.' -out='.$SidSigParamBin."\n";
+        print $SignCommandFile $Line;
+        $Line='post_process'.$Append.' -in='.$SidSigParamBin.' -in_endian=be -region=0x11 -out='.$OutputDir."/nexus_security_regver_signatures.h\n";
+        print $SignCommandFile $Line;
+        $Append=" -append";
+    }
 
 #Processing of AUDIO image
     $Line='swap_signature -in='.$RaagaSigBeBin.' -out='.$RaagaSigBin."\n";
     print $SignCommandFile $Line;
     $Line='add_param_bin -in='.$RaagaSigBin.' -in_endian=be -cpu_type=raaga -mid='.$MarketId.' -mid_mask='.$MarketIdMask.' -fw_epo='.$RaagaFwEpoch.' -epo_sel='.$EpochSel.' -epo='.$RaagaEpoch.' -epo_mask='.$EpochMask.' -sig_type='.$SigType.' -sig_ver='.$SigVer.' -out='.$RaagaSigParamBin."\n";
     print $SignCommandFile $Line;
-    $Line='post_process -append -in='.$RaagaSigParamBin.' -in_endian=be -region=0x9 -out='.$OutputDir."/nexus_security_regver_signatures.h\n";
+    $Line='post_process'.$Append.' -in='.$RaagaSigParamBin.' -in_endian=be -region=0x9 -out='.$OutputDir."/nexus_security_regver_signatures.h\n";
     print $SignCommandFile $Line;
+    $Append=" -append";
 #    if NumChipId == 7445:
     if (($NumChipId == 7445) || ($NumChipId == 7439)) {
-        $Line='post_process -append -in='.$RaagaSigParamBin.' -in_endian=be -region=0x12 -out='.$OutputDir."/nexus_security_regver_signatures.h\n";
+        $Line='post_process'.$Append.' -in='.$RaagaSigParamBin.' -in_endian=be -region=0x12 -out='.$OutputDir."/nexus_security_regver_signatures.h\n";
         print $SignCommandFile $Line;
-	}
+    }
 
 #Processing RAVE image
     $Line='swap_signature -in='.$RaveSigBeBin.' -out='.$RaveSigBin."\n";
     print $SignCommandFile $Line;
     $Line='add_param_bin -in='.$RaveSigBin.' -in_endian=be -cpu_type=rave -mid='.$MarketId.' -mid_mask='.$MarketIdMask.' -fw_epo='.$RaveFwEpoch.' -epo_sel='.$EpochSel.' -epo='.$RaveEpoch.' -epo_mask='.$EpochMask.' -sig_type='.$SigType.' -sig_ver='.$SigVer.' -out='.$RaveSigParamBin."\n";
     print $SignCommandFile $Line;
-    $Line='post_process -append -in='.$RaveSigParamBin.' -in_endian=be -region=0x8 -out='.$OutputDir."/nexus_security_regver_signatures.h\n";
+    $Line='post_process'.$Append.' -in='.$RaveSigParamBin.' -in_endian=be -region=0x8 -out='.$OutputDir."/nexus_security_regver_signatures.h\n";
     print $SignCommandFile $Line;
 
 #Processing VCE image
-    if ($NumChipId != 74371 && $NumChipId != 7271 && $NumChipId != 7250) {
+    if ($NumChipId != 74371 && $NumChipId != 7271 && $NumChipId != 7250 && $NumChipId != 7360 && $NumChipId != 7425 && $NumChipId != 7563 && $NumChipId != 75635) {
         $Line='swap_signature -in='.$VcePicSigBeBin.' -out='.$VcePicSigBin."\n";
         print $SignCommandFile $Line;
         $Line='add_param_bin -in='.$VcePicSigBin.' -in_endian=be -cpu_type=vice -mid='.$MarketId.' -mid_mask='.$MarketIdMask.' -fw_epo='.$VceFwEpoch.' -epo_sel='.$EpochSel.' -epo='.$VceEpoch.' -epo_mask='.$EpochMask.' -sig_type='.$SigType.' -sig_ver='.$SigVer.' -out='.$VcePicSigParamBin."\n";
         print $SignCommandFile $Line;
-        $Line='post_process -append -in='.$VcePicSigParamBin.' -in_endian=be -region=0xF -out='.$OutputDir."/nexus_security_regver_signatures.h\n";
+        $Line='post_process'.$Append.' -in='.$VcePicSigParamBin.' -in_endian=be -region=0xF -out='.$OutputDir."/nexus_security_regver_signatures.h\n";
         print $SignCommandFile $Line;
 
         $Line='swap_signature -in='.$VceMbSigBeBin.' -out='.$VceMbSigBin."\n";
         print $SignCommandFile $Line;
         $Line='add_param_bin -in='.$VceMbSigBin.' -in_endian=be -cpu_type=vice -mid='.$MarketId.' -mid_mask='.$MarketIdMask.' -fw_epo='.$VceFwEpoch.' -epo_sel='.$EpochSel.' -epo='.$VceEpoch.' -epo_mask='.$EpochMask.' -sig_type='.$SigType.' -sig_ver='.$SigVer.' -out='.$VceMbSigParamBin."\n";
         print $SignCommandFile $Line;
-        $Line='post_process -append -in='.$VceMbSigParamBin.' -in_endian=be -region=0x10 -out='.$OutputDir."/nexus_security_regver_signatures.h\n";
+        $Line='post_process'.$Append.' -in='.$VceMbSigParamBin.' -in_endian=be -region=0x10 -out='.$OutputDir."/nexus_security_regver_signatures.h\n";
         print $SignCommandFile $Line;
 
         if ($NumChipId == 7445) {
-            $Line='post_process -append -in='.$VcePicSigParamBin.' -in_endian=be -region=0x13 -out='.$OutputDir."/nexus_security_regver_signatures.h\n";
+            $Line='post_process'.$Append.' -in='.$VcePicSigParamBin.' -in_endian=be -region=0x13 -out='.$OutputDir."/nexus_security_regver_signatures.h\n";
             print $SignCommandFile $Line;
-            $Line='post_process -append -in='.$VceMbSigParamBin.' -in_endian=be -region=0x14 -out='.$OutputDir."/nexus_security_regver_signatures.h\n";
+            $Line='post_process'.$Append.' -in='.$VceMbSigParamBin.' -in_endian=be -region=0x14 -out='.$OutputDir."/nexus_security_regver_signatures.h\n";
             print $SignCommandFile $Line;
 		}
 	}
 
 #Processing AVD image
+    my $CpuType = "hvd";
+    if ($NumChipId == 7360) {
+        $CpuType = "avd";
+    }
+
     $Line='swap_signature -in='.$AvdOlSigBeBin.' -out='.$AvdOlSigBin."\n";
     print $SignCommandFile $Line;
-    $Line='add_param_bin -in='.$AvdOlSigBin.' -in_endian=be -cpu_type=hvd -mid='.$MarketId.' -mid_mask='.$MarketIdMask.' -fw_epo='.$AvdFwEpoch.' -epo_sel='.$EpochSel.' -epo='.$AvdEpoch.' -epo_mask='.$EpochMask.' -sig_type='.$SigType.' -sig_ver='.$SigVer.' -out='.$AvdOlSigParamBin."\n";
+    $Line='add_param_bin -in='.$AvdOlSigBin.' -in_endian=be -cpu_type='.$CpuType.' -mid='.$MarketId.' -mid_mask='.$MarketIdMask.' -fw_epo='.$AvdFwEpoch.' -epo_sel='.$EpochSel.' -epo='.$AvdEpoch.' -epo_mask='.$EpochMask.' -sig_type='.$SigType.' -sig_ver='.$SigVer.' -out='.$AvdOlSigParamBin."\n";
     print $SignCommandFile $Line;
-    $Line='post_process -append -in='.$AvdOlSigParamBin.' -in_endian=be -region=0xD -out='.$OutputDir."/nexus_security_regver_signatures.h\n";
+    $Line='post_process'.$Append.' -in='.$AvdOlSigParamBin.' -in_endian=be -region=0xD -out='.$OutputDir."/nexus_security_regver_signatures.h\n";
     print $SignCommandFile $Line;
 
     $Line='swap_signature -in='.$AvdIlSigBeBin.' -out='.$AvdIlSigBin."\n";
     print $SignCommandFile $Line;
-    $Line='add_param_bin -in='.$AvdIlSigBin.' -in_endian=be -cpu_type=hvd -mid='.$MarketId.' -mid_mask='.$MarketIdMask.' -fw_epo='.$AvdFwEpoch.' -epo_sel='.$EpochSel.' -epo='.$AvdEpoch.' -epo_mask='.$EpochMask.' -sig_type='.$SigType.' -sig_ver='.$SigVer.' -out='.$AvdIlSigParamBin."\n";
+    $Line='add_param_bin -in='.$AvdIlSigBin.' -in_endian=be -cpu_type='.$CpuType.' -mid='.$MarketId.' -mid_mask='.$MarketIdMask.' -fw_epo='.$AvdFwEpoch.' -epo_sel='.$EpochSel.' -epo='.$AvdEpoch.' -epo_mask='.$EpochMask.' -sig_type='.$SigType.' -sig_ver='.$SigVer.' -out='.$AvdIlSigParamBin."\n";
     print $SignCommandFile $Line;
-    $Line='post_process -append -in='.$AvdIlSigParamBin.' -in_endian=be -region=0xC -out='.$OutputDir."/nexus_security_regver_signatures.h\n";
-    print $SignCommandFile $Line;
-
-    $Line='post_process -append -in='.$AvdIlSigParamBin.' -in_endian=be -region=0xB -out='.$OutputDir."/nexus_security_regver_signatures.h\n";
+    $Line='post_process'.$Append.' -in='.$AvdIlSigParamBin.' -in_endian=be -region=0xC -out='.$OutputDir."/nexus_security_regver_signatures.h\n";
     print $SignCommandFile $Line;
 
-    if (($NumChipId == 7445) || ($NumChipId == 7439)) {
-        $Line='post_process -append -in='.$AvdOlSigParamBin.' -in_endian=be -region=0x16 -out='.$OutputDir."/nexus_security_regver_signatures.h\n";
-        print $SignCommandFile $Line;
-        $Line='post_process -append -in='.$AvdIlSigParamBin.' -in_endian=be -region=0x15 -out='.$OutputDir."/nexus_security_regver_signatures.h\n";
-        print $SignCommandFile $Line;
-	}
+    $Line='post_process'.$Append.' -in='.$AvdIlSigParamBin.' -in_endian=be -region=0xB -out='.$OutputDir."/nexus_security_regver_signatures.h\n";
+    print $SignCommandFile $Line;
 
-    if ($NumChipId == 7445) {
-        $Line='post_process -append -in='.$AvdOlSigParamBin.' -in_endian=be -region=0x1D -out='.$OutputDir."/nexus_security_regver_signatures.h\n";
-        print $SignCommandFile $Line;
-        $Line='post_process -append -in='.$AvdIlSigParamBin.' -in_endian=be -region=0x1C -out='.$OutputDir."/nexus_security_regver_signatures.h\n";
-        print $SignCommandFile $Line;
-	}
+    if ($NumChipId != 74371 && $NumChipId != 7271 && $NumChipId != 7250 && $NumChipId != 7360 && $NumChipId != 7425 && $NumChipId != 7563 && $NumChipId != 75635) {
+        if (($NumChipId == 7445) || ($NumChipId == 7439)) {
+            $Line='post_process'.$Append.' -in='.$AvdOlSigParamBin.' -in_endian=be -region=0x16 -out='.$OutputDir."/nexus_security_regver_signatures.h\n";
+            print $SignCommandFile $Line;
+            $Line='post_process'.$Append.' -in='.$AvdIlSigParamBin.' -in_endian=be -region=0x15 -out='.$OutputDir."/nexus_security_regver_signatures.h\n";
+            print $SignCommandFile $Line;
+	    }
+
+        if ($NumChipId == 7445) {
+            $Line='post_process'.$Append.' -in='.$AvdOlSigParamBin.' -in_endian=be -region=0x1D -out='.$OutputDir."/nexus_security_regver_signatures.h\n";
+            print $SignCommandFile $Line;
+            $Line='post_process'.$Append.' -in='.$AvdIlSigParamBin.' -in_endian=be -region=0x1C -out='.$OutputDir."/nexus_security_regver_signatures.h\n";
+            print $SignCommandFile $Line;
+	    }
+    }
 }
 
 sub GenerateLegacyPostProcess {
     open (my $SignCommandFile, ">", $OutputDir."/".$ChipId."_Legacy_signature.in");
 
+    my $Line="";
 #Processing of SID image
-    my $Line='swap_signature -in='.$SidSigBeBin.' -out='.$SidSigBin."\n";
-    print $SignCommandFile $Line;
-    $Line='post_process_sid -in='.$SidSigBin.' -out='.$OutputDir."/nexus_sid_firmware_signature.c\n";
-    print $SignCommandFile $Line;
+    if ($NumChipId != 7360 && $NumChipId != 7425 && $NumChipId != 7563 && $NumChipId != 75635) {
+        $Line='swap_signature -in='.$SidSigBeBin.' -out='.$SidSigBin."\n";
+        print $SignCommandFile $Line;
+        $Line='post_process_sid -in='.$SidSigBin.' -out='.$OutputDir."/nexus_sid_firmware_signature.c\n";
+        print $SignCommandFile $Line;
+    }
 
 #Processing of AUDIO image
     $Line='swap_signature -in='.$RaagaSigBeBin.' -out='.$RaagaSigBin."\n";
@@ -621,7 +654,7 @@ sub GenerateLegacyPostProcess {
     print $SignCommandFile $Line;
 
 #Processing of VCE image
-    if ($NumChipId != 74371 && $NumChipId != 7271 && $NumChipId != 7250) {
+    if ($NumChipId != 74371 && $NumChipId != 7271 && $NumChipId != 7250 && $NumChipId != 7360 && $NumChipId != 7425 && $NumChipId != 7563 && $NumChipId != 75635) {
 
         $Line='swap_signature -in='.$VcePicSigBeBin.' -out='.$VcePicSigBin."\n";
         print $SignCommandFile $Line;
@@ -649,7 +682,7 @@ sub GenerateLegacyPostProcess {
     $Line='swap_signature -append -in='.$AvdIlSigBeBin.' -out='.$AvdOlSigBin."\n";
     print $SignCommandFile $Line;
 
-    if ($NumChipId != 74371 && $NumChipId != 7271 && $NumChipId != 7250) {
+    if ($NumChipId != 74371 && $NumChipId != 7271 && $NumChipId != 7250 && $NumChipId != 7360 && $NumChipId != 7425 && $NumChipId != 7563 && $NumChipId != 75635) {
         if (($NumChipId == 7445) || ($NumChipId == 7439)) {
             $Line='swap_signature -append -in='.$AvdOlSigBeBin.' -out='.$AvdOlSigBin."\n";
             print $SignCommandFile $Line;
@@ -672,10 +705,12 @@ sub GenerateLegacyPostProcess {
 
 sub GeneratePreProcess {
     open (my $SignCommandFile, ">", $OutputDir."/".$ChipId.".in");
-
+    my $Line="";
 #Processing of SID image
-    my $Line='add_param_bin -in='.$SidBin.' -in_endian=be -cpu_type=sid -mid='.$MarketId.' -mid_mask='.$MarketIdMask.' -epo_sel='.$EpochSel.' -epo='.$SidEpoch.' -epo_mask='.$EpochMask.' -sig_type='.$SigType.' -sig_ver='.$SigVer.' -out='.$SidPreBin."\n";
-    print $SignCommandFile $Line;
+    if ($NumChipId != 7360 && $NumChipId != 7425 && $NumChipId != 7563 && $NumChipId != 75635) {
+        $Line='add_param_bin -in='.$SidBin.' -in_endian=be -cpu_type=sid -mid='.$MarketId.' -mid_mask='.$MarketIdMask.' -epo_sel='.$EpochSel.' -epo='.$SidEpoch.' -epo_mask='.$EpochMask.' -sig_type='.$SigType.' -sig_ver='.$SigVer.' -out='.$SidPreBin."\n";
+        print $SignCommandFile $Line;
+    }
 
 #Processing of AUDIO image
     $Line='add_param_bin -in='.$RaagaBin.' -in_endian=be -cpu_type=raaga -mid='.$MarketId.' -mid_mask='.$MarketIdMask.' -fw_epo='.$RaagaFwEpoch.' -epo_sel='.$EpochSel.' -epo='.$RaagaEpoch.' -epo_mask='.$EpochMask.' -sig_type='.$SigType.' -sig_ver='.$SigVer.' -out='.$RaagaPreBin."\n";
@@ -686,7 +721,7 @@ sub GeneratePreProcess {
     print $SignCommandFile $Line;
 
 #Processing VCE image
-    if ($NumChipId != 74371 && $NumChipId != 7271 && $NumChipId != 7250) {
+    if ($NumChipId != 74371 && $NumChipId != 7271 && $NumChipId != 7250 && $NumChipId != 7360 && $NumChipId != 7425 && $NumChipId != 7563 && $NumChipId != 75635) {
         $Line='add_param_bin -in='.$VcePicBin.' -in_endian=be -cpu_type=vice -mid='.$MarketId.' -mid_mask='.$MarketIdMask.' -fw_epo='.$VceFwEpoch.' -epo_sel='.$EpochSel.' -epo='.$VceEpoch.' -epo_mask='.$EpochMask.' -sig_type='.$SigType.' -sig_ver='.$SigVer.' -out='.$VcePicPreBin."\n";
         print $SignCommandFile $Line;
 
@@ -695,10 +730,15 @@ sub GeneratePreProcess {
 	}
 
 #Processing AVD image
-    $Line='add_param_bin -in='.$AvdOlBin.' -in_endian=be -cpu_type=hvd -mid='.$MarketId.' -mid_mask='.$MarketIdMask.' -fw_epo='.$AvdFwEpoch.' -epo_sel='.$EpochSel.' -epo='.$AvdEpoch.' -epo_mask='.$EpochMask.' -sig_type='.$SigType.' -sig_ver='.$SigVer.' -out='.$AvdOlPreBin."\n";
+    my $CpuType = "hvd";
+    if ($NumChipId == 7360) {
+        $CpuType = "avd";
+    }
+
+    $Line='add_param_bin -in='.$AvdOlBin.' -in_endian=be -cpu_type='.$CpuType.' -mid='.$MarketId.' -mid_mask='.$MarketIdMask.' -fw_epo='.$AvdFwEpoch.' -epo_sel='.$EpochSel.' -epo='.$AvdEpoch.' -epo_mask='.$EpochMask.' -sig_type='.$SigType.' -sig_ver='.$SigVer.' -out='.$AvdOlPreBin."\n";
     print $SignCommandFile $Line;
 
-    $Line='add_param_bin -in='.$AvdIlBin.' -in_endian=be -cpu_type=hvd -mid='.$MarketId.' -mid_mask='.$MarketIdMask.' -fw_epo='.$AvdFwEpoch.' -epo_sel='.$EpochSel.' -epo='.$AvdEpoch.' -epo_mask='.$EpochMask.' -sig_type='.$SigType.' -sig_ver='.$SigVer.' -out='.$AvdIlPreBin."\n";
+    $Line='add_param_bin -in='.$AvdIlBin.' -in_endian=be -cpu_type='.$CpuType.' -mid='.$MarketId.' -mid_mask='.$MarketIdMask.' -fw_epo='.$AvdFwEpoch.' -epo_sel='.$EpochSel.' -epo='.$AvdEpoch.' -epo_mask='.$EpochMask.' -sig_type='.$SigType.' -sig_ver='.$SigVer.' -out='.$AvdIlPreBin."\n";
     print $SignCommandFile $Line;
 
     close $SignCommandFile;
@@ -706,10 +746,13 @@ sub GeneratePreProcess {
 
 sub GenerateLegacyPreProcess {
     open (my $SignCommandFile, ">",  $OutputDir."/".$ChipId."_Legacy.in");
+    my $Line="";
 
 #Processing of SID image
-    my $Line='add_param_bin -in='.$SidBin.' -in_endian=le -cpu_type=sid -mid='.$MarketId.' -mid_mask='.$MarketIdMask.' -epo_sel='.$EpochSel.' -epo='.$SidEpoch.' -epo_mask='.$EpochMask.' -sig_type='.$SigType.' -sig_ver='.$SigVer.' -out='.$SidPreBin."\n";
-    print $SignCommandFile $Line;
+    if ($NumChipId != 7360 && $NumChipId != 7425 && $NumChipId != 7563 && $NumChipId != 75635) {
+        $Line='add_param_bin -in='.$SidBin.' -in_endian=le -cpu_type=sid -mid='.$MarketId.' -mid_mask='.$MarketIdMask.' -epo_sel='.$EpochSel.' -epo='.$SidEpoch.' -epo_mask='.$EpochMask.' -sig_type='.$SigType.' -sig_ver='.$SigVer.' -out='.$SidPreBin."\n";
+        print $SignCommandFile $Line;
+    }
 
 #Processing of AUDIO image
     $Line='add_param_bin -in='.$RaagaBin.' -in_endian=le -cpu_type=raaga -mid='.$MarketId.' -fw_epo='.$RaagaFwEpoch.' -mid_mask='.$MarketIdMask.' -epo_sel='.$EpochSel.' -epo='.$RaagaEpoch.' -epo_mask='.$EpochMask.' -sig_type='.$SigType.' -sig_ver='.$SigVer.' -out='.$RaagaPreBin."\n";
@@ -720,7 +763,7 @@ sub GenerateLegacyPreProcess {
     print $SignCommandFile $Line;
 
 #Processing of VCE image
-    if ($NumChipId != 74371 && $NumChipId != 7271 && $NumChipId != 7250) {
+    if ($NumChipId != 74371 && $NumChipId != 7271 && $NumChipId != 7250 && $NumChipId != 7360 && $NumChipId != 7425 && $NumChipId != 7563 && $NumChipId != 75635) {
         $Line='add_param_bin -in='.$VcePicBin.' -in_endian=le -cpu_type=vice -mid='.$MarketId.' -mid_mask='.$MarketIdMask.' -fw_epo='.$VceFwEpoch.' -epo_sel='.$EpochSel.' -epo='.$VceEpoch.' -epo_mask='.$EpochMask.' -sig_type='.$SigType.' -sig_ver='.$SigVer.' -out='.$VcePicPreBin."\n";
         print $SignCommandFile $Line;
 
@@ -728,10 +771,15 @@ sub GenerateLegacyPreProcess {
         print $SignCommandFile $Line;
 	}
 #Processing of AVD image
-    $Line='add_param_bin -in='.$AvdOlBin.' -in_endian=le -cpu_type=hvd -mid='.$MarketId.' -mid_mask='.$MarketIdMask.' -fw_epo='.$AvdFwEpoch.' -epo_sel='.$EpochSel.' -epo='.$AvdEpoch.' -epo_mask='.$EpochMask.' -sig_type='.$SigType.' -sig_ver='.$SigVer.' -out='.$AvdOlPreBin."\n";
+    my $CpuType = "hvd";
+    if ($NumChipId == 7360) {
+        $CpuType = "avd";
+    }
+
+    $Line='add_param_bin -in='.$AvdOlBin.' -in_endian=le -cpu_type='.$CpuType.' -mid='.$MarketId.' -mid_mask='.$MarketIdMask.' -fw_epo='.$AvdFwEpoch.' -epo_sel='.$EpochSel.' -epo='.$AvdEpoch.' -epo_mask='.$EpochMask.' -sig_type='.$SigType.' -sig_ver='.$SigVer.' -out='.$AvdOlPreBin."\n";
     print $SignCommandFile $Line;
 
-    $Line='add_param_bin -in='.$AvdIlBin.' -in_endian=le -cpu_type=hvd -mid='.$MarketId.' -mid_mask='.$MarketIdMask.' -fw_epo='.$AvdFwEpoch.' -epo_sel='.$EpochSel.' -epo='.$AvdEpoch.' -epo_mask='.$EpochMask.' -sig_type='.$SigType.' -sig_ver='.$SigVer.' -out='.$AvdIlPreBin."\n";
+    $Line='add_param_bin -in='.$AvdIlBin.' -in_endian=le -cpu_type='.$CpuType.' -mid='.$MarketId.' -mid_mask='.$MarketIdMask.' -fw_epo='.$AvdFwEpoch.' -epo_sel='.$EpochSel.' -epo='.$AvdEpoch.' -epo_mask='.$EpochMask.' -sig_type='.$SigType.' -sig_ver='.$SigVer.' -out='.$AvdIlPreBin."\n";
     print $SignCommandFile $Line;
 
     close $SignCommandFile;

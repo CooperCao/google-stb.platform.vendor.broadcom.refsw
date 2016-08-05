@@ -44,7 +44,7 @@
 #include "bsat.h"
 
 #define BSAT_G1_MAJOR_VERSION 2
-#define BSAT_G1_MINOR_VERSION 2
+#define BSAT_G1_MINOR_VERSION 4
 
 
 /* define device configuration parameters */

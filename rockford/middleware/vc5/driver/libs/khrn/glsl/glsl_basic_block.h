@@ -25,8 +25,6 @@ typedef struct _BasicBlock {
 
    Dataflow *memory_head;
    bool barrier;
-
-   Symbol *loop_index;  // HACK: remove when the loop unroller makes sense.
 } BasicBlock;
 
 BasicBlock *glsl_basic_block_construct();

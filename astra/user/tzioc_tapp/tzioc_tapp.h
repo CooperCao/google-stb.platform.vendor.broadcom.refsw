@@ -66,11 +66,16 @@ using namespace std;
 #define PROFILING_LEVEL_2 (0x1 << 2)
 #define PROFILING_LEVEL_3 (0x1 << 3)
 
+#define NUM_PROFILING_LEVELS 4
+
 /* bit-map of profiling levels */
-#define ENABLE_PROFILING     0x0F
+#define ENABLE_PROFILING 0x00
 
 /* ARM PMU based profiling */
 #define ENABLE_ARM_PM_PROFILING 1
+
+/* enable tracelog */
+#define ENABLE_TRACELOG 0
 
 /* user app daemon class */
 class TziocTapp {
@@ -118,39 +123,42 @@ private:
         asm volatile("mcr p15, 0, %[val], c9, c12, 3" : : [val] "r" (0x800000ff) :);
     }
 
-    static inline void profilingStart() {
+    static inline void profilingStart(int level) {
         register uint32_t pmccntr;
         asm volatile("mrc p15, 0, %[val], c9, c13, 0" : [val] "=r" (pmccntr) : :);
-        pmccntr0 = pmccntr;
+        pmccntr0[level] = pmccntr;
     }
 
-    static inline void profilingStop() {
+    static inline void profilingStop(int level) {
         register uint32_t pmccntr;
         asm volatile("mrc p15, 0, %[val], c9, c13, 0" : [val] "=r" (pmccntr) : :);
-        pmccntr1 = pmccntr;
+        pmccntr1[level] = pmccntr;
     }
 
-    static inline void profilingPrint() {
+    static inline void profilingPrint(int level) {
         /* Note: divider is enabled */
-        printf("time elapsed %d cycle", (pmccntr1 - pmccntr0) * 64);
+        LOGI("Profiling level %d: time elapsed %d cycle",
+             level, (pmccntr1[level] - pmccntr0[level]) * 64);
     }
 #else
     static inline void profilingInit() {
     }
 
-    static inline void profilingStart() {
-        clock_gettime(CLOCK_REALTIME, &tv0);
+    static inline void profilingStart(int level) {
+        clock_gettime(CLOCK_REALTIME, &tv0[level]);
     }
 
-    static inline void profilingStop() {
-        clock_gettime(CLOCK_REALTIME, &tv1);
+    static inline void profilingStop(int level) {
+        clock_gettime(CLOCK_REALTIME, &tv1[level]);
     }
 
-    static inline void profilingPrint() {
-        printf("time elapsed %ld ns",
-               (tv1.tv_sec >= tv0.tv_sec) ?
-               (tv1.tv_nsec - tv0.tv_nsec) :
-               ((tv1.tv_sec - tv0.tv_sec) * 1000000000 + tv1.tv_nsec - tv0.tv_nsec));
+    static inline void profilingPrint(int level) {
+        LOGI("Profiling level %d: time elapsed %ld ns",
+             level,
+             (tv1[level].tv_sec  >=  tv0[level].tv_sec) ?
+             (tv1[level].tv_nsec  -  tv0[level].tv_nsec) :
+             (tv1[level].tv_sec   -  tv0[level].tv_sec) * 1000000000 +
+             (tv1[level].tv_nsec  -  tv0[level].tv_nsec));
     }
 #endif
 #endif
@@ -163,9 +171,11 @@ private:
 
 #if ENABLE_PROFILING
 #if ENABLE_ARM_PM_PROFILING
-    static uint32_t pmccntr0, pmccntr1;
+    static uint32_t pmccntr0[NUM_PROFILING_LEVELS];
+    static uint32_t pmccntr1[NUM_PROFILING_LEVELS];
 #else
-    static struct timespec tv0, tv1;
+    static struct timespec tv0[NUM_PROFILING_LEVELS];
+    static struct timespec tv1[NUM_PROFILING_LEVELS];
 #endif
 #endif
 };

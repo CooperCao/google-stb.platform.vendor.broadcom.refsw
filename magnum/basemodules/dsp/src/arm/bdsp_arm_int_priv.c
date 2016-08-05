@@ -80,15 +80,16 @@ void BDSP_Arm_P_AckEventCallback_isr(BTEE_ClientEvent event, void *pDeviceHandle
 	BDSP_Arm_P_AckInfo sAckInfo;
 	BERR_Code ret = BERR_SUCCESS;
 	uint32_t ui32RcvMsgLen = 0;
+	BTEE_ConnectionHandle hConnection = NULL;
 
 	BDBG_ENTER(BDSP_Arm_P_AckEventCallback_isr);
 
 	BSTD_UNUSED(event);
 
-	/*Receive ack msg */
+	/*Receive ack msg from Astra */
 	ret = BTEE_Client_ReceiveMessage(
 		pDevice->armDspApp.hClient, 		 /* Client Handle */
-		&(pDevice->armDspApp.hConnection), /* Connection that originated the message */
+		&hConnection, /* Connection that originated the message */
 		(void *)&sAckInfo,					   /* Pointer to buffer for received message */
 		sizeof(BDSP_Arm_P_AckInfo),			 /* Length of message buffer in bytes */
 		&ui32RcvMsgLen,			   /* Returned message length in bytes */
@@ -107,51 +108,174 @@ void BDSP_Arm_P_AckEventCallback_isr(BTEE_ClientEvent event, void *pDeviceHandle
 		goto end;
 	}
 
-	if( BDSP_Arm_P_AckType_eDevice == sAckInfo.eAckType)
+
+	if(hConnection == pDevice->armDspApp.hConnection)
 	{
-		BKNI_SetEvent(pDevice->hDeviceEvent);
-		goto end;
-	}
-	else if( BDSP_Arm_P_AckType_eTask == sAckInfo.eAckType)
-	{
-		uiTaskIndex = sAckInfo.ui32TaskID;
-		uiTaskIndex = uiTaskIndex - BDSP_ARM_TASK_ID_START_OFFSET;
-		pArmTask = pDevice->taskDetails.pArmTask[uiTaskIndex];
-		if(pArmTask == NULL)
+		if( BDSP_Arm_P_AckType_eDevice == sAckInfo.eAckType)
 		{
-			BDBG_ERR(("BDSP_Arm_P_AckEventCallback_isr: something went wrong and Event callback was called for someother task"));
-			goto end;
+			BKNI_SetEvent(pDevice->hDeviceEvent);
 		}
-		if (uiTaskIndex < BDSP_ARM_MAX_FW_TASK_PER_DSP)
+		else if( BDSP_Arm_P_AckType_eTask == sAckInfo.eAckType)
 		{
-			BKNI_SetEvent(pDevice->taskDetails.pArmTask[uiTaskIndex]->hEvent);
+			uiTaskIndex = sAckInfo.params.ui32TaskID;
+			uiTaskIndex = uiTaskIndex - BDSP_ARM_TASK_ID_START_OFFSET;
+			pArmTask = pDevice->taskDetails.pArmTask[uiTaskIndex];
+			if(pArmTask == NULL)
+			{
+				BDBG_ERR(("BDSP_Arm_P_AckEventCallback_isr: something went wrong and Event callback was called for someother task"));
+				goto end;
+			}
+			if (uiTaskIndex < BDSP_ARM_MAX_FW_TASK_PER_DSP)
+			{
+				BKNI_SetEvent(pDevice->taskDetails.pArmTask[uiTaskIndex]->hEvent);
+			}
+			else
+			{
+				BDBG_ERR(("BDSP_Arm_P_AckEventCallback_isr: TaskIndex is %d which is greater than the max allowed index %d ",uiTaskIndex,(BDSP_ARM_MAX_FW_TASK_PER_DSP-1)));
+				goto end;
+			}
+
+			switch(pArmTask->lastEventType)
+			{
+				case BDSP_START_TASK_COMMAND_ID:
+					pArmTask->isStopped=false;
+					break;
+				case BDSP_STOP_TASK_COMMAND_ID:
+					pArmTask->isStopped=true;
+					break;
+				default:
+					break;
+			}
 		}
 		else
 		{
-			BDBG_ERR(("BDSP_Arm_P_AckEventCallback_isr: TaskIndex is %d which is greater than the max allowed index %d ",uiTaskIndex,(BDSP_ARM_MAX_FW_TASK_PER_DSP-1)));
+			BDBG_ERR(("BDSP_Arm_P_AckEventCallback_isr: ACK received from ArmDsp with wrong Ack type (%d)",sAckInfo.eAckType));
 			goto end;
 		}
-
-		switch(pArmTask->lastEventType)
+	}
+	else if(hConnection == pDevice->armDspApp.hHbcConnection)
+	{
+		if( BDSP_Arm_P_AckType_eDevice == sAckInfo.eAckType)
 		{
-			case BDSP_START_TASK_COMMAND_ID:
-				pArmTask->isStopped=false;
-				break;
-			case BDSP_STOP_TASK_COMMAND_ID:
-				pArmTask->isStopped=true;
-				break;
-			default:
-				break;
+			if(sAckInfo.params.ui32DeviceCmdResp == BDSP_ARM_HBC_SET_WATCHDOG_RESPONSE_ID)
+			{
+				BDSP_ArmContext *pArmContext=NULL;
+
+				BDBG_ERR(("Received ArmDspSystem Watchdog"));
+				/* set device watchdog flag */
+				pDevice->deviceWatchdogFlag = true;
+
+				for ( pArmContext = BLST_S_FIRST(&pDevice->contextList);
+					  pArmContext != NULL;
+					  pArmContext = BLST_S_NEXT(pArmContext, node) )
+				{
+					pArmContext->contextWatchdogFlag = true;
+					BDBG_ERR(("Arm Watchdog context 0x%p set",(void *)pArmContext));
+				}
+
+#ifdef BCHP_RAAGA_DSP_INTH_HOST_SET
+				/* Write to Raaga Watchdog Register */
+				BDSP_Write32(pDevice->regHandle,BCHP_RAAGA_DSP_INTH_HOST_SET,(0x1<<BCHP_RAAGA_DSP_INTH_HOST_SET_WATCHDOG_TIMER_ATTN_SHIFT));
+#else
+				BDBG_ERR(("Raaga not available; Hence ArmDspSystem Watchdog cannot recover"));
+#endif
+
+			}
+			else
+			{
+				BDBG_ERR(("BDSP_Arm_P_AckEventCallback_isr: Cmd received from HBC with wrong cmd type (%d)",sAckInfo.params.ui32DeviceCmdResp));
+				goto end;
+			}
+		}
+		else
+		{
+			BDBG_ERR(("BDSP_Arm_P_AckEventCallback_isr: ACK received from HBC with wrong Ack type (%d)",sAckInfo.eAckType));
+			goto end;
 		}
 	}
 	else
 	{
-		BDBG_ERR(("BDSP_Arm_P_AckEventCallback_isr: ACK received with wrong Ack type (%d)",sAckInfo.eAckType));
-		goto end;
+		BDBG_ERR(("Received Unknown msg (handl=%x(hA=%x)(hH=%x) AckType=%d, params=%d",(uint32_t)hConnection,(uint32_t)pDevice->armDspApp.hConnection,(uint32_t)pDevice->armDspApp.hHbcConnection,sAckInfo.eAckType,sAckInfo.params.ui32TaskID));
 	}
+
 end:
 	BDBG_LEAVE(BDSP_Arm_P_AckEventCallback_isr);
 }
+
+
+
+/***********************************************************************
+Name        :   BDSP_Arm_P_ProcessWatchdogInterrupt
+
+Type        :   PI Interface
+
+Input       :   pContextHandle  -   Context handle provided by the PI.
+
+Return      :   Error Code to return SUCCESS or FAILURE
+
+Functionality   :   On occurance of an watchdog, call the Arm Open function.
+                On completion, clear the watchdog flag of the Device handle and Context handle
+***********************************************************************/
+
+BERR_Code BDSP_Arm_P_ProcessWatchdogInterrupt(
+    void *pContextHandle)
+{
+    BDSP_ArmContext *pArmContext = (BDSP_ArmContext *)pContextHandle;
+    BERR_Code err=BERR_SUCCESS;
+    BDSP_Arm  *pDevice= pArmContext->pDevice;
+
+    BDBG_OBJECT_ASSERT(pArmContext, BDSP_ArmContext);
+
+    BKNI_EnterCriticalSection();
+    /* BDSP_Arm_P_ProcessWatchdogInterrupt() should not be called from within
+    Critical sections. To ensure this, added these few lines of code.
+    Do nothing here. If BDSP_Arm_P_ProcessWatchdogInterrupt is called incorrectly from
+    a critical section, this piece of code will cause it to deadlock and exit */
+    BKNI_LeaveCriticalSection();
+
+    BKNI_AcquireMutex(pDevice->watchdogMutex);
+    BDBG_WRN(("BDSP_Arm_P_ProcessWatchdogInterrupt called"));
+
+
+    if(pDevice->deviceWatchdogFlag == true)
+    {
+
+		BDSP_MAP_Table_Entry MapTable[BDSP_ARM_MAX_ALLOC_DEVICE];
+		uint32_t ui32NumEntries = 0;
+
+		BKNI_Memset(MapTable,0,(BDSP_ARM_MAX_ALLOC_DEVICE*sizeof(BDSP_MAP_Table_Entry)));
+		BDSP_Arm_P_RetrieveEntriesToUnMap(&(pDevice->sDeviceMapTable[0]), &MapTable[0], &ui32NumEntries, BDSP_ARM_MAX_ALLOC_DEVICE);
+		err = BDSP_ARM_P_SendUnMapCommand(pDevice, &MapTable[0], ui32NumEntries);
+		if (BERR_SUCCESS != err)
+		{
+			BDBG_ERR(("BDSP_Arm_P_ProcessWatchdogInterrupt: Send ARM UNMAP Command failed!!!!"));
+		}
+
+		err = BDSP_Arm_P_ArmHbcClose(pDevice);
+		if (BERR_SUCCESS != err)
+		{
+		  BDBG_ERR(("BDSP_Arm_P_ProcessWatchdogInterrupt: BDSP_Arm_P_ArmHbcClose  failed!!!!"));
+		}
+
+		err = BDSP_Arm_P_ArmDspClose(pDevice);
+		if (BERR_SUCCESS != err)
+		{
+		  BDBG_ERR(("BDSP_Arm_P_ProcessWatchdogInterrupt: BDSP_Arm_P_ArmDspClose  failed!!!!"));
+		}
+
+        BDSP_Arm_P_Open((void *)pDevice);
+
+        pArmContext->pDevice->deviceWatchdogFlag = false;
+    }
+
+    pArmContext->contextWatchdogFlag = false;
+
+    BKNI_ReleaseMutex(pArmContext->pDevice->watchdogMutex);
+
+    return err;
+}
+
+
 
 #if 0 /*SYNCASYNC_MSG CDN TBD*/
 /***************************************************************************

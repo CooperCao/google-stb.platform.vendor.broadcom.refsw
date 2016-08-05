@@ -54,7 +54,9 @@ Lightly-used settings to configure the HDMI output interface
 **/
 typedef struct NEXUS_HdmiOutputExtraSettings
 {
-    bool overrideDynamicRangeMasteringInfoFrame; /* If true, contents of dynamicRangeMasteringInfoFrame are used to build the DRM InfoFrame, rather than the default value based on receiver preferences and capabilities, and stream information */
+    bool overrideDynamicRangeMasteringInfoFrame; /* If true, contents of dynamicRangeMasteringInfoFrame are used to
+        build the DRM InfoFrame, rather than the default value based on receiver preferences and capabilities, and
+        stream information */
     NEXUS_HdmiDynamicRangeMasteringInfoFrame dynamicRangeMasteringInfoFrame;  /* Dynamic Range And Mastering InfoFrame */
 } NEXUS_HdmiOutputExtraSettings;
 

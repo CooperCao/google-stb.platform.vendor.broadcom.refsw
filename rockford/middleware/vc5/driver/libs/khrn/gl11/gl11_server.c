@@ -107,6 +107,348 @@ Boilerplate that we use
 
 */
 
+/* 'Cleans' a floating point number by converting -INF to -FLT_MAX, INF to
+ * FLT_MAX and any NaN to zero. Khronos spec says nothing about what happens if
+ * an unclean float is passed to a function, so this at least guarantees
+ * reasonable behaviour. */
+static float clean_float(float f)
+{
+   uint32_t u = gfx_float_to_bits(f);
+
+   if (u == 0x7f800000)
+      return FLT_MAX;
+   if (u == (uint32_t)0xff800000)
+      return -FLT_MAX;
+   if ((u & 0x7f800000) == 0x7f800000)
+      return 0;                              // force NaN to zero
+
+   return f;
+}
+
+static int get_attr_11(GLenum array) {
+   switch(array) {
+   case GL_VERTEX_ARRAY:           return GL11_IX_VERTEX;
+   case GL_NORMAL_ARRAY:           return GL11_IX_NORMAL;
+   case GL_COLOR_ARRAY:            return GL11_IX_COLOR;
+   case GL_POINT_SIZE_ARRAY_OES:   return GL11_IX_POINT_SIZE;
+   case GL_MATRIX_INDEX_ARRAY_OES: return GL11_IX_MATRIX_INDEX;
+   case GL_WEIGHT_ARRAY_OES:       return GL11_IX_MATRIX_WEIGHT;
+   case GL_TEXTURE_COORD_ARRAY:    return GL11_IX_CLIENT_ACTIVE_TEXTURE;
+   default:                        return -1;
+   }
+}
+
+static void enable_client_state(GLenum array, bool enabled)
+{
+   int attrib;
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_11);
+   if (!state) return;
+
+   attrib = get_attr_11(array);
+   if (attrib == -1) {
+      glxx_server_state_set_error(state, GL_INVALID_ENUM);
+      goto end;
+   }
+
+   if (attrib == GL11_IX_CLIENT_ACTIVE_TEXTURE)
+      attrib = GL11_IX_TEXTURE_COORD + state->gl11.client_active_texture - GL_TEXTURE0;
+
+   glintAttribEnable(state, attrib, enabled);
+
+end:
+   glxx_unlock_server_state();
+}
+
+GL_API void GL_APIENTRY glDisableClientState(GLenum array)
+{
+   enable_client_state(array, false);
+}
+
+GL_API void GL_APIENTRY glEnableClientState(GLenum array)
+{
+   enable_client_state(array, true);
+}
+
+/*
+   VERTEX ARRAY POINTER GetPointerv
+   NORMAL ARRAY POINTER GetPointerv
+   COLOR ARRAY POINTER GetPointerv
+   TEXTURE COORD ARRAY POINTER GetPointerv
+   POINT SIZE ARRAY POINTER OES GetPointerv
+   MATRIX_INDEX_ARRAY_POINTER_OES GetPointerv
+   WEIGHT_ARRAY_POINTER_OES GetPointerv
+*/
+
+static int pointer_to_attr_11(GLenum pname) {
+   switch (pname)
+   {
+   case GL_VERTEX_ARRAY_POINTER:           return GL11_IX_VERTEX;
+   case GL_NORMAL_ARRAY_POINTER:           return GL11_IX_NORMAL;
+   case GL_COLOR_ARRAY_POINTER:            return GL11_IX_COLOR;
+   case GL_TEXTURE_COORD_ARRAY_POINTER:    return GL11_IX_CLIENT_ACTIVE_TEXTURE;
+   case GL_POINT_SIZE_ARRAY_POINTER_OES:   return GL11_IX_POINT_SIZE;
+   case GL_MATRIX_INDEX_ARRAY_POINTER_OES: return GL11_IX_MATRIX_INDEX;
+   case GL_WEIGHT_ARRAY_POINTER_OES:       return GL11_IX_MATRIX_WEIGHT;
+   default:                                return -1;
+   }
+}
+
+GL_API void GL_APIENTRY glGetPointerv(GLenum pname, GLvoid **params)
+{
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_11);
+   if (!state) return;
+
+   int attrib = pointer_to_attr_11(pname);
+   if (attrib == -1) {
+      glxx_server_state_set_error(state, GL_INVALID_ENUM);
+      goto end;
+   }
+
+   if (attrib == GL11_IX_CLIENT_ACTIVE_TEXTURE)
+      attrib = GL11_IX_TEXTURE_COORD + state->gl11.client_active_texture - GL_TEXTURE0;
+
+   assert(attrib < GLXX_CONFIG_MAX_VERTEX_ATTRIBS);
+
+   params[0] = glintAttribGetPointer(state, attrib);
+
+end:
+   glxx_unlock_server_state();
+}
+
+/* GLES 1.1 attrib functions: vertex */
+static bool is_vertex_size(GLint size)
+{
+   return size == 2 ||
+          size == 3 ||
+          size == 4;
+}
+
+static bool is_vertex_type(GLenum type)
+{
+   return type == GL_BYTE  ||
+          type == GL_SHORT ||
+          type == GL_FIXED ||
+          type == GL_FLOAT;
+}
+
+GL_API void GL_APIENTRY glVertexPointer(GLint size, GLenum type, GLsizei stride, const GLvoid *pointer)
+{
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_11);
+   if (!state) return;
+
+   if (!is_vertex_type(type)) {
+      glxx_server_state_set_error(state, GL_INVALID_ENUM);
+      goto end;
+   }
+
+   if (is_vertex_size(size) && glxx_is_aligned(type, (size_t)pointer) && glxx_is_aligned(type, (size_t)stride) && stride >= 0)
+      glintAttribPointer_GL11(state, GL11_IX_VERTEX, size, type, GL_FALSE, stride, (GLintptr)pointer);
+   else
+      glxx_server_state_set_error(state, GL_INVALID_VALUE);
+
+end:
+   glxx_unlock_server_state();
+}
+
+/* GLES 1.1 attrib functions: color */
+static bool is_color_size(GLint size)
+{
+   return size == 4;
+}
+
+static bool is_color_type(GLenum type)
+{
+   return type == GL_UNSIGNED_BYTE ||
+          type == GL_FIXED         ||
+          type == GL_FLOAT;
+}
+
+GL_API void GL_APIENTRY glColorPointer(GLint size, GLenum type, GLsizei stride, const GLvoid *pointer)
+{
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_11);
+   if (!state) return;
+
+   if (!is_color_type(type)) {
+      glxx_server_state_set_error(state, GL_INVALID_ENUM);
+      goto end;
+   }
+
+   if (is_color_size(size) && glxx_is_aligned(type, (size_t)pointer) && glxx_is_aligned(type, (size_t)stride) && stride >= 0)
+      glintAttribPointer_GL11(state, GL11_IX_COLOR, size, type, GL_TRUE, stride, (GLintptr)pointer);
+   else
+      glxx_server_state_set_error(state, GL_INVALID_VALUE);
+
+end:
+   glxx_unlock_server_state();
+}
+
+GL_API void GL_APIENTRY glColor4f(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha)
+{
+   glintColor(
+      gfx_fclamp(red,   0.0f, 1.0f),
+      gfx_fclamp(green, 0.0f, 1.0f),
+      gfx_fclamp(blue,  0.0f, 1.0f),
+      gfx_fclamp(alpha, 0.0f, 1.0f));
+}
+
+GL_API void GL_APIENTRY glColor4ub(GLubyte red, GLubyte green, GLubyte blue, GLubyte alpha)
+{
+   glintColor(
+      (float)red   / 255.0f,
+      (float)green / 255.0f,
+      (float)blue  / 255.0f,
+      (float)alpha / 255.0f);
+}
+
+GL_API void GL_APIENTRY glColor4x(GLfixed red, GLfixed green, GLfixed blue, GLfixed alpha)
+{
+   glintColor(
+      gfx_fclamp(fixed_to_float(red),   0.0f, 1.0f),
+      gfx_fclamp(fixed_to_float(green), 0.0f, 1.0f),
+      gfx_fclamp(fixed_to_float(blue),  0.0f, 1.0f),
+      gfx_fclamp(fixed_to_float(alpha), 0.0f, 1.0f));
+}
+
+/* GLES 1.1 attrib functions: normal */
+static bool is_normal_type(GLenum type)
+{
+   return type == GL_BYTE  ||
+          type == GL_SHORT ||
+          type == GL_FIXED ||
+          type == GL_FLOAT;
+}
+
+GL_API void GL_APIENTRY glNormalPointer(GLenum type, GLsizei stride, const GLvoid *pointer)
+{
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_11);
+   if (!state) return;
+
+   if (!is_normal_type(type)) {
+      glxx_server_state_set_error(state, GL_INVALID_ENUM);
+      goto end;
+   }
+
+   if (glxx_is_aligned(type, (size_t)pointer) && glxx_is_aligned(type, (size_t)stride) && stride >= 0)
+      glintAttribPointer_GL11(state, GL11_IX_NORMAL, 3, type, GL_TRUE, stride, (GLintptr)pointer);
+   else
+      glxx_server_state_set_error(state, GL_INVALID_VALUE);
+
+end:
+   glxx_unlock_server_state();
+}
+
+GL_API void GL_APIENTRY glNormal3f(GLfloat nx, GLfloat ny, GLfloat nz)
+{
+   glintAttrib(OPENGL_ES_11, GL11_IX_NORMAL, nx, ny, nz, 0.0f);
+}
+
+GL_API void GL_APIENTRY glNormal3x(GLfixed nx, GLfixed ny, GLfixed nz)
+{
+   glintAttrib(OPENGL_ES_11, GL11_IX_NORMAL, fixed_to_float(nx), fixed_to_float(ny), fixed_to_float(nz), 0.0f);
+}
+
+/* GLES 1.1 attrib functions: texture_coord */
+
+static bool is_texture_coord_size(GLint size)
+{
+   return size == 2 ||
+          size == 3 ||
+          size == 4;
+}
+
+static bool is_texture_coord_type(GLenum type)
+{
+   return type == GL_BYTE  ||
+          type == GL_SHORT ||
+          type == GL_FIXED ||
+          type == GL_FLOAT;
+}
+
+GL_API void GL_APIENTRY glTexCoordPointer(GLint size, GLenum type, GLsizei stride, const GLvoid *pointer)
+{
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_11);
+   if (!state) return;
+
+   if (!is_texture_coord_type(type)) {
+      glxx_server_state_set_error(state, GL_INVALID_ENUM);
+      goto end;
+   }
+
+   if (is_texture_coord_size(size) && glxx_is_aligned(type, (size_t)pointer) && glxx_is_aligned(type, (size_t)stride) && stride >= 0) {
+      unsigned index = GL11_IX_TEXTURE_COORD + state->gl11.client_active_texture - GL_TEXTURE0;
+      glintAttribPointer_GL11(state, index, size, type, GL_FALSE, stride, (GLintptr)pointer);
+   } else
+      glxx_server_state_set_error(state, GL_INVALID_VALUE);
+
+end:
+   glxx_unlock_server_state();
+}
+
+GL_API void GL_APIENTRY glMultiTexCoord4f (GLenum target, GLfloat s, GLfloat t, GLfloat r, GLfloat q)
+{
+   if (target >= GL_TEXTURE0 && target < GL_TEXTURE0 + GL11_CONFIG_MAX_TEXTURE_UNITS)
+   {
+      uint32_t indx = GL11_IX_TEXTURE_COORD + target - GL_TEXTURE0;
+      glintAttrib(OPENGL_ES_11, indx, s, t, r, q);
+   }
+   else
+      glxx_set_error_api(OPENGL_ES_11, GL_INVALID_ENUM);
+}
+
+GL_API void GL_APIENTRY glMultiTexCoord4x(GLenum target, GLfixed s, GLfixed t, GLfixed r, GLfixed q)
+{
+   if (target >= GL_TEXTURE0 && target < GL_TEXTURE0 + GL11_CONFIG_MAX_TEXTURE_UNITS)
+   {
+      uint32_t indx = GL11_IX_TEXTURE_COORD + target - GL_TEXTURE0;
+      glintAttrib(OPENGL_ES_11, indx, fixed_to_float(s), fixed_to_float(t), fixed_to_float(r), fixed_to_float(q));
+   }
+   else
+      glxx_set_error_api(OPENGL_ES_11, GL_INVALID_ENUM);
+}
+
+/* GLES 1.1 attrib functions: point_size */
+static bool is_point_size_type(GLenum type)
+{
+   return type == GL_FIXED ||
+          type == GL_FLOAT;
+}
+
+GL_API void GL_APIENTRY glPointSizePointerOES(GLenum type, GLsizei stride, const GLvoid *pointer)
+{
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_11);
+   if (!state) return;
+
+   if (!is_point_size_type(type)) {
+      glxx_server_state_set_error(state, GL_INVALID_ENUM);
+      goto end;
+   }
+
+   if (glxx_is_aligned(type, (size_t)pointer) && glxx_is_aligned(type, (size_t)stride) && stride >= 0)
+      glintAttribPointer_GL11(state, GL11_IX_POINT_SIZE, 1, type, GL_FALSE, stride, (GLintptr)pointer);
+   else
+      glxx_server_state_set_error(state, GL_INVALID_VALUE);
+
+end:
+   glxx_unlock_server_state();
+}
+
+GL_API void GL_APIENTRY glPointSize(GLfloat size)
+{
+   size = clean_float(size);
+
+   if (size > 0.0f)
+      glintAttrib(OPENGL_ES_11, GL11_IX_POINT_SIZE, size, 0.0f, 0.0f, 0.0f);
+   else
+      glxx_set_error_api(OPENGL_ES_11, GL_INVALID_VALUE);
+}
+
+GL_API void GL_APIENTRY glPointSizex(GLfixed size)
+{
+   if (size > 0)
+      glintAttrib(OPENGL_ES_11, GL11_IX_POINT_SIZE, fixed_to_float(size), 0.0f, 0.0f, 0.0f);
+   else
+      glxx_set_error_api(OPENGL_ES_11, GL_INVALID_VALUE);
+}
 
 /*
    uint32_t get_texenv_integer_internal(GLenum env, GLenum pname, int *params)
@@ -136,7 +478,7 @@ Boilerplate that we use
 
 static uint32_t get_texenv_integer_internal(GLenum env, GLenum pname, int *params)
 {
-   GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE_UNCHANGED();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state_unchanged(OPENGL_ES_11);
    int t;
    uint32_t tbits;
    uint32_t sh;
@@ -154,7 +496,7 @@ static uint32_t get_texenv_integer_internal(GLenum env, GLenum pname, int *param
          result = 1;
          break;
       default:
-         UNREACHABLE();
+         unreachable();
          break;
       }
       break;
@@ -201,16 +543,16 @@ static uint32_t get_texenv_integer_internal(GLenum env, GLenum pname, int *param
          result = 1;
          break;
       default:
-         UNREACHABLE();
+         unreachable();
          break;
       }
       break;
    default:
-      UNREACHABLE();
+      unreachable();
       break;
    }
 
-   GL11_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 
    return result;
 }
@@ -228,7 +570,7 @@ static uint32_t get_texenv_integer_internal(GLenum env, GLenum pname, int *param
 
 static int get_texenv_float_internal(GLenum env, GLenum pname, float *params)
 {
-   GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE_UNCHANGED();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state_unchanged(OPENGL_ES_11);
    int t;
    int result = 0;
    if (!state) return 0;
@@ -255,16 +597,16 @@ static int get_texenv_float_internal(GLenum env, GLenum pname, float *params)
          result = 1;
          break;
       default:
-         UNREACHABLE();
+         unreachable();
          break;
       }
       break;
    default:
-      UNREACHABLE();
+      unreachable();
       break;
    }
 
-   GL11_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 
    return result;
 }
@@ -290,7 +632,7 @@ static GL11_MATRIX_STACK_T *get_stack(GLXX_SERVER_STATE_T *state)
    case GL_TEXTURE:
       return &state->gl11.texunits[state->active_texture - GL_TEXTURE0].stack;
    default:
-      UNREACHABLE();
+      unreachable();
       return NULL;
    }
 }
@@ -308,18 +650,18 @@ static GL11_MATRIX_STACK_T *get_stack(GLXX_SERVER_STATE_T *state)
 
 static void alpha_func_internal(GLenum func, float ref)
 {
-   GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_11);
    uint32_t f;
    if (!state) return;
 
    f = translate_alpha_func(func);
    if (f != ~0u) {
       SET_MASKED(state->gl11.statebits.fragment, f, GL11_AFUNC_M);
-      state->gl11.alpha_func.ref = clampf(ref, 0.0f, 1.0f);
+      state->gl11.alpha_func.ref = gfx_fclamp(ref, 0.0f, 1.0f);
    } else
       glxx_server_state_set_error(state, GL_INVALID_ENUM);
 
-   GL11_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_APICALL void GL_APIENTRY glAlphaFunc (GLenum func, GLclampf ref)
@@ -351,7 +693,7 @@ GL_APICALL void GL_APIENTRY glAlphaFuncx (GLenum func, GLclampx ref)
 
 static void fogv_internal(GLenum pname, const GLfloat *params)
 {
-   GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_11);
    if (!state) return;
 
    switch (pname) {
@@ -394,7 +736,7 @@ static void fogv_internal(GLenum pname, const GLfloat *params)
       {
          int i;
          for (i = 0; i < 4; i++)
-            state->gl11.fog.color[i] = clampf(params[i], 0.0f, 1.0f);
+            state->gl11.fog.color[i] = gfx_fclamp(params[i], 0.0f, 1.0f);
       }
       break;
    default:
@@ -402,7 +744,7 @@ static void fogv_internal(GLenum pname, const GLfloat *params)
       break;
    }
 
-   GL11_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_APICALL void GL_APIENTRY glFogf (GLenum pname, GLfloat param)
@@ -460,13 +802,14 @@ GL_APICALL void GL_APIENTRY glFogxv (GLenum pname, const GLfixed *params)
 
 GL_APICALL void GL_APIENTRY glGetFixedv (GLenum pname, GLfixed *params)
 {
-   GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE_UNCHANGED();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state_unchanged(OPENGL_ES_11);
    if (!state) return;
 
-   if (!glxx_get_fixed(state, pname, params))
-      glxx_server_state_set_error(state, GL_INVALID_ENUM);
+   GLenum error = glxx_get_fixeds(state, pname, params);
+   if (error != GL_NO_ERROR)
+      glxx_server_state_set_error(state, error);
 
-   GL11_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 /*
@@ -500,7 +843,7 @@ GL_APICALL void GL_APIENTRY glGetFixedv (GLenum pname, GLfixed *params)
 
 static uint32_t get_lightv_internal(GLenum l, GLenum pname, float *params)
 {
-   GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE_UNCHANGED();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state_unchanged(OPENGL_ES_11);
    GL11_LIGHT_T *light;
    uint32_t result;
    if (!state) return 0;
@@ -577,7 +920,7 @@ static uint32_t get_lightv_internal(GLenum l, GLenum pname, float *params)
    else
       result = 0;
 
-   GL11_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 
    return result;
 }
@@ -642,7 +985,7 @@ static GLboolean is_single_face(GLenum face)
 
 static uint32_t get_materialv_internal(GLenum face, GLenum pname, float *params)
 {
-   GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE_UNCHANGED();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state_unchanged(OPENGL_ES_11);
    uint32_t result;
    if (!state) return 0;
 
@@ -695,7 +1038,7 @@ static uint32_t get_materialv_internal(GLenum face, GLenum pname, float *params)
       result = 0;
    }
 
-   GL11_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 
    return result;
 }
@@ -785,16 +1128,16 @@ GL_APICALL void GL_APIENTRY glGetTexEnviv (GLenum env, GLenum pname, GLint *para
          return;
       default:
          {
-         GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE_UNCHANGED();
+         GLXX_SERVER_STATE_T *state = glxx_lock_server_state_unchanged(OPENGL_ES_11);
          if (!state) return;
 
          glxx_server_state_set_error(state, GL_INVALID_ENUM);
 
-         GL11_UNLOCK_SERVER_STATE();
+         glxx_unlock_server_state();
          return;
          }
       }
-      UNREACHABLE();
+      unreachable();
       break;
    case GL_TEXTURE_ENV:
       switch (pname) {
@@ -842,32 +1185,32 @@ GL_APICALL void GL_APIENTRY glGetTexEnviv (GLenum env, GLenum pname, GLint *para
 
          if (count == 1)
          {
-            params[0] = float_to_int(temp[0]);
+            params[0] = gfx_float_to_int32(temp[0]);
          }
 
          return;
       }
       default:
          {
-         GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE_UNCHANGED();
+         GLXX_SERVER_STATE_T *state = glxx_lock_server_state_unchanged(OPENGL_ES_11);
          if (!state) return;
 
          glxx_server_state_set_error(state, GL_INVALID_ENUM);
 
-         GL11_UNLOCK_SERVER_STATE();
+         glxx_unlock_server_state();
          return;
          }
       }
-      UNREACHABLE();
+      unreachable();
       break;
    default:
       {
-      GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE_UNCHANGED();
+      GLXX_SERVER_STATE_T *state = glxx_lock_server_state_unchanged(OPENGL_ES_11);
       if (!state) return;
 
       glxx_server_state_set_error(state, GL_INVALID_ENUM);
 
-      GL11_UNLOCK_SERVER_STATE();
+      glxx_unlock_server_state();
       return;
       }
    }
@@ -902,16 +1245,16 @@ static uint32_t get_texenv_float_or_fixed_internal (GLenum env, GLenum pname, fl
       }
       default:
          {
-         GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE_UNCHANGED();
+         GLXX_SERVER_STATE_T *state = glxx_lock_server_state_unchanged(OPENGL_ES_11);
          if (!state) return 0;
 
          glxx_server_state_set_error(state, GL_INVALID_ENUM);
 
-         GL11_UNLOCK_SERVER_STATE();
+         glxx_unlock_server_state();
          return 0;
          }
       }
-      UNREACHABLE();
+      unreachable();
       break;
    case GL_TEXTURE_ENV:
       switch (pname) {
@@ -947,25 +1290,25 @@ static uint32_t get_texenv_float_or_fixed_internal (GLenum env, GLenum pname, fl
          return get_texenv_float_internal(env, pname, params);
       default:
          {
-         GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE_UNCHANGED();
+         GLXX_SERVER_STATE_T *state = glxx_lock_server_state_unchanged(OPENGL_ES_11);
          if (!state) return 0;
 
          glxx_server_state_set_error(state, GL_INVALID_ENUM);
 
-         GL11_UNLOCK_SERVER_STATE();
+         glxx_unlock_server_state();
          return 0;
          }
       }
-      UNREACHABLE();
+      unreachable();
       break;
    default:
       {
-      GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE_UNCHANGED();
+      GLXX_SERVER_STATE_T *state = glxx_lock_server_state_unchanged(OPENGL_ES_11);
       if (!state) return 0;
 
       glxx_server_state_set_error(state, GL_INVALID_ENUM);
 
-      GL11_UNLOCK_SERVER_STATE();
+      glxx_unlock_server_state();
       return 0;
       }
    }
@@ -1001,7 +1344,7 @@ GL_APICALL void GL_APIENTRY glGetTexEnvfv (GLenum env, GLenum pname, GLfloat *pa
 
 static void lightmodelv_internal (GLenum pname, const GLfloat *params)
 {
-   GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_11);
    if (!state) return;
 
    switch (pname) {
@@ -1020,7 +1363,7 @@ static void lightmodelv_internal (GLenum pname, const GLfloat *params)
       break;
    }
 
-   GL11_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_APICALL void GL_APIENTRY glLightModelf (GLenum pname, GLfloat param)
@@ -1241,11 +1584,11 @@ bool gl11_server_state_init(GLXX_SERVER_STATE_T *state, GLXX_SHARED_T *shared)
    if (!gl11_state_init(&state->gl11)) return false;
 
    /* Override some parts of the default attrib config with 1.1 values */
-   state->generic_attrib[GL11_IX_COLOR].value[0] = 1.0f;
-   state->generic_attrib[GL11_IX_COLOR].value[1] = 1.0f;
-   state->generic_attrib[GL11_IX_COLOR].value[2] = 1.0f;
-   state->generic_attrib[GL11_IX_NORMAL].value[2] = 1.0f;
-   state->generic_attrib[GL11_IX_POINT_SIZE].value[0] = 1.0f;
+   state->generic_attrib[GL11_IX_COLOR].f[0] = 1.0f;
+   state->generic_attrib[GL11_IX_COLOR].f[1] = 1.0f;
+   state->generic_attrib[GL11_IX_COLOR].f[2] = 1.0f;
+   state->generic_attrib[GL11_IX_NORMAL].f[2] = 1.0f;
+   state->generic_attrib[GL11_IX_POINT_SIZE].f[0] = 1.0f;
 
    GLXX_VAO_T *vao = state->vao.bound;
    vao->attrib_config[GL11_IX_NORMAL].size = 3;
@@ -1270,7 +1613,7 @@ GL_APICALL void GL_APIENTRY glGetTexParameterxv (GLenum target, GLenum pname, GL
 {
    GLint temp[4];
    GLuint count = 0;
-   GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_11);
 
    if (!state) return;
 
@@ -1283,13 +1626,13 @@ GL_APICALL void GL_APIENTRY glGetTexParameterxv (GLenum target, GLenum pname, GL
       for(i=0;i<count;i++)
          params[i] = (GLfixed)temp[i];
    }
-   GL11_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_APICALL void GL_APIENTRY glTexParameterx (GLenum target, GLenum pname, GLfixed param)
 {
    GLint iparams[4];
-   GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_11);
    if (!state) return;
 
    iparams[0] = (GLint)param;                /* no scaling for enum to fixed */
@@ -1300,13 +1643,13 @@ GL_APICALL void GL_APIENTRY glTexParameterx (GLenum target, GLenum pname, GLfixe
 
    glxx_texparameter_internal(state, target, pname, iparams);
 
-   GL11_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 
 GL_APICALL void GL_APIENTRY glTexParameterxv (GLenum target, GLenum pname, const GLfixed *params)
 {
-   GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_11);
    if (!state) return;
 
    if (params)
@@ -1323,13 +1666,13 @@ GL_APICALL void GL_APIENTRY glTexParameterxv (GLenum target, GLenum pname, const
       glxx_texparameter_internal(state, target, pname, iparams);
    }
 
-   GL11_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 
 static void point_parameterv_internal(GLenum pname, const GLfloat *params)
 {
-   GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_11);
    if (!state) return;
 
    switch (pname) {
@@ -1340,7 +1683,7 @@ static void point_parameterv_internal(GLenum pname, const GLfloat *params)
       if (m >= 0)
       {
          state->gl11.point_params.size_min = m;
-         state->gl11.point_params.size_min_clamped = MAXF(1.0f, state->gl11.point_params.size_min);
+         state->gl11.point_params.size_min_clamped = fmaxf(1.0f, state->gl11.point_params.size_min);
       }
       else
          glxx_server_state_set_error(state, GL_INVALID_VALUE);
@@ -1382,7 +1725,7 @@ static void point_parameterv_internal(GLenum pname, const GLfloat *params)
       break;
    }
 
-   GL11_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_APICALL void GL_APIENTRY glPointParameterf (GLenum pname, GLfloat param)
@@ -1419,7 +1762,7 @@ static GLboolean is_scalef(GLfloat scale)
 
 static void texenvfv_internal(GLenum target, GLenum pname, const GLfloat *params)
 {
-   GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_11);
    int t;
    if (!state) return;
 
@@ -1456,7 +1799,7 @@ static void texenvfv_internal(GLenum target, GLenum pname, const GLfloat *params
          {
             int i;
             for (i = 0; i < 4; i++)
-               state->gl11.texunits[t].color[i] = clampf(params[i], 0.0f, 1.0f);
+               state->gl11.texunits[t].color[i] = gfx_fclamp(params[i], 0.0f, 1.0f);
          }
          break;
       case GL_COMBINE_RGB:
@@ -1572,7 +1915,7 @@ static void texenvfv_internal(GLenum target, GLenum pname, const GLfloat *params
       break;
    }
 
-   GL11_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_APICALL void GL_APIENTRY glTexEnvf (GLenum target, GLenum pname, GLfloat param)
@@ -1643,7 +1986,7 @@ GL_APICALL void GL_APIENTRY glTexEnvfv (GLenum target, GLenum pname, const GLflo
 
 static void lightv_internal(GLenum l, GLenum pname, const GLfloat *params)
 {
-   GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_11);
    if (!state) return;
 
    if (l >= GL_LIGHT0 && l < GL_LIGHT0 + GL11_CONFIG_MAX_LIGHTS)
@@ -1729,7 +2072,7 @@ static void lightv_internal(GLenum l, GLenum pname, const GLfloat *params)
       glxx_server_state_set_error(state, GL_INVALID_ENUM);
    }
 
-   GL11_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_APICALL void GL_APIENTRY glLightf (GLenum light, GLenum pname, GLfloat param)
@@ -1769,7 +2112,7 @@ GL_APICALL void GL_APIENTRY glLightxv (GLenum light, GLenum pname, const GLfixed
 
 GL_APICALL void GL_APIENTRY glLogicOp (GLenum opcode)
 {
-   GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_11);
    uint32_t op;
    if (!state) return;
 
@@ -1781,7 +2124,7 @@ GL_APICALL void GL_APIENTRY glLogicOp (GLenum opcode)
    else
       glxx_server_state_set_error(state, GL_INVALID_ENUM);
 
-   GL11_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 //cr[ 2011-06-16 15:00
@@ -1796,15 +2139,12 @@ static bool is_matrix_mode(GLenum mode)
    return mode == GL_TEXTURE ||
           mode == GL_MODELVIEW ||
           mode == GL_PROJECTION ||
-#if GL_OES_matrix_palette
-          mode == GL_MATRIX_PALETTE_OES ||
-#endif
-          0;
+          mode == GL_MATRIX_PALETTE_OES;
 }
 
 GL_APICALL void GL_APIENTRY glMatrixMode (GLenum mode)
 {
-   GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE_UNCHANGED();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state_unchanged(OPENGL_ES_11);
    if (!state) return;
 
    if (is_matrix_mode(mode))
@@ -1812,7 +2152,7 @@ GL_APICALL void GL_APIENTRY glMatrixMode (GLenum mode)
    else
       glxx_server_state_set_error(state, GL_INVALID_ENUM);
 
-   GL11_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 //cr]
@@ -1848,7 +2188,7 @@ GL_APICALL void GL_APIENTRY glMatrixMode (GLenum mode)
 
 static void materialv_internal (GLenum face, GLenum pname, const GLfloat *params)
 {
-   GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_11);
    if (!state) return;
 
    if (face == GL_FRONT_AND_BACK) {
@@ -1906,7 +2246,7 @@ static void materialv_internal (GLenum face, GLenum pname, const GLfloat *params
    } else
       glxx_server_state_set_error(state, GL_INVALID_ENUM);
 
-   GL11_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_APICALL void GL_APIENTRY glMaterialf (GLenum face, GLenum pname, GLfloat param)
@@ -1972,7 +2312,7 @@ static GLboolean is_shade_model(GLenum model)
 
 GL_APICALL void GL_APIENTRY glShadeModel (GLenum model)
 {
-   GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_11);
    if (!state) return;
 
    if (is_shade_model(model))
@@ -1980,7 +2320,7 @@ GL_APICALL void GL_APIENTRY glShadeModel (GLenum model)
    else
       glxx_server_state_set_error(state, GL_INVALID_ENUM);
 
-   GL11_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 static GLboolean texenv_requires_scaling(GLenum pname)
@@ -2078,12 +2418,10 @@ static float *get_matrix(GLXX_SERVER_STATE_T *state)
       return state->gl11.current_projection;
    case GL_TEXTURE:
       return state->gl11.texunits[state->active_texture - GL_TEXTURE0].current_matrix;
-#if GL_OES_matrix_palette
    case GL_MATRIX_PALETTE_OES:
       return state->gl11.palette_matrices[state->gl11.current_palette_matrix];
-#endif
    default:
-      UNREACHABLE();
+      unreachable();
       return NULL;
    }
 }
@@ -2093,7 +2431,7 @@ static float *get_matrix(GLXX_SERVER_STATE_T *state)
 */
 static void load_matrix_internal(const float m[16])
 {
-   GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_11);
    float *c;
    if (!state) return;
 
@@ -2101,7 +2439,7 @@ static void load_matrix_internal(const float m[16])
 
    gl11_matrix_load(c, m);
 
-   GL11_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 /*
@@ -2110,7 +2448,7 @@ static void load_matrix_internal(const float m[16])
 */
 static void mult_matrix_internal(const float m[16])
 {
-   GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_11);
    float *c;
    if (!state) return;
 
@@ -2118,7 +2456,7 @@ static void mult_matrix_internal(const float m[16])
 
    gl11_matrix_mult(c, c, m);
 
-   GL11_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_APICALL void GL_APIENTRY glLoadIdentity (void)
@@ -2393,12 +2731,12 @@ static void frustum_internal(float l, float r, float b, float t, float n, float 
 
       mult_matrix_internal(m);
    } else {
-      GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
+      GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_11);
       if (!state) return;
 
       glxx_server_state_set_error(state, GL_INVALID_VALUE);
 
-      GL11_UNLOCK_SERVER_STATE();
+      glxx_unlock_server_state();
    }
 }
 
@@ -2458,12 +2796,12 @@ static void ortho_internal(float l, float r, float b, float t, float n, float f)
 
       mult_matrix_internal(m);
    } else {
-      GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
+      GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_11);
       if (!state) return;
 
       glxx_server_state_set_error(state, GL_INVALID_VALUE);
 
-      GL11_UNLOCK_SERVER_STATE();
+      glxx_unlock_server_state();
    }
 }
 
@@ -2486,17 +2824,15 @@ GL_APICALL void GL_APIENTRY glOrthox (GLfixed left, GLfixed right, GLfixed botto
 
 GL_APICALL void GL_APIENTRY glPopMatrix (void)
 {
-   GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_11);
    GL11_MATRIX_STACK_T *stack;
    float *cur_matrix;
    if (!state) return;
 
-#if GL_OES_matrix_palette
    if (state->gl11.matrix_mode == GL_MATRIX_PALETTE_OES) {
       glxx_server_state_set_error(state, GL_INVALID_OPERATION);
       goto fail;
    }
-#endif
 
    stack = get_stack(state);
    cur_matrix = get_matrix(state);
@@ -2508,22 +2844,20 @@ GL_APICALL void GL_APIENTRY glPopMatrix (void)
       glxx_server_state_set_error(state, GL_STACK_UNDERFLOW);
 
 fail:
-   GL11_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_APICALL void GL_APIENTRY glPushMatrix (void)
 {
-   GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_11);
    GL11_MATRIX_STACK_T *stack;
    float *cur_matrix;
    if (!state) return;
 
-#if GL_OES_matrix_palette
    if (state->gl11.matrix_mode == GL_MATRIX_PALETTE_OES) {
       glxx_server_state_set_error(state, GL_INVALID_OPERATION);
       goto fail;
    }
-#endif
 
    stack = get_stack(state);
    cur_matrix = get_matrix(state);
@@ -2535,12 +2869,12 @@ GL_APICALL void GL_APIENTRY glPushMatrix (void)
       glxx_server_state_set_error(state, GL_STACK_OVERFLOW);
 
 fail:
-   GL11_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_APICALL void GL_APIENTRY glClientActiveTexture (GLenum texture)
 {
-   GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE_UNCHANGED();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state_unchanged(OPENGL_ES_11);
    if (!state) return;
 
    if (texture >= GL_TEXTURE0 && texture < GL_TEXTURE0 + GL11_CONFIG_MAX_TEXTURE_UNITS)
@@ -2548,7 +2882,7 @@ GL_APICALL void GL_APIENTRY glClientActiveTexture (GLenum texture)
    else
       glxx_server_state_set_error(state, GL_INVALID_ENUM);
 
-   GL11_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 
@@ -2565,7 +2899,7 @@ static float *get_plane(GLXX_SERVER_STATE_T *state, GLenum p)
 
 static void clip_plane_internal(GLenum p, const float equation[4])
 {
-   GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_11);
    float *plane;
    if (!state) return;
 
@@ -2589,7 +2923,7 @@ static void clip_plane_internal(GLenum p, const float equation[4])
       gl11_matrix_mult_row(plane, equation, inv);
    }
 
-   GL11_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_APICALL void GL_APIENTRY glClipPlanef (GLenum plane, const GLfloat *equation)
@@ -2612,7 +2946,7 @@ GL_APICALL void GL_APIENTRY glClipPlanex (GLenum plane, const GLfixed *equation)
 
 static void get_clip_plane_internal(GLenum pname, float eqn[4])
 {
-   GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE_UNCHANGED();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state_unchanged(OPENGL_ES_11);
    float *plane;
    if (!state) return;
 
@@ -2624,7 +2958,7 @@ static void get_clip_plane_internal(GLenum pname, float eqn[4])
          eqn[i] = plane[i];
    }
 
-   GL11_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_APICALL void GL_APIENTRY glGetClipPlanef (GLenum pname, GLfloat eqn[4])

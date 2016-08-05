@@ -1,21 +1,41 @@
 /***************************************************************************
- *     Copyright (c) 2003-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * [File Description:]
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  ***************************************************************************/
 
@@ -29,6 +49,7 @@
 #include "bxdm_pp_vtsm.h"
 
 BDBG_MODULE(BXDM_PPVTSM);
+BDBG_FILE_MODULE(BXDM_PPVTSM);
 
 void BXDM_PPVTSM_P_VirtualStcSet_isr(
    BXDM_PictureProvider_Handle hXdmPP,
@@ -84,10 +105,10 @@ void BXDM_PPVTSM_P_VirtualStcIncrement_isr(
            )
       )
    {
-      BXVD_DBG_MSG(hXdmPP, ("%x:[%02x.xxx] Exiting trick mode transition (stc: %x)",
+      BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_eVTSM, "%x:[%02x.xxx] Exiting trick mode transition (stc: %x)",
                                  hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                  BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
-                                 pLocalState->uiAdjustedStc));
+                                 pLocalState->uiAdjustedStc );
       hXdmPP->stDMState.stDecode.stVTSM.bTrickModeTransition = false;
    }
 
@@ -123,9 +144,9 @@ void BXDM_PPVTSM_P_VirtualStcIncrement_isr(
    if ( !hXdmPP->stDMState.stChannel.stSelectedPicture.bValidated )
    {
       hXdmPP->stDMState.stDecode.stVTSM.bVirtualPTSInitialized = false;
-      BXVD_DBG_MSG(hXdmPP,("%x:[%02x.xxx] vPTS invalidated: startup",
+      BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_eVTSM, "%x:[%02x.xxx] vPTS invalidated: startup",
                                 hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
-                                BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ) ));
+                                BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ) );
    }
 
    /* Handle decoder trick modes */
@@ -230,11 +251,9 @@ void BXDM_PPVTSM_P_VirtualStcIncrement_isr(
              */
             hXdmPP->stDMState.stChannel.bPostFlushDecode = false;
 
-            BXVD_DBG_MSG(hXdmPP,("%x:[%02x.xxx] clear bPostFlushDecode due to frame advance",
+            BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_eVTSM, "%x:[%02x.xxx] clear bPostFlushDecode due to frame advance",
                                 hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
-                                BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP )
-                                ));
-
+                                BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ) );
          }
 
       }
@@ -245,9 +264,9 @@ void BXDM_PPVTSM_P_VirtualStcIncrement_isr(
          case BXDM_PictureProvider_FrameAdvanceMode_eField:
             /* We're doing a FIELD advance, so we need to increment
              * the vSTC by one field time, which is deltaPTS */
-            BXVD_DBG_MSG(hXdmPP,("%x:[%02x.xxx] Frame Advance: Field",
+            BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_eVTSM, "%x:[%02x.xxx] Frame Advance: Field",
                                           hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
-                                          BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ) ));
+                                          BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ) );
 
             /* SW7425-1264: if the "physical" STC is running in reverse, interpolate the
              * virtual STC in reverse as well. */
@@ -279,9 +298,9 @@ void BXDM_PPVTSM_P_VirtualStcIncrement_isr(
          case BXDM_PictureProvider_FrameAdvanceMode_eFrame:
             /* We're doing a FRAME advance, so we need to set the
              * vSTC to the vPTS of the NEXT PPB */
-            BXVD_DBG_MSG(hXdmPP,("%x:[%02x.xxx] Frame Advance: Frame",
+            BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_eVTSM, "%x:[%02x.xxx] Frame Advance: Frame",
                                        hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
-                                       BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ) ));
+                                       BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ) );
             hXdmPP->stDMState.stDecode.stVTSM.stVirtualSTC = hXdmPP->stDMState.stChannel.stSelectedPicture.stPicParms.stTSM.stStatic.stPTSOfNextPPB[BXDM_PictureProvider_P_PTSIndex_eVirtual];
 
             /* We need to account for the current field inversion
@@ -317,10 +336,10 @@ void BXDM_PPVTSM_P_VirtualStcIncrement_isr(
          case BXDM_PictureProvider_FrameAdvanceMode_eFrameByField:
             /* We're doing a FRAME advance by fields, so we need to do
              * field advances until we get to the next frame */
-            BXVD_DBG_MSG(hXdmPP,("%x:[%02x.xxx] Frame Advance: Frame by Field[%d]",
+            BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_eVTSM, "%x:[%02x.xxx] Frame Advance: Frame by Field[%d]",
                                       hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                       BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
-                                      hXdmPP->stDMConfig.uiFrameAdvanceByFieldCount ));
+                                      hXdmPP->stDMConfig.uiFrameAdvanceByFieldCount );
 
             if ( hXdmPP->stDMConfig.uiFrameAdvanceByFieldCount > 0 )
             {
@@ -396,11 +415,11 @@ void BXDM_PPVTSM_P_VirtualPtsInterpolate_isr(
       )
    {
       hXdmPP->stDMState.stDecode.stVTSM.bVirtualPTSInitialized = false;
-      BXVD_DBG_MSG(hXdmPP,("%x:[%02x.%03x] vPTS invalidated: TSM result: %d",
+      BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_eVTSM, "%x:[%02x.%03x] vPTS invalidated: TSM result: %d",
                                 hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                 BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                                 pstPicture->stPicParms.uiPPBIndex & 0xFFF,
-                                pstPrevPicture->stPicParms.stTSM.stDynamic.eTsmResult));
+                                pstPrevPicture->stPicParms.stTSM.stDynamic.eTsmResult );
    }
 
    /* We interpolate the vPTS from the previous PPB */
@@ -423,14 +442,12 @@ void BXDM_PPVTSM_P_VirtualPtsInterpolate_isr(
        * indicate that the vPTS has been initialized */
       hXdmPP->stDMState.stDecode.stVTSM.bVirtualPTSInitialized= true;
 
-      BXVD_DBG_MSG(hXdmPP,("%x:[%02x.%03x] initialize vPTS TSM mode: vPTS:%08x includes jitter offset of %08x",
+      BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_eVTSM, "%x:[%02x.%03x] initialize vPTS TSM mode: vPTS:%08x includes jitter offset of %08x",
                                 hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                 BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                                 pstPicture->stPicParms.uiPPBIndex & 0xFFF,
                                 stVirtualPTSOfNextPPB.uiWhole,
-                                pstPicture->stPicParms.stTSM.stStatic.iPTSJitterCorrection
-                                ));
-
+                                pstPicture->stPicParms.stTSM.stStatic.iPTSJitterCorrection );
    }
    else
    {
@@ -502,11 +519,11 @@ void BXDM_PPVTSM_P_VirtualPtsInterpolate_isr(
                                          ( pstSelectedPicture->stPicParms.stTSM.stStatic.stPTSDelta.uiFractional ? 1 : 0 ) ) )
             {
                hXdmPP->stDMState.stDecode.stVTSM.bVirtualPTSInitialized = false;
-               BXVD_DBG_MSG(hXdmPP,("%x:[%02x.%03x] vPTS invalidated: skew Detected, i.e. the DQ ran dry uiStcPtsDifference:%08x)",
+               BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_eVTSM, "%x:[%02x.%03x] vPTS invalidated: skew Detected, i.e. the DQ ran dry uiStcPtsDifference:%08x)",
                                          hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                          BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                                          pstPicture->stPicParms.uiPPBIndex & 0xFFF,
-                                         uiStcPtsDifference));
+                                         uiStcPtsDifference );
             }
          }
 
@@ -547,13 +564,12 @@ void BXDM_PPVTSM_P_VirtualPtsInterpolate_isr(
                /* The amount added doesn't matter. */
                stVirtualPTSTemp.uiWhole += 10;
 
-               BXVD_DBG_MSG(hXdmPP,("%x:[%02x.%03x] initialize vPTS for 1st picture with system paused: vStc:%08x vPTS:%08x",
+               BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_eVTSM, "%x:[%02x.%03x] initialize vPTS for 1st picture with system paused: vStc:%08x vPTS:%08x",
                                          hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                          BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                                          pstPicture->stPicParms.uiPPBIndex & 0xFFF,
                                          hXdmPP->stDMState.stDecode.stVTSM.stVirtualSTC.uiWhole,
-                                         stVirtualPTSTemp.uiWhole
-                                         ));
+                                         stVirtualPTSTemp.uiWhole );
             }
             else
             {
@@ -589,7 +605,7 @@ void BXDM_PPVTSM_P_VirtualPtsInterpolate_isr(
                uiVsyncOffset = ( BXDM_PictureProvider_DisplayMode_eVirtualTSM == pLocalState->eDisplayMode ) ? 10 : 0;
                stVirtualPTSTemp.uiWhole -= uiVsyncOffset;
 
-               BXVD_DBG_MSG(hXdmPP,("%x:[%02x.%03x] initialize vPTS : vPTS:%08x = vStc:%08x - PTSOffset:%08x - fieldInv:%08x - uiVsyncOffset:%d + uiSoftwarePCROffset:%d",
+               BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_eVTSM, "%x:[%02x.%03x] initialize vPTS : vPTS:%08x = vStc:%08x - PTSOffset:%08x - fieldInv:%08x - uiVsyncOffset:%d + uiSoftwarePCROffset:%d",
                                          hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                          BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                                          pstPicture->stPicParms.uiPPBIndex & 0xFFF,
@@ -598,8 +614,7 @@ void BXDM_PPVTSM_P_VirtualPtsInterpolate_isr(
                                          uiPtsOffset,
                                          hXdmPP->stDMState.stDecode.stFieldInversionCorrectionPTSOffset.uiWhole,
                                          uiVsyncOffset,
-                                         hXdmPP->stDMConfig.uiSoftwarePCROffset
-                                         ));
+                                         hXdmPP->stDMConfig.uiSoftwarePCROffset );
 
             }
 
@@ -699,9 +714,9 @@ void BXDM_PPVTSM_P_ClipTimeTrickModeTransitionHandler_isr(
 {
    BSTD_UNUSED(pLocalState);
 
-   BXVD_DBG_MSG(hXdmPP, ("%x:[%02x.xxx] Entering trick mode transition (stc: %x)",
+   BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_eVTSM, "%x:[%02x.xxx] Entering trick mode transition (stc: %x)",
                               hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                               BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
-                              pLocalState->uiAdjustedStc));
+                              pLocalState->uiAdjustedStc );
    hXdmPP->stDMState.stDecode.stVTSM.bTrickModeTransition = true;
 }

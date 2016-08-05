@@ -60,6 +60,8 @@
 #include "nexus_video_decoder_register_protection_signatures_7429.c"
 #elif (BCHP_CHIP == 7445)||(BCHP_CHIP==7252)
 #include "nexus_video_decoder_register_protection_signatures_7445.c"
+#elif BCHP_CHIP == 7250
+#include "nexus_video_decoder_register_protection_signatures_7250.c"
 
 #else
 #include "nexus_video_decoder_register_protection_signatures.c"
@@ -356,7 +358,7 @@ static BERR_Code NEXUS_VideoDecoder_P_SecureModify(
     bool bReset
     )
 {
-    unsigned int index, i;
+    unsigned int i;
     BERR_Code rc = NEXUS_SUCCESS;
     NEXUS_SecurityAVDSRegModifySettings avdModifySettings;
     AVDRegAddrValue *pRegAddrValue;
@@ -367,8 +369,7 @@ static BERR_Code NEXUS_VideoDecoder_P_SecureModify(
     BDBG_ENTER(NEXUS_VideoDecoder_P_SecureStart);
     BDBG_ASSERT(pConfig);
 
-    index = pConfig->index;
-    BDBG_ASSERT(index<=NEXUS_NUM_XVD_DEVICES);
+    BDBG_ASSERT(pConfig->index<=NEXUS_NUM_XVD_DEVICES);
 
 	/* Request for an VKL to use */
 	vklHandle = SecurityAllocateVkl ( &vklId );
@@ -389,22 +390,37 @@ static BERR_Code NEXUS_VideoDecoder_P_SecureModify(
     avdModifySettings.keyLayer = NEXUS_SecurityKeySource_eKey3;
 
     #ifndef NEXUS_VIDEO_DECODER_SECURITY_NO_SVD
-    avdModifySettings.avdID = (index==0)? NEXUS_SecurityAVDType_eSVD:((index==1)?NEXUS_SecurityAVDType_eVDEC1 :NEXUS_SecurityAVDType_eVDEC2 );
+
+    switch (pConfig->index)
+    {
+        case 0:
+            avdModifySettings.avdID = NEXUS_SecurityAVDType_eSVD;
+            break;
+        case 1:
+            avdModifySettings.avdID = NEXUS_SecurityAVDType_eVDEC1;
+            break;
+        case 2:
+            avdModifySettings.avdID = NEXUS_SecurityAVDType_eVDEC2;
+            break;
+        default:
+		return	BERR_TRACE(NEXUS_INVALID_PARAMETER);
+    }
+
     #else
-    avdModifySettings.avdID = (index==0)? NEXUS_SecurityAVDType_eAVD:NEXUS_SecurityAVDType_eAVD;
+    avdModifySettings.avdID = (pConfig->index==0)? NEXUS_SecurityAVDType_eAVD:NEXUS_SecurityAVDType_eAVD;
     #endif
 
     if ( bReset )
     {
-        pRegAddrValue = (AVDRegAddrValue *)&gResetAVDRegAddrValues[index][0];
-        pSignature = (unsigned char *)&gAVD_ResetAvdSignature[index][0];
-        avdModifySettings.nAVDReg = (index==0)? NEXUS_VIDEO_REG_PROTECTION_NUM_RESET_AVD0_REGISTERS:\
+        pRegAddrValue = (AVDRegAddrValue *)&gResetAVDRegAddrValues[pConfig->index][0];
+        pSignature = (unsigned char *)&gAVD_ResetAvdSignature[pConfig->index][0];
+        avdModifySettings.nAVDReg = (pConfig->index==0)? NEXUS_VIDEO_REG_PROTECTION_NUM_RESET_AVD0_REGISTERS:\
                         NEXUS_VIDEO_REG_PROTECTION_NUM_RESET_AVD1_REGISTERS;
     }
     else
     {
-        pRegAddrValue = (AVDRegAddrValue *)&gStartAVDRegAddrValues[index][0];
-        pSignature = (unsigned char *)&gAVD_StartAvdSignature[index][0];
+        pRegAddrValue = (AVDRegAddrValue *)&gStartAVDRegAddrValues[pConfig->index][0];
+        pSignature = (unsigned char *)&gAVD_StartAvdSignature[pConfig->index][0];
         avdModifySettings.nAVDReg = NEXUS_VIDEO_REG_PROTECTION_NUM_START_AVD_REGISTERS;
     }
 

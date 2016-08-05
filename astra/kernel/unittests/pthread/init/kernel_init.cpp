@@ -37,144 +37,62 @@
  ***************************************************************************/
 
 
-#include <hwtimer.h>
 #include <stdint.h>
-#include <waitqueue.h>
 
 #include "arm/arm.h"
 #include "arm/gic.h"
 #include "fs/ramfs.h"
 #include "config.h"
 
-#include "lib_printf.h"
-#include "libfdt.h"
-#include "parse_utils.h"
-
 #include "kernel.h"
-#include "tzmemory.h"
-#include "pgtable.h"
-#include "objalloc.h"
-#include "interrupt.h"
 #include "tztask.h"
 #include "scheduler.h"
-#include "svcutils.h"
-#include "console.h"
-#include "clock.h"
+
 #include "system.h"
-
-#include "mempool.h"
-
-static uint8_t tzDevTree[MAX_DT_SIZE_BYTES];
 
 #define assert(cond) if (!(cond)) { err_msg("%s:%d - Assertion failed", __PRETTY_FUNCTION__, __LINE__); while (true) {} }
 
-TzTask *testT;
-TzTask *nswT[MAX_NUM_CPUS];
+TzTask *idler;
+TzTask *userT;
 
-extern "C" unsigned long _binary_ramfs_cpio_start;
+int idleTask(void *task, void *ctx) {
+    UNUSED(task);
+    UNUSED(ctx);
 
-void mempoolTests() {
-    MemPool pool(KERNEL_PID, 16*1024);
+    printf("starting idler\n");
+    asm volatile("cpsie aif":::);
 
-    // Large allocation and free in same order
-    // as allocations.
-    void *largeAllocs[3];
-    for (int i=0; i<3; i++) {
-        largeAllocs[i] = pool.alloc(4096);
-        assert(largeAllocs[i] != nullptr);
-    }
-    for (int i=0; i<3; i++) {
-        pool.free(largeAllocs[i]);
+    while (true) {
+        asm volatile("wfi": : :);
     }
 
-    // Large allocation and free in the opposite
-    // order of allocations.
-    for (int i=0; i<3; i++) {
-        largeAllocs[i] = pool.alloc(4096);
-        assert(largeAllocs[i] != nullptr);
-    }
-    for (int i=2; i>=0; i--) {
-        pool.free(largeAllocs[i]);
-    }
-
-    // Large allocation and free in mixed order
-    for (int i=0; i<3; i++) {
-        largeAllocs[i] = pool.alloc(4096);
-        assert(largeAllocs[i] != nullptr);
-    }
-    pool.free(largeAllocs[0]);
-    pool.free(largeAllocs[2]);
-    pool.free(largeAllocs[1]);
-    success_msg("large allocs tests passed\n");
-
-
-}
-
-void tzKernelSecondary() {
-
-    System::initSecondaryCpu();
-
-    asm volatile("cpsid if":::);
-
-    schedule();
+    return 0;
 }
 
 void tzKernelInit(const void *devTree) {
 
-    if (arm::smpCpuNum() != 0) {
-        tzKernelSecondary();
-        return;
-    }
+    printf("%s: User space pthread tests\n", __FUNCTION__);
 
-    printf("%s: pthread tests\n", __FUNCTION__);
-
-
-    // The bootstrap code has mapped device tree memory one-to-one VA and PA.
-    int rc = fdt_check_header(devTree);
-    if (rc) {
-        err_msg("Corrupted device tree at %p.\n", devTree);
-        return;
-    }
-
-    int dtSize = fdt_totalsize(devTree);
-    if (dtSize > MAX_DT_SIZE_BYTES) {
-        err_msg("Device tree is too large (size %d) . Increase MAX_DT_SIZE_BYTES\n", dtSize);
-        return;
-    }
-
-    rc = fdt_move(devTree, tzDevTree, dtSize);
-    if (rc) {
-        err_msg("Device tree could not be relocated to tzDevTree: %s\n", fdt_strerror(rc));
-        return;
-    }
-
-    TzMem::init(tzDevTree);
-    PageTable::init(devTree);
-
-    System::init(tzDevTree);
-
-    PageTable::kernelPageTable()->dump();
+    System::init(devTree);
 
     IDirectory *root = System::root();
-    IFile *userHello;
+    IFile *userFile;
     IDirectory *dir;
-    rc = root->resolvePath("pthread/hello.elf", &dir, &userHello);
+
+    int rc = root->resolvePath("user.elf", &dir, &userFile);
     assert(rc == 0);
     assert(dir == nullptr);
+    printf("%s: resolved user.elf\n", __FUNCTION__);
 
-    mempoolTests();
+    idler = new TzTask(idleTask, nullptr, 10, "idler");
+    userT = new TzTask(userFile, 50, dir, "userT");
 
-    testT = new TzTask(userHello, 50, dir, "userHello");
-    if (testT == nullptr) {
-        err_msg("Init task creation failed\n");
-        kernelHalt("Could not create init task");
-    }
-    else if (testT->status() != TzTask::State::Ready) {
-        err_msg("Init task did not reach ready state\n");
-        kernelHalt("Init task creation failed");
-    }
+    assert(idler);
+    assert(userT);
+    printf("%s: tasks created\n", __FUNCTION__);
 
-    Scheduler::addTask(testT);
+    Scheduler::addTask(idler);
+    Scheduler::addTask(userT);
 
     asm volatile("cpsid if":::);
 
@@ -182,8 +100,7 @@ void tzKernelInit(const void *devTree) {
 }
 
 void kernelHalt(const char *reason) {
-
-    UNUSED(reason);
+    err_msg("%s\n", reason);
     while (true) {}
 }
 

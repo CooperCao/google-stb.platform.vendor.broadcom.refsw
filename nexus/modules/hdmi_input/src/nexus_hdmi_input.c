@@ -124,7 +124,7 @@ NEXUS_VideoInput NEXUS_HdmiInput_GetVideoConnector(NEXUS_HdmiInputHandle hdmiInp
     return &hdmiInput->videoInput;
 }
 
-NEXUS_AudioInput NEXUS_HdmiInput_GetAudioConnector(NEXUS_HdmiInputHandle hdmiInput)
+NEXUS_AudioInputHandle NEXUS_HdmiInput_GetAudioConnector(NEXUS_HdmiInputHandle hdmiInput)
 {
     BDBG_OBJECT_ASSERT(hdmiInput, NEXUS_HdmiInput);
 #if NEXUS_HAS_AUDIO
@@ -1129,8 +1129,3 @@ static void NEXUS_HdmiInput_P_ReleaseHotPlug(void *context)
     hdmiInput->releaseHotPlugTimer = NULL;
     NEXUS_HdmiInput_SetHotPlug(hdmiInput, false) ;
 }
-
-
-
-
-

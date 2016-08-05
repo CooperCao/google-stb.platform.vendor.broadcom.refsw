@@ -192,6 +192,128 @@ BERR_Code BDSP_Arm_P_DownloadFwToAstra(BTEE_ClientHandle hClient,BDSP_Arm *pDevi
 }
 
 
+BERR_Code BDSP_Arm_P_DownloadHbcMonitorToAstra(BTEE_ClientHandle hClient,BDSP_Arm *pDevice, BDSP_Arm_SystemImgId ImgId)
+{
+    BERR_Code ret = BERR_SUCCESS;
+
+	BTEE_FileHandle pFile;
+	uint32_t BytesWritten;
+	BDSP_ArmImgCacheEntry *pimgCache = &pDevice->imgCache[ImgId];
+
+	/* Open file in Astra for writing system elf file */
+	ret = BTEE_File_Open(hClient,"/hbc_monitor.elf",(O_WRONLY|O_CREAT),&pFile);
+    if (ret)
+	{
+        BDBG_ERR(("failed to open file in astra for image %d",ImgId));
+        return BERR_TRACE(ret);
+    }
+
+	/* Write the system elf file */
+	ret = BTEE_File_Write(pFile,pimgCache->offset,pimgCache->size,&BytesWritten);
+    if (ret)
+	{
+        BDBG_ERR(("failed writing to file in astra for image %d",ImgId));
+        return BERR_TRACE(ret);
+    }
+
+	/*Check if the write was correct */
+	if(BytesWritten != pimgCache->size)
+    {
+      BDBG_ERR(("FW Image (Id =%#x) not downloaded properly. Bytes written is %d, expected was %d",ImgId,BytesWritten,pimgCache->size));
+    }
+
+	BTEE_File_Close(pFile);
+
+    return ret;
+
+}
+
+BERR_Code BDSP_Arm_P_StartHbcMonitor(BDSP_Arm *pDevice)
+{
+    BERR_Code ret = BERR_SUCCESS;
+	BTEE_ConnectionSettings sConnectionSettings;
+
+    BDBG_ENTER(BDSP_Arm_P_StartHbcMonitor);
+
+	if (pDevice->deviceWatchdogFlag == false)
+	{
+		/* Download HBC monitor code to astra */
+		ret = BDSP_Arm_P_DownloadHbcMonitorToAstra(pDevice->armDspApp.hClient,pDevice,BDSP_ARM_SystemImgId_eHbcMonitorCode);
+		if (BERR_SUCCESS != ret) {
+			BDBG_ERR(("failed to download hbc_monitor"));
+			goto err_hbc_dwnld;
+		}
+	}
+	/* Start HBC monitor */
+	ret = BTEE_Application_Open(
+				pDevice->armDspApp.hClient,
+				"hbc_monitor",
+				"/hbc_monitor.elf",
+				&pDevice->armDspApp.hHbcApplication);
+
+	if (BERR_SUCCESS != ret) {
+		BDBG_ERR(("failed to start hbc_monitor"));
+		goto err_hbc_peer_start;
+	}
+
+	/* Create a connection */
+	BTEE_Connection_GetDefaultSettings(
+				pDevice->armDspApp.hClient,
+				&sConnectionSettings	/* [out] */
+				);
+	ret = BTEE_Connection_Open(
+				pDevice->armDspApp.hHbcApplication,
+				"hbc_monitor",
+				&sConnectionSettings,	/* */
+				&pDevice->armDspApp.hHbcConnection /* [out] Connection Handle */
+				);
+	if (BERR_SUCCESS != ret) {
+		BDBG_ERR(("failed to open HBC connection"));
+		goto err_open_hbc_connection;
+	}
+
+	/* Send HBC params msg */
+	{
+		/* Create msg */
+		BDSP_ArmDspSystemCmd sCmd;
+		sCmd.eArmSysMsg = BDSP_ARM_DSP_MSG_HBC_INFO;
+
+		/* Physical address of command and generic responce queue */
+		BDSP_MEM_P_ConvertAddressToOffset(
+				pDevice->memHandle,(void *)&pDevice->psHbcInfo->hbcValid,(void *)&(sCmd.uCommand.sHbcParams.hbcValidDramAddr));
+		BDSP_MEM_P_ConvertAddressToOffset(
+				pDevice->memHandle,(void *)&pDevice->psHbcInfo->hbc,(void *)&(sCmd.uCommand.sHbcParams.hbcDramAddr));
+
+		/*Send msg */
+		ret = BTEE_Connection_SendMessage(
+			pDevice->armDspApp.hHbcConnection,
+			&sCmd,
+			sizeof(BDSP_ArmDspSystemCmd)
+			);
+		if (BERR_SUCCESS != ret) {
+			BDBG_ERR(("failed to sending msg"));
+			goto err_sending_hbc_info_msg;
+		}
+
+	}
+
+	goto start_hbc_success;
+
+err_hbc_dwnld:
+
+err_hbc_peer_start:
+
+err_open_hbc_connection:
+
+err_sending_hbc_info_msg:
+
+
+start_hbc_success:
+    BDBG_LEAVE(BDSP_Arm_P_StartHbcMonitor);
+
+return ret;
+}
+
 /***********************************************************************
  Name        :   BDSP_Arm_P_Open
 
@@ -222,6 +344,10 @@ BERR_Code BDSP_Arm_P_Open(
     BDBG_OBJECT_ASSERT(pDevice, BDSP_Arm);
 
     BDSP_Arm_P_Validate_Open_settings(pDeviceHandle);
+    if (pDevice->deviceWatchdogFlag == false)
+    {
+        if (pDevice->settings.authenticationEnabled == true)
+            pDevice->settings.preloadImages = true;
 
     ret = BKNI_CreateMutex(&(pDevice->taskDetails.taskIdMutex));
     BDBG_ASSERT(ret == BERR_SUCCESS);
@@ -229,7 +355,10 @@ BERR_Code BDSP_Arm_P_Open(
     ret = BKNI_CreateMutex(&(pDevice->armInterfaceQHndlMutex));
     BDBG_ASSERT(ret == BERR_SUCCESS);
 
-    ret = BKNI_CreateMutex(&(pDevice->captureMutex));
+	ret = BKNI_CreateMutex(&(pDevice->captureMutex));
+	BDBG_ASSERT(ret == BERR_SUCCESS);
+
+    ret = BKNI_CreateMutex(&(pDevice->watchdogMutex));
     BDBG_ASSERT(ret == BERR_SUCCESS);
 
     for (index=0 ; index< BDSP_ARM_MAX_FW_TASK_PER_DSP; index++)
@@ -255,54 +384,97 @@ BERR_Code BDSP_Arm_P_Open(
         }
     }
 
-    ret = BDSP_Arm_P_AllocateInitMemory (pDeviceHandle);
-    if (ret != BERR_SUCCESS)
-    {
-        ret = BERR_TRACE(ret);
-        goto err_allocate_initmem;
+	    ret = BDSP_Arm_P_AllocateInitMemory (pDeviceHandle);
+	    if (ret != BERR_SUCCESS)
+	    {
+	        ret = BERR_TRACE(ret);
+	        goto err_allocate_initmem;
+	    }
+	    ret = BDSP_Arm_MM_P_CalcandAllocScratchISbufferReq(pDevice);/*allocation of =DSP scratch+InterstageIO+IO Generic*/
+	    if (ret != BERR_SUCCESS)
+	    {
+	        ret = BERR_TRACE(ret);
+	        goto err_allocate_scratchISmem;
+	    }
     }
-    ret = BDSP_Arm_MM_P_CalcandAllocScratchISbufferReq(pDevice);/*allocation of =DSP scratch+InterstageIO+IO Generic*/
-    if (ret != BERR_SUCCESS)
+	if (!((pDevice->settings.authenticationEnabled == true)
+        && (pDevice->deviceWatchdogFlag == true)))
     {
-        ret = BERR_TRACE(ret);
-        goto err_allocate_scratchISmem;
-    }
+	    /* Code Download */
+	    ret = BDSP_Arm_P_Alloc_DwnldFwExec(pDeviceHandle);
+	    if (ret != BERR_SUCCESS)
+	    {
+	        ret = BERR_TRACE(BDSP_ERR_DOWNLOAD_FAILED);
+	        goto err_downloadfw;
+	    }
+	}
+	if (pDevice->deviceWatchdogFlag == true)
+	{
+		hMsgQueue =  pDevice->hCmdQueue;
+	}
 
-    /* Code Download */
-    ret = BDSP_Arm_P_Alloc_DwnldFwExec(pDeviceHandle);
-    if (ret != BERR_SUCCESS)
-    {
-        ret = BERR_TRACE(BDSP_ERR_DOWNLOAD_FAILED);
-        goto err_downloadfw;
-    }
-
-    /*Command Queue*/
-    ret = BDSP_Arm_P_CreateMsgQueue(pDevice, &(pDevice->memInfo.cmdQueueParams),&hMsgQueue);
+	/*Command Queue*/
+	if(pDevice->deviceWatchdogFlag)
+	{
+		ret = BDSP_Arm_P_InitMsgQueue(pDevice,hMsgQueue);
+	}
+	else
+	{
+	    /*Command Queue*/
+		ret = BDSP_Arm_P_CreateMsgQueue(pDevice, &(pDevice->memInfo.cmdQueueParams),&hMsgQueue);
+	}
     if (BERR_SUCCESS != ret)
     {
         BDBG_ERR(("BDSP_ARM_P_Open: Command queue creation failed!"));
         goto err_create_cmdqueue;
     }
 
-    pDevice->hCmdQueue = hMsgQueue;
+	if (pDevice->deviceWatchdogFlag == false)
+	{
+		pDevice->hCmdQueue = hMsgQueue;
+	}
 
-    /*Generic response Queue*/
-    ret = BDSP_Arm_P_CreateMsgQueue(pDevice, &(pDevice->memInfo.genRspQueueParams), &hMsgQueue);
+	if (pDevice->deviceWatchdogFlag == true)
+	{
+		hMsgQueue = pDevice->hGenRspQueue;
+	}
+	/*Generic response Queue*/
+	if(pDevice->deviceWatchdogFlag)
+	{
+		ret = BDSP_Arm_P_InitMsgQueue(pDevice,hMsgQueue);
+	}
+	else
+	{
+		/*Generic response Queue*/
+		ret = BDSP_Arm_P_CreateMsgQueue(pDevice, &(pDevice->memInfo.genRspQueueParams), &hMsgQueue);
+	}
     if (BERR_SUCCESS != ret)
     {
         BDBG_ERR(("BDSP_ARM_P_Open: Generic Response queue creation failed!"));
         goto err_create_genqueue;
     }
-
-    pDevice->hGenRspQueue = hMsgQueue;
-
-	/* Event created for Device level acknowledgment to be recieved from ARM/Asrtra*/
-	ret = BKNI_CreateEvent(&(pDevice->hDeviceEvent));
-	if (BERR_SUCCESS != ret)
+	if (pDevice->deviceWatchdogFlag == false)
 	{
-		BDBG_ERR(("BDSP_Arm_P_Open: Unable to create event"));
-		ret = BERR_TRACE(ret);
-		goto err_event_create;
+	    pDevice->hGenRspQueue = hMsgQueue;
+	}
+
+
+
+	if (pDevice->deviceWatchdogFlag == true)
+	{
+		pDevice->psHbcInfo->hbcValid = 2;
+	}
+
+	if (pDevice->deviceWatchdogFlag == false)
+	{
+		/* Event created for Device level acknowledgment to be recieved from ARM/Asrtra*/
+		ret = BKNI_CreateEvent(&(pDevice->hDeviceEvent));
+		if (BERR_SUCCESS != ret)
+		{
+			BDBG_ERR(("BDSP_Arm_P_Open: Unable to create event"));
+			ret = BERR_TRACE(ret);
+			goto err_event_create;
+		}
 	}
 	BKNI_ResetEvent(pDevice->hDeviceEvent);
 
@@ -327,13 +499,21 @@ BERR_Code BDSP_Arm_P_Open(
 
         if(pDevice->settings.authenticationEnabled == false)
         {
+			ret = BDSP_Arm_P_StartHbcMonitor(pDevice);
+			if (BERR_SUCCESS != ret) {
+					BDBG_ERR(("failed to start hbc_monitor"));
+					goto err_hbc_start;
+			}
 
-	        /* Write the downloaded application code into Astra secure memory */
-	        ret = BDSP_Arm_P_DownloadFwToAstra(pDevice->armDspApp.hClient,pDevice,BDSP_ARM_SystemImgId_eSystemCode);
-	        if (BERR_SUCCESS != ret) {
-	            BDBG_ERR(("failed to start armdsp_system"));
-	            goto err_peer_start;
-	        }
+			if (pDevice->deviceWatchdogFlag == false)
+			{
+		        /* Write the downloaded application code into Astra secure memory */
+		        ret = BDSP_Arm_P_DownloadFwToAstra(pDevice->armDspApp.hClient,pDevice,BDSP_ARM_SystemImgId_eSystemCode);
+		        if (BERR_SUCCESS != ret) {
+		            BDBG_ERR(("failed to start armdsp_system"));
+		            goto err_armdsp_dwnld;
+		        }
+			}
 
             ret = BTEE_Application_Open(
                 pDevice->armDspApp.hClient,
@@ -366,6 +546,26 @@ BERR_Code BDSP_Arm_P_Open(
 			{
 				/* Create msg */
 				BDSP_ArmDspSystemCmd sCmd;
+
+				/* Send HBC params msg */
+				sCmd.eArmSysMsg = BDSP_ARM_DSP_MSG_HBC_INFO;
+
+				/* Physical address of command and generic responce queue */
+				BDSP_MEM_P_ConvertAddressToOffset(
+						pDevice->memHandle,(void *)&pDevice->psHbcInfo->hbcValid,(void *)&(sCmd.uCommand.sHbcParams.hbcValidDramAddr));
+				BDSP_MEM_P_ConvertAddressToOffset(
+						pDevice->memHandle,(void *)&pDevice->psHbcInfo->hbc,(void *)&(sCmd.uCommand.sHbcParams.hbcDramAddr));
+
+				/*Send msg */
+				ret = BTEE_Connection_SendMessage(
+					pDevice->armDspApp.hConnection,
+					&sCmd,
+					sizeof(BDSP_ArmDspSystemCmd)
+					);
+				if (BERR_SUCCESS != ret) {
+					BDBG_ERR(("BDSP_ARM_P_Open: failed to sending HBC info msg"));
+					goto err_sending_msg;
+				}
 				sCmd.eArmSysMsg = BDSP_ARM_DSP_MSG_INIT_PARAMS;
 
 				/* Physical address of command and generic responce queue */
@@ -384,7 +584,7 @@ BERR_Code BDSP_Arm_P_Open(
 				    sizeof(BDSP_ArmDspSystemCmd)
 				    );
 				if (BERR_SUCCESS != ret) {
-	                BDBG_ERR(("failed to sending msg"));
+	                BDBG_ERR(("BDSP_ARM_P_Open: failed to sending init params msg"));
 	                goto err_sending_msg;
 	            }
 
@@ -402,7 +602,8 @@ BERR_Code BDSP_Arm_P_Open(
 
     goto open_success;
 
-
+err_hbc_start:
+err_armdsp_dwnld:
 err_peer_start:
 
 /*err_receive_msg:*/
@@ -424,9 +625,13 @@ err_allocate_scratchISmem:
 
 err_allocate_initmem:
 err_updating_rdb_map_table:
-    BKNI_DestroyMutex((pDevice->taskDetails.taskIdMutex));
-    BKNI_DestroyMutex((pDevice->captureMutex));
-    BKNI_DestroyMutex((pDevice->armInterfaceQHndlMutex));
+    if (pDevice->deviceWatchdogFlag == false)
+    {
+        BKNI_DestroyMutex(pDevice->taskDetails.taskIdMutex);
+        BKNI_DestroyMutex(pDevice->captureMutex);
+        BKNI_DestroyMutex(pDevice->watchdogMutex);
+        BKNI_DestroyMutex(pDevice->armInterfaceQHndlMutex);
+    }
 
 open_success:
     BDBG_LEAVE(BDSP_Arm_P_Open);
@@ -465,6 +670,12 @@ void BDSP_Arm_P_Close(
     if (BERR_SUCCESS != err)
     {
         BDBG_ERR(("BDSP_Arm_P_Close: Send ARM UNMAP Command failed!!!!"));
+    }
+
+    err = BDSP_Arm_P_ArmHbcClose(pDevice);
+    if (BERR_SUCCESS != err)
+    {
+      BDBG_ERR(("BDSP_Arm_P_Close: BDSP_Arm_P_ArmHbcClose  failed!!!!"));
     }
 
     err = BDSP_Arm_P_ArmDspClose(pDevice);
@@ -511,6 +722,7 @@ void BDSP_Arm_P_Close(
     BKNI_DestroyMutex(pDevice->taskDetails.taskIdMutex);
     BKNI_DestroyMutex(pDevice->captureMutex);
     BKNI_DestroyMutex(pDevice->armInterfaceQHndlMutex);
+	BKNI_DestroyMutex(pDevice->watchdogMutex);
 
     /* Invalidate and free the device structure */
     BDBG_OBJECT_DESTROY(pDevice, BDSP_Arm);
@@ -697,7 +909,7 @@ BERR_Code BDSP_Arm_P_CreateContext(
 
     pArmContext->context.getInterruptHandlers = NULL; /*BDSP_Raaga_P_GetInterruptHandlers*/
     pArmContext->context.setInterruptHandlers = NULL; /*BDSP_Raaga_P_SetInterruptHandlers*/
-    pArmContext->context.processWatchdogInterrupt = NULL; /*BDSP_Raaga_P_ProcessWatchdogInterrupt*/
+    pArmContext->context.processWatchdogInterrupt = BDSP_Arm_P_ProcessWatchdogInterrupt;
     pArmContext->context.createInterTaskBuffer = NULL; /*BDSP_Raaga_P_InterTaskBuffer_Create*/
     pArmContext->context.createCapture = NULL; /*BDSP_Raaga_P_AudioCaptureCreate;*/
 
@@ -3403,32 +3615,35 @@ BERR_Code BDSP_ARM_P_SendUnMapCommand(
     BDSP_MEM_P_ConvertAddressToOffset(
         pDevice->memHandle, pDevice->memInfo.sMapTable.pBaseAddr, &physAddress);
 
-    psCommand->sCommandHeader.ui32CommandID = BDSP_ARM_UNMAP_COMMAND_ID;
-    psCommand->sCommandHeader.ui32CommandCounter = 0;
-    psCommand->sCommandHeader.ui32TaskID = 0;
-    psCommand->sCommandHeader.eResponseType = BDSP_P_ResponseType_eNone;
-    psCommand->sCommandHeader.ui32CommandSizeInBytes =  sizeof(BDSP_Arm_P_Command);
-
-    psCommand->uCommand.sUnMapCommand.ui32NumEntries        = ui32NumEntries;
-    /*sCommand.uCommand.sUnMapCommand.ui32HostUnMapTableAddr= physAddress;*/ /*CDN_TBD*/
-
-    BKNI_ResetEvent(pDevice->hDeviceEvent);
-    err = BDSP_Arm_P_SendCommand(pDevice->hCmdQueue, psCommand,(void *)NULL);
-
-    if (BERR_SUCCESS != err)
-    {
-        BDBG_ERR(("BDSP_ARM_P_SendUnMapCommand: UnMAP Command failed!"));
-        err = BERR_TRACE(err);
-		goto end;
-    }
-
-	/* Wait for Ack_Response_Received event w/ timeout */
-	err = BKNI_WaitForEvent(pDevice->hDeviceEvent, BDSP_ARM_START_STOP_EVENT_TIMEOUT_IN_MS);
-	if (BERR_TIMEOUT == err)
+	if(pDevice->deviceWatchdogFlag == false)
 	{
-		BDBG_ERR(("BDSP_ARM_P_SendUnMapCommand: UNMAP_CMD ACK timeout!"));
-		err = BERR_TRACE(err);
-		goto end;
+	    psCommand->sCommandHeader.ui32CommandID = BDSP_ARM_UNMAP_COMMAND_ID;
+	    psCommand->sCommandHeader.ui32CommandCounter = 0;
+	    psCommand->sCommandHeader.ui32TaskID = 0;
+	    psCommand->sCommandHeader.eResponseType = BDSP_P_ResponseType_eNone;
+	    psCommand->sCommandHeader.ui32CommandSizeInBytes =  sizeof(BDSP_Arm_P_Command);
+
+	    psCommand->uCommand.sUnMapCommand.ui32NumEntries        = ui32NumEntries;
+	    /*sCommand.uCommand.sUnMapCommand.ui32HostUnMapTableAddr= physAddress;*/ /*CDN_TBD*/
+
+	    BKNI_ResetEvent(pDevice->hDeviceEvent);
+	    err = BDSP_Arm_P_SendCommand(pDevice->hCmdQueue, psCommand,(void *)NULL);
+
+	    if (BERR_SUCCESS != err)
+	    {
+	        BDBG_ERR(("BDSP_ARM_P_SendUnMapCommand: UnMAP Command failed!"));
+	        err = BERR_TRACE(err);
+			goto end;
+	    }
+
+		/* Wait for Ack_Response_Received event w/ timeout */
+		err = BKNI_WaitForEvent(pDevice->hDeviceEvent, BDSP_ARM_START_STOP_EVENT_TIMEOUT_IN_MS);
+		if (BERR_TIMEOUT == err)
+		{
+			BDBG_ERR(("BDSP_ARM_P_SendUnMapCommand: UNMAP_CMD ACK timeout!"));
+			err = BERR_TRACE(err);
+			goto end;
+		}
 	}
 end:
 	BKNI_Free(psCommand);
@@ -4293,7 +4508,7 @@ BERR_Code BDSP_Arm_P_StopTask(
 		void *pAddr = NULL;
 		BERR_Code   err1 = BERR_SUCCESS;
 		BDSP_ArmStage *pArmStage = (BDSP_ArmStage *)pArmTask->startSettings.primaryStage->pStageHandle;
-		BDSP_MAP_Table_Entry MapTable[BDSP_ARM_MAX_ALLOC_STAGE];
+		BDSP_MAP_Table_Entry MapTable[((BDSP_ARM_MAX_ALLOC_STAGE>BDSP_ARM_MAX_ALLOC_TASK)? BDSP_ARM_MAX_ALLOC_STAGE: BDSP_ARM_MAX_ALLOC_TASK)];
 		uint32_t ui32NumEntries = 0;
 
 		/*Added Specially for ARM */
@@ -4319,10 +4534,21 @@ BERR_Code BDSP_Arm_P_StopTask(
 			BDBG_ERR(("BDSP_Arm_P_StopTask: Unable to delete entry form the Table for LUT of NODE-1 which was a hack put-in in NODE CONFIG"));
 		}
 
+		if(pArmContext->contextWatchdogFlag == true)
+		{
+			BKNI_Memset(MapTable,0,(BDSP_ARM_MAX_ALLOC_TASK*sizeof(BDSP_MAP_Table_Entry)));
+			BDSP_Arm_P_RetrieveEntriesToUnMap(&(pArmTask->sTaskMapTable[0]), &MapTable[0], &ui32NumEntries, BDSP_ARM_MAX_ALLOC_TASK);
+			err = BDSP_ARM_P_SendUnMapCommand(pArmTask->pContext->pDevice, &MapTable[0], ui32NumEntries);
+			if (BERR_SUCCESS != err)
+			{
+				BDBG_ERR(("BDSP_Arm_P_StopTask: Send ARM UNMAP Command for task failed!!!!"));
+			}
+		}
+
 	}
     pArmTask->commandCounter     = 0;
 
-    if(pArmContext->contextWatchdogFlag == false)
+    if((pArmContext->contextWatchdogFlag == false)||(pDevice->settings.authenticationEnabled == true))
     {
         /* During normal scenario, unregister the task from the device where it is running on and clear the start settings*/
         pDevice->taskDetails.pArmTask[BDSP_ARM_GET_TASK_INDEX(pArmTask->taskId)]  = NULL;
@@ -4339,7 +4565,16 @@ BERR_Code BDSP_Arm_P_StopTask(
     /*pArmTask->paused=false;
     pArmTask->decLocked=false;*/
 
-    BKNI_Memset((void *)&pArmTask->startSettings, 0, sizeof(pArmTask->startSettings));
+	if((pDevice->deviceWatchdogFlag == false) && (pArmContext->contextWatchdogFlag == true))
+	{
+		/* This is done to take care of stop task which is in watchdog recovery but device open has already happened.
+			 Imagine the scenario of both VEE and APE involved.
+				   Book keeping functionalities like unregistering themselves from the Device is already happened at RaagaOpen
+				   Stop Task now just need to clear the startsettings */
+			BKNI_Memset((void *)&pArmTask->startSettings, 0, sizeof(pArmTask->startSettings));
+	}
+
+
     BKNI_DestroyEvent(pArmTask->hEvent);
 end:
 	BKNI_Free(psCommand);

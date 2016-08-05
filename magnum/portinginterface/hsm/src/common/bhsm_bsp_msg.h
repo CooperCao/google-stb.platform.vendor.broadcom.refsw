@@ -74,7 +74,7 @@ Through this interface a BSP client can:
 #define BHSM_P_BSP_MSG_SIZE (BCMD_BUFFER_BYTE_SIZE)  /* the maxumum size of a BSP command */
 
 
-typedef struct BHSM_P_BspMsg_s* BHSM_BspMsg_h;
+typedef struct BHSM_P_BspMsg* BHSM_BspMsg_h;
 
 
 typedef struct

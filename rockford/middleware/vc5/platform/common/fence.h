@@ -9,6 +9,7 @@ All rights reserved.
 #include "sched_abstract.h"
 
 void MakeFence(BEGL_SchedInterface *schedIface, int *fence);
+int KeepFence(BEGL_SchedInterface *schedIface, int fence);
 void SignalFence(BEGL_SchedInterface *schedIface, int fence);
 void WaitFence(BEGL_SchedInterface *schedIface, int fence);
 

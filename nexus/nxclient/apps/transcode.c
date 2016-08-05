@@ -48,6 +48,7 @@
 #include "media_probe.h"
 #include "bcmindexer.h"
 #include "brecord_gui.h"
+#include "dvr_crypto.h"
 #if NEXUS_HAS_HDMI_INPUT
 #include "nexus_hdmi_input.h"
 #endif
@@ -116,6 +117,7 @@ typedef struct EncodeContext
         bool raiIndex;
         NEXUS_PidChannelHandle passthrough[NEXUS_SIMPLE_ENCODER_NUM_PASSTHROUGH_PIDS];
         unsigned num_passthrough;
+        NEXUS_KeySlotHandle keyslot;
     } encoderStartSettings;
     NEXUS_SimpleEncoderStartSettings startSettings;
     NEXUS_SimpleVideoDecoderStartSettings videoProgram;
@@ -554,6 +556,8 @@ static int start_encode(EncodeContext *pContext)
     for (i=0;i<pContext->encoderStartSettings.num_passthrough;i++) {
         startSettings.passthrough[i] = pContext->encoderStartSettings.passthrough[i];
     }
+    startSettings.output.video.keyslot = pContext->encoderStartSettings.keyslot;
+    startSettings.output.audio.keyslot = pContext->encoderStartSettings.keyslot;
 
     rc = NEXUS_SimpleEncoder_Start(pContext->hEncoder, &startSettings);
     if (rc) {
@@ -779,6 +783,8 @@ int main(int argc, const char **argv)  {
     int n;
     NEXUS_VideoFormat maxFormat = 0;
     pthread_t standby_thread_id;
+    NEXUS_SecurityAlgorithm encrypt_algo = NEXUS_SecurityAlgorithm_eMax;
+    dvr_crypto_t crypto = NULL;
 
     BKNI_Memset(&context, 0, sizeof(context));
     context.encoderStartSettings.videoPid = context.encoderStartSettings.audioPid = NULL_PID;
@@ -917,6 +923,9 @@ int main(int argc, const char **argv)  {
                 passthrough[num_passthrough].remap_pid = 0;
             }
             context.encoderStartSettings.num_passthrough = num_passthrough++;
+        }
+        else if (!strcmp(argv[curarg], "-crypto") && curarg+1 < argc) {
+            encrypt_algo = lookup(g_securityAlgoStrs, argv[++curarg]);
         }
         else if ((n = nxapps_cmdline_parse(curarg, argc, argv, &cmdline))) {
             if (n < 0) {
@@ -1146,6 +1155,15 @@ int main(int argc, const char **argv)  {
             context.outputfile = buf;
             snprintf(buf, sizeof(buf), "videos/stream%d.mpg", status.rave.index);
         }
+
+        if (encrypt_algo < NEXUS_SecurityAlgorithm_eMax) {
+            struct dvr_crypto_settings settings;
+            dvr_crypto_get_default_settings(&settings);
+            settings.algo = encrypt_algo;
+            settings.encrypt = true;
+            crypto = dvr_crypto_create(&settings);
+            context.encoderStartSettings.keyslot = dvr_crypto_keyslot(crypto);
+        }
     }
 
     if (gui && !context.outputEs) {
@@ -1335,6 +1353,9 @@ check_for_end:
         brecord_gui_destroy(record_gui);
     }
     NEXUS_SimpleEncoder_Release(context.hEncoder);
+    if (crypto) {
+        dvr_crypto_destroy(crypto);
+    }
     BKNI_DestroyEvent(dataReadyEvent);
     if(!context.outputEs) {
         NEXUS_Recpump_Close(context.hRecpump);

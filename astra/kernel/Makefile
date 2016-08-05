@@ -42,11 +42,11 @@ TZ_TOOLCHAIN ?= /opt/toolchains/tzos/nonDSO/gcc-arm-tzos-musl-4_8-2016q1
 TZ_ARMGNU ?= $(TZ_TOOLCHAIN)/bin/arm-tzos-musl
 
 # platform and target
-PLATFORM ?= brcmstb
+TZ_PLATFORM ?= brcmstb
 
 # directories and files
-TZ_IMG := tz
-TZ_LIB := libtzKernel.a
+TZ_IMG := kernel
+TZ_LIB := libkernel
 
 MODULE_DIRS := \
 	boot \
@@ -60,7 +60,7 @@ MODULE_DIRS := \
 	ioc \
 	tracelog \
 	crypto \
-	platform/$(PLATFORM) \
+	platform/$(TZ_PLATFORM) \
 	tz_kernel_libc \
 	3rd_party/libfdt \
 	console
@@ -68,7 +68,6 @@ MODULE_DIRS := \
 SRC_DIRS := $(MODULE_DIRS)
 INC_DIRS := $(MODULE_DIRS)
 BIN_DIRS := $(addprefix bin/,$(MODULE_DIRS))
-LIB_DIRS := bin/lib
 
 SOURCES_ASM := $(foreach sdir,$(SRC_DIRS),$(wildcard $(sdir)/*.S))
 OBJS        := $(patsubst %.S,bin/%.o,$(SOURCES_ASM))
@@ -82,19 +81,20 @@ SOURCES_CPP := $(foreach sdir,$(SRC_DIRS),$(wildcard $(sdir)/*.cpp))
 OBJS        += $(patsubst %.cpp,bin/%.o,$(SOURCES_CPP))
 DEPS        += $(patsubst %.cpp,bin/%.d,$(SOURCES_CPP))
 
-INIT_DIR := init
+# use local init module (to build image)
+INIT_DIRS := init
 INC_DIRS += init
 BIN_DIRS += bin/init
 
-INIT_SOURCES_ASM := $(foreach sdir,$(INIT_DIR),$(wildcard $(sdir)/*.S))
+INIT_SOURCES_ASM := $(foreach sdir,$(INIT_DIRS),$(wildcard $(sdir)/*.S))
 INIT_OBJS        := $(patsubst %.S,bin/%.o,$(INIT_SOURCES_ASM))
 INIT_DEPS        := $(patsubst %.S,bin/%.d,$(INIT_SOURCES_ASM))
 
-INIT_SOURCES_C   := $(foreach sdir,$(INIT_DIR),$(wildcard $(sdir)/*.c))
+INIT_SOURCES_C   := $(foreach sdir,$(INIT_DIRS),$(wildcard $(sdir)/*.c))
 INIT_OBJS        += $(patsubst %.c,bin/%.o,$(INIT_SOURCES_C))
 INIT_DEPS        += $(patsubst %.c,bin/%.d,$(INIT_SOURCES_C))
 
-INIT_SOURCES_CPP := $(foreach sdir,$(INIT_DIR),$(wildcard $(sdir)/*.cpp))
+INIT_SOURCES_CPP := $(foreach sdir,$(INIT_DIRS),$(wildcard $(sdir)/*.cpp))
 INIT_OBJS        += $(patsubst %.cpp,bin/%.o,$(INIT_SOURCES_CPP))
 INIT_DEPS        += $(patsubst %.cpp,bin/%.d,$(INIT_SOURCES_CPP))
 
@@ -107,7 +107,7 @@ INCLUDES    += -Iinclude
 INCLUDES    += -Iapi
 INCLUDES    += -I3rd_party/libfdt
 INCLUDES    += -I$(TZ_DIR)/common/include
-INCLUDES    += -Iplatform/$(PLATFORM)
+INCLUDES    += -Iplatform/$(TZ_PLATFORM)
 
 # funcationally and alphabetically ordered
 ARCHFLAGS   := -mcpu=cortex-a15
@@ -158,11 +158,12 @@ CFLAGS      += -std=gnu99 -Wimplicit-function-declaration
 
 CPPFLAGS    := $(INCLUDES) $(DEPENDFLAGS) $(ARCHFLAGS) $(OSFLAGS)
 CPPFLAGS    += $(BASEFLAGS) $(WARNFLAGS) $(CHIPFLAGS)
-CPPFLAGS    += -std=c++11 -D__EXCEPTIONS=0 -fno-rtti -fno-exceptions
+CPPFLAGS    += -std=c++11 -D__EXCEPTIONS=0
+CPPFLAGS    += -fno-rtti -fno-exceptions -fno-use-cxa-atexit
 
-vpath %.S   $(SRC_DIRS) $(INIT_DIR)
-vpath %.c   $(SRC_DIRS) $(INIT_DIR)
-vpath %.cpp $(SRC_DIRS) $(INIT_DIR)
+vpath %.S   $(SRC_DIRS) $(INIT_DIRS)
+vpath %.c   $(SRC_DIRS) $(INIT_DIRS)
+vpath %.cpp $(SRC_DIRS) $(INIT_DIRS)
 
 define make-goal
 $1/%.o: %.c
@@ -181,57 +182,51 @@ all: checkplatform checkdirs $(TZ_IMG)
 -include $(DEPS) $(INIT_DEPS)
 
 checkplatform:
-	@echo Building for PLATFORM=$(PLATFORM)...
+	@echo Building for TZ_PLATFORM=$(TZ_PLATFORM)...
 
-checkdirs: $(BIN_DIRS) $(LIB_DIRS)
+checkdirs: $(BIN_DIRS)
 
 $(BIN_DIRS):
 	mkdir -p $@
 
-$(LIB_DIRS):
-	mkdir -p $@
+$(TZ_IMG): $(TZ_IMG).bin
 
+$(TZ_IMG).bin: $(TZ_IMG).elf
+	$(TZ_ARMGNU)-objcopy $(TZ_IMG).elf -O binary $(TZ_IMG).bin
 
-$(TZ_IMG): $(TZ_IMG).elf
-	$(TZ_ARMGNU)-objcopy $(TZ_IMG).elf -O binary $(TZ_IMG)
+$(TZ_IMG).elf: $(TZ_LIB).a $(INIT_OBJS) link_arm_tz.ld
+	$(TZ_ARMGNU)-g++ -nostartfiles $(INIT_OBJS) $(TZ_LIB).a -Tlink_arm_tz.ld -o $@
 
-$(TZ_IMG).elf:$(TZ_LIB) $(INIT_OBJS) link_arm_tz.ld
-	$(TZ_ARMGNU)-g++ -nostartfiles $(INIT_OBJS) $(LIB_DIRS)/$(TZ_LIB) -Tlink_arm_tz.ld -o $@
-
-$(TZ_LIB): $(OBJS)
-	$(TZ_ARMGNU)-ar -cr $(LIB_DIRS)/$@ $(OBJS)
+$(TZ_LIB).a: $(OBJS)
+	$(TZ_ARMGNU)-ar -cr $@ $(OBJS)
 
 clean:
 	$(RM) -r bin
-	$(RM) -r lib
-	$(RM) $(TZ_IMG) $(TZ_IMG).elf
+	$(RM) $(TZ_LIB).a
+	$(RM) $(TZ_IMG).bin $(TZ_IMG).elf
 
 .PHONY:unit_tests
 
 unit_tests:
-	$(MAKE) -C unittests/userapps
-	$(MAKE) -C unittests/diehard
+	$(MAKE) -C unittests/cpuload
 	$(MAKE) -C unittests/fs_userspace
 	$(MAKE) -C unittests/memory
 	$(MAKE) -C unittests/musl_userspace
-	#$(MAKE) -C unittests/oemcrypto
 	$(MAKE) -C unittests/pthread
 	$(MAKE) -C unittests/ramfs
-	$(MAKE) -C unittests/timer
 	$(MAKE) -C unittests/signals
+	$(MAKE) -C unittests/timer
 	$(MAKE) -C unittests/userspace
 
 clean_unit_tests:
-	$(MAKE) -C unittests/userapps clean
-	$(MAKE) -C unittests/diehard clean
+	$(MAKE) -C unittests/cpuload clean
 	$(MAKE) -C unittests/fs_userspace clean
 	$(MAKE) -C unittests/memory clean
 	$(MAKE) -C unittests/musl_userspace clean
-	#$(MAKE) -C unittests/oemcrypto clean
 	$(MAKE) -C unittests/pthread clean
 	$(MAKE) -C unittests/ramfs clean
-	$(MAKE) -C unittests/timer clean
 	$(MAKE) -C unittests/signals clean
+	$(MAKE) -C unittests/timer clean
 	$(MAKE) -C unittests/userspace clean
 
 

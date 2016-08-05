@@ -37,56 +37,47 @@
  ***************************************************************************/
 
 
-#include <hwtimer.h>
 #include <stdint.h>
-#include <waitqueue.h>
 
 #include "arm/arm.h"
 #include "arm/gic.h"
 #include "fs/ramfs.h"
 #include "config.h"
 
-#include "lib_printf.h"
-#include "libfdt.h"
-#include "parse_utils.h"
-
 #include "kernel.h"
-#include "tzmemory.h"
-#include "pgtable.h"
-#include "objalloc.h"
-#include "interrupt.h"
 #include "tztask.h"
 #include "scheduler.h"
-#include "console.h"
-#include "svcutils.h"
+#include "hwtimer.h"
+#include "waitqueue.h"
 
-static uint8_t tzDevTree[MAX_DT_SIZE_BYTES];
+#include "system.h"
 
 #define assert(cond) if (!(cond)) { err_msg("%s:%d - Assertion failed", __PRETTY_FUNCTION__, __LINE__); while (true) {} }
 
+static WaitQueue wq;
+
 TzTask *idler;
+TzTask *userT;
 TzTask *testT;
-TzTask *yieldT;
 
 static int numCycles = 0;
-static WaitQueue eq;
 
 void timerFired(Timer t, void *ctx) {
-    printf("%s: %x%x %p\n", __FUNCTION__, (unsigned int)(t >> 32),
-                (unsigned int)(t & 0xffffffff), ctx);
+    printf("%s: cycle=%d timer=0x%x%x ctx=%p\n", __FUNCTION__,
+           numCycles, (unsigned int)(t >> 32), (unsigned int)(t & 0xffffffff), ctx);
 
-    eq.signal();
+    wq.signal();
 }
 
 int idleTask(void *task, void *ctx) {
     UNUSED(task);
     UNUSED(ctx);
+
     printf("starting idler\n");
-    asm volatile("cpsie af":::);
+    asm volatile("cpsie aif":::);
+
     while (true) {
-        //asm volatile("wfi": : :);
-        asm volatile("smc #0": : :);
-        printf("w");
+        asm volatile("wfi": : :);
     }
 
     return 0;
@@ -94,23 +85,20 @@ int idleTask(void *task, void *ctx) {
 
 int testTask(void *task, void *ctx) {
 
-    printf("in task\n");
+    printf("starting test task\n");
     UNUSED(ctx);
 
-    eq.init();
+    wq.init();
 
-    while (true) {
-
-        printf("await: task %p\n", task);
-
-        eq.wait((TzTask *)task);
-
-        printf("woken up\n");
+    while (numCycles < 10) {
 
         uint64_t now = TzHwCounter::timeNow();
         unsigned long freq = TzHwCounter::frequency();
-
         TzTimers::create(now+freq, timerFired, nullptr);
+
+        printf("await: task %p\n", task);
+        wq.wait((TzTask *)task);
+        printf("woken up\n");
 
         numCycles++;
     }
@@ -118,67 +106,38 @@ int testTask(void *task, void *ctx) {
     success_msg("Timer interrupt and context switch test passed\n");
 
     while (true)
-        eq.wait((TzTask *)task);
+        wq.wait((TzTask *)task);
 
     return 0;
 }
 
-
-extern "C" unsigned long _binary_ramfs_cpio_start;
-
 void tzKernelInit(const void *devTree) {
 
-    printf("%s: user space tests\n", __FUNCTION__);
+    printf("%s: User space tests\n", __FUNCTION__);
 
-    // The bootstrap code has mapped device tree memory one-to-one VA and PA.
-    int rc = fdt_check_header(devTree);
-    if (rc) {
-        err_msg("Corrupted device tree at %p.\n", devTree);
-        return;
-    }
+    System::init(devTree);
 
-    int dtSize = fdt_totalsize(devTree);
-    if (dtSize > MAX_DT_SIZE_BYTES) {
-        err_msg("Device tree is too large (size %d) . Increase MAX_DT_SIZE_BYTES\n", dtSize);
-        return;
-    }
-
-    rc = fdt_move(devTree, tzDevTree, dtSize);
-    if (rc) {
-        err_msg("Device tree could not be relocated to tzDevTree: %s\n", fdt_strerror(rc));
-        return;
-    }
-
-    TzMem::init(tzDevTree);
-    PageTable::init(devTree);
-    GIC::init(tzDevTree);
-    Interrupt::init();
-    TzTask::init();
-    ElfImage::init();
-    TzTimers::init();
-    Scheduler::init();
-    RamFS::init();
-    SysCalls::init();
-    Console::init(tzDevTree);
-
-    IDirectory *root = RamFS::load(&_binary_ramfs_cpio_start);
-    IFile *userHello;
+    IDirectory *root = System::root();
+    IFile *userFile;
     IDirectory *dir;
-    rc = root->resolvePath("hello.elf", &dir, &userHello);
+
+    int rc = root->resolvePath("user.elf", &dir, &userFile);
     assert(rc == 0);
     assert(dir == nullptr);
+    printf("%s: resolved user.elf\n", __FUNCTION__);
 
-    testT = new TzTask(userHello, 50, dir, "userHello");
     idler = new TzTask(idleTask, nullptr, 10, "idler");
-    yieldT = new TzTask(testTask, nullptr, 50, "yieldT");
+    testT = new TzTask(testTask, nullptr, 50, "testT");
+    userT = new TzTask(userFile, 50, dir, "userT");
 
-    printf("tasks created\n");
+    assert(idler);
+    assert(testT);
+    assert(userT);
+    printf("%s: tasks created\n", __FUNCTION__);
 
-    Scheduler::addTask(testT);
     Scheduler::addTask(idler);
-    Scheduler::addTask(yieldT);
-
-    TzTimers::create(TzHwCounter::timeNow()+(25*TzHwCounter::frequency()), timerFired, nullptr);
+    Scheduler::addTask(testT);
+    Scheduler::addTask(userT);
 
     asm volatile("cpsid if":::);
 
@@ -186,8 +145,7 @@ void tzKernelInit(const void *devTree) {
 }
 
 void kernelHalt(const char *reason) {
-
-    UNUSED(reason);
+    err_msg("%s\n", reason);
     while (true) {}
 }
 

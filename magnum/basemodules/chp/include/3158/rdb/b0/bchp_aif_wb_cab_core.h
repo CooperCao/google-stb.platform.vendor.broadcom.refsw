@@ -44,17 +44,19 @@
  * This module was generated magically with RDB from a source description
  * file. You must edit the source file for changes to be made to this file.
  *
+ * The launch point for all information concerning RDB is found at:
+ *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Tue Feb 23 15:26:06 2016
- *                 Full Compile MD5 Checksum  4b84f30a4b3665aac5b824a1ed76e56c
+ * Date:           Generated on               Thu Jun 23 18:55:21 2016
+ *                 Full Compile MD5 Checksum  726d365438fe88693b6f0a492958face
  *                     (minus title and desc)
- *                 MD5 Checksum               4894bba0ec078aee10b5b5954262d56e
+ *                 MD5 Checksum               942083b46396c70655d90e546c008796
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     804
+ *                 RDB.pm                     1048
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
  *                 Script Source              /home/pntruong/sbin/combo_header.pl
  *                 DVTSWVER                   n/a
@@ -348,96 +350,111 @@
 #define BCHP_AIF_WB_CAB_CORE_AGCDECRATE          0x04200454 /* [RW] Decimate rate */
 #define BCHP_AIF_WB_CAB_CORE_AGCTHRA1            0x04200458 /* [RW] AGCTHRA1 */
 #define BCHP_AIF_WB_CAB_CORE_AGCTHRA2            0x0420045c /* [RW] AGCTHRA2 */
-#define BCHP_AIF_WB_CAB_CORE_REG_AGC_LF_INT_WDATA 0x04200460 /* [RW] Shift accumulator integrator write data (tc8.26) */
-#define BCHP_AIF_WB_CAB_CORE_REG_AGC_LA_INT_WDATA 0x04200464 /* [RW] Leaky averager integrator write data (tc1.31) */
-#define BCHP_AIF_WB_CAB_CORE_REG_AGC_CTRL_LF_INT_WDATA 0x04200468 /* [RW] Shift accumulator integrator write data (tc4.19) */
-#define BCHP_AIF_WB_CAB_CORE_REG_AGC_CTRL_LA_INT_WDATA 0x0420046c /* [RW] Leaky averager integrator write data (tc1.20) */
-#define BCHP_AIF_WB_CAB_CORE_REG_AGC_PKDT_CTL    0x04200470 /* [RW] REG_AGC_PKDT_CTL */
-#define BCHP_AIF_WB_CAB_CORE_REG_AGC_PKDT_LA     0x04200474 /* [RW] REG_AGC_PKDT_LA */
-#define BCHP_AIF_WB_CAB_CORE_REG_AGC_PKDT_LA_INT_WDATA 0x04200478 /* [RW] Leaky averager integrator write data (tc6.18) */
-#define BCHP_AIF_WB_CAB_CORE_REG_AGC_INT_MAXTHR  0x0420047c /* [RW] LF integrator max threshold (tc8.24) */
-#define BCHP_AIF_WB_CAB_CORE_REG_AGC_INT_MINTHR  0x04200480 /* [RW] LF integrator min threshold (tc8.24) */
-#define BCHP_AIF_WB_CAB_CORE_REG_AGCCTL3         0x04200484 /* [RW] REG_AGCCTL3 */
-#define BCHP_AIF_WB_CAB_CORE_NRAGCCTL_PI_SLC0    0x04200488 /* [RW] NR AGC Control Ping Lane Slice 0 */
-#define BCHP_AIF_WB_CAB_CORE_NRAGCCTL_PO_SLC0    0x0420048c /* [RW] NR AGC Control Ping Lane Slice 0 */
-#define BCHP_AIF_WB_CAB_CORE_NRAGCCTL_PO_SLC1    0x04200490 /* [RW] NR AGC Control Ping Lane Slice 1 */
-#define BCHP_AIF_WB_CAB_CORE_NRAGCCTL_PI_SLC1    0x04200494 /* [RW] NR AGC Control Ping Lane Slice 1 */
-#define BCHP_AIF_WB_CAB_CORE_REG_NR_AGC_LA_INT_WDATA_PO_SLC0 0x04200498 /* [RW] AGC Leaky averager integrator write data (tc1.33) for lane 0 */
-#define BCHP_AIF_WB_CAB_CORE_REG_NR_AGC_LA_INT_WDATA_PI_SLC1 0x0420049c /* [RW] AGC Leaky averager integrator write data (tc1.33) for lane 1 */
-#define BCHP_AIF_WB_CAB_CORE_REG_NR_AGC_LA_INT_WDATA_PO_SLC1 0x042004a0 /* [RW] AGC Leaky averager integrator write data (tc1.33) for lane 1 */
-#define BCHP_AIF_WB_CAB_CORE_REG_NR_AGC_LA_INT_WDATA_PI_SLC0 0x042004a4 /* [RW] AGC Leaky averager integrator write data (tc1.33) for lane 0 */
-#define BCHP_AIF_WB_CAB_CORE_REG_NR_AGC_LF_INT_WDATA_PO_SLC1 0x042004a8 /* [RW] AGC Loop filter integrator write data (tc0.58) for lane 1 */
-#define BCHP_AIF_WB_CAB_CORE_REG_NR_AGC_LF_INT_WDATA_PI_SLC0 0x042004ac /* [RW] AGC Loop filter integrator write data (tc0.58) for lane 0 */
-#define BCHP_AIF_WB_CAB_CORE_REG_NR_AGC_LF_INT_WDATA_PO_SLC0 0x042004b0 /* [RW] AGC Loop filter integrator write data (tc0.58) for lane 0 */
-#define BCHP_AIF_WB_CAB_CORE_REG_NR_AGC_LF_INT_WDATA_PI_SLC1 0x042004b4 /* [RW] AGC Loop filter integrator write data (tc0.58) for lane 1 */
-#define BCHP_AIF_WB_CAB_CORE_NRNOTCHCTL          0x042004b8 /* [RW] NR NOTCH Control */
-#define BCHP_AIF_WB_CAB_CORE_NRAGCTHR            0x042004bc /* [RW] NR AGC Threshold Control */
-#define BCHP_AIF_WB_CAB_CORE_NRDCOCTL_PI_SLC0    0x042004c0 /* [RW] NR DCO Control Ping Lane Slice 0 */
-#define BCHP_AIF_WB_CAB_CORE_REG_NR_DCO_INT_WDATA_PI_SLC0 0x042004c4 /* [RW] DCO integrator write data */
-#define BCHP_AIF_WB_CAB_CORE_NRDCOCTL_PO_SLC0    0x042004c8 /* [RW] NR DCO Control Pong Lane Slice 0 */
-#define BCHP_AIF_WB_CAB_CORE_REG_NR_DCO_INT_WDATA_PO_SLC0 0x042004cc /* [RW] DCO integrator write data */
-#define BCHP_AIF_WB_CAB_CORE_NRDCOCTL_PI_SLC1    0x042004d0 /* [RW] NR DCO Control Ping Lane Slice 1 */
-#define BCHP_AIF_WB_CAB_CORE_REG_NR_DCO_INT_WDATA_PI_SLC1 0x042004d4 /* [RW] DCO integrator write data */
-#define BCHP_AIF_WB_CAB_CORE_NRDCOCTL_PO_SLC1    0x042004d8 /* [RW] NR DCO Control Pong Lane Slice 1 */
-#define BCHP_AIF_WB_CAB_CORE_REG_NR_DCO_INT_WDATA_PO_SLC1 0x042004dc /* [RW] DCO integrator write data */
-#define BCHP_AIF_WB_CAB_CORE_NRNOTCHCTL_PI_SLC0  0x042004e0 /* [RW] NR NOTCH Control Ping Lane Slice 0 */
-#define BCHP_AIF_WB_CAB_CORE_REG_NR_NOTCH_INT_WDATA_PI_SLC0 0x042004e4 /* [RW] NOTCH integrator write data */
-#define BCHP_AIF_WB_CAB_CORE_NRNOTCHCTL_PO_SLC0  0x042004e8 /* [RW] NR NOTCH Control Pong Lane Slice 0 */
-#define BCHP_AIF_WB_CAB_CORE_REG_NR_NOTCH_INT_WDATA_PO_SLC0 0x042004ec /* [RW] NOTCH integrator write data */
-#define BCHP_AIF_WB_CAB_CORE_NRNOTCHCTL_PI_SLC1  0x042004f0 /* [RW] NR NOTCH Control Ping Lane Slice 1 */
-#define BCHP_AIF_WB_CAB_CORE_REG_NR_NOTCH_INT_WDATA_PI_SLC1 0x042004f4 /* [RW] NOTCH integrator write data */
-#define BCHP_AIF_WB_CAB_CORE_NRNOTCHCTL_PO_SLC1  0x042004f8 /* [RW] NR NOTCH Control Pong Lane Slice 1 */
-#define BCHP_AIF_WB_CAB_CORE_REG_NR_NOTCH_INT_WDATA_PO_SLC1 0x042004fc /* [RW] NOTCH integrator write data */
-#define BCHP_AIF_WB_CAB_CORE_NRDCOCTL_THR        0x04200500 /* [RW] NR DCO Control AGC Threshold */
-#define BCHP_AIF_WB_CAB_CORE_REG_NR_DCO_INT_WDATA_THR 0x04200504 /* [RW] DCO integrator write data */
-#define BCHP_AIF_WB_CAB_CORE_NDC_BYPASS          0x04200508 /* [RW] NDC block bypass */
-#define BCHP_AIF_WB_CAB_CORE_NDC_DISTORT_SEL     0x0420050c /* [RW] NDC Distortion term selection */
-#define BCHP_AIF_WB_CAB_CORE_NDC_OBC_ENABLE      0x04200510 /* [RW] NDC Observation Band Channelizer (OBC) enable */
-#define BCHP_AIF_WB_CAB_CORE_NDC_OBC_FCW         0x04200514 /* [RW] NDC OBC FCW */
-#define BCHP_AIF_WB_CAB_CORE_NDC_OBC_AGC_CTRL    0x04200518 /* [RW] NDC OBC AGC controls */
-#define BCHP_AIF_WB_CAB_CORE_NDC_OBC_AGC_LKY     0x0420051c /* [RO] NDC OBC AGC leaky averager */
-#define BCHP_AIF_WB_CAB_CORE_NDC_OBC_AGC_INT     0x04200520 /* [RW] NDC OBC AGC loop integrator */
-#define BCHP_AIF_WB_CAB_CORE_NDC_OBC_AGC_CLIP_CTRL 0x04200524 /* [RW] NDC OBC AGC clip counter controls */
-#define BCHP_AIF_WB_CAB_CORE_NDC_OBC_AGC_CLIP_COUNT 0x04200528 /* [RO] NDC OBC AGC clip counter read value */
-#define BCHP_AIF_WB_CAB_CORE_NDC_UPDATE_STEP     0x0420052c /* [RW] NDC Update step size */
-#define BCHP_AIF_WB_CAB_CORE_NDC_UPDATE_W0       0x04200530 /* [RW] NDC Update path nonlinear filter coefficient W0 */
-#define BCHP_AIF_WB_CAB_CORE_NDC_UPDATE_W1       0x04200534 /* [RW] NDC Update path nonlinear filter coefficient W1 */
-#define BCHP_AIF_WB_CAB_CORE_NDC_UPDATE_W2       0x04200538 /* [RW] NDC Update path nonlinear filter coefficient W2 */
-#define BCHP_AIF_WB_CAB_CORE_NDC_MPATH_W0        0x0420053c /* [RW] NDC Main datapath nonlinear filter coefficient W0 */
-#define BCHP_AIF_WB_CAB_CORE_NDC_MPATH_W1        0x04200540 /* [RW] NDC Main datapath nonlinear filter coefficient W1 */
-#define BCHP_AIF_WB_CAB_CORE_NDC_MPATH_W2        0x04200544 /* [RW] NDC Main datapath nonlinear filter coefficient W2 */
-#define BCHP_AIF_WB_CAB_CORE_NDC_ERR_CTRL        0x04200548 /* [RW] NDC Coefficient update error power averager controls */
-#define BCHP_AIF_WB_CAB_CORE_NDC_ERR_INT         0x0420054c /* [RW] NDC Coefficient update error power averager integrator */
-#define BCHP_AIF_WB_CAB_CORE_NDC_TIMER           0x04200550 /* [RW] NDC Timers to control coef transfer to main datapath filter */
-#define BCHP_AIF_WB_CAB_CORE_DECFILT_CTRL        0x04200554 /* [RW] Decimation Filter Control */
-#define BCHP_AIF_WB_CAB_CORE_DECFILT_LFSR_SEED0  0x04200558 /* [RW] Decimation Filter LFSR Seed 0 */
-#define BCHP_AIF_WB_CAB_CORE_DECFILT_LFSR_SEED1  0x0420055c /* [RW] Decimation Filter LFSR Seed 1 */
-#define BCHP_AIF_WB_CAB_CORE_DECFILT_LFSR_SEED2  0x04200560 /* [RW] Decimation Filter LFSR Seed 2 */
-#define BCHP_AIF_WB_CAB_CORE_DECFILT_LFSR_SEED3  0x04200564 /* [RW] Decimation Filter LFSR Seed 3 */
-#define BCHP_AIF_WB_CAB_CORE_DECFILT_LFSR_SEED4  0x04200568 /* [RW] Decimation Filter LFSR Seed 4 */
-#define BCHP_AIF_WB_CAB_CORE_DECFILT_LFSR_SEED5  0x0420056c /* [RW] Decimation Filter LFSR Seed 5 */
-#define BCHP_AIF_WB_CAB_CORE_DECFILT_LFSR_SEED6  0x04200570 /* [RW] Decimation Filter LFSR Seed 6 */
-#define BCHP_AIF_WB_CAB_CORE_DECFILT_LFSR_SEED7  0x04200574 /* [RW] Decimation Filter LFSR Seed 7 */
-#define BCHP_AIF_WB_CAB_CORE_DECFILT_LFSR_SEED8  0x04200578 /* [RW] Decimation Filter LFSR Seed 8 */
-#define BCHP_AIF_WB_CAB_CORE_DECFILT_LFSR_SEED9  0x0420057c /* [RW] Decimation Filter LFSR Seed 9 */
-#define BCHP_AIF_WB_CAB_CORE_DECFILT_LFSR_SEED10 0x04200580 /* [RW] Decimation Filter LFSR Seed 10 */
-#define BCHP_AIF_WB_CAB_CORE_DECFILT_LFSR_SEED11 0x04200584 /* [RW] Decimation Filter LFSR Seed 11 */
-#define BCHP_AIF_WB_CAB_CORE_DECFILT_LFSR_SEED12 0x04200588 /* [RW] Decimation Filter LFSR Seed 12 */
-#define BCHP_AIF_WB_CAB_CORE_DECFILT_LFSR_SEED13 0x0420058c /* [RW] Decimation Filter LFSR Seed 13 */
-#define BCHP_AIF_WB_CAB_CORE_DECFILT_LFSR_SEED14 0x04200590 /* [RW] Decimation Filter LFSR Seed 14 */
-#define BCHP_AIF_WB_CAB_CORE_DECFILT_LFSR_SEED15 0x04200594 /* [RW] Decimation Filter LFSR Seed 15 */
-#define BCHP_AIF_WB_CAB_CORE_DECFILT_LFSR_CHECK  0x04200598 /* [RO] Decimation Filter LFSR Check */
-#define BCHP_AIF_WB_CAB_CORE_DECFILT_STATUS      0x0420059c /* [RO] Decimation Filter Status */
-#define BCHP_AIF_WB_CAB_CORE_TP_DECIMATION       0x042005a0 /* [RW] Testport Decimation */
-#define BCHP_AIF_WB_CAB_CORE_REG_LEAP_DMA        0x042005a4 /* [RW] LEAP DMA control */
-#define BCHP_AIF_WB_CAB_CORE_REG_LEAP_DMA_STATUS 0x042005a8 /* [RO] LEAP DMA Status */
-#define BCHP_AIF_WB_CAB_CORE_TEC_CTRL            0x042005ac /* [RW] Timing Error Correction Control */
-#define BCHP_AIF_WB_CAB_CORE_TEC_ACC_LIMIT       0x042005b0 /* [RW] Timing Error Correction Accumulator Limit */
-#define BCHP_AIF_WB_CAB_CORE_TEC_STATUS          0x042005b4 /* [RO] Timing Error Correction Status */
-#define BCHP_AIF_WB_CAB_CORE_TEC_ACC_MSB         0x042005b8 /* [RO] Timing Error Correction Accumulator MSB */
-#define BCHP_AIF_WB_CAB_CORE_TEC_ACC_LSB         0x042005bc /* [RO] Timing Error Correction Accumulator LSB */
-#define BCHP_AIF_WB_CAB_CORE_CORE_SW_SPARE0      0x042005c0 /* [RW] Core software spare register 0 */
-#define BCHP_AIF_WB_CAB_CORE_CORE_SW_SPARE1      0x042005c4 /* [RW] Core software spare register 1 */
+#define BCHP_AIF_WB_CAB_CORE_AGCACTIVE_STAT      0x04200460 /* [RO] AGCACTIVE_STAT */
+#define BCHP_AIF_WB_CAB_CORE_PGA_GAIN_STAT       0x04200464 /* [RO] PGA_GAIN_STAT */
+#define BCHP_AIF_WB_CAB_CORE_REG_AGC_LF_INT_WDATA 0x04200468 /* [RW] Shift accumulator integrator write data (tc8.26) */
+#define BCHP_AIF_WB_CAB_CORE_REG_AGC_LA_INT_WDATA 0x0420046c /* [RW] Leaky averager integrator write data (tc1.31) */
+#define BCHP_AIF_WB_CAB_CORE_REG_AGC_CTRL_LF_INT_WDATA 0x04200470 /* [RW] Shift accumulator integrator write data (tc4.19) */
+#define BCHP_AIF_WB_CAB_CORE_REG_AGC_CTRL_LA_INT_WDATA 0x04200474 /* [RW] Leaky averager integrator write data (tc1.20) */
+#define BCHP_AIF_WB_CAB_CORE_REG_AGC_PKDT_CTL    0x04200478 /* [RW] REG_AGC_PKDT_CTL */
+#define BCHP_AIF_WB_CAB_CORE_REG_AGC_PKDT_LA     0x0420047c /* [RW] REG_AGC_PKDT_LA */
+#define BCHP_AIF_WB_CAB_CORE_REG_AGC_PKDT_LA_INT_WDATA 0x04200480 /* [RW] Leaky averager integrator write data (tc6.18) */
+#define BCHP_AIF_WB_CAB_CORE_REG_AGC_INT_MAXTHR  0x04200484 /* [RW] LF integrator max threshold (tc8.24) */
+#define BCHP_AIF_WB_CAB_CORE_REG_AGC_INT_MINTHR  0x04200488 /* [RW] LF integrator min threshold (tc8.24) */
+#define BCHP_AIF_WB_CAB_CORE_REG_AGCCTL3         0x0420048c /* [RW] REG_AGCCTL3 */
+#define BCHP_AIF_WB_CAB_CORE_REG_AGC_CLIPCNT_CTL 0x04200490 /* [RW] REG_AGC_CLIPCNT_CTL */
+#define BCHP_AIF_WB_CAB_CORE_REG_AGC_CLIPCNT_THR 0x04200494 /* [RW] REG_AGC_CLIPCNT_THR */
+#define BCHP_AIF_WB_CAB_CORE_REG_AGC_CLIP_CNT    0x04200498 /* [RO] REG_AGC_CLIP_CNT */
+#define BCHP_AIF_WB_CAB_CORE_NRAGCCTL_PI_SLC0    0x0420049c /* [RW] NR AGC Control Ping Lane Slice 0 */
+#define BCHP_AIF_WB_CAB_CORE_NRAGCCTL_PO_SLC0    0x042004a0 /* [RW] NR AGC Control Ping Lane Slice 0 */
+#define BCHP_AIF_WB_CAB_CORE_NRAGCCTL_PO_SLC1    0x042004a4 /* [RW] NR AGC Control Ping Lane Slice 1 */
+#define BCHP_AIF_WB_CAB_CORE_NRAGCCTL_PI_SLC1    0x042004a8 /* [RW] NR AGC Control Ping Lane Slice 1 */
+#define BCHP_AIF_WB_CAB_CORE_REG_NR_AGC_LA_INT_WDATA_PO_SLC0 0x042004ac /* [RW] AGC Leaky averager integrator write data (tc1.33) for lane 0 */
+#define BCHP_AIF_WB_CAB_CORE_REG_NR_AGC_LA_INT_WDATA_PI_SLC1 0x042004b0 /* [RW] AGC Leaky averager integrator write data (tc1.33) for lane 1 */
+#define BCHP_AIF_WB_CAB_CORE_REG_NR_AGC_LA_INT_WDATA_PO_SLC1 0x042004b4 /* [RW] AGC Leaky averager integrator write data (tc1.33) for lane 1 */
+#define BCHP_AIF_WB_CAB_CORE_REG_NR_AGC_LA_INT_WDATA_PI_SLC0 0x042004b8 /* [RW] AGC Leaky averager integrator write data (tc1.33) for lane 0 */
+#define BCHP_AIF_WB_CAB_CORE_REG_NR_AGC_LF_INT_WDATA_PO_SLC1 0x042004bc /* [RW] AGC Loop filter integrator write data (tc0.58) for lane 1 */
+#define BCHP_AIF_WB_CAB_CORE_REG_NR_AGC_LF_INT_WDATA_PI_SLC0 0x042004c0 /* [RW] AGC Loop filter integrator write data (tc0.58) for lane 0 */
+#define BCHP_AIF_WB_CAB_CORE_REG_NR_AGC_LF_INT_WDATA_PO_SLC0 0x042004c4 /* [RW] AGC Loop filter integrator write data (tc0.58) for lane 0 */
+#define BCHP_AIF_WB_CAB_CORE_REG_NR_AGC_LF_INT_WDATA_PI_SLC1 0x042004c8 /* [RW] AGC Loop filter integrator write data (tc0.58) for lane 1 */
+#define BCHP_AIF_WB_CAB_CORE_NRNOTCHCTL          0x042004cc /* [RW] NR NOTCH Control */
+#define BCHP_AIF_WB_CAB_CORE_NRAGCTHR            0x042004d0 /* [RW] NR AGC Threshold Control */
+#define BCHP_AIF_WB_CAB_CORE_NRDCOCTL_PI_SLC0    0x042004d4 /* [RW] NR DCO Control Ping Lane Slice 0 */
+#define BCHP_AIF_WB_CAB_CORE_REG_NR_DCO_INT_WDATA_PI_SLC0 0x042004d8 /* [RW] DCO integrator write data */
+#define BCHP_AIF_WB_CAB_CORE_NRDCOCTL_PO_SLC0    0x042004dc /* [RW] NR DCO Control Pong Lane Slice 0 */
+#define BCHP_AIF_WB_CAB_CORE_REG_NR_DCO_INT_WDATA_PO_SLC0 0x042004e0 /* [RW] DCO integrator write data */
+#define BCHP_AIF_WB_CAB_CORE_NRDCOCTL_PI_SLC1    0x042004e4 /* [RW] NR DCO Control Ping Lane Slice 1 */
+#define BCHP_AIF_WB_CAB_CORE_REG_NR_DCO_INT_WDATA_PI_SLC1 0x042004e8 /* [RW] DCO integrator write data */
+#define BCHP_AIF_WB_CAB_CORE_NRDCOCTL_PO_SLC1    0x042004ec /* [RW] NR DCO Control Pong Lane Slice 1 */
+#define BCHP_AIF_WB_CAB_CORE_REG_NR_DCO_INT_WDATA_PO_SLC1 0x042004f0 /* [RW] DCO integrator write data */
+#define BCHP_AIF_WB_CAB_CORE_NRNOTCHCTL_PI_SLC0  0x042004f4 /* [RW] NR NOTCH Control Ping Lane Slice 0 */
+#define BCHP_AIF_WB_CAB_CORE_REG_NR_NOTCH_INT_WDATA_PI_SLC0 0x042004f8 /* [RW] NOTCH integrator write data */
+#define BCHP_AIF_WB_CAB_CORE_NRNOTCHCTL_PO_SLC0  0x042004fc /* [RW] NR NOTCH Control Pong Lane Slice 0 */
+#define BCHP_AIF_WB_CAB_CORE_REG_NR_NOTCH_INT_WDATA_PO_SLC0 0x04200500 /* [RW] NOTCH integrator write data */
+#define BCHP_AIF_WB_CAB_CORE_NRNOTCHCTL_PI_SLC1  0x04200504 /* [RW] NR NOTCH Control Ping Lane Slice 1 */
+#define BCHP_AIF_WB_CAB_CORE_REG_NR_NOTCH_INT_WDATA_PI_SLC1 0x04200508 /* [RW] NOTCH integrator write data */
+#define BCHP_AIF_WB_CAB_CORE_NRNOTCHCTL_PO_SLC1  0x0420050c /* [RW] NR NOTCH Control Pong Lane Slice 1 */
+#define BCHP_AIF_WB_CAB_CORE_REG_NR_NOTCH_INT_WDATA_PO_SLC1 0x04200510 /* [RW] NOTCH integrator write data */
+#define BCHP_AIF_WB_CAB_CORE_NRDCOCTL_THR        0x04200514 /* [RW] NR DCO Control AGC Threshold */
+#define BCHP_AIF_WB_CAB_CORE_REG_NR_DCO_INT_WDATA_THR 0x04200518 /* [RW] DCO integrator write data */
+#define BCHP_AIF_WB_CAB_CORE_DAGCCTL1            0x0420051c /* [RW] DAGCCTL1 */
+#define BCHP_AIF_WB_CAB_CORE_DAGCCTL2            0x04200520 /* [RW] DAGCCTL2 */
+#define BCHP_AIF_WB_CAB_CORE_DAGCDECRATE         0x04200524 /* [RW] DAGC Decimate rate */
+#define BCHP_AIF_WB_CAB_CORE_REG_DAGC_INT_LIMIT_THR 0x04200528 /* [RW] DAGC LF K1 integrator limit threshold */
+#define BCHP_AIF_WB_CAB_CORE_REG_DAGC_INTRP_CTL  0x0420052c /* [RW] DAGC LF Interrupt Control */
+#define BCHP_AIF_WB_CAB_CORE_REG_DAGC_LF_K1_INT_WDATA 0x04200530 /* [RW] DAGC K1 Shift accumulator integrator write data (tc8.26) */
+#define BCHP_AIF_WB_CAB_CORE_REG_DAGC_LF_K2_INT_WDATA 0x04200534 /* [RW] DAGC K2 Shift accumulator integrator write data (tc4.30) */
+#define BCHP_AIF_WB_CAB_CORE_REG_DAGC_LA_INT_WDATA 0x04200538 /* [RW] DAGC Leaky averager integrator write data (tc1.31) */
+#define BCHP_AIF_WB_CAB_CORE_REG_DAGC_GAIN       0x0420053c /* [RO] DAGC GAIN (tc5.11) */
+#define BCHP_AIF_WB_CAB_CORE_REG_DAGC_STAT       0x04200540 /* [RO] DAGC STATUS */
+#define BCHP_AIF_WB_CAB_CORE_NDC_BYPASS          0x04200544 /* [RW] NDC block bypass */
+#define BCHP_AIF_WB_CAB_CORE_NDC_DISTORT_SEL     0x04200548 /* [RW] NDC Distortion term selection */
+#define BCHP_AIF_WB_CAB_CORE_NDC_OBC_ENABLE      0x0420054c /* [RW] NDC Observation Band Channelizer (OBC) enable */
+#define BCHP_AIF_WB_CAB_CORE_NDC_OBC_FCW         0x04200550 /* [RW] NDC OBC FCW */
+#define BCHP_AIF_WB_CAB_CORE_NDC_OBC_AGC_CTRL    0x04200554 /* [RW] NDC OBC AGC controls */
+#define BCHP_AIF_WB_CAB_CORE_NDC_OBC_AGC_LKY     0x04200558 /* [RO] NDC OBC AGC leaky averager */
+#define BCHP_AIF_WB_CAB_CORE_NDC_OBC_AGC_INT     0x0420055c /* [RW] NDC OBC AGC loop integrator */
+#define BCHP_AIF_WB_CAB_CORE_NDC_OBC_AGC_CLIP_CTRL 0x04200560 /* [RW] NDC OBC AGC clip counter controls */
+#define BCHP_AIF_WB_CAB_CORE_NDC_OBC_AGC_CLIP_COUNT 0x04200564 /* [RO] NDC OBC AGC clip counter read value */
+#define BCHP_AIF_WB_CAB_CORE_NDC_UPDATE_STEP     0x04200568 /* [RW] NDC Update step size */
+#define BCHP_AIF_WB_CAB_CORE_NDC_UPDATE_W0       0x0420056c /* [RW] NDC Update path nonlinear filter coefficient W0 */
+#define BCHP_AIF_WB_CAB_CORE_NDC_UPDATE_W1       0x04200570 /* [RW] NDC Update path nonlinear filter coefficient W1 */
+#define BCHP_AIF_WB_CAB_CORE_NDC_UPDATE_W2       0x04200574 /* [RW] NDC Update path nonlinear filter coefficient W2 */
+#define BCHP_AIF_WB_CAB_CORE_NDC_MPATH_W0        0x04200578 /* [RW] NDC Main datapath nonlinear filter coefficient W0 */
+#define BCHP_AIF_WB_CAB_CORE_NDC_MPATH_W1        0x0420057c /* [RW] NDC Main datapath nonlinear filter coefficient W1 */
+#define BCHP_AIF_WB_CAB_CORE_NDC_MPATH_W2        0x04200580 /* [RW] NDC Main datapath nonlinear filter coefficient W2 */
+#define BCHP_AIF_WB_CAB_CORE_NDC_ERR_CTRL        0x04200584 /* [RW] NDC Coefficient update error power averager controls */
+#define BCHP_AIF_WB_CAB_CORE_NDC_ERR_INT         0x04200588 /* [RW] NDC Coefficient update error power averager integrator */
+#define BCHP_AIF_WB_CAB_CORE_NDC_TIMER           0x0420058c /* [RW] NDC Timers to control coef transfer to main datapath filter */
+#define BCHP_AIF_WB_CAB_CORE_DECFILT_CTRL        0x04200590 /* [RW] Decimation Filter Control */
+#define BCHP_AIF_WB_CAB_CORE_DECFILT_LFSR_SEED0  0x04200594 /* [RW] Decimation Filter LFSR Seed 0 */
+#define BCHP_AIF_WB_CAB_CORE_DECFILT_LFSR_SEED1  0x04200598 /* [RW] Decimation Filter LFSR Seed 1 */
+#define BCHP_AIF_WB_CAB_CORE_DECFILT_LFSR_SEED2  0x0420059c /* [RW] Decimation Filter LFSR Seed 2 */
+#define BCHP_AIF_WB_CAB_CORE_DECFILT_LFSR_SEED3  0x042005a0 /* [RW] Decimation Filter LFSR Seed 3 */
+#define BCHP_AIF_WB_CAB_CORE_DECFILT_LFSR_SEED4  0x042005a4 /* [RW] Decimation Filter LFSR Seed 4 */
+#define BCHP_AIF_WB_CAB_CORE_DECFILT_LFSR_SEED5  0x042005a8 /* [RW] Decimation Filter LFSR Seed 5 */
+#define BCHP_AIF_WB_CAB_CORE_DECFILT_LFSR_SEED6  0x042005ac /* [RW] Decimation Filter LFSR Seed 6 */
+#define BCHP_AIF_WB_CAB_CORE_DECFILT_LFSR_SEED7  0x042005b0 /* [RW] Decimation Filter LFSR Seed 7 */
+#define BCHP_AIF_WB_CAB_CORE_DECFILT_LFSR_SEED8  0x042005b4 /* [RW] Decimation Filter LFSR Seed 8 */
+#define BCHP_AIF_WB_CAB_CORE_DECFILT_LFSR_SEED9  0x042005b8 /* [RW] Decimation Filter LFSR Seed 9 */
+#define BCHP_AIF_WB_CAB_CORE_DECFILT_LFSR_SEED10 0x042005bc /* [RW] Decimation Filter LFSR Seed 10 */
+#define BCHP_AIF_WB_CAB_CORE_DECFILT_LFSR_SEED11 0x042005c0 /* [RW] Decimation Filter LFSR Seed 11 */
+#define BCHP_AIF_WB_CAB_CORE_DECFILT_LFSR_SEED12 0x042005c4 /* [RW] Decimation Filter LFSR Seed 12 */
+#define BCHP_AIF_WB_CAB_CORE_DECFILT_LFSR_SEED13 0x042005c8 /* [RW] Decimation Filter LFSR Seed 13 */
+#define BCHP_AIF_WB_CAB_CORE_DECFILT_LFSR_SEED14 0x042005cc /* [RW] Decimation Filter LFSR Seed 14 */
+#define BCHP_AIF_WB_CAB_CORE_DECFILT_LFSR_SEED15 0x042005d0 /* [RW] Decimation Filter LFSR Seed 15 */
+#define BCHP_AIF_WB_CAB_CORE_DECFILT_LFSR_CHECK  0x042005d4 /* [RO] Decimation Filter LFSR Check */
+#define BCHP_AIF_WB_CAB_CORE_DECFILT_STATUS      0x042005d8 /* [RO] Decimation Filter Status */
+#define BCHP_AIF_WB_CAB_CORE_TP_DECIMATION       0x042005dc /* [RW] Testport Decimation */
+#define BCHP_AIF_WB_CAB_CORE_REG_LEAP_DMA        0x042005e0 /* [RW] LEAP DMA control */
+#define BCHP_AIF_WB_CAB_CORE_REG_LEAP_DMA_STATUS 0x042005e4 /* [RO] LEAP DMA Status */
+#define BCHP_AIF_WB_CAB_CORE_TEC_CTRL            0x042005e8 /* [RW] Timing Error Correction Control */
+#define BCHP_AIF_WB_CAB_CORE_TEC_ACC_LIMIT       0x042005ec /* [RW] Timing Error Correction Accumulator Limit */
+#define BCHP_AIF_WB_CAB_CORE_TEC_STATUS          0x042005f0 /* [RO] Timing Error Correction Status */
+#define BCHP_AIF_WB_CAB_CORE_TEC_ACC_MSB         0x042005f4 /* [RO] Timing Error Correction Accumulator MSB */
+#define BCHP_AIF_WB_CAB_CORE_TEC_ACC_LSB         0x042005f8 /* [RO] Timing Error Correction Accumulator LSB */
+#define BCHP_AIF_WB_CAB_CORE_CORE_SW_SPARE0      0x042005fc /* [RW] Core software spare register 0 */
+#define BCHP_AIF_WB_CAB_CORE_CORE_SW_SPARE1      0x04200600 /* [RW] Core software spare register 1 */
 
 /***************************************************************************
  *RSTCTL - RSTCTL
@@ -446,15 +463,20 @@
 #define BCHP_AIF_WB_CAB_CORE_RSTCTL_reserved0_MASK                 0xffff0000
 #define BCHP_AIF_WB_CAB_CORE_RSTCTL_reserved0_SHIFT                16
 
-/* AIF_WB_CAB_CORE :: RSTCTL :: reserved_for_eco1 [15:12] */
-#define BCHP_AIF_WB_CAB_CORE_RSTCTL_reserved_for_eco1_MASK         0x0000f000
-#define BCHP_AIF_WB_CAB_CORE_RSTCTL_reserved_for_eco1_SHIFT        12
+/* AIF_WB_CAB_CORE :: RSTCTL :: reserved_for_eco1 [15:13] */
+#define BCHP_AIF_WB_CAB_CORE_RSTCTL_reserved_for_eco1_MASK         0x0000e000
+#define BCHP_AIF_WB_CAB_CORE_RSTCTL_reserved_for_eco1_SHIFT        13
 #define BCHP_AIF_WB_CAB_CORE_RSTCTL_reserved_for_eco1_DEFAULT      0x00000000
 
-/* AIF_WB_CAB_CORE :: RSTCTL :: reset_misc [11:11] */
-#define BCHP_AIF_WB_CAB_CORE_RSTCTL_reset_misc_MASK                0x00000800
-#define BCHP_AIF_WB_CAB_CORE_RSTCTL_reset_misc_SHIFT               11
+/* AIF_WB_CAB_CORE :: RSTCTL :: reset_misc [12:12] */
+#define BCHP_AIF_WB_CAB_CORE_RSTCTL_reset_misc_MASK                0x00001000
+#define BCHP_AIF_WB_CAB_CORE_RSTCTL_reset_misc_SHIFT               12
 #define BCHP_AIF_WB_CAB_CORE_RSTCTL_reset_misc_DEFAULT             0x00000000
+
+/* AIF_WB_CAB_CORE :: RSTCTL :: reset_dagc [11:11] */
+#define BCHP_AIF_WB_CAB_CORE_RSTCTL_reset_dagc_MASK                0x00000800
+#define BCHP_AIF_WB_CAB_CORE_RSTCTL_reset_dagc_SHIFT               11
+#define BCHP_AIF_WB_CAB_CORE_RSTCTL_reset_dagc_DEFAULT             0x00000000
 
 /* AIF_WB_CAB_CORE :: RSTCTL :: reset_agc [10:10] */
 #define BCHP_AIF_WB_CAB_CORE_RSTCTL_reset_agc_MASK                 0x00000400
@@ -5049,9 +5071,29 @@
 /***************************************************************************
  *AGCCTL2 - AGCCTL2
  ***************************************************************************/
-/* AIF_WB_CAB_CORE :: AGCCTL2 :: reserved0 [31:13] */
-#define BCHP_AIF_WB_CAB_CORE_AGCCTL2_reserved0_MASK                0xffffe000
-#define BCHP_AIF_WB_CAB_CORE_AGCCTL2_reserved0_SHIFT               13
+/* AIF_WB_CAB_CORE :: AGCCTL2 :: reserved0 [31:26] */
+#define BCHP_AIF_WB_CAB_CORE_AGCCTL2_reserved0_MASK                0xfc000000
+#define BCHP_AIF_WB_CAB_CORE_AGCCTL2_reserved0_SHIFT               26
+
+/* AIF_WB_CAB_CORE :: AGCCTL2 :: REG_B0_GAIN_INCREMENT_SHIFT [25:22] */
+#define BCHP_AIF_WB_CAB_CORE_AGCCTL2_REG_B0_GAIN_INCREMENT_SHIFT_MASK 0x03c00000
+#define BCHP_AIF_WB_CAB_CORE_AGCCTL2_REG_B0_GAIN_INCREMENT_SHIFT_SHIFT 22
+#define BCHP_AIF_WB_CAB_CORE_AGCCTL2_REG_B0_GAIN_INCREMENT_SHIFT_DEFAULT 0x0000000a
+
+/* AIF_WB_CAB_CORE :: AGCCTL2 :: REG_B0_PGA_GAIN_LIMIT [21:16] */
+#define BCHP_AIF_WB_CAB_CORE_AGCCTL2_REG_B0_PGA_GAIN_LIMIT_MASK    0x003f0000
+#define BCHP_AIF_WB_CAB_CORE_AGCCTL2_REG_B0_PGA_GAIN_LIMIT_SHIFT   16
+#define BCHP_AIF_WB_CAB_CORE_AGCCTL2_REG_B0_PGA_GAIN_LIMIT_DEFAULT 0x00000038
+
+/* AIF_WB_CAB_CORE :: AGCCTL2 :: reserved_for_eco1 [15:15] */
+#define BCHP_AIF_WB_CAB_CORE_AGCCTL2_reserved_for_eco1_MASK        0x00008000
+#define BCHP_AIF_WB_CAB_CORE_AGCCTL2_reserved_for_eco1_SHIFT       15
+#define BCHP_AIF_WB_CAB_CORE_AGCCTL2_reserved_for_eco1_DEFAULT     0x00000000
+
+/* AIF_WB_CAB_CORE :: AGCCTL2 :: REG_PGA_GAIN_SEL [14:13] */
+#define BCHP_AIF_WB_CAB_CORE_AGCCTL2_REG_PGA_GAIN_SEL_MASK         0x00006000
+#define BCHP_AIF_WB_CAB_CORE_AGCCTL2_REG_PGA_GAIN_SEL_SHIFT        13
+#define BCHP_AIF_WB_CAB_CORE_AGCCTL2_REG_PGA_GAIN_SEL_DEFAULT      0x00000000
 
 /* AIF_WB_CAB_CORE :: AGCCTL2 :: REG_AGC_DZ_RANGE [12:02] */
 #define BCHP_AIF_WB_CAB_CORE_AGCCTL2_REG_AGC_DZ_RANGE_MASK         0x00001ffc
@@ -5145,12 +5187,42 @@
 #define BCHP_AIF_WB_CAB_CORE_AGCTHRA2_REG_AGC_CTRL_UPPER_LIMIT_DEFAULT 0x00002400
 
 /***************************************************************************
+ *AGCACTIVE_STAT - AGCACTIVE_STAT
+ ***************************************************************************/
+/* AIF_WB_CAB_CORE :: AGCACTIVE_STAT :: reserved0 [31:19] */
+#define BCHP_AIF_WB_CAB_CORE_AGCACTIVE_STAT_reserved0_MASK         0xfff80000
+#define BCHP_AIF_WB_CAB_CORE_AGCACTIVE_STAT_reserved0_SHIFT        19
+
+/* AIF_WB_CAB_CORE :: AGCACTIVE_STAT :: REG_AGC_ACTIVE [18:18] */
+#define BCHP_AIF_WB_CAB_CORE_AGCACTIVE_STAT_REG_AGC_ACTIVE_MASK    0x00040000
+#define BCHP_AIF_WB_CAB_CORE_AGCACTIVE_STAT_REG_AGC_ACTIVE_SHIFT   18
+#define BCHP_AIF_WB_CAB_CORE_AGCACTIVE_STAT_REG_AGC_ACTIVE_DEFAULT 0x00000000
+
+/* AIF_WB_CAB_CORE :: AGCACTIVE_STAT :: REG_LOG2_OUTPUT [17:00] */
+#define BCHP_AIF_WB_CAB_CORE_AGCACTIVE_STAT_REG_LOG2_OUTPUT_MASK   0x0003ffff
+#define BCHP_AIF_WB_CAB_CORE_AGCACTIVE_STAT_REG_LOG2_OUTPUT_SHIFT  0
+#define BCHP_AIF_WB_CAB_CORE_AGCACTIVE_STAT_REG_LOG2_OUTPUT_DEFAULT 0x00000000
+
+/***************************************************************************
+ *PGA_GAIN_STAT - PGA_GAIN_STAT
+ ***************************************************************************/
+/* AIF_WB_CAB_CORE :: PGA_GAIN_STAT :: REG_CUR_PGA_GAIN [31:16] */
+#define BCHP_AIF_WB_CAB_CORE_PGA_GAIN_STAT_REG_CUR_PGA_GAIN_MASK   0xffff0000
+#define BCHP_AIF_WB_CAB_CORE_PGA_GAIN_STAT_REG_CUR_PGA_GAIN_SHIFT  16
+#define BCHP_AIF_WB_CAB_CORE_PGA_GAIN_STAT_REG_CUR_PGA_GAIN_DEFAULT 0x00000000
+
+/* AIF_WB_CAB_CORE :: PGA_GAIN_STAT :: REG_PGA_GAIN [15:00] */
+#define BCHP_AIF_WB_CAB_CORE_PGA_GAIN_STAT_REG_PGA_GAIN_MASK       0x0000ffff
+#define BCHP_AIF_WB_CAB_CORE_PGA_GAIN_STAT_REG_PGA_GAIN_SHIFT      0
+#define BCHP_AIF_WB_CAB_CORE_PGA_GAIN_STAT_REG_PGA_GAIN_DEFAULT    0x00000000
+
+/***************************************************************************
  *REG_AGC_LF_INT_WDATA - Shift accumulator integrator write data (tc8.26)
  ***************************************************************************/
 /* AIF_WB_CAB_CORE :: REG_AGC_LF_INT_WDATA :: REG_AGC_LF_INT_WDATA [31:00] */
 #define BCHP_AIF_WB_CAB_CORE_REG_AGC_LF_INT_WDATA_REG_AGC_LF_INT_WDATA_MASK 0xffffffff
 #define BCHP_AIF_WB_CAB_CORE_REG_AGC_LF_INT_WDATA_REG_AGC_LF_INT_WDATA_SHIFT 0
-#define BCHP_AIF_WB_CAB_CORE_REG_AGC_LF_INT_WDATA_REG_AGC_LF_INT_WDATA_DEFAULT 0xf0000000
+#define BCHP_AIF_WB_CAB_CORE_REG_AGC_LF_INT_WDATA_REG_AGC_LF_INT_WDATA_DEFAULT 0x00000000
 
 /***************************************************************************
  *REG_AGC_LA_INT_WDATA - Leaky averager integrator write data (tc1.31)
@@ -5270,9 +5342,50 @@
 /***************************************************************************
  *REG_AGCCTL3 - REG_AGCCTL3
  ***************************************************************************/
-/* AIF_WB_CAB_CORE :: REG_AGCCTL3 :: reserved0 [31:03] */
-#define BCHP_AIF_WB_CAB_CORE_REG_AGCCTL3_reserved0_MASK            0xfffffff8
-#define BCHP_AIF_WB_CAB_CORE_REG_AGCCTL3_reserved0_SHIFT           3
+/* AIF_WB_CAB_CORE :: REG_AGCCTL3 :: REG_AGC_GAIN_WDATA [31:16] */
+#define BCHP_AIF_WB_CAB_CORE_REG_AGCCTL3_REG_AGC_GAIN_WDATA_MASK   0xffff0000
+#define BCHP_AIF_WB_CAB_CORE_REG_AGCCTL3_REG_AGC_GAIN_WDATA_SHIFT  16
+#define BCHP_AIF_WB_CAB_CORE_REG_AGCCTL3_REG_AGC_GAIN_WDATA_DEFAULT 0x00000000
+
+/* AIF_WB_CAB_CORE :: REG_AGCCTL3 :: REG_AGC_LFSRXMT_EN [15:15] */
+#define BCHP_AIF_WB_CAB_CORE_REG_AGCCTL3_REG_AGC_LFSRXMT_EN_MASK   0x00008000
+#define BCHP_AIF_WB_CAB_CORE_REG_AGCCTL3_REG_AGC_LFSRXMT_EN_SHIFT  15
+#define BCHP_AIF_WB_CAB_CORE_REG_AGCCTL3_REG_AGC_LFSRXMT_EN_DEFAULT 0x00000000
+
+/* AIF_WB_CAB_CORE :: REG_AGCCTL3 :: REG_AGC_GAIN_IN_DELAY [14:09] */
+#define BCHP_AIF_WB_CAB_CORE_REG_AGCCTL3_REG_AGC_GAIN_IN_DELAY_MASK 0x00007e00
+#define BCHP_AIF_WB_CAB_CORE_REG_AGCCTL3_REG_AGC_GAIN_IN_DELAY_SHIFT 9
+#define BCHP_AIF_WB_CAB_CORE_REG_AGCCTL3_REG_AGC_GAIN_IN_DELAY_DEFAULT 0x00000006
+
+/* AIF_WB_CAB_CORE :: REG_AGCCTL3 :: REG_AGC_ACTIVE_CLEAR [08:08] */
+#define BCHP_AIF_WB_CAB_CORE_REG_AGCCTL3_REG_AGC_ACTIVE_CLEAR_MASK 0x00000100
+#define BCHP_AIF_WB_CAB_CORE_REG_AGCCTL3_REG_AGC_ACTIVE_CLEAR_SHIFT 8
+#define BCHP_AIF_WB_CAB_CORE_REG_AGCCTL3_REG_AGC_ACTIVE_CLEAR_DEFAULT 0x00000000
+
+/* AIF_WB_CAB_CORE :: REG_AGCCTL3 :: REG_AGC_ACTIVE_CAP_TRAN_SEL [07:07] */
+#define BCHP_AIF_WB_CAB_CORE_REG_AGCCTL3_REG_AGC_ACTIVE_CAP_TRAN_SEL_MASK 0x00000080
+#define BCHP_AIF_WB_CAB_CORE_REG_AGCCTL3_REG_AGC_ACTIVE_CAP_TRAN_SEL_SHIFT 7
+#define BCHP_AIF_WB_CAB_CORE_REG_AGCCTL3_REG_AGC_ACTIVE_CAP_TRAN_SEL_DEFAULT 0x00000001
+
+/* AIF_WB_CAB_CORE :: REG_AGCCTL3 :: REG_AGC_ACTIVE_IGNORE [06:06] */
+#define BCHP_AIF_WB_CAB_CORE_REG_AGCCTL3_REG_AGC_ACTIVE_IGNORE_MASK 0x00000040
+#define BCHP_AIF_WB_CAB_CORE_REG_AGCCTL3_REG_AGC_ACTIVE_IGNORE_SHIFT 6
+#define BCHP_AIF_WB_CAB_CORE_REG_AGCCTL3_REG_AGC_ACTIVE_IGNORE_DEFAULT 0x00000000
+
+/* AIF_WB_CAB_CORE :: REG_AGCCTL3 :: REG_AGC_ACTIVE_NEG [05:05] */
+#define BCHP_AIF_WB_CAB_CORE_REG_AGCCTL3_REG_AGC_ACTIVE_NEG_MASK   0x00000020
+#define BCHP_AIF_WB_CAB_CORE_REG_AGCCTL3_REG_AGC_ACTIVE_NEG_SHIFT  5
+#define BCHP_AIF_WB_CAB_CORE_REG_AGCCTL3_REG_AGC_ACTIVE_NEG_DEFAULT 0x00000000
+
+/* AIF_WB_CAB_CORE :: REG_AGCCTL3 :: REG_DAGC_UPDOWN_SEL [04:04] */
+#define BCHP_AIF_WB_CAB_CORE_REG_AGCCTL3_REG_DAGC_UPDOWN_SEL_MASK  0x00000010
+#define BCHP_AIF_WB_CAB_CORE_REG_AGCCTL3_REG_DAGC_UPDOWN_SEL_SHIFT 4
+#define BCHP_AIF_WB_CAB_CORE_REG_AGCCTL3_REG_DAGC_UPDOWN_SEL_DEFAULT 0x00000000
+
+/* AIF_WB_CAB_CORE :: REG_AGCCTL3 :: REG_UPDOWN_SUB [03:03] */
+#define BCHP_AIF_WB_CAB_CORE_REG_AGCCTL3_REG_UPDOWN_SUB_MASK       0x00000008
+#define BCHP_AIF_WB_CAB_CORE_REG_AGCCTL3_REG_UPDOWN_SUB_SHIFT      3
+#define BCHP_AIF_WB_CAB_CORE_REG_AGCCTL3_REG_UPDOWN_SUB_DEFAULT    0x00000000
 
 /* AIF_WB_CAB_CORE :: REG_AGCCTL3 :: REG_AGC_PGA_FORMAT [02:02] */
 #define BCHP_AIF_WB_CAB_CORE_REG_AGCCTL3_REG_AGC_PGA_FORMAT_MASK   0x00000004
@@ -5288,6 +5401,47 @@
 #define BCHP_AIF_WB_CAB_CORE_REG_AGCCTL3_REG_AGC_PGA_LIMIT_MASK    0x00000001
 #define BCHP_AIF_WB_CAB_CORE_REG_AGCCTL3_REG_AGC_PGA_LIMIT_SHIFT   0
 #define BCHP_AIF_WB_CAB_CORE_REG_AGCCTL3_REG_AGC_PGA_LIMIT_DEFAULT 0x00000000
+
+/***************************************************************************
+ *REG_AGC_CLIPCNT_CTL - REG_AGC_CLIPCNT_CTL
+ ***************************************************************************/
+/* AIF_WB_CAB_CORE :: REG_AGC_CLIPCNT_CTL :: reserved0 [31:27] */
+#define BCHP_AIF_WB_CAB_CORE_REG_AGC_CLIPCNT_CTL_reserved0_MASK    0xf8000000
+#define BCHP_AIF_WB_CAB_CORE_REG_AGC_CLIPCNT_CTL_reserved0_SHIFT   27
+
+/* AIF_WB_CAB_CORE :: REG_AGC_CLIPCNT_CTL :: CLIP_SAMPLE_THR [26:16] */
+#define BCHP_AIF_WB_CAB_CORE_REG_AGC_CLIPCNT_CTL_CLIP_SAMPLE_THR_MASK 0x07ff0000
+#define BCHP_AIF_WB_CAB_CORE_REG_AGC_CLIPCNT_CTL_CLIP_SAMPLE_THR_SHIFT 16
+#define BCHP_AIF_WB_CAB_CORE_REG_AGC_CLIPCNT_CTL_CLIP_SAMPLE_THR_DEFAULT 0x0000079a
+
+/* AIF_WB_CAB_CORE :: REG_AGC_CLIPCNT_CTL :: CLIP_BLOCK_LEN [15:00] */
+#define BCHP_AIF_WB_CAB_CORE_REG_AGC_CLIPCNT_CTL_CLIP_BLOCK_LEN_MASK 0x0000ffff
+#define BCHP_AIF_WB_CAB_CORE_REG_AGC_CLIPCNT_CTL_CLIP_BLOCK_LEN_SHIFT 0
+#define BCHP_AIF_WB_CAB_CORE_REG_AGC_CLIPCNT_CTL_CLIP_BLOCK_LEN_DEFAULT 0x00000009
+
+/***************************************************************************
+ *REG_AGC_CLIPCNT_THR - REG_AGC_CLIPCNT_THR
+ ***************************************************************************/
+/* AIF_WB_CAB_CORE :: REG_AGC_CLIPCNT_THR :: reserved0 [31:24] */
+#define BCHP_AIF_WB_CAB_CORE_REG_AGC_CLIPCNT_THR_reserved0_MASK    0xff000000
+#define BCHP_AIF_WB_CAB_CORE_REG_AGC_CLIPCNT_THR_reserved0_SHIFT   24
+
+/* AIF_WB_CAB_CORE :: REG_AGC_CLIPCNT_THR :: CLIP_CNT_THR [23:00] */
+#define BCHP_AIF_WB_CAB_CORE_REG_AGC_CLIPCNT_THR_CLIP_CNT_THR_MASK 0x00ffffff
+#define BCHP_AIF_WB_CAB_CORE_REG_AGC_CLIPCNT_THR_CLIP_CNT_THR_SHIFT 0
+#define BCHP_AIF_WB_CAB_CORE_REG_AGC_CLIPCNT_THR_CLIP_CNT_THR_DEFAULT 0x00005c29
+
+/***************************************************************************
+ *REG_AGC_CLIP_CNT - REG_AGC_CLIP_CNT
+ ***************************************************************************/
+/* AIF_WB_CAB_CORE :: REG_AGC_CLIP_CNT :: reserved0 [31:24] */
+#define BCHP_AIF_WB_CAB_CORE_REG_AGC_CLIP_CNT_reserved0_MASK       0xff000000
+#define BCHP_AIF_WB_CAB_CORE_REG_AGC_CLIP_CNT_reserved0_SHIFT      24
+
+/* AIF_WB_CAB_CORE :: REG_AGC_CLIP_CNT :: CLIP_CNT [23:00] */
+#define BCHP_AIF_WB_CAB_CORE_REG_AGC_CLIP_CNT_CLIP_CNT_MASK        0x00ffffff
+#define BCHP_AIF_WB_CAB_CORE_REG_AGC_CLIP_CNT_CLIP_CNT_SHIFT       0
+#define BCHP_AIF_WB_CAB_CORE_REG_AGC_CLIP_CNT_CLIP_CNT_DEFAULT     0x00000000
 
 /***************************************************************************
  *NRAGCCTL_PI_SLC0 - NR AGC Control Ping Lane Slice 0
@@ -6114,6 +6268,175 @@
 #define BCHP_AIF_WB_CAB_CORE_REG_NR_DCO_INT_WDATA_THR_REG_NR_DCO_INT_WDATA_THR_MASK 0xffffffff
 #define BCHP_AIF_WB_CAB_CORE_REG_NR_DCO_INT_WDATA_THR_REG_NR_DCO_INT_WDATA_THR_SHIFT 0
 #define BCHP_AIF_WB_CAB_CORE_REG_NR_DCO_INT_WDATA_THR_REG_NR_DCO_INT_WDATA_THR_DEFAULT 0x00000000
+
+/***************************************************************************
+ *DAGCCTL1 - DAGCCTL1
+ ***************************************************************************/
+/* AIF_WB_CAB_CORE :: DAGCCTL1 :: reserved0 [31:30] */
+#define BCHP_AIF_WB_CAB_CORE_DAGCCTL1_reserved0_MASK               0xc0000000
+#define BCHP_AIF_WB_CAB_CORE_DAGCCTL1_reserved0_SHIFT              30
+
+/* AIF_WB_CAB_CORE :: DAGCCTL1 :: REG_DAGC_LA_FRZ [29:29] */
+#define BCHP_AIF_WB_CAB_CORE_DAGCCTL1_REG_DAGC_LA_FRZ_MASK         0x20000000
+#define BCHP_AIF_WB_CAB_CORE_DAGCCTL1_REG_DAGC_LA_FRZ_SHIFT        29
+#define BCHP_AIF_WB_CAB_CORE_DAGCCTL1_REG_DAGC_LA_FRZ_DEFAULT      0x00000001
+
+/* AIF_WB_CAB_CORE :: DAGCCTL1 :: REG_DAGC_LA_BYP [28:28] */
+#define BCHP_AIF_WB_CAB_CORE_DAGCCTL1_REG_DAGC_LA_BYP_MASK         0x10000000
+#define BCHP_AIF_WB_CAB_CORE_DAGCCTL1_REG_DAGC_LA_BYP_SHIFT        28
+#define BCHP_AIF_WB_CAB_CORE_DAGCCTL1_REG_DAGC_LA_BYP_DEFAULT      0x00000000
+
+/* AIF_WB_CAB_CORE :: DAGCCTL1 :: REG_DAGC_LA_BETA [27:25] */
+#define BCHP_AIF_WB_CAB_CORE_DAGCCTL1_REG_DAGC_LA_BETA_MASK        0x0e000000
+#define BCHP_AIF_WB_CAB_CORE_DAGCCTL1_REG_DAGC_LA_BETA_SHIFT       25
+#define BCHP_AIF_WB_CAB_CORE_DAGCCTL1_REG_DAGC_LA_BETA_DEFAULT     0x00000007
+
+/* AIF_WB_CAB_CORE :: DAGCCTL1 :: REG_DAGC_LF_K1 [24:20] */
+#define BCHP_AIF_WB_CAB_CORE_DAGCCTL1_REG_DAGC_LF_K1_MASK          0x01f00000
+#define BCHP_AIF_WB_CAB_CORE_DAGCCTL1_REG_DAGC_LF_K1_SHIFT         20
+#define BCHP_AIF_WB_CAB_CORE_DAGCCTL1_REG_DAGC_LF_K1_DEFAULT       0x00000008
+
+/* AIF_WB_CAB_CORE :: DAGCCTL1 :: REG_DAGC_LF_K1_FRZ [19:19] */
+#define BCHP_AIF_WB_CAB_CORE_DAGCCTL1_REG_DAGC_LF_K1_FRZ_MASK      0x00080000
+#define BCHP_AIF_WB_CAB_CORE_DAGCCTL1_REG_DAGC_LF_K1_FRZ_SHIFT     19
+#define BCHP_AIF_WB_CAB_CORE_DAGCCTL1_REG_DAGC_LF_K1_FRZ_DEFAULT   0x00000001
+
+/* AIF_WB_CAB_CORE :: DAGCCTL1 :: REG_DAGC_SYNC_RST [18:18] */
+#define BCHP_AIF_WB_CAB_CORE_DAGCCTL1_REG_DAGC_SYNC_RST_MASK       0x00040000
+#define BCHP_AIF_WB_CAB_CORE_DAGCCTL1_REG_DAGC_SYNC_RST_SHIFT      18
+#define BCHP_AIF_WB_CAB_CORE_DAGCCTL1_REG_DAGC_SYNC_RST_DEFAULT    0x00000000
+
+/* AIF_WB_CAB_CORE :: DAGCCTL1 :: REG_DAGC_THR [17:00] */
+#define BCHP_AIF_WB_CAB_CORE_DAGCCTL1_REG_DAGC_THR_MASK            0x0003ffff
+#define BCHP_AIF_WB_CAB_CORE_DAGCCTL1_REG_DAGC_THR_SHIFT           0
+#define BCHP_AIF_WB_CAB_CORE_DAGCCTL1_REG_DAGC_THR_DEFAULT         0x00036000
+
+/***************************************************************************
+ *DAGCCTL2 - DAGCCTL2
+ ***************************************************************************/
+/* AIF_WB_CAB_CORE :: DAGCCTL2 :: reserved0 [31:16] */
+#define BCHP_AIF_WB_CAB_CORE_DAGCCTL2_reserved0_MASK               0xffff0000
+#define BCHP_AIF_WB_CAB_CORE_DAGCCTL2_reserved0_SHIFT              16
+
+/* AIF_WB_CAB_CORE :: DAGCCTL2 :: REG_DAGC_UPDOWN_THR [15:08] */
+#define BCHP_AIF_WB_CAB_CORE_DAGCCTL2_REG_DAGC_UPDOWN_THR_MASK     0x0000ff00
+#define BCHP_AIF_WB_CAB_CORE_DAGCCTL2_REG_DAGC_UPDOWN_THR_SHIFT    8
+#define BCHP_AIF_WB_CAB_CORE_DAGCCTL2_REG_DAGC_UPDOWN_THR_DEFAULT  0x0000002b
+
+/* AIF_WB_CAB_CORE :: DAGCCTL2 :: REG_DAGC_BYP [07:07] */
+#define BCHP_AIF_WB_CAB_CORE_DAGCCTL2_REG_DAGC_BYP_MASK            0x00000080
+#define BCHP_AIF_WB_CAB_CORE_DAGCCTL2_REG_DAGC_BYP_SHIFT           7
+#define BCHP_AIF_WB_CAB_CORE_DAGCCTL2_REG_DAGC_BYP_DEFAULT         0x00000000
+
+/* AIF_WB_CAB_CORE :: DAGCCTL2 :: REG_DAGC_LF_K2_INT_CLR [06:06] */
+#define BCHP_AIF_WB_CAB_CORE_DAGCCTL2_REG_DAGC_LF_K2_INT_CLR_MASK  0x00000040
+#define BCHP_AIF_WB_CAB_CORE_DAGCCTL2_REG_DAGC_LF_K2_INT_CLR_SHIFT 6
+#define BCHP_AIF_WB_CAB_CORE_DAGCCTL2_REG_DAGC_LF_K2_INT_CLR_DEFAULT 0x00000000
+
+/* AIF_WB_CAB_CORE :: DAGCCTL2 :: REG_DAGC_LF_K2 [05:01] */
+#define BCHP_AIF_WB_CAB_CORE_DAGCCTL2_REG_DAGC_LF_K2_MASK          0x0000003e
+#define BCHP_AIF_WB_CAB_CORE_DAGCCTL2_REG_DAGC_LF_K2_SHIFT         1
+#define BCHP_AIF_WB_CAB_CORE_DAGCCTL2_REG_DAGC_LF_K2_DEFAULT       0x00000008
+
+/* AIF_WB_CAB_CORE :: DAGCCTL2 :: REG_DAGC_LF_K2_FRZ [00:00] */
+#define BCHP_AIF_WB_CAB_CORE_DAGCCTL2_REG_DAGC_LF_K2_FRZ_MASK      0x00000001
+#define BCHP_AIF_WB_CAB_CORE_DAGCCTL2_REG_DAGC_LF_K2_FRZ_SHIFT     0
+#define BCHP_AIF_WB_CAB_CORE_DAGCCTL2_REG_DAGC_LF_K2_FRZ_DEFAULT   0x00000001
+
+/***************************************************************************
+ *DAGCDECRATE - DAGC Decimate rate
+ ***************************************************************************/
+/* AIF_WB_CAB_CORE :: DAGCDECRATE :: reserved0 [31:17] */
+#define BCHP_AIF_WB_CAB_CORE_DAGCDECRATE_reserved0_MASK            0xfffe0000
+#define BCHP_AIF_WB_CAB_CORE_DAGCDECRATE_reserved0_SHIFT           17
+
+/* AIF_WB_CAB_CORE :: DAGCDECRATE :: DAGCDECRATE [16:00] */
+#define BCHP_AIF_WB_CAB_CORE_DAGCDECRATE_DAGCDECRATE_MASK          0x0001ffff
+#define BCHP_AIF_WB_CAB_CORE_DAGCDECRATE_DAGCDECRATE_SHIFT         0
+#define BCHP_AIF_WB_CAB_CORE_DAGCDECRATE_DAGCDECRATE_DEFAULT       0x00000080
+
+/***************************************************************************
+ *REG_DAGC_INT_LIMIT_THR - DAGC LF K1 integrator limit threshold
+ ***************************************************************************/
+/* AIF_WB_CAB_CORE :: REG_DAGC_INT_LIMIT_THR :: REG_DAGC_INT_MINTHR [31:16] */
+#define BCHP_AIF_WB_CAB_CORE_REG_DAGC_INT_LIMIT_THR_REG_DAGC_INT_MINTHR_MASK 0xffff0000
+#define BCHP_AIF_WB_CAB_CORE_REG_DAGC_INT_LIMIT_THR_REG_DAGC_INT_MINTHR_SHIFT 16
+#define BCHP_AIF_WB_CAB_CORE_REG_DAGC_INT_LIMIT_THR_REG_DAGC_INT_MINTHR_DEFAULT 0x00008000
+
+/* AIF_WB_CAB_CORE :: REG_DAGC_INT_LIMIT_THR :: REG_DAGC_INT_MAXTHR [15:00] */
+#define BCHP_AIF_WB_CAB_CORE_REG_DAGC_INT_LIMIT_THR_REG_DAGC_INT_MAXTHR_MASK 0x0000ffff
+#define BCHP_AIF_WB_CAB_CORE_REG_DAGC_INT_LIMIT_THR_REG_DAGC_INT_MAXTHR_SHIFT 0
+#define BCHP_AIF_WB_CAB_CORE_REG_DAGC_INT_LIMIT_THR_REG_DAGC_INT_MAXTHR_DEFAULT 0x00007fff
+
+/***************************************************************************
+ *REG_DAGC_INTRP_CTL - DAGC LF Interrupt Control
+ ***************************************************************************/
+/* AIF_WB_CAB_CORE :: REG_DAGC_INTRP_CTL :: reserved0 [31:29] */
+#define BCHP_AIF_WB_CAB_CORE_REG_DAGC_INTRP_CTL_reserved0_MASK     0xe0000000
+#define BCHP_AIF_WB_CAB_CORE_REG_DAGC_INTRP_CTL_reserved0_SHIFT    29
+
+/* AIF_WB_CAB_CORE :: REG_DAGC_INTRP_CTL :: REG_DAGC_INTRP_ZONE [28:16] */
+#define BCHP_AIF_WB_CAB_CORE_REG_DAGC_INTRP_CTL_REG_DAGC_INTRP_ZONE_MASK 0x1fff0000
+#define BCHP_AIF_WB_CAB_CORE_REG_DAGC_INTRP_CTL_REG_DAGC_INTRP_ZONE_SHIFT 16
+#define BCHP_AIF_WB_CAB_CORE_REG_DAGC_INTRP_CTL_REG_DAGC_INTRP_ZONE_DEFAULT 0x000000ab
+
+/* AIF_WB_CAB_CORE :: REG_DAGC_INTRP_CTL :: REG_DAGC_INTRP_LVL [15:00] */
+#define BCHP_AIF_WB_CAB_CORE_REG_DAGC_INTRP_CTL_REG_DAGC_INTRP_LVL_MASK 0x0000ffff
+#define BCHP_AIF_WB_CAB_CORE_REG_DAGC_INTRP_CTL_REG_DAGC_INTRP_LVL_SHIFT 0
+#define BCHP_AIF_WB_CAB_CORE_REG_DAGC_INTRP_CTL_REG_DAGC_INTRP_LVL_DEFAULT 0x00000000
+
+/***************************************************************************
+ *REG_DAGC_LF_K1_INT_WDATA - DAGC K1 Shift accumulator integrator write data (tc8.26)
+ ***************************************************************************/
+/* AIF_WB_CAB_CORE :: REG_DAGC_LF_K1_INT_WDATA :: REG_DAGC_LF_K1_INT_WDATA [31:00] */
+#define BCHP_AIF_WB_CAB_CORE_REG_DAGC_LF_K1_INT_WDATA_REG_DAGC_LF_K1_INT_WDATA_MASK 0xffffffff
+#define BCHP_AIF_WB_CAB_CORE_REG_DAGC_LF_K1_INT_WDATA_REG_DAGC_LF_K1_INT_WDATA_SHIFT 0
+#define BCHP_AIF_WB_CAB_CORE_REG_DAGC_LF_K1_INT_WDATA_REG_DAGC_LF_K1_INT_WDATA_DEFAULT 0x00000000
+
+/***************************************************************************
+ *REG_DAGC_LF_K2_INT_WDATA - DAGC K2 Shift accumulator integrator write data (tc4.30)
+ ***************************************************************************/
+/* AIF_WB_CAB_CORE :: REG_DAGC_LF_K2_INT_WDATA :: REG_DAGC_LF_K2_INT_WDATA [31:00] */
+#define BCHP_AIF_WB_CAB_CORE_REG_DAGC_LF_K2_INT_WDATA_REG_DAGC_LF_K2_INT_WDATA_MASK 0xffffffff
+#define BCHP_AIF_WB_CAB_CORE_REG_DAGC_LF_K2_INT_WDATA_REG_DAGC_LF_K2_INT_WDATA_SHIFT 0
+#define BCHP_AIF_WB_CAB_CORE_REG_DAGC_LF_K2_INT_WDATA_REG_DAGC_LF_K2_INT_WDATA_DEFAULT 0x00000000
+
+/***************************************************************************
+ *REG_DAGC_LA_INT_WDATA - DAGC Leaky averager integrator write data (tc1.31)
+ ***************************************************************************/
+/* AIF_WB_CAB_CORE :: REG_DAGC_LA_INT_WDATA :: REG_DAGC_LA_INT_WDATA [31:00] */
+#define BCHP_AIF_WB_CAB_CORE_REG_DAGC_LA_INT_WDATA_REG_DAGC_LA_INT_WDATA_MASK 0xffffffff
+#define BCHP_AIF_WB_CAB_CORE_REG_DAGC_LA_INT_WDATA_REG_DAGC_LA_INT_WDATA_SHIFT 0
+#define BCHP_AIF_WB_CAB_CORE_REG_DAGC_LA_INT_WDATA_REG_DAGC_LA_INT_WDATA_DEFAULT 0x00000000
+
+/***************************************************************************
+ *REG_DAGC_GAIN - DAGC GAIN (tc5.11)
+ ***************************************************************************/
+/* AIF_WB_CAB_CORE :: REG_DAGC_GAIN :: reserved0 [31:16] */
+#define BCHP_AIF_WB_CAB_CORE_REG_DAGC_GAIN_reserved0_MASK          0xffff0000
+#define BCHP_AIF_WB_CAB_CORE_REG_DAGC_GAIN_reserved0_SHIFT         16
+
+/* AIF_WB_CAB_CORE :: REG_DAGC_GAIN :: REG_DAGC_GAIN [15:00] */
+#define BCHP_AIF_WB_CAB_CORE_REG_DAGC_GAIN_REG_DAGC_GAIN_MASK      0x0000ffff
+#define BCHP_AIF_WB_CAB_CORE_REG_DAGC_GAIN_REG_DAGC_GAIN_SHIFT     0
+#define BCHP_AIF_WB_CAB_CORE_REG_DAGC_GAIN_REG_DAGC_GAIN_DEFAULT   0x00000000
+
+/***************************************************************************
+ *REG_DAGC_STAT - DAGC STATUS
+ ***************************************************************************/
+/* AIF_WB_CAB_CORE :: REG_DAGC_STAT :: REG_DAGC_DET_ERR [31:16] */
+#define BCHP_AIF_WB_CAB_CORE_REG_DAGC_STAT_REG_DAGC_DET_ERR_MASK   0xffff0000
+#define BCHP_AIF_WB_CAB_CORE_REG_DAGC_STAT_REG_DAGC_DET_ERR_SHIFT  16
+#define BCHP_AIF_WB_CAB_CORE_REG_DAGC_STAT_REG_DAGC_DET_ERR_DEFAULT 0x00000000
+
+/* AIF_WB_CAB_CORE :: REG_DAGC_STAT :: reserved0 [15:15] */
+#define BCHP_AIF_WB_CAB_CORE_REG_DAGC_STAT_reserved0_MASK          0x00008000
+#define BCHP_AIF_WB_CAB_CORE_REG_DAGC_STAT_reserved0_SHIFT         15
+
+/* AIF_WB_CAB_CORE :: REG_DAGC_STAT :: REG_DAGC_DET_PWR [14:00] */
+#define BCHP_AIF_WB_CAB_CORE_REG_DAGC_STAT_REG_DAGC_DET_PWR_MASK   0x00007fff
+#define BCHP_AIF_WB_CAB_CORE_REG_DAGC_STAT_REG_DAGC_DET_PWR_SHIFT  0
+#define BCHP_AIF_WB_CAB_CORE_REG_DAGC_STAT_REG_DAGC_DET_PWR_DEFAULT 0x00000000
 
 /***************************************************************************
  *NDC_BYPASS - NDC block bypass

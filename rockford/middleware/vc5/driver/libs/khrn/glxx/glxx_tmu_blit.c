@@ -555,7 +555,7 @@ static bool init_src(struct src *src, EGLContext ctx, GLbitfield mask)
                *att_attrib = GL_STENCIL_ATTACHMENT;
                break;
             default:
-               UNREACHABLE();
+               unreachable();
                break;
          }
 
@@ -1031,10 +1031,10 @@ void glxx_tmu_blit_framebuffer(
    memset(dst, 0 , N_BUF_TYPES * sizeof(struct target));
 
    {
-      GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE_UNCHANGED();
+      GLXX_SERVER_STATE_T *state = glxx_lock_server_state_unchanged(OPENGL_ES_ANY);
       // Get the value of GL_SAMPLE_BUFFERS for the read framebuffer.
       multisampled_read_framebuffer = glxx_fb_get_ms_mode(state->bound_read_framebuffer) != GLXX_NO_MS;
-      GLXX_UNLOCK_SERVER_STATE();
+      glxx_unlock_server_state();
    }
 
    query_context(&outside);

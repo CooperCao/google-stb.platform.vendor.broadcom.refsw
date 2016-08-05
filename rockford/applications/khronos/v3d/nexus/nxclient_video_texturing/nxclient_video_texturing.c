@@ -1373,6 +1373,8 @@ static bool InitEGL(NativeWindowType egl_win, const AppConfig *config)
       attr[i++] = EGL_NONE;
 
       egl_surface = eglCreateWindowSurface(egl_display, egl_config[config_select], egl_win, attr);
+
+      free(attr);
    }
 
    if (egl_surface == EGL_NO_SURFACE)
@@ -1584,11 +1586,8 @@ static void UpdateVideoTexture(void)
    NEXUS_SurfaceHandle                    captureSurface;
    NEXUS_SimpleVideoDecoderCaptureStatus  captureStatus;
    NEXUS_Graphics2DBlitSettings           blitSettings;
-   BKNI_EventHandle                       checkpointEvent;
    unsigned                               numReturned;
    NEXUS_Error                            rc;
-
-   BKNI_CreateEvent(&checkpointEvent);
 
    /* Try to capture a frame from the simple decoder*/
    NEXUS_SimpleVideoDecoder_GetCapturedSurfaces(videoStream.videoDecoder, &captureSurface,&captureStatus, 1, &numReturned);

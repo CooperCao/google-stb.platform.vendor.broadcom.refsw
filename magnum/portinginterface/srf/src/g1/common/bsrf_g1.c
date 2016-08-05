@@ -76,6 +76,8 @@ static const BSRF_Settings defDevSettings =
       BSRF_g1_P_SetAntennaDetectThreshold,
       BSRF_g1_P_GetAntennaDetectThreshold,
       BSRF_g1_P_GetAntennaStatus,
+      BSRF_g1_Ana_P_PowerUpAntennaSense,
+      BSRF_g1_Ana_P_PowerDownAntennaSense,
       BSRF_g1_P_Tune,
       BSRF_g1_P_GetTunerStatus,
       BSRF_g1_P_ResetClipCount,
@@ -88,7 +90,9 @@ static const BSRF_Settings defDevSettings =
       BSRF_g1_P_EnableTestDacTone,
       BSRF_g1_P_RunDataCapture,
       BSRF_g1_P_DeleteAgcLutCodes,
-      BSRF_g1_P_ConfigOutputClockPhase
+      BSRF_g1_P_ConfigOutputClockPhase,
+      BSRF_g1_P_SetIqEqCoeff,
+      BSRF_g1_P_SetIqEqSettings
    }
 };
 

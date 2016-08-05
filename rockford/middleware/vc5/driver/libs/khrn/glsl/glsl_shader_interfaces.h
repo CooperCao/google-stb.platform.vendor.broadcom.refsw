@@ -12,13 +12,14 @@ FILE DESCRIPTION
 #define GLSL_SHADER_INTERFACE_H
 
 #include "glsl_symbols.h"
-#include "glsl_basic_block.h"
+#include "glsl_map.h"
 
 typedef struct _ShaderInterfaces {
    SymbolList *uniforms;
    SymbolList *ins;
    SymbolList *outs;
    SymbolList *buffers;
+   SymbolList *shared;
 } ShaderInterfaces;
 
 ShaderInterfaces *glsl_shader_interfaces_new(void);

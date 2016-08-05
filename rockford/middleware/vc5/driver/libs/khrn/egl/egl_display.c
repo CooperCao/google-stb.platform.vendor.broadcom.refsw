@@ -22,8 +22,10 @@ FILE DESCRIPTION
 #include "egl_attrib_list.h"
 #include <EGL/eglext_brcm.h>
 #include "egl_sync.h"
+#include "egl_client_exts.h"
+#include "egl_display_exts.h"
 
-#define MAX_EXT_STRING (1024)
+#define PLATFORM_EXTS_STR_MAX_SIZE (1024)
 
 LOG_DEFAULT_CAT("egl_display")
 
@@ -33,7 +35,7 @@ LOG_DEFAULT_CAT("egl_display")
  * Client extensions are introduced with EGL_EXT_client_extensions and became
  * core functionality in EGL 1.5.
  */
-static char client_extension_string[MAX_EXT_STRING];
+static char client_extension_string[EGL_CLIENT_EXTS_STR_MAX_SIZE + PLATFORM_EXTS_STR_MAX_SIZE];
 
 static struct
 {
@@ -56,7 +58,7 @@ static struct
     *
     * Note: client and display extension lists are disjoint.
     */
-   char           extension_string[MAX_EXT_STRING];
+   char           extension_string[EGL_DISPLAY_EXTS_STR_MAX_SIZE + PLATFORM_EXTS_STR_MAX_SIZE];
 }
 egl_display;
 
@@ -78,67 +80,29 @@ static bool ensure_init_once(void)
    return egl_display.once_ok;
 }
 
-static void init_extension_string(char *dest, size_t size, const char *common,
-      const char *platform_specific)
+static void init_extension_string(char *dest, size_t size,
+   char *(*platform_independent)(char *), const char *platform_specific)
 {
-   if ((platform_specific == NULL) || (*platform_specific == '\0'))
+   char *s = platform_independent(dest);
+   if (platform_specific && *platform_specific)
    {
-      assert(strlen(common) < size);
-      strncpy(dest, common, size - 1);
+      if (s != dest)
+         *(s++) = ' ';
+      assert((s + strlen(platform_specific) - dest) < (ptrdiff_t)size);
+      strcpy(s, platform_specific);
    }
    else
-   {
-      /* +1 for the space separating them */
-      assert(strlen(common) + 1 + strlen(platform_specific) < size);
-      vcos_safe_sprintf(dest, size, 0, "%s %s", common, platform_specific);
-   }
+      assert((s - dest) < (ptrdiff_t)size);
 }
 
 static void init_extension_strings(void)
 {
-   static const char *client_extensions =
-      "EGL_EXT_client_extensions " /* always included */
-      "EGL_EXT_platform_base "
-      "EGL_KHR_client_get_all_proc_addresses";
-
-   static const char *display_extensions =
-      "EGL_KHR_image "
-      "EGL_KHR_image_base "
-# if EGL_BRCM_performance_counters
-      "EGL_BRCM_performance_counters "
-# endif
-# if EGL_BRCM_event_monitor
-      "EGL_BRCM_event_monitor "
-# endif
-# if EGL_BRCM_gl_framebuffer_image
-      "EGL_BRCM_gl_framebuffer_image "
-# endif
-# if EGL_EXT_create_context_robustness
-      "EGL_EXT_create_context_robustness "
-# endif
-# if EGL_EXT_protected_surface
-      "EGL_EXT_protected_surface "
-# endif
-# if EGL_EXT_protected_content
-      "EGL_EXT_protected_content "
-# endif
-      "EGL_KHR_cl_event2 "
-      "EGL_KHR_gl_colorspace "
-      "EGL_KHR_gl_texture_2D_image "
-      "EGL_KHR_gl_texture_cubemap_image "
-      "EGL_KHR_gl_renderbuffer_image "
-      "EGL_KHR_fence_sync "
-      "EGL_KHR_wait_sync "
-      "EGL_KHR_create_context "
-      "EGL_KHR_surfaceless_context "
-      "EGL_KHR_get_all_proc_addresses";
-
    init_extension_string(client_extension_string,
-         sizeof(client_extension_string), client_extensions,
+         sizeof(client_extension_string), egl_client_exts_str,
          egl_platform_get_client_extensions());
 
    init_extension_string(egl_display.extension_string,
-         sizeof(egl_display.extension_string), display_extensions,
+         sizeof(egl_display.extension_string), egl_display_exts_str,
          egl_platform_get_display_extensions());
 }
 
@@ -409,14 +373,14 @@ static EGLDisplay egl_get_platform_display_impl(EGLenum platform,
 EGLAPI EGLDisplay EGLAPIENTRY eglGetPlatformDisplay(EGLenum platform,
       void *native_display, const EGLAttrib *attrib_list)
 {
-   UNUSED(attrib_list);
+   vcos_unused(attrib_list);
    return egl_get_platform_display_impl(platform, native_display);
 }
 
 EGLAPI EGLDisplay EGLAPIENTRY eglGetPlatformDisplayEXT(EGLenum platform,
       void *native_display, const EGLint *attrib_list)
 {
-   UNUSED(attrib_list);
+   vcos_unused(attrib_list);
    return egl_get_platform_display_impl(platform, native_display);
 }
 

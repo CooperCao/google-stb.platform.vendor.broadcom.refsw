@@ -146,6 +146,7 @@ void _tzioc_client_close(
 int _tzioc_client_getid(
     struct tzioc_client *pClient,
     const char *pName,
+    uint32_t ulPid,
     uint8_t *pId)
 {
     int err = 0;
@@ -153,6 +154,7 @@ int _tzioc_client_getid(
     err = _tzioc_ioctl_client_getid(
         pClient,
         pName,
+        ulPid,
         pId);
 
     if (err) {

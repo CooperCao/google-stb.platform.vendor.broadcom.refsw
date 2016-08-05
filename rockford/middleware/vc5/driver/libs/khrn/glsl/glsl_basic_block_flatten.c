@@ -112,11 +112,9 @@ static Dataflow *dataflow_simplify_recursive(Map *dataflow_copy, int age_offset,
 static void set_dst_scalar_values(BasicBlock *dst_block, const BasicBlock *src_block,
                                   const Symbol *symbol, Dataflow **new_scalar_values, Dataflow *guard)
 {
-   /* TODO: Remove this crazy loop_index hack */
-   bool is_loop_index = (symbol == src_block->loop_index);
    bool is_uniform = (symbol->flavour == SYMBOL_INTERFACE_BLOCK || (symbol->flavour == SYMBOL_VAR_INSTANCE && symbol->u.var_instance.storage_qual == STORAGE_UNIFORM));
 
-   if (is_loop_index || is_uniform || guard == NULL) {
+   if (is_uniform || guard == NULL) {
       glsl_basic_block_set_scalar_values(dst_block, symbol, new_scalar_values);
    } else {
       Dataflow **v = glsl_basic_block_get_scalar_values(dst_block, symbol);

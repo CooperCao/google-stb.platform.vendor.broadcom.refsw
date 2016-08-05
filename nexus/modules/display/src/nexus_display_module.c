@@ -371,13 +371,90 @@ void nexus_display_p_uninit_rdccapture(void)
 }
 #endif
 
+#if BVDC_BUF_LOG && NEXUS_BASE_OS_linuxuser
+#include <stdio.h>
+#include "bvdc_dbg.h"
+
+#define NEXUS_BUF_LOG_ENTRY_LEN    128
+#define NEXUS_BUF_LOG_CAPTURE_SIZE 2048
+
+static struct {
+    FILE *file;
+    char *log;
+} g_buflog_capture;
+
+void NEXUS_Display_P_BufLogCapture(void)
+{
+    unsigned int read_count;
+
+    if (g_buflog_capture.log)
+    {
+        BVDC_DumpBufLog(g_buflog_capture.log,
+                        NEXUS_BUF_LOG_CAPTURE_SIZE * NEXUS_BUF_LOG_ENTRY_LEN,
+                        &read_count);
+
+        fwrite(g_buflog_capture.log, read_count, sizeof(char), g_buflog_capture.file);
+    }
+}
+
+int nexus_display_p_init_buflogcapture(void)
+{
+    BERR_Code rc = BERR_SUCCESS;
+    const char *filename;
+
+    filename = NEXUS_GetEnv("capture_vdc_buf_log");
+    if (!filename)
+    {
+        filename = "buf_log";
+    }
+
+    g_buflog_capture.file = fopen(filename, "w+");
+    if (!g_buflog_capture.file)
+    {
+        rc = BERR_OS_ERROR;
+        BDBG_ERR(("Cannot open buffer log file."));
+        goto error;
+    }
+
+    BDBG_MSG(("Opened buffer log file %s", filename));
+
+    g_buflog_capture.log = BKNI_Malloc(sizeof(g_buflog_capture.log[0]) * NEXUS_BUF_LOG_CAPTURE_SIZE * NEXUS_BUF_LOG_ENTRY_LEN);
+    if (!g_buflog_capture.log)
+    {
+        rc = BERR_OUT_OF_SYSTEM_MEMORY;
+        BDBG_ERR(("Failed to allocate buffer log."));
+        goto error;
+    }
+
+error:
+    return rc;
+}
+
+void nexus_display_p_uninit_buflogcapture(void)
+{
+   if (g_buflog_capture.log)
+   {
+        BKNI_Free(g_buflog_capture.log);
+        g_buflog_capture.log = NULL;
+   }
+
+   if (g_buflog_capture.file)
+   {
+        fclose(g_buflog_capture.file);
+        g_buflog_capture.file = NULL;
+
+        BDBG_MSG(("Closed buffer log file"));
+   }
+}
+#endif /* BVDC_BUF_LOG && NEXUS_BASE_OS_linuxuser */
+
 void NEXUS_DisplayModule_Print(void)
 {
 #if BDBG_DEBUG_BUILD
     unsigned i;
     NEXUS_VideoInput_P_Link *input;
-	BVDC_Window_DebugStatus winDbgInfo;
-	BVDC_Source_DebugStatus srcDbgInfo;
+    BVDC_Window_DebugStatus winDbgInfo;
+    BVDC_Source_DebugStatus srcDbgInfo;
 
 
     BDBG_MODULE_LOG(display_proc, ("DisplayModule:"));
@@ -705,11 +782,6 @@ err_settings:
     return NULL;
 }
 
-void NEXUS_DisplayModule_GetSettings( NEXUS_DisplayModuleSettings *pSettings )
-{
-    *pSettings = g_NEXUS_DisplayModule_State.moduleSettings;
-}
-
 void NEXUS_DisplayModule_Uninit(void)
 {
     NEXUS_DisplayModule_State *state = &g_NEXUS_DisplayModule_State;
@@ -887,66 +959,6 @@ BVDC_Heap_Handle NEXUS_Display_P_CreateHeap(NEXUS_HeapHandle heap)
 error:
     BDBG_ERR(("Unable to create a display heap for this operation. User must call NEXUS_Heap_SetDisplayHeapSettings with correct settings beforehand."));
     return NULL;
-}
-
-/**************************
-BBS VideoTool backdoor
-
-These functions provide the BBS VideoTool raw access to VDC, REG, RDC and MEM along with a mutex which protects them.
-This is not a public API and is subject to change.
-**************************/
-
-void BVideoTool_LockDisplay(void)
-{
-    NEXUS_Module_Lock(g_NEXUS_displayModuleHandle);
-}
-
-void BVideoTool_UnlockDisplay(void)
-{
-    NEXUS_Module_Unlock(g_NEXUS_displayModuleHandle);
-}
-
-typedef struct BVideoToolDisplayHandles {
-    BVDC_Handle vdc;
-    BRDC_Handle rdc;
-    BREG_Handle reg;
-    BMEM_Heap_Handle heap;
-} BVideoToolDisplayHandles;
-
-void BVideoTool_GetDisplayHandles(BVideoToolDisplayHandles *pDisplayHandles)
-{
-    pDisplayHandles->vdc = g_NEXUS_DisplayModule_State.vdc;
-    pDisplayHandles->rdc = g_NEXUS_DisplayModule_State.rdc;
-    pDisplayHandles->reg = g_pCoreHandles->reg;
-    if(NEXUS_MAX_HEAPS != g_NEXUS_DisplayModule_State.moduleSettings.primaryDisplayHeapIndex) {
-        pDisplayHandles->heap = g_pCoreHandles->heap[g_NEXUS_DisplayModule_State.moduleSettings.primaryDisplayHeapIndex].mem;
-    }
-}
-
-/**
-Summary:
-Get the settings that were used in NEXUS_DisplayModule_Init.
-
-Description:
-These cannot be changed without calling NEXUS_DisplayModule_Uninit then NEXUS_DisplayModule_Init.
-This is for informational purposes.
-**/
-NEXUS_Error NEXUS_DisplayModule_GetMemorySettings(
-    unsigned configurationId,                           /* Configuration ID */
-    uint32_t mask,                                      /* Must contain at least one window and at least one input */
-    NEXUS_DisplayBufferTypeSettings *pFullHdBuffers,    /* [out] Full HD buffer requirements */
-    NEXUS_DisplayBufferTypeSettings *pHdBuffers,        /* [out] HD buffer requirements */
-    NEXUS_DisplayBufferTypeSettings *pSdBuffers,        /* [out] SD buffer requirements */
-    unsigned *pHeapSize                                 /* [out] Heap size in bytes */
-    )
-{
-    BSTD_UNUSED(configurationId);
-    BSTD_UNUSED(mask);
-    BSTD_UNUSED(pFullHdBuffers);
-    BSTD_UNUSED(pHdBuffers);
-    BSTD_UNUSED(pSdBuffers);
-    BSTD_UNUSED(pHeapSize);
-    return BERR_TRACE(BERR_NOT_SUPPORTED);
 }
 
 void NEXUS_DisplayModule_SetVideoDecoderModule( NEXUS_ModuleHandle videoDecoder )

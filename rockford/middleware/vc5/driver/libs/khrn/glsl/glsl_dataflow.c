@@ -9,11 +9,13 @@ FILE DESCRIPTION
 =============================================================================*/
 
 #include <stdlib.h>
+#include <string.h>
 
 #include "glsl_dataflow.h"
 #include "glsl_fastmem.h"
-
 #include "glsl_dataflow_simplify.h"
+
+#include "libs/util/gfx_util/gfx_util.h"
 
 static uint32_t dataflow_count = 0;
 static uint32_t dataflow_age = 0;
@@ -130,6 +132,9 @@ static const struct dataflow_op_info_s dataflow_info[DATAFLOW_FLAVOUR_COUNT] = {
 
    { DATAFLOW_VEC4,                "vec4",                 DF_RET_UNDEFINED   },
    { DATAFLOW_TEXTURE,             "texture",              DF_RET_UNDEFINED   },
+#if V3D_HAS_TMU_TEX_WRITE
+   { DATAFLOW_TEXTURE_ADDR,        "texture_addr",         DF_RET_UNDEFINED   },
+#endif
    { DATAFLOW_TEXTURE_SIZE,        "texture_size",         DF_RET_UNDEFINED   },
    { DATAFLOW_GET_VEC4_COMPONENT,  "get_vec4_component",   DF_RET_UNDEFINED   },
 
@@ -147,9 +152,15 @@ static const struct dataflow_op_info_s dataflow_info[DATAFLOW_FLAVOUR_COUNT] = {
    { DATAFLOW_SHARED_PTR,          "shared_ptr",           DF_RET_UINT,       0 },
 
    { DATAFLOW_IS_HELPER,           "is_helper",            DF_RET_BOOL,       0 },
+   { DATAFLOW_SAMPLE_POS_X,        "samp_pos_x",           DF_RET_FLOAT,      0 },
+   { DATAFLOW_SAMPLE_POS_Y,        "samp_pos_y",           DF_RET_FLOAT,      0 },
+   { DATAFLOW_SAMPLE_MASK,         "sample_mask",          DF_RET_INT,        0 },
+   { DATAFLOW_SAMPLE_ID,           "sample_id",            DF_RET_INT,        0 },
+   { DATAFLOW_NUM_SAMPLES,         "num_samples",          DF_RET_INT,        0 },
 
    { DATAFLOW_GET_VERTEX_ID,       "get_vertex_id",        DF_RET_INT,        0 },
    { DATAFLOW_GET_INSTANCE_ID,     "get_instance_id",      DF_RET_INT,        0 },
+   { DATAFLOW_GET_BASE_INSTANCE,   "get_base_instance",    DF_RET_INT,        0 },
    { DATAFLOW_GET_POINT_COORD_X,   "get_point_coord_x",    DF_RET_FLOAT,      0 },
    { DATAFLOW_GET_POINT_COORD_Y,   "get_point_coord_y",    DF_RET_FLOAT,      0 },
    { DATAFLOW_GET_LINE_COORD,      "get_line_coord",       DF_RET_FLOAT,      0 },
@@ -266,7 +277,7 @@ Dataflow *glsl_dataflow_construct_const_uint(unsigned value)
 
 Dataflow *glsl_dataflow_construct_const_float(float value)
 {
-   return glsl_dataflow_construct_const_value(DF_FLOAT, float_to_bits(value));
+   return glsl_dataflow_construct_const_value(DF_FLOAT, gfx_float_to_bits(value));
 }
 
 Dataflow *glsl_dataflow_construct_load(DataflowType type)
@@ -373,7 +384,7 @@ static DataflowType dataflow_op_type(DataflowFlavour flavour, Dataflow **argumen
    case DF_RET_MATCH_ARG0: return arguments[0]->type;
    case DF_RET_MATCH_ARG1: return arguments[1]->type;
    default:
-      UNREACHABLE();
+      unreachable();
       return DF_INVALID;
    }
 }
@@ -463,7 +474,7 @@ Dataflow *glsl_dataflow_convert_type(Dataflow *input, DataflowType out_type)
                                                          glsl_dataflow_construct_const_float(1.0),
                                                          glsl_dataflow_construct_const_float(0.0));
             default:
-               UNREACHABLE();
+               unreachable();
                return NULL;
          }
 
@@ -477,7 +488,7 @@ Dataflow *glsl_dataflow_convert_type(Dataflow *input, DataflowType out_type)
             case DF_FLOAT:
                return glsl_dataflow_construct_unary_op(DATAFLOW_ITOF, input);
             default:
-               UNREACHABLE();
+               unreachable();
                return NULL;
          }
 
@@ -491,7 +502,7 @@ Dataflow *glsl_dataflow_convert_type(Dataflow *input, DataflowType out_type)
             case DF_FLOAT:
                return glsl_dataflow_construct_unary_op(DATAFLOW_UTOF, input);
             default:
-               UNREACHABLE();
+               unreachable();
                return NULL;
          }
 
@@ -506,12 +517,12 @@ Dataflow *glsl_dataflow_convert_type(Dataflow *input, DataflowType out_type)
             case DF_UINT:
                return glsl_dataflow_construct_unary_op(DATAFLOW_FTOU, input);
             default:
-               UNREACHABLE();
+               unreachable();
                return NULL;
          }
 
       default:
-         UNREACHABLE();
+         unreachable();
          return NULL;
    }
 }
@@ -579,6 +590,25 @@ void glsl_dataflow_construct_texture_gadget(Dataflow **r_out, Dataflow **g_out,
    if (a_out) *a_out = glsl_dataflow_construct_get_vec4_component(3, dataflow, component_type_index);
 }
 
+#if V3D_HAS_TMU_TEX_WRITE
+Dataflow *glsl_dataflow_construct_texture_addr(Dataflow *sampler,
+                                               Dataflow *x, Dataflow *y, Dataflow *z,
+                                               Dataflow *i)
+{
+   Dataflow *dataflow = dataflow_construct_common(DATAFLOW_TEXTURE_ADDR, DF_VOID);
+
+   dataflow->dependencies_count = 5;
+
+   dataflow->d.texture_addr.x = x;
+   dataflow->d.texture_addr.y = y;
+   dataflow->d.texture_addr.z = z;
+   dataflow->d.texture_addr.i = i;
+   dataflow->d.texture_addr.sampler = sampler;
+
+   return dataflow;
+}
+#endif
+
 Dataflow *glsl_dataflow_construct_texture_size(Dataflow *sampler)
 {
    Dataflow *ret = dataflow_construct_common(DATAFLOW_TEXTURE_SIZE, DF_VOID);
@@ -605,14 +635,6 @@ Dataflow *glsl_dataflow_construct_phi(Dataflow *a, Dataflow *b) {
    return d;
 }
 
-bool glsl_dataflow_affects_memory(DataflowFlavour f) {
-   return f == DATAFLOW_ADDRESS_STORE || f == DATAFLOW_ATOMIC_ADD ||
-          f == DATAFLOW_ATOMIC_SUB    || f == DATAFLOW_ATOMIC_MIN ||
-          f == DATAFLOW_ATOMIC_MAX    || f == DATAFLOW_ATOMIC_AND ||
-          f == DATAFLOW_ATOMIC_OR     || f == DATAFLOW_ATOMIC_XOR ||
-          f == DATAFLOW_ATOMIC_XCHG   || f == DATAFLOW_ATOMIC_CMPXCHG;
-}
-
 Dataflow *glsl_dataflow_construct_image_info_param(Dataflow *sampler, ImageInfoParam param)
 {
    Dataflow *ret = dataflow_construct_common(DATAFLOW_IMAGE_INFO_PARAM, DF_UINT);
@@ -621,4 +643,17 @@ Dataflow *glsl_dataflow_construct_image_info_param(Dataflow *sampler, ImageInfoP
    ret->u.image_info_param.param = param;
 
    return ret;
+}
+
+bool glsl_dataflow_affects_memory(DataflowFlavour f) {
+   return f == DATAFLOW_ADDRESS_STORE || f == DATAFLOW_ATOMIC_ADD ||
+          f == DATAFLOW_ATOMIC_SUB    || f == DATAFLOW_ATOMIC_MIN ||
+          f == DATAFLOW_ATOMIC_MAX    || f == DATAFLOW_ATOMIC_AND ||
+          f == DATAFLOW_ATOMIC_OR     || f == DATAFLOW_ATOMIC_XOR ||
+          f == DATAFLOW_ATOMIC_XCHG   || f == DATAFLOW_ATOMIC_CMPXCHG;
+}
+
+bool glsl_dataflow_tex_cfg_implies_bslod(uint32_t tex_cfg_bits) {
+   return tex_cfg_bits & ( DF_TEXBITS_FETCH  | DF_TEXBITS_SAMPLER_FETCH |
+                           DF_TEXBITS_GATHER | DF_TEXBITS_BSLOD         );
 }

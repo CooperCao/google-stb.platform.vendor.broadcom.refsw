@@ -258,8 +258,12 @@ static v3d_tfu_job tfu_cmd_to_tfu_job(const V3D_TFU_COMMAND_T *cmd)
    tfu_job.input.component_order = (enum tfu_rgbord)cmd->src_channel_order;
    tfu_job.input.raster_stride = cmd->src_strides[0];
    tfu_job.input.chroma_stride = cmd->src_strides[1];
+   /* Note about YV12 conversions:
+    * YV12 2 planes: chroma has CbCr format
+    * YV12 3 planes: plane 0: Y; plane 1: chroma is Cr/V and plane 2: uplane is Cb/U */
    tfu_job.input.address = cmd->src_base_addrs[0];
    tfu_job.input.chroma_address = cmd->src_base_addrs[1];
+   tfu_job.input.uplane_address = cmd->src_base_addrs[2];
    tfu_job.input.flags = (cmd->flip_y ? TFU_INPUT_FLIPY : 0) | (cmd->srgb ? TFU_INPUT_SRGB : 0);
    assert(cmd->num_mip_levels >=1);
    /* output.mipmap_count is the same as  nummmm in V3D_TFUICFG register, so 0 means no
@@ -400,25 +404,29 @@ void v3d_scheduler_submit_bin_render_job(
       v3d_scheduler_wait_all();
 }
 
-void v3d_scheduler_submit_usermode_job(v3d_scheduler_deps* deps,
+uint64_t v3d_scheduler_submit_usermode_job(const v3d_scheduler_deps* deps,
       v3d_sched_user_fn user_fn, void *data)
 {
-   remove_finalised_deps(deps);
-   if (deps->n == 0)
+   // Take a copy of deps so we can keep the interface using const deps
+   v3d_scheduler_deps copyDeps;
+   v3d_scheduler_copy_deps(&copyDeps, deps);
+
+   remove_finalised_deps(&copyDeps);
+   if (copyDeps.n == 0)
    {
       if (user_fn)
          user_fn(data);
-      return;
+      return 0;
    }
 
    struct bcm_sched_job job;
    memset(&job, 0, sizeof job);
    job.job_type = BCM_SCHED_JOB_TYPE_USERMODE;
-   fill_sched_job_deps(&job, deps, V3D_SCHED_DEPS_COMPLETED);
+   fill_sched_job_deps(&job, &copyDeps, V3D_SCHED_DEPS_COMPLETED);
    job.driver.usermode.user_fn = user_fn;
    job.driver.usermode.data = data;
 
-   submit_job(&job, true);
+   return submit_job(&job, true);
 }
 
 int v3d_scheduler_create_fence(const v3d_scheduler_deps *deps,
@@ -538,11 +546,6 @@ const V3D_HUB_IDENT_T* v3d_scheduler_get_hub_identity(void)
 const V3D_IDENT_T* v3d_scheduler_get_identity(void)
 {
    return &scheduler.identity;
-}
-
-int v3d_scheduler_get_v3d_ver(void)
-{
-   return v3d_ver_from_ident(&scheduler.identity);
 }
 
 v3d_lock_sync* v3d_lock_sync_create(void)

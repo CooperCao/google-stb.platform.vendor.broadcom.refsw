@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2014 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,7 +34,6 @@
 *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
-*
 ***************************************************************************/
 #include "nexus_platform_priv.h"
 #include "bkni.h"
@@ -64,24 +63,16 @@ static unsigned int get_device_memory(struct device_memory *mem)
 
     BKNI_Memset(mem, 0, sizeof(*mem));
 
-    for(i=0; i < xapi->xfd_num_mem; i++) {
-        if (xfd_mem[i].memc != (unsigned int)-1) {
-            BDBG_MSG(("xfd:  memc=%d, base=0x%08x", xfd_mem[i].memc, xfd_mem[i].base));
-            mem->region[i].memcIndex = xfd_mem[i].memc;
-            mem->region[i].subIndex = (i==1 ? 1 : 0);
+    for(i=0; i < xapi->xfd_num_mem-1; i++) {
+        /* xfd_mem[0] is not interesting */
+        if (xfd_mem[i+1].memc != (unsigned int)-1) {
+            mem->region[i].memcIndex = xfd_mem[i+1].memc;
+            mem->region[i].subIndex = 0;
+            mem->region[i].offset = xfd_mem[i+1].base;
             if (i==0) {
-                mem->region[0].offset = 0x11000000; /* Give 16MB to BSU application */
-                mem->region[0].size = 488*1024*1024;  /* size is 0x2f800000 minus offset of 0x11000000 */
-                mem->region[1].subIndex = 0;
-            } else if (i==1) {
-                mem->region[1].offset = 0x2f800000;
-                mem->region[1].size = 264*1024*1024;
-                mem->region[1].subIndex = 1;
-            } else {
-                mem->region[i].offset = xfd_mem[i].base;
-                mem->region[i].size = xfd_mem[i].top - xfd_mem[i].base;
-                mem->region[i].subIndex = 0;
+                mem->region[i].offset += 0x01000000; /* Give 16MB to BSU application */
             }
+            mem->region[i].size = xfd_mem[i+1].top - mem->region[i].offset;
             BDBG_MSG(("mem:  offset=0x%08x, size=%d, memcIndex=%d, subIndex=%d", mem->region[i].offset, mem->region[i].size/(1024*1024), mem->region[i].memcIndex, mem->region[i].subIndex));
             num_cma++;
         }

@@ -221,6 +221,1302 @@ void Command::run_eglWaitNative()
  WarnNotAvailable("eglWaitNative");
 #endif
 }
+void Command::run_glAlphaFunc()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 3) WarnDataNotHandled("glAlphaFunc");
+ glAlphaFunc(GetU32(GLenum, 0), GetF(GLfloat, 1));
+#else
+ WarnNotAvailable("glAlphaFunc");
+#endif
+}
+void Command::run_glClearColor()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 5) WarnDataNotHandled("glClearColor");
+ glClearColor(GetF(GLfloat, 0), GetF(GLfloat, 1), GetF(GLfloat, 2), GetF(GLfloat, 3));
+#else
+ WarnNotAvailable("glClearColor");
+#endif
+}
+void Command::run_glClearDepthf()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 2) WarnDataNotHandled("glClearDepthf");
+ glClearDepthf(GetF(GLfloat, 0));
+#else
+ WarnNotAvailable("glClearDepthf");
+#endif
+}
+void Command::run_glClipPlanef()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 4) WarnDataNotHandled("glClipPlanef");
+ glClipPlanef(GetU32(GLenum, 0), GetArrayPtr(const GLfloat *, 2));
+#else
+ WarnNotAvailable("glClipPlanef");
+#endif
+}
+void Command::run_glColor4f()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 5) WarnDataNotHandled("glColor4f");
+ glColor4f(GetF(GLfloat, 0), GetF(GLfloat, 1), GetF(GLfloat, 2), GetF(GLfloat, 3));
+#else
+ WarnNotAvailable("glColor4f");
+#endif
+}
+void Command::run_glDepthRangef()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 3) WarnDataNotHandled("glDepthRangef");
+ glDepthRangef(GetF(GLfloat, 0), GetF(GLfloat, 1));
+#else
+ WarnNotAvailable("glDepthRangef");
+#endif
+}
+void Command::run_glFogf()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 3) WarnDataNotHandled("glFogf");
+ glFogf(GetU32(GLenum, 0), GetF(GLfloat, 1));
+#else
+ WarnNotAvailable("glFogf");
+#endif
+}
+void Command::run_glFogfv()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 4) WarnDataNotHandled("glFogfv");
+ glFogfv(GetU32(GLenum, 0), GetArrayPtr(const GLfloat *, 2));
+#else
+ WarnNotAvailable("glFogfv");
+#endif
+}
+void Command::run_glFrustumf()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 7) WarnDataNotHandled("glFrustumf");
+ glFrustumf(GetF(GLfloat, 0), GetF(GLfloat, 1), GetF(GLfloat, 2), GetF(GLfloat, 3), GetF(GLfloat, 4), GetF(GLfloat, 5));
+#else
+ WarnNotAvailable("glFrustumf");
+#endif
+}
+void Command::run_glGetClipPlanef()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 3) WarnDataNotHandled("glGetClipPlanef");
+ glGetClipPlanef(GetU32(GLenum, 0), dummyGLfloat);
+#else
+ WarnNotAvailable("glGetClipPlanef");
+#endif
+}
+void Command::run_glGetFloatv()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 3) WarnDataNotHandled("glGetFloatv");
+ glGetFloatv(GetU32(GLenum, 0), dummyGLfloat);
+#else
+ WarnNotAvailable("glGetFloatv");
+#endif
+}
+void Command::run_glGetLightfv()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 4) WarnDataNotHandled("glGetLightfv");
+ glGetLightfv(GetU32(GLenum, 0), GetU32(GLenum, 1), dummyGLfloat);
+#else
+ WarnNotAvailable("glGetLightfv");
+#endif
+}
+void Command::run_glGetMaterialfv()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 4) WarnDataNotHandled("glGetMaterialfv");
+ glGetMaterialfv(GetU32(GLenum, 0), GetU32(GLenum, 1), dummyGLfloat);
+#else
+ WarnNotAvailable("glGetMaterialfv");
+#endif
+}
+void Command::run_glGetTexEnvfv()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 4) WarnDataNotHandled("glGetTexEnvfv");
+ glGetTexEnvfv(GetU32(GLenum, 0), GetU32(GLenum, 1), dummyGLfloat);
+#else
+ WarnNotAvailable("glGetTexEnvfv");
+#endif
+}
+void Command::run_glGetTexParameterfv()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 4) WarnDataNotHandled("glGetTexParameterfv");
+ glGetTexParameterfv(GetU32(GLenum, 0), GetU32(GLenum, 1), dummyGLfloat);
+#else
+ WarnNotAvailable("glGetTexParameterfv");
+#endif
+}
+void Command::run_glLightModelf()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 3) WarnDataNotHandled("glLightModelf");
+ glLightModelf(GetU32(GLenum, 0), GetF(GLfloat, 1));
+#else
+ WarnNotAvailable("glLightModelf");
+#endif
+}
+void Command::run_glLightModelfv()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 4) WarnDataNotHandled("glLightModelfv");
+ glLightModelfv(GetU32(GLenum, 0), GetArrayPtr(const GLfloat *, 2));
+#else
+ WarnNotAvailable("glLightModelfv");
+#endif
+}
+void Command::run_glLightf()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 4) WarnDataNotHandled("glLightf");
+ glLightf(GetU32(GLenum, 0), GetU32(GLenum, 1), GetF(GLfloat, 2));
+#else
+ WarnNotAvailable("glLightf");
+#endif
+}
+void Command::run_glLightfv()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 5) WarnDataNotHandled("glLightfv");
+ glLightfv(GetU32(GLenum, 0), GetU32(GLenum, 1), GetArrayPtr(const GLfloat *, 3));
+#else
+ WarnNotAvailable("glLightfv");
+#endif
+}
+void Command::run_glLineWidth()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 2) WarnDataNotHandled("glLineWidth");
+ glLineWidth(GetF(GLfloat, 0));
+#else
+ WarnNotAvailable("glLineWidth");
+#endif
+}
+void Command::run_glLoadMatrixf()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 3) WarnDataNotHandled("glLoadMatrixf");
+ glLoadMatrixf(GetArrayPtr(const GLfloat *, 1));
+#else
+ WarnNotAvailable("glLoadMatrixf");
+#endif
+}
+void Command::run_glMaterialf()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 4) WarnDataNotHandled("glMaterialf");
+ glMaterialf(GetU32(GLenum, 0), GetU32(GLenum, 1), GetF(GLfloat, 2));
+#else
+ WarnNotAvailable("glMaterialf");
+#endif
+}
+void Command::run_glMaterialfv()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 5) WarnDataNotHandled("glMaterialfv");
+ glMaterialfv(GetU32(GLenum, 0), GetU32(GLenum, 1), GetArrayPtr(const GLfloat *, 3));
+#else
+ WarnNotAvailable("glMaterialfv");
+#endif
+}
+void Command::run_glMultMatrixf()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 3) WarnDataNotHandled("glMultMatrixf");
+ glMultMatrixf(GetArrayPtr(const GLfloat *, 1));
+#else
+ WarnNotAvailable("glMultMatrixf");
+#endif
+}
+void Command::run_glMultiTexCoord4f()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 6) WarnDataNotHandled("glMultiTexCoord4f");
+ glMultiTexCoord4f(GetU32(GLenum, 0), GetF(GLfloat, 1), GetF(GLfloat, 2), GetF(GLfloat, 3), GetF(GLfloat, 4));
+#else
+ WarnNotAvailable("glMultiTexCoord4f");
+#endif
+}
+void Command::run_glNormal3f()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 4) WarnDataNotHandled("glNormal3f");
+ glNormal3f(GetF(GLfloat, 0), GetF(GLfloat, 1), GetF(GLfloat, 2));
+#else
+ WarnNotAvailable("glNormal3f");
+#endif
+}
+void Command::run_glOrthof()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 7) WarnDataNotHandled("glOrthof");
+ glOrthof(GetF(GLfloat, 0), GetF(GLfloat, 1), GetF(GLfloat, 2), GetF(GLfloat, 3), GetF(GLfloat, 4), GetF(GLfloat, 5));
+#else
+ WarnNotAvailable("glOrthof");
+#endif
+}
+void Command::run_glPointParameterf()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 3) WarnDataNotHandled("glPointParameterf");
+ glPointParameterf(GetU32(GLenum, 0), GetF(GLfloat, 1));
+#else
+ WarnNotAvailable("glPointParameterf");
+#endif
+}
+void Command::run_glPointParameterfv()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 4) WarnDataNotHandled("glPointParameterfv");
+ glPointParameterfv(GetU32(GLenum, 0), GetArrayPtr(const GLfloat *, 2));
+#else
+ WarnNotAvailable("glPointParameterfv");
+#endif
+}
+void Command::run_glPointSize()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 2) WarnDataNotHandled("glPointSize");
+ glPointSize(GetF(GLfloat, 0));
+#else
+ WarnNotAvailable("glPointSize");
+#endif
+}
+void Command::run_glPolygonOffset()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 3) WarnDataNotHandled("glPolygonOffset");
+ glPolygonOffset(GetF(GLfloat, 0), GetF(GLfloat, 1));
+#else
+ WarnNotAvailable("glPolygonOffset");
+#endif
+}
+void Command::run_glRotatef()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 5) WarnDataNotHandled("glRotatef");
+ glRotatef(GetF(GLfloat, 0), GetF(GLfloat, 1), GetF(GLfloat, 2), GetF(GLfloat, 3));
+#else
+ WarnNotAvailable("glRotatef");
+#endif
+}
+void Command::run_glScalef()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 4) WarnDataNotHandled("glScalef");
+ glScalef(GetF(GLfloat, 0), GetF(GLfloat, 1), GetF(GLfloat, 2));
+#else
+ WarnNotAvailable("glScalef");
+#endif
+}
+void Command::run_glTexEnvf()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 4) WarnDataNotHandled("glTexEnvf");
+ glTexEnvf(GetU32(GLenum, 0), GetU32(GLenum, 1), GetF(GLfloat, 2));
+#else
+ WarnNotAvailable("glTexEnvf");
+#endif
+}
+void Command::run_glTexEnvfv()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 5) WarnDataNotHandled("glTexEnvfv");
+ glTexEnvfv(GetU32(GLenum, 0), GetU32(GLenum, 1), GetArrayPtr(const GLfloat *, 3));
+#else
+ WarnNotAvailable("glTexEnvfv");
+#endif
+}
+void Command::run_glTexParameterf()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 4) WarnDataNotHandled("glTexParameterf");
+ glTexParameterf(GetU32(GLenum, 0), GetU32(GLenum, 1), GetF(GLfloat, 2));
+#else
+ WarnNotAvailable("glTexParameterf");
+#endif
+}
+void Command::run_glTexParameterfv()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 5) WarnDataNotHandled("glTexParameterfv");
+ glTexParameterfv(GetU32(GLenum, 0), GetU32(GLenum, 1), GetArrayPtr(const GLfloat *, 3));
+#else
+ WarnNotAvailable("glTexParameterfv");
+#endif
+}
+void Command::run_glTranslatef()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 4) WarnDataNotHandled("glTranslatef");
+ glTranslatef(GetF(GLfloat, 0), GetF(GLfloat, 1), GetF(GLfloat, 2));
+#else
+ WarnNotAvailable("glTranslatef");
+#endif
+}
+void Command::run_glActiveTexture()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 2) WarnDataNotHandled("glActiveTexture");
+ glActiveTexture(GetU32(GLenum, 0));
+#else
+ WarnNotAvailable("glActiveTexture");
+#endif
+}
+void Command::run_glAlphaFuncx()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 3) WarnDataNotHandled("glAlphaFuncx");
+ glAlphaFuncx(GetU32(GLenum, 0), GetU32(GLfixed, 1));
+#else
+ WarnNotAvailable("glAlphaFuncx");
+#endif
+}
+void Command::run_glBindBuffer()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 3) WarnDataNotHandled("glBindBuffer");
+ glBindBuffer(GetU32(GLenum, 0), GetU32(GLuint, 1));
+#else
+ WarnNotAvailable("glBindBuffer");
+#endif
+}
+void Command::run_glBindTexture()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 3) WarnDataNotHandled("glBindTexture");
+ glBindTexture(GetU32(GLenum, 0), GetU32(GLuint, 1));
+#else
+ WarnNotAvailable("glBindTexture");
+#endif
+}
+void Command::run_glBlendFunc()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 3) WarnDataNotHandled("glBlendFunc");
+ glBlendFunc(GetU32(GLenum, 0), GetU32(GLenum, 1));
+#else
+ WarnNotAvailable("glBlendFunc");
+#endif
+}
+void Command::run_glBufferData()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 6) WarnDataNotHandled("glBufferData");
+ glBufferData(GetU32(GLenum, 0), GetPtr(GLsizeiptr, 1), GetArrayPtr(const void *, 4), GetU32(GLenum, 3));
+#else
+ WarnNotAvailable("glBufferData");
+#endif
+}
+void Command::run_glBufferSubData()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 6) WarnDataNotHandled("glBufferSubData");
+ glBufferSubData(GetU32(GLenum, 0), GetPtr(GLintptr, 1), GetPtr(GLsizeiptr, 2), GetArrayPtr(const void *, 4));
+#else
+ WarnNotAvailable("glBufferSubData");
+#endif
+}
+void Command::run_glClear()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 2) WarnDataNotHandled("glClear");
+ glClear(GetU32(GLbitfield, 0));
+#else
+ WarnNotAvailable("glClear");
+#endif
+}
+void Command::run_glClearColorx()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 5) WarnDataNotHandled("glClearColorx");
+ glClearColorx(GetU32(GLfixed, 0), GetU32(GLfixed, 1), GetU32(GLfixed, 2), GetU32(GLfixed, 3));
+#else
+ WarnNotAvailable("glClearColorx");
+#endif
+}
+void Command::run_glClearDepthx()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 2) WarnDataNotHandled("glClearDepthx");
+ glClearDepthx(GetU32(GLfixed, 0));
+#else
+ WarnNotAvailable("glClearDepthx");
+#endif
+}
+void Command::run_glClearStencil()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 2) WarnDataNotHandled("glClearStencil");
+ glClearStencil(GetI32(GLint, 0));
+#else
+ WarnNotAvailable("glClearStencil");
+#endif
+}
+void Command::run_glClientActiveTexture()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 2) WarnDataNotHandled("glClientActiveTexture");
+ glClientActiveTexture(GetU32(GLenum, 0));
+#else
+ WarnNotAvailable("glClientActiveTexture");
+#endif
+}
+void Command::run_glClipPlanex()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 4) WarnDataNotHandled("glClipPlanex");
+ glClipPlanex(GetU32(GLenum, 0), GetArrayPtr(const GLfixed *, 2));
+#else
+ WarnNotAvailable("glClipPlanex");
+#endif
+}
+void Command::run_glColor4ub()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 5) WarnDataNotHandled("glColor4ub");
+ glColor4ub(GetU8(GLubyte, 0), GetU8(GLubyte, 1), GetU8(GLubyte, 2), GetU8(GLubyte, 3));
+#else
+ WarnNotAvailable("glColor4ub");
+#endif
+}
+void Command::run_glColor4x()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 5) WarnDataNotHandled("glColor4x");
+ glColor4x(GetU32(GLfixed, 0), GetU32(GLfixed, 1), GetU32(GLfixed, 2), GetU32(GLfixed, 3));
+#else
+ WarnNotAvailable("glColor4x");
+#endif
+}
+void Command::run_glColorMask()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 5) WarnDataNotHandled("glColorMask");
+ glColorMask(GetB(GLboolean, 0), GetB(GLboolean, 1), GetB(GLboolean, 2), GetB(GLboolean, 3));
+#else
+ WarnNotAvailable("glColorMask");
+#endif
+}
+void Command::run_glColorPointer()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 6) WarnDataNotHandled("glColorPointer");
+ glColorPointer(GetI32(GLint, 0), GetU32(GLenum, 1), GetI32(GLsizei, 2), GetArrayPtr(const void *, 4));
+#else
+ WarnNotAvailable("glColorPointer");
+#endif
+}
+void Command::run_glCompressedTexImage2D()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 10) WarnDataNotHandled("glCompressedTexImage2D");
+ glCompressedTexImage2D(GetU32(GLenum, 0), GetI32(GLint, 1), GetU32(GLenum, 2), GetI32(GLsizei, 3), GetI32(GLsizei, 4), GetI32(GLint, 5), GetI32(GLsizei, 6), GetArrayPtr(const void *, 8));
+#else
+ WarnNotAvailable("glCompressedTexImage2D");
+#endif
+}
+void Command::run_glCompressedTexSubImage2D()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 11) WarnDataNotHandled("glCompressedTexSubImage2D");
+ glCompressedTexSubImage2D(GetU32(GLenum, 0), GetI32(GLint, 1), GetI32(GLint, 2), GetI32(GLint, 3), GetI32(GLsizei, 4), GetI32(GLsizei, 5), GetU32(GLenum, 6), GetI32(GLsizei, 7), GetArrayPtr(const void *, 9));
+#else
+ WarnNotAvailable("glCompressedTexSubImage2D");
+#endif
+}
+void Command::run_glCopyTexImage2D()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 9) WarnDataNotHandled("glCopyTexImage2D");
+ glCopyTexImage2D(GetU32(GLenum, 0), GetI32(GLint, 1), GetU32(GLenum, 2), GetI32(GLint, 3), GetI32(GLint, 4), GetI32(GLsizei, 5), GetI32(GLsizei, 6), GetI32(GLint, 7));
+#else
+ WarnNotAvailable("glCopyTexImage2D");
+#endif
+}
+void Command::run_glCopyTexSubImage2D()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 9) WarnDataNotHandled("glCopyTexSubImage2D");
+ glCopyTexSubImage2D(GetU32(GLenum, 0), GetI32(GLint, 1), GetI32(GLint, 2), GetI32(GLint, 3), GetI32(GLint, 4), GetI32(GLint, 5), GetI32(GLsizei, 6), GetI32(GLsizei, 7));
+#else
+ WarnNotAvailable("glCopyTexSubImage2D");
+#endif
+}
+void Command::run_glCullFace()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 2) WarnDataNotHandled("glCullFace");
+ glCullFace(GetU32(GLenum, 0));
+#else
+ WarnNotAvailable("glCullFace");
+#endif
+}
+void Command::run_glDeleteBuffers()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 4) WarnDataNotHandled("glDeleteBuffers");
+ glDeleteBuffers(GetI32(GLsizei, 0), GetArrayPtr(const GLuint *, 2));
+#else
+ WarnNotAvailable("glDeleteBuffers");
+#endif
+}
+void Command::run_glDeleteTextures()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 4) WarnDataNotHandled("glDeleteTextures");
+ glDeleteTextures(GetI32(GLsizei, 0), GetArrayPtr(const GLuint *, 2));
+#else
+ WarnNotAvailable("glDeleteTextures");
+#endif
+}
+void Command::run_glDepthFunc()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 2) WarnDataNotHandled("glDepthFunc");
+ glDepthFunc(GetU32(GLenum, 0));
+#else
+ WarnNotAvailable("glDepthFunc");
+#endif
+}
+void Command::run_glDepthMask()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 2) WarnDataNotHandled("glDepthMask");
+ glDepthMask(GetB(GLboolean, 0));
+#else
+ WarnNotAvailable("glDepthMask");
+#endif
+}
+void Command::run_glDepthRangex()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 3) WarnDataNotHandled("glDepthRangex");
+ glDepthRangex(GetU32(GLfixed, 0), GetU32(GLfixed, 1));
+#else
+ WarnNotAvailable("glDepthRangex");
+#endif
+}
+void Command::run_glDisable()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 2) WarnDataNotHandled("glDisable");
+ glDisable(GetU32(GLenum, 0));
+#else
+ WarnNotAvailable("glDisable");
+#endif
+}
+void Command::run_glDisableClientState()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 2) WarnDataNotHandled("glDisableClientState");
+ glDisableClientState(GetU32(GLenum, 0));
+#else
+ WarnNotAvailable("glDisableClientState");
+#endif
+}
+void Command::run_glDrawArrays()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 4) WarnDataNotHandled("glDrawArrays");
+ glDrawArrays(GetU32(GLenum, 0), GetI32(GLint, 1), GetI32(GLsizei, 2));
+#else
+ WarnNotAvailable("glDrawArrays");
+#endif
+}
+void Command::run_glDrawElements()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 6) WarnDataNotHandled("glDrawElements");
+ glDrawElements(GetU32(GLenum, 0), GetI32(GLsizei, 1), GetU32(GLenum, 2), GetArrayPtr(const void *, 4));
+#else
+ WarnNotAvailable("glDrawElements");
+#endif
+}
+void Command::run_glEnable()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 2) WarnDataNotHandled("glEnable");
+ glEnable(GetU32(GLenum, 0));
+#else
+ WarnNotAvailable("glEnable");
+#endif
+}
+void Command::run_glEnableClientState()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 2) WarnDataNotHandled("glEnableClientState");
+ glEnableClientState(GetU32(GLenum, 0));
+#else
+ WarnNotAvailable("glEnableClientState");
+#endif
+}
+void Command::run_glFinish()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 1) WarnDataNotHandled("glFinish");
+ glFinish();
+#else
+ WarnNotAvailable("glFinish");
+#endif
+}
+void Command::run_glFlush()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 1) WarnDataNotHandled("glFlush");
+ glFlush();
+#else
+ WarnNotAvailable("glFlush");
+#endif
+}
+void Command::run_glFogx()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 3) WarnDataNotHandled("glFogx");
+ glFogx(GetU32(GLenum, 0), GetU32(GLfixed, 1));
+#else
+ WarnNotAvailable("glFogx");
+#endif
+}
+void Command::run_glFogxv()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 4) WarnDataNotHandled("glFogxv");
+ glFogxv(GetU32(GLenum, 0), GetArrayPtr(const GLfixed *, 2));
+#else
+ WarnNotAvailable("glFogxv");
+#endif
+}
+void Command::run_glFrontFace()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 2) WarnDataNotHandled("glFrontFace");
+ glFrontFace(GetU32(GLenum, 0));
+#else
+ WarnNotAvailable("glFrontFace");
+#endif
+}
+void Command::run_glFrustumx()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 7) WarnDataNotHandled("glFrustumx");
+ glFrustumx(GetU32(GLfixed, 0), GetU32(GLfixed, 1), GetU32(GLfixed, 2), GetU32(GLfixed, 3), GetU32(GLfixed, 4), GetU32(GLfixed, 5));
+#else
+ WarnNotAvailable("glFrustumx");
+#endif
+}
+void Command::run_glGetBooleanv()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 3) WarnDataNotHandled("glGetBooleanv");
+ glGetBooleanv(GetU32(GLenum, 0), dummyGLboolean);
+#else
+ WarnNotAvailable("glGetBooleanv");
+#endif
+}
+void Command::run_glGetBufferParameteriv()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 4) WarnDataNotHandled("glGetBufferParameteriv");
+ glGetBufferParameteriv(GetU32(GLenum, 0), GetU32(GLenum, 1), dummyGLint);
+#else
+ WarnNotAvailable("glGetBufferParameteriv");
+#endif
+}
+void Command::run_glGetClipPlanex()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 3) WarnDataNotHandled("glGetClipPlanex");
+ glGetClipPlanex(GetU32(GLenum, 0), dummyGLfixed);
+#else
+ WarnNotAvailable("glGetClipPlanex");
+#endif
+}
+void Command::run_glGenBuffers()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 3) WarnDataNotHandled("glGenBuffers");
+ glGenBuffers(GetI32(GLsizei, 0), dummyGLuint);
+#else
+ WarnNotAvailable("glGenBuffers");
+#endif
+}
+void Command::run_glGenTextures()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 3) WarnDataNotHandled("glGenTextures");
+ glGenTextures(GetI32(GLsizei, 0), dummyGLuint);
+#else
+ WarnNotAvailable("glGenTextures");
+#endif
+}
+void Command::run_glGetError()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 1) WarnDataNotHandled("glGetError");
+ glGetError();
+#else
+ WarnNotAvailable("glGetError");
+#endif
+}
+void Command::run_glGetFixedv()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 3) WarnDataNotHandled("glGetFixedv");
+ glGetFixedv(GetU32(GLenum, 0), dummyGLfixed);
+#else
+ WarnNotAvailable("glGetFixedv");
+#endif
+}
+void Command::run_glGetIntegerv()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 3) WarnDataNotHandled("glGetIntegerv");
+ glGetIntegerv(GetU32(GLenum, 0), dummyGLint);
+#else
+ WarnNotAvailable("glGetIntegerv");
+#endif
+}
+void Command::run_glGetLightxv()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 4) WarnDataNotHandled("glGetLightxv");
+ glGetLightxv(GetU32(GLenum, 0), GetU32(GLenum, 1), dummyGLfixed);
+#else
+ WarnNotAvailable("glGetLightxv");
+#endif
+}
+void Command::run_glGetMaterialxv()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 4) WarnDataNotHandled("glGetMaterialxv");
+ glGetMaterialxv(GetU32(GLenum, 0), GetU32(GLenum, 1), dummyGLfixed);
+#else
+ WarnNotAvailable("glGetMaterialxv");
+#endif
+}
+void Command::run_glGetPointerv()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 3) WarnDataNotHandled("glGetPointerv");
+ glGetPointerv(GetU32(GLenum, 0), dummyvoidptr);
+#else
+ WarnNotAvailable("glGetPointerv");
+#endif
+}
+void Command::run_glGetString()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 2) WarnDataNotHandled("glGetString");
+ glGetString(GetU32(GLenum, 0));
+#else
+ WarnNotAvailable("glGetString");
+#endif
+}
+void Command::run_glGetTexEnviv()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 4) WarnDataNotHandled("glGetTexEnviv");
+ glGetTexEnviv(GetU32(GLenum, 0), GetU32(GLenum, 1), dummyGLint);
+#else
+ WarnNotAvailable("glGetTexEnviv");
+#endif
+}
+void Command::run_glGetTexEnvxv()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 4) WarnDataNotHandled("glGetTexEnvxv");
+ glGetTexEnvxv(GetU32(GLenum, 0), GetU32(GLenum, 1), dummyGLfixed);
+#else
+ WarnNotAvailable("glGetTexEnvxv");
+#endif
+}
+void Command::run_glGetTexParameteriv()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 4) WarnDataNotHandled("glGetTexParameteriv");
+ glGetTexParameteriv(GetU32(GLenum, 0), GetU32(GLenum, 1), dummyGLint);
+#else
+ WarnNotAvailable("glGetTexParameteriv");
+#endif
+}
+void Command::run_glGetTexParameterxv()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 4) WarnDataNotHandled("glGetTexParameterxv");
+ glGetTexParameterxv(GetU32(GLenum, 0), GetU32(GLenum, 1), dummyGLfixed);
+#else
+ WarnNotAvailable("glGetTexParameterxv");
+#endif
+}
+void Command::run_glHint()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 3) WarnDataNotHandled("glHint");
+ glHint(GetU32(GLenum, 0), GetU32(GLenum, 1));
+#else
+ WarnNotAvailable("glHint");
+#endif
+}
+void Command::run_glIsBuffer()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 2) WarnDataNotHandled("glIsBuffer");
+ glIsBuffer(GetU32(GLuint, 0));
+#else
+ WarnNotAvailable("glIsBuffer");
+#endif
+}
+void Command::run_glIsEnabled()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 2) WarnDataNotHandled("glIsEnabled");
+ glIsEnabled(GetU32(GLenum, 0));
+#else
+ WarnNotAvailable("glIsEnabled");
+#endif
+}
+void Command::run_glIsTexture()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 2) WarnDataNotHandled("glIsTexture");
+ glIsTexture(GetU32(GLuint, 0));
+#else
+ WarnNotAvailable("glIsTexture");
+#endif
+}
+void Command::run_glLightModelx()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 3) WarnDataNotHandled("glLightModelx");
+ glLightModelx(GetU32(GLenum, 0), GetU32(GLfixed, 1));
+#else
+ WarnNotAvailable("glLightModelx");
+#endif
+}
+void Command::run_glLightModelxv()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 4) WarnDataNotHandled("glLightModelxv");
+ glLightModelxv(GetU32(GLenum, 0), GetArrayPtr(const GLfixed *, 2));
+#else
+ WarnNotAvailable("glLightModelxv");
+#endif
+}
+void Command::run_glLightx()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 4) WarnDataNotHandled("glLightx");
+ glLightx(GetU32(GLenum, 0), GetU32(GLenum, 1), GetU32(GLfixed, 2));
+#else
+ WarnNotAvailable("glLightx");
+#endif
+}
+void Command::run_glLightxv()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 5) WarnDataNotHandled("glLightxv");
+ glLightxv(GetU32(GLenum, 0), GetU32(GLenum, 1), GetArrayPtr(const GLfixed *, 3));
+#else
+ WarnNotAvailable("glLightxv");
+#endif
+}
+void Command::run_glLineWidthx()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 2) WarnDataNotHandled("glLineWidthx");
+ glLineWidthx(GetU32(GLfixed, 0));
+#else
+ WarnNotAvailable("glLineWidthx");
+#endif
+}
+void Command::run_glLoadIdentity()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 1) WarnDataNotHandled("glLoadIdentity");
+ glLoadIdentity();
+#else
+ WarnNotAvailable("glLoadIdentity");
+#endif
+}
+void Command::run_glLoadMatrixx()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 3) WarnDataNotHandled("glLoadMatrixx");
+ glLoadMatrixx(GetArrayPtr(const GLfixed *, 1));
+#else
+ WarnNotAvailable("glLoadMatrixx");
+#endif
+}
+void Command::run_glLogicOp()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 2) WarnDataNotHandled("glLogicOp");
+ glLogicOp(GetU32(GLenum, 0));
+#else
+ WarnNotAvailable("glLogicOp");
+#endif
+}
+void Command::run_glMaterialx()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 4) WarnDataNotHandled("glMaterialx");
+ glMaterialx(GetU32(GLenum, 0), GetU32(GLenum, 1), GetU32(GLfixed, 2));
+#else
+ WarnNotAvailable("glMaterialx");
+#endif
+}
+void Command::run_glMaterialxv()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 5) WarnDataNotHandled("glMaterialxv");
+ glMaterialxv(GetU32(GLenum, 0), GetU32(GLenum, 1), GetArrayPtr(const GLfixed *, 3));
+#else
+ WarnNotAvailable("glMaterialxv");
+#endif
+}
+void Command::run_glMatrixMode()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 2) WarnDataNotHandled("glMatrixMode");
+ glMatrixMode(GetU32(GLenum, 0));
+#else
+ WarnNotAvailable("glMatrixMode");
+#endif
+}
+void Command::run_glMultMatrixx()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 3) WarnDataNotHandled("glMultMatrixx");
+ glMultMatrixx(GetArrayPtr(const GLfixed *, 1));
+#else
+ WarnNotAvailable("glMultMatrixx");
+#endif
+}
+void Command::run_glMultiTexCoord4x()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 6) WarnDataNotHandled("glMultiTexCoord4x");
+ glMultiTexCoord4x(GetU32(GLenum, 0), GetU32(GLfixed, 1), GetU32(GLfixed, 2), GetU32(GLfixed, 3), GetU32(GLfixed, 4));
+#else
+ WarnNotAvailable("glMultiTexCoord4x");
+#endif
+}
+void Command::run_glNormal3x()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 4) WarnDataNotHandled("glNormal3x");
+ glNormal3x(GetU32(GLfixed, 0), GetU32(GLfixed, 1), GetU32(GLfixed, 2));
+#else
+ WarnNotAvailable("glNormal3x");
+#endif
+}
+void Command::run_glNormalPointer()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 5) WarnDataNotHandled("glNormalPointer");
+ glNormalPointer(GetU32(GLenum, 0), GetI32(GLsizei, 1), GetArrayPtr(const void *, 3));
+#else
+ WarnNotAvailable("glNormalPointer");
+#endif
+}
+void Command::run_glOrthox()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 7) WarnDataNotHandled("glOrthox");
+ glOrthox(GetU32(GLfixed, 0), GetU32(GLfixed, 1), GetU32(GLfixed, 2), GetU32(GLfixed, 3), GetU32(GLfixed, 4), GetU32(GLfixed, 5));
+#else
+ WarnNotAvailable("glOrthox");
+#endif
+}
+void Command::run_glPixelStorei()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 3) WarnDataNotHandled("glPixelStorei");
+ glPixelStorei(GetU32(GLenum, 0), GetI32(GLint, 1));
+#else
+ WarnNotAvailable("glPixelStorei");
+#endif
+}
+void Command::run_glPointParameterx()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 3) WarnDataNotHandled("glPointParameterx");
+ glPointParameterx(GetU32(GLenum, 0), GetU32(GLfixed, 1));
+#else
+ WarnNotAvailable("glPointParameterx");
+#endif
+}
+void Command::run_glPointParameterxv()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 4) WarnDataNotHandled("glPointParameterxv");
+ glPointParameterxv(GetU32(GLenum, 0), GetArrayPtr(const GLfixed *, 2));
+#else
+ WarnNotAvailable("glPointParameterxv");
+#endif
+}
+void Command::run_glPointSizex()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 2) WarnDataNotHandled("glPointSizex");
+ glPointSizex(GetU32(GLfixed, 0));
+#else
+ WarnNotAvailable("glPointSizex");
+#endif
+}
+void Command::run_glPolygonOffsetx()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 3) WarnDataNotHandled("glPolygonOffsetx");
+ glPolygonOffsetx(GetU32(GLfixed, 0), GetU32(GLfixed, 1));
+#else
+ WarnNotAvailable("glPolygonOffsetx");
+#endif
+}
+void Command::run_glPopMatrix()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 1) WarnDataNotHandled("glPopMatrix");
+ glPopMatrix();
+#else
+ WarnNotAvailable("glPopMatrix");
+#endif
+}
+void Command::run_glPushMatrix()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 1) WarnDataNotHandled("glPushMatrix");
+ glPushMatrix();
+#else
+ WarnNotAvailable("glPushMatrix");
+#endif
+}
+void Command::run_glReadPixels()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 8) WarnDataNotHandled("glReadPixels");
+ glReadPixels(GetI32(GLint, 0), GetI32(GLint, 1), GetI32(GLsizei, 2), GetI32(GLsizei, 3), GetU32(GLenum, 4), GetU32(GLenum, 5), dummyvoid);
+#else
+ WarnNotAvailable("glReadPixels");
+#endif
+}
+void Command::run_glRotatex()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 5) WarnDataNotHandled("glRotatex");
+ glRotatex(GetU32(GLfixed, 0), GetU32(GLfixed, 1), GetU32(GLfixed, 2), GetU32(GLfixed, 3));
+#else
+ WarnNotAvailable("glRotatex");
+#endif
+}
+void Command::run_glSampleCoverage()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 3) WarnDataNotHandled("glSampleCoverage");
+ glSampleCoverage(GetF(GLfloat, 0), GetB(GLboolean, 1));
+#else
+ WarnNotAvailable("glSampleCoverage");
+#endif
+}
+void Command::run_glSampleCoveragex()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 3) WarnDataNotHandled("glSampleCoveragex");
+ glSampleCoveragex(GetU32(GLclampx, 0), GetB(GLboolean, 1));
+#else
+ WarnNotAvailable("glSampleCoveragex");
+#endif
+}
+void Command::run_glScalex()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 4) WarnDataNotHandled("glScalex");
+ glScalex(GetU32(GLfixed, 0), GetU32(GLfixed, 1), GetU32(GLfixed, 2));
+#else
+ WarnNotAvailable("glScalex");
+#endif
+}
+void Command::run_glScissor()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 5) WarnDataNotHandled("glScissor");
+ glScissor(GetI32(GLint, 0), GetI32(GLint, 1), GetI32(GLsizei, 2), GetI32(GLsizei, 3));
+#else
+ WarnNotAvailable("glScissor");
+#endif
+}
+void Command::run_glShadeModel()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 2) WarnDataNotHandled("glShadeModel");
+ glShadeModel(GetU32(GLenum, 0));
+#else
+ WarnNotAvailable("glShadeModel");
+#endif
+}
+void Command::run_glStencilFunc()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 4) WarnDataNotHandled("glStencilFunc");
+ glStencilFunc(GetU32(GLenum, 0), GetI32(GLint, 1), GetU32(GLuint, 2));
+#else
+ WarnNotAvailable("glStencilFunc");
+#endif
+}
+void Command::run_glStencilMask()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 2) WarnDataNotHandled("glStencilMask");
+ glStencilMask(GetU32(GLuint, 0));
+#else
+ WarnNotAvailable("glStencilMask");
+#endif
+}
+void Command::run_glStencilOp()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 4) WarnDataNotHandled("glStencilOp");
+ glStencilOp(GetU32(GLenum, 0), GetU32(GLenum, 1), GetU32(GLenum, 2));
+#else
+ WarnNotAvailable("glStencilOp");
+#endif
+}
+void Command::run_glTexCoordPointer()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 6) WarnDataNotHandled("glTexCoordPointer");
+ glTexCoordPointer(GetI32(GLint, 0), GetU32(GLenum, 1), GetI32(GLsizei, 2), GetArrayPtr(const void *, 4));
+#else
+ WarnNotAvailable("glTexCoordPointer");
+#endif
+}
+void Command::run_glTexEnvi()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 4) WarnDataNotHandled("glTexEnvi");
+ glTexEnvi(GetU32(GLenum, 0), GetU32(GLenum, 1), GetI32(GLint, 2));
+#else
+ WarnNotAvailable("glTexEnvi");
+#endif
+}
+void Command::run_glTexEnvx()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 4) WarnDataNotHandled("glTexEnvx");
+ glTexEnvx(GetU32(GLenum, 0), GetU32(GLenum, 1), GetU32(GLfixed, 2));
+#else
+ WarnNotAvailable("glTexEnvx");
+#endif
+}
+void Command::run_glTexEnviv()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 5) WarnDataNotHandled("glTexEnviv");
+ glTexEnviv(GetU32(GLenum, 0), GetU32(GLenum, 1), GetArrayPtr(const GLint *, 3));
+#else
+ WarnNotAvailable("glTexEnviv");
+#endif
+}
+void Command::run_glTexEnvxv()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 5) WarnDataNotHandled("glTexEnvxv");
+ glTexEnvxv(GetU32(GLenum, 0), GetU32(GLenum, 1), GetArrayPtr(const GLfixed *, 3));
+#else
+ WarnNotAvailable("glTexEnvxv");
+#endif
+}
+void Command::run_glTexImage2D()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 11) WarnDataNotHandled("glTexImage2D");
+ glTexImage2D(GetU32(GLenum, 0), GetI32(GLint, 1), GetI32(GLint, 2), GetI32(GLsizei, 3), GetI32(GLsizei, 4), GetI32(GLint, 5), GetU32(GLenum, 6), GetU32(GLenum, 7), GetArrayPtr(const void *, 9));
+#else
+ WarnNotAvailable("glTexImage2D");
+#endif
+}
+void Command::run_glTexParameteri()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 4) WarnDataNotHandled("glTexParameteri");
+ glTexParameteri(GetU32(GLenum, 0), GetU32(GLenum, 1), GetI32(GLint, 2));
+#else
+ WarnNotAvailable("glTexParameteri");
+#endif
+}
+void Command::run_glTexParameterx()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 4) WarnDataNotHandled("glTexParameterx");
+ glTexParameterx(GetU32(GLenum, 0), GetU32(GLenum, 1), GetU32(GLfixed, 2));
+#else
+ WarnNotAvailable("glTexParameterx");
+#endif
+}
+void Command::run_glTexParameteriv()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 5) WarnDataNotHandled("glTexParameteriv");
+ glTexParameteriv(GetU32(GLenum, 0), GetU32(GLenum, 1), GetArrayPtr(const GLint *, 3));
+#else
+ WarnNotAvailable("glTexParameteriv");
+#endif
+}
+void Command::run_glTexParameterxv()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 5) WarnDataNotHandled("glTexParameterxv");
+ glTexParameterxv(GetU32(GLenum, 0), GetU32(GLenum, 1), GetArrayPtr(const GLfixed *, 3));
+#else
+ WarnNotAvailable("glTexParameterxv");
+#endif
+}
+void Command::run_glTexSubImage2D()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 11) WarnDataNotHandled("glTexSubImage2D");
+ glTexSubImage2D(GetU32(GLenum, 0), GetI32(GLint, 1), GetI32(GLint, 2), GetI32(GLint, 3), GetI32(GLsizei, 4), GetI32(GLsizei, 5), GetU32(GLenum, 6), GetU32(GLenum, 7), GetArrayPtr(const void *, 9));
+#else
+ WarnNotAvailable("glTexSubImage2D");
+#endif
+}
+void Command::run_glTranslatex()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 4) WarnDataNotHandled("glTranslatex");
+ glTranslatex(GetU32(GLfixed, 0), GetU32(GLfixed, 1), GetU32(GLfixed, 2));
+#else
+ WarnNotAvailable("glTranslatex");
+#endif
+}
+void Command::run_glVertexPointer()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 6) WarnDataNotHandled("glVertexPointer");
+ glVertexPointer(GetI32(GLint, 0), GetU32(GLenum, 1), GetI32(GLsizei, 2), GetArrayPtr(const void *, 4));
+#else
+ WarnNotAvailable("glVertexPointer");
+#endif
+}
+void Command::run_glViewport()
+{
+#if GL_VERSION_ES_CM_1_0
+ if (m_packet.NumItems() > 5) WarnDataNotHandled("glViewport");
+ glViewport(GetI32(GLint, 0), GetI32(GLint, 1), GetI32(GLsizei, 2), GetI32(GLsizei, 3));
+#else
+ WarnNotAvailable("glViewport");
+#endif
+}
 void Command::run_eglBindTexImage()
 {
 #if EGL_VERSION_1_1
@@ -401,15 +1697,6 @@ void Command::run_eglWaitSync()
  WarnNotAvailable("eglWaitSync");
 #endif
 }
-void Command::run_glActiveTexture()
-{
-#if GL_ES_VERSION_2_0
- if (m_packet.NumItems() > 2) WarnDataNotHandled("glActiveTexture");
- glActiveTexture(GetU32(GLenum, 0));
-#else
- WarnNotAvailable("glActiveTexture");
-#endif
-}
 void Command::run_glAttachShader()
 {
 #if GL_ES_VERSION_2_0
@@ -428,15 +1715,6 @@ void Command::run_glBindAttribLocation()
  WarnNotAvailable("glBindAttribLocation");
 #endif
 }
-void Command::run_glBindBuffer()
-{
-#if GL_ES_VERSION_2_0
- if (m_packet.NumItems() > 3) WarnDataNotHandled("glBindBuffer");
- glBindBuffer(GetU32(GLenum, 0), GetU32(GLuint, 1));
-#else
- WarnNotAvailable("glBindBuffer");
-#endif
-}
 void Command::run_glBindFramebuffer()
 {
 #if GL_ES_VERSION_2_0
@@ -453,15 +1731,6 @@ void Command::run_glBindRenderbuffer()
  glBindRenderbuffer(GetU32(GLenum, 0), GetU32(GLuint, 1));
 #else
  WarnNotAvailable("glBindRenderbuffer");
-#endif
-}
-void Command::run_glBindTexture()
-{
-#if GL_ES_VERSION_2_0
- if (m_packet.NumItems() > 3) WarnDataNotHandled("glBindTexture");
- glBindTexture(GetU32(GLenum, 0), GetU32(GLuint, 1));
-#else
- WarnNotAvailable("glBindTexture");
 #endif
 }
 void Command::run_glBlendColor()
@@ -491,15 +1760,6 @@ void Command::run_glBlendEquationSeparate()
  WarnNotAvailable("glBlendEquationSeparate");
 #endif
 }
-void Command::run_glBlendFunc()
-{
-#if GL_ES_VERSION_2_0
- if (m_packet.NumItems() > 3) WarnDataNotHandled("glBlendFunc");
- glBlendFunc(GetU32(GLenum, 0), GetU32(GLenum, 1));
-#else
- WarnNotAvailable("glBlendFunc");
-#endif
-}
 void Command::run_glBlendFuncSeparate()
 {
 #if GL_ES_VERSION_2_0
@@ -507,24 +1767,6 @@ void Command::run_glBlendFuncSeparate()
  glBlendFuncSeparate(GetU32(GLenum, 0), GetU32(GLenum, 1), GetU32(GLenum, 2), GetU32(GLenum, 3));
 #else
  WarnNotAvailable("glBlendFuncSeparate");
-#endif
-}
-void Command::run_glBufferData()
-{
-#if GL_ES_VERSION_2_0
- if (m_packet.NumItems() > 6) WarnDataNotHandled("glBufferData");
- glBufferData(GetU32(GLenum, 0), GetPtr(GLsizeiptr, 1), GetArrayPtr(const void *, 4), GetU32(GLenum, 3));
-#else
- WarnNotAvailable("glBufferData");
-#endif
-}
-void Command::run_glBufferSubData()
-{
-#if GL_ES_VERSION_2_0
- if (m_packet.NumItems() > 6) WarnDataNotHandled("glBufferSubData");
- glBufferSubData(GetU32(GLenum, 0), GetPtr(GLintptr, 1), GetPtr(GLsizeiptr, 2), GetArrayPtr(const void *, 4));
-#else
- WarnNotAvailable("glBufferSubData");
 #endif
 }
 void Command::run_glCheckFramebufferStatus()
@@ -536,51 +1778,6 @@ void Command::run_glCheckFramebufferStatus()
  WarnNotAvailable("glCheckFramebufferStatus");
 #endif
 }
-void Command::run_glClear()
-{
-#if GL_ES_VERSION_2_0
- if (m_packet.NumItems() > 2) WarnDataNotHandled("glClear");
- glClear(GetU32(GLbitfield, 0));
-#else
- WarnNotAvailable("glClear");
-#endif
-}
-void Command::run_glClearColor()
-{
-#if GL_ES_VERSION_2_0
- if (m_packet.NumItems() > 5) WarnDataNotHandled("glClearColor");
- glClearColor(GetF(GLfloat, 0), GetF(GLfloat, 1), GetF(GLfloat, 2), GetF(GLfloat, 3));
-#else
- WarnNotAvailable("glClearColor");
-#endif
-}
-void Command::run_glClearDepthf()
-{
-#if GL_ES_VERSION_2_0
- if (m_packet.NumItems() > 2) WarnDataNotHandled("glClearDepthf");
- glClearDepthf(GetF(GLfloat, 0));
-#else
- WarnNotAvailable("glClearDepthf");
-#endif
-}
-void Command::run_glClearStencil()
-{
-#if GL_ES_VERSION_2_0
- if (m_packet.NumItems() > 2) WarnDataNotHandled("glClearStencil");
- glClearStencil(GetI32(GLint, 0));
-#else
- WarnNotAvailable("glClearStencil");
-#endif
-}
-void Command::run_glColorMask()
-{
-#if GL_ES_VERSION_2_0
- if (m_packet.NumItems() > 5) WarnDataNotHandled("glColorMask");
- glColorMask(GetB(GLboolean, 0), GetB(GLboolean, 1), GetB(GLboolean, 2), GetB(GLboolean, 3));
-#else
- WarnNotAvailable("glColorMask");
-#endif
-}
 void Command::run_glCompileShader()
 {
 #if GL_ES_VERSION_2_0
@@ -588,42 +1785,6 @@ void Command::run_glCompileShader()
  glCompileShader(GetShader(GLuint, 0));
 #else
  WarnNotAvailable("glCompileShader");
-#endif
-}
-void Command::run_glCompressedTexImage2D()
-{
-#if GL_ES_VERSION_2_0
- if (m_packet.NumItems() > 10) WarnDataNotHandled("glCompressedTexImage2D");
- glCompressedTexImage2D(GetU32(GLenum, 0), GetI32(GLint, 1), GetU32(GLenum, 2), GetI32(GLsizei, 3), GetI32(GLsizei, 4), GetI32(GLint, 5), GetI32(GLsizei, 6), GetArrayPtr(const void *, 8));
-#else
- WarnNotAvailable("glCompressedTexImage2D");
-#endif
-}
-void Command::run_glCompressedTexSubImage2D()
-{
-#if GL_ES_VERSION_2_0
- if (m_packet.NumItems() > 11) WarnDataNotHandled("glCompressedTexSubImage2D");
- glCompressedTexSubImage2D(GetU32(GLenum, 0), GetI32(GLint, 1), GetI32(GLint, 2), GetI32(GLint, 3), GetI32(GLsizei, 4), GetI32(GLsizei, 5), GetU32(GLenum, 6), GetI32(GLsizei, 7), GetArrayPtr(const void *, 9));
-#else
- WarnNotAvailable("glCompressedTexSubImage2D");
-#endif
-}
-void Command::run_glCopyTexImage2D()
-{
-#if GL_ES_VERSION_2_0
- if (m_packet.NumItems() > 9) WarnDataNotHandled("glCopyTexImage2D");
- glCopyTexImage2D(GetU32(GLenum, 0), GetI32(GLint, 1), GetU32(GLenum, 2), GetI32(GLint, 3), GetI32(GLint, 4), GetI32(GLsizei, 5), GetI32(GLsizei, 6), GetI32(GLint, 7));
-#else
- WarnNotAvailable("glCopyTexImage2D");
-#endif
-}
-void Command::run_glCopyTexSubImage2D()
-{
-#if GL_ES_VERSION_2_0
- if (m_packet.NumItems() > 9) WarnDataNotHandled("glCopyTexSubImage2D");
- glCopyTexSubImage2D(GetU32(GLenum, 0), GetI32(GLint, 1), GetI32(GLint, 2), GetI32(GLint, 3), GetI32(GLint, 4), GetI32(GLint, 5), GetI32(GLsizei, 6), GetI32(GLsizei, 7));
-#else
- WarnNotAvailable("glCopyTexSubImage2D");
 #endif
 }
 void Command::run_glCreateProgram()
@@ -642,24 +1803,6 @@ void Command::run_glCreateShader()
  glCreateShader(GetU32(GLenum, 0));
 #else
  WarnNotAvailable("glCreateShader");
-#endif
-}
-void Command::run_glCullFace()
-{
-#if GL_ES_VERSION_2_0
- if (m_packet.NumItems() > 2) WarnDataNotHandled("glCullFace");
- glCullFace(GetU32(GLenum, 0));
-#else
- WarnNotAvailable("glCullFace");
-#endif
-}
-void Command::run_glDeleteBuffers()
-{
-#if GL_ES_VERSION_2_0
- if (m_packet.NumItems() > 4) WarnDataNotHandled("glDeleteBuffers");
- glDeleteBuffers(GetI32(GLsizei, 0), GetArrayPtr(const GLuint *, 2));
-#else
- WarnNotAvailable("glDeleteBuffers");
 #endif
 }
 void Command::run_glDeleteFramebuffers()
@@ -698,42 +1841,6 @@ void Command::run_glDeleteShader()
  WarnNotAvailable("glDeleteShader");
 #endif
 }
-void Command::run_glDeleteTextures()
-{
-#if GL_ES_VERSION_2_0
- if (m_packet.NumItems() > 4) WarnDataNotHandled("glDeleteTextures");
- glDeleteTextures(GetI32(GLsizei, 0), GetArrayPtr(const GLuint *, 2));
-#else
- WarnNotAvailable("glDeleteTextures");
-#endif
-}
-void Command::run_glDepthFunc()
-{
-#if GL_ES_VERSION_2_0
- if (m_packet.NumItems() > 2) WarnDataNotHandled("glDepthFunc");
- glDepthFunc(GetU32(GLenum, 0));
-#else
- WarnNotAvailable("glDepthFunc");
-#endif
-}
-void Command::run_glDepthMask()
-{
-#if GL_ES_VERSION_2_0
- if (m_packet.NumItems() > 2) WarnDataNotHandled("glDepthMask");
- glDepthMask(GetB(GLboolean, 0));
-#else
- WarnNotAvailable("glDepthMask");
-#endif
-}
-void Command::run_glDepthRangef()
-{
-#if GL_ES_VERSION_2_0
- if (m_packet.NumItems() > 3) WarnDataNotHandled("glDepthRangef");
- glDepthRangef(GetF(GLfloat, 0), GetF(GLfloat, 1));
-#else
- WarnNotAvailable("glDepthRangef");
-#endif
-}
 void Command::run_glDetachShader()
 {
 #if GL_ES_VERSION_2_0
@@ -741,15 +1848,6 @@ void Command::run_glDetachShader()
  glDetachShader(GetProgram(GLuint, 0), GetShader(GLuint, 1));
 #else
  WarnNotAvailable("glDetachShader");
-#endif
-}
-void Command::run_glDisable()
-{
-#if GL_ES_VERSION_2_0
- if (m_packet.NumItems() > 2) WarnDataNotHandled("glDisable");
- glDisable(GetU32(GLenum, 0));
-#else
- WarnNotAvailable("glDisable");
 #endif
 }
 void Command::run_glDisableVertexAttribArray()
@@ -761,33 +1859,6 @@ void Command::run_glDisableVertexAttribArray()
  WarnNotAvailable("glDisableVertexAttribArray");
 #endif
 }
-void Command::run_glDrawArrays()
-{
-#if GL_ES_VERSION_2_0
- if (m_packet.NumItems() > 4) WarnDataNotHandled("glDrawArrays");
- glDrawArrays(GetU32(GLenum, 0), GetI32(GLint, 1), GetI32(GLsizei, 2));
-#else
- WarnNotAvailable("glDrawArrays");
-#endif
-}
-void Command::run_glDrawElements()
-{
-#if GL_ES_VERSION_2_0
- if (m_packet.NumItems() > 6) WarnDataNotHandled("glDrawElements");
- glDrawElements(GetU32(GLenum, 0), GetI32(GLsizei, 1), GetU32(GLenum, 2), GetArrayPtr(const void *, 4));
-#else
- WarnNotAvailable("glDrawElements");
-#endif
-}
-void Command::run_glEnable()
-{
-#if GL_ES_VERSION_2_0
- if (m_packet.NumItems() > 2) WarnDataNotHandled("glEnable");
- glEnable(GetU32(GLenum, 0));
-#else
- WarnNotAvailable("glEnable");
-#endif
-}
 void Command::run_glEnableVertexAttribArray()
 {
 #if GL_ES_VERSION_2_0
@@ -795,24 +1866,6 @@ void Command::run_glEnableVertexAttribArray()
  glEnableVertexAttribArray(GetU32(GLuint, 0));
 #else
  WarnNotAvailable("glEnableVertexAttribArray");
-#endif
-}
-void Command::run_glFinish()
-{
-#if GL_ES_VERSION_2_0
- if (m_packet.NumItems() > 1) WarnDataNotHandled("glFinish");
- glFinish();
-#else
- WarnNotAvailable("glFinish");
-#endif
-}
-void Command::run_glFlush()
-{
-#if GL_ES_VERSION_2_0
- if (m_packet.NumItems() > 1) WarnDataNotHandled("glFlush");
- glFlush();
-#else
- WarnNotAvailable("glFlush");
 #endif
 }
 void Command::run_glFramebufferRenderbuffer()
@@ -831,24 +1884,6 @@ void Command::run_glFramebufferTexture2D()
  glFramebufferTexture2D(GetU32(GLenum, 0), GetU32(GLenum, 1), GetU32(GLenum, 2), GetU32(GLuint, 3), GetI32(GLint, 4));
 #else
  WarnNotAvailable("glFramebufferTexture2D");
-#endif
-}
-void Command::run_glFrontFace()
-{
-#if GL_ES_VERSION_2_0
- if (m_packet.NumItems() > 2) WarnDataNotHandled("glFrontFace");
- glFrontFace(GetU32(GLenum, 0));
-#else
- WarnNotAvailable("glFrontFace");
-#endif
-}
-void Command::run_glGenBuffers()
-{
-#if GL_ES_VERSION_2_0
- if (m_packet.NumItems() > 3) WarnDataNotHandled("glGenBuffers");
- glGenBuffers(GetI32(GLsizei, 0), dummyGLuint);
-#else
- WarnNotAvailable("glGenBuffers");
 #endif
 }
 void Command::run_glGenerateMipmap()
@@ -876,15 +1911,6 @@ void Command::run_glGenRenderbuffers()
  glGenRenderbuffers(GetI32(GLsizei, 0), dummyGLuint);
 #else
  WarnNotAvailable("glGenRenderbuffers");
-#endif
-}
-void Command::run_glGenTextures()
-{
-#if GL_ES_VERSION_2_0
- if (m_packet.NumItems() > 3) WarnDataNotHandled("glGenTextures");
- glGenTextures(GetI32(GLsizei, 0), dummyGLuint);
-#else
- WarnNotAvailable("glGenTextures");
 #endif
 }
 void Command::run_glGetActiveAttrib()
@@ -923,42 +1949,6 @@ void Command::run_glGetAttribLocation()
  WarnNotAvailable("glGetAttribLocation");
 #endif
 }
-void Command::run_glGetBooleanv()
-{
-#if GL_ES_VERSION_2_0
- if (m_packet.NumItems() > 3) WarnDataNotHandled("glGetBooleanv");
- glGetBooleanv(GetU32(GLenum, 0), dummyGLboolean);
-#else
- WarnNotAvailable("glGetBooleanv");
-#endif
-}
-void Command::run_glGetBufferParameteriv()
-{
-#if GL_ES_VERSION_2_0
- if (m_packet.NumItems() > 4) WarnDataNotHandled("glGetBufferParameteriv");
- glGetBufferParameteriv(GetU32(GLenum, 0), GetU32(GLenum, 1), dummyGLint);
-#else
- WarnNotAvailable("glGetBufferParameteriv");
-#endif
-}
-void Command::run_glGetError()
-{
-#if GL_ES_VERSION_2_0
- if (m_packet.NumItems() > 1) WarnDataNotHandled("glGetError");
- glGetError();
-#else
- WarnNotAvailable("glGetError");
-#endif
-}
-void Command::run_glGetFloatv()
-{
-#if GL_ES_VERSION_2_0
- if (m_packet.NumItems() > 3) WarnDataNotHandled("glGetFloatv");
- glGetFloatv(GetU32(GLenum, 0), dummyGLfloat);
-#else
- WarnNotAvailable("glGetFloatv");
-#endif
-}
 void Command::run_glGetFramebufferAttachmentParameteriv()
 {
 #if GL_ES_VERSION_2_0
@@ -966,15 +1956,6 @@ void Command::run_glGetFramebufferAttachmentParameteriv()
  glGetFramebufferAttachmentParameteriv(GetU32(GLenum, 0), GetU32(GLenum, 1), GetU32(GLenum, 2), dummyGLint);
 #else
  WarnNotAvailable("glGetFramebufferAttachmentParameteriv");
-#endif
-}
-void Command::run_glGetIntegerv()
-{
-#if GL_ES_VERSION_2_0
- if (m_packet.NumItems() > 3) WarnDataNotHandled("glGetIntegerv");
- glGetIntegerv(GetU32(GLenum, 0), dummyGLint);
-#else
- WarnNotAvailable("glGetIntegerv");
 #endif
 }
 void Command::run_glGetProgramiv()
@@ -1040,33 +2021,6 @@ void Command::run_glGetShaderSource()
  WarnNotAvailable("glGetShaderSource");
 #endif
 }
-void Command::run_glGetString()
-{
-#if GL_ES_VERSION_2_0
- if (m_packet.NumItems() > 2) WarnDataNotHandled("glGetString");
- glGetString(GetU32(GLenum, 0));
-#else
- WarnNotAvailable("glGetString");
-#endif
-}
-void Command::run_glGetTexParameterfv()
-{
-#if GL_ES_VERSION_2_0
- if (m_packet.NumItems() > 4) WarnDataNotHandled("glGetTexParameterfv");
- glGetTexParameterfv(GetU32(GLenum, 0), GetU32(GLenum, 1), dummyGLfloat);
-#else
- WarnNotAvailable("glGetTexParameterfv");
-#endif
-}
-void Command::run_glGetTexParameteriv()
-{
-#if GL_ES_VERSION_2_0
- if (m_packet.NumItems() > 4) WarnDataNotHandled("glGetTexParameteriv");
- glGetTexParameteriv(GetU32(GLenum, 0), GetU32(GLenum, 1), dummyGLint);
-#else
- WarnNotAvailable("glGetTexParameteriv");
-#endif
-}
 void Command::run_glGetUniformfv()
 {
 #if GL_ES_VERSION_2_0
@@ -1121,33 +2075,6 @@ void Command::run_glGetVertexAttribPointerv()
  WarnNotAvailable("glGetVertexAttribPointerv");
 #endif
 }
-void Command::run_glHint()
-{
-#if GL_ES_VERSION_2_0
- if (m_packet.NumItems() > 3) WarnDataNotHandled("glHint");
- glHint(GetU32(GLenum, 0), GetU32(GLenum, 1));
-#else
- WarnNotAvailable("glHint");
-#endif
-}
-void Command::run_glIsBuffer()
-{
-#if GL_ES_VERSION_2_0
- if (m_packet.NumItems() > 2) WarnDataNotHandled("glIsBuffer");
- glIsBuffer(GetU32(GLuint, 0));
-#else
- WarnNotAvailable("glIsBuffer");
-#endif
-}
-void Command::run_glIsEnabled()
-{
-#if GL_ES_VERSION_2_0
- if (m_packet.NumItems() > 2) WarnDataNotHandled("glIsEnabled");
- glIsEnabled(GetU32(GLenum, 0));
-#else
- WarnNotAvailable("glIsEnabled");
-#endif
-}
 void Command::run_glIsFramebuffer()
 {
 #if GL_ES_VERSION_2_0
@@ -1184,24 +2111,6 @@ void Command::run_glIsShader()
  WarnNotAvailable("glIsShader");
 #endif
 }
-void Command::run_glIsTexture()
-{
-#if GL_ES_VERSION_2_0
- if (m_packet.NumItems() > 2) WarnDataNotHandled("glIsTexture");
- glIsTexture(GetU32(GLuint, 0));
-#else
- WarnNotAvailable("glIsTexture");
-#endif
-}
-void Command::run_glLineWidth()
-{
-#if GL_ES_VERSION_2_0
- if (m_packet.NumItems() > 2) WarnDataNotHandled("glLineWidth");
- glLineWidth(GetF(GLfloat, 0));
-#else
- WarnNotAvailable("glLineWidth");
-#endif
-}
 void Command::run_glLinkProgram()
 {
 #if GL_ES_VERSION_2_0
@@ -1209,33 +2118,6 @@ void Command::run_glLinkProgram()
  glLinkProgram(GetProgram(GLuint, 0));
 #else
  WarnNotAvailable("glLinkProgram");
-#endif
-}
-void Command::run_glPixelStorei()
-{
-#if GL_ES_VERSION_2_0
- if (m_packet.NumItems() > 3) WarnDataNotHandled("glPixelStorei");
- glPixelStorei(GetU32(GLenum, 0), GetI32(GLint, 1));
-#else
- WarnNotAvailable("glPixelStorei");
-#endif
-}
-void Command::run_glPolygonOffset()
-{
-#if GL_ES_VERSION_2_0
- if (m_packet.NumItems() > 3) WarnDataNotHandled("glPolygonOffset");
- glPolygonOffset(GetF(GLfloat, 0), GetF(GLfloat, 1));
-#else
- WarnNotAvailable("glPolygonOffset");
-#endif
-}
-void Command::run_glReadPixels()
-{
-#if GL_ES_VERSION_2_0
- if (m_packet.NumItems() > 8) WarnDataNotHandled("glReadPixels");
- glReadPixels(GetI32(GLint, 0), GetI32(GLint, 1), GetI32(GLsizei, 2), GetI32(GLsizei, 3), GetU32(GLenum, 4), GetU32(GLenum, 5), dummyvoid);
-#else
- WarnNotAvailable("glReadPixels");
 #endif
 }
 void Command::run_glReleaseShaderCompiler()
@@ -1254,24 +2136,6 @@ void Command::run_glRenderbufferStorage()
  glRenderbufferStorage(GetU32(GLenum, 0), GetU32(GLenum, 1), GetI32(GLsizei, 2), GetI32(GLsizei, 3));
 #else
  WarnNotAvailable("glRenderbufferStorage");
-#endif
-}
-void Command::run_glSampleCoverage()
-{
-#if GL_ES_VERSION_2_0
- if (m_packet.NumItems() > 3) WarnDataNotHandled("glSampleCoverage");
- glSampleCoverage(GetF(GLfloat, 0), GetB(GLboolean, 1));
-#else
- WarnNotAvailable("glSampleCoverage");
-#endif
-}
-void Command::run_glScissor()
-{
-#if GL_ES_VERSION_2_0
- if (m_packet.NumItems() > 5) WarnDataNotHandled("glScissor");
- glScissor(GetI32(GLint, 0), GetI32(GLint, 1), GetI32(GLsizei, 2), GetI32(GLsizei, 3));
-#else
- WarnNotAvailable("glScissor");
 #endif
 }
 void Command::run_glShaderBinary()
@@ -1296,15 +2160,6 @@ void Command::run_glShaderSource()
  WarnNotAvailable("glShaderSource");
 #endif
 }
-void Command::run_glStencilFunc()
-{
-#if GL_ES_VERSION_2_0
- if (m_packet.NumItems() > 4) WarnDataNotHandled("glStencilFunc");
- glStencilFunc(GetU32(GLenum, 0), GetI32(GLint, 1), GetU32(GLuint, 2));
-#else
- WarnNotAvailable("glStencilFunc");
-#endif
-}
 void Command::run_glStencilFuncSeparate()
 {
 #if GL_ES_VERSION_2_0
@@ -1312,15 +2167,6 @@ void Command::run_glStencilFuncSeparate()
  glStencilFuncSeparate(GetU32(GLenum, 0), GetU32(GLenum, 1), GetI32(GLint, 2), GetU32(GLuint, 3));
 #else
  WarnNotAvailable("glStencilFuncSeparate");
-#endif
-}
-void Command::run_glStencilMask()
-{
-#if GL_ES_VERSION_2_0
- if (m_packet.NumItems() > 2) WarnDataNotHandled("glStencilMask");
- glStencilMask(GetU32(GLuint, 0));
-#else
- WarnNotAvailable("glStencilMask");
 #endif
 }
 void Command::run_glStencilMaskSeparate()
@@ -1332,15 +2178,6 @@ void Command::run_glStencilMaskSeparate()
  WarnNotAvailable("glStencilMaskSeparate");
 #endif
 }
-void Command::run_glStencilOp()
-{
-#if GL_ES_VERSION_2_0
- if (m_packet.NumItems() > 4) WarnDataNotHandled("glStencilOp");
- glStencilOp(GetU32(GLenum, 0), GetU32(GLenum, 1), GetU32(GLenum, 2));
-#else
- WarnNotAvailable("glStencilOp");
-#endif
-}
 void Command::run_glStencilOpSeparate()
 {
 #if GL_ES_VERSION_2_0
@@ -1348,60 +2185,6 @@ void Command::run_glStencilOpSeparate()
  glStencilOpSeparate(GetU32(GLenum, 0), GetU32(GLenum, 1), GetU32(GLenum, 2), GetU32(GLenum, 3));
 #else
  WarnNotAvailable("glStencilOpSeparate");
-#endif
-}
-void Command::run_glTexImage2D()
-{
-#if GL_ES_VERSION_2_0
- if (m_packet.NumItems() > 11) WarnDataNotHandled("glTexImage2D");
- glTexImage2D(GetU32(GLenum, 0), GetI32(GLint, 1), GetI32(GLint, 2), GetI32(GLsizei, 3), GetI32(GLsizei, 4), GetI32(GLint, 5), GetU32(GLenum, 6), GetU32(GLenum, 7), GetArrayPtr(const void *, 9));
-#else
- WarnNotAvailable("glTexImage2D");
-#endif
-}
-void Command::run_glTexParameterf()
-{
-#if GL_ES_VERSION_2_0
- if (m_packet.NumItems() > 4) WarnDataNotHandled("glTexParameterf");
- glTexParameterf(GetU32(GLenum, 0), GetU32(GLenum, 1), GetF(GLfloat, 2));
-#else
- WarnNotAvailable("glTexParameterf");
-#endif
-}
-void Command::run_glTexParameterfv()
-{
-#if GL_ES_VERSION_2_0
- if (m_packet.NumItems() > 5) WarnDataNotHandled("glTexParameterfv");
- glTexParameterfv(GetU32(GLenum, 0), GetU32(GLenum, 1), GetArrayPtr(const GLfloat *, 3));
-#else
- WarnNotAvailable("glTexParameterfv");
-#endif
-}
-void Command::run_glTexParameteri()
-{
-#if GL_ES_VERSION_2_0
- if (m_packet.NumItems() > 4) WarnDataNotHandled("glTexParameteri");
- glTexParameteri(GetU32(GLenum, 0), GetU32(GLenum, 1), GetI32(GLint, 2));
-#else
- WarnNotAvailable("glTexParameteri");
-#endif
-}
-void Command::run_glTexParameteriv()
-{
-#if GL_ES_VERSION_2_0
- if (m_packet.NumItems() > 5) WarnDataNotHandled("glTexParameteriv");
- glTexParameteriv(GetU32(GLenum, 0), GetU32(GLenum, 1), GetArrayPtr(const GLint *, 3));
-#else
- WarnNotAvailable("glTexParameteriv");
-#endif
-}
-void Command::run_glTexSubImage2D()
-{
-#if GL_ES_VERSION_2_0
- if (m_packet.NumItems() > 11) WarnDataNotHandled("glTexSubImage2D");
- glTexSubImage2D(GetU32(GLenum, 0), GetI32(GLint, 1), GetI32(GLint, 2), GetI32(GLint, 3), GetI32(GLsizei, 4), GetI32(GLsizei, 5), GetU32(GLenum, 6), GetU32(GLenum, 7), GetArrayPtr(const void *, 9));
-#else
- WarnNotAvailable("glTexSubImage2D");
 #endif
 }
 void Command::run_glUniform1f()
@@ -1672,15 +2455,6 @@ void Command::run_glVertexAttribPointer()
  glVertexAttribPointer(GetU32(GLuint, 0), GetI32(GLint, 1), GetU32(GLenum, 2), GetB(GLboolean, 3), GetI32(GLsizei, 4), GetArrayPtr(const void *, 6));
 #else
  WarnNotAvailable("glVertexAttribPointer");
-#endif
-}
-void Command::run_glViewport()
-{
-#if GL_ES_VERSION_2_0
- if (m_packet.NumItems() > 5) WarnDataNotHandled("glViewport");
- glViewport(GetI32(GLint, 0), GetI32(GLint, 1), GetI32(GLsizei, 2), GetI32(GLsizei, 3));
-#else
- WarnNotAvailable("glViewport");
 #endif
 }
 void Command::run_glReadBuffer()
@@ -3339,15 +4113,6 @@ void Command::run_glGetObjectPtrLabel()
  WarnNotAvailable("glGetObjectPtrLabel");
 #endif
 }
-void Command::run_glGetPointerv()
-{
-#if GL_ES_VERSION_3_2
- if (m_packet.NumItems() > 3) WarnDataNotHandled("glGetPointerv");
- glGetPointerv(GetU32(GLenum, 0), dummyvoidptr);
-#else
- WarnNotAvailable("glGetPointerv");
-#endif
-}
 void Command::run_glEnablei()
 {
 #if GL_ES_VERSION_3_2
@@ -3627,771 +4392,6 @@ void Command::run_glTexStorage3DMultisample()
  WarnNotAvailable("glTexStorage3DMultisample");
 #endif
 }
-void Command::run_glAlphaFunc()
-{
-#if GL_VERSION_ES_CM_1_0
- if (m_packet.NumItems() > 3) WarnDataNotHandled("glAlphaFunc");
- glAlphaFunc(GetU32(GLenum, 0), GetF(GLfloat, 1));
-#else
- WarnNotAvailable("glAlphaFunc");
-#endif
-}
-void Command::run_glClipPlanef()
-{
-#if GL_VERSION_ES_CM_1_0
- if (m_packet.NumItems() > 4) WarnDataNotHandled("glClipPlanef");
- glClipPlanef(GetU32(GLenum, 0), GetArrayPtr(const GLfloat *, 2));
-#else
- WarnNotAvailable("glClipPlanef");
-#endif
-}
-void Command::run_glColor4f()
-{
-#if GL_VERSION_ES_CM_1_0
- if (m_packet.NumItems() > 5) WarnDataNotHandled("glColor4f");
- glColor4f(GetF(GLfloat, 0), GetF(GLfloat, 1), GetF(GLfloat, 2), GetF(GLfloat, 3));
-#else
- WarnNotAvailable("glColor4f");
-#endif
-}
-void Command::run_glFogf()
-{
-#if GL_VERSION_ES_CM_1_0
- if (m_packet.NumItems() > 3) WarnDataNotHandled("glFogf");
- glFogf(GetU32(GLenum, 0), GetF(GLfloat, 1));
-#else
- WarnNotAvailable("glFogf");
-#endif
-}
-void Command::run_glFogfv()
-{
-#if GL_VERSION_ES_CM_1_0
- if (m_packet.NumItems() > 4) WarnDataNotHandled("glFogfv");
- glFogfv(GetU32(GLenum, 0), GetArrayPtr(const GLfloat *, 2));
-#else
- WarnNotAvailable("glFogfv");
-#endif
-}
-void Command::run_glFrustumf()
-{
-#if GL_VERSION_ES_CM_1_0
- if (m_packet.NumItems() > 7) WarnDataNotHandled("glFrustumf");
- glFrustumf(GetF(GLfloat, 0), GetF(GLfloat, 1), GetF(GLfloat, 2), GetF(GLfloat, 3), GetF(GLfloat, 4), GetF(GLfloat, 5));
-#else
- WarnNotAvailable("glFrustumf");
-#endif
-}
-void Command::run_glGetClipPlanef()
-{
-#if GL_VERSION_ES_CM_1_0
- if (m_packet.NumItems() > 3) WarnDataNotHandled("glGetClipPlanef");
- glGetClipPlanef(GetU32(GLenum, 0), dummyGLfloat);
-#else
- WarnNotAvailable("glGetClipPlanef");
-#endif
-}
-void Command::run_glGetLightfv()
-{
-#if GL_VERSION_ES_CM_1_0
- if (m_packet.NumItems() > 4) WarnDataNotHandled("glGetLightfv");
- glGetLightfv(GetU32(GLenum, 0), GetU32(GLenum, 1), dummyGLfloat);
-#else
- WarnNotAvailable("glGetLightfv");
-#endif
-}
-void Command::run_glGetMaterialfv()
-{
-#if GL_VERSION_ES_CM_1_0
- if (m_packet.NumItems() > 4) WarnDataNotHandled("glGetMaterialfv");
- glGetMaterialfv(GetU32(GLenum, 0), GetU32(GLenum, 1), dummyGLfloat);
-#else
- WarnNotAvailable("glGetMaterialfv");
-#endif
-}
-void Command::run_glGetTexEnvfv()
-{
-#if GL_VERSION_ES_CM_1_0
- if (m_packet.NumItems() > 4) WarnDataNotHandled("glGetTexEnvfv");
- glGetTexEnvfv(GetU32(GLenum, 0), GetU32(GLenum, 1), dummyGLfloat);
-#else
- WarnNotAvailable("glGetTexEnvfv");
-#endif
-}
-void Command::run_glLightModelf()
-{
-#if GL_VERSION_ES_CM_1_0
- if (m_packet.NumItems() > 3) WarnDataNotHandled("glLightModelf");
- glLightModelf(GetU32(GLenum, 0), GetF(GLfloat, 1));
-#else
- WarnNotAvailable("glLightModelf");
-#endif
-}
-void Command::run_glLightModelfv()
-{
-#if GL_VERSION_ES_CM_1_0
- if (m_packet.NumItems() > 4) WarnDataNotHandled("glLightModelfv");
- glLightModelfv(GetU32(GLenum, 0), GetArrayPtr(const GLfloat *, 2));
-#else
- WarnNotAvailable("glLightModelfv");
-#endif
-}
-void Command::run_glLightf()
-{
-#if GL_VERSION_ES_CM_1_0
- if (m_packet.NumItems() > 4) WarnDataNotHandled("glLightf");
- glLightf(GetU32(GLenum, 0), GetU32(GLenum, 1), GetF(GLfloat, 2));
-#else
- WarnNotAvailable("glLightf");
-#endif
-}
-void Command::run_glLightfv()
-{
-#if GL_VERSION_ES_CM_1_0
- if (m_packet.NumItems() > 5) WarnDataNotHandled("glLightfv");
- glLightfv(GetU32(GLenum, 0), GetU32(GLenum, 1), GetArrayPtr(const GLfloat *, 3));
-#else
- WarnNotAvailable("glLightfv");
-#endif
-}
-void Command::run_glLoadMatrixf()
-{
-#if GL_VERSION_ES_CM_1_0
- if (m_packet.NumItems() > 3) WarnDataNotHandled("glLoadMatrixf");
- glLoadMatrixf(GetArrayPtr(const GLfloat *, 1));
-#else
- WarnNotAvailable("glLoadMatrixf");
-#endif
-}
-void Command::run_glMaterialf()
-{
-#if GL_VERSION_ES_CM_1_0
- if (m_packet.NumItems() > 4) WarnDataNotHandled("glMaterialf");
- glMaterialf(GetU32(GLenum, 0), GetU32(GLenum, 1), GetF(GLfloat, 2));
-#else
- WarnNotAvailable("glMaterialf");
-#endif
-}
-void Command::run_glMaterialfv()
-{
-#if GL_VERSION_ES_CM_1_0
- if (m_packet.NumItems() > 5) WarnDataNotHandled("glMaterialfv");
- glMaterialfv(GetU32(GLenum, 0), GetU32(GLenum, 1), GetArrayPtr(const GLfloat *, 3));
-#else
- WarnNotAvailable("glMaterialfv");
-#endif
-}
-void Command::run_glMultMatrixf()
-{
-#if GL_VERSION_ES_CM_1_0
- if (m_packet.NumItems() > 3) WarnDataNotHandled("glMultMatrixf");
- glMultMatrixf(GetArrayPtr(const GLfloat *, 1));
-#else
- WarnNotAvailable("glMultMatrixf");
-#endif
-}
-void Command::run_glMultiTexCoord4f()
-{
-#if GL_VERSION_ES_CM_1_0
- if (m_packet.NumItems() > 6) WarnDataNotHandled("glMultiTexCoord4f");
- glMultiTexCoord4f(GetU32(GLenum, 0), GetF(GLfloat, 1), GetF(GLfloat, 2), GetF(GLfloat, 3), GetF(GLfloat, 4));
-#else
- WarnNotAvailable("glMultiTexCoord4f");
-#endif
-}
-void Command::run_glNormal3f()
-{
-#if GL_VERSION_ES_CM_1_0
- if (m_packet.NumItems() > 4) WarnDataNotHandled("glNormal3f");
- glNormal3f(GetF(GLfloat, 0), GetF(GLfloat, 1), GetF(GLfloat, 2));
-#else
- WarnNotAvailable("glNormal3f");
-#endif
-}
-void Command::run_glOrthof()
-{
-#if GL_VERSION_ES_CM_1_0
- if (m_packet.NumItems() > 7) WarnDataNotHandled("glOrthof");
- glOrthof(GetF(GLfloat, 0), GetF(GLfloat, 1), GetF(GLfloat, 2), GetF(GLfloat, 3), GetF(GLfloat, 4), GetF(GLfloat, 5));
-#else
- WarnNotAvailable("glOrthof");
-#endif
-}
-void Command::run_glPointParameterf()
-{
-#if GL_VERSION_ES_CM_1_0
- if (m_packet.NumItems() > 3) WarnDataNotHandled("glPointParameterf");
- glPointParameterf(GetU32(GLenum, 0), GetF(GLfloat, 1));
-#else
- WarnNotAvailable("glPointParameterf");
-#endif
-}
-void Command::run_glPointParameterfv()
-{
-#if GL_VERSION_ES_CM_1_0
- if (m_packet.NumItems() > 4) WarnDataNotHandled("glPointParameterfv");
- glPointParameterfv(GetU32(GLenum, 0), GetArrayPtr(const GLfloat *, 2));
-#else
- WarnNotAvailable("glPointParameterfv");
-#endif
-}
-void Command::run_glPointSize()
-{
-#if GL_VERSION_ES_CM_1_0
- if (m_packet.NumItems() > 2) WarnDataNotHandled("glPointSize");
- glPointSize(GetF(GLfloat, 0));
-#else
- WarnNotAvailable("glPointSize");
-#endif
-}
-void Command::run_glRotatef()
-{
-#if GL_VERSION_ES_CM_1_0
- if (m_packet.NumItems() > 5) WarnDataNotHandled("glRotatef");
- glRotatef(GetF(GLfloat, 0), GetF(GLfloat, 1), GetF(GLfloat, 2), GetF(GLfloat, 3));
-#else
- WarnNotAvailable("glRotatef");
-#endif
-}
-void Command::run_glScalef()
-{
-#if GL_VERSION_ES_CM_1_0
- if (m_packet.NumItems() > 4) WarnDataNotHandled("glScalef");
- glScalef(GetF(GLfloat, 0), GetF(GLfloat, 1), GetF(GLfloat, 2));
-#else
- WarnNotAvailable("glScalef");
-#endif
-}
-void Command::run_glTexEnvf()
-{
-#if GL_VERSION_ES_CM_1_0
- if (m_packet.NumItems() > 4) WarnDataNotHandled("glTexEnvf");
- glTexEnvf(GetU32(GLenum, 0), GetU32(GLenum, 1), GetF(GLfloat, 2));
-#else
- WarnNotAvailable("glTexEnvf");
-#endif
-}
-void Command::run_glTexEnvfv()
-{
-#if GL_VERSION_ES_CM_1_0
- if (m_packet.NumItems() > 5) WarnDataNotHandled("glTexEnvfv");
- glTexEnvfv(GetU32(GLenum, 0), GetU32(GLenum, 1), GetArrayPtr(const GLfloat *, 3));
-#else
- WarnNotAvailable("glTexEnvfv");
-#endif
-}
-void Command::run_glTranslatef()
-{
-#if GL_VERSION_ES_CM_1_0
- if (m_packet.NumItems() > 4) WarnDataNotHandled("glTranslatef");
- glTranslatef(GetF(GLfloat, 0), GetF(GLfloat, 1), GetF(GLfloat, 2));
-#else
- WarnNotAvailable("glTranslatef");
-#endif
-}
-void Command::run_glAlphaFuncx()
-{
-#if GL_VERSION_ES_CM_1_0
- if (m_packet.NumItems() > 3) WarnDataNotHandled("glAlphaFuncx");
- glAlphaFuncx(GetU32(GLenum, 0), GetU32(GLfixed, 1));
-#else
- WarnNotAvailable("glAlphaFuncx");
-#endif
-}
-void Command::run_glClearColorx()
-{
-#if GL_VERSION_ES_CM_1_0
- if (m_packet.NumItems() > 5) WarnDataNotHandled("glClearColorx");
- glClearColorx(GetU32(GLfixed, 0), GetU32(GLfixed, 1), GetU32(GLfixed, 2), GetU32(GLfixed, 3));
-#else
- WarnNotAvailable("glClearColorx");
-#endif
-}
-void Command::run_glClearDepthx()
-{
-#if GL_VERSION_ES_CM_1_0
- if (m_packet.NumItems() > 2) WarnDataNotHandled("glClearDepthx");
- glClearDepthx(GetU32(GLfixed, 0));
-#else
- WarnNotAvailable("glClearDepthx");
-#endif
-}
-void Command::run_glClientActiveTexture()
-{
-#if GL_VERSION_ES_CM_1_0
- if (m_packet.NumItems() > 2) WarnDataNotHandled("glClientActiveTexture");
- glClientActiveTexture(GetU32(GLenum, 0));
-#else
- WarnNotAvailable("glClientActiveTexture");
-#endif
-}
-void Command::run_glClipPlanex()
-{
-#if GL_VERSION_ES_CM_1_0
- if (m_packet.NumItems() > 4) WarnDataNotHandled("glClipPlanex");
- glClipPlanex(GetU32(GLenum, 0), GetArrayPtr(const GLfixed *, 2));
-#else
- WarnNotAvailable("glClipPlanex");
-#endif
-}
-void Command::run_glColor4ub()
-{
-#if GL_VERSION_ES_CM_1_0
- if (m_packet.NumItems() > 5) WarnDataNotHandled("glColor4ub");
- glColor4ub(GetU8(GLubyte, 0), GetU8(GLubyte, 1), GetU8(GLubyte, 2), GetU8(GLubyte, 3));
-#else
- WarnNotAvailable("glColor4ub");
-#endif
-}
-void Command::run_glColor4x()
-{
-#if GL_VERSION_ES_CM_1_0
- if (m_packet.NumItems() > 5) WarnDataNotHandled("glColor4x");
- glColor4x(GetU32(GLfixed, 0), GetU32(GLfixed, 1), GetU32(GLfixed, 2), GetU32(GLfixed, 3));
-#else
- WarnNotAvailable("glColor4x");
-#endif
-}
-void Command::run_glColorPointer()
-{
-#if GL_VERSION_ES_CM_1_0
- if (m_packet.NumItems() > 6) WarnDataNotHandled("glColorPointer");
- glColorPointer(GetI32(GLint, 0), GetU32(GLenum, 1), GetI32(GLsizei, 2), GetArrayPtr(const void *, 4));
-#else
- WarnNotAvailable("glColorPointer");
-#endif
-}
-void Command::run_glDepthRangex()
-{
-#if GL_VERSION_ES_CM_1_0
- if (m_packet.NumItems() > 3) WarnDataNotHandled("glDepthRangex");
- glDepthRangex(GetU32(GLfixed, 0), GetU32(GLfixed, 1));
-#else
- WarnNotAvailable("glDepthRangex");
-#endif
-}
-void Command::run_glDisableClientState()
-{
-#if GL_VERSION_ES_CM_1_0
- if (m_packet.NumItems() > 2) WarnDataNotHandled("glDisableClientState");
- glDisableClientState(GetU32(GLenum, 0));
-#else
- WarnNotAvailable("glDisableClientState");
-#endif
-}
-void Command::run_glEnableClientState()
-{
-#if GL_VERSION_ES_CM_1_0
- if (m_packet.NumItems() > 2) WarnDataNotHandled("glEnableClientState");
- glEnableClientState(GetU32(GLenum, 0));
-#else
- WarnNotAvailable("glEnableClientState");
-#endif
-}
-void Command::run_glFogx()
-{
-#if GL_VERSION_ES_CM_1_0
- if (m_packet.NumItems() > 3) WarnDataNotHandled("glFogx");
- glFogx(GetU32(GLenum, 0), GetU32(GLfixed, 1));
-#else
- WarnNotAvailable("glFogx");
-#endif
-}
-void Command::run_glFogxv()
-{
-#if GL_VERSION_ES_CM_1_0
- if (m_packet.NumItems() > 4) WarnDataNotHandled("glFogxv");
- glFogxv(GetU32(GLenum, 0), GetArrayPtr(const GLfixed *, 2));
-#else
- WarnNotAvailable("glFogxv");
-#endif
-}
-void Command::run_glFrustumx()
-{
-#if GL_VERSION_ES_CM_1_0
- if (m_packet.NumItems() > 7) WarnDataNotHandled("glFrustumx");
- glFrustumx(GetU32(GLfixed, 0), GetU32(GLfixed, 1), GetU32(GLfixed, 2), GetU32(GLfixed, 3), GetU32(GLfixed, 4), GetU32(GLfixed, 5));
-#else
- WarnNotAvailable("glFrustumx");
-#endif
-}
-void Command::run_glGetClipPlanex()
-{
-#if GL_VERSION_ES_CM_1_0
- if (m_packet.NumItems() > 3) WarnDataNotHandled("glGetClipPlanex");
- glGetClipPlanex(GetU32(GLenum, 0), dummyGLfixed);
-#else
- WarnNotAvailable("glGetClipPlanex");
-#endif
-}
-void Command::run_glGetFixedv()
-{
-#if GL_VERSION_ES_CM_1_0
- if (m_packet.NumItems() > 3) WarnDataNotHandled("glGetFixedv");
- glGetFixedv(GetU32(GLenum, 0), dummyGLfixed);
-#else
- WarnNotAvailable("glGetFixedv");
-#endif
-}
-void Command::run_glGetLightxv()
-{
-#if GL_VERSION_ES_CM_1_0
- if (m_packet.NumItems() > 4) WarnDataNotHandled("glGetLightxv");
- glGetLightxv(GetU32(GLenum, 0), GetU32(GLenum, 1), dummyGLfixed);
-#else
- WarnNotAvailable("glGetLightxv");
-#endif
-}
-void Command::run_glGetMaterialxv()
-{
-#if GL_VERSION_ES_CM_1_0
- if (m_packet.NumItems() > 4) WarnDataNotHandled("glGetMaterialxv");
- glGetMaterialxv(GetU32(GLenum, 0), GetU32(GLenum, 1), dummyGLfixed);
-#else
- WarnNotAvailable("glGetMaterialxv");
-#endif
-}
-void Command::run_glGetTexEnviv()
-{
-#if GL_VERSION_ES_CM_1_0
- if (m_packet.NumItems() > 4) WarnDataNotHandled("glGetTexEnviv");
- glGetTexEnviv(GetU32(GLenum, 0), GetU32(GLenum, 1), dummyGLint);
-#else
- WarnNotAvailable("glGetTexEnviv");
-#endif
-}
-void Command::run_glGetTexEnvxv()
-{
-#if GL_VERSION_ES_CM_1_0
- if (m_packet.NumItems() > 4) WarnDataNotHandled("glGetTexEnvxv");
- glGetTexEnvxv(GetU32(GLenum, 0), GetU32(GLenum, 1), dummyGLfixed);
-#else
- WarnNotAvailable("glGetTexEnvxv");
-#endif
-}
-void Command::run_glGetTexParameterxv()
-{
-#if GL_VERSION_ES_CM_1_0
- if (m_packet.NumItems() > 4) WarnDataNotHandled("glGetTexParameterxv");
- glGetTexParameterxv(GetU32(GLenum, 0), GetU32(GLenum, 1), dummyGLfixed);
-#else
- WarnNotAvailable("glGetTexParameterxv");
-#endif
-}
-void Command::run_glLightModelx()
-{
-#if GL_VERSION_ES_CM_1_0
- if (m_packet.NumItems() > 3) WarnDataNotHandled("glLightModelx");
- glLightModelx(GetU32(GLenum, 0), GetU32(GLfixed, 1));
-#else
- WarnNotAvailable("glLightModelx");
-#endif
-}
-void Command::run_glLightModelxv()
-{
-#if GL_VERSION_ES_CM_1_0
- if (m_packet.NumItems() > 4) WarnDataNotHandled("glLightModelxv");
- glLightModelxv(GetU32(GLenum, 0), GetArrayPtr(const GLfixed *, 2));
-#else
- WarnNotAvailable("glLightModelxv");
-#endif
-}
-void Command::run_glLightx()
-{
-#if GL_VERSION_ES_CM_1_0
- if (m_packet.NumItems() > 4) WarnDataNotHandled("glLightx");
- glLightx(GetU32(GLenum, 0), GetU32(GLenum, 1), GetU32(GLfixed, 2));
-#else
- WarnNotAvailable("glLightx");
-#endif
-}
-void Command::run_glLightxv()
-{
-#if GL_VERSION_ES_CM_1_0
- if (m_packet.NumItems() > 5) WarnDataNotHandled("glLightxv");
- glLightxv(GetU32(GLenum, 0), GetU32(GLenum, 1), GetArrayPtr(const GLfixed *, 3));
-#else
- WarnNotAvailable("glLightxv");
-#endif
-}
-void Command::run_glLineWidthx()
-{
-#if GL_VERSION_ES_CM_1_0
- if (m_packet.NumItems() > 2) WarnDataNotHandled("glLineWidthx");
- glLineWidthx(GetU32(GLfixed, 0));
-#else
- WarnNotAvailable("glLineWidthx");
-#endif
-}
-void Command::run_glLoadIdentity()
-{
-#if GL_VERSION_ES_CM_1_0
- if (m_packet.NumItems() > 1) WarnDataNotHandled("glLoadIdentity");
- glLoadIdentity();
-#else
- WarnNotAvailable("glLoadIdentity");
-#endif
-}
-void Command::run_glLoadMatrixx()
-{
-#if GL_VERSION_ES_CM_1_0
- if (m_packet.NumItems() > 3) WarnDataNotHandled("glLoadMatrixx");
- glLoadMatrixx(GetArrayPtr(const GLfixed *, 1));
-#else
- WarnNotAvailable("glLoadMatrixx");
-#endif
-}
-void Command::run_glLogicOp()
-{
-#if GL_VERSION_ES_CM_1_0
- if (m_packet.NumItems() > 2) WarnDataNotHandled("glLogicOp");
- glLogicOp(GetU32(GLenum, 0));
-#else
- WarnNotAvailable("glLogicOp");
-#endif
-}
-void Command::run_glMaterialx()
-{
-#if GL_VERSION_ES_CM_1_0
- if (m_packet.NumItems() > 4) WarnDataNotHandled("glMaterialx");
- glMaterialx(GetU32(GLenum, 0), GetU32(GLenum, 1), GetU32(GLfixed, 2));
-#else
- WarnNotAvailable("glMaterialx");
-#endif
-}
-void Command::run_glMaterialxv()
-{
-#if GL_VERSION_ES_CM_1_0
- if (m_packet.NumItems() > 5) WarnDataNotHandled("glMaterialxv");
- glMaterialxv(GetU32(GLenum, 0), GetU32(GLenum, 1), GetArrayPtr(const GLfixed *, 3));
-#else
- WarnNotAvailable("glMaterialxv");
-#endif
-}
-void Command::run_glMatrixMode()
-{
-#if GL_VERSION_ES_CM_1_0
- if (m_packet.NumItems() > 2) WarnDataNotHandled("glMatrixMode");
- glMatrixMode(GetU32(GLenum, 0));
-#else
- WarnNotAvailable("glMatrixMode");
-#endif
-}
-void Command::run_glMultMatrixx()
-{
-#if GL_VERSION_ES_CM_1_0
- if (m_packet.NumItems() > 3) WarnDataNotHandled("glMultMatrixx");
- glMultMatrixx(GetArrayPtr(const GLfixed *, 1));
-#else
- WarnNotAvailable("glMultMatrixx");
-#endif
-}
-void Command::run_glMultiTexCoord4x()
-{
-#if GL_VERSION_ES_CM_1_0
- if (m_packet.NumItems() > 6) WarnDataNotHandled("glMultiTexCoord4x");
- glMultiTexCoord4x(GetU32(GLenum, 0), GetU32(GLfixed, 1), GetU32(GLfixed, 2), GetU32(GLfixed, 3), GetU32(GLfixed, 4));
-#else
- WarnNotAvailable("glMultiTexCoord4x");
-#endif
-}
-void Command::run_glNormal3x()
-{
-#if GL_VERSION_ES_CM_1_0
- if (m_packet.NumItems() > 4) WarnDataNotHandled("glNormal3x");
- glNormal3x(GetU32(GLfixed, 0), GetU32(GLfixed, 1), GetU32(GLfixed, 2));
-#else
- WarnNotAvailable("glNormal3x");
-#endif
-}
-void Command::run_glNormalPointer()
-{
-#if GL_VERSION_ES_CM_1_0
- if (m_packet.NumItems() > 5) WarnDataNotHandled("glNormalPointer");
- glNormalPointer(GetU32(GLenum, 0), GetI32(GLsizei, 1), GetArrayPtr(const void *, 3));
-#else
- WarnNotAvailable("glNormalPointer");
-#endif
-}
-void Command::run_glOrthox()
-{
-#if GL_VERSION_ES_CM_1_0
- if (m_packet.NumItems() > 7) WarnDataNotHandled("glOrthox");
- glOrthox(GetU32(GLfixed, 0), GetU32(GLfixed, 1), GetU32(GLfixed, 2), GetU32(GLfixed, 3), GetU32(GLfixed, 4), GetU32(GLfixed, 5));
-#else
- WarnNotAvailable("glOrthox");
-#endif
-}
-void Command::run_glPointParameterx()
-{
-#if GL_VERSION_ES_CM_1_0
- if (m_packet.NumItems() > 3) WarnDataNotHandled("glPointParameterx");
- glPointParameterx(GetU32(GLenum, 0), GetU32(GLfixed, 1));
-#else
- WarnNotAvailable("glPointParameterx");
-#endif
-}
-void Command::run_glPointParameterxv()
-{
-#if GL_VERSION_ES_CM_1_0
- if (m_packet.NumItems() > 4) WarnDataNotHandled("glPointParameterxv");
- glPointParameterxv(GetU32(GLenum, 0), GetArrayPtr(const GLfixed *, 2));
-#else
- WarnNotAvailable("glPointParameterxv");
-#endif
-}
-void Command::run_glPointSizex()
-{
-#if GL_VERSION_ES_CM_1_0
- if (m_packet.NumItems() > 2) WarnDataNotHandled("glPointSizex");
- glPointSizex(GetU32(GLfixed, 0));
-#else
- WarnNotAvailable("glPointSizex");
-#endif
-}
-void Command::run_glPolygonOffsetx()
-{
-#if GL_VERSION_ES_CM_1_0
- if (m_packet.NumItems() > 3) WarnDataNotHandled("glPolygonOffsetx");
- glPolygonOffsetx(GetU32(GLfixed, 0), GetU32(GLfixed, 1));
-#else
- WarnNotAvailable("glPolygonOffsetx");
-#endif
-}
-void Command::run_glPopMatrix()
-{
-#if GL_VERSION_ES_CM_1_0
- if (m_packet.NumItems() > 1) WarnDataNotHandled("glPopMatrix");
- glPopMatrix();
-#else
- WarnNotAvailable("glPopMatrix");
-#endif
-}
-void Command::run_glPushMatrix()
-{
-#if GL_VERSION_ES_CM_1_0
- if (m_packet.NumItems() > 1) WarnDataNotHandled("glPushMatrix");
- glPushMatrix();
-#else
- WarnNotAvailable("glPushMatrix");
-#endif
-}
-void Command::run_glRotatex()
-{
-#if GL_VERSION_ES_CM_1_0
- if (m_packet.NumItems() > 5) WarnDataNotHandled("glRotatex");
- glRotatex(GetU32(GLfixed, 0), GetU32(GLfixed, 1), GetU32(GLfixed, 2), GetU32(GLfixed, 3));
-#else
- WarnNotAvailable("glRotatex");
-#endif
-}
-void Command::run_glSampleCoveragex()
-{
-#if GL_VERSION_ES_CM_1_0
- if (m_packet.NumItems() > 3) WarnDataNotHandled("glSampleCoveragex");
- glSampleCoveragex(GetU32(GLclampx, 0), GetB(GLboolean, 1));
-#else
- WarnNotAvailable("glSampleCoveragex");
-#endif
-}
-void Command::run_glScalex()
-{
-#if GL_VERSION_ES_CM_1_0
- if (m_packet.NumItems() > 4) WarnDataNotHandled("glScalex");
- glScalex(GetU32(GLfixed, 0), GetU32(GLfixed, 1), GetU32(GLfixed, 2));
-#else
- WarnNotAvailable("glScalex");
-#endif
-}
-void Command::run_glShadeModel()
-{
-#if GL_VERSION_ES_CM_1_0
- if (m_packet.NumItems() > 2) WarnDataNotHandled("glShadeModel");
- glShadeModel(GetU32(GLenum, 0));
-#else
- WarnNotAvailable("glShadeModel");
-#endif
-}
-void Command::run_glTexCoordPointer()
-{
-#if GL_VERSION_ES_CM_1_0
- if (m_packet.NumItems() > 6) WarnDataNotHandled("glTexCoordPointer");
- glTexCoordPointer(GetI32(GLint, 0), GetU32(GLenum, 1), GetI32(GLsizei, 2), GetArrayPtr(const void *, 4));
-#else
- WarnNotAvailable("glTexCoordPointer");
-#endif
-}
-void Command::run_glTexEnvi()
-{
-#if GL_VERSION_ES_CM_1_0
- if (m_packet.NumItems() > 4) WarnDataNotHandled("glTexEnvi");
- glTexEnvi(GetU32(GLenum, 0), GetU32(GLenum, 1), GetI32(GLint, 2));
-#else
- WarnNotAvailable("glTexEnvi");
-#endif
-}
-void Command::run_glTexEnvx()
-{
-#if GL_VERSION_ES_CM_1_0
- if (m_packet.NumItems() > 4) WarnDataNotHandled("glTexEnvx");
- glTexEnvx(GetU32(GLenum, 0), GetU32(GLenum, 1), GetU32(GLfixed, 2));
-#else
- WarnNotAvailable("glTexEnvx");
-#endif
-}
-void Command::run_glTexEnviv()
-{
-#if GL_VERSION_ES_CM_1_0
- if (m_packet.NumItems() > 5) WarnDataNotHandled("glTexEnviv");
- glTexEnviv(GetU32(GLenum, 0), GetU32(GLenum, 1), GetArrayPtr(const GLint *, 3));
-#else
- WarnNotAvailable("glTexEnviv");
-#endif
-}
-void Command::run_glTexEnvxv()
-{
-#if GL_VERSION_ES_CM_1_0
- if (m_packet.NumItems() > 5) WarnDataNotHandled("glTexEnvxv");
- glTexEnvxv(GetU32(GLenum, 0), GetU32(GLenum, 1), GetArrayPtr(const GLfixed *, 3));
-#else
- WarnNotAvailable("glTexEnvxv");
-#endif
-}
-void Command::run_glTexParameterx()
-{
-#if GL_VERSION_ES_CM_1_0
- if (m_packet.NumItems() > 4) WarnDataNotHandled("glTexParameterx");
- glTexParameterx(GetU32(GLenum, 0), GetU32(GLenum, 1), GetU32(GLfixed, 2));
-#else
- WarnNotAvailable("glTexParameterx");
-#endif
-}
-void Command::run_glTexParameterxv()
-{
-#if GL_VERSION_ES_CM_1_0
- if (m_packet.NumItems() > 5) WarnDataNotHandled("glTexParameterxv");
- glTexParameterxv(GetU32(GLenum, 0), GetU32(GLenum, 1), GetArrayPtr(const GLfixed *, 3));
-#else
- WarnNotAvailable("glTexParameterxv");
-#endif
-}
-void Command::run_glTranslatex()
-{
-#if GL_VERSION_ES_CM_1_0
- if (m_packet.NumItems() > 4) WarnDataNotHandled("glTranslatex");
- glTranslatex(GetU32(GLfixed, 0), GetU32(GLfixed, 1), GetU32(GLfixed, 2));
-#else
- WarnNotAvailable("glTranslatex");
-#endif
-}
-void Command::run_glVertexPointer()
-{
-#if GL_VERSION_ES_CM_1_0
- if (m_packet.NumItems() > 6) WarnDataNotHandled("glVertexPointer");
- glVertexPointer(GetI32(GLint, 0), GetU32(GLenum, 1), GetI32(GLsizei, 2), GetArrayPtr(const void *, 4));
-#else
- WarnNotAvailable("glVertexPointer");
-#endif
-}
 void Command::run_eglCreateSync64KHR()
 {
 #if EGL_KHR_cl_event2
@@ -4600,6 +4600,86 @@ void Command::run_glEGLImageTargetRenderbufferStorageOES()
 if (f != NULL) f(GetU32(GLenum, 0), GetEGLImage(GLeglImageOES, 1));
 #else
  WarnNotAvailable("glEGLImageTargetRenderbufferStorageOES");
+#endif
+}
+void Command::run_glEnableiOES()
+{
+#if GL_OES_draw_buffers_indexed
+ if (m_packet.NumItems() > 3) WarnDataNotHandled("glEnableiOES");
+ PFNGLENABLEIOESPROC f = (PFNGLENABLEIOESPROC)eglGetProcAddress("glEnableiOES");
+if (f != NULL) f(GetU32(GLenum, 0), GetU32(GLuint, 1));
+#else
+ WarnNotAvailable("glEnableiOES");
+#endif
+}
+void Command::run_glDisableiOES()
+{
+#if GL_OES_draw_buffers_indexed
+ if (m_packet.NumItems() > 3) WarnDataNotHandled("glDisableiOES");
+ PFNGLDISABLEIOESPROC f = (PFNGLDISABLEIOESPROC)eglGetProcAddress("glDisableiOES");
+if (f != NULL) f(GetU32(GLenum, 0), GetU32(GLuint, 1));
+#else
+ WarnNotAvailable("glDisableiOES");
+#endif
+}
+void Command::run_glBlendEquationiOES()
+{
+#if GL_OES_draw_buffers_indexed
+ if (m_packet.NumItems() > 3) WarnDataNotHandled("glBlendEquationiOES");
+ PFNGLBLENDEQUATIONIOESPROC f = (PFNGLBLENDEQUATIONIOESPROC)eglGetProcAddress("glBlendEquationiOES");
+if (f != NULL) f(GetU32(GLuint, 0), GetU32(GLenum, 1));
+#else
+ WarnNotAvailable("glBlendEquationiOES");
+#endif
+}
+void Command::run_glBlendEquationSeparateiOES()
+{
+#if GL_OES_draw_buffers_indexed
+ if (m_packet.NumItems() > 4) WarnDataNotHandled("glBlendEquationSeparateiOES");
+ PFNGLBLENDEQUATIONSEPARATEIOESPROC f = (PFNGLBLENDEQUATIONSEPARATEIOESPROC)eglGetProcAddress("glBlendEquationSeparateiOES");
+if (f != NULL) f(GetU32(GLuint, 0), GetU32(GLenum, 1), GetU32(GLenum, 2));
+#else
+ WarnNotAvailable("glBlendEquationSeparateiOES");
+#endif
+}
+void Command::run_glBlendFunciOES()
+{
+#if GL_OES_draw_buffers_indexed
+ if (m_packet.NumItems() > 4) WarnDataNotHandled("glBlendFunciOES");
+ PFNGLBLENDFUNCIOESPROC f = (PFNGLBLENDFUNCIOESPROC)eglGetProcAddress("glBlendFunciOES");
+if (f != NULL) f(GetU32(GLuint, 0), GetU32(GLenum, 1), GetU32(GLenum, 2));
+#else
+ WarnNotAvailable("glBlendFunciOES");
+#endif
+}
+void Command::run_glBlendFuncSeparateiOES()
+{
+#if GL_OES_draw_buffers_indexed
+ if (m_packet.NumItems() > 6) WarnDataNotHandled("glBlendFuncSeparateiOES");
+ PFNGLBLENDFUNCSEPARATEIOESPROC f = (PFNGLBLENDFUNCSEPARATEIOESPROC)eglGetProcAddress("glBlendFuncSeparateiOES");
+if (f != NULL) f(GetU32(GLuint, 0), GetU32(GLenum, 1), GetU32(GLenum, 2), GetU32(GLenum, 3), GetU32(GLenum, 4));
+#else
+ WarnNotAvailable("glBlendFuncSeparateiOES");
+#endif
+}
+void Command::run_glColorMaskiOES()
+{
+#if GL_OES_draw_buffers_indexed
+ if (m_packet.NumItems() > 6) WarnDataNotHandled("glColorMaskiOES");
+ PFNGLCOLORMASKIOESPROC f = (PFNGLCOLORMASKIOESPROC)eglGetProcAddress("glColorMaskiOES");
+if (f != NULL) f(GetU32(GLuint, 0), GetB(GLboolean, 1), GetB(GLboolean, 2), GetB(GLboolean, 3), GetB(GLboolean, 4));
+#else
+ WarnNotAvailable("glColorMaskiOES");
+#endif
+}
+void Command::run_glIsEnablediOES()
+{
+#if GL_OES_draw_buffers_indexed
+ if (m_packet.NumItems() > 3) WarnDataNotHandled("glIsEnablediOES");
+ PFNGLISENABLEDIOESPROC f = (PFNGLISENABLEDIOESPROC)eglGetProcAddress("glIsEnablediOES");
+if (f != NULL) f(GetU32(GLenum, 0), GetU32(GLuint, 1));
+#else
+ WarnNotAvailable("glIsEnablediOES");
 #endif
 }
 void Command::run_glDrawTexsOES()
@@ -4832,6 +4912,16 @@ if (f != NULL) f(GetU32(GLenum, 0));
  WarnNotAvailable("glGenerateMipmapOES");
 #endif
 }
+void Command::run_glFramebufferTextureOES()
+{
+#if GL_OES_geometry_shader
+ if (m_packet.NumItems() > 5) WarnDataNotHandled("glFramebufferTextureOES");
+ PFNGLFRAMEBUFFERTEXTUREOESPROC f = (PFNGLFRAMEBUFFERTEXTUREOESPROC)eglGetProcAddress("glFramebufferTextureOES");
+if (f != NULL) f(GetU32(GLenum, 0), GetU32(GLenum, 1), GetU32(GLuint, 2), GetI32(GLint, 3));
+#else
+ WarnNotAvailable("glFramebufferTextureOES");
+#endif
+}
 void Command::run_glMapBufferOES()
 {
 #if GL_OES_mapbuffer
@@ -4862,46 +4952,6 @@ if (f != NULL) f(GetU32(GLenum, 0), GetU32(GLenum, 1), dummyvoidptr);
  WarnNotAvailable("glGetBufferPointervOES");
 #endif
 }
-void Command::run_glCurrentPaletteMatrixOES()
-{
-#if GL_OES_matrix_palette
- if (m_packet.NumItems() > 2) WarnDataNotHandled("glCurrentPaletteMatrixOES");
- PFNGLCURRENTPALETTEMATRIXOESPROC f = (PFNGLCURRENTPALETTEMATRIXOESPROC)eglGetProcAddress("glCurrentPaletteMatrixOES");
-if (f != NULL) f(GetU32(GLuint, 0));
-#else
- WarnNotAvailable("glCurrentPaletteMatrixOES");
-#endif
-}
-void Command::run_glLoadPaletteFromModelViewMatrixOES()
-{
-#if GL_OES_matrix_palette
- if (m_packet.NumItems() > 1) WarnDataNotHandled("glLoadPaletteFromModelViewMatrixOES");
- PFNGLLOADPALETTEFROMMODELVIEWMATRIXOESPROC f = (PFNGLLOADPALETTEFROMMODELVIEWMATRIXOESPROC)eglGetProcAddress("glLoadPaletteFromModelViewMatrixOES");
-if (f != NULL) f();
-#else
- WarnNotAvailable("glLoadPaletteFromModelViewMatrixOES");
-#endif
-}
-void Command::run_glMatrixIndexPointerOES()
-{
-#if GL_OES_matrix_palette
- if (m_packet.NumItems() > 6) WarnDataNotHandled("glMatrixIndexPointerOES");
- PFNGLMATRIXINDEXPOINTEROESPROC f = (PFNGLMATRIXINDEXPOINTEROESPROC)eglGetProcAddress("glMatrixIndexPointerOES");
-if (f != NULL) f(GetI32(GLint, 0), GetU32(GLenum, 1), GetI32(GLsizei, 2), GetArrayPtr(const void *, 4));
-#else
- WarnNotAvailable("glMatrixIndexPointerOES");
-#endif
-}
-void Command::run_glWeightPointerOES()
-{
-#if GL_OES_matrix_palette
- if (m_packet.NumItems() > 6) WarnDataNotHandled("glWeightPointerOES");
- PFNGLWEIGHTPOINTEROESPROC f = (PFNGLWEIGHTPOINTEROESPROC)eglGetProcAddress("glWeightPointerOES");
-if (f != NULL) f(GetI32(GLint, 0), GetU32(GLenum, 1), GetI32(GLsizei, 2), GetArrayPtr(const void *, 4));
-#else
- WarnNotAvailable("glWeightPointerOES");
-#endif
-}
 void Command::run_glPointSizePointerOES()
 {
 #if GL_OES_point_size_array
@@ -4920,6 +4970,106 @@ void Command::run_glQueryMatrixxOES()
 if (f != NULL) f(dummyGLfixed, dummyGLint);
 #else
  WarnNotAvailable("glQueryMatrixxOES");
+#endif
+}
+void Command::run_glPatchParameteriOES()
+{
+#if GL_OES_tessellation_shader
+ if (m_packet.NumItems() > 3) WarnDataNotHandled("glPatchParameteriOES");
+ PFNGLPATCHPARAMETERIOESPROC f = (PFNGLPATCHPARAMETERIOESPROC)eglGetProcAddress("glPatchParameteriOES");
+if (f != NULL) f(GetU32(GLenum, 0), GetI32(GLint, 1));
+#else
+ WarnNotAvailable("glPatchParameteriOES");
+#endif
+}
+void Command::run_glTexParameterIivOES()
+{
+#if GL_OES_texture_border_clamp
+ if (m_packet.NumItems() > 5) WarnDataNotHandled("glTexParameterIivOES");
+ PFNGLTEXPARAMETERIIVOESPROC f = (PFNGLTEXPARAMETERIIVOESPROC)eglGetProcAddress("glTexParameterIivOES");
+if (f != NULL) f(GetU32(GLenum, 0), GetU32(GLenum, 1), GetArrayPtr(const GLint *, 3));
+#else
+ WarnNotAvailable("glTexParameterIivOES");
+#endif
+}
+void Command::run_glTexParameterIuivOES()
+{
+#if GL_OES_texture_border_clamp
+ if (m_packet.NumItems() > 5) WarnDataNotHandled("glTexParameterIuivOES");
+ PFNGLTEXPARAMETERIUIVOESPROC f = (PFNGLTEXPARAMETERIUIVOESPROC)eglGetProcAddress("glTexParameterIuivOES");
+if (f != NULL) f(GetU32(GLenum, 0), GetU32(GLenum, 1), GetArrayPtr(const GLuint *, 3));
+#else
+ WarnNotAvailable("glTexParameterIuivOES");
+#endif
+}
+void Command::run_glGetTexParameterIivOES()
+{
+#if GL_OES_texture_border_clamp
+ if (m_packet.NumItems() > 4) WarnDataNotHandled("glGetTexParameterIivOES");
+ PFNGLGETTEXPARAMETERIIVOESPROC f = (PFNGLGETTEXPARAMETERIIVOESPROC)eglGetProcAddress("glGetTexParameterIivOES");
+if (f != NULL) f(GetU32(GLenum, 0), GetU32(GLenum, 1), dummyGLint);
+#else
+ WarnNotAvailable("glGetTexParameterIivOES");
+#endif
+}
+void Command::run_glGetTexParameterIuivOES()
+{
+#if GL_OES_texture_border_clamp
+ if (m_packet.NumItems() > 4) WarnDataNotHandled("glGetTexParameterIuivOES");
+ PFNGLGETTEXPARAMETERIUIVOESPROC f = (PFNGLGETTEXPARAMETERIUIVOESPROC)eglGetProcAddress("glGetTexParameterIuivOES");
+if (f != NULL) f(GetU32(GLenum, 0), GetU32(GLenum, 1), dummyGLuint);
+#else
+ WarnNotAvailable("glGetTexParameterIuivOES");
+#endif
+}
+void Command::run_glSamplerParameterIivOES()
+{
+#if GL_OES_texture_border_clamp
+ if (m_packet.NumItems() > 5) WarnDataNotHandled("glSamplerParameterIivOES");
+ PFNGLSAMPLERPARAMETERIIVOESPROC f = (PFNGLSAMPLERPARAMETERIIVOESPROC)eglGetProcAddress("glSamplerParameterIivOES");
+if (f != NULL) f(GetSampler(GLuint, 0), GetU32(GLenum, 1), GetArrayPtr(const GLint *, 3));
+#else
+ WarnNotAvailable("glSamplerParameterIivOES");
+#endif
+}
+void Command::run_glSamplerParameterIuivOES()
+{
+#if GL_OES_texture_border_clamp
+ if (m_packet.NumItems() > 5) WarnDataNotHandled("glSamplerParameterIuivOES");
+ PFNGLSAMPLERPARAMETERIUIVOESPROC f = (PFNGLSAMPLERPARAMETERIUIVOESPROC)eglGetProcAddress("glSamplerParameterIuivOES");
+if (f != NULL) f(GetSampler(GLuint, 0), GetU32(GLenum, 1), GetArrayPtr(const GLuint *, 3));
+#else
+ WarnNotAvailable("glSamplerParameterIuivOES");
+#endif
+}
+void Command::run_glGetSamplerParameterIivOES()
+{
+#if GL_OES_texture_border_clamp
+ if (m_packet.NumItems() > 4) WarnDataNotHandled("glGetSamplerParameterIivOES");
+ PFNGLGETSAMPLERPARAMETERIIVOESPROC f = (PFNGLGETSAMPLERPARAMETERIIVOESPROC)eglGetProcAddress("glGetSamplerParameterIivOES");
+if (f != NULL) f(GetSampler(GLuint, 0), GetU32(GLenum, 1), dummyGLint);
+#else
+ WarnNotAvailable("glGetSamplerParameterIivOES");
+#endif
+}
+void Command::run_glGetSamplerParameterIuivOES()
+{
+#if GL_OES_texture_border_clamp
+ if (m_packet.NumItems() > 4) WarnDataNotHandled("glGetSamplerParameterIuivOES");
+ PFNGLGETSAMPLERPARAMETERIUIVOESPROC f = (PFNGLGETSAMPLERPARAMETERIUIVOESPROC)eglGetProcAddress("glGetSamplerParameterIuivOES");
+if (f != NULL) f(GetSampler(GLuint, 0), GetU32(GLenum, 1), dummyGLuint);
+#else
+ WarnNotAvailable("glGetSamplerParameterIuivOES");
+#endif
+}
+void Command::run_glTexStorage3DMultisampleOES()
+{
+#if GL_OES_texture_storage_multisample_2d_array
+ if (m_packet.NumItems() > 8) WarnDataNotHandled("glTexStorage3DMultisampleOES");
+ PFNGLTEXSTORAGE3DMULTISAMPLEOESPROC f = (PFNGLTEXSTORAGE3DMULTISAMPLEOESPROC)eglGetProcAddress("glTexStorage3DMultisampleOES");
+if (f != NULL) f(GetU32(GLenum, 0), GetI32(GLsizei, 1), GetU32(GLenum, 2), GetI32(GLsizei, 3), GetI32(GLsizei, 4), GetI32(GLsizei, 5), GetB(GLboolean, 6));
+#else
+ WarnNotAvailable("glTexStorage3DMultisampleOES");
 #endif
 }
 void Command::run_glBindVertexArrayOES()
@@ -5127,51 +5277,6 @@ if (f != NULL) f(GetEGLDisplay(EGLDisplay, 0), GetEGLConfig(EGLConfig, 1), dummy
  WarnNotAvailable("eglCreatePlatformPixmapSurfaceEXT");
 #endif
 }
-void Command::run_glDrawArraysInstancedBaseInstanceBRCM()
-{
-#if GL_BRCM_base_instance
- if (m_packet.NumItems() > 6) WarnDataNotHandled("glDrawArraysInstancedBaseInstanceBRCM");
- glDrawArraysInstancedBaseInstanceBRCM(GetU32(GLenum, 0), GetI32(GLint, 1), GetI32(GLsizei, 2), GetI32(GLsizei, 3), GetU32(GLuint, 4));
-#else
- WarnNotAvailable("glDrawArraysInstancedBaseInstanceBRCM");
-#endif
-}
-void Command::run_glDrawElementsInstancedBaseInstanceBRCM()
-{
-#if GL_BRCM_base_instance
- if (m_packet.NumItems() > 8) WarnDataNotHandled("glDrawElementsInstancedBaseInstanceBRCM");
- glDrawElementsInstancedBaseInstanceBRCM(GetU32(GLenum, 0), GetI32(GLsizei, 1), GetU32(GLenum, 2), GetArrayPtr(const void *, 6), GetI32(GLsizei, 4), GetU32(GLuint, 5));
-#else
- WarnNotAvailable("glDrawElementsInstancedBaseInstanceBRCM");
-#endif
-}
-void Command::run_glDrawElementsInstancedBaseVertexBaseInstanceBRCM()
-{
-#if GL_BRCM_base_instance
- if (m_packet.NumItems() > 9) WarnDataNotHandled("glDrawElementsInstancedBaseVertexBaseInstanceBRCM");
- glDrawElementsInstancedBaseVertexBaseInstanceBRCM(GetU32(GLenum, 0), GetI32(GLsizei, 1), GetU32(GLenum, 2), GetArrayPtr(const void *, 7), GetI32(GLsizei, 4), GetI32(GLint, 5), GetU32(GLuint, 6));
-#else
- WarnNotAvailable("glDrawElementsInstancedBaseVertexBaseInstanceBRCM");
-#endif
-}
-void Command::run_glMultiDrawArraysIndirectBRCM()
-{
-#if GL_BRCM_multi_draw_indirect
- if (m_packet.NumItems() > 6) WarnDataNotHandled("glMultiDrawArraysIndirectBRCM");
- glMultiDrawArraysIndirectBRCM(GetU32(GLenum, 0), GetArrayPtr(const void *, 4), GetI32(GLsizei, 2), GetI32(GLsizei, 3));
-#else
- WarnNotAvailable("glMultiDrawArraysIndirectBRCM");
-#endif
-}
-void Command::run_glMultiDrawElementsIndirectBRCM()
-{
-#if GL_BRCM_multi_draw_indirect
- if (m_packet.NumItems() > 7) WarnDataNotHandled("glMultiDrawElementsIndirectBRCM");
- glMultiDrawElementsIndirectBRCM(GetU32(GLenum, 0), GetU32(GLenum, 1), GetArrayPtr(const void *, 5), GetI32(GLsizei, 3), GetI32(GLsizei, 4));
-#else
- WarnNotAvailable("glMultiDrawElementsIndirectBRCM");
-#endif
-}
 void Command::run_glPolygonModeBRCM()
 {
 #if GL_BRCM_polygon_mode
@@ -5197,6 +5302,36 @@ void Command::run_glTexImage1DBRCM()
  glTexImage1DBRCM(GetU32(GLenum, 0), GetI32(GLint, 1), GetI32(GLint, 2), GetI32(GLsizei, 3), GetI32(GLint, 4), GetU32(GLenum, 5), GetU32(GLenum, 6), GetArrayPtr(const GLvoid *, 8));
 #else
  WarnNotAvailable("glTexImage1DBRCM");
+#endif
+}
+void Command::run_glDrawArraysInstancedBaseInstanceEXT()
+{
+#if GL_EXT_base_instance
+ if (m_packet.NumItems() > 6) WarnDataNotHandled("glDrawArraysInstancedBaseInstanceEXT");
+ PFNGLDRAWARRAYSINSTANCEDBASEINSTANCEEXTPROC f = (PFNGLDRAWARRAYSINSTANCEDBASEINSTANCEEXTPROC)eglGetProcAddress("glDrawArraysInstancedBaseInstanceEXT");
+if (f != NULL) f(GetU32(GLenum, 0), GetI32(GLint, 1), GetI32(GLsizei, 2), GetI32(GLsizei, 3), GetU32(GLuint, 4));
+#else
+ WarnNotAvailable("glDrawArraysInstancedBaseInstanceEXT");
+#endif
+}
+void Command::run_glDrawElementsInstancedBaseInstanceEXT()
+{
+#if GL_EXT_base_instance
+ if (m_packet.NumItems() > 8) WarnDataNotHandled("glDrawElementsInstancedBaseInstanceEXT");
+ PFNGLDRAWELEMENTSINSTANCEDBASEINSTANCEEXTPROC f = (PFNGLDRAWELEMENTSINSTANCEDBASEINSTANCEEXTPROC)eglGetProcAddress("glDrawElementsInstancedBaseInstanceEXT");
+if (f != NULL) f(GetU32(GLenum, 0), GetI32(GLsizei, 1), GetU32(GLenum, 2), GetArrayPtr(const void *, 6), GetI32(GLsizei, 4), GetU32(GLuint, 5));
+#else
+ WarnNotAvailable("glDrawElementsInstancedBaseInstanceEXT");
+#endif
+}
+void Command::run_glDrawElementsInstancedBaseVertexBaseInstanceEXT()
+{
+#if GL_EXT_base_instance
+ if (m_packet.NumItems() > 9) WarnDataNotHandled("glDrawElementsInstancedBaseVertexBaseInstanceEXT");
+ PFNGLDRAWELEMENTSINSTANCEDBASEVERTEXBASEINSTANCEEXTPROC f = (PFNGLDRAWELEMENTSINSTANCEDBASEVERTEXBASEINSTANCEEXTPROC)eglGetProcAddress("glDrawElementsInstancedBaseVertexBaseInstanceEXT");
+if (f != NULL) f(GetU32(GLenum, 0), GetI32(GLsizei, 1), GetU32(GLenum, 2), GetArrayPtr(const void *, 7), GetI32(GLsizei, 4), GetI32(GLint, 5), GetU32(GLuint, 6));
+#else
+ WarnNotAvailable("glDrawElementsInstancedBaseVertexBaseInstanceEXT");
 #endif
 }
 void Command::run_glInsertEventMarkerEXT()
@@ -5239,6 +5374,86 @@ if (f != NULL) f(GetU32(GLenum, 0), GetI32(GLsizei, 1), GetArrayPtr(const GLenum
  WarnNotAvailable("glDiscardFramebufferEXT");
 #endif
 }
+void Command::run_glEnableiEXT()
+{
+#if GL_EXT_draw_buffers_indexed
+ if (m_packet.NumItems() > 3) WarnDataNotHandled("glEnableiEXT");
+ PFNGLENABLEIEXTPROC f = (PFNGLENABLEIEXTPROC)eglGetProcAddress("glEnableiEXT");
+if (f != NULL) f(GetU32(GLenum, 0), GetU32(GLuint, 1));
+#else
+ WarnNotAvailable("glEnableiEXT");
+#endif
+}
+void Command::run_glDisableiEXT()
+{
+#if GL_EXT_draw_buffers_indexed
+ if (m_packet.NumItems() > 3) WarnDataNotHandled("glDisableiEXT");
+ PFNGLDISABLEIEXTPROC f = (PFNGLDISABLEIEXTPROC)eglGetProcAddress("glDisableiEXT");
+if (f != NULL) f(GetU32(GLenum, 0), GetU32(GLuint, 1));
+#else
+ WarnNotAvailable("glDisableiEXT");
+#endif
+}
+void Command::run_glBlendEquationiEXT()
+{
+#if GL_EXT_draw_buffers_indexed
+ if (m_packet.NumItems() > 3) WarnDataNotHandled("glBlendEquationiEXT");
+ PFNGLBLENDEQUATIONIEXTPROC f = (PFNGLBLENDEQUATIONIEXTPROC)eglGetProcAddress("glBlendEquationiEXT");
+if (f != NULL) f(GetU32(GLuint, 0), GetU32(GLenum, 1));
+#else
+ WarnNotAvailable("glBlendEquationiEXT");
+#endif
+}
+void Command::run_glBlendEquationSeparateiEXT()
+{
+#if GL_EXT_draw_buffers_indexed
+ if (m_packet.NumItems() > 4) WarnDataNotHandled("glBlendEquationSeparateiEXT");
+ PFNGLBLENDEQUATIONSEPARATEIEXTPROC f = (PFNGLBLENDEQUATIONSEPARATEIEXTPROC)eglGetProcAddress("glBlendEquationSeparateiEXT");
+if (f != NULL) f(GetU32(GLuint, 0), GetU32(GLenum, 1), GetU32(GLenum, 2));
+#else
+ WarnNotAvailable("glBlendEquationSeparateiEXT");
+#endif
+}
+void Command::run_glBlendFunciEXT()
+{
+#if GL_EXT_draw_buffers_indexed
+ if (m_packet.NumItems() > 4) WarnDataNotHandled("glBlendFunciEXT");
+ PFNGLBLENDFUNCIEXTPROC f = (PFNGLBLENDFUNCIEXTPROC)eglGetProcAddress("glBlendFunciEXT");
+if (f != NULL) f(GetU32(GLuint, 0), GetU32(GLenum, 1), GetU32(GLenum, 2));
+#else
+ WarnNotAvailable("glBlendFunciEXT");
+#endif
+}
+void Command::run_glBlendFuncSeparateiEXT()
+{
+#if GL_EXT_draw_buffers_indexed
+ if (m_packet.NumItems() > 6) WarnDataNotHandled("glBlendFuncSeparateiEXT");
+ PFNGLBLENDFUNCSEPARATEIEXTPROC f = (PFNGLBLENDFUNCSEPARATEIEXTPROC)eglGetProcAddress("glBlendFuncSeparateiEXT");
+if (f != NULL) f(GetU32(GLuint, 0), GetU32(GLenum, 1), GetU32(GLenum, 2), GetU32(GLenum, 3), GetU32(GLenum, 4));
+#else
+ WarnNotAvailable("glBlendFuncSeparateiEXT");
+#endif
+}
+void Command::run_glColorMaskiEXT()
+{
+#if GL_EXT_draw_buffers_indexed
+ if (m_packet.NumItems() > 6) WarnDataNotHandled("glColorMaskiEXT");
+ PFNGLCOLORMASKIEXTPROC f = (PFNGLCOLORMASKIEXTPROC)eglGetProcAddress("glColorMaskiEXT");
+if (f != NULL) f(GetU32(GLuint, 0), GetB(GLboolean, 1), GetB(GLboolean, 2), GetB(GLboolean, 3), GetB(GLboolean, 4));
+#else
+ WarnNotAvailable("glColorMaskiEXT");
+#endif
+}
+void Command::run_glIsEnablediEXT()
+{
+#if GL_EXT_draw_buffers_indexed
+ if (m_packet.NumItems() > 3) WarnDataNotHandled("glIsEnablediEXT");
+ PFNGLISENABLEDIEXTPROC f = (PFNGLISENABLEDIEXTPROC)eglGetProcAddress("glIsEnablediEXT");
+if (f != NULL) f(GetU32(GLenum, 0), GetU32(GLuint, 1));
+#else
+ WarnNotAvailable("glIsEnablediEXT");
+#endif
+}
 void Command::run_glDrawElementsBaseVertexEXT()
 {
 #if GL_EXT_draw_elements_base_vertex
@@ -5279,6 +5494,36 @@ if (f != NULL) f(GetU32(GLenum, 0), GetArrayPtr(const GLsizei *, 6), GetU32(GLen
  WarnNotAvailable("glMultiDrawElementsBaseVertexEXT");
 #endif
 }
+void Command::run_glFramebufferTextureEXT()
+{
+#if GL_EXT_geometry_shader
+ if (m_packet.NumItems() > 5) WarnDataNotHandled("glFramebufferTextureEXT");
+ PFNGLFRAMEBUFFERTEXTUREEXTPROC f = (PFNGLFRAMEBUFFERTEXTUREEXTPROC)eglGetProcAddress("glFramebufferTextureEXT");
+if (f != NULL) f(GetU32(GLenum, 0), GetU32(GLenum, 1), GetU32(GLuint, 2), GetI32(GLint, 3));
+#else
+ WarnNotAvailable("glFramebufferTextureEXT");
+#endif
+}
+void Command::run_glMultiDrawArraysIndirectEXT()
+{
+#if GL_EXT_multi_draw_indirect
+ if (m_packet.NumItems() > 6) WarnDataNotHandled("glMultiDrawArraysIndirectEXT");
+ PFNGLMULTIDRAWARRAYSINDIRECTEXTPROC f = (PFNGLMULTIDRAWARRAYSINDIRECTEXTPROC)eglGetProcAddress("glMultiDrawArraysIndirectEXT");
+if (f != NULL) f(GetU32(GLenum, 0), GetArrayPtr(const void *, 4), GetI32(GLsizei, 2), GetI32(GLsizei, 3));
+#else
+ WarnNotAvailable("glMultiDrawArraysIndirectEXT");
+#endif
+}
+void Command::run_glMultiDrawElementsIndirectEXT()
+{
+#if GL_EXT_multi_draw_indirect
+ if (m_packet.NumItems() > 7) WarnDataNotHandled("glMultiDrawElementsIndirectEXT");
+ PFNGLMULTIDRAWELEMENTSINDIRECTEXTPROC f = (PFNGLMULTIDRAWELEMENTSINDIRECTEXTPROC)eglGetProcAddress("glMultiDrawElementsIndirectEXT");
+if (f != NULL) f(GetU32(GLenum, 0), GetU32(GLenum, 1), GetArrayPtr(const void *, 5), GetI32(GLsizei, 3), GetI32(GLsizei, 4));
+#else
+ WarnNotAvailable("glMultiDrawElementsIndirectEXT");
+#endif
+}
 void Command::run_glRenderbufferStorageMultisampleEXT()
 {
 #if GL_EXT_multisampled_render_to_texture
@@ -5297,6 +5542,16 @@ void Command::run_glFramebufferTexture2DMultisampleEXT()
 if (f != NULL) f(GetU32(GLenum, 0), GetU32(GLenum, 1), GetU32(GLenum, 2), GetU32(GLuint, 3), GetI32(GLint, 4), GetI32(GLsizei, 5));
 #else
  WarnNotAvailable("glFramebufferTexture2DMultisampleEXT");
+#endif
+}
+void Command::run_glPrimitiveBoundingBoxEXT()
+{
+#if GL_EXT_primitive_bounding_box
+ if (m_packet.NumItems() > 9) WarnDataNotHandled("glPrimitiveBoundingBoxEXT");
+ PFNGLPRIMITIVEBOUNDINGBOXEXTPROC f = (PFNGLPRIMITIVEBOUNDINGBOXEXTPROC)eglGetProcAddress("glPrimitiveBoundingBoxEXT");
+if (f != NULL) f(GetF(GLfloat, 0), GetF(GLfloat, 1), GetF(GLfloat, 2), GetF(GLfloat, 3), GetF(GLfloat, 4), GetF(GLfloat, 5), GetF(GLfloat, 6), GetF(GLfloat, 7));
+#else
+ WarnNotAvailable("glPrimitiveBoundingBoxEXT");
 #endif
 }
 void Command::run_glGetGraphicsResetStatusEXT()
@@ -5337,5 +5592,95 @@ void Command::run_glGetnUniformivEXT()
 if (f != NULL) f(GetProgram(GLuint, 0), GetUniform(1, 0), GetI32(GLsizei, 2), dummyGLint);
 #else
  WarnNotAvailable("glGetnUniformivEXT");
+#endif
+}
+void Command::run_glPatchParameteriEXT()
+{
+#if GL_EXT_tessellation_shader
+ if (m_packet.NumItems() > 3) WarnDataNotHandled("glPatchParameteriEXT");
+ PFNGLPATCHPARAMETERIEXTPROC f = (PFNGLPATCHPARAMETERIEXTPROC)eglGetProcAddress("glPatchParameteriEXT");
+if (f != NULL) f(GetU32(GLenum, 0), GetI32(GLint, 1));
+#else
+ WarnNotAvailable("glPatchParameteriEXT");
+#endif
+}
+void Command::run_glTexParameterIivEXT()
+{
+#if GL_EXT_texture_border_clamp
+ if (m_packet.NumItems() > 5) WarnDataNotHandled("glTexParameterIivEXT");
+ PFNGLTEXPARAMETERIIVEXTPROC f = (PFNGLTEXPARAMETERIIVEXTPROC)eglGetProcAddress("glTexParameterIivEXT");
+if (f != NULL) f(GetU32(GLenum, 0), GetU32(GLenum, 1), GetArrayPtr(const GLint *, 3));
+#else
+ WarnNotAvailable("glTexParameterIivEXT");
+#endif
+}
+void Command::run_glTexParameterIuivEXT()
+{
+#if GL_EXT_texture_border_clamp
+ if (m_packet.NumItems() > 5) WarnDataNotHandled("glTexParameterIuivEXT");
+ PFNGLTEXPARAMETERIUIVEXTPROC f = (PFNGLTEXPARAMETERIUIVEXTPROC)eglGetProcAddress("glTexParameterIuivEXT");
+if (f != NULL) f(GetU32(GLenum, 0), GetU32(GLenum, 1), GetArrayPtr(const GLuint *, 3));
+#else
+ WarnNotAvailable("glTexParameterIuivEXT");
+#endif
+}
+void Command::run_glGetTexParameterIivEXT()
+{
+#if GL_EXT_texture_border_clamp
+ if (m_packet.NumItems() > 4) WarnDataNotHandled("glGetTexParameterIivEXT");
+ PFNGLGETTEXPARAMETERIIVEXTPROC f = (PFNGLGETTEXPARAMETERIIVEXTPROC)eglGetProcAddress("glGetTexParameterIivEXT");
+if (f != NULL) f(GetU32(GLenum, 0), GetU32(GLenum, 1), dummyGLint);
+#else
+ WarnNotAvailable("glGetTexParameterIivEXT");
+#endif
+}
+void Command::run_glGetTexParameterIuivEXT()
+{
+#if GL_EXT_texture_border_clamp
+ if (m_packet.NumItems() > 4) WarnDataNotHandled("glGetTexParameterIuivEXT");
+ PFNGLGETTEXPARAMETERIUIVEXTPROC f = (PFNGLGETTEXPARAMETERIUIVEXTPROC)eglGetProcAddress("glGetTexParameterIuivEXT");
+if (f != NULL) f(GetU32(GLenum, 0), GetU32(GLenum, 1), dummyGLuint);
+#else
+ WarnNotAvailable("glGetTexParameterIuivEXT");
+#endif
+}
+void Command::run_glSamplerParameterIivEXT()
+{
+#if GL_EXT_texture_border_clamp
+ if (m_packet.NumItems() > 5) WarnDataNotHandled("glSamplerParameterIivEXT");
+ PFNGLSAMPLERPARAMETERIIVEXTPROC f = (PFNGLSAMPLERPARAMETERIIVEXTPROC)eglGetProcAddress("glSamplerParameterIivEXT");
+if (f != NULL) f(GetSampler(GLuint, 0), GetU32(GLenum, 1), GetArrayPtr(const GLint *, 3));
+#else
+ WarnNotAvailable("glSamplerParameterIivEXT");
+#endif
+}
+void Command::run_glSamplerParameterIuivEXT()
+{
+#if GL_EXT_texture_border_clamp
+ if (m_packet.NumItems() > 5) WarnDataNotHandled("glSamplerParameterIuivEXT");
+ PFNGLSAMPLERPARAMETERIUIVEXTPROC f = (PFNGLSAMPLERPARAMETERIUIVEXTPROC)eglGetProcAddress("glSamplerParameterIuivEXT");
+if (f != NULL) f(GetSampler(GLuint, 0), GetU32(GLenum, 1), GetArrayPtr(const GLuint *, 3));
+#else
+ WarnNotAvailable("glSamplerParameterIuivEXT");
+#endif
+}
+void Command::run_glGetSamplerParameterIivEXT()
+{
+#if GL_EXT_texture_border_clamp
+ if (m_packet.NumItems() > 4) WarnDataNotHandled("glGetSamplerParameterIivEXT");
+ PFNGLGETSAMPLERPARAMETERIIVEXTPROC f = (PFNGLGETSAMPLERPARAMETERIIVEXTPROC)eglGetProcAddress("glGetSamplerParameterIivEXT");
+if (f != NULL) f(GetSampler(GLuint, 0), GetU32(GLenum, 1), dummyGLint);
+#else
+ WarnNotAvailable("glGetSamplerParameterIivEXT");
+#endif
+}
+void Command::run_glGetSamplerParameterIuivEXT()
+{
+#if GL_EXT_texture_border_clamp
+ if (m_packet.NumItems() > 4) WarnDataNotHandled("glGetSamplerParameterIuivEXT");
+ PFNGLGETSAMPLERPARAMETERIUIVEXTPROC f = (PFNGLGETSAMPLERPARAMETERIUIVEXTPROC)eglGetProcAddress("glGetSamplerParameterIuivEXT");
+if (f != NULL) f(GetSampler(GLuint, 0), GetU32(GLenum, 1), dummyGLuint);
+#else
+ WarnNotAvailable("glGetSamplerParameterIuivEXT");
 #endif
 }

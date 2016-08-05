@@ -492,6 +492,18 @@ size_t bmedia_write_waveformatex(void *buf, const bmedia_waveformatex_header *wf
     return BMEDIA_WAVEFORMATEX_BASE_SIZE;
 }
 
+void bmedia_waveformatex_from_header(bmedia_waveformatex *wf, bmedia_waveformatex_header *header)
+{
+    BKNI_Memset(wf, 0, sizeof(*wf));
+    wf->wFormatTag = header->wFormatTag;
+    wf->nChannels = header->nChannels;
+    wf->nSamplesPerSec = header->nSamplesPerSec;
+    wf->nAvgBytesPerSec = header->nAvgBytesPerSec;
+    wf->nBlockAlign = header->nBlockAlign;
+    wf->wBitsPerSample = header->wBitsPerSample;
+    wf->cbSize = header->cbSize;
+    return;
+}
 bool
 bmedia_read_bitmapinfo(bmedia_bitmapinfo *bi, batom_cursor *c)
 {

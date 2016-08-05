@@ -105,11 +105,6 @@ static void print_statement_selection(FILE* f, const NStmt* stmt, int indent)
 static void print_statement_iterator(FILE* f, const NStmt* stmt, int indent)
 {
    print_line(f, indent, "iterator {");
-   if (stmt->u.iterator.loop_index) {
-      print_line(f, indent + 1, "loop_index:");
-      print_indent(f, indent + 2);
-      fprintf(f, "%s\n", stmt->u.iterator.loop_index->name);
-   }
    print_line(f, indent + 1, "pre_cond:");
    glsl_nast_print_statements(f, indent + 2, stmt->u.iterator.pre_cond_stmts);
    print_expr_line(f, indent + 2, "", stmt->u.iterator.pre_cond_expr, "");
@@ -178,7 +173,7 @@ void glsl_nast_print_statement(FILE* f, int indent, const NStmt* stmt)
          print_line(f, indent, "barrier;");
          break;
       case NSTMT_FLAVOUR_COUNT:
-         UNREACHABLE();
+         unreachable();
          break;
    }
    fflush(f);

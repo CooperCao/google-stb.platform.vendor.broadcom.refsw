@@ -65,7 +65,8 @@ Summary:
 Input from user for NEXUS_Platform_MemConfigInit
 
 Description:
-Some platforms (for instance, 65nm) do not support this memconfig API. To tell if memconfig is supported, do the following:
+Some platforms (for instance, 65nm) do not support this memconfig API. To tell if memconfig is
+supported, do the following:
 
     NEXUS_MemoryConfigurationSettings memConfigSettings;
     NEXUS_GetDefaultMemoryConfigurationSettings(&memConfigSettings);
@@ -75,7 +76,8 @@ Some platforms (for instance, 65nm) do not support this memconfig API. To tell i
 **/
 typedef struct NEXUS_MemoryConfigurationSettings
 {
-    NEXUS_VideoDecoderMemory videoDecoder[NEXUS_MAX_VIDEO_DECODERS]; /* typically 0 is main, 1 is PIP. mapping from videoDecoder[] to AVD can vary, but we support a generic mapping. */
+    NEXUS_VideoDecoderMemory videoDecoder[NEXUS_MAX_VIDEO_DECODERS]; /* typically 0 is main,
+        1 is PIP. mapping from videoDecoder[] to AVD can vary, but we support a generic mapping. */
     NEXUS_VideoDecoderMemory stillDecoder[NEXUS_MAX_STILL_DECODERS];
     NEXUS_DisplayMemConfig display[NEXUS_MAX_DISPLAYS];
     struct {

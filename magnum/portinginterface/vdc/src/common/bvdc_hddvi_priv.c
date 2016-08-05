@@ -412,18 +412,7 @@ MUX_DATA[]
 /* Input timing for external input */
 static const uint8_t s_aucExtInputTimingMsw[BVDC_P_HDDVI_INPUT_TIMING_ADJUST_COUNT] =
 {
-#if (BCHP_CHIP == 7420)
-    0, 0, 2, 4,                 /* DATA_MSW_0  - DATA_MSW_3     */
-    0, 2, 2, 2,                 /* DATA_MSW_4  - DATA_MSW_7     */
-    3, 0, 1, 0,                 /* DATA_MSW_8  - DATA_MSW_11    */
-    0, 0, 0, 0,                 /* DATA_MSW_12 - DATA_MSW_15    */
-    8, 8, 8, 8,                 /* DATA_MSW_16 - DATA_MSW_19    */
-    8, 8, 8, 8,                 /* DATA_MSW_20 - DATA_MSW_23    */
-    8, 8, 8, 8,                 /* DATA_MSW_24 - DATA_MSW_27    */
-    8, 8, 8, 8,                 /* DATA_MSW_28 - DATA_MSW_31    */
-    8, 8, 8, 8,                 /* DATA_MSW_32 - DATA_MSW_35    */
-    0, 1, 1                     /* HSYNC_MSW, VSYNC_MSW, DE_MSW */
-#elif (BCHP_CHIP == 7231)
+#if (BCHP_CHIP == 7231)
     8, 7, 6, 8,                 /* DATA_MSW_0  - DATA_MSW_3     */
     6, 8, 8, 7,                 /* DATA_MSW_4  - DATA_MSW_7     */
     7, 7, 8, 8,                 /* DATA_MSW_8  - DATA_MSW_11    */
@@ -466,18 +455,7 @@ static const uint8_t s_aucInputTimingMsw[BVDC_P_HDDVI_INPUT_TIMING_ADJUST_COUNT]
 /* Input timing for external input */
 static const uint8_t s_aucExtInputTimingLsw[BVDC_P_HDDVI_INPUT_TIMING_ADJUST_COUNT] =
 {
-#if (BCHP_CHIP == 7420)
-    1, 0, 2, 4,                 /* DATA_LSW_0  - DATA_LSW_3     */
-    0, 3, 2, 3,                 /* DATA_LSW_4  - DATA_LSW_7     */
-    3, 0, 2, 0,                 /* DATA_LSW_8  - DATA_LSW_11    */
-    0, 0, 0, 0,                 /* DATA_LSW_12 - DATA_LSW_15    */
-    8, 8, 8, 8,                 /* DATA_LSW_16 - DATA_LSW_19    */
-    8, 8, 8, 8,                 /* DATA_LSW_20 - DATA_LSW_23    */
-    8, 8, 8, 8,                 /* DATA_LSW_24 - DATA_LSW_27    */
-    8, 8, 8, 8,                 /* DATA_LSW_28 - DATA_LSW_31    */
-    8, 8, 8, 8,                 /* DATA_LSW_32 - DATA_LSW_35    */
-    0, 1, 2                     /* HSYNC_LSW, VSYNC_LSW, DE_LSW */
-#elif (BCHP_CHIP == 7231)
+#if (BCHP_CHIP == 7231)
     5, 2, 0, 4,                 /* DATA_LSW_0  - DATA_LSW_3     */
     4, 2, 4, 2,                 /* DATA_LSW_4  - DATA_LSW_7     */
     2, 4, 6, 5,                 /* DATA_LSW_8  - DATA_LSW_11    */
@@ -520,7 +498,7 @@ static const uint8_t s_aucInputTimingLsw[BVDC_P_HDDVI_INPUT_TIMING_ADJUST_COUNT]
 /* Deskew Clk  for external input */
 static const uint8_t s_aucExtDeskewClkMsw[BVDC_P_HDDVI_DESKEW_CLK_COUNT] =
 {
-#if (BCHP_CHIP == 7420) || (BCHP_CHIP == 7231)
+#if (BCHP_CHIP == 7231)
      0,                 /* DELAY_ONE_CTL_CLK_MSW   */
      0,                 /* DELAY_TWO_CTL_CLK_MSW   */
      0,                 /* DELAY_THREE_CTL_CLK_MSW */
@@ -548,7 +526,7 @@ static const uint8_t s_aucDeskewClkMsw[BVDC_P_HDDVI_DESKEW_CLK_COUNT] =
 /* Deskew Clk  for external input */
 static const uint8_t s_aucExtDeskewClkLsw[BVDC_P_HDDVI_DESKEW_CLK_COUNT] =
 {
-#if (BCHP_CHIP == 7420) || (BCHP_CHIP == 7231)
+#if (BCHP_CHIP == 7231)
      0,                 /* DELAY_ONE_CTL_CLK_LSW   */
      0,                 /* DELAY_TWO_CTL_CLK_LSW   */
      0,                 /* DELAY_THREE_CTL_CLK_LSW */
@@ -729,9 +707,7 @@ void BVDC_P_HdDvi_Init
     hHdDvi->stUpSampler.eFilterType    = BVDC_422To444Filter_eTenTaps;
 
     /* External HDDVI configuration */
-#if (BCHP_CHIP == 7420)
-    hHdDvi->ulExtInputType = BVDC_P_HDDVI_EXT_INPUT_TYPE_LOOPBACK;
-#elif (BCHP_CHIP == 7231)
+#if (BCHP_CHIP == 7231)
     hHdDvi->ulExtInputType = BVDC_P_HDDVI_EXT_INPUT_TYPE_NXP;
 #elif (BCHP_CHIP == 7429)
     hHdDvi->ulExtInputType = BVDC_P_HDDVI_EXT_INPUT_TYPE_CVBS;
@@ -2561,7 +2537,7 @@ static void BVDC_P_HdDvi_BuildHVStartRul_isr
 #endif
 
     /*
-    BDBG_MSG(("\t+++ bValidUserHVStart=%d, bEnableDE=%d, ulVStart=%d, bHVStartOverride=%d",
+    BDBG_MSG(("    +++ bValidUserHVStart=%d, bEnableDE=%d, ulVStart=%d, bHVStartOverride=%d",
         bValidUserHVStart, bEnableDe, ulVStart, pCurInfo->bHVStartOverride));
     */
 

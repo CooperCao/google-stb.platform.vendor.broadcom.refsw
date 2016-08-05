@@ -129,41 +129,9 @@ BERR_Code BVBI_P_WSS_Init( BVBI_P_Handle *pVbi )
         BVBI_P_WSS_656_Enc_Init (pVbi->hReg, hwIndex);
 #endif
 
-    /* This line of code only serves to shut up a compiler warning: */
-    (void) BVBI_P_AddWSSparity (0);
-
     BDBG_LEAVE(BVBI_P_WSS_Init);
     return BERR_SUCCESS;
 }
-
-/***************************************************************************
- *
- */
-uint16_t BVBI_P_AddWSSparity (uint16_t usData)
-{
-    uint16_t usOriginalData = usData;
-    uint8_t uchParity       = 0;
-    static const uint16_t mask = 0x0008;
-
-    /* The computation only depends on the 3 LSbits */
-    uchParity += (usData & 0x1);
-    usData >>= 1;
-    uchParity += (usData & 0x1);
-    usData >>= 1;
-    uchParity += (usData & 0x1);
-
-    /* Debug code
-    printf ("%04x (p%d) -> %04x\n",
-        usOriginalData, uchParity,
-        (uchParity & 0x1) ?
-            (usOriginalData & ~mask) : (usOriginalData | mask));
-    */
-
-    return
-        (uchParity & 0x1) ?
-            (usOriginalData & ~mask) : (usOriginalData | mask);
-}
-
 
 /***************************************************************************
 * Static (private) functions

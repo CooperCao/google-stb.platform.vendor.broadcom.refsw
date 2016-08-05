@@ -8,10 +8,10 @@
    int vvinput(char *buf, int buf_size, yyscan_t scanner);
 
    typedef struct {
-      int                Count;
-      const char *const *Values;
-      const char        *CurrentPosition;
-      int                Index;
+      int                count;
+      const char *const *values;
+      const char        *cur_pos;
+      int                index;
    } ShaderSource;
 
    typedef enum {
@@ -26,7 +26,6 @@
       Profile profile;
    } YYSTYPE;
 
-   /* TODO: Do this better using vvwrap */
    #define YY_INPUT(buf,result,max_size) { result = vvinput(buf,(int)max_size, yyscanner); }
 
    #define HASH          0
@@ -121,23 +120,18 @@ static bool is_version_supported(int version) {
 /* The entry point for this file. Returns the version declared in sourcev. */
 bool glsl_find_version(int sourcec, const char *const *sourcev, int *version)
 {
+   ShaderSource s = { .count   = sourcec,
+                      .values  = sourcev,
+                      .index   = 0,
+                      .cur_pos = "" };
+
    yyscan_t scanner;
-   ShaderSource s;
-   bool valid;
-   bool supported;
-
-   s.Count = sourcec;
-   s.Values = sourcev;
-   s.Index           =  0;
-   s.CurrentPosition = "";
-
    vvlex_init_extra(&s, &scanner);
-   valid = parse_for_version(scanner, version);
+   bool valid = parse_for_version(scanner, version);
    vvlex_destroy(scanner);
    if (!valid) return false;
 
-   supported = is_version_supported(*version);
-   if (!supported) return false;
+   if (!is_version_supported(*version)) return false;
 
    if (*version == GLSL_SHADER_VERSION(1, 0, 0))
       *version = GLSL_SHADER_VERSION(1, 0, 1);
@@ -145,30 +139,25 @@ bool glsl_find_version(int sourcec, const char *const *sourcev, int *version)
    return true;
 }
 
-// If we have reached the end of the source buffer, move to the next
-static void ensure_source(ShaderSource *s)
-{
-   while(*s->CurrentPosition == '\0') {
-      if(s->Index >= s->Count) return;
-
-      s->CurrentPosition = s->Values[s->Index];
-      s->Index++;
-   }
-}
-
 // Called by flex to get more input
+// If we have reached the end of the source buffer, move to the next
 int vvinput(char *buf, int buf_size, yyscan_t scanner)
 {
-   int num = 0;
    ShaderSource *s = vvget_extra(scanner);
 
-   ensure_source(s);
+   while(*s->cur_pos == '\0') {
+      if(s->index >= s->count) return 0;
+
+      s->cur_pos = s->values[s->index];
+      s->index++;
+   }
 
    // Copy data to flex's buffer until the end of current source buffer.
    // Flex will process this buffer and call vvinput again once it is done with it.
-   while (*s->CurrentPosition != '\0' && num < buf_size)
+   int num = 0;
+   while (*s->cur_pos != '\0' && num < buf_size)
    {
-      buf[num++] = *(s->CurrentPosition++);
+      buf[num++] = *(s->cur_pos++);
    }
 
    return num;

@@ -1111,13 +1111,6 @@ void NEXUS_Platform_P_ResetInterrupts(void)
 }
 #endif
 
-/* This function is dangerous and not meant for general use. It is needed for
-test code that needs a special ioctl to the usermode driver. It must be extern'd. */
-int b_get_umdrv_fd(void)
-{
-    return g_NEXUS_driverFd;
-}
-
 void NEXUS_Platform_P_Os_SystemUpdate32_isrsafe(const NEXUS_Core_PreInitState *preInitState, uint32_t reg, uint32_t mask, uint32_t value, bool systemRegister)
 {
     if (systemRegister) {

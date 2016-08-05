@@ -41,34 +41,6 @@
 
 #include "bvc5.h"
 
-/* BVC5_P_ProcessCompletedJobs
-
-   Iterate over the jobs in the completed queue and add their ids to
-   the job-complete structure.
-
- */
-void BVC5_P_ProcessCompletedJobs(
-   BVC5_Handle       hVC5,
-   BVC5_ClientHandle hClient
-);
-
-/* BVC5_P_PumpAllClients
-
-   Iterate over all clients and process their job qs
- */
-void BVC5_P_PumpAllClients(
-   BVC5_Handle       hVC5
-);
-
-/* BVC5_P_PumpClient
-
-   Process the jobqs for a particular client
- */
-void BVC5_P_PumpClient(
-   BVC5_Handle       hVC5,
-   BVC5_ClientHandle hClient
-);
-
 /* BVC5_P_WaitForJobCompletion
 
    Wait for jobs belonging to particular client to be out of hardware
@@ -85,6 +57,15 @@ void BVC5_P_WaitForJobCompletion(
 
  */
 void BVC5_P_MarkJobsFlushedV3D(
+   BVC5_Handle hVC5
+);
+
+/* BVC5_P_SchedulerPump
+
+   Prod the scheduler thread
+
+ */
+void BVC5_P_SchedulerPump(
    BVC5_Handle hVC5
 );
 

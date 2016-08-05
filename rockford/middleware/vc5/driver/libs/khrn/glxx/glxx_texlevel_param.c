@@ -8,6 +8,9 @@ Module   :  Header file
 FILE DESCRIPTION
 Implement glTexLevelParam
 =============================================================================*/
+
+#if KHRN_GLES31_DRIVER
+
 #include "gl_public_api.h"
 #include "libs/core/lfmt/lfmt.h"
 #include "../common/khrn_image.h"
@@ -175,14 +178,7 @@ static unsigned get_texlevel_param(GLXX_SERVER_STATE_T *state,
       break;
    case GL_TEXTURE_DEPTH:
       if (img)
-      {
-         if (texture->target == GL_TEXTURE_2D_ARRAY ||
-             texture->target == GL_TEXTURE_2D_MULTISAMPLE_ARRAY)
-         {
-            params[0] = khrn_image_get_num_elems(img);
-         } else
-            params[0] = khrn_image_get_depth(img);
-      }
+         params[0] = khrn_image_get_depth(img) * khrn_image_get_num_elems(img);
       else
          params[0] = 0;
       result = 1;
@@ -251,7 +247,7 @@ GL_APICALL void GL_APIENTRY glGetTexLevelParameteriv (GLenum target, GLint level
       GLenum pname, GLint *params)
 {
    if (!params)   return;
-   GLXX_SERVER_STATE_T *state = GL31_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
    if (!state)  return;
 
    if (is_int_texlevel_param(pname))
@@ -259,14 +255,14 @@ GL_APICALL void GL_APIENTRY glGetTexLevelParameteriv (GLenum target, GLint level
    else
       glxx_server_state_set_error(state, GL_INVALID_ENUM);
 
-   GL31_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_APICALL void GL_APIENTRY glGetTexLevelParameterfv (GLenum target, GLint level,
       GLenum pname, GLfloat *params)
 {
    if (!params)   return;
-   GLXX_SERVER_STATE_T *state = GL31_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
    if (!state)  return;
 
    if (is_int_texlevel_param(pname))
@@ -279,5 +275,7 @@ GL_APICALL void GL_APIENTRY glGetTexLevelParameterfv (GLenum target, GLint level
    else
       glxx_server_state_set_error(state, GL_INVALID_ENUM);
 
-   GL31_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
+
+#endif

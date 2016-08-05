@@ -28,23 +28,12 @@ void glxx_image_unit_deinit(glxx_image_unit *image_unit)
 
 static bool texture_has_layers_or_faces(enum glxx_tex_target target)
 {
-   switch(target)
-   {
-      case GL_TEXTURE_1D_BRCM:
-      case GL_TEXTURE_1D_ARRAY_BRCM:
-      case GL_TEXTURE_2D:
-      case GL_TEXTURE_EXTERNAL_OES:
-      case GL_TEXTURE_2D_MULTISAMPLE:
-      case GL_TEXTURE_2D_MULTISAMPLE_ARRAY:
-         return false;
-      case GL_TEXTURE_3D:
-      case GL_TEXTURE_2D_ARRAY:
-      case GL_TEXTURE_CUBE_MAP:
-         return true;
-      default:
-         unreachable();
-         return false;
-   }
+   /* multisample textures not supported for image units */
+   assert(!glxx_tex_target_is_multisample(target));
+   if (target == GL_TEXTURE_CUBE_MAP)
+      return true;
+
+   return glxx_tex_target_has_layers(target);
 }
 
 
@@ -83,8 +72,7 @@ static bool formats_compatible(glxx_image_unit_fmt unit_internalformat, GFX_LFMT
       return true;
 
    /* see if the formats match in size */
-   GFX_LFMT_T unit_fmt = gfx_api_fmt_from_sized_internalformat(khrn_get_lfmt_translate_exts(),
-            unit_internalformat);
+   GFX_LFMT_T unit_fmt = gfx_api_fmt_from_sized_internalformat(unit_internalformat);
 
    unsigned unit_fmt_size = gfx_lfmt_bytes_per_block(unit_fmt) * 8;
    unsigned tex_fmt_size = gfx_lfmt_bytes_per_block(tex_api_fmt) * 8;
@@ -120,8 +108,13 @@ enum glxx_tex_target image_type_to_textarget(GLenum glsl_image_type)
    case GL_UNSIGNED_INT_IMAGE_CUBE:
       target = GL_TEXTURE_CUBE_MAP;
       break;
+   case GL_INT_IMAGE_CUBE_MAP_ARRAY:
+   case GL_IMAGE_CUBE_MAP_ARRAY:
+   case GL_UNSIGNED_INT_IMAGE_CUBE_MAP_ARRAY:
+      target = GL_TEXTURE_CUBE_MAP_ARRAY;
+      break;
    default:
-      UNREACHABLE();
+      unreachable();
    }
    return target;
 }
@@ -135,22 +128,25 @@ GFX_LFMT_TYPE_T image_type_to_lfmt_type(GLenum glsl_image_type)
    case GL_INT_IMAGE_2D_ARRAY:
    case GL_INT_IMAGE_3D:
    case GL_INT_IMAGE_CUBE:
+   case GL_INT_IMAGE_CUBE_MAP_ARRAY:
       type = GFX_LFMT_TYPE_INT;
       break;
    case GL_IMAGE_2D:
    case GL_IMAGE_2D_ARRAY:
    case GL_IMAGE_3D:
    case GL_IMAGE_CUBE:
+   case GL_IMAGE_CUBE_MAP_ARRAY:
       type = GFX_LFMT_TYPE_FLOAT;
       break;
    case GL_UNSIGNED_INT_IMAGE_2D:
    case GL_UNSIGNED_INT_IMAGE_2D_ARRAY:
    case GL_UNSIGNED_INT_IMAGE_3D:
    case GL_UNSIGNED_INT_IMAGE_CUBE:
+   case GL_UNSIGNED_INT_IMAGE_CUBE_MAP_ARRAY:
       type = GFX_LFMT_TYPE_UINT;
       break;
    default:
-      UNREACHABLE();
+      unreachable();
    }
    return type;
 }
@@ -166,6 +162,10 @@ glxx_unit_access glxx_get_calc_image_unit(const glxx_image_unit *image_unit,
    unsigned base_level, num_levels;
    GLXX_TEXTURE_T *texture = image_unit->texture;
 
+   /* there is no imageStore/load for multisample textures */
+   if (glxx_tex_target_is_multisample(texture->target))
+      goto end;
+
    if (!glxx_texture_check_completeness(texture, false, &base_level,
             &num_levels))
       goto end;
@@ -177,7 +177,6 @@ glxx_unit_access glxx_get_calc_image_unit(const glxx_image_unit *image_unit,
    calc_image_unit->use_face_layer = false;
    if (texture_has_layers_or_faces(texture->target) && !image_unit->layered)
    {
-      /* make sure the selected layer exists */
       switch (texture->target)
       {
       case GL_TEXTURE_CUBE_MAP:
@@ -186,6 +185,7 @@ glxx_unit_access glxx_get_calc_image_unit(const glxx_image_unit *image_unit,
          calc_image_unit->face = image_unit->layer;
          calc_image_unit->layer = 0;
          break;
+      case GL_TEXTURE_CUBE_MAP_ARRAY:
       case GL_TEXTURE_2D_ARRAY:
       case GL_TEXTURE_3D:
          if (!glxx_texture_is_legal_layer(texture->target, image_unit->layer))
@@ -217,8 +217,7 @@ glxx_unit_access glxx_get_calc_image_unit(const glxx_image_unit *image_unit,
    if (image_tex_target != target)
       goto end;
 
-   GFX_LFMT_T api_fmt = gfx_api_fmt_from_sized_internalformat(
-      khrn_get_lfmt_translate_exts(), image_unit->internalformat);
+   GFX_LFMT_T api_fmt = gfx_api_fmt_from_sized_internalformat(image_unit->internalformat);
    unsigned       num_planes;
    GFX_LFMT_T     fmts[GFX_BUFFER_MAX_PLANES];
    glxx_hw_fmts_from_api_fmt(&num_planes, fmts, api_fmt);
@@ -237,11 +236,13 @@ glxx_unit_access glxx_get_calc_image_unit(const glxx_image_unit *image_unit,
       goto end;
 
     /* TODO: get info from the shader if this image is used in an imageStore */
-   calc_image_unit->write = true;
+   calc_image_unit->write = (image_unit->access != GL_READ_ONLY);
    acc = GLXX_ACC_OK;
 end:
    return acc;
 }
+
+#if KHRN_GLES31_DRIVER
 
 static bool is_allowed_access(GLenum access)
 {
@@ -259,7 +260,7 @@ static bool is_allowed_access(GLenum access)
 GL_APICALL void GL_APIENTRY glBindImageTexture (GLuint unit, GLuint tex_id,
       GLint level, GLboolean layered, GLint layer, GLenum access, GLenum format)
 {
-   GLXX_SERVER_STATE_T *state = GL31_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
    if (!state)
       return;
 
@@ -320,5 +321,7 @@ end:
    if (error != GL_NO_ERROR)
       glxx_server_state_set_error(state, error);
 
-   GL31_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
+
+#endif

@@ -72,8 +72,10 @@ typedef struct NEXUS_StreamMuxCreateSettings
 {
     NEXUS_CallbackDesc finished; /* NEXUS_StreamMux_Finish has completed. NEXUS_StreamMux_Stop can be called for a clean finish. */
     NEXUS_StreamMuxMemoryConfiguration memoryConfiguration;
-    NEXUS_HeapHandle    systemHeap; /* heap that is used to allocated memory for the  host only accessible buffer, if NULL, then OS allocator would be used */
-    NEXUS_HeapHandle    sharedHeap; /* heap that is used to allocated memory for the host and devies(s) buffer, if NULL, then default heap would be used */
+    NEXUS_HeapHandle    systemHeap; /* heap that is used to allocated memory for the  host only accessible buffer,
+                                       if NULL, then OS allocator would be used */
+    NEXUS_HeapHandle    sharedHeap; /* heap that is used to allocated memory for the host and devies(s) buffer, if
+                                       NULL, then default heap would be used */
 } NEXUS_StreamMuxCreateSettings;
 
 /**
@@ -132,6 +134,7 @@ typedef struct NEXUS_StreamMuxAudioPid {
     int pidChannelIndex; /* pidChannelIndex used in NEXUS_Playpump_OpenPidChannel */
     NEXUS_PlaypumpHandle playpump;
     NEXUS_AudioMuxOutputHandle muxOutput; /* if NULL, then not enabled */
+    bool pesPacking; /* If true, multiple audio frames will be packed into a single PES header */
 } NEXUS_StreamMuxAudioPid;
 
 typedef struct NEXUS_StreamMuxPcrPid {
@@ -142,15 +145,18 @@ typedef struct NEXUS_StreamMuxPcrPid {
 } NEXUS_StreamMuxPcrPid;
 
 typedef struct NEXUS_StreamMuxUserDataPid {
-    NEXUS_MessageHandle message; /* The userdata is expected to arrive as PES packets encapsulated in TS packets. Application is responsible for calling NEXUS_Message_Start prior to calling NEXUS_StreamMux_Start and call NEXUS_Message_Stop after mux session was completed */
+    NEXUS_MessageHandle message; /* The userdata is expected to arrive as PES packets encapsulated
+        in TS packets. Application is responsible for calling NEXUS_Message_Start prior to calling
+        NEXUS_StreamMux_Start and call NEXUS_Message_Stop after mux session was completed */
 } NEXUS_StreamMuxUserDataPid;
 
 typedef enum NEXUS_StreamMuxInterleaveMode
 {
-   NEXUS_StreamMuxInterleaveMode_eCompliant, /* Use the transmission timestamp provided in the NEXUS_[Video/Audio]EncoderDescriptor (required for HRD compliance) */
-   NEXUS_StreamMuxInterleaveMode_ePts, /* Use the DTS/PTS provided in the NEXUS_[Video/Audio]EncoderDescriptor to generate a new transmission timestamp (useful to minimize A/V buffering delay)
-                                        * Note: PCRs are NOT generated in this mode
-                                        */
+   NEXUS_StreamMuxInterleaveMode_eCompliant, /* Use the transmission timestamp provided in the
+        NEXUS_[Video/Audio]EncoderDescriptor (required for HRD compliance) */
+   NEXUS_StreamMuxInterleaveMode_ePts, /* Use the DTS/PTS provided in the NEXUS_[Video/Audio]EncoderDescriptor
+        to generate a new transmission timestamp (useful to minimize A/V buffering delay)
+        Note: PCRs are NOT generated in this mode */
    NEXUS_StreamMuxInterleaveMode_eMax
 } NEXUS_StreamMuxInterleaveMode;
 
@@ -175,9 +181,13 @@ typedef struct NEXUS_StreamMuxStartSettings
                                  * and the encoder's CDB buffer size
                                  */
 
-    bool nonRealTime;           /* Normal operation for muxing in real time, if this is set to 'true' then muxing done in non-realtime (AFAP) */
+    bool nonRealTime;           /* Normal operation for muxing in real time, if this is set to 'true' then muxing
+                                   done in non-realtime (AFAP) */
 
-    int nonRealTimeRate;        /* Rate in units of NEXUS_NORMAL_PLAY_SPEED for non realtime muxing, it's the upper bound to the rate of muxing, due to the underlying limitations rate could be only be power of 2, for example 1*NEXUS_NORMAL_PLAY_SPEED , 2*NEXUS_NORMAL_PLAY_SPEED, 4*NEXUS_NORMAL_PLAY_SPEED */
+    int nonRealTimeRate;        /* Rate in units of NEXUS_NORMAL_PLAY_SPEED for non realtime muxing, it's the upper
+                                   bound to the rate of muxing, due to the underlying limitations rate could be
+                                   only be power of 2, for example 1*NEXUS_NORMAL_PLAY_SPEED , 2*NEXUS_NORMAL_PLAY_SPEED,
+                                   4*NEXUS_NORMAL_PLAY_SPEED */
 
     unsigned servicePeriod;     /* (in milliseconds) Indicates the lowest frequency
                                  * the muxer is expected to be executed. 0 indicates
@@ -200,6 +210,7 @@ typedef struct NEXUS_StreamMuxStartSettings
     bool supportTts;            /* Enables TTS support (MTU BPP insertion) to facilitate HW to generate
                                  * 4-byte timestamp in output TS */
     NEXUS_StreamMuxInterleaveMode interleaveMode; /* Specifies A/V interleave timing mode */
+    bool insertPtsOnlyOnFirstKeyFrameOfSegment; /* When true, a PTS is inserted only on the first key frame of each segment */
 } NEXUS_StreamMuxStartSettings;
 
 typedef struct NEXUS_StreamMuxOutput
@@ -284,9 +295,10 @@ typedef struct NEXUS_StreamMuxSystemData
                               relative to the start of the previous system data buffer.
                               "0" indicates to send the packet out ASAP. */
     size_t size; /* size of pData in bytes. Must be multiple of TS Packet size (188 bytes) */
-    const void *pData; /* attr{memory=cached} address of data to be muxed. Must be allocated using NEXUS_Memory_Allocation.
-                          memory pointed to by pData must remain intact until NEXUS_StreamMux_GetCompletedSystemDataBuffers indicates
-                          that is is completed. */
+    const void *pData; /* attr{memory=cached} address of data to be muxed. Must be allocated using
+                          NEXUS_Memory_Allocation. memory pointed to by pData must remain intact
+                          until NEXUS_StreamMux_GetCompletedSystemDataBuffers indicates that is is
+                          completed. */
 } NEXUS_StreamMuxSystemData;
 
 /**
@@ -322,7 +334,18 @@ Summary:
 **/
 typedef struct NEXUS_StreamMuxStatus
 {
-    unsigned duration; /* file duration (in milliseconds) completed at current time */
+    unsigned duration; /* stream duration (in milliseconds) completed at current time */
+
+    struct
+    {
+       struct
+       {
+          unsigned currentTimestamp; /* most recent timestamp (DTS) completed (in 45 Khz) */
+       } pid[NEXUS_MAX_MUX_PIDS];
+       unsigned averageBitrate; /* average bitrate (in bps) */
+    } video, audio, systemdata, userdata;
+    unsigned efficiency; /* efficiency of the output TS (in percentage) (e.g. 100 = no TS overhead, 95 = 5% TS overhead, etc.) */
+    uint64_t totalBytes; /* total bytes generated */
 } NEXUS_StreamMuxStatus;
 
 /**
@@ -345,9 +368,10 @@ Summary:
 Return memory configuration for given mux configuration.
 
 Description:
-Different mux configuration may require different amount of memory. This function would return memory budged required for given configuration.
-This configuration would need then to be passed into the NEXUS_StreamMux_Create. If application wants to support multiple different configurations
-with the same instance of the NEXUS_StreamMux, it would need to call this function for each configuration and combine results.
+Different mux configuration may require different amount of memory. This function would return memory budged required
+for given configuration. This configuration would need then to be passed into the NEXUS_StreamMux_Create. If
+application wants to support multiple different configurations with the same instance of the NEXUS_StreamMux,
+it would need to call this function for each configuration and combine results.
 **/
 void NEXUS_StreamMux_GetMemoryConfiguration(
     const NEXUS_StreamMuxConfiguration *pConfiguration,

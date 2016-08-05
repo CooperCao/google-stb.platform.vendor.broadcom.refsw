@@ -144,9 +144,10 @@ static uint32_t get_formats_abstract(BEGL_BufferFormat format,
       /* TODO, khrn_image requires at this time an api_fmt. There is no api_fmt for YV12
          use GFX_LFMT_R8_G8_B8_A8_UNORM for the moment till we remove api_fmt from khrn_image */
       *api_fmt = GFX_LFMT_R8_G8_B8_A8_UNORM;
+      /* YV12 is provided by Android and BSG as YCrCb/YVU */
       lfmt[0] = GFX_LFMT_Y8_UNORM_2D_RSO;
-      lfmt[1] = GFX_LFMT_U8_2X2_UNORM_2D_RSO;
-      lfmt[2] = GFX_LFMT_V8_2X2_UNORM_2D_RSO;
+      lfmt[1] = GFX_LFMT_V8_2X2_UNORM_2D_RSO;
+      lfmt[2] = GFX_LFMT_U8_2X2_UNORM_2D_RSO;
       num_planes = 3;
       break;
 #if V3D_VER_AT_LEAST(3,3,0,0)
@@ -172,7 +173,7 @@ static uint32_t get_formats_abstract(BEGL_BufferFormat format,
 /* The function gfx_buffer_desc_gen creates the buffer description using 3
    individual planes with no knowledge of the overall buffer format.
    This function is called knowing that it is a YV12 buffer and corrects
-   the pitches to be 16 bits aligned and calculates the correct offsets. */
+   the pitches to be 16 pixel aligned and calculates the correct offsets. */
 static void fix_YV12_planes_pitch_and_offset(GFX_BUFFER_DESC_T *buffer_desc)
 {
    assert((buffer_desc->width & 0x1) == 0 && (buffer_desc->height & 0x1) == 0);
@@ -184,6 +185,14 @@ static void fix_YV12_planes_pitch_and_offset(GFX_BUFFER_DESC_T *buffer_desc)
    buffer_desc->planes[0].offset = 0;
    buffer_desc->planes[1].offset = buffer_desc->planes[0].pitch * buffer_desc->height;
    buffer_desc->planes[2].offset = buffer_desc->planes[1].pitch * buffer_desc->height / 2 + buffer_desc->planes[1].offset;
+}
+
+static void image_term_abstract(void *nativeSurface)
+{
+   BEGL_DisplayInterface   *platform = &g_bcgPlatformData.displayInterface;
+
+   if (platform->SurfaceChangeRefCount)
+      platform->SurfaceChangeRefCount(platform->context, nativeSurface, BEGL_Decrement);
 }
 
 KHRN_IMAGE_T *image_from_surface_abstract(void *nativeSurface, bool flipY)
@@ -221,7 +230,12 @@ KHRN_IMAGE_T *image_from_surface_abstract(void *nativeSurface, bool flipY)
    /* We must be given locked pointers */
    assert(surfaceInfo.physicalOffset != 0);
 
-   gmem_handle = gmem_from_external_memory(surfaceInfo.physicalOffset, surfaceInfo.cachedAddr, surfaceInfo.byteSize, "display_surface");
+   if (platform->SurfaceChangeRefCount)
+      platform->SurfaceChangeRefCount(platform->context, nativeSurface, BEGL_Increment);
+
+   gmem_handle = gmem_from_external_memory(image_term_abstract, nativeSurface,
+                                           surfaceInfo.physicalOffset, surfaceInfo.cachedAddr,
+                                           surfaceInfo.byteSize, "display_surface");
    if (gmem_handle == GMEM_HANDLE_INVALID)
       goto error;
 

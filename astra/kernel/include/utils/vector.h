@@ -47,27 +47,30 @@
 #include "lib_printf.h"
 #include "lib_string.h"
 
-#define RESIZE_NUM_PAGES  1
-
 namespace tzutils {
 
     template <typename T>
     class Vector {
     public:
         void init() {
-            capacity = 0;
+            if (sizeof(T) > PAGE_SIZE_4K_BYTES) {
+                err_msg("%s: Size of element exceeds physical page size!\n", __PRETTY_FUNCTION__);
+                kernelHalt("Size of element too large");
+            }
+
             size = 0;
             numPages = 0;
-
+            dynArray = nullptr;
         }
 
         void clear() {
             size = 0;
-            downsize();
+            downsize(true);
         }
 
         void pushBack(const T& t) {
-            if (size == capacity)
+            // resize if the new size exceeds capacity
+            if ((size + 1) * sizeof(T) > numPages * PAGE_SIZE_4K_BYTES)
                 resize();
 
             dynArray[size] = t;
@@ -75,14 +78,15 @@ namespace tzutils {
         }
 
         void popBack(T *t) {
-            if (size == 0){
+            if (size == 0)
                 return;
-            }
 
             size--;
-            if (t != nullptr) *t = dynArray[size];
+            if (t != nullptr)
+                *t = dynArray[size];
 
-            if ((capacity - size ) > PAGE_SIZE_4K_BYTES)
+            // downsize if capacity still allows 1 more element after downsizing
+            if ((size + 1) * sizeof(T) <= (numPages - 1) * PAGE_SIZE_4K_BYTES)
                 downsize();
         }
 
@@ -106,76 +110,75 @@ namespace tzutils {
 
     private:
         void resize() {
-            int newCapacity = capacity + (RESIZE_NUM_PAGES * PAGE_SIZE_4K_BYTES);
+            int newNumPages = numPages + 1;
+
+            // printf("%s: resizing from %d to %d pages\n", __PRETTY_FUNCTION__, numPages, newNumPages);
+
             PageTable *kernPageTable = PageTable::kernelPageTable();
 
-            // printf("resizing from %d to %d\n", capacity, newCapacity);
+            // reserve a new continuous virtual address range
+            TzMem::VirtAddr vaddr = kernPageTable->reserveAddrRange(
+                (void *)KERNEL_HEAP_START,
+                newNumPages * PAGE_SIZE_4K_BYTES,
+                PageTable::ScanForward);
 
-            TzMem::VirtAddr vaddr = kernPageTable->reserveAddrRange((void *)KERNEL_HEAP_START, newCapacity, PageTable::ScanForward);
             if (vaddr == nullptr) {
-                err_msg("Exhausted kernel heap space !\n");
+                err_msg("%s: Exhausted kernel heap space!\n", __PRETTY_FUNCTION__);
                 kernelHalt("Virtual Address Space exhausted");
             }
 
-            // printf("will remap to %p from %p\n", vaddr, &dynArray[0]);
+            // remap existing physical pages
+            TzMem::VirtAddr vaddr_old = dynArray;
+            TzMem::VirtAddr vaddr_new = vaddr;
+            for (int i = 0; i < numPages; i++) {
+                TzMem::PhysAddr paddr = kernPageTable->lookUp(vaddr_old);
 
-            int newNumPages = 0;
-            TzMem::VirtAddr curr = vaddr;
-            for (int i=0; i<newCapacity; i+=PAGE_SIZE_4K_BYTES) {
+                kernPageTable->unmapPage(vaddr_old);
+				kernPageTable->mapPage(vaddr_new, paddr, MAIR_MEMORY, MEMORY_ACCESS_RW_KERNEL, true);
 
+                vaddr_old = (uint8_t *)vaddr_old + PAGE_SIZE_4K_BYTES;
+                vaddr_new = (uint8_t *)vaddr_new + PAGE_SIZE_4K_BYTES;
+            }
+
+            // alloc and map new physical pages
+            for (int i = numPages; i < newNumPages; i++) {
                 TzMem::PhysAddr paddr = TzMem::allocPage(KERNEL_PID);
                 if (paddr == nullptr) {
-                    err_msg("%s: Exhausted physical memory\n", __PRETTY_FUNCTION__);
-                    kernelHalt("out of memory");
+                    err_msg("%s: Exhausted physical memory!\n", __PRETTY_FUNCTION__);
+                    kernelHalt("Out of memory");
                 }
 
-                kernPageTable->mapPage(curr, paddr, MAIR_MEMORY, MEMORY_ACCESS_RW_KERNEL, true);
-                curr = (uint8_t *)curr + PAGE_SIZE_4K_BYTES;
+                kernPageTable->mapPage(vaddr_new, paddr, MAIR_MEMORY, MEMORY_ACCESS_RW_KERNEL, true);
 
-                newNumPages++;
+                vaddr_new = (uint8_t *)vaddr_new + PAGE_SIZE_4K_BYTES;
             }
 
-            T *newArr = (T *)vaddr;
-            for (int i=0; i<size; i++)
-                newArr[i] = dynArray[i];
-
-            capacity = newCapacity;
-
-            curr = dynArray;
-            for (int i=0; i<numPages; i++) {
-                TzMem::PhysAddr phys = kernPageTable->lookUp(curr);
-                kernPageTable->unmapPage(curr);
-                TzMem::freePage(phys);
-
-                // printf("\tUnmap %p. free %p\n", curr, phys);
-                curr = (uint8_t *)curr + PAGE_SIZE_4K_BYTES;
-            }
-
-            dynArray = (T *)vaddr;
-            numPages = newNumPages;
+			numPages = newNumPages;
+			dynArray = (T *)vaddr;
         }
 
-        void downsize() {
-            int spareNumPages = (capacity - size)/PAGE_SIZE_4K_BYTES;
-            if (spareNumPages == 0)
+        void downsize(bool clear = false) {
+            int newNumPages = (clear) ? 0 : ((size + 1) * sizeof(T) - 1) / PAGE_SIZE_4K_BYTES + 1;
+
+            if (newNumPages == numPages)
                 return;
 
-            // printf("%s: downsizing %d pages\n", __PRETTY_FUNCTION__, spareNumPages);
+            // printf("%s: downsizing from %d to %d pages\n", __PRETTY_FUNCTION__, numPages, newNumPages);
 
             PageTable *kernPageTable = PageTable::kernelPageTable();
 
-            TzMem::VirtAddr curr = (uint8_t *)dynArray + capacity - PAGE_SIZE_4K_BYTES;
-            for (int i=0; i<spareNumPages; i++) {
-                TzMem::PhysAddr phys = kernPageTable->lookUp(curr);
-                kernPageTable->unmapPage(phys);
-                TzMem::freePage(phys);
+            TzMem::VirtAddr vaddr = (uint8_t *)dynArray + newNumPages * PAGE_SIZE_4K_BYTES;
+            for (int i = newNumPages; i < numPages; i++) {
+                TzMem::PhysAddr paddr = kernPageTable->lookUp(vaddr);
 
-                curr = (uint8_t *)curr - PAGE_SIZE_4K_BYTES;
-                capacity -= PAGE_SIZE_4K_BYTES;
-                numPages--;
+                kernPageTable->unmapPage(vaddr);
+                TzMem::freePage(paddr);
+
+                vaddr = (uint8_t *)vaddr + PAGE_SIZE_4K_BYTES;
             }
 
-            if (capacity == 0)
+			numPages = newNumPages;
+            if (numPages == 0)
                 dynArray = nullptr;
         }
 
@@ -183,11 +186,10 @@ namespace tzutils {
         T *dynArray;
         int numPages;
         int size;
-        int capacity;
 
     public:
-        Vector() = default;
-        ~Vector() = default;
+        Vector() {init();}
+        ~Vector() {clear();}
 
         Vector(const Vector<T>& ) = delete;
         Vector<T>& operator = (const Vector<T>& ) = delete;

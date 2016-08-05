@@ -348,6 +348,9 @@ static void process_rx_message(unsigned int *message_rx)
     case (RPC_C2S_ZBPRO_ZDO_MgmtNwkUpdateUnsolInd):
         client_ZBPRO_ZDO_MgmtNwkUpdateUnsolInd(message_payload);
         break;
+    case (RPC_C2S_ZBPRO_ZDO_DeviceAnnceInd):
+        client_ZBPRO_ZDO_DeviceAnnceInd(message_payload);
+        break;
     case (RPC_C2S_ZBPRO_TC_NwkKeyUpdateReq | RPC_RESPONSE):
         client_ZBPRO_TC_NwkKeyUpdateReq_callback(message_payload);
         break;

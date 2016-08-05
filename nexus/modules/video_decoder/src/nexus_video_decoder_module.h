@@ -486,7 +486,7 @@ struct NEXUS_VideoDecoder {
         } returnOutstandingFrames_Avd;
     } functionData;
     struct {
-        unsigned maxWidth, maxHeight; /* derived from memconfig's maxFormat, cached here */
+        unsigned maxWidth, maxHeight, refreshRate; /* derived from memconfig's maxFormat, cached here */
     } memconfig;
     struct {
         NEXUS_MemoryBlockHandle  block;
@@ -501,6 +501,7 @@ struct NEXUS_VideoDecoder {
 /* The NEXUS_VideoDecoderDevice corresponds to an AVD HW block. */
 struct NEXUS_VideoDecoderDevice {
     BXVD_Handle xvd;
+    BXVD_HardwareCapabilities cap;
     unsigned index;
     NEXUS_VideoDecoderDisplayConnection defaultConnection;
     BKNI_EventHandle watchdog_event;
@@ -538,6 +539,7 @@ void NEXUS_VideoDecoder_P_Watchdog_isr(void *data, int not_used, void *not_used2
 void NEXUS_VideoDecoder_P_DataReady_isr(void *data, int chIndex, void *field);
 void NEXUS_VideoDecoder_P_RequestStc_isr(void *data, int chIndex, void *pts_info);
 void NEXUS_VideoDecoder_P_PtsError_isr(void *data, int chIndex, void *pts_info);
+void NEXUS_VideoDecoder_P_TsmPass_isr(void *data, int chIndex, void *pts_info);
 void NEXUS_VideoDecoder_P_PictureParams_isr(void *data, int chIndex, void *info_);
 void NEXUS_VideoDecoder_P_FirstPtsReady_isr(void *data, int chIndex, void *pts_info);
 void NEXUS_VideoDecoder_P_FirstPtsPassed_isr(void *data, int chIndex, void *pts_info);

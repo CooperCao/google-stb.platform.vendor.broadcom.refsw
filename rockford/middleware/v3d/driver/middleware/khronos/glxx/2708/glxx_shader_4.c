@@ -1323,19 +1323,36 @@ Dataflow *glxx_vertex_backend(Dataflow *x, Dataflow *y, Dataflow *z, Dataflow *w
                               uint32_t vary_count,
                               bool egl_output)
 {
-   Dataflow *recip_w, *temp_x, *temp_y, *temp_z, *xy, *dep;
+   Dataflow *recip_w, *temp_x0, *temp_y0, *temp_z, *xy, *dep;
+   Dataflow *temp_x1, *temp_y1;
+   Dataflow *plus_half, *minus_half, *zero;
+   Dataflow *adjustment_x, *adjustment_y;
    uint32_t i;
 
    recip_w = glxx_accu_recip(w);
 
-   temp_x = glxx_f_to_i(glxx_add(glxx_mul(glxx_mul(x, glxx_ustandard(GLXX_STATE_OFFSET(viewport.internal[9]))), recip_w), glxx_cfloat(0.5f)));
+   plus_half = glxx_cfloat(0.5f);
+   minus_half = glxx_cfloat(-0.5f);
+   zero = glxx_cfloat(0.0f);
+
+   temp_x0 = glxx_mul(glxx_mul(x, glxx_ustandard(GLXX_STATE_OFFSET(viewport.internal[9]))), recip_w);
+   adjustment_x = glxx_cond(
+      glxx_less(temp_x0, zero),
+      minus_half, plus_half);
+
+   temp_x1 = glxx_f_to_i(glxx_add(temp_x0, adjustment_x));
+   temp_y0 = glxx_mul(glxx_mul(y, glxx_ustandard(GLXX_STATE_OFFSET(viewport.internal[10]))), recip_w);
+   adjustment_y = glxx_cond(
+      glxx_less(temp_y0, zero),
+      minus_half, plus_half);
+
    if ((khrn_workarounds.FB_BOTTOM_UP || khrn_workarounds.FB_TOP_DOWN) && egl_output)
       /* scale_y needs to be pushed as an actual uniform, so it can be altered depending on the framebuffer attatchment */
-      temp_y = glxx_f_to_i(glxx_sub(glxx_cfloat(0.5f), glxx_mul(glxx_mul(y, glxx_ustandard(GLXX_STATE_OFFSET(viewport.internal[10]))), recip_w)));
+      temp_y1 = glxx_f_to_i(glxx_sub(adjustment_y, temp_y0));
    else
-      temp_y = glxx_f_to_i(glxx_add(glxx_mul(glxx_mul(y, glxx_ustandard(GLXX_STATE_OFFSET(viewport.internal[10]))), recip_w), glxx_cfloat(0.5f)));
+      temp_y1 = glxx_f_to_i(glxx_add(temp_y0, adjustment_y));
 
-   xy = glsl_dataflow_construct_pack_int16(temp_x, temp_y);
+   xy = glsl_dataflow_construct_pack_int16(temp_x1, temp_y1);
 
    temp_z = glxx_mul(glxx_mul(z, glxx_ustandard(GLXX_STATE_OFFSET(viewport.internal[4]))), recip_w);
    temp_z = glxx_add(temp_z, glxx_ustandard(GLXX_STATE_OFFSET(viewport.internal[5])));

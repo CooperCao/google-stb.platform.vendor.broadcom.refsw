@@ -61,7 +61,6 @@
  *     /projects/dvt_chip_arch/RealTimeScheduling/rts/rts_code/timing_model/library_tools.cfg
  *
  *****************************************************************************/
-
 #include "bchp_memc_gen_0.h"  /* located in /TBD directory */
 #include "bchp_memc_gen_1.h"  /* located in /TBD directory */
 

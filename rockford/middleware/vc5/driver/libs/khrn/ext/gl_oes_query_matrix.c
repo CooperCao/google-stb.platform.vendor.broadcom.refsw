@@ -52,7 +52,7 @@ Implementation Notes:
 
 GL_APICALL GLbitfield GL_APIENTRY glQueryMatrixxOES ( GLfixed mantissa[16], GLint exponent[16] )
 {
-   GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_11);
    if (!state) return 0xff;
 
    GLenum pname = 0;
@@ -67,20 +67,17 @@ GL_APICALL GLbitfield GL_APIENTRY glQueryMatrixxOES ( GLfixed mantissa[16], GLin
       case GL_PROJECTION:
          pname = GL_PROJECTION_MATRIX;
          break;
-#if GL_OES_matrix_palette
       case GL_MATRIX_PALETTE_OES:
          glxx_server_state_set_error(state, GL_INVALID_OPERATION);      /* Not defined what we should do, this seems sensible */
          return 0xff;
-#endif
       default:
-         UNREACHABLE();
+         unreachable();
    }
 
-   bool ok = glxx_get_fixed(state, pname, mantissa);
-   assert(ok);
+   verif(glxx_get_fixeds(state, pname, mantissa) == GL_NO_ERROR);
    for (unsigned i=0; i < 16; i++)
       exponent[i] = 0;
 
-   GL11_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
    return 0;
 }

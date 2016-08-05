@@ -44,17 +44,19 @@
  * This module was generated magically with RDB from a source description
  * file. You must edit the source file for changes to be made to this file.
  *
+ * The launch point for all information concerning RDB is found at:
+ *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Tue Feb 23 15:26:07 2016
- *                 Full Compile MD5 Checksum  4b84f30a4b3665aac5b824a1ed76e56c
+ * Date:           Generated on               Thu Jun 23 18:55:22 2016
+ *                 Full Compile MD5 Checksum  726d365438fe88693b6f0a492958face
  *                     (minus title and desc)
- *                 MD5 Checksum               4894bba0ec078aee10b5b5954262d56e
+ *                 MD5 Checksum               942083b46396c70655d90e546c008796
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     804
+ *                 RDB.pm                     1048
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
  *                 Script Source              /home/pntruong/sbin/combo_header.pl
  *                 DVTSWVER                   n/a
@@ -74,7 +76,7 @@
  ***************************************************************************/
 #define BCHP_LEAP_ROM_WORDi_ARRAY_BASE                             0x00000000
 #define BCHP_LEAP_ROM_WORDi_ARRAY_START                            0
-#define BCHP_LEAP_ROM_WORDi_ARRAY_END                              8191
+#define BCHP_LEAP_ROM_WORDi_ARRAY_END                              9215
 #define BCHP_LEAP_ROM_WORDi_ARRAY_ELEMENT_SIZE                     32
 
 /***************************************************************************

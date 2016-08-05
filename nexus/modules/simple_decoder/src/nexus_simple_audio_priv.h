@@ -65,17 +65,22 @@ enum nexus_simpleaudiodecoder_state {
     state_started,
     state_suspended,
     state_priming,
+    state_priming_trick, /* we have stopped priming because of a host trick mode, so we can restart when the trick stops */
     state_max
 };
 
 struct NEXUS_SimpleAudioDecoderServer
 {
     NEXUS_OBJECT(NEXUS_SimpleAudioDecoderServer);
+    BLST_S_ENTRY(NEXUS_SimpleAudioDecoderServer) link;
     BLST_S_HEAD(NEXUS_SimpleAudioPlayback_P_List, NEXUS_SimpleAudioPlayback) playbacks;
     BLST_S_HEAD(NEXUS_SimpleAudioDecoder_P_List, NEXUS_SimpleAudioDecoder) decoders;
 };
 
-extern NEXUS_SimpleAudioDecoderServerHandle g_NEXUS_SimpleAudioDecoderServer;
+NEXUS_SimpleAudioDecoderHandle nexus_simple_audio_decoder_p_first(void);
+NEXUS_SimpleAudioDecoderHandle nexus_simple_audio_decoder_p_next(NEXUS_SimpleAudioDecoderHandle handle);
+NEXUS_SimpleAudioPlaybackHandle nexus_simple_audio_playback_p_first(void);
+NEXUS_SimpleAudioPlaybackHandle nexus_simple_audio_playback_p_next(NEXUS_SimpleAudioPlaybackHandle handle);
 
 struct NEXUS_SimpleAudioDecoder
 {
@@ -97,7 +102,7 @@ struct NEXUS_SimpleAudioDecoder
     struct NEXUS_SimpleAudioDecoder_P_CodecSettingsDecoder codecSettings;
     NEXUS_SimpleAudioDecoderStartSettings startSettings;
     NEXUS_AudioDecoderTrickState trickState;
-    NEXUS_AudioInput currentSpdifInput, currentHdmiInput, currentCaptureInput;
+    NEXUS_AudioInputHandle currentSpdifInput, currentHdmiInput, currentCaptureInput;
     bool currentSpdifInputCompressed, currentHdmiInputCompressed;
     NEXUS_SimpleStcChannelHandle stcChannel;
     int stcIndex;
@@ -152,9 +157,6 @@ NEXUS_Error nexus_simpleaudiodecoder_p_add_encoder(NEXUS_SimpleAudioDecoderHandl
     NEXUS_SimpleEncoderHandle encoder, NEXUS_AudioMixerHandle audioMixer,
     bool displayEncode);
 void nexus_simpleaudiodecoder_p_remove_encoder(NEXUS_SimpleAudioDecoderHandle handle);
-
-void nexus_simpleaudiodecoder_p_encoder_get_codec_settings(NEXUS_SimpleAudioDecoderHandle handle,
-    NEXUS_AudioCodec codec, NEXUS_AudioEncoderCodecSettings *pSettings);
 
 NEXUS_Error nexus_simpleaudiodecoder_p_encoder_set_codec_settings(NEXUS_SimpleAudioDecoderHandle handle,
     const NEXUS_AudioEncoderCodecSettings *pSettings);

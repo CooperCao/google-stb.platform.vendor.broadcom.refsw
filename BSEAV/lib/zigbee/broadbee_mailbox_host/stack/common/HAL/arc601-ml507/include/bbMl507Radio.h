@@ -115,9 +115,9 @@
  *  - 3 - Mode 3-AND, Carrier sense AND energy above threshold
  */
 /**@{*/
-#define HAL_RADIO__CCA_MODE_MIN     (PHY_CCA__MODE_3_OR)    /*!< Minimum code value of implemented Radio CCA mode. */
-#define HAL_RADIO__CCA_MODE_MAX     (PHY_CCA__MODE_3_AND)   /*!< Maximum code value of implemented Radio CCA mode. */
-#define HAL_RADIO__CCA_MODE_DEF     (PHY_CCA__MODE_1)       /*!< Default code value of Radio CCA mode. */
+#define HAL_RADIO__CCA_MODE_MIN     (HAL_RADIO_CCA__MODE_3_OR)      /*!< Minimum code value of Radio CCA mode. */
+#define HAL_RADIO__CCA_MODE_MAX     (HAL_RADIO_CCA__MODE_3_AND)     /*!< Maximum code value of Radio CCA mode. */
+#define HAL_RADIO__CCA_MODE_DEF     (HAL_RADIO_CCA__MODE_1)         /*!< Default code value of Radio CCA mode. */
 /**@}*/
 
 /**//**

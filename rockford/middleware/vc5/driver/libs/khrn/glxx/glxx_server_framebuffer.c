@@ -97,47 +97,35 @@ static bool is_allowed_fb_target(const GLXX_SERVER_STATE_T *state, GLenum target
    }
 }
 
-static void invalidate_framebuffer(GLenum target, GLsizei
-      num_attachments_signed, const GLenum *attachments, bool really)
+static void invalidate_framebuffer(GLXX_SERVER_STATE_T *state, GLenum target,
+      GLsizei num_attachments_signed, const GLenum *attachments, bool really)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
-   GLXX_FRAMEBUFFER_T *fb;
-   bool     color_rt[GLXX_MAX_RENDER_TARGETS];
-   bool     color    = false;
-   bool     depth    = false;
-   bool     stencil  = false;
-   unsigned int i, num_attachments;
-
-   if (!state)
-      return;
-
-   for (i = 0; i < GLXX_MAX_RENDER_TARGETS; ++i)
-      color_rt[i] = false;
-
    if (!is_allowed_fb_target(state, target))
    {
       glxx_server_state_set_error(state, GL_INVALID_ENUM);
-      goto unlock_out;
+      return;
    }
 
-   fb = glxx_server_get_bound_fb(state, target);
+   GLXX_FRAMEBUFFER_T *fb = glxx_server_get_bound_fb(state, target);
 
    if ((num_attachments_signed < 0) || ((attachments == NULL) && (num_attachments_signed > 0)))
    {
       glxx_server_state_set_error(state, GL_INVALID_VALUE);
-      goto unlock_out;
+      return;
    }
-   num_attachments = num_attachments_signed;
+   unsigned num_attachments = num_attachments_signed;
 
+   uint32_t color_rt = 0;
+   bool     depth    = false;
+   bool     stencil  = false;
    if (fb->name == 0)
    {
-      for (i = 0; i < num_attachments; i++)
+      for (unsigned i = 0; i < num_attachments; i++)
       {
          switch (attachments[i])
          {
          case GL_COLOR: // == 0x1800 == GL_COLOR_EXT
-            color_rt[0] = true;
-            color = true;
+            color_rt |= 1;
             break;
          case GL_DEPTH: // == 0x1801 == GL_DEPTH_EXT
             depth = true;
@@ -145,36 +133,31 @@ static void invalidate_framebuffer(GLenum target, GLsizei
          case GL_STENCIL: // == 0x1802 == GL_STENCIL_EXT
             stencil = true;
             break;
-         case GL_DEPTH_STENCIL_ATTACHMENT: // Not supported by the EXT version
-            depth = true;
-            stencil = true;
-            break;
          default:
             glxx_server_state_set_error(state, GL_INVALID_ENUM);
-            goto unlock_out;
+            return;
          }
       }
    }
    else
    {
       // User created FBO
-      for (i = 0; i < num_attachments; i++)
+      for (unsigned i = 0; i < num_attachments; i++)
       {
          if ( attachments[i] >= GL_COLOR_ATTACHMENT0 &&
-              attachments[i] <= GL_COLOR_ATTACHMENT15)
+              attachments[i] <= GL_COLOR_ATTACHMENT31)
          {
             unsigned int b = attachments[i] - GL_COLOR_ATTACHMENT0;
 
             if (b >= GLXX_MAX_RENDER_TARGETS)
             {
                glxx_server_state_set_error(state, GL_INVALID_OPERATION);
-               goto unlock_out;
+               return;
             }
 
             //  The EXT spec only allows GL_COLOR_ATTACHMENT0,
             //  it does not support MRTs as is at revision 7.
-            color_rt[b] = true;
-            color = true;
+            color_rt |= 1u << b;
          }
          else
          {
@@ -192,54 +175,53 @@ static void invalidate_framebuffer(GLenum target, GLsizei
                break;
             default:
                glxx_server_state_set_error(state, GL_INVALID_ENUM);
-               goto unlock_out;
+               return;
             }
          }
       }
    }
 
-   if (num_attachments_signed == 0)
-      goto unlock_out;
-
-   if (really)
-   {
-      if(!glxx_hw_invalidate_frame(state, fb, color_rt, color, color, depth, stencil, NULL))
-      {
-         glxx_server_state_set_error(state, GL_OUT_OF_MEMORY);
-         goto unlock_out;
-      }
-   }
-
-unlock_out:
-   GLXX_UNLOCK_SERVER_STATE();
+   if (num_attachments_signed > 0 && really)
+      glxx_hw_invalidate_framebuffer(state, fb, color_rt, /*all_color_ms=*/false, depth, stencil);
 }
 
 GL_API void GL_APIENTRY glDiscardFramebufferEXT(GLenum target, GLsizei numAttachments, const GLenum *attachments)
 {
-   invalidate_framebuffer(target, numAttachments, attachments, true);
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
+   if (!state) return;
+
+   invalidate_framebuffer(state, target, numAttachments, attachments, true);
+
+   glxx_unlock_server_state();
 }
 
-GL_API void GL_APIENTRY glInvalidateFramebuffer(GLenum target, GLsizei numAttachments, const GLenum* attachments)
+GL_API void GL_APIENTRY glInvalidateFramebuffer(GLenum target, GLsizei numAttachments, const GLenum *attachments)
 {
-   invalidate_framebuffer(target, numAttachments, attachments, true);
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
+   if (!state) return;
+
+   invalidate_framebuffer(state, target, numAttachments, attachments, true);
+
+   glxx_unlock_server_state();
 }
 
 GL_API void GL_APIENTRY glInvalidateSubFramebuffer(GLenum target, GLsizei numAttachments,
    const GLenum* attachments, GLint x, GLint y, GLsizei width, GLsizei height)
 {
-   // This does error checking but otherwise nothing
-   invalidate_framebuffer(target, numAttachments, attachments, false);
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
+   if (!state) return;
 
+   if (width < 0 || height < 0) {
+      glxx_server_state_set_error(state, GL_INVALID_VALUE);
+      goto end;
+   }
+
+   // This does error checking but otherwise nothing
    // TODO - Check if we are about to invalidate whole framebuffer size
-#if 0
-      GLXX_SERVER_STATE_T *state = GL30_LOCK_SERVER_STATE();
-      if (state) {
-         if ((x == 0) && (y == 0) && (width == fb_width) && (height == fb_height)) {
-            invalidate_framebuffer(target, numAttachments, attachments, true);
-         }
-         GL30_UNLOCK_SERVER_STATE();
-      }
-#endif
+   invalidate_framebuffer(state, target, numAttachments, attachments, false);
+
+end:
+   glxx_unlock_server_state();
 }
 
 
@@ -295,7 +277,7 @@ static bool is_valid_attachment(GLXX_SERVER_STATE_T *state, GLenum attachment)
 
 GL_API void GL_APIENTRY glDrawBuffers(GLsizei n_signed, const GLenum* bufs)
 {
-   GLXX_SERVER_STATE_T *state = GL30_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
    if (!state) return;
 
    if (n_signed < 0 || n_signed > GLXX_MAX_RENDER_TARGETS)
@@ -318,10 +300,8 @@ GL_API void GL_APIENTRY glDrawBuffers(GLsizei n_signed, const GLenum* bufs)
    {
       for (unsigned i = 0; i < n; i++)
       {
-         if (bufs[i] != GL_NONE &&
-             bufs[i] != GL_BACK &&
-             (bufs[i] < GL_COLOR_ATTACHMENT0 ||
-              bufs[i] >= (GL_COLOR_ATTACHMENT0 + GLXX_MAX_RENDER_TARGETS)))
+         if (bufs[i] != GL_NONE && bufs[i] != GL_BACK &&
+             (bufs[i] < GL_COLOR_ATTACHMENT0 || bufs[i] > GL_COLOR_ATTACHMENT31))
          {
             glxx_server_state_set_error(state, GL_INVALID_ENUM);
             goto end;
@@ -350,12 +330,12 @@ GL_API void GL_APIENTRY glDrawBuffers(GLsizei n_signed, const GLenum* bufs)
          fb->draw_buffer[i] = false;
 
 end:
-   GL30_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_API void GL_APIENTRY glReadBuffer(GLenum src)
 {
-   GLXX_SERVER_STATE_T *state = GL30_LOCK_SERVER_STATE_UNCHANGED();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state_unchanged(OPENGL_ES_3X);
    GLXX_FRAMEBUFFER_T *fb;
    GLenum error = GL_NO_ERROR;
 
@@ -404,19 +384,19 @@ end:
    if (error != GL_NO_ERROR)
       glxx_server_state_set_error(state, error);
 
-   GL30_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_API GLboolean GL_APIENTRY glIsRenderbuffer(GLuint renderbuffer)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE_UNCHANGED();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state_unchanged(OPENGL_ES_ANY);
    GLboolean result;
    if (!state)
       return 0;
 
    result = glxx_shared_get_renderbuffer(state->shared, renderbuffer, false) != NULL;
 
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 
    return result;
 }
@@ -434,7 +414,7 @@ GL_API GLboolean GL_APIENTRY glIsRenderbuffer(GLuint renderbuffer)
 */
 GL_API void GL_APIENTRY glBindRenderbuffer(GLenum target, GLuint renderbuffer)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
    GLXX_RENDERBUFFER_T *rb = NULL;
 
    if (!state) return;
@@ -458,12 +438,12 @@ GL_API void GL_APIENTRY glBindRenderbuffer(GLenum target, GLuint renderbuffer)
    KHRN_MEM_ASSIGN(state->bound_renderbuffer, rb);
 
 end:
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_API void GL_APIENTRY glDeleteRenderbuffers(GLsizei n, const GLuint *renderbuffers)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
    int i;
    if (!state) return;
 
@@ -490,12 +470,12 @@ GL_API void GL_APIENTRY glDeleteRenderbuffers(GLsizei n, const GLuint *renderbuf
       }
 
 end:
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_API void GL_APIENTRY glGenRenderbuffers(GLsizei n, GLuint *renderbuffers)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE_UNCHANGED();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state_unchanged(OPENGL_ES_ANY);
 
    int32_t i = 0;
 
@@ -513,14 +493,14 @@ GL_API void GL_APIENTRY glGenRenderbuffers(GLsizei n, GLuint *renderbuffers)
          state->shared->next_renderbuffer++;
       }
 
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 
 static void renderbuffer_storage(GLenum target, GLsizei samples,
       GLenum internalformat, GLsizei width, GLsizei height)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
    bool renderable_format;
    GLenum error = GL_NO_ERROR;
 
@@ -581,7 +561,7 @@ static void renderbuffer_storage(GLenum target, GLsizei samples,
 end:
    if (error != GL_NO_ERROR)
       glxx_server_state_set_error(state, error);
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_API void GL_APIENTRY glRenderbufferStorage(GLenum target, GLenum
@@ -605,7 +585,7 @@ GL_API void GL_APIENTRY glRenderbufferStorageMultisample(GLenum target, GLsizei
 GL_API void GL_APIENTRY glGetRenderbufferParameteriv(GLenum target,
       GLenum pname, GLint* params)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE_UNCHANGED();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state_unchanged(OPENGL_ES_ANY);
    KHRN_IMAGE_T *image;
 
    if (!state)
@@ -669,12 +649,12 @@ GL_API void GL_APIENTRY glGetRenderbufferParameteriv(GLenum target,
    }
 
 out:
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_API GLboolean GL_APIENTRY glIsFramebuffer(GLuint fb_id)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE_UNCHANGED();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state_unchanged(OPENGL_ES_ANY);
    GLboolean result;
 
    if (!state)
@@ -685,14 +665,14 @@ GL_API GLboolean GL_APIENTRY glIsFramebuffer(GLuint fb_id)
    else
       result = glxx_server_state_get_framebuffer(state, fb_id, false) != NULL;
 
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 
    return result;
 
 }
 GL_API void GL_APIENTRY glBindFramebuffer(GLenum target, GLuint fb_id)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
    GLXX_FRAMEBUFFER_T *fb_read, *fb_draw;
    GLenum error = GL_NO_ERROR;
 
@@ -739,12 +719,12 @@ GL_API void GL_APIENTRY glBindFramebuffer(GLenum target, GLuint fb_id)
 end:
    if (error != GL_NO_ERROR)
       glxx_server_state_set_error(state, error);
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_API void GL_APIENTRY glDeleteFramebuffers(GLsizei n, const GLuint *framebuffers)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
    GLenum error = GL_NO_ERROR;
    GLsizei i;
 
@@ -788,12 +768,12 @@ GL_API void GL_APIENTRY glDeleteFramebuffers(GLsizei n, const GLuint *framebuffe
 end:
    if (error != GL_NO_ERROR)
       glxx_server_state_set_error(state, error);
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_API void GL_APIENTRY glGenFramebuffers(GLsizei n, GLuint *framebuffers)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE_UNCHANGED();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state_unchanged(OPENGL_ES_ANY);
    GLsizei i = 0;
    GLenum error = GL_NO_ERROR;
 
@@ -821,7 +801,7 @@ end:
    if (error != GL_NO_ERROR)
       glxx_server_state_set_error(state, error);
 
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_API GLenum GL_APIENTRY glCheckFramebufferStatus(GLenum target)
@@ -829,7 +809,7 @@ GL_API GLenum GL_APIENTRY glCheckFramebufferStatus(GLenum target)
    GLXX_FRAMEBUFFER_T *fb;
    GLenum result = 0; // glCheckFramebufferStatus man page: If an error occurs, zero is returned.
 
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE_UNCHANGED();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state_unchanged(OPENGL_ES_ANY);
    if (!state) return 0;
 
    if (!is_allowed_fb_target(state, target))
@@ -842,7 +822,7 @@ GL_API GLenum GL_APIENTRY glCheckFramebufferStatus(GLenum target)
    result = glxx_fb_completeness_status(fb);
 
 end:
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
    return result;
 }
 
@@ -864,6 +844,9 @@ static bool is_supported_fb_tex_target(const GLXX_SERVER_STATE_T *state,
       return !IS_GL_11(state);
    case GL_TEXTURE_2D_MULTISAMPLE:
    case GL_TEXTURE_2D_MULTISAMPLE_ARRAY:
+#if V3D_HAS_TMU_WRAP_I
+   case GL_TEXTURE_CUBE_MAP_ARRAY:
+#endif
       return KHRN_GLES31_DRIVER ? !IS_GL_11(state) : false;
    default:
        return false;
@@ -874,7 +857,7 @@ static void  framebuffer_texture(GLenum target, GLenum att_e, bool textarget_val
       GLenum textarget, GLuint tex_id, GLint level, GLint layer, GLsizei
       samples)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
    GLXX_FRAMEBUFFER_T *fb;
    GLXX_TEXTURE_T *texture;
    enum glxx_tex_target temp_target;
@@ -936,10 +919,10 @@ static void  framebuffer_texture(GLenum target, GLenum att_e, bool textarget_val
    {
       textarget = texture->target;
 
-      if (textarget != GL_TEXTURE_3D && textarget != GL_TEXTURE_2D_ARRAY && textarget != GL_TEXTURE_2D_MULTISAMPLE_ARRAY)
+      if (!glxx_tex_target_has_layers(textarget))
       {
          /* glFramebufferTextureLayer: INVALID_OPERATION is generated if texture is non-zero
-          * and is not the name of a three-dimensional texture or two-dimensional array texture. */
+          * and is not the name of a 3D, or array texture */
          error = GL_INVALID_OPERATION;
          goto end;
       }
@@ -968,8 +951,8 @@ static void  framebuffer_texture(GLenum target, GLenum att_e, bool textarget_val
       goto end;
    }
 
-   if ((texture->target == GL_TEXTURE_3D || texture->target == GL_TEXTURE_2D_ARRAY) &&
-        !glxx_texture_is_legal_layer(texture->target, layer))
+   if (glxx_tex_target_has_layers(textarget) &&
+         !glxx_texture_is_legal_layer(texture->target, layer))
    {
       error = GL_INVALID_VALUE;
       goto end;
@@ -983,7 +966,7 @@ static void  framebuffer_texture(GLenum target, GLenum att_e, bool textarget_val
 end:
    if (error != GL_NO_ERROR)
       glxx_server_state_set_error(state, error);
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_API void GL_APIENTRY glFramebufferTexture2DMultisampleEXT(GLenum target,
@@ -991,11 +974,11 @@ GL_API void GL_APIENTRY glFramebufferTexture2DMultisampleEXT(GLenum target,
 {
    if (attachment != GL_COLOR_ATTACHMENT0)
    {
-      GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+      GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
       /* not sure what error to return; the spec says "attachment must be
        * COLOR_ATTACHMENT0" */
       glxx_server_state_set_error(state, GL_INVALID_OPERATION);
-      GLXX_UNLOCK_SERVER_STATE();
+      glxx_unlock_server_state();
       return;
    }
    framebuffer_texture(target, attachment, true, textarget, texture, level, 0,
@@ -1019,7 +1002,7 @@ GL_API void GL_APIENTRY glFramebufferTextureLayer(GLenum target, GLenum
 GL_API void GL_APIENTRY glFramebufferRenderbuffer(GLenum target, GLenum att_e,
       GLenum rb_target, GLuint rb_id)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
    GLXX_FRAMEBUFFER_T *fb;
    GLXX_RENDERBUFFER_T *rb;
    GLenum error = GL_NO_ERROR;
@@ -1072,7 +1055,7 @@ end:
    if (error != GL_NO_ERROR)
       glxx_server_state_set_error(state, error);
 
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 static bool attachment_parameter_common(GFX_LFMT_T api_fmt,
@@ -1170,7 +1153,7 @@ static bool attachment_parameter_common(GFX_LFMT_T api_fmt,
 GL_API void GL_APIENTRY glGetFramebufferAttachmentParameteriv(GLenum target,
       GLenum att_e, GLenum pname, GLint *params)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE_UNCHANGED();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state_unchanged(OPENGL_ES_ANY);
    GLXX_FRAMEBUFFER_T *fb;
    glxx_attachment_point_t att_point;
    GLenum error = GL_NO_ERROR;
@@ -1304,13 +1287,15 @@ end:
    if (error != GL_NO_ERROR)
       glxx_server_state_set_error(state, error);
 
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
+
+#if KHRN_GLES31_DRIVER
 
 GL_APICALL void GL_APIENTRY glFramebufferParameteri(GLenum target,
       GLenum pname, GLint param)
 {
-   GLXX_SERVER_STATE_T *state = GL31_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
    GLXX_FRAMEBUFFER_T *fb = NULL;
    GLenum error = GL_NO_ERROR;
 
@@ -1373,13 +1358,13 @@ GL_APICALL void GL_APIENTRY glFramebufferParameteri(GLenum target,
 end:
    if (error != GL_NO_ERROR)
       glxx_server_state_set_error(state, error);
-   GL31_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_APICALL void GL_APIENTRY glGetFramebufferParameteriv(GLenum target,
       GLenum pname, GLint *params)
 {
-   GLXX_SERVER_STATE_T *state = GL31_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
    GLXX_FRAMEBUFFER_T *fb = NULL;
    GLenum error = GL_NO_ERROR;
 
@@ -1424,5 +1409,7 @@ GL_APICALL void GL_APIENTRY glGetFramebufferParameteriv(GLenum target,
 end:
    if (error != GL_NO_ERROR)
       glxx_server_state_set_error(state, error);
-   GL31_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
+
+#endif

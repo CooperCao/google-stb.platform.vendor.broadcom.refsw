@@ -43,9 +43,11 @@
 
 #include "nexus_security_thunks.h"
 #include "nexus_base.h"
+#include "nexus_security_datatypes.h"
 #include "nexus_security.h"
 #include "nexus_security_misc.h"
 #include "nexus_security_init.h"
+#include "nexus_region_verification.h"
 
 #include "priv/nexus_core_security.h"
 #include "priv/nexus_security_priv.h"
@@ -70,7 +72,7 @@
 #include "nexus_otpmsp.h"
 #endif
 
-#if (NEXUS_SECURITY_ZEUS_VERSION_MAJOR >= 1)
+#if NEXUS_ZEUS_VERSION >= NEXUS_ZEUS_VERSION_CALC(1,0)
 #include "priv/nexus_security_regver_priv.h"
 #endif
 
@@ -90,7 +92,7 @@
 #include "nexus_random_number.h"
 #include "nexus_hmac_sha_cmd.h"
 
-#if (NEXUS_SECURITY_ZEUS_VERSION_MAJOR >= 1)
+#if NEXUS_ZEUS_VERSION >= NEXUS_ZEUS_VERSION_CALC(1,0)
 #include "nexus_bsp_config.h"
 #endif
 #endif
@@ -146,9 +148,23 @@ typedef struct NEXUS_Security_P_Handle
 
 #define MAKE_HSM_ERR(x) (NEXUS_SECURITY_HSM_ERROR | x)
 
+#if NEXUS_ZEUS_VERSION >= NEXUS_ZEUS_VERSION_CALC(1,0)
+NEXUS_OBJECT_CLASS_DECLARE(NEXUS_VirtualKeyLadder);
+#endif
 
 /* global handle. there is no global data. */
 extern NEXUS_ModuleHandle NEXUS_P_SecurityModule;
+
+
+/* converts a nexus keyslot type to a HSM keyslot type. */
+BCMD_XptSecKeySlot_e NEXUS_SECURITY_P_mapNexus2Hsm_KeyslotType( NEXUS_SecurityKeySlotType nexusType,
+                                                                NEXUS_SecurityEngine engine );
+
+
+NEXUS_OBJECT_CLASS_DECLARE(NEXUS_RegionVerify);
+/* Init/Uninit functions for region Verification */
+NEXUS_Error NEXUS_RegionVerify_Init( void );
+void NEXUS_RegionVerify_Uninit( void );
 
 #ifdef __cplusplus
 }

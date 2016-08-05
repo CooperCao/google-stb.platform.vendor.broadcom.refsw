@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2012 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *  
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,18 +35,10 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF 
 *  ANY LIMITED REMEDY.
 * 
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * API Description:
 *   API name: DolbyDigitalReencode
 *    Specific APIs related to Dolby Digital Reencoding used in Dolby MS11
 *
-* Revision History:
-*
-* $brcm_Log: $
-* 
 ***************************************************************************/
 #ifndef NEXUS_DOLBY_DIGITAL_REENCODE_H__
 #define NEXUS_DOLBY_DIGITAL_REENCODE_H__
@@ -134,7 +126,7 @@ Summary:
 Summary:
     Get the audio connector for a Dolby Digital Reencoder
 ***************************************************************************/
-NEXUS_AudioInput NEXUS_DolbyDigitalReencode_GetConnector(
+NEXUS_AudioInputHandle NEXUS_DolbyDigitalReencode_GetConnector(
     NEXUS_DolbyDigitalReencodeHandle handle,
     NEXUS_AudioConnectorType connectorType
     );
@@ -145,7 +137,7 @@ Add an input to this processing stage
 ***************************************************************************/
 NEXUS_Error NEXUS_DolbyDigitalReencode_AddInput(
     NEXUS_DolbyDigitalReencodeHandle handle,
-    NEXUS_AudioInput input
+    NEXUS_AudioInputHandle input
     );
 
 /***************************************************************************
@@ -154,7 +146,7 @@ Remove an input from this processing stage
 ***************************************************************************/
 NEXUS_Error NEXUS_DolbyDigitalReencode_RemoveInput(
     NEXUS_DolbyDigitalReencodeHandle handle,
-    NEXUS_AudioInput input
+    NEXUS_AudioInputHandle input
     );
 
 /***************************************************************************

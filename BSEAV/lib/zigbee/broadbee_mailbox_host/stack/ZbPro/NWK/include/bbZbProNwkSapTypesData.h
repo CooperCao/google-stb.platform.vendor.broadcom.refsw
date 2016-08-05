@@ -71,6 +71,7 @@ typedef struct _ZBPRO_NWK_DataReqParams_t
     uint8_t                 nonmemberRadius;
     Bool8_t                 discoverRoute;
     Bool8_t                 securityEnable;
+    Bool8_t                 forceRouteDiscovery; // NOTE: NWK will force the route discovery procedure to update current route
 } ZBPRO_NWK_DataReqParams_t;
 
 

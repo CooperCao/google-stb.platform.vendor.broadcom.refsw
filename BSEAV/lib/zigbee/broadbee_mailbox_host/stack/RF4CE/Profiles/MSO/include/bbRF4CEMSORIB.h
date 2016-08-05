@@ -213,9 +213,9 @@ typedef enum _RF4CE_MSO_RIB_Versioning_t
  *  and the specified index of element
  */
 #define RF4CE_MSO_RIB_FILE_INDEX(pair, attrId, index) \
-        ((RF4CE_MSO_RIB_BASE_FILE_INDEX(attrId) | \
-         (((RF4CE_NWK_INVALID_PAIRING_REF == pair) ? RF4CE_MSO_RIB_BASE_FILE_INDEX_ID : pair) << 8) | \
-         (index << 16)) & 0xFFFFFF)
+        (((uint32_t)(RF4CE_MSO_RIB_BASE_FILE_INDEX((attrId))) | \
+         (uint32_t)((RF4CE_NWK_INVALID_PAIRING_REF == (pair) ? RF4CE_MSO_RIB_BASE_FILE_INDEX_ID : (pair)) << 8) | \
+         (uint32_t)((index) << 16)) & 0xFFFFFF)
 
 /************************* TYPES *******************************************************/
 /**//**

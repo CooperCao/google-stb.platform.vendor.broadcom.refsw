@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2013 Broadcom Corporation
+*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,17 +35,9 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * API Description:
 *   API name: Frontend QAM
 *    Generic APIs for QAM tuning.
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 #ifndef NEXUS_FRONTEND_QAM_H__
@@ -195,8 +187,9 @@ Description:
     After this function is called, a new unlock callback will be generated. The the frontend tunes and acquires to the requested frequency and other settings.
     Another callback will be issued to indicate a lock/unlock or no_signal condition. The application needsto call NEXUS_Frontend_GetFastStatus() to determine the outcome.
     Sometimes, the two callbacks can be collapsed into one. In this case, the application only receives just one callback.
-    Here, the application can check the "acquireInProgress" member of the NEXUS_FrontendFastStatus structure to determine if the first run of the tune and acquisition is complete or not.
-    In case of unlock, if the auto acquire is set to true in NEXUS_FrontendQamSettings, the application might receive another callback only if it happens to lock to a signal after more than one reacquires.
+    Here, the application can check the "acquireInProgress" member of the NEXUS_FrontendFastStatus structure to determine if the first run of the tune and
+    acquisition is complete or not. In case of unlock, if the auto acquire is set to true in NEXUS_FrontendQamSettings, the application might receive another
+    callback only if it happens to lock to a signal after more than one reacquires.
 
 Note:
     See NEXUS_Frontend_Untune to reduce power with possible performance cost.

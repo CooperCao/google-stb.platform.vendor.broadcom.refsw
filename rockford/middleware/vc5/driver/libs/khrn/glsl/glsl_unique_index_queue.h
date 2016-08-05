@@ -11,9 +11,7 @@ FILE DESCRIPTION
 #ifndef GLSL_UNIQUE_INDEX_QUEUE_H_INCLUDED
 #define GLSL_UNIQUE_INDEX_QUEUE_H_INCLUDED
 
-#include <stdlib.h>
-
-#include "glsl_common.h"
+#include <stdbool.h>
 
 typedef struct glsl_unique_index_queue_s GLSL_UNIQUE_INDEX_QUEUE_T;
 

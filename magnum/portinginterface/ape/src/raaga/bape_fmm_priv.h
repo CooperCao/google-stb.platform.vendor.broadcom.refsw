@@ -1,22 +1,42 @@
 /***************************************************************************
- *     Copyright (c) 2006-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * Module Description: FMM Interfaces
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  ***************************************************************************/
 
 #ifndef BAPE_FMM_PRIV_H_
@@ -382,7 +402,7 @@ Start SFIFO group
 ***************************************************************************/
 BERR_Code BAPE_SfifoGroup_P_Start(
     BAPE_SfifoGroupHandle handle,
-    bool enableOnly                 /* If true, a separate call to BAPE_SfifoGroup_P_Run_isr is required to 
+    bool enableOnly                 /* If true, a separate call to BAPE_SfifoGroup_P_Run_isr is required to
                                        start data flow.  If false, data flow will start immediately. */
     );
 
@@ -396,11 +416,11 @@ void BAPE_SfifoGroup_P_Stop(
 
 /***************************************************************************
 Summary:
-Start SFIFO group data flow 
- 
-Description: 
-This call is only required if enableOnly was set to true in BAPE_SfifoGroup_P_Start 
-or if BAPE_SfifoGroup_P_Halt_isr was previously called. 
+Start SFIFO group data flow
+
+Description:
+This call is only required if enableOnly was set to true in BAPE_SfifoGroup_P_Start
+or if BAPE_SfifoGroup_P_Halt_isr was previously called.
 ***************************************************************************/
 void BAPE_SfifoGroup_P_Run_isr(
     BAPE_SfifoGroupHandle handle
@@ -408,9 +428,9 @@ void BAPE_SfifoGroup_P_Run_isr(
 
 /***************************************************************************
 Summary:
-Stop SFIFO group data flow 
- 
-Description: 
+Stop SFIFO group data flow
+
+Description:
 This call allows data flow to be stopped from an interrupt if required.
 ***************************************************************************/
 void BAPE_SfifoGroup_P_Halt_isr(
@@ -420,10 +440,10 @@ void BAPE_SfifoGroup_P_Halt_isr(
 /***************************************************************************
 Summary:
 Update SFIFO Group sample rate
- 
-Description: 
-This will reprogram the adaptive rate controllers for a new sample rate 
-if required. 
+
+Description:
+This will reprogram the adaptive rate controllers for a new sample rate
+if required.
 ***************************************************************************/
 void BAPE_SfifoGroup_P_SetSampleRate_isr(
     BAPE_SfifoGroupHandle handle,
@@ -476,6 +496,17 @@ BERR_Code BAPE_SfifoGroup_P_GetQueuedBytes(
 
 /***************************************************************************
 Summary:
+Get sfifo write ptr
+***************************************************************************/
+void BAPE_SfifoGroup_P_GetReadAddress(
+    BAPE_SfifoGroupHandle handle,
+    unsigned chPair,       /*0,1,2,3*/
+    unsigned bufferNum,     /*0,1*/
+    uint32_t *pReadPtr
+    );
+
+/***************************************************************************
+Summary:
 Enable/Disable a source channel freemark interrupt
 ***************************************************************************/
 BERR_Code BAPE_SfifoGroup_P_SetFreemarkInterrupt(
@@ -495,11 +526,11 @@ void BAPE_SfifoGroup_P_RearmFreemarkInterrupt(
 
 /***************************************************************************
 Summary:
-Get Hardware Index for a particular SFIFO 
- 
-Description: 
-This function should be avoided unless absolutely necessary 
-(e.g. setting up DSP <-> FMM Linkage) 
+Get Hardware Index for a particular SFIFO
+
+Description:
+This function should be avoided unless absolutely necessary
+(e.g. setting up DSP <-> FMM Linkage)
 ***************************************************************************/
 uint32_t BAPE_SfifoGroup_P_GetHwIndex(
     BAPE_SfifoGroupHandle handle,
@@ -509,10 +540,10 @@ uint32_t BAPE_SfifoGroup_P_GetHwIndex(
 /***************************************************************************
 Summary:
 Get Hardware Index for a particular SFIFO's Adaptive Rate Controller
- 
-Description: 
-This function should be avoided unless absolutely necessary 
-(e.g. setting up DSP <-> FMM Linkage) 
+
+Description:
+This function should be avoided unless absolutely necessary
+(e.g. setting up DSP <-> FMM Linkage)
 ***************************************************************************/
 uint32_t BAPE_SfifoGroup_P_GetAdaptRateWrcntAddress(
     BAPE_SfifoGroupHandle handle,
@@ -565,6 +596,7 @@ typedef struct BAPE_DfifoGroupSettings
     bool bypassMemory;                  /* If true and a linked SFIFO is provided, bypass memory and directly connect the FIFOs */
     bool highPriority;                  /* If sample rate is >= 96000 set this to true. */
     bool interleaveData;                /* If true, data will be interleaved into a single buffer per channel pair */
+    bool reverseEndian;                 /* If true, data will be endian swapped during capture */
     unsigned dataWidth;                 /* Data width in bits.  32 is supported on all platforms, 16 if BAPE_CHIP_DFIFO_SUPPORTS_16BIT_CAPTURE is defined to 1 */
     struct
     {
@@ -598,7 +630,7 @@ Start DFIFO group
 ***************************************************************************/
 BERR_Code BAPE_DfifoGroup_P_Start(
     BAPE_DfifoGroupHandle handle,
-    bool enableOnly                 /* If true, a separate call to BAPE_DfifoGroup_P_Run_isr is required to 
+    bool enableOnly                 /* If true, a separate call to BAPE_DfifoGroup_P_Run_isr is required to
                                        start data flow.  If false, data flow will start immediately. */
     );
 
@@ -612,11 +644,11 @@ void BAPE_DfifoGroup_P_Stop(
 
 /***************************************************************************
 Summary:
-Start DFIFO group data flow 
- 
-Description: 
-This call is only required if enableOnly was set to true in BAPE_DfifoGroup_P_Start 
-or if BAPE_DfifoGroup_P_Halt_isr was previously called. 
+Start DFIFO group data flow
+
+Description:
+This call is only required if enableOnly was set to true in BAPE_DfifoGroup_P_Start
+or if BAPE_DfifoGroup_P_Halt_isr was previously called.
 ***************************************************************************/
 void BAPE_DfifoGroup_P_Run_isr(
     BAPE_DfifoGroupHandle handle
@@ -624,9 +656,9 @@ void BAPE_DfifoGroup_P_Run_isr(
 
 /***************************************************************************
 Summary:
-Stop DFIFO group data flow 
- 
-Description: 
+Stop DFIFO group data flow
+
+Description:
 This call allows data flow to be stopped from an interrupt if required.
 ***************************************************************************/
 void BAPE_DfifoGroup_P_Halt_isr(
@@ -699,11 +731,11 @@ void BAPE_DfifoGroup_P_RearmOverflowInterrupt_isr(
 
 /***************************************************************************
 Summary:
-Get Hardware Index for a particular DFIFO 
- 
-Description: 
-This function should be avoided unless absolutely necessary 
-(e.g. setting up DSP <-> FMM Linkage) 
+Get Hardware Index for a particular DFIFO
+
+Description:
+This function should be avoided unless absolutely necessary
+(e.g. setting up DSP <-> FMM Linkage)
 ***************************************************************************/
 uint32_t BAPE_DfifoGroup_P_GetHwIndex(
     BAPE_DfifoGroupHandle handle,
@@ -812,15 +844,15 @@ typedef struct BAPE_SrcGroupCreateSettings
     unsigned blockId;
     unsigned numChannelPairs;   /* Number of channel pairs */
     BAPE_SrcMode mode;          /* Default is Linear */
-    BAPE_SrcGroupCoefficients *pCoefMemory[2];   /* Coefficient Memory. Two are required only for IIR if doubleBuffered is true, otherwise one. 
-                                                    A valid value means sharing of an already allocated memory */    
+    BAPE_SrcGroupCoefficients *pCoefMemory[2];   /* Coefficient Memory. Two are required only for IIR if doubleBuffered is true, otherwise one.
+                                                    A valid value means sharing of an already allocated memory */
     /* Equalizer Settings */
-    struct 
+    struct
     {
-        unsigned numIirBands;   /* Used for Equalizer mode, ranges from 1..8 - default is 8 */    
+        unsigned numIirBands;   /* Used for Equalizer mode, ranges from 1..8 - default is 8 */
         bool     rampEnable;    /* If true (default), the coefficients will be double-buffered for on-the-fly settings changes.
                                    If false, the coefficients are not double-buffered to save coefficient memory space. */
-    } equalizerSettings;    
+    } equalizerSettings;
 } BAPE_SrcGroupCreateSettings;
 
 /***************************************************************************
@@ -935,14 +967,14 @@ void BAPE_SrcGroup_P_GetOutputFciIds(
 
 /***************************************************************************
 Summary:
-Update Coefficients in the SRC Coefficients Memory 
+Update Coefficients in the SRC Coefficients Memory
 ***************************************************************************/
 void BAPE_SrcGroup_P_UpdateCoefficients_isr(
     BAPE_SrcGroupHandle src,
     BAPE_SRC_P_IIRCoeff *pCoeff,
     unsigned *pStepSize          /* NULL indicates No Ramping */
     );
-    
+
 /***************************************************************************
 Summary:
 Mixer Group Create Settings
@@ -1017,10 +1049,10 @@ typedef struct BAPE_MixerGroupInputSettings
     BAPE_FciIdGroup input;                              /* Can only be changed while stopped */
     uint32_t rampStep;                                  /* Coefficient Ramp Step value (increments this amount per sample) */
     int32_t  coefficients[BAPE_ChannelPair_eMax][2][2]; /* Entries in this table reflect scaling from the input channel to the output channel.
-                                                           The first index is the channel pair.  The second index is the input channel, 0 
+                                                           The first index is the channel pair.  The second index is the input channel, 0
                                                            for the first (left) channel and 1 for the second (right) channel.  The third index
-                                                           is the output channel.  Default is to have BAPE_VOLUME_NORMAL for each [0][0] and [1][1] 
-                                                           coefficient and BAPE_VOLUME_MIN for all others.  This maps input channels to the same 
+                                                           is the output channel.  Default is to have BAPE_VOLUME_NORMAL for each [0][0] and [1][1]
+                                                           coefficient and BAPE_VOLUME_MIN for all others.  This maps input channels to the same
                                                            output channel with no scaling. */
 } BAPE_MixerGroupInputSettings;
 
@@ -1129,7 +1161,7 @@ BERR_Code BAPE_MixerGroup_P_SetOutputSettings(
 Summary:
 Mixer Group Output Status
 ***************************************************************************/
-typedef struct BAPE_MixerGroupOutputStatus 
+typedef struct BAPE_MixerGroupOutputStatus
 {
     bool rampActive[BAPE_Channel_eMax];
 } BAPE_MixerGroupOutputStatus;
@@ -1170,6 +1202,17 @@ void BAPE_MixerGroup_P_GetOutputFciIds(
     BAPE_MixerGroupHandle handle,
     unsigned outputIndex,
     BAPE_FciIdGroup *pFciGroup      /* [out] */
+    );
+
+/***************************************************************************
+Summary:
+Apply mixer output volume (for mixers with downstream connections)
+***************************************************************************/
+BERR_Code BAPE_MixerGroup_P_ApplyOutputVolume(
+    BAPE_MixerGroupHandle handle,
+    const BAPE_OutputVolume * pVolume,
+    const BAPE_FMT_Descriptor * pFormat,
+    unsigned outputIndex
     );
 
 /***************************************************************************
@@ -1306,7 +1349,7 @@ BERR_Code BAPE_LoopbackGroup_P_SetSettings_isr(
 
 /***************************************************************************
 Summary:
-Start Capture and Output, reads from input FCI ID in BAPE_LoopbackGroupSettings 
+Start Capture and Output, reads from input FCI ID in BAPE_LoopbackGroupSettings
 ***************************************************************************/
 BERR_Code BAPE_LoopbackGroup_P_Start(
     BAPE_LoopbackGroupHandle handle
@@ -1322,7 +1365,7 @@ void BAPE_LoopbackGroup_P_Stop(
 
 /***************************************************************************
 Summary:
-Get Capture FCI For Loopback 
+Get Capture FCI For Loopback
 ***************************************************************************/
 void BAPE_LoopbackGroup_P_GetCaptureFciIds(
     BAPE_LoopbackGroupHandle handle,
@@ -1401,7 +1444,7 @@ BERR_Code BAPE_DummysinkGroup_P_SetSettings_isr(
 
 /***************************************************************************
 Summary:
-Start Capture and Output, reads from input FCI ID in BAPE_DummysinkGroupSettings 
+Start Capture and Output, reads from input FCI ID in BAPE_DummysinkGroupSettings
 ***************************************************************************/
 BERR_Code BAPE_DummysinkGroup_P_Start(
     BAPE_DummysinkGroupHandle handle
@@ -1546,4 +1589,3 @@ Initialize the FCI Splitter HW
 void BAPE_FciSplitter_P_InitHw(BAPE_Handle handle);
 
 #endif /* #ifndef BAPE_FMM_PRIV_H_ */
-

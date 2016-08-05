@@ -15,8 +15,6 @@ export   KEYLADDER_SUPPORT=y
 export   OTPMSP_SUPPORT=y
 export   OTPID_SUPPORT=y
 export   AEGIS_USERCMD_SUPPORT=y
-# export   REGION_VERIFICATION_SUPPORT=y
-# export   RAVE_REGION_VERIFICATION_SUPPORT=y
 export   SECUREACCESS_SUPPORT=n
 export   SECURERSA_SUPPORT=n
 export   BSECKCMD_SUPPORT=y
@@ -26,9 +24,7 @@ export   NEXUS_COMMON_CRYPTO_SUPPORT=n
 export   NEXUS_SECURITY_IRDETO_SUPPORT=n
 export   NEXUS_SECURITY_ALPINE_SUPPORT=n
 export   NEXUS_SECURITY_VISTA_CWC_SUPPORT=n
-
 export   NEXUS_SERVER_SUPPORT=n
-
 
 unset ZEUS_DIR_SUPPLEMENTARY_TAG
 
@@ -87,15 +83,7 @@ function build_platform {
 # build_platform 97439 A0 Zeus41
 
 # Zeus 42
-# build_platform 97445 D0 Zeus42
-
-export NEXUS_SECURITY_IRDETO_SUPPORT=n
-export NEXUS_SECURITY_ALPINE_SUPPORT=n
-export NEXUS_SECURITY_VISTA_CWC_SUPPORT=n
-export BSECKCMD_SUPPORT=n
-
-# 65nmASKM
-build_platform 97125 C0 65nmASKM
+build_platform 97445 E0 Zeus42
 
 unset  AVKEYLADDER_SUPPORT
 unset  SECURITY_MSIPTV_SUPPORT
@@ -106,14 +94,11 @@ unset  KEYLADDER_SUPPORT
 unset  OTPMSP_SUPPORT
 unset  OTPID_SUPPORT
 unset  AEGIS_USERCMD_SUPPORT
-unset  REGION_VERIFICATION_SUPPORT
-unset  RAVE_REGION_VERIFICATION_SUPPORT
 unset  SECUREACCESS_SUPPORT
 unset  SECURERSA_SUPPORT
 unset  BSECKCMD_SUPPORT
 unset  SECURERAWCMD_SUPPORT
 unset  IPLICENSING_SUPPORT
-unset  NEXUS_SECURITY_VISTA_CWC_SUPPORT
 unset  NEXUS_COMMON_CRYPTO_SUPPORT
 unset  NEXUS_SECURITY_IRDETO_SUPPORT
 unset  NEXUS_SECURITY_ALPINE_SUPPORT
@@ -121,4 +106,4 @@ unset  NEXUS_SECURITY_VISTA_CWC_SUPPORT
 unset  NEXUS_SERVER_SUPPORT
 
 # List all that files that have been build (in the last five minutes.)
-find Zeus* core65nm* -name libnexus_security.a  -mmin -5 -exec chmod -x {} \; -exec ls -lh {} \;
+find Zeus* -name libnexus_security.a  -mmin -5 -exec chmod -x {} \; -exec ls -lh {} \;

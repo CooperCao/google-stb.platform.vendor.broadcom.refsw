@@ -55,11 +55,13 @@ DataflowChain *glsl_dataflow_chain_filter(DataflowChain *dst, DataflowChain *src
 
 typedef enum
 {
+#if !V3D_HAS_TMU_TEX_WRITE
   IMAGE_INFO_ARR_STRIDE,
   IMAGE_INFO_SWIZZLING,
   IMAGE_INFO_LX_ADDR,
   IMAGE_INFO_LX_PITCH,
   IMAGE_INFO_LX_SLICE_PITCH,
+#endif
   IMAGE_INFO_LX_WIDTH,
   IMAGE_INFO_LX_HEIGHT,
   IMAGE_INFO_LX_DEPTH,
@@ -150,6 +152,9 @@ typedef enum
    // IR texture gadget
    DATAFLOW_VEC4,
    DATAFLOW_TEXTURE,
+#if V3D_HAS_TMU_TEX_WRITE
+   DATAFLOW_TEXTURE_ADDR,
+#endif
    DATAFLOW_TEXTURE_SIZE,
    DATAFLOW_GET_VEC4_COMPONENT,
 
@@ -169,9 +174,15 @@ typedef enum
    DATAFLOW_SHARED_PTR,
 
    DATAFLOW_IS_HELPER,
+   DATAFLOW_SAMPLE_POS_X,
+   DATAFLOW_SAMPLE_POS_Y,
+   DATAFLOW_SAMPLE_MASK,
+   DATAFLOW_SAMPLE_ID,
+   DATAFLOW_NUM_SAMPLES,
 
    DATAFLOW_GET_VERTEX_ID,
    DATAFLOW_GET_INSTANCE_ID,
+   DATAFLOW_GET_BASE_INSTANCE,
    DATAFLOW_GET_POINT_COORD_X,
    DATAFLOW_GET_POINT_COORD_Y,
    DATAFLOW_GET_LINE_COORD,
@@ -254,7 +265,7 @@ struct _Dataflow
       } cond_op;
 
       struct {
-         Dataflow *addr;
+         Dataflow *addr; /* May be a DATAFLOW_TEXTURE_ADDR (V3D_HAS_TMU_TEX_WRITE only) */
          Dataflow *val;
          Dataflow *cond;
          Dataflow *prev;
@@ -267,6 +278,16 @@ struct _Dataflow
          Dataflow *off;     /* may be NULL */
          Dataflow *sampler; /* may be NULL */
       } texture;
+
+#if V3D_HAS_TMU_TEX_WRITE
+      struct {
+         Dataflow *x;
+         Dataflow *y;
+         Dataflow *z;
+         Dataflow *i;
+         Dataflow *sampler;
+      } texture_addr;
+#endif
 
       struct {
          Dataflow *sampler;
@@ -382,6 +403,11 @@ void glsl_dataflow_construct_texture_gadget(Dataflow **r_out, Dataflow **g_out,
                                             Dataflow *d, Dataflow *b, Dataflow *off,
                                             uint32_t required_components,
                                             DataflowType component_type);
+#if V3D_HAS_TMU_TEX_WRITE
+Dataflow *glsl_dataflow_construct_texture_addr(Dataflow *sampler,
+                                               Dataflow *x, Dataflow *y, Dataflow *z,
+                                               Dataflow *i);
+#endif
 Dataflow *glsl_dataflow_construct_texture_size(Dataflow *sampler);
 Dataflow *glsl_dataflow_construct_external(DataflowType t);
 Dataflow *glsl_dataflow_construct_phi(Dataflow *a, Dataflow *b);
@@ -397,5 +423,6 @@ static inline bool glsl_dataflow_is_integral_type(const Dataflow *df) {
 }
 
 bool glsl_dataflow_affects_memory(DataflowFlavour f);
+bool glsl_dataflow_tex_cfg_implies_bslod(uint32_t tex_cfg_bits);
 
 #endif // DATAFLOW_H

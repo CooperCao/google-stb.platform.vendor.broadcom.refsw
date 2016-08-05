@@ -50,7 +50,7 @@
  *
  *                            Do Not Edit Directly
  * Auto-Generated from RTS environment:
- *   at: Mon Jun 13 20:40:39 2016 GMT
+ *   at: Fri Jun 24 23:17:52 2016 GMT
  *   by: kranawet
  *   for: Box LPDDR4_1600
  *         MemC 0 (32-bit LPDDR4@800MHz) w/432MHz clock
@@ -70,7 +70,7 @@
 
 #include "bbox.h"  /* located in /magnum/commonutils/box/include directory */
 
-static const uint32_t aulMemc0_20160613204039_LPDDR4_1600[] = {
+static const uint32_t aulMemc0_20160624231752_LPDDR4_1600[] = {
            0x0144b018,  /*   0: XPT_WR_RS 12032ns */
            0x8111702e,  /*   1: XPT_WR_XC RR 10742ns */
            0x813aa017,  /*   2: XPT_WR_CDB RR 11658ns */
@@ -111,7 +111,7 @@ static const uint32_t aulMemc0_20160613204039_LPDDR4_1600[] = {
            0x80ae1028,  /*  37: USB_X_CTRL_0 RR 6840ns */
            0x810db02c,  /*  38: USB_BDC RR 10593ns */
            0x3ffff0ff,  /*  39: UNASSIGNED off */
-           0x0040a002,  /*  40: RAAGA 2400ns */
+           0x0040a003,  /*  40: RAAGA 2400ns */
            0x0a8be01f,  /*  41: RAAGA_1 100000ns */
            0x3ffff0ff,  /*  42: UNASSIGNED off */
            0x3ffff0ff,  /*  43: UNASSIGNED off */
@@ -165,10 +165,10 @@ static const uint32_t aulMemc0_20160613204039_LPDDR4_1600[] = {
            0x3ffff0ff,  /*  91: UNASSIGNED off */
            0x3ffff0ff,  /*  92: UNASSIGNED off */
            0x3ffff0ff,  /*  93: UNASSIGNED off */
-           0x005e3006,  /*  94: BVN_MAD_PIX_FD 3511ns +HRT(0.5%) */
+           0x005e3007,  /*  94: BVN_MAD_PIX_FD 3511ns +HRT(0.5%) */
            0x00848012,  /*  95: BVN_MAD_QUANT 4938ns +HRT(0.5%) */
            0x00bc8015,  /*  96: BVN_MAD_PIX_CAP 7023ns +HRT(0.5%) */
-           0x005e3005,  /*  97: BVN_MAD1_PIX_FD 3511ns +HRT(0.5%) */
+           0x005e3006,  /*  97: BVN_MAD1_PIX_FD 3511ns +HRT(0.5%) */
            0x00848011,  /*  98: BVN_MAD1_QUANT 4938ns +HRT(0.5%) */
            0x00bc8014,  /*  99: BVN_MAD1_PIX_CAP 7023ns +HRT(0.5%) */
            0x3ffff0ff,  /* 100: UNASSIGNED off */
@@ -178,7 +178,7 @@ static const uint32_t aulMemc0_20160613204039_LPDDR4_1600[] = {
            0x3ffff0ff,  /* 104: UNASSIGNED off */
            0x3ffff0ff,  /* 105: UNASSIGNED off */
            0x0085300e,  /* 106: BVN_MFD0 4938ns */
-           0x0058c004,  /* 107: BVN_MFD0_1 3292ns */
+           0x0058c005,  /* 107: BVN_MFD0_1 3292ns */
            0x0085300f,  /* 108: BVN_MFD1 4938ns */
            0x00853010,  /* 109: BVN_MFD1_1 4938ns */
            0x3ffff0ff,  /* 110: UNASSIGNED off */
@@ -189,7 +189,7 @@ static const uint32_t aulMemc0_20160613204039_LPDDR4_1600[] = {
            0x3ffff0ff,  /* 115: UNASSIGNED off */
            0x3ffff0ff,  /* 116: UNASSIGNED off */
            0x3ffff0ff,  /* 117: UNASSIGNED off */
-           0x003fd001,  /* 118: BVN_VFD0 2370ns */
+           0x003fd002,  /* 118: BVN_VFD0 2370ns */
            0x001fd000,  /* 119: BVN_VFD1 1185ns */
            0x3ffff0ff,  /* 120: UNASSIGNED off */
            0x3ffff0ff,  /* 121: UNASSIGNED off */
@@ -205,7 +205,7 @@ static const uint32_t aulMemc0_20160613204039_LPDDR4_1600[] = {
            0x3ffff0ff,  /* 131: UNASSIGNED off */
            0x3ffff0ff,  /* 132: UNASSIGNED off */
            0x3ffff0ff,  /* 133: UNASSIGNED off */
-           0x0063d007,  /* 134: BVN_GFD0 3702ns */
+           0x0031d001,  /* 134: BVN_GFD0 1851ns */
            0x01ac701b,  /* 135: BVN_GFD1 15873ns */
            0x3ffff0ff,  /* 136: UNASSIGNED off */
            0x3ffff0ff,  /* 137: UNASSIGNED off */
@@ -215,7 +215,7 @@ static const uint32_t aulMemc0_20160613204039_LPDDR4_1600[] = {
            0x3ffff0ff,  /* 141: UNASSIGNED off */
            0x3ffff0ff,  /* 142: UNASSIGNED off */
            0x3ffff0ff,  /* 143: UNASSIGNED off */
-           0x00571003,  /* 144: BVN_RDC 3230ns */
+           0x00571004,  /* 144: BVN_RDC 3230ns */
            0x0352601c,  /* 145: VEC_VBI_ENC0 31500ns */
            0x3ffff0ff,  /* 146: UNASSIGNED off */
            0xbffff0ff,  /* 147: M2MC_0 RR */
@@ -330,22 +330,22 @@ static const uint32_t aulMemc0_20160613204039_LPDDR4_1600[] = {
          };
 
 
-static const BBOX_Rts_PfriClient stBoxRts_PfriClient_20160613204039_LPDDR4_1600[] = {
+static const BBOX_Rts_PfriClient stBoxRts_PfriClient_20160624231752_LPDDR4_1600[] = {
   {BCHP_MEMC_GEN_0_PFRI_0_THROTTLE_CONFIG,      0x803e0703}, /* HVD0_PFRI (gHVC) 471360.00 ns/40 */
   {BCHP_MEMC_GEN_0_PFRI_0_THROTTLE_FILTER_CTRL, 0x400004f8}, /* d: 4; p: 1272.66875 */
   {BCHP_MEMC_GEN_0_PFRI_0_THROTTLE_THRESH0,     0x000014a0}, /* 5280 */
   {BCHP_MEMC_GEN_0_PFRI_0_THROTTLE_THRESH1,     0x00000c60}  /* 60% * 5280 */
 };
 
-static const uint32_t* const paulMemc_box4[] = { &aulMemc0_20160613204039_LPDDR4_1600[0]};
+static const uint32_t* const paulMemc_box4[] = { &aulMemc0_20160624231752_LPDDR4_1600[0]};
 
 const BBOX_Rts stBoxRts_LPDDR4_1600_box4 = {
-  "20160613204039_LPDDR4_1600_box4",
+  "20160624231752_LPDDR4_1600_box4",
   7271,
   4,
   1,
   256,
   (const uint32_t**)&paulMemc_box4[0],
   4,
-  stBoxRts_PfriClient_20160613204039_LPDDR4_1600
+  stBoxRts_PfriClient_20160624231752_LPDDR4_1600
 };

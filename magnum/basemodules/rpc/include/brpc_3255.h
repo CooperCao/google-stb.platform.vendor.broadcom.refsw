@@ -1,99 +1,40 @@
-/***************************************************************************
- *     Copyright (c) 2005-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ *  Except as expressly set forth in the Authorized License,
  *
- * Module Description:
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * Revision History:
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
- * 
-			hImplChnDev->devId = ((hImplDev->verInfo.minVer <= 0x9) ? BRPC_DevId_3255_DS0 : BRPC_DevId_ECM_DS0) + hImplChnDev->chnNo;
- * Hydra_Software_Devel/26   9/24/09 5:32p haisongw
- * SW7400-2531: Retrieve eCM status from 325x
- *
- * Hydra_Software_Devel/25   8/25/09 3:12p haisongw
- * SW7400-2477:Add APIs to retrieve 3255 channel bonding status
- *
- * Hydra_Software_Devel/24   3/4/09 5:32p haisongw
- * PR52808:add eCM reset event notification
- *
- * Hydra_Software_Devel/23   10/13/08 2:38p anilmm
- * PR47842: BER calculation software implementation
- *
- * Hydra_Software_Devel/22   5/27/08 4:27p haisongw
- * PR43047: Add two parameters in BADS_GetStatus() to sync up with 325X
- * docsis 2.0.0 release
- *
- * Hydra_Software_Devel/21   5/5/08 6:02p haisongw
- * PR28691: Add power saving operation for OOB upstream since Docsis 2.0.0
- * Beta1 release
- *
- * Hydra_Software_Devel/20   12/20/07 5:51p haisongw
- * PR36061: speed up 325x QAM acqusition time
- *
- * Hydra_Software_Devel/19   10/12/07 1:29p haisongw
- * PR36060: add OCAP DPM support for three 3420 tuners
- *
- * Hydra_Software_Devel/18   5/10/07 6:21p haisongw
- * PR30640: Add an option to enable/disable 325X ADS auto-reacquiring
- *
- * Hydra_Software_Devel/17   4/16/07 6:13p haisongw
- * PR25049: SetTop API function btuner_get_qam_status() returns incomplete
- * information
- *
- * Hydra_Software_Devel/16   3/12/07 5:48p haisongw
- * PR25908: Add BTNR_3255Ib_GetPowerSaver() support
- * PR28647: add DVS178 upstream support
- *
- * Hydra_Software_Devel/15   12/14/06 5:41p haisongw
- * PR26393: add 7401C0/C1 SPOD support on BCM97455MBV10 board
- *
- * Hydra_Software_Devel/14   11/14/06 4:09p haisongw
- * PR25908: eCM_DSG_SW_v4.x/12271: Please add RPC support for tuner
- * standby
- *
- * Hydra_Software_Devel/13   10/24/06 5:00p haisongw
- * PR24619: fix previous compiling error
- *
- * Hydra_Software_Devel/12   10/23/06 2:07p haisongw
- * PR24619: need a way to sync 740x and 3255 after boot up and vendor Gpio
- * control
- *
- * Hydra_Software_Devel/11   10/5/06 2:33p haisongw
- * PR 24762: add two more Annex mode for CableCARD OOB DS
- *
- * Hydra_Software_Devel/10   9/20/06 3:34p haisongw
- * PR24338: add 97455B0 Board support, add POD_ApplyPower_RPC
- *
- * Hydra_Software_Devel/9   9/7/06 3:22p haisongw
- * PR 22368: Add AOB, AUS and TNR3255ob support
- *
- * Hydra_Software_Devel/8   9/6/06 12:20p haisongw
- * PR 22368: Add AOB, AUS and TNR3255ob support
- *
- * Hydra_Software_Devel/7   9/1/06 5:34p haisongw
- * PR24071: add spectral_inversion control API for OOB DS
- *
- * Hydra_Software_Devel/6   8/25/06 4:50p haisongw
- * PR 22368: Add AOB, AUS and TNR3255ob support
- *
- * Hydra_Software_Devel/5   8/15/06 10:55a haisongw
- * PR22318: multiple OS support for BRPC module
- *
- * Hydra_Software_Devel/4   8/14/06 2:17p haisongw
- * PR22318: multiple OS support for BRPC module
- *
- *********************************************************************/
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+ ******************************************************************************/
 #ifndef __BRPC_3255_H
 #define __BRPC_3255_H
 
@@ -317,7 +258,7 @@ typedef enum BRPC_ProcId
 	BRPC_ProcId_ECM_Transit_Frontend_Control_to_Host = 59,
 	BRPC_ProcId_ECM_Transit_Frontend_Control_to_Bnm = 60,
 
-#if ((BCHP_CHIP == 7425) || (BCHP_CHIP == 7435) || (BCHP_CHIP == 7429) || (BCHP_CHIP == 74295))
+#if ((BCHP_CHIP == 7425) || (BCHP_CHIP == 7435) || (BCHP_CHIP == 7429) || (BCHP_CHIP == 74295) || (BCHP_CHIP == 7439))
 	BRPC_ProcId_ECM_TSMF_GetFldVerifyConfig = 61,
 	BRPC_ProcId_ECM_TSMF_SetFldVerifyConfig = 62,
 	BRPC_ProcId_ECM_TSMF_EnableAutoMode = 63,
@@ -1175,4 +1116,3 @@ typedef enum {
 #endif
 
 #endif
-

@@ -694,7 +694,7 @@ bmedia_stream_to_string(const bmedia_probe_stream *stream, char *dest_buf, size_
                 }
                 break;
             case bstream_mpeg_type_ts:
-                if(stream->probe_id == BMPEG2TS_PSI_PROBE_ID || stream->probe_id == BMPEG2TS192_PSI_PROBE_ID) {
+                if(track->probe_id == BMPEG2TS_PSI_PROBE_ID || track->probe_id == BMPEG2TS192_PSI_PROBE_ID) {
                     const bmpeg2ts_psi_probe_track *psi_track =(bmpeg2ts_psi_probe_track *) track;
                     switch(psi_track->transport_type) {
                     case bmpeg2ts_psi_transport_caption_service:
@@ -719,7 +719,7 @@ bmedia_stream_to_string(const bmedia_probe_stream *stream, char *dest_buf, size_
         case bmedia_track_type_other:
             {
                 const char *type = "unknown";
-                if(stream->type == bstream_mpeg_type_ts && (stream->probe_id == BMPEG2TS_PSI_PROBE_ID || stream->probe_id == BMPEG2TS192_PSI_PROBE_ID)) {
+                if(stream->type == bstream_mpeg_type_ts && (track->probe_id == BMPEG2TS_PSI_PROBE_ID || track->probe_id == BMPEG2TS192_PSI_PROBE_ID)) {
                     const bmpeg2ts_psi_probe_track *psi_track =(bmpeg2ts_psi_probe_track *) track;
                     switch(psi_track->transport_type) {
                     case bmpeg2ts_psi_transport_dvb_subtitles: type = "DVB subtitles";break;
@@ -756,7 +756,7 @@ bmedia_stream_to_string(const bmedia_probe_stream *stream, char *dest_buf, size_
             language = ((bmp4_probe_track*)track)->language;
             break;
         case bstream_mpeg_type_ts:
-            if(stream->probe_id == BMPEG2TS_PSI_PROBE_ID || stream->probe_id == BMPEG2TS192_PSI_PROBE_ID) {
+            if(track->probe_id == BMPEG2TS_PSI_PROBE_ID || track->probe_id == BMPEG2TS192_PSI_PROBE_ID) {
                 const bmpeg2ts_psi_probe_track *psi_track =(bmpeg2ts_psi_probe_track *) track;
                 if(psi_track->language.valid) {
                     language = psi_track->language.code;
@@ -965,8 +965,9 @@ b_media_probe_parse_aux(bmedia_probe_t probe, bmedia_probe_stream *stream, const
 				
 				/* copy extra tracks */
 				while(NULL!=(track_aux=BLST_SQ_FIRST(&extra_tracks))) {
-					BLST_SQ_REMOVE_HEAD(&extra_tracks,link);  
+					BLST_SQ_REMOVE_HEAD(&extra_tracks,link);
 					track_aux->program = BMEDIA_PROBE_INVALID_PROGRAM;
+                    track_aux->probe_id = stream->probe_id;
 					BLST_SQ_INSERT_TAIL(&stream->tracks, track_aux, link);
 				}
 
@@ -1474,6 +1475,7 @@ bmedia_probe_parse(bmedia_probe_t probe, bfile_io_read_t fd, const bmedia_probe_
             }
         }
         if(stream->probe_id < B_MEDIA_N_PROBES) {
+            bmedia_probe_track *track;
             if(b_media_probe_formats[stream->probe_id]==&bmp3_probe) {
                 ((bmedia_probe_stream *)stream)->probe_id = BMP3_PROBE_ID;
             } else if(b_media_probe_formats[stream->probe_id]==&bmpeg2ts_psi_probe) {
@@ -1482,6 +1484,11 @@ bmedia_probe_parse(bmedia_probe_t probe, bfile_io_read_t fd, const bmedia_probe_
                 ((bmedia_probe_stream *)stream)->probe_id = BMPEG2TS192_PSI_PROBE_ID;
             } else if(b_media_probe_formats[stream->probe_id]==&bmpeg2pes_probe) {
                 ((bmedia_probe_stream *)stream)->probe_id = BMPEG2PES_PROBE_ID;
+            }
+            for(track=BLST_SQ_FIRST(&stream->tracks); track; track=BLST_SQ_NEXT(track,link)) {
+                if(track->probe_id==0) {
+                    track->probe_id = stream->probe_id;
+                }
             }
         }
         if(stream->type == bstream_mpeg_type_es) {

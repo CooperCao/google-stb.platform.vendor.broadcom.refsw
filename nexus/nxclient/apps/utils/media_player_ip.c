@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Broadcom Proprietary and Confidential. (c)2010-2016 Broadcom. All rights reserved.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,6 +34,11 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
+ *
+ * $brcm_Workfile: $
+ * $brcm_Revision: $
+ * $brcm_Date: $
+ *
  *****************************************************************************/
 #include "media_player.h"
 #include "media_player_priv.h"
@@ -158,7 +163,7 @@ static void b_print_media_string(const bmedia_probe_stream *stream)
 void playbackIpEventCallback(void *appCtx, B_PlaybackIpEventIds eventId)
 {
     media_player_ip_t player = appCtx;
-    BDBG_MSG (("%s: Got EventId %d from IP library, appCtx %p, eof CB %p, ctx %p", __FUNCTION__, eventId, appCtx, player->parent->start_settings.eof, player->parent->start_settings.context));
+    BDBG_MSG (("%s: Got EventId %d from IP library, appCtx %p, eof CB %p, ctx %p", __FUNCTION__, eventId, appCtx, (void *)(unsigned long)player->parent->start_settings.eof, player->parent->start_settings.context));
     if (eventId == B_PlaybackIpEvent_eServerEndofStreamReached) {
         if (player->parent->start_settings.eof) {
             (player->parent->start_settings.eof)(player->parent->start_settings.context);
@@ -344,7 +349,7 @@ int media_player_ip_start(media_player_ip_t player, const media_player_start_set
         ipSessionSetupSettings.u.http.psiParsingTimeLimit = 30000; /* 30sec */
         rc = B_PlaybackIp_SessionSetup(player->playbackIp, &ipSessionSetupSettings, &ipSessionSetupStatus);
         if (rc) { rc = BERR_TRACE(rc); goto error; }
-        BDBG_MSG (("Session Setup call succeeded, file handle %p", ipSessionSetupStatus.u.http.file));
+        BDBG_MSG (("Session Setup call succeeded, file handle %p", (void *)ipSessionSetupStatus.u.http.file));
         player->stream = (bmedia_probe_stream *)(ipSessionSetupStatus.u.http.stream);
         player->file = ipSessionSetupStatus.u.http.file;
         if (ipSessionSetupStatus.u.http.psi.liveChannel)
@@ -560,7 +565,7 @@ int media_player_ip_start(media_player_ip_t player, const media_player_start_set
             pidChannelSettings.pidType = NEXUS_PidType_eUnknown;
             pcrPidChannel = NEXUS_Playpump_OpenPidChannel(player->playpump1, player->playbackIpPsi.pcrPid, &pidChannelSettings);
             if (!pcrPidChannel) { rc = BERR_TRACE(rc); goto error; }
-            BDBG_MSG(("%s: Opened pcr pid channel %u for pcr pid %u ", __FUNCTION__, pcrPidChannel, player->playbackIpPsi.pcrPid));
+            BDBG_MSG(("%s: Opened pcr pid channel %p for pcr pid %u", __FUNCTION__, (void *)pcrPidChannel, player->playbackIpPsi.pcrPid));
         }
         else
         {

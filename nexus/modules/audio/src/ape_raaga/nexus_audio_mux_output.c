@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2013 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,22 +34,13 @@
 *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
-*
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* Revision History:
-*
-* $brcm_Log: $
-*
 ***************************************************************************/
 
 #include "nexus_audio_module.h"
 
 BDBG_MODULE(nexus_audio_mux_output);
 
-#define NEXUS_AUDIO_MUX_USE_RAVE 1
+#define NEXUS_AUDIO_MUX_USE_RAVE 0
 
 #if NEXUS_HAS_AUDIO_MUX_OUTPUT
 
@@ -63,7 +54,7 @@ typedef struct NEXUS_AudioMuxOutput
     BAPE_MuxOutputHandle muxOutput;
     BAVC_Xpt_StcSoftIncRegisters softIncRegisters;
     NEXUS_AudioMuxOutputStartSettings startSettings;
-    NEXUS_AudioInput input;
+    NEXUS_AudioInputHandle input;
     NEXUS_AudioMuxOutputSettings settings;
     NEXUS_IsrCallbackHandle overflowCallback;
     struct {
@@ -310,6 +301,9 @@ static void NEXUS_AudioMuxOutput_P_Finalizer(
     unsigned i;
     NEXUS_OBJECT_ASSERT(NEXUS_AudioMuxOutput, handle);
     BLST_S_REMOVE(&g_muxOutputList, handle, NEXUS_AudioMuxOutput, node);
+    for (i=0;i<NEXUS_AUDIO_MUX_OUTPUT_BLOCKS;i++) {
+        NEXUS_AudioMuxOutput_P_MemoryBlock_Free(i, handle);
+    }
     NEXUS_AudioOutput_Shutdown(&handle->connector);
     BAPE_MuxOutput_Destroy(handle->muxOutput);
     NEXUS_IsrCallback_Destroy(handle->overflowCallback);
@@ -317,9 +311,6 @@ static void NEXUS_AudioMuxOutput_P_Finalizer(
     LOCK_TRANSPORT();
     NEXUS_Rave_Close_priv(handle->raveContext);
     UNLOCK_TRANSPORT();
-    for (i=0;i<NEXUS_AUDIO_MUX_OUTPUT_BLOCKS;i++) {
-        NEXUS_AudioMuxOutput_P_MemoryBlock_Free(i, handle);
-    }
 #else
     BSTD_UNUSED(i);
     BMMA_Free(handle->cdb.mmaBlock);
@@ -516,13 +507,37 @@ static NEXUS_MemoryBlockHandle NEXUS_AudioMuxOutput_P_MemoryBlockFromMma(NEXUS_A
 /**
 Summary:
 **/
+NEXUS_Error NEXUS_AudioMuxOutput_GetBufferStatus_priv(
+    NEXUS_AudioMuxOutputHandle handle,
+    NEXUS_AudioMuxOutputStatus *pStatus /* [out] */
+    )
+{
+   BERR_Code errCode;
+   BAVC_AudioBufferStatus bufferStatus;
+
+   BKNI_Memset(&bufferStatus, 0, sizeof(bufferStatus));
+
+   errCode = BAPE_MuxOutput_GetBufferStatus(handle->muxOutput, &bufferStatus);
+   if ( errCode )
+   {
+       return BERR_TRACE(errCode);
+   }
+
+   pStatus->bufferBlock = NEXUS_AudioMuxOutput_P_MemoryBlockFromMma( handle, 0, bufferStatus.stCommon.hFrameBufferBlock );
+   pStatus->metadataBufferBlock = NEXUS_AudioMuxOutput_P_MemoryBlockFromMma( handle, 1, bufferStatus.stCommon.hMetadataBufferBlock );
+
+   return BERR_SUCCESS;
+}
+
+/**
+Summary:
+**/
 NEXUS_Error NEXUS_AudioMuxOutput_GetStatus(
     NEXUS_AudioMuxOutputHandle handle,
     NEXUS_AudioMuxOutputStatus *pStatus /* [out] */
     )
 {
     BERR_Code errCode;
-    BAVC_AudioBufferStatus bufferStatus;
     BAPE_MuxOutputStatus muxStatus;
 
     BDBG_OBJECT_ASSERT(handle, NEXUS_AudioMuxOutput);
@@ -533,16 +548,12 @@ NEXUS_Error NEXUS_AudioMuxOutput_GetStatus(
     }
 
     BKNI_Memset(pStatus, 0, sizeof(*pStatus));
-    BKNI_Memset(&bufferStatus, 0, sizeof(bufferStatus));
 
-    errCode = BAPE_MuxOutput_GetBufferStatus(handle->muxOutput, &bufferStatus);
+    errCode = NEXUS_AudioMuxOutput_GetBufferStatus_priv(handle, pStatus);
     if ( errCode )
     {
         return BERR_TRACE(errCode);
     }
-
-    pStatus->bufferBlock = NEXUS_AudioMuxOutput_P_MemoryBlockFromMma( handle, 0, bufferStatus.stCommon.hFrameBufferBlock );
-    pStatus->metadataBufferBlock = NEXUS_AudioMuxOutput_P_MemoryBlockFromMma( handle, 1, bufferStatus.stCommon.hMetadataBufferBlock );
 
     errCode = BAPE_MuxOutput_GetStatus(handle->muxOutput, &muxStatus);
     if ( BERR_SUCCESS == errCode )
@@ -655,7 +666,7 @@ Summary:
  ***************************************************************************/
 NEXUS_Error NEXUS_AudioMuxOutput_P_AddInput(
     NEXUS_AudioMuxOutputHandle handle, 
-    NEXUS_AudioInput input
+    NEXUS_AudioInputHandle input
     )
 {
     BERR_Code errCode;
@@ -683,7 +694,7 @@ Summary:
  ***************************************************************************/
 void NEXUS_AudioMuxOutput_P_RemoveInput(
     NEXUS_AudioMuxOutputHandle handle, 
-    NEXUS_AudioInput input
+    NEXUS_AudioInputHandle input
     )
 {
     BDBG_OBJECT_ASSERT(handle, NEXUS_AudioMuxOutput);
@@ -852,6 +863,19 @@ void NEXUS_AudioMuxOutput_Stop(
 /**
 Summary:
 **/
+NEXUS_Error NEXUS_AudioMuxOutput_GetBufferStatus_priv(
+    NEXUS_AudioMuxOutputHandle handle,
+    NEXUS_AudioMuxOutputStatus *pStatus /* [out] */
+    )
+{
+   BSTD_UNUSED(handle);
+   BSTD_UNUSED(pStatus);
+   return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+/**
+Summary:
+**/
 NEXUS_Error NEXUS_AudioMuxOutput_GetStatus(
     NEXUS_AudioMuxOutputHandle handle,
     NEXUS_AudioMuxOutputStatus *pStatus /* [out] */
@@ -946,4 +970,3 @@ static void NEXUS_AudioMuxOutput_P_Release(NEXUS_AudioMuxOutputHandle handle)
 }
 
 NEXUS_OBJECT_CLASS_MAKE_WITH_RELEASE(NEXUS_AudioMuxOutput, NEXUS_AudioMuxOutput_Destroy);
-

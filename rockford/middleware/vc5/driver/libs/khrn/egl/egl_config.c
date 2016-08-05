@@ -30,7 +30,7 @@ static const EGL_CONFIG_T egl_configs[] = {
    // EGLConfig
    // |    SAMPLES
    // |    |  LOCKABLE
-   // |    |  |  COLOR                       DEPTH                      STENCIL           MASK (OpenVG)  MIN V3D VER
+   // |    |  |  COLOR                       DEPTH                      STENCIL           MASK (OpenVG)  INVALID
    /* 1*/ {0, 0, GFX_LFMT_R8_G8_B8_A8_UNORM, GFX_LFMT_S8D24_UINT_UNORM, GFX_LFMT_NONE,    GFX_LFMT_NONE},
    /* 2*/ {0, 0, GFX_LFMT_R8_G8_B8_X8_UNORM, GFX_LFMT_S8D24_UINT_UNORM, GFX_LFMT_NONE,    GFX_LFMT_NONE},
    /* 3*/ {0, 0, GFX_LFMT_R8_G8_B8_A8_UNORM, GFX_LFMT_D24X8_UNORM,      GFX_LFMT_NONE,    GFX_LFMT_NONE},
@@ -69,7 +69,7 @@ static const EGL_CONFIG_T egl_configs[] = {
    /* This config should look the same as config 1 except for having a larger
     * ID. So it should never be the top config returned by eglChooseConfig() or
     * eglGetConfigs() -- if it appears, config 1 will always appear earlier. */
-   /*30*/ {0, 0, GFX_LFMT_BSTC_RGBA_UNORM,   GFX_LFMT_S8D24_UINT_UNORM, GFX_LFMT_NONE,    GFX_LFMT_NONE, V3D_MAKE_VER(3,3,0,0)},
+   /*30*/ {0, 0, GFX_LFMT_BSTC_RGBA_UNORM,   GFX_LFMT_S8D24_UINT_UNORM, GFX_LFMT_NONE,    GFX_LFMT_NONE, !V3D_VER_AT_LEAST(3,3,0,0)},
 
    /*31*/ {0, 0, GFX_LFMT_A4B4G4R4_UNORM,    GFX_LFMT_S8D24_UINT_UNORM, GFX_LFMT_NONE,    GFX_LFMT_NONE},
    /*32*/ {0, 0, GFX_LFMT_A4B4G4R4_UNORM,    GFX_LFMT_D24X8_UNORM,      GFX_LFMT_NONE,    GFX_LFMT_NONE},
@@ -150,7 +150,7 @@ bool egl_config_is_valid(const EGL_CONFIG_T *config)
    if (offset % sizeof (EGL_CONFIG_T))
       return false;
 
-   if (khrn_get_v3d_version() < config->min_v3d_ver)
+   if (config->invalid)
       return false;
 
    return true;
@@ -183,7 +183,7 @@ bool egl_config_bindable(const EGL_CONFIG_T *config, EGLenum format)
       return config->samples == 0;
 
    default:
-      UNREACHABLE();
+      unreachable();
       return false;
    }
 }
@@ -685,7 +685,7 @@ static bool config_matches(const EGL_CONFIG_T *config,
          break;
 
       default:
-         UNREACHABLE();
+         unreachable();
          break;
       }
    }
@@ -794,17 +794,16 @@ bool egl_config_context_surface_compatible(const EGL_CONTEXT_T *context,
       case OPENGL_ES_11:
          api = EGL_OPENGL_ES_BIT;
          break;
-      case OPENGL_ES_30:
-      case OPENGL_ES_31:
+      case OPENGL_ES_3X:
          api = EGL_OPENGL_ES3_BIT_KHR;
          break;
       default:
-         UNREACHABLE();
+         unreachable();
          break;
       }
       break;
    default:
-      UNREACHABLE();
+      unreachable();
       break;
    }
 
@@ -878,8 +877,7 @@ bool egl_can_texture_from_format(GFX_LFMT_T lfmt)
    GFX_LFMT_TMU_TRANSLATION_T tran;
 
    // This checks if the hardware can texture from it
-   return gfx_lfmt_maybe_translate_tmu(&tran, lfmt,
-      GFX_LFMT_TMU_DEPTH_DONT_CARE, khrn_get_v3d_version());
+   return gfx_lfmt_maybe_translate_tmu(&tran, lfmt, GFX_LFMT_TMU_DEPTH_DONT_CARE);
 }
 
 bool egl_can_display_format(GFX_LFMT_T lfmt)
@@ -964,7 +962,7 @@ static EGLBoolean egl_choose_config(EGLDisplay dpy,
       bool advertiseMe =  egl_can_render_format(candidate->color_api_fmt) &&
                           (egl_can_display_format(candidate->color_api_fmt) ||
                           egl_can_texture_from_format(candidate->color_api_fmt)) &&
-                          khrn_get_v3d_version() >= candidate->min_v3d_ver;
+                          !candidate->invalid;
 
       if (advertiseMe && config_matches(candidate, attrib_list))
       {
@@ -980,7 +978,8 @@ static EGLBoolean egl_choose_config(EGLDisplay dpy,
    *num_config = j;
    if (configs != NULL)
    {
-      *num_config = MAX(MIN(*num_config, config_size), 0);
+      /* Note config_size may be negative, so gfx_smax(,0) last! */
+      *num_config = gfx_smax(gfx_smin(*num_config, config_size), 0);
 
       for (int i = 0; i < *num_config; i++)
          configs[i] = (EGLConfig *) choices[i].descriptor;

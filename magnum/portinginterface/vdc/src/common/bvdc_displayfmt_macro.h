@@ -115,19 +115,7 @@
     #define P_CONDITIONAL(a,b) b
 #endif
 
-#if (BVDC_P_SUPPORT_HDMI_RM_VER == BVDC_P_HDMI_RM_VER_4)
-#include "bvdc_hdmirm_lupick_65nm.h"
-#define BVDC_P_MAKE_HDMIRM_0(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q)
-#define BVDC_P_MAKE_HDMIRM_1(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q) \
-    { P_CONDITIONAL(a, b), c, d, e, f, g, h, i, j, k, l, m, n, o, p, q },
-#define BVDC_P_MAKE_HDMIRM__(pick1, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q) \
-    BVDC_P_MAKE_HDMIRM_##pick1(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q)
-#define BVDC_P_MAKE_HDMIRM_(pick1, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q) \
-    BVDC_P_MAKE_HDMIRM__(pick1, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q)
-#define BVDC_P_MAKE_HDMIRM(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q) \
-    BVDC_P_MAKE_HDMIRM_(BVDC_PICK_TMDS_##a, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q)
-
-#elif (BVDC_P_SUPPORT_HDMI_RM_VER == BVDC_P_HDMI_RM_VER_5)
+#if (BVDC_P_SUPPORT_HDMI_RM_VER == BVDC_P_HDMI_RM_VER_5)
 #include "bvdc_hdmirm_lupick_40nm.h"
 #define BVDC_P_MAKE_HDMIRM_0(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r)
 #define BVDC_P_MAKE_HDMIRM_1(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r) \

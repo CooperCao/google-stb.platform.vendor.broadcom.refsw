@@ -43,13 +43,10 @@
  *      Author: gambhire
  */
 
-#include <hwtimer.h>
 #include <stdint.h>
-#include <waitqueue.h>
 
 #include "arm/arm.h"
 #include "arm/gic.h"
-#include "fs/ramfs.h"
 #include "config.h"
 
 #include "lib_printf.h"
@@ -59,18 +56,49 @@
 #include "kernel.h"
 #include "tzmemory.h"
 #include "pgtable.h"
-#include "objalloc.h"
 #include "interrupt.h"
+#include "hwtimer.h"
 #include "tztask.h"
 #include "scheduler.h"
-#include "svcutils.h"
-#include "console.h"
-#include "clock.h"
 
 #include "system.h"
 
-void System::init(void *tzDevTree) {
-    UNUSED(tzDevTree);
+static uint8_t tzDevTree[MAX_DT_SIZE_BYTES];
+
+void System::init(const void *devTree) {
+
+    // The bootstrap code has mapped device tree memory one-to-one VA and PA.
+    int rc = fdt_check_header(devTree);
+    if (rc) {
+        err_msg("Corrupted device tree at %p.\n", devTree);
+        return;
+    }
+
+    int dtSize = fdt_totalsize(devTree);
+    if (dtSize > MAX_DT_SIZE_BYTES) {
+        err_msg("Device tree is too large (size %d) . Increase MAX_DT_SIZE_BYTES\n", dtSize);
+        return;
+    }
+
+    rc = fdt_move(devTree, tzDevTree, dtSize);
+    if (rc) {
+        err_msg("Device tree could not be relocated to tzDevTree: %s\n", fdt_strerror(rc));
+        return;
+    }
+
+    PageTable::init();
+    TzMem::init(tzDevTree);
+    GIC::init(tzDevTree);
+    Interrupt::init();
+    TzTimers::init();
+    Scheduler::init();
+    TzTask::initNoTask();
+
+    /* Unmap the bootstrap part of the kernel */
+    PageTable::kernelPageTable()->unmapBootstrap(devTree);
+
+    PageTable::kernelPageTable()->dump();
+    printf("System init done\n");
 }
 
 IDirectory *System::root() {

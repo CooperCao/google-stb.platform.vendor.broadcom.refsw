@@ -84,7 +84,7 @@ const BDSP_VOM_Algo_Start_Addr BDSP_sAlgoStartAddr =
 		0x01101860,
 
 		/* BDSP_AF_P_AlgoId_eWmaProStdDecode */
-		0x0316b000,
+		0x0316b1c0,
 
 		/* BDSP_AF_P_AlgoId_eMlpDecode */
 		0x01459000,
@@ -405,7 +405,7 @@ const BDSP_VOM_Algo_Start_Addr BDSP_sAlgoStartAddr =
 		0x00000000,
 
 		/* BDSP_AF_P_AlgoId_ePassThru */
-		0x030f5614,
+		0x030f5cd4,
 
 		/* BDSP_AF_P_AlgoId_eMlpPassThru */
 		0x03471000,

@@ -281,7 +281,59 @@
     (((MAX((a), (b)) - MIN((a), (b))) < (threshold)) ? ((a) >= (b) ? 1 : 0) : ((a) > (b) ? 0 : 1))
 
 
-/************************* PROTOTYPES **************************************************/
+/**//**
+ * \brief Makes a code block wrapped with the do-while operator. It allows to set
+ *  semicolon at the end of this macro inside other operators like if-else, while, etc.
+ */
+#define SYS_WRAPPED_BLOCK(codeBlock)   do { codeBlock; } while (0)
+
+
+/**//**
+ * \brief   Zeroes the specified object.
+ * \param[in]   object      Pointer to the object to be zeroed.
+ */
+#define SYS_ZERO_OBJECT(object)     memset((object), 0x0, sizeof(*(object)))
+
+/**//**
+ * \brief Helper macros which work with structures of variable length such as
+ *  struct _VarStruct_t
+ *  {
+ *      type1_t     a;
+ *      type2_t     b;
+ *      someUint_t  size;       // obligatory field
+ *      type3_t     value[1];   // variable part
+ *  } VarStruct_t;
+ */
+/**//**
+ * \brief Gets size of the specified Variable length structure.
+ *        Prototype is int SYS_VarStructSize(type_t *pVarStruct)
+ */
+#define SYS_VARSTRUCT_SIZE(pVarStruct)                                      \
+        (offsetof(typeof(*(pVarStruct)), value) + (pVarStruct)->size)
+
+/**//**
+ * \brief Check if the specified Variable length structure does not exceed pointer pEnd
+ *        Prototype is bool SYS_VarStructCheck(uint8_t *const pEnd, type_t *pVarStruct)
+ */
+#define SYS_VARSTRUCT_CHECK(pEnd, pVarStruct)                               \
+        ((uint8_t*)(pVarStruct) + SYS_VARSTRUCT_SIZE(pVarStruct) <= (uint8_t*)(pEnd))
+
+/**//**
+ * \brief Updates the pointer to pointer to a variable length structure to the next one
+ *        Prototype is void SYS_VarStruct2Next(type_t **ppVarStruct)
+ */
+#define SYS_VARSTRUCT2_NEXT(ppVarStruct)                                    \
+        (*ppVarStruct = (typeof(*(ppVarStruct)))SYS_ALIGN2((uint8_t*)*(ppVarStruct) + SYS_VARSTRUCT_SIZE(*(ppVarStruct))))
+
+/**//**
+ * \brief Returns aligned to 2-byte boundary value of the specified pointer
+ *        Prototype is uint8_t* SYS_Align2(void *pointer)
+ */
+#define SYS_ALIGN2(pointer)                                                 \
+        ((uint8_t*)(pointer) + ((uint32_t)(pointer) & 1))
+
+
+/************************* INLINES *****************************************************/
 /**//**
  * \brief Swaps values of two bytes.
  */
@@ -353,55 +405,13 @@ INLINE bool OPPOSITE_SIGNS(int32_t a, int32_t b)
 }
 
 
-/**//**
- * \brief Makes a code block wrapped with the do-while operator. It allows to set
- *  semicolon at the end of this macro inside other operators like if-else, while, etc.
+/*
+ * Repeat pragma GCC optimize because function definitions (including inlined) turn these pragrmas off automatically
+ * when compiled by G++ but not GCC.
  */
-#define SYS_WRAPPED_BLOCK(codeBlock)   do { codeBlock; } while (0)
-
-
-/**//**
- * \brief   Zeroes the specified object.
- * \param[in]   object      Pointer to the object to be zeroed.
- */
-#define SYS_ZERO_OBJECT(object)     memset((object), 0x0, sizeof(*(object)))
-
-/**//**
- * \brief Helper macros which work with structures of variable length such as
- *  struct _VarStruct_t
- *  {
- *      type1_t     a;
- *      type2_t     b;
- *      someUint_t  size;       // obligatory field
- *      type3_t     value[1];   // variable part
- *  } VarStruct_t;
- */
-/**//**
- * \brief Gets size of the specified Variable length structure.
- *        Prototype is int SYS_VarStructSize(type_t *pVarStruct)
- */
-#define SYS_VARSTRUCT_SIZE(pVarStruct)                                      \
-        (offsetof(typeof(*(pVarStruct)), value) + (pVarStruct)->size)
-
-/**//**
- * \brief Check if the specified Variable length structure does not exceed pointer pEnd
- *        Prototype is bool SYS_VarStructCheck(uint8_t *const pEnd, type_t *pVarStruct)
- */
-#define SYS_VARSTRUCT_CHECK(pEnd, pVarStruct)                               \
-        ((uint8_t*)(pVarStruct) + SYS_VARSTRUCT_SIZE(pVarStruct) <= (uint8_t*)(pEnd))
-
-/**//**
- * \brief Updates the pointer to pointer to a variable length structure to the next one
- *        Prototype is void SYS_VarStruct2Next(type_t **ppVarStruct)
- */
-#define SYS_VARSTRUCT2_NEXT(ppVarStruct)                                    \
-        (*ppVarStruct = (typeof(*(ppVarStruct)))SYS_ALIGN2((uint8_t*)*(ppVarStruct) + SYS_VARSTRUCT_SIZE(*(ppVarStruct))))
-
-/**//**
- * \brief Returns aligned to 2-byte boundary value of the specified pointer
- *        Prototype is uint8_t* SYS_Align2(void *pointer)
- */
-#define SYS_ALIGN2(pointer)                                                 \
-        ((uint8_t*)(pointer) + ((uint32_t)(pointer) & 1))
+#if (defined(__arm__) || defined(__i386__)) && !defined(__clang__)
+# pragma GCC optimize "short-enums"     /* Implement short enums. */
+# pragma GCC diagnostic ignored "-Wattributes"
+#endif
 
 #endif /* _BB_SYS_UTILS_H */

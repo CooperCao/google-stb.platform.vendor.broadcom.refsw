@@ -39,13 +39,9 @@ extern uint32_t v3d_cl_compr_size(
 
 union v3d_cl_compr_union
 {
-   V3D_CL_COMPR_IND_COMMON_IID8_T ind_common_iid8;
-   V3D_CL_COMPR_IND_COMMON_IID32_T ind_common_iid32;
+   uint32_t id; /* iid8, iid32, prim_id8, prim_id32 */
 
 #if V3D_HAS_INLINE_CLIP
-   V3D_CL_COMPR_IND_COMMON_PRIM_ID8_T ind_common_prim_id8;
-   V3D_CL_COMPR_IND_COMMON_PRIM_ID32_T ind_common_prim_id32;
-
    V3D_CL_COMPR_IND_COMMON_CLIPPED_PRIM_T ind_common_clipped_prim;
 #else
    int32_t rel_branch;
@@ -68,6 +64,9 @@ union v3d_cl_compr_union
    V3D_CL_COMPR_IND_TRI_C3_T ind_tri_c3;
    V3D_CL_COMPR_IND_TRI_C4_T ind_tri_c4;
    V3D_CL_COMPR_IND_TRI_C5_T ind_tri_c5;
+#if V3D_HAS_32BIT_INDS
+   V3D_CL_COMPR_IND_TRI_C6_T ind_tri_c6;
+#endif
 
    V3D_CL_COMPR_IND_D3DPVSF_TRI_C0_T ind_d3dpvsf_tri_c0;
    V3D_CL_COMPR_IND_D3DPVSF_TRI_C1_T ind_d3dpvsf_tri_c1;
@@ -75,6 +74,9 @@ union v3d_cl_compr_union
    V3D_CL_COMPR_IND_D3DPVSF_TRI_C3_T ind_d3dpvsf_tri_c3;
    V3D_CL_COMPR_IND_D3DPVSF_TRI_C4_T ind_d3dpvsf_tri_c4;
    V3D_CL_COMPR_IND_D3DPVSF_TRI_C5_T ind_d3dpvsf_tri_c5;
+#if V3D_HAS_32BIT_INDS
+   V3D_CL_COMPR_IND_D3DPVSF_TRI_C6_T ind_d3dpvsf_tri_c6;
+#endif
 
    V3D_CL_COMPR_IND_LINE_C0_T ind_line_c0;
    V3D_CL_COMPR_IND_LINE_C1_T ind_line_c1;
@@ -82,12 +84,18 @@ union v3d_cl_compr_union
    V3D_CL_COMPR_IND_LINE_C3_T ind_line_c3;
    V3D_CL_COMPR_IND_LINE_C4_T ind_line_c4;
    V3D_CL_COMPR_IND_LINE_C5_T ind_line_c5;
+#if V3D_HAS_32BIT_INDS
+   V3D_CL_COMPR_IND_LINE_C6_T ind_line_c6;
+#endif
 
    V3D_CL_COMPR_IND_POINT_C0_T ind_point_c0;
    V3D_CL_COMPR_IND_POINT_C1_T ind_point_c1;
    V3D_CL_COMPR_IND_POINT_C2_T ind_point_c2;
    V3D_CL_COMPR_IND_POINT_C4_T ind_point_c4;
    V3D_CL_COMPR_IND_POINT_C5_T ind_point_c5;
+#if V3D_HAS_32BIT_INDS
+   V3D_CL_COMPR_IND_POINT_C6_T ind_point_c6;
+#endif
 
    V3D_CL_COMPR_XY_TRI_C0_T xy_tri_c0;
    V3D_CL_COMPR_XY_TRI_C1_T xy_tri_c1;

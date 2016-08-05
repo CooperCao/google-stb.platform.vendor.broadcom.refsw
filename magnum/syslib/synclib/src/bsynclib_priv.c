@@ -1,46 +1,61 @@
 /***************************************************************************
-*     Copyright (c) 2004-2012, Broadcom Corporation
-*     All Rights Reserved
-*     Confidential Property of Broadcom Corporation
-*
-*  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
-*  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
-*  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
-*
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* Revision History:
-*
-* $brcm_Log: $
-* 
-***************************************************************************/
-
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ *  Except as expressly set forth in the Authorized License,
+ *
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+ *
+ * Module Description:
+ *
+ **************************************************************************/
 #include "bstd.h"
 #include "bsynclib.h"
 #include "bsynclib_priv.h"
 
 BDBG_MODULE(synclib);
 
-bool BSYNClib_P_Enabled(BSYNClib_Handle hSync)
+bool BSYNClib_P_Enabled_isrsafe(BSYNClib_Handle hSync)
 {
-	bool bEnabled = false;
-	
-	BDBG_ENTER(BSYNClib_P_Enabled);
-
+	BDBG_ENTER(BSYNClib_P_Enabled_isrsafe);
 	BDBG_ASSERT(hSync);
-
-	bEnabled = hSync->sSettings.bEnabled;
-	
-	BDBG_LEAVE(BSYNClib_P_Enabled);
-	return bEnabled;
+	BDBG_LEAVE(BSYNClib_P_Enabled_isrsafe);
+	return hSync->sSettings.bEnabled;
 }
 
-static unsigned int BSYNClib_P_Gcd_isr(unsigned int a, unsigned int b)
+static unsigned int BSYNClib_P_Gcd_isrsafe(unsigned int a, unsigned int b)
 {
 	unsigned int t;
-	
+
 	while (b != 0)
 	{
 		t = b;
@@ -51,59 +66,35 @@ static unsigned int BSYNClib_P_Gcd_isr(unsigned int a, unsigned int b)
 	return a;
 }
 
-BERR_Code BSYNClib_ConvertSigned(int iFromValue, BSYNClib_Units eFromUnits, BSYNClib_Units eToUnits, int * piToValue)
+BERR_Code BSYNClib_ConvertSigned_isrsafe(int iFromValue, BSYNClib_Units eFromUnits, BSYNClib_Units eToUnits, int * piToValue)
 {
-    int iTemp;
-    if (eFromUnits != BSYNClib_Units_e27MhzTicks && eToUnits != BSYNClib_Units_e27MhzTicks)
-    {
-        iTemp = BSYNClib_P_ConvertSigned(iFromValue, eFromUnits, BSYNClib_Units_e27MhzTicks);
-        iTemp = BSYNClib_P_ConvertSigned(iTemp, BSYNClib_Units_e27MhzTicks, eToUnits);
-    }
-    else
-    {
-        iTemp = BSYNClib_P_ConvertSigned(iFromValue, eFromUnits, eToUnits);
-    }
-    *piToValue = iTemp;
-    return BERR_SUCCESS;
+	int iTemp;
+
+	BDBG_ENTER(BSYNClib_ConvertSigned_isrsafe);
+
+	if (eFromUnits != BSYNClib_Units_e27MhzTicks && eToUnits != BSYNClib_Units_e27MhzTicks)
+	{
+		iTemp = BSYNClib_P_ConvertSigned_isrsafe(iFromValue, eFromUnits, BSYNClib_Units_e27MhzTicks);
+		iTemp = BSYNClib_P_ConvertSigned_isrsafe(iTemp, BSYNClib_Units_e27MhzTicks, eToUnits);
+	}
+	else
+	{
+		iTemp = BSYNClib_P_ConvertSigned_isrsafe(iFromValue, eFromUnits, eToUnits);
+	}
+	*piToValue = iTemp;
+
+	BDBG_LEAVE(BSYNClib_ConvertSigned_isrsafe);
+	return BERR_SUCCESS;
 }
 
-int BSYNClib_P_ConvertSigned(int iValue, BSYNClib_Units eFromUnits, BSYNClib_Units eToUnits)
-{
-	int iResult;
-	
-	BDBG_ENTER(BSYNClib_P_ConvertSigned);
-
-	BKNI_EnterCriticalSection();
-	iResult = BSYNClib_P_ConvertSigned_isr(iValue, eFromUnits, eToUnits);
-	BKNI_LeaveCriticalSection();
-
-	BDBG_LEAVE(BSYNClib_P_ConvertSigned);
-
-	return iResult;
-}
-
-BERR_Code BSYNClib_ConvertSigned_isr(int iFromValue, BSYNClib_Units eFromUnits, BSYNClib_Units eToUnits, int * piToValue)
-{
-    int iTemp;
-    if (eFromUnits != BSYNClib_Units_e27MhzTicks && eToUnits != BSYNClib_Units_e27MhzTicks)
-    {
-        iTemp = BSYNClib_P_ConvertSigned_isr(iFromValue, eFromUnits, BSYNClib_Units_e27MhzTicks);
-        iTemp = BSYNClib_P_ConvertSigned_isr(iTemp, BSYNClib_Units_e27MhzTicks, eToUnits);
-    }
-    else
-    {
-        iTemp = BSYNClib_P_ConvertSigned_isr(iFromValue, eFromUnits, eToUnits);
-    }
-    *piToValue = iTemp;
-    return BERR_SUCCESS;
-}
-
-int BSYNClib_P_ConvertSigned_isr(int iValue, BSYNClib_Units eFromUnits, BSYNClib_Units eToUnits)
+int BSYNClib_P_ConvertSigned_isrsafe(int iValue, BSYNClib_Units eFromUnits, BSYNClib_Units eToUnits)
 {
 	int iResult;
 	unsigned int uiResult;
 	unsigned int uiValue;
 	bool neg;
+
+	BDBG_ENTER(BSYNClib_P_ConvertSigned_isrsafe);
 
 	if (iValue < 0)
 	{
@@ -115,12 +106,9 @@ int BSYNClib_P_ConvertSigned_isr(int iValue, BSYNClib_Units eFromUnits, BSYNClib
 		neg = false;
 		uiValue = (unsigned)iValue;
 	}
-	
-	BDBG_ENTER(BSYNClib_P_ConvertSigned_isr);
 
-	uiResult = BSYNClib_P_Convert_isr(uiValue, eFromUnits, eToUnits);
+	uiResult = BSYNClib_P_Convert_isrsafe(uiValue, eFromUnits, eToUnits);
 
-	BDBG_LEAVE(BSYNClib_P_ConvertSigned_isr);
 
 	iResult = (signed)uiResult;
 
@@ -129,68 +117,43 @@ int BSYNClib_P_ConvertSigned_isr(int iValue, BSYNClib_Units eFromUnits, BSYNClib
 		iResult = -iResult;
 	}
 
+	BDBG_LEAVE(BSYNClib_P_ConvertSigned_isrsafe);
 	return iResult;
 }
 
-BERR_Code BSYNClib_Convert(unsigned int uiFromValue, BSYNClib_Units eFromUnits, BSYNClib_Units eToUnits, unsigned int * puiToValue)
+BERR_Code BSYNClib_Convert_isrsafe(unsigned int uiFromValue, BSYNClib_Units eFromUnits, BSYNClib_Units eToUnits, unsigned int * puiToValue)
 {
-    unsigned int uiTemp;
-    if (eFromUnits != BSYNClib_Units_e27MhzTicks && eToUnits != BSYNClib_Units_e27MhzTicks)
-    {
-        uiTemp = BSYNClib_P_Convert(uiFromValue, eFromUnits, BSYNClib_Units_e27MhzTicks);
-        uiTemp = BSYNClib_P_Convert(uiTemp, BSYNClib_Units_e27MhzTicks, eToUnits);
-    }
-    else
-    {
-        uiTemp = BSYNClib_P_Convert(uiFromValue, eFromUnits, eToUnits);
-    }
-    *puiToValue = uiTemp;
-    return BERR_SUCCESS;
+	unsigned int uiTemp;
+
+	BDBG_ENTER(BSYNClib_Convert_isrsafe);
+
+	if (eFromUnits != BSYNClib_Units_e27MhzTicks && eToUnits != BSYNClib_Units_e27MhzTicks)
+	{
+		uiTemp = BSYNClib_P_Convert_isrsafe(uiFromValue, eFromUnits, BSYNClib_Units_e27MhzTicks);
+		uiTemp = BSYNClib_P_Convert_isrsafe(uiTemp, BSYNClib_Units_e27MhzTicks, eToUnits);
+	}
+	else
+	{
+		uiTemp = BSYNClib_P_Convert_isrsafe(uiFromValue, eFromUnits, eToUnits);
+	}
+	*puiToValue = uiTemp;
+
+	BDBG_LEAVE(BSYNClib_Convert_isrsafe);
+	return BERR_SUCCESS;
 }
 
-unsigned int BSYNClib_P_Convert(unsigned int uiValue, BSYNClib_Units eFromUnits, BSYNClib_Units eToUnits)
-{
-	unsigned int uiResult;
-	
-	BDBG_ENTER(BSYNClib_P_Convert);
-
-	BKNI_EnterCriticalSection();
-	uiResult = BSYNClib_P_Convert_isr(uiValue, eFromUnits, eToUnits);
-	BKNI_LeaveCriticalSection();
-
-	BDBG_LEAVE(BSYNClib_P_Convert);
-
-	return uiResult;
-}
-
-BERR_Code BSYNClib_Convert_isr(unsigned int uiFromValue, BSYNClib_Units eFromUnits, BSYNClib_Units eToUnits, unsigned int * puiToValue)
-{
-    unsigned int uiTemp;
-    if (eFromUnits != BSYNClib_Units_e27MhzTicks && eToUnits != BSYNClib_Units_e27MhzTicks)
-    {
-        uiTemp = BSYNClib_P_Convert_isr(uiFromValue, eFromUnits, BSYNClib_Units_e27MhzTicks);
-        uiTemp = BSYNClib_P_Convert_isr(uiTemp, BSYNClib_Units_e27MhzTicks, eToUnits);
-    }
-    else
-    {
-        uiTemp = BSYNClib_P_Convert_isr(uiFromValue, eFromUnits, eToUnits);
-    }
-    *puiToValue = uiTemp;
-    return BERR_SUCCESS;
-}
-
-unsigned int BSYNClib_P_Convert_isr(unsigned int uiValue, BSYNClib_Units eFromUnits, BSYNClib_Units eToUnits)
+unsigned int BSYNClib_P_Convert_isrsafe(unsigned int uiValue, BSYNClib_Units eFromUnits, BSYNClib_Units eToUnits)
 {
 	unsigned int uiResult = 0;
 	unsigned int uiMultiplier = 1;
 	unsigned int uiDivisor = 1;
 	unsigned int uiMDGcd;
 	unsigned int uiVDGcd;
-	
-	BDBG_ENTER(BSYNClib_P_Convert_isr);
+
+	BDBG_ENTER(BSYNClib_P_Convert_isrsafe);
 
 	uiResult = uiValue;
-	
+
 	if (eFromUnits == eToUnits)
 	{
 		goto end;
@@ -230,7 +193,7 @@ unsigned int BSYNClib_P_Convert_isr(unsigned int uiValue, BSYNClib_Units eFromUn
 	{
 		uiDivisor = 27000000;
 	}
-	
+
 	if (eToUnits == BSYNClib_Units_eMilliseconds)
 	{
 		uiMultiplier = 1000;
@@ -260,10 +223,10 @@ unsigned int BSYNClib_P_Convert_isr(unsigned int uiValue, BSYNClib_Units eFromUn
 		uiMultiplier = 27000000;
 	}
 
-	uiMDGcd = BSYNClib_P_Gcd_isr(uiMultiplier, uiDivisor);
+	uiMDGcd = BSYNClib_P_Gcd_isrsafe(uiMultiplier, uiDivisor);
 	if (uiValue > 0)
 	{
-		uiVDGcd = BSYNClib_P_Gcd_isr(uiValue, uiDivisor);
+		uiVDGcd = BSYNClib_P_Gcd_isrsafe(uiValue, uiDivisor);
 	}
 	else
 	{
@@ -302,24 +265,24 @@ unsigned int BSYNClib_P_Convert_isr(unsigned int uiValue, BSYNClib_Units eFromUn
 		uiResult++;
 	}
 
-end:
+	end:
 
-	BDBG_LEAVE(BSYNClib_P_Convert_isr);
+	BDBG_LEAVE(BSYNClib_P_Convert_isrsafe);
 	return uiResult;
 }
 
 #if BDBG_DEBUG_BUILD
 const char * const BSYNClib_P_UnitsStrings[] =
-{
-	"ms",
-	"24 Hz vsyncs",
-	"50 Hz vsyncs",
-	"60 Hz vsyncs",
-	"45 KHz ticks",
-	"90 KHz ticks",
-	"27 MHz ticks",
-	"<enum terminator>",
-	NULL
-};
+	{
+		"ms",
+		"24 Hz vsyncs",
+		"50 Hz vsyncs",
+		"60 Hz vsyncs",
+		"45 KHz ticks",
+		"90 KHz ticks",
+		"27 MHz ticks",
+		"<enum terminator>",
+		NULL
+	};
 #endif
 

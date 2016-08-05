@@ -13,4 +13,9 @@ All rights reserved.
 
 #include <EGL/begl_schedplatform.h>
 
+/*
+ Signals a fence;
+ */
+void v3d_platform_fence_signal(int fence);
+
 #endif

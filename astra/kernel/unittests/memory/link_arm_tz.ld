@@ -8,7 +8,6 @@ SECTIONS
     /* Load address */
     . = _system_link_base;
     _start = .;
-    _kernel_img_start = .;
     _bootstrap_img_start = .;
 
     _bootstrap_text_start = .;
@@ -30,6 +29,7 @@ SECTIONS
 
     . = ALIGN(4096);
 
+    _kernel_img_start = .;
     _text_start = .;
     .text :
     {
@@ -64,6 +64,9 @@ SECTIONS
     }
     . = ALIGN(4096); /* align to page size */
     _bss_end = .;
+
+    _initramfs_start = .;
+    _initramfs_end = .;
 
     _kernel_img_end = .;
 

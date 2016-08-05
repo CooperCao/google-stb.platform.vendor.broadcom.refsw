@@ -42,14 +42,12 @@ include $(MAGNUM)/basemodules/chp/build/bchp_rdb.inc
 #
 # Determine the ZEUS version and CORETECH
 #
-SECURITY_CORE_LIST_ZEUS_42      := 7445e0 7445d0 7366b0 7145b0 7252d0 7399a0 7439b0 7459c0 7364a0 7250b0 7366c0 7586a0 7364b0 7271a0 7268a0 7364c0
+SECURITY_CORE_LIST_ZEUS_42      := 7445e0 7445d0 7366b0 7145b0 7252d0 7399a0 7439b0 7459c0 7364a0 7250b0 7366c0 7586a0 7364b0 7271a0 7268a0 7364c0 7260a0
 SECURITY_CORE_LIST_ZEUS_41      := 7366a0 7439a0 74371a0
 SECURITY_CORE_LIST_ZEUS_30      := 7584a0 7584a1 7435b0 75845a0
 SECURITY_CORE_LIST_ZEUS_22      := 7360a0 7360a1 7362a0 7422b1 7422b2 7563a0 7228a0 75635a0 73625a0 75525a0
 SECURITY_CORE_LIST_ZEUS_20      := 7231b0 7344b0 7346b0 7552b0 7231b1 7344b1 7346b1 7231b2 7346b2 7425b1 7425b2 7241b0 7429b0 7428b0 74295a0 73465a0
 SECURITY_CORE_LIST_ZEUS_10      := 7346a0 7358a0 7358a1
-SECURITY_CORE_LIST_65nmASKM     := 7125c0 7125d0 7125e0 7340a0 7340b0 7420c0 7420c1 7468a0 7468b0
-SECURITY_CORE_LIST_65nmNonAskm  := 7405b0 7405b1 7405c0
 
 
 BCHP_CHIP_NAME_VERSION:=$(BCHP_CHIP)$(BCHP_VER_LOWER)
@@ -89,22 +87,6 @@ else
                         CORETECH := core40nm
                         BHSM_ZEUS_VER_MAJOR:=1
                         BHSM_ZEUS_VER_MINOR:=0
-                    else
-                        ifeq ($(filter $(BCHP_CHIP_NAME_VERSION), $(SECURITY_CORE_LIST_65nmASKM) ), $(BCHP_CHIP_NAME_VERSION))
-                            ZEUSVER := core65nmASKM
-                            CORETECH := core65nmASKM
-                            BHSM_ZEUS_VER_MAJOR:=0
-                            BHSM_ZEUS_VER_MINOR:=2
-                        else
-                            ifeq ($(filter $(BCHP_CHIP_NAME_VERSION), $(SECURITY_CORE_LIST_65nmNonAskm) ), $(BCHP_CHIP_NAME_VERSION))
-                                ZEUSVER := core65nmNonASKM
-                                CORETECH := core65nm
-                                BHSM_ZEUS_VER_MAJOR:=0
-                                BHSM_ZEUS_VER_MINOR:=1
-                            else
-                                $(error  Can not determine Zeus version.  Add NEXUS_SECURITY_SUPPORT:=n to platform_options.inc for $(BCHP_CHIP) $(BCHP_VER) )
-                            endif
-                        endif
                     endif
                 endif
             endif

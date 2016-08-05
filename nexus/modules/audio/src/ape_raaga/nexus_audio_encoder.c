@@ -105,6 +105,7 @@ NEXUS_AudioEncoderHandle NEXUS_AudioEncoder_Open( /* attr{destructor=NEXUS_Audio
 
     BKNI_Snprintf(handle->name, sizeof(handle->name), "ENCODER");
     NEXUS_AUDIO_INPUT_INIT(&handle->connector, NEXUS_AudioInputType_eEncoder, handle);
+    NEXUS_OBJECT_REGISTER(NEXUS_AudioInput, &handle->connector, Open);
     handle->connector.pName = handle->name;
     handle->connector.format = NEXUS_AudioInputFormat_eCompressed;
     BAPE_Encoder_GetConnector(handle->encoder, BAPE_ConnectorFormat_eCompressed, &path);
@@ -138,7 +139,13 @@ static void NEXUS_AudioEncoder_P_Finalizer(
     BKNI_Free(handle);
 }
 
-NEXUS_OBJECT_CLASS_MAKE(NEXUS_AudioEncoder, NEXUS_AudioEncoder_Close);
+static void NEXUS_AudioEncoder_P_Release(NEXUS_AudioEncoderHandle handle)
+{
+    NEXUS_OBJECT_UNREGISTER(NEXUS_AudioInput, &handle->connector, Close);
+    return;
+}
+
+NEXUS_OBJECT_CLASS_MAKE_WITH_RELEASE(NEXUS_AudioEncoder, NEXUS_AudioEncoder_Close);
 
 /***************************************************************************
 Summary:
@@ -413,7 +420,7 @@ This is used for a direct connection to SPDIF, as follows:
     NEXUS_AudioOutput_AddInput(NEXUS_SpdifOutput_GetConnector(spdif), NEXUS_AudioEncoder_GetConnector(audioEncoder));
 
 ***************************************************************************/
-NEXUS_AudioInput NEXUS_AudioEncoder_GetConnector( /* attr{shutdown=NEXUS_AudioInput_Shutdown} */
+NEXUS_AudioInputHandle NEXUS_AudioEncoder_GetConnector( /* attr{shutdown=NEXUS_AudioInput_Shutdown} */
     NEXUS_AudioEncoderHandle handle
     )
 {
@@ -427,7 +434,7 @@ Add an input to this processing stage
 ***************************************************************************/
 NEXUS_Error NEXUS_AudioEncoder_AddInput(
     NEXUS_AudioEncoderHandle handle,
-    NEXUS_AudioInput input
+    NEXUS_AudioInputHandle input
     )
 {
     BERR_Code errCode;
@@ -459,7 +466,7 @@ Remove an input from this processing stage
 ***************************************************************************/
 NEXUS_Error NEXUS_AudioEncoder_RemoveInput(
     NEXUS_AudioEncoderHandle handle,
-    NEXUS_AudioInput input
+    NEXUS_AudioInputHandle input
     )
 {
     BDBG_OBJECT_ASSERT(handle, NEXUS_AudioEncoder);

@@ -25,6 +25,7 @@
    #include "glsl_ast_visitor.h"
    #include "glsl_symbol_table.h"
    #include "glsl_primitive_types.auto.h"
+   #include "glsl_fastmem.h"  // for 'malloc_fast'
 
    #include "glsl_stdlib.auto.h"
    #include "glsl_unique_index_queue.h"
@@ -40,20 +41,22 @@
    #include "prepro/glsl_prepro_expand.h"
    #include "prepro/glsl_prepro_directive.h"
 
-   // for 'malloc_fast'
-   #include "glsl_fastmem.h"
+   #include "../glxx/glxx_int_config.h"
 
    #define PS ((struct parse_state *)state)
 
-   extern void glsl_init_preprocessor (void);
+   extern void glsl_init_preprocessor (int version);
 
    void glsl_init_lexer (int sourcec, const char * const *sourcev);
    void glsl_term_lexer (void);
-   const char* glsl_keyword_to_string(TokenType token);
+   const char *glsl_keyword_to_string(TokenType token);
 
    struct parse_state {
       Statement *astp;
       bool in_struct;
+      bool user_code;
+
+      TokenSeq *seq;
 
       SymbolTable *symbol_table;
 
@@ -69,9 +72,6 @@
 
    int yyparse (void *state);
 
-   static bool user_code;
-   static TokenSeq *seq;
-
    static void find_stdlib_function_calls(Expr *e, void *data) {
       GLSL_UNIQUE_INDEX_QUEUE_T *q = data;
       if (e->flavour == EXPR_FUNCTION_CALL) {
@@ -85,26 +85,25 @@
    Statement *glsl_parse_ast (ShaderFlavour flavour, int version, int sourcec, const char * const *sourcev)
    {
       struct parse_state state;   /* TODO: Contains lots of nastiness, but this beats global */
-      int user_version;
-      GLSL_UNIQUE_INDEX_QUEUE_T *stdlib_functions;
 
       glsl_ext_init();
 
       g_ShaderFlavour = flavour;
       g_ShaderVersion = version;
-
-      state.symbol_table = NULL;
-
-      g_ShaderInterfaces = glsl_shader_interfaces_new();
       g_InGlobalScope = true;
 
+      state.symbol_table = NULL;    /* Allocated on first token, once version, extensions are decided */
       state.in_struct = false;
+      state.force_identifier = false;
+      state.seq = NULL;
+      state.user_code = true;
+
       glsl_reinit_function_builder(&state.function_builder);
 
       /* Set up the root precision table with default precisions */
       state.precision_table = NULL;
-      state.precision_table = glsl_prec_add_table( state.precision_table );
-      glsl_prec_set_defaults( state.precision_table, g_ShaderVersion, g_ShaderFlavour );
+      state.precision_table = glsl_prec_add_table(state.precision_table);
+      glsl_prec_set_defaults(state.precision_table, flavour);
 
       state.buffer_default_lq = malloc_fast(sizeof(LayoutQualifier));
       state.buffer_default_lq->qualified = UNIF_QUALED;
@@ -117,16 +116,7 @@
       for (int i=0; i<GLXX_CONFIG_MAX_ATOMIC_COUNTER_BUFFER_BINDINGS; i++)
          state.atomic_buffer_offset[i] = 0;
 
-      state.force_identifier = false;
-
-      seq = NULL;
-
-      glsl_compile_error_reset();
-
-      stdlib_functions = glsl_unique_index_queue_alloc(GLSL_STDLIB_FUNCTION_COUNT);
-      user_code = true;
-
-      glsl_init_preprocessor();
+      glsl_init_preprocessor(version);
       glsl_init_lexer(sourcec, sourcev);
       yyparse(&state);
       glsl_term_lexer();
@@ -136,12 +126,14 @@
       /* Now process the standard library functions that we've used */
       glsl_symbol_table_exit_scope(state.symbol_table);
       glsl_directive_reset_macros();
-      user_version    = g_ShaderVersion;
-      g_ShaderVersion = GLSL_SHADER_VERSION(3, 20, 1);
-      user_code = false;
+      int user_version = g_ShaderVersion;
+      g_ShaderVersion  = GLSL_SHADER_VERSION(3, 20, 1);
+      state.user_code = false;
 
+      GLSL_UNIQUE_INDEX_QUEUE_T *stdlib_functions = glsl_unique_index_queue_alloc(GLSL_STDLIB_FUNCTION_COUNT);
       glsl_statement_accept_postfix(ast, stdlib_functions, NULL, find_stdlib_function_calls);
 
+      StatementChain *ch = glsl_statement_chain_create();
       /* Gather the actual sources here, then run yyparse again */
       while(!glsl_unique_index_queue_empty(stdlib_functions)) {
          const char *srcp[GLSL_STDLIB_FUNCTION_COUNT+1];
@@ -158,24 +150,23 @@
 
          glsl_statement_accept_postfix(state.astp, stdlib_functions, NULL, find_stdlib_function_calls);
 
-         /* Hackily append the declaration to the ast decls chain */
-         StatementChain *c = ast->u.ast.decls;
-         StatementChainNode *n = state.astp->u.ast.decls->first;
-         while (n != NULL) {
-            glsl_statement_chain_append(c, n->statement);
-            n = n->next;
-         }
+         glsl_statement_chain_cat(ch, state.astp->u.ast.decls);
       }
 
+      /* Validate the real AST after stdlib functions are resolved but before we  *
+       * add the stdlib symbols to it, which use features that might not validate */
+      glsl_ast_validate(ast, flavour, version);
+
+      /* Hackily append the declaration to the ast decls chain */
+      glsl_statement_chain_cat(ast->u.ast.decls, ch);
+
       g_ShaderVersion = user_version;
-      // This is a bit nasty, but means that future ast constructions
-      // will not appear to be from the last line.
+      // Try to trap uses of g_LineNumber when it doesn't contain good data.
+      // TODO: Remove the whole thing.
       g_LineNumber = LINE_NUMBER_UNDEFINED;
 
       return ast;
    }
-
-   bool glsl_parsing_user_code() { return user_code; }
 
    static void yyerror (void *state, const char *s)
    {
@@ -192,18 +183,15 @@
       TokenType type = 0;
       TokenData data;
 
-      do
-      {
-         if(!seq)
-         {
-            seq = glsl_expand(NULL, false);
-            if(!seq)
-               return 0;
+      do {
+         if(!PS->seq) {
+            PS->seq = glsl_expand(NULL, false);
+            if(!PS->seq) return 0;
          }
 
-         type = seq->token->type;
-         data = seq->token->data;
-         seq = seq->next;
+         type = PS->seq->token->type;
+         data = PS->seq->token->data;
+         PS->seq = PS->seq->next;
       } while (type==WHITESPACE);
 
       if (type == INVALID_CHAR)
@@ -230,7 +218,7 @@
             case GLSL_SHADER_VERSION(3, 20, 1):
                keyword_flag = GLSL_ES_32_KEYWORD; reserved_flag = GLSL_ES_32_RESERVED;
                break;
-            default: UNREACHABLE();
+            default: unreachable();
          }
 
          if (data.flags & reserved_flag)
@@ -269,7 +257,7 @@
       }
       case INTRINSIC:
       {
-         if(user_code) {
+         if(PS->user_code) {
             glsl_compile_error(ERROR_LEXER_PARSER, 1, g_LineNumber, "invalid character");
          } else {
             /* lookup must always succeed, since this is in the stdlib */
@@ -295,7 +283,7 @@
    #define YYFREE yyfree
 
    void *yymalloc (size_t bytes) { return malloc_fast(bytes); }
-   void  yyfree   (void *ptr)    { UNUSED(ptr); }
+   void  yyfree   (void *ptr)    { ((void)ptr); }
 
    static void enter_scope(struct parse_state *state)
    {
@@ -335,7 +323,7 @@
       else
          glsl_commit_anonymous_block_members(state->symbol_table, block_symbol, q.mq);
 
-      return glsl_statement_construct_var_decl(quals, type, block_symbol, NULL);
+      return glsl_statement_construct_var_decl(g_LineNumber, quals, type, block_symbol, NULL);
    }
 %}
 
@@ -736,26 +724,26 @@ variable_identifier
 
 primary_expression
    : variable_identifier                { validate_symbol_lookup($1.symbol, $1.name);
-                                          $$ = glsl_expr_construct_instance($1.symbol); }
-   | INTCONSTANT                        { $$ = glsl_expr_construct_const_value(PRIM_INT,  $1); }
-   | UINTCONSTANT                       { $$ = glsl_expr_construct_const_value(PRIM_UINT, $1); }
-   | FLOATCONSTANT                      { $$ = glsl_expr_construct_const_value(PRIM_FLOAT,$1); }
-   | BOOLCONSTANT                       { $$ = glsl_expr_construct_const_value(PRIM_BOOL, $1); }
+                                          $$ = glsl_expr_construct_instance(g_LineNumber, $1.symbol); }
+   | INTCONSTANT                        { $$ = glsl_expr_construct_const_value(g_LineNumber, PRIM_INT,  $1); }
+   | UINTCONSTANT                       { $$ = glsl_expr_construct_const_value(g_LineNumber, PRIM_UINT, $1); }
+   | FLOATCONSTANT                      { $$ = glsl_expr_construct_const_value(g_LineNumber, PRIM_FLOAT,$1); }
+   | BOOLCONSTANT                       { $$ = glsl_expr_construct_const_value(g_LineNumber, PRIM_BOOL, $1); }
    | LEFT_PAREN expression RIGHT_PAREN  { $$ = $2; }
    ;
 
 postfix_expression
    : primary_expression
    | postfix_expression LEFT_BRACKET integer_expression RIGHT_BRACKET
-                                                      { $$ = glsl_expr_construct_subscript($1, $3); }
+                                                      { $$ = glsl_expr_construct_subscript(g_LineNumber, $1, $3); }
    | function_call
 // -- not parseable using an LR parser, we use IDENTIFIER instead:
-// | postfix_expression DOT FIELD_SELECTION         { $$ = glsl_expr_construct_field_selector($1, $3); }
+// | postfix_expression DOT FIELD_SELECTION         { $$ = glsl_expr_construct_field_selector(g_LineNumber, $1, $3); }
 /* We need to force the lexer to return IDENTIFIER in case struct/block members have the same names as types:
    ('force_identifier' is placed before DOT to ensure its semantic action is taken before IDENTIFIER is lexed as the lookahead token.) */
-   | postfix_expression force_identifier DOT IDENTIFIER unforce_identifier { $$ = glsl_expr_construct_field_selector($1, $4.name); }
-   | postfix_expression INC_OP                                             { $$ = glsl_expr_construct_unary_op(EXPR_POST_INC, $1); }
-   | postfix_expression DEC_OP                                             { $$ = glsl_expr_construct_unary_op(EXPR_POST_DEC, $1); }
+   | postfix_expression force_identifier DOT IDENTIFIER unforce_identifier { $$ = glsl_expr_construct_field_selector(g_LineNumber, $1, $4.name); }
+   | postfix_expression INC_OP                                             { $$ = glsl_expr_construct_unary_op(EXPR_POST_INC, g_LineNumber, $1); }
+   | postfix_expression DEC_OP                                             { $$ = glsl_expr_construct_unary_op(EXPR_POST_DEC, g_LineNumber, $1); }
    ;
 
 integer_expression
@@ -766,23 +754,23 @@ function_call
    : function_identifier LEFT_PAREN function_argument_list RIGHT_PAREN {
       switch($1.flavour) {
       case CALL_CONTEXT_FUNCTION:
-         $$ = glsl_expr_construct_function_call   ($1.u.function.symbol,   $3);
+         $$ = glsl_expr_construct_function_call   (g_LineNumber, $1.u.function.symbol,   $3);
          break;
       case CALL_CONTEXT_CONSTRUCTOR:
-         $$ = glsl_expr_construct_constructor_call($1.u.constructor.type,  $3);
+         $$ = glsl_expr_construct_constructor_call(g_LineNumber, $1.u.constructor.type,  $3);
          break;
       case CALL_CONTEXT_INTRINSIC:
-         $$ = glsl_intrinsic_construct_expr       ($1.u.intrinsic.flavour, $3);
+         $$ = glsl_intrinsic_construct_expr       (g_LineNumber, $1.u.intrinsic.flavour, $3);
          break;
       default:
-         UNREACHABLE();
+         unreachable();
          break;
       }
    }
    /* Here 'force_identifier' and 'unforce_identifier' are needed to avoid a
       conflict with the third derivation rule for 'postfix_expression' */
    | postfix_expression force_identifier DOT function_identifier unforce_identifier LEFT_PAREN RIGHT_PAREN {
-       $$ = glsl_expr_construct_method_call($1, &($4));
+       $$ = glsl_expr_construct_method_call(g_LineNumber, $1, &($4));
    }
    ;
 
@@ -822,9 +810,9 @@ function_identifier
 
 unary_expression
    : postfix_expression
-   | INC_OP unary_expression                          { $$ = glsl_expr_construct_unary_op(EXPR_PRE_INC, $2); }
-   | DEC_OP unary_expression                          { $$ = glsl_expr_construct_unary_op(EXPR_PRE_DEC, $2); }
-   | unary_operator unary_expression                  { $$ = glsl_expr_construct_unary_op($1, $2); }
+   | INC_OP unary_expression                          { $$ = glsl_expr_construct_unary_op(EXPR_PRE_INC, g_LineNumber, $2); }
+   | DEC_OP unary_expression                          { $$ = glsl_expr_construct_unary_op(EXPR_PRE_DEC, g_LineNumber, $2); }
+   | unary_operator unary_expression                  { $$ = glsl_expr_construct_unary_op($1, g_LineNumber, $2); }
    /* Grammar Note: No traditional style type casts. */
    ;
 
@@ -838,77 +826,77 @@ unary_operator
 
 multiplicative_expression
    : unary_expression
-   | multiplicative_expression STAR unary_expression  { $$ = glsl_expr_construct_binary_op_arithmetic(EXPR_MUL, $1, $3); }
-   | multiplicative_expression SLASH unary_expression { $$ = glsl_expr_construct_binary_op_arithmetic(EXPR_DIV, $1, $3); }
-   | multiplicative_expression PERCENT unary_expression { $$ = glsl_expr_construct_binary_op_arithmetic(EXPR_REM, $1, $3); }
+   | multiplicative_expression STAR unary_expression    { $$ = glsl_expr_construct_binary_op_arithmetic(EXPR_MUL, g_LineNumber, $1, $3); }
+   | multiplicative_expression SLASH unary_expression   { $$ = glsl_expr_construct_binary_op_arithmetic(EXPR_DIV, g_LineNumber, $1, $3); }
+   | multiplicative_expression PERCENT unary_expression { $$ = glsl_expr_construct_binary_op_arithmetic(EXPR_REM, g_LineNumber, $1, $3); }
    ;
 
 additive_expression
    : multiplicative_expression
-   | additive_expression PLUS multiplicative_expression { $$ = glsl_expr_construct_binary_op_arithmetic(EXPR_ADD, $1, $3); }
-   | additive_expression DASH multiplicative_expression { $$ = glsl_expr_construct_binary_op_arithmetic(EXPR_SUB, $1, $3); }
+   | additive_expression PLUS multiplicative_expression { $$ = glsl_expr_construct_binary_op_arithmetic(EXPR_ADD, g_LineNumber, $1, $3); }
+   | additive_expression DASH multiplicative_expression { $$ = glsl_expr_construct_binary_op_arithmetic(EXPR_SUB, g_LineNumber, $1, $3); }
    ;
 
 shift_expression
    : additive_expression
-   | shift_expression LEFT_OP additive_expression     { $$ = glsl_expr_construct_binary_op_shift(EXPR_SHL, $1, $3); }
-   | shift_expression RIGHT_OP additive_expression    { $$ = glsl_expr_construct_binary_op_shift(EXPR_SHR, $1, $3); }
+   | shift_expression LEFT_OP additive_expression     { $$ = glsl_expr_construct_binary_op_shift(EXPR_SHL, g_LineNumber, $1, $3); }
+   | shift_expression RIGHT_OP additive_expression    { $$ = glsl_expr_construct_binary_op_shift(EXPR_SHR, g_LineNumber, $1, $3); }
    ;
 
 relational_expression
    : shift_expression
-   | relational_expression LEFT_ANGLE shift_expression { $$ = glsl_expr_construct_binary_op_relational(EXPR_LESS_THAN, $1, $3); }
-   | relational_expression RIGHT_ANGLE shift_expression { $$ = glsl_expr_construct_binary_op_relational(EXPR_GREATER_THAN, $1, $3); }
-   | relational_expression LE_OP shift_expression { $$ = glsl_expr_construct_binary_op_relational(EXPR_LESS_THAN_EQUAL, $1, $3); }
-   | relational_expression GE_OP shift_expression { $$ = glsl_expr_construct_binary_op_relational(EXPR_GREATER_THAN_EQUAL, $1, $3); }
+   | relational_expression LEFT_ANGLE shift_expression { $$ = glsl_expr_construct_binary_op_relational(EXPR_LESS_THAN, g_LineNumber, $1, $3); }
+   | relational_expression RIGHT_ANGLE shift_expression { $$ = glsl_expr_construct_binary_op_relational(EXPR_GREATER_THAN, g_LineNumber, $1, $3); }
+   | relational_expression LE_OP shift_expression { $$ = glsl_expr_construct_binary_op_relational(EXPR_LESS_THAN_EQUAL, g_LineNumber, $1, $3); }
+   | relational_expression GE_OP shift_expression { $$ = glsl_expr_construct_binary_op_relational(EXPR_GREATER_THAN_EQUAL, g_LineNumber, $1, $3); }
    ;
 
 equality_expression
    : relational_expression
-   | equality_expression EQ_OP relational_expression { $$ = glsl_expr_construct_binary_op_equality(EXPR_EQUAL, $1, $3); }
-   | equality_expression NE_OP relational_expression { $$ = glsl_expr_construct_binary_op_equality(EXPR_NOT_EQUAL, $1, $3); }
+   | equality_expression EQ_OP relational_expression { $$ = glsl_expr_construct_binary_op_equality(EXPR_EQUAL, g_LineNumber, $1, $3); }
+   | equality_expression NE_OP relational_expression { $$ = glsl_expr_construct_binary_op_equality(EXPR_NOT_EQUAL, g_LineNumber, $1, $3); }
    ;
 
 and_expression
    : equality_expression
-   | and_expression AMPERSAND equality_expression     { $$ = glsl_expr_construct_binary_op_bitwise(EXPR_BITWISE_AND, $1, $3); }
+   | and_expression AMPERSAND equality_expression     { $$ = glsl_expr_construct_binary_op_bitwise(EXPR_BITWISE_AND, g_LineNumber, $1, $3); }
    ;
 
 exclusive_or_expression
    : and_expression
-   | exclusive_or_expression CARET and_expression     { $$ = glsl_expr_construct_binary_op_bitwise(EXPR_BITWISE_XOR, $1, $3); }
+   | exclusive_or_expression CARET and_expression     { $$ = glsl_expr_construct_binary_op_bitwise(EXPR_BITWISE_XOR, g_LineNumber, $1, $3); }
    ;
 
 inclusive_or_expression
    : exclusive_or_expression
-   | inclusive_or_expression VERTICAL_BAR exclusive_or_expression { $$ = glsl_expr_construct_binary_op_bitwise(EXPR_BITWISE_OR, $1, $3); }
+   | inclusive_or_expression VERTICAL_BAR exclusive_or_expression { $$ = glsl_expr_construct_binary_op_bitwise(EXPR_BITWISE_OR, g_LineNumber, $1, $3); }
    ;
 
 logical_and_expression
    : inclusive_or_expression
-   | logical_and_expression AND_OP inclusive_or_expression { $$ = glsl_expr_construct_binary_op_logical(EXPR_LOGICAL_AND, $1, $3); }
+   | logical_and_expression AND_OP inclusive_or_expression { $$ = glsl_expr_construct_binary_op_logical(EXPR_LOGICAL_AND, g_LineNumber, $1, $3); }
    ;
 
 logical_xor_expression
    : logical_and_expression
-   | logical_xor_expression XOR_OP logical_and_expression { $$ = glsl_expr_construct_binary_op_logical(EXPR_LOGICAL_XOR, $1, $3); }
+   | logical_xor_expression XOR_OP logical_and_expression { $$ = glsl_expr_construct_binary_op_logical(EXPR_LOGICAL_XOR, g_LineNumber, $1, $3); }
    ;
 
 logical_or_expression
    : logical_xor_expression
-   | logical_or_expression OR_OP logical_xor_expression { $$ = glsl_expr_construct_binary_op_logical(EXPR_LOGICAL_OR, $1, $3); }
+   | logical_or_expression OR_OP logical_xor_expression { $$ = glsl_expr_construct_binary_op_logical(EXPR_LOGICAL_OR, g_LineNumber, $1, $3); }
    ;
 
 conditional_expression
    : logical_or_expression
-   | logical_or_expression QUESTION expression COLON assignment_expression { $$ = glsl_expr_construct_cond_op($1, $3, $5); }
+   | logical_or_expression QUESTION expression COLON assignment_expression { $$ = glsl_expr_construct_cond_op(g_LineNumber, $1, $3, $5); }
    ;
 
 assignment_expression
    : conditional_expression
    | unary_expression assignment_operator assignment_expression
       {
-         Expr* expr;
+         Expr *expr;
          switch ($2)
          {
             case EXPR_MUL:
@@ -916,24 +904,24 @@ assignment_expression
             case EXPR_REM:
             case EXPR_ADD:
             case EXPR_SUB:
-               expr = glsl_expr_construct_binary_op_arithmetic($2, $1, $3);
+               expr = glsl_expr_construct_binary_op_arithmetic($2, g_LineNumber, $1, $3);
                break;
             case EXPR_SHL:
             case EXPR_SHR:
-               expr = glsl_expr_construct_binary_op_shift($2, $1, $3);
+               expr = glsl_expr_construct_binary_op_shift($2, g_LineNumber, $1, $3);
                break;
             case EXPR_BITWISE_AND:
             case EXPR_BITWISE_XOR:
             case EXPR_BITWISE_OR:
-               expr = glsl_expr_construct_binary_op_bitwise($2, $1, $3);
+               expr = glsl_expr_construct_binary_op_bitwise($2, g_LineNumber, $1, $3);
                break;
             case EXPR_ASSIGN:
                expr = $3;
                break;
             default:
-               UNREACHABLE();
+               unreachable();
          }
-         $$ = glsl_expr_construct_assign_op($1, expr);
+         $$ = glsl_expr_construct_assign_op(g_LineNumber, $1, expr);
       }
    ;
 
@@ -953,7 +941,7 @@ assignment_operator
 
 expression
    : assignment_expression
-   | expression COMMA assignment_expression { $$ = glsl_expr_construct_sequence($1, $3); }
+   | expression COMMA assignment_expression { $$ = glsl_expr_construct_sequence(g_LineNumber, $1, $3); }
    ;
 
 constant_expression
@@ -961,15 +949,15 @@ constant_expression
    ;
 
 declaration
-   : function_prototype SEMICOLON           {  glsl_commit_singleton_function_declaration(PS->symbol_table, $1.name, $1.type, false);
+   : function_prototype SEMICOLON           {  glsl_commit_singleton_function_declaration(PS->symbol_table, $1.name, $1.type, false, PS->user_code);
                                                // Don't store these in the AST.
-                                               $$ = glsl_statement_construct(STATEMENT_NULL);
+                                               $$ = glsl_statement_construct(STATEMENT_NULL, g_LineNumber);
                                             }
-   | init_declarator_list SEMICOLON         { $$ = glsl_statement_construct_decl_list($1.ch); }
+   | init_declarator_list SEMICOLON         { $$ = glsl_statement_construct_decl_list(g_LineNumber, $1.ch); }
    | PRECISION precision_qualifier type_specifier SEMICOLON
                                             { /* update precision table entry */
                                                glsl_prec_modify_prec( PS->precision_table, $3, $2 );
-                                               $$ = glsl_statement_construct_precision($2, $3);
+                                               $$ = glsl_statement_construct_precision(g_LineNumber, $2, $3);
                                             }
    | type_qualifier IDENTIFIER LEFT_BRACE struct_declaration_list RIGHT_BRACE SEMICOLON
       { $$ = process_block_decl(PS, $1, $2.name, $4, NULL, NULL); }
@@ -979,11 +967,11 @@ declaration
       { $$ = process_block_decl(PS, $1, $2.name, $4, $6.name, $7); }
    | type_qualifier SEMICOLON
       {
-         $$ = glsl_statement_construct_qualifier_default($1);
+         $$ = glsl_statement_construct_qualifier_default(g_LineNumber, $1);
          qualifiers_process_default($1, PS->symbol_table, &PS->uniform_default_lq, &PS->buffer_default_lq);
       }
    | type_qualifier identifier_list SEMICOLON
-      { $$ = glsl_statement_construct_qualifier_augment($1, $2); }
+      { $$ = glsl_statement_construct_qualifier_augment(g_LineNumber, $1, $2); }
    ;
 
 identifier_list
@@ -1058,7 +1046,7 @@ init_declarator_list
          $$.quals       = $1.quals;
          $$.type        = $1.type;
          $$.ch          = glsl_statement_chain_append($1.ch,
-                                                      glsl_statement_construct_var_decl($1.quals, $1.type, symbol, $3.init));
+                                                      glsl_statement_construct_var_decl(g_LineNumber, $1.quals, $1.type, symbol, $3.init));
       }
    ;
 
@@ -1080,7 +1068,7 @@ single_declaration
 
          Symbol *symbol = glsl_commit_variable_instance(PS->symbol_table, PS->precision_table, PS->atomic_buffer_offset,
                                                         $1.quals, $1.type, $2.name, $2.size, $2.init);
-         $$.s           = glsl_statement_construct_var_decl($1.quals, $1.type, symbol, $2.init);
+         $$.s           = glsl_statement_construct_var_decl(g_LineNumber, $1.quals, $1.type, symbol, $2.init);
       }
    /* Grammar Note: No 'enum', or 'typedef'. */
    ;
@@ -1338,16 +1326,16 @@ struct_declaration_list_inner
 
 struct_declaration
    : type_specifier struct_declarator_list SEMICOLON
-      { $$ = glsl_statement_construct_struct_decl($1, NULL, $2); }
+      { $$ = glsl_statement_construct_struct_decl(g_LineNumber, $1, NULL, $2); }
    | type_qualifier type_specifier struct_declarator_list SEMICOLON
-      { $$ = glsl_statement_construct_struct_decl($2, $1, $3); }
+      { $$ = glsl_statement_construct_struct_decl(g_LineNumber, $2, $1, $3); }
    ;
 
 struct_declarator_list
    : declarator                              { $$ = glsl_statement_chain_append(glsl_statement_chain_create(),
-                                                            glsl_statement_construct_struct_member_decl($1.name, $1.size)); }
+                                                            glsl_statement_construct_struct_member_decl(g_LineNumber, $1.name, $1.size)); }
    | struct_declarator_list COMMA declarator { $$ = glsl_statement_chain_append($1,
-                                                            glsl_statement_construct_struct_member_decl($3.name, $3.size)); }
+                                                            glsl_statement_construct_struct_member_decl(g_LineNumber, $3.name, $3.size)); }
    ;
 
 initializer
@@ -1383,17 +1371,17 @@ simple_statement
    | case_label
    | iteration_statement
    | jump_statement
-   | BARRIER SEMICOLON        { $$ = glsl_statement_construct(STATEMENT_BARRIER); }
+   | BARRIER SEMICOLON        { $$ = glsl_statement_construct(STATEMENT_BARRIER, g_LineNumber); }
    ;
 
 compound_statement_with_scope
-   : LEFT_BRACE RIGHT_BRACE                            { $$ = glsl_statement_construct_compound(glsl_statement_chain_create()); }
-   | LEFT_BRACE { enter_scope(state); } statement_list RIGHT_BRACE { exit_scope(state); $$ = glsl_statement_construct_compound($3); }
+   : LEFT_BRACE RIGHT_BRACE                            { $$ = glsl_statement_construct_compound(g_LineNumber, glsl_statement_chain_create()); }
+   | LEFT_BRACE { enter_scope(state); } statement_list RIGHT_BRACE { exit_scope(state); $$ = glsl_statement_construct_compound(g_LineNumber, $3); }
    ;
 
 compound_statement_no_new_scope
-   : LEFT_BRACE RIGHT_BRACE                { $$ = glsl_statement_construct_compound(glsl_statement_chain_create()); }
-   | LEFT_BRACE statement_list RIGHT_BRACE { $$ = glsl_statement_construct_compound($2); }
+   : LEFT_BRACE RIGHT_BRACE                { $$ = glsl_statement_construct_compound(g_LineNumber, glsl_statement_chain_create()); }
+   | LEFT_BRACE statement_list RIGHT_BRACE { $$ = glsl_statement_construct_compound(g_LineNumber, $2); }
    ;
 
 statement_list
@@ -1402,12 +1390,12 @@ statement_list
    ;
 
 expression_statement
-   : SEMICOLON                                         { $$ = glsl_statement_construct(STATEMENT_NULL); }
-   | expression SEMICOLON                              { $$ = glsl_statement_construct_expr($1); }
+   : SEMICOLON                                         { $$ = glsl_statement_construct(STATEMENT_NULL, g_LineNumber); }
+   | expression SEMICOLON                              { $$ = glsl_statement_construct_expr(g_LineNumber, $1); }
    ;
 
 selection_statement
-   : IF LEFT_PAREN expression RIGHT_PAREN selection_rest_statement { $$ = glsl_statement_construct_selection($3, $5.t, $5.f); }
+   : IF LEFT_PAREN expression RIGHT_PAREN selection_rest_statement { $$ = glsl_statement_construct_selection(g_LineNumber, $3, $5.t, $5.f); }
    ;
 
 selection_rest_statement
@@ -1416,18 +1404,18 @@ selection_rest_statement
    ;
 
 condition
-   : expression                                        { $$ = glsl_statement_construct_expr($1); }
+   : expression                                        { $$ = glsl_statement_construct_expr(g_LineNumber, $1); }
    | fully_specified_type IDENTIFIER EQUAL initializer
       {
          Symbol *symbol = glsl_commit_variable_instance(PS->symbol_table, PS->precision_table, PS->atomic_buffer_offset,
                                                         $1.quals, $1.type, $2.name, NULL, $4);
-         $$ = glsl_statement_construct_var_decl($1.quals, $1.type, symbol, $4);
+         $$ = glsl_statement_construct_var_decl(g_LineNumber, $1.quals, $1.type, symbol, $4);
       }
    ;
 
 switch_statement
    : SWITCH LEFT_PAREN expression RIGHT_PAREN { enter_scope(state); } LEFT_BRACE switch_statement_list RIGHT_BRACE
-                                              { exit_scope(state); $$ = glsl_statement_construct_switch($3, $7); }
+                                              { exit_scope(state); $$ = glsl_statement_construct_switch(g_LineNumber, $3, $7); }
    ;
 
 switch_statement_list
@@ -1436,14 +1424,14 @@ switch_statement_list
    ;
 
 case_label
-   : CASE expression COLON                             { $$ = glsl_statement_construct_case($2); }
-   | DEFAULT COLON                                     { $$ = glsl_statement_construct(STATEMENT_DEFAULT); }
+   : CASE expression COLON                             { $$ = glsl_statement_construct_case(g_LineNumber, $2); }
+   | DEFAULT COLON                                     { $$ = glsl_statement_construct(STATEMENT_DEFAULT, g_LineNumber); }
    ;
 
 iteration_statement
-   : WHILE LEFT_PAREN { enter_scope(state); } condition RIGHT_PAREN statement_no_new_scope { exit_scope(state); $$ = glsl_statement_construct_iterator_while($4, $6); }
-   | DO statement_with_scope WHILE LEFT_PAREN expression RIGHT_PAREN SEMICOLON { $$ = glsl_statement_construct_iterator_do_while($2, $5); }
-   | FOR LEFT_PAREN { enter_scope(state); } for_init_statement for_rest_statement RIGHT_PAREN statement_no_new_scope { exit_scope(state); $$ = glsl_statement_construct_iterator_for($4, $5.cond_or_decl, $5.iter, $7); }
+   : WHILE LEFT_PAREN { enter_scope(state); } condition RIGHT_PAREN statement_no_new_scope { exit_scope(state); $$ = glsl_statement_construct_iterator_while(g_LineNumber, $4, $6); }
+   | DO statement_with_scope WHILE LEFT_PAREN expression RIGHT_PAREN SEMICOLON { $$ = glsl_statement_construct_iterator_do_while(g_LineNumber, $2, $5); }
+   | FOR LEFT_PAREN { enter_scope(state); } for_init_statement for_rest_statement RIGHT_PAREN statement_no_new_scope { exit_scope(state); $$ = glsl_statement_construct_iterator_for(g_LineNumber, $4, $5.cond_or_decl, $5.iter, $7); }
    ;
 
 for_init_statement
@@ -1462,24 +1450,23 @@ for_rest_statement
    ;
 
 jump_statement
-   : CONTINUE SEMICOLON                            { $$ = glsl_statement_construct(STATEMENT_CONTINUE); }
-   | BREAK SEMICOLON                               { $$ = glsl_statement_construct(STATEMENT_BREAK); }
-   | RETURN SEMICOLON                              { $$ = glsl_statement_construct(STATEMENT_RETURN); }
-   | RETURN expression SEMICOLON                   { $$ = glsl_statement_construct_return_expr($2); }
-   | DISCARD SEMICOLON /* Fragment shader only. */ { $$ = glsl_statement_construct(STATEMENT_DISCARD); }
+   : CONTINUE SEMICOLON                            { $$ = glsl_statement_construct(STATEMENT_CONTINUE, g_LineNumber); }
+   | BREAK SEMICOLON                               { $$ = glsl_statement_construct(STATEMENT_BREAK,    g_LineNumber); }
+   | RETURN SEMICOLON                              { $$ = glsl_statement_construct(STATEMENT_RETURN,   g_LineNumber); }
+   | RETURN expression SEMICOLON                   { $$ = glsl_statement_construct_return_expr(g_LineNumber, $2); }
+   | DISCARD SEMICOLON /* Fragment shader only. */ { $$ = glsl_statement_construct(STATEMENT_DISCARD,  g_LineNumber); }
    /* Grammar Note: No 'goto'. Gotos are not supported. */
    ;
 
 translation_unit
    : external_declaration                     {
-                                                 StatementChain* chain = glsl_statement_chain_create();
+                                                 StatementChain *chain = glsl_statement_chain_create();
                                                  glsl_statement_chain_append(chain, $1);
-                                                 $$ = glsl_statement_construct_ast(chain);
+                                                 $$ = glsl_statement_construct_ast(g_LineNumber, chain);
                                                  PS->astp = $$; // Save for calling function.
                                               }
    | translation_unit external_declaration    {
-                                                 StatementChain* chain = $1->u.ast.decls;
-                                                 glsl_statement_chain_append(chain, $2);
+                                                 glsl_statement_chain_append($1->u.ast.decls, $2);
                                                  $$ = $1;
                                                  PS->astp = $$; // Save for calling function.
                                               }
@@ -1503,8 +1490,8 @@ function_definition
          if (g_ShaderVersion == GLSL_SHADER_VERSION(1, 0, 1)) exit_scope(state);
          exit_scope(state);
          g_InGlobalScope = true;
-         Symbol *f = glsl_commit_singleton_function_declaration(PS->symbol_table, $1.name, $1.type, true);
-         $$ = glsl_statement_construct_function_def(f, $3);
+         Symbol *f = glsl_commit_singleton_function_declaration(PS->symbol_table, $1.name, $1.type, true, PS->user_code);
+         $$ = glsl_statement_construct_function_def(g_LineNumber, f, $3);
          glsl_insert_function_definition($$);
       }
    ;

@@ -44,17 +44,19 @@
  * This module was generated magically with RDB from a source description
  * file. You must edit the source file for changes to be made to this file.
  *
+ * The launch point for all information concerning RDB is found at:
+ *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Tue Feb 23 15:26:06 2016
- *                 Full Compile MD5 Checksum  4b84f30a4b3665aac5b824a1ed76e56c
+ * Date:           Generated on               Thu Jun 23 18:55:21 2016
+ *                 Full Compile MD5 Checksum  726d365438fe88693b6f0a492958face
  *                     (minus title and desc)
- *                 MD5 Checksum               4894bba0ec078aee10b5b5954262d56e
+ *                 MD5 Checksum               942083b46396c70655d90e546c008796
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     804
+ *                 RDB.pm                     1048
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
  *                 Script Source              /home/pntruong/sbin/combo_header.pl
  *                 DVTSWVER                   n/a
@@ -282,9 +284,17 @@
 /***************************************************************************
  *MTSIF_CLK_PAD_CTRL - Pad control for MTSIF_CLK pad.
  ***************************************************************************/
-/* TOP_CTRL :: MTSIF_CLK_PAD_CTRL :: reserved0 [31:06] */
-#define BCHP_TOP_CTRL_MTSIF_CLK_PAD_CTRL_reserved0_MASK            0xffffffc0
-#define BCHP_TOP_CTRL_MTSIF_CLK_PAD_CTRL_reserved0_SHIFT           6
+/* TOP_CTRL :: MTSIF_CLK_PAD_CTRL :: reserved0 [31:08] */
+#define BCHP_TOP_CTRL_MTSIF_CLK_PAD_CTRL_reserved0_MASK            0xffffff00
+#define BCHP_TOP_CTRL_MTSIF_CLK_PAD_CTRL_reserved0_SHIFT           8
+
+/* TOP_CTRL :: MTSIF_CLK_PAD_CTRL :: MTSIF_CLK_pull_up_down [07:06] */
+#define BCHP_TOP_CTRL_MTSIF_CLK_PAD_CTRL_MTSIF_CLK_pull_up_down_MASK 0x000000c0
+#define BCHP_TOP_CTRL_MTSIF_CLK_PAD_CTRL_MTSIF_CLK_pull_up_down_SHIFT 6
+#define BCHP_TOP_CTRL_MTSIF_CLK_PAD_CTRL_MTSIF_CLK_pull_up_down_DEFAULT 0x00000001
+#define BCHP_TOP_CTRL_MTSIF_CLK_PAD_CTRL_MTSIF_CLK_pull_up_down_PULL_NONE 0
+#define BCHP_TOP_CTRL_MTSIF_CLK_PAD_CTRL_MTSIF_CLK_pull_up_down_PULL_DOWN 1
+#define BCHP_TOP_CTRL_MTSIF_CLK_PAD_CTRL_MTSIF_CLK_pull_up_down_PULL_UP 2
 
 /* TOP_CTRL :: MTSIF_CLK_PAD_CTRL :: MTSIF_CLK_input_disable [05:05] */
 #define BCHP_TOP_CTRL_MTSIF_CLK_PAD_CTRL_MTSIF_CLK_input_disable_MASK 0x00000020
@@ -300,9 +310,17 @@
 /***************************************************************************
  *MTSIF_SYNC_PAD_CTRL - Pad control for MTSIF_SYNC pad.
  ***************************************************************************/
-/* TOP_CTRL :: MTSIF_SYNC_PAD_CTRL :: reserved0 [31:06] */
-#define BCHP_TOP_CTRL_MTSIF_SYNC_PAD_CTRL_reserved0_MASK           0xffffffc0
-#define BCHP_TOP_CTRL_MTSIF_SYNC_PAD_CTRL_reserved0_SHIFT          6
+/* TOP_CTRL :: MTSIF_SYNC_PAD_CTRL :: reserved0 [31:08] */
+#define BCHP_TOP_CTRL_MTSIF_SYNC_PAD_CTRL_reserved0_MASK           0xffffff00
+#define BCHP_TOP_CTRL_MTSIF_SYNC_PAD_CTRL_reserved0_SHIFT          8
+
+/* TOP_CTRL :: MTSIF_SYNC_PAD_CTRL :: MTSIF_SYNC_pull_up_down [07:06] */
+#define BCHP_TOP_CTRL_MTSIF_SYNC_PAD_CTRL_MTSIF_SYNC_pull_up_down_MASK 0x000000c0
+#define BCHP_TOP_CTRL_MTSIF_SYNC_PAD_CTRL_MTSIF_SYNC_pull_up_down_SHIFT 6
+#define BCHP_TOP_CTRL_MTSIF_SYNC_PAD_CTRL_MTSIF_SYNC_pull_up_down_DEFAULT 0x00000001
+#define BCHP_TOP_CTRL_MTSIF_SYNC_PAD_CTRL_MTSIF_SYNC_pull_up_down_PULL_NONE 0
+#define BCHP_TOP_CTRL_MTSIF_SYNC_PAD_CTRL_MTSIF_SYNC_pull_up_down_PULL_DOWN 1
+#define BCHP_TOP_CTRL_MTSIF_SYNC_PAD_CTRL_MTSIF_SYNC_pull_up_down_PULL_UP 2
 
 /* TOP_CTRL :: MTSIF_SYNC_PAD_CTRL :: MTSIF_SYNC_input_disable [05:05] */
 #define BCHP_TOP_CTRL_MTSIF_SYNC_PAD_CTRL_MTSIF_SYNC_input_disable_MASK 0x00000020
@@ -318,9 +336,17 @@
 /***************************************************************************
  *MTSIF_DATA_7_PAD_CTRL - Pad control for MTSIF_DATA_7 pad.
  ***************************************************************************/
-/* TOP_CTRL :: MTSIF_DATA_7_PAD_CTRL :: reserved0 [31:06] */
-#define BCHP_TOP_CTRL_MTSIF_DATA_7_PAD_CTRL_reserved0_MASK         0xffffffc0
-#define BCHP_TOP_CTRL_MTSIF_DATA_7_PAD_CTRL_reserved0_SHIFT        6
+/* TOP_CTRL :: MTSIF_DATA_7_PAD_CTRL :: reserved0 [31:08] */
+#define BCHP_TOP_CTRL_MTSIF_DATA_7_PAD_CTRL_reserved0_MASK         0xffffff00
+#define BCHP_TOP_CTRL_MTSIF_DATA_7_PAD_CTRL_reserved0_SHIFT        8
+
+/* TOP_CTRL :: MTSIF_DATA_7_PAD_CTRL :: MTSIF_DATA_7_pull_up_down [07:06] */
+#define BCHP_TOP_CTRL_MTSIF_DATA_7_PAD_CTRL_MTSIF_DATA_7_pull_up_down_MASK 0x000000c0
+#define BCHP_TOP_CTRL_MTSIF_DATA_7_PAD_CTRL_MTSIF_DATA_7_pull_up_down_SHIFT 6
+#define BCHP_TOP_CTRL_MTSIF_DATA_7_PAD_CTRL_MTSIF_DATA_7_pull_up_down_DEFAULT 0x00000001
+#define BCHP_TOP_CTRL_MTSIF_DATA_7_PAD_CTRL_MTSIF_DATA_7_pull_up_down_PULL_NONE 0
+#define BCHP_TOP_CTRL_MTSIF_DATA_7_PAD_CTRL_MTSIF_DATA_7_pull_up_down_PULL_DOWN 1
+#define BCHP_TOP_CTRL_MTSIF_DATA_7_PAD_CTRL_MTSIF_DATA_7_pull_up_down_PULL_UP 2
 
 /* TOP_CTRL :: MTSIF_DATA_7_PAD_CTRL :: MTSIF_DATA_7_input_disable [05:05] */
 #define BCHP_TOP_CTRL_MTSIF_DATA_7_PAD_CTRL_MTSIF_DATA_7_input_disable_MASK 0x00000020
@@ -336,9 +362,17 @@
 /***************************************************************************
  *MTSIF_DATA_6_PAD_CTRL - Pad control for MTSIF_DATA_6 pad.
  ***************************************************************************/
-/* TOP_CTRL :: MTSIF_DATA_6_PAD_CTRL :: reserved0 [31:06] */
-#define BCHP_TOP_CTRL_MTSIF_DATA_6_PAD_CTRL_reserved0_MASK         0xffffffc0
-#define BCHP_TOP_CTRL_MTSIF_DATA_6_PAD_CTRL_reserved0_SHIFT        6
+/* TOP_CTRL :: MTSIF_DATA_6_PAD_CTRL :: reserved0 [31:08] */
+#define BCHP_TOP_CTRL_MTSIF_DATA_6_PAD_CTRL_reserved0_MASK         0xffffff00
+#define BCHP_TOP_CTRL_MTSIF_DATA_6_PAD_CTRL_reserved0_SHIFT        8
+
+/* TOP_CTRL :: MTSIF_DATA_6_PAD_CTRL :: MTSIF_DATA_6_pull_up_down [07:06] */
+#define BCHP_TOP_CTRL_MTSIF_DATA_6_PAD_CTRL_MTSIF_DATA_6_pull_up_down_MASK 0x000000c0
+#define BCHP_TOP_CTRL_MTSIF_DATA_6_PAD_CTRL_MTSIF_DATA_6_pull_up_down_SHIFT 6
+#define BCHP_TOP_CTRL_MTSIF_DATA_6_PAD_CTRL_MTSIF_DATA_6_pull_up_down_DEFAULT 0x00000001
+#define BCHP_TOP_CTRL_MTSIF_DATA_6_PAD_CTRL_MTSIF_DATA_6_pull_up_down_PULL_NONE 0
+#define BCHP_TOP_CTRL_MTSIF_DATA_6_PAD_CTRL_MTSIF_DATA_6_pull_up_down_PULL_DOWN 1
+#define BCHP_TOP_CTRL_MTSIF_DATA_6_PAD_CTRL_MTSIF_DATA_6_pull_up_down_PULL_UP 2
 
 /* TOP_CTRL :: MTSIF_DATA_6_PAD_CTRL :: MTSIF_DATA_6_input_disable [05:05] */
 #define BCHP_TOP_CTRL_MTSIF_DATA_6_PAD_CTRL_MTSIF_DATA_6_input_disable_MASK 0x00000020
@@ -491,7 +525,7 @@
 /* TOP_CTRL :: MTSIF_DATA_0_PAD_CTRL :: MTSIF_DATA_0_pull_up_down [07:06] */
 #define BCHP_TOP_CTRL_MTSIF_DATA_0_PAD_CTRL_MTSIF_DATA_0_pull_up_down_MASK 0x000000c0
 #define BCHP_TOP_CTRL_MTSIF_DATA_0_PAD_CTRL_MTSIF_DATA_0_pull_up_down_SHIFT 6
-#define BCHP_TOP_CTRL_MTSIF_DATA_0_PAD_CTRL_MTSIF_DATA_0_pull_up_down_DEFAULT 0x00000002
+#define BCHP_TOP_CTRL_MTSIF_DATA_0_PAD_CTRL_MTSIF_DATA_0_pull_up_down_DEFAULT 0x00000001
 #define BCHP_TOP_CTRL_MTSIF_DATA_0_PAD_CTRL_MTSIF_DATA_0_pull_up_down_PULL_NONE 0
 #define BCHP_TOP_CTRL_MTSIF_DATA_0_PAD_CTRL_MTSIF_DATA_0_pull_up_down_PULL_DOWN 1
 #define BCHP_TOP_CTRL_MTSIF_DATA_0_PAD_CTRL_MTSIF_DATA_0_pull_up_down_PULL_UP 2
@@ -1014,7 +1048,7 @@
 #define BCHP_TOP_CTRL_PIN_MUX_CTRL_0_mtsif_data_7_SHIFT            28
 #define BCHP_TOP_CTRL_PIN_MUX_CTRL_0_mtsif_data_7_DEFAULT          0x00000000
 #define BCHP_TOP_CTRL_PIN_MUX_CTRL_0_mtsif_data_7_MTSIF_DATA_7     0
-#define BCHP_TOP_CTRL_PIN_MUX_CTRL_0_mtsif_data_7_TS0_SYNC         1
+#define BCHP_TOP_CTRL_PIN_MUX_CTRL_0_mtsif_data_7_TS0_VALID        1
 #define BCHP_TOP_CTRL_PIN_MUX_CTRL_0_mtsif_data_7_TP_OUT_3         2
 
 /* TOP_CTRL :: PIN_MUX_CTRL_0 :: mtsif_sync [27:24] */
@@ -1022,7 +1056,7 @@
 #define BCHP_TOP_CTRL_PIN_MUX_CTRL_0_mtsif_sync_SHIFT              24
 #define BCHP_TOP_CTRL_PIN_MUX_CTRL_0_mtsif_sync_DEFAULT            0x00000000
 #define BCHP_TOP_CTRL_PIN_MUX_CTRL_0_mtsif_sync_MTSIF_SYNC         0
-#define BCHP_TOP_CTRL_PIN_MUX_CTRL_0_mtsif_sync_TS0_DATA           1
+#define BCHP_TOP_CTRL_PIN_MUX_CTRL_0_mtsif_sync_TS0_SYNC           1
 #define BCHP_TOP_CTRL_PIN_MUX_CTRL_0_mtsif_sync_TP_OUT_2           2
 
 /* TOP_CTRL :: PIN_MUX_CTRL_0 :: mtsif_clk [23:20] */
@@ -1038,16 +1072,14 @@
 #define BCHP_TOP_CTRL_PIN_MUX_CTRL_0_bsc_sda_SHIFT                 16
 #define BCHP_TOP_CTRL_PIN_MUX_CTRL_0_bsc_sda_DEFAULT               0x00000000
 #define BCHP_TOP_CTRL_PIN_MUX_CTRL_0_bsc_sda_BSC_SDA               0
-#define BCHP_TOP_CTRL_PIN_MUX_CTRL_0_bsc_sda_GPO_3                 1
-#define BCHP_TOP_CTRL_PIN_MUX_CTRL_0_bsc_sda_TP_IN_1               2
+#define BCHP_TOP_CTRL_PIN_MUX_CTRL_0_bsc_sda_TP_IN_1               1
 
 /* TOP_CTRL :: PIN_MUX_CTRL_0 :: bsc_scl [15:12] */
 #define BCHP_TOP_CTRL_PIN_MUX_CTRL_0_bsc_scl_MASK                  0x0000f000
 #define BCHP_TOP_CTRL_PIN_MUX_CTRL_0_bsc_scl_SHIFT                 12
 #define BCHP_TOP_CTRL_PIN_MUX_CTRL_0_bsc_scl_DEFAULT               0x00000000
 #define BCHP_TOP_CTRL_PIN_MUX_CTRL_0_bsc_scl_BSC_SCL               0
-#define BCHP_TOP_CTRL_PIN_MUX_CTRL_0_bsc_scl_GPO_2                 1
-#define BCHP_TOP_CTRL_PIN_MUX_CTRL_0_bsc_scl_TP_IN_0               2
+#define BCHP_TOP_CTRL_PIN_MUX_CTRL_0_bsc_scl_TP_IN_0               1
 
 /* TOP_CTRL :: PIN_MUX_CTRL_0 :: uart_tx [11:08] */
 #define BCHP_TOP_CTRL_PIN_MUX_CTRL_0_uart_tx_MASK                  0x00000f00
@@ -1085,7 +1117,7 @@
 #define BCHP_TOP_CTRL_PIN_MUX_CTRL_1_mtsif_data_0_SHIFT            24
 #define BCHP_TOP_CTRL_PIN_MUX_CTRL_1_mtsif_data_0_DEFAULT          0x00000000
 #define BCHP_TOP_CTRL_PIN_MUX_CTRL_1_mtsif_data_0_MTSIF_DATA_0     0
-#define BCHP_TOP_CTRL_PIN_MUX_CTRL_1_mtsif_data_0_TS0_VALID        1
+#define BCHP_TOP_CTRL_PIN_MUX_CTRL_1_mtsif_data_0_TS0_DATA         1
 #define BCHP_TOP_CTRL_PIN_MUX_CTRL_1_mtsif_data_0_TP_OUT_10        2
 
 /* TOP_CTRL :: PIN_MUX_CTRL_1 :: mtsif_data_1 [23:20] */
@@ -1093,7 +1125,7 @@
 #define BCHP_TOP_CTRL_PIN_MUX_CTRL_1_mtsif_data_1_SHIFT            20
 #define BCHP_TOP_CTRL_PIN_MUX_CTRL_1_mtsif_data_1_DEFAULT          0x00000000
 #define BCHP_TOP_CTRL_PIN_MUX_CTRL_1_mtsif_data_1_MTSIF_DATA_1     0
-#define BCHP_TOP_CTRL_PIN_MUX_CTRL_1_mtsif_data_1_TS2_SYNC         1
+#define BCHP_TOP_CTRL_PIN_MUX_CTRL_1_mtsif_data_1_TS2_CLK          1
 #define BCHP_TOP_CTRL_PIN_MUX_CTRL_1_mtsif_data_1_DS_OOB_SYNC      2
 #define BCHP_TOP_CTRL_PIN_MUX_CTRL_1_mtsif_data_1_TP_OUT_9         3
 
@@ -1102,7 +1134,7 @@
 #define BCHP_TOP_CTRL_PIN_MUX_CTRL_1_mtsif_data_2_SHIFT            16
 #define BCHP_TOP_CTRL_PIN_MUX_CTRL_1_mtsif_data_2_DEFAULT          0x00000000
 #define BCHP_TOP_CTRL_PIN_MUX_CTRL_1_mtsif_data_2_MTSIF_DATA_2     0
-#define BCHP_TOP_CTRL_PIN_MUX_CTRL_1_mtsif_data_2_TS2_DATA         1
+#define BCHP_TOP_CTRL_PIN_MUX_CTRL_1_mtsif_data_2_TS1_CLK          1
 #define BCHP_TOP_CTRL_PIN_MUX_CTRL_1_mtsif_data_2_DS_OOB_DATA      2
 #define BCHP_TOP_CTRL_PIN_MUX_CTRL_1_mtsif_data_2_TP_OUT_8         3
 
@@ -1111,7 +1143,7 @@
 #define BCHP_TOP_CTRL_PIN_MUX_CTRL_1_mtsif_data_3_SHIFT            12
 #define BCHP_TOP_CTRL_PIN_MUX_CTRL_1_mtsif_data_3_DEFAULT          0x00000000
 #define BCHP_TOP_CTRL_PIN_MUX_CTRL_1_mtsif_data_3_MTSIF_DATA_3     0
-#define BCHP_TOP_CTRL_PIN_MUX_CTRL_1_mtsif_data_3_TS2_CLK          1
+#define BCHP_TOP_CTRL_PIN_MUX_CTRL_1_mtsif_data_3_TS1_DATA         1
 #define BCHP_TOP_CTRL_PIN_MUX_CTRL_1_mtsif_data_3_DS_OOB_CLK       2
 #define BCHP_TOP_CTRL_PIN_MUX_CTRL_1_mtsif_data_3_TP_OUT_7         3
 
@@ -1128,7 +1160,7 @@
 #define BCHP_TOP_CTRL_PIN_MUX_CTRL_1_mtsif_data_5_SHIFT            4
 #define BCHP_TOP_CTRL_PIN_MUX_CTRL_1_mtsif_data_5_DEFAULT          0x00000000
 #define BCHP_TOP_CTRL_PIN_MUX_CTRL_1_mtsif_data_5_MTSIF_DATA_5     0
-#define BCHP_TOP_CTRL_PIN_MUX_CTRL_1_mtsif_data_5_TS1_DATA         1
+#define BCHP_TOP_CTRL_PIN_MUX_CTRL_1_mtsif_data_5_TS2_SYNC         1
 #define BCHP_TOP_CTRL_PIN_MUX_CTRL_1_mtsif_data_5_TP_OUT_5         2
 
 /* TOP_CTRL :: PIN_MUX_CTRL_1 :: mtsif_data_6 [03:00] */
@@ -1136,7 +1168,7 @@
 #define BCHP_TOP_CTRL_PIN_MUX_CTRL_1_mtsif_data_6_SHIFT            0
 #define BCHP_TOP_CTRL_PIN_MUX_CTRL_1_mtsif_data_6_DEFAULT          0x00000000
 #define BCHP_TOP_CTRL_PIN_MUX_CTRL_1_mtsif_data_6_MTSIF_DATA_6     0
-#define BCHP_TOP_CTRL_PIN_MUX_CTRL_1_mtsif_data_6_TS1_CLK          1
+#define BCHP_TOP_CTRL_PIN_MUX_CTRL_1_mtsif_data_6_TS2_DATA         1
 #define BCHP_TOP_CTRL_PIN_MUX_CTRL_1_mtsif_data_6_TP_OUT_4         2
 
 /***************************************************************************

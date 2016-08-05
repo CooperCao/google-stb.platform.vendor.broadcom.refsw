@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,6 +34,7 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
+ *
  * Module Description: Audio Decoder Interface
  *
  ***************************************************************************/
@@ -278,7 +279,7 @@ BERR_Code BAPE_Decoder_P_GetAc4PresentationInfo(
         #else
         {
             unsigned i;
-            for (i=0; i<AC4_DEC_PRESENTATION_NAME_LENGTH; i++)
+            for (i=0; i<AC4_DEC_PRESENTATION_NAME_LENGTH/4; i++)
             {
                 pInfo->info.ac4.name[4*i]   = (char)((handle->streamInfo.ac4.AC4DECPresentationInfo[presentationIndex].ui32PresentationName[i]>>24)&0xFF);
                 pInfo->info.ac4.name[4*i+1] = (char)((handle->streamInfo.ac4.AC4DECPresentationInfo[presentationIndex].ui32PresentationName[i]>>16)&0xFF);
@@ -286,7 +287,7 @@ BERR_Code BAPE_Decoder_P_GetAc4PresentationInfo(
                 pInfo->info.ac4.name[4*i+3] = (char)((handle->streamInfo.ac4.AC4DECPresentationInfo[presentationIndex].ui32PresentationName[i])&0xFF);
                 /*BDBG_ERR(("  name[%d]: %lu", i, (unsigned long)handle->streamInfo.ac4.AC4DECPresentationInfo[presentationIndex].ui32PresentationName[i]));*/
             }
-            for (i=0; i<AC4_DEC_PRESENTATION_LANGUAGE_LENGTH; i++)
+            for (i=0; i<BAPE_AC4_PRESENTATION_LANGUAGE_NAME_LENGTH/4; i++)
             {
                 pInfo->info.ac4.language[4*i]   = (char)((handle->streamInfo.ac4.AC4DECPresentationInfo[presentationIndex].ui32MainLanguage[i]>>24)&0xFF);
                 pInfo->info.ac4.language[4*i+1] = (char)((handle->streamInfo.ac4.AC4DECPresentationInfo[presentationIndex].ui32MainLanguage[i]>>16)&0xFF);
@@ -297,12 +298,12 @@ BERR_Code BAPE_Decoder_P_GetAc4PresentationInfo(
         }
         #endif
         pInfo->info.ac4.id = handle->streamInfo.ac4.AC4DECPresentationInfo[presentationIndex].ui32PresentationIndex;
-        pInfo->info.ac4.type = handle->streamInfo.ac4.AC4DECPresentationInfo[presentationIndex].ui32AssociateType;
+        pInfo->info.ac4.associateType = (BAPE_Ac4AssociateType)handle->streamInfo.ac4.AC4DECPresentationInfo[presentationIndex].ui32AssociateType;
         BDBG_MSG(("Presentation Info for idx %lu:", (unsigned long)presentationIndex));
         BDBG_MSG(("  id: %lu", (unsigned long)pInfo->info.ac4.id));
-        BDBG_MSG(("  type: %d", pInfo->info.ac4.type));
+        BDBG_MSG(("  assocType: %d", pInfo->info.ac4.associateType));
         BDBG_MSG(("  name: %s", pInfo->info.ac4.name));
-        BDBG_MSG(("  language: %s\n", pInfo->info.ac4.language));
+        BDBG_MSG(("  language: %s", pInfo->info.ac4.language));
     }
     return BERR_SUCCESS;
 }
@@ -1284,6 +1285,9 @@ static BERR_Code BAPE_Decoder_P_GetAlsStatus(
         pStatus->framesDecoded = handle->streamInfo.als.ui32TotalFramesDecoded;
         pStatus->frameErrors = handle->streamInfo.als.ui32TotalFramesInError;
         pStatus->dummyFrames = handle->streamInfo.als.ui32TotalFramesDummy;
+        pStatus->codecStatus.als.bitsPerSample = handle->streamInfo.als.bit_width;
+        pStatus->codecStatus.als.samplingFrequency = handle->streamInfo.als.ui32SamplingFreq;
+        pStatus->codecStatus.als.channelMode = handle->streamInfo.als.ui32OutputMode;
     }
     return BERR_SUCCESS;
 }

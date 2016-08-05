@@ -55,16 +55,9 @@ void BHDR_HDCP_GetDefaultSettings(BHDR_HDCP_Settings *pHdcpSettings)
 
 	BKNI_Memset(pHdcpSettings, 0, sizeof(BHDR_HDCP_Settings)) ;
 
-#if 	HDMI_RX_GEN == 3548
-	/* does not support repeaters */
-	pHdcpSettings->bRepeater = false ;
-	pHdcpSettings->uiMaxDevices = 1 ;
-	pHdcpSettings->uiMaxLevels = 1 ;
-#else
 	pHdcpSettings->bRepeater = true ;
 	pHdcpSettings->uiMaxLevels = 7 ;
 	pHdcpSettings->uiMaxDevices = 127 ;
-#endif
 
 	BDBG_LEAVE(BHDR_HDCP_GetSettings) ;
 }
@@ -114,7 +107,6 @@ void BHDR_HDCP_SetSettings(BHDR_Handle hHDR, BHDR_HDCP_Settings *pHdcpSettings)
 
 	BKNI_Memcpy(&hHDR->stHdcpSettings, pHdcpSettings, sizeof(BHDR_HDCP_Settings)) ;
 
-#if HDMI_RX_GEN == 7422
 	if (!pHdcpSettings->bRepeater)
 	{
 		BDBG_WRN((" ")) ;
@@ -122,7 +114,6 @@ void BHDR_HDCP_SetSettings(BHDR_Handle hHDR, BHDR_HDCP_Settings *pHdcpSettings)
 		BDBG_WRN(("!!!!!  if devices re-transmit encrypted content")) ;
 		BDBG_WRN((" ")) ;
 	}
-#endif
 
 #if 0
 TODO CODE TO RETRIEVE BKSV ONCE STORED
@@ -299,36 +290,17 @@ BERR_Code BHDR_HDCP_EnableSerialKeyRam(
 	const bool enable
 )
 {
-	uint32_t Register, ulOffset;
-	BREG_Handle hRegister;
+	BERR_Code rc = BERR_SUCCESS;
 
 	BDBG_ENTER(BHDR_HDCP_EnableSerialKeyRam);
 	BDBG_OBJECT_ASSERT(hHDR, BHDR_P_Handle);
 
-#if BHDR_CONFIG_DISABLE_KEY_RAM_SERIAL
-	hRegister = hHDR->hRegister;
-	ulOffset = hHDR->ulOffset;
-
-	/**************************************
-	This is a SW work around for an issue in HW core where the RAM_SERIAL_DISABLE
-	has to be set during HDCP2.x Rx mode of operation. This does not affect the Tx but only
-	the Rx. Associate JIRA -CRDVP-674
-	***************************************/
-	/* disable serial HDCP Key RAM loading */
-	Register = BREG_Read32(hRegister, BCHP_DVP_HR_KEY_RAM_CTRL_1 + ulOffset);
-		Register &= ~ BCHP_MASK(DVP_HR_KEY_RAM_CTRL_1, RAM_SERIAL_DISABLE) ;
-		Register |= BCHP_FIELD_DATA(DVP_HR_KEY_RAM_CTRL_1, RAM_SERIAL_DISABLE, enable?0:1) ;
-	BREG_Write32(hRegister, BCHP_DVP_HR_KEY_RAM_CTRL_1 + ulOffset, Register);
-
-#else
-	BSTD_UNUSED(Register);
-	BSTD_UNUSED(hRegister);
-	BSTD_UNUSED(ulOffset);
-	BSTD_UNUSED(enable);
-#endif
+	BKNI_EnterCriticalSection();
+	rc = BHDR_HDCP_P_EnableSerialKeyRam_isr(hHDR, enable);
+	BKNI_LeaveCriticalSection();
 
 	BDBG_LEAVE(BHDR_HDCP_EnableSerialKeyRam);
-	return BERR_SUCCESS;
+	return rc;
 
 }
 
@@ -348,7 +320,7 @@ BERR_Code BHDR_HDCP_GetHdcp2xEncryptionStatus(
 	ulOffset = hHDR->ulOffset;
 
 	Register = BREG_Read32(hRegister, BCHP_HDCP2_RX_0_STATUS_0 + ulOffset);
-	*bEncrypted = (bool) BCHP_GET_FIELD_DATA(Register, HDCP2_RX_0_STATUS_0, ENCRYPTION_ENABLED) ;
+	*bEncrypted = BCHP_GET_FIELD_DATA(Register, HDCP2_RX_0_STATUS_0, ENCRYPTION_ENABLED) > 0 ;
 
 	BDBG_LEAVE(BHDR_HDCP_GetHdcp2xEncryptionStatus);
 	return BERR_SUCCESS;

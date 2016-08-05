@@ -54,6 +54,14 @@ typedef struct NEXUS_Security_P_Handle * NEXUS_SecurityHandle;
 #define NEXUS_ZEUS_VERSION_MAJOR(zeusVersion) ((zeusVersion)>>16)
 #define NEXUS_ZEUS_VERSION_MINOR(zeusVersion) ((zeusVersion)&0x0000FFFF)
 #define NEXUS_ZEUS_VERSION  NEXUS_ZEUS_VERSION_CALC(NEXUS_SECURITY_ZEUS_VERSION_MAJOR, NEXUS_SECURITY_ZEUS_VERSION_MINOR)
+
+/* defines to interprete the BFW firmware version */
+#define NEXUS_BFW_VERSION_CALC(major,minor,subMinor) ( (((major) & 0xFF)<<16) |(((minor) & 0xFF)<<8) | ((subMinor) & 0xFF) )
+#define NEXUS_BFW_VERSION_MAJOR(bfwVersion)          ( ((bfwVersion)>>16) & 0xFF )
+#define NEXUS_BFW_VERSION_MINOR(bfwVersion)          ( ((bfwVersion)>>8 ) & 0xFF )
+#define NEXUS_BFW_VERSION_SUBMINOR(bfwVersion)       (  (bfwVersion)      & 0xFF )
+
+
 /**
 Summary:
 Structure to hold the numbers of key slots allocated for each key slot type.
@@ -81,8 +89,8 @@ NEXUS_GetSecurityCapabilities
 typedef struct NEXUS_SecurityCapabilities
 {
    struct {
-       unsigned zeus;
-       unsigned firmware;
+       unsigned zeus;        /* use NEXUS_ZEUS_VERSION_* defines to interpret  */
+       unsigned firmware;    /* use NEXUS_BFW_VERSION_* defines to interpret  */
    } version;
    NEXUS_KeySlotTableSettings keySlotTableSettings;
 } NEXUS_SecurityCapabilities;
@@ -673,21 +681,9 @@ The value from HSM is embedded in the lowest byte via OR.
 **/
 #define NEXUS_SECURITY_HSM_ERROR NEXUS_MAKE_ERR_CODE(0x109, 0)
 
-#define NEXUS_SECURITY_MAX_KEYSLOT_TYPES 8
-
 #define NEXUS_SECURITY_IP_LICENCE_SIZE     (64)
 
-/**
-Summary:
-Settings used to configure customer mode for the Security module.
-
-Description:
-This enum describes modes available for the security system.  Not all modes are supported on all chips, nor do all chips require this to be set.
-
-See Also:
-NEXUS_SecurityModule_GetDefaultInternalSettings
-NEXUS_SecurityModule_Init
-**/
+/** NEXUS_SecurityCustomerMode  DEPRECATED **/
 typedef enum NEXUS_SecurityCustomerMode {
     NEXUS_SecurityCustomerMode_eGeneric,
     NEXUS_SecurityCustomerMode_eDvs042,
@@ -708,7 +704,7 @@ NEXUS_SecurityModule_Init
 typedef struct NEXUS_SecurityModuleSettings
 {
     NEXUS_CommonModuleSettings common;
-    NEXUS_SecurityCustomerMode customerMode;
+    NEXUS_SecurityCustomerMode customerMode; /* customerMode is DEPRECATED */
     unsigned int numKeySlotsForType[NEXUS_SECURITY_MAX_KEYSLOT_TYPES];
     bool enableMulti2Key;           /* DEPRECATED, replaced by numMulti2KeySlots. If set true and numMulti2KeySlots is 0, numMulti2KeySlots will be treated as 8. */
     unsigned numMulti2KeySlots;     /* Number of Multi2 KeySlots */

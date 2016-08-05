@@ -106,16 +106,6 @@ typedef enum _RF4CE_ZRC_AttributeStatus_t
 /**//**
  * \brief RF4CE ZRC on board attributes initialization.
  */
-#if (0)
-#define INIT_ZRC1_ATTRIBUTES \
-{ \
-    .aplZRC1KeyRepeatInterval = RF4CE_ZRC1_APLC_MAX_KEY_REPEAT_INTERVAL >> 1, \
-    .aplZRC1KeyRepeatWaitTime = RF4CE_ZRC1_APLC_MAX_KEY_REPEAT_INTERVAL << 1, \
-    .aplZRC1KeyExchangeTransferCount = RF4CE_ZRC1_APLC_MIN_KEY_EXCHANGE_TRANSFER_COUNT, \
-    .aplZRC1CommandDiscovery = RF4CE_ZRC_DEFAULT_HDMI_BANK, \
-    .aplZRC1AutodiscoveryPairTimeout = RF4CE_ZRC1_MAX_PAIR_INDICATION_WAIT_TIME \
-}
-#else
 #define INIT_ZRC1_ATTRIBUTES \
 { \
     .aplZRC1KeyRepeatInterval = RF4CE_ZRC1_APLC_MAX_KEY_REPEAT_INTERVAL >> 1, \
@@ -125,7 +115,6 @@ typedef enum _RF4CE_ZRC_AttributeStatus_t
     .aplZRC1AutodiscoveryPairTimeout = RF4CE_ZRC1_MAX_PAIR_INDICATION_WAIT_TIME, \
     .aplGDPAutoDiscoveryDuration = RF4CE_ZRC1_AUTO_DISCOVERY_DURATION, \
 }
-#endif
 
 /************************* TYPES *******************************************************/
 /**//**
@@ -163,9 +152,9 @@ typedef union _RF4CE_ZRC1_Attribute_t
                                                        button pairing procedure. */
     uint8_t     aplZRC1CommandDiscovery[32];        /*!< ZRC 1. Command discovery bitmap. */
     uint16_t    aplZRC1AutodiscoveryPairTimeout;
-//#ifdef _PHY_TEST_HOST_INTERFACE_
+#ifdef _PHY_TEST_HOST_INTERFACE_
     uint32_t    aplGDPAutoDiscoveryDuration;        /*!< Self-defined attribute for total Binding Timeout. */
-//#endif
+#endif
 } RF4CE_ZRC1_Attribute_t;
 
 /**//**

@@ -779,7 +779,7 @@ const uint32_t BDSP_IMG_amrwb_decode_array1[] = {
 	0x013fffff,
 	0x94087fcf,
 	0x013fffff,
-	0xa75589d7,
+	0xa7558dd7,
 	0x0000372d,
 	0x07bffe07,
 	0x013fffff,

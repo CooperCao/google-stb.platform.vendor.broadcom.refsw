@@ -98,8 +98,6 @@ struct _NStmt {
          NStmtList *post_cond_stmts;
          Expr *post_cond_expr; // can be NULL
          NStmtList *increment;
-
-         Symbol *loop_index; // HACK: remove once we dynamic loops
       } iterator;
 
       // NSTMT_DISCARD, NSTMT_CONTINUE, NSTMT_BREAK, NSTMT_RETURN: no metadata
@@ -129,7 +127,7 @@ const NStmt *glsl_nstmt_new_function_call(int line_num, Expr *lvalue, Symbol *fu
 const NStmt *glsl_nstmt_new_selection(int line_num, Expr *cond, NStmtList *if_true, NStmtList *if_false);
 const NStmt *glsl_nstmt_new_switch(int line_num, Expr *cond, NStmtList *statements);
 const NStmt *glsl_nstmt_new_case(int line_num, Expr *expr);
-const NStmt *glsl_nstmt_new_iterator(int line_num, NStmtList *pre_cond_stmts, Expr *pre_cond_expr, NStmtList *body, NStmtList *post_cond_stmts, Expr *post_cond_expr, NStmtList *increment, Symbol *loop_index);
+const NStmt *glsl_nstmt_new_iterator(int line_num, NStmtList *pre_cond_stmts, Expr *pre_cond_expr, NStmtList *body, NStmtList *post_cond_stmts, Expr *post_cond_expr, NStmtList *increment);
 const NStmt *glsl_nstmt_new_return_expr(int line_num, Expr *expr);
 
 NStmtList *glsl_nstmt_list_new(void);

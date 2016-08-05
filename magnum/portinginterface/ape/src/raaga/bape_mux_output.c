@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -388,9 +388,11 @@ BERR_Code BAPE_MuxOutput_Create(
     return BERR_SUCCESS;
 
 err_stage_create:
+    BMMA_Unlock(hMuxOutput->descriptorInfo.metadata.block, hMuxOutput->descriptorInfo.metadata.cached);
 err_cache_metadata:
     BMMA_Free(hMuxOutput->descriptorInfo.metadata.block);
 err_alloc_metadata:
+    BMMA_Unlock(hMuxOutput->descriptorInfo.descriptors.block, hMuxOutput->descriptorInfo.descriptors.cached);
 err_cache_descriptors:
     BMMA_Free(hMuxOutput->descriptorInfo.descriptors.block);
 err_alloc_descriptors:
@@ -430,7 +432,9 @@ void BAPE_MuxOutput_Destroy(
         BDSP_Queue_Destroy(hMuxOutput->itb.queue);
     }
     BLST_S_REMOVE(&hMuxOutput->node.deviceHandle->muxOutputList, hMuxOutput, BAPE_MuxOutput, deviceListNode);
+    BMMA_Unlock(hMuxOutput->descriptorInfo.metadata.block, hMuxOutput->descriptorInfo.metadata.cached);
     BMMA_Free(hMuxOutput->descriptorInfo.metadata.block);
+    BMMA_Unlock(hMuxOutput->descriptorInfo.descriptors.block, hMuxOutput->descriptorInfo.descriptors.cached);
     BMMA_Free(hMuxOutput->descriptorInfo.descriptors.block);
     BMMA_UnlockOffset(hMuxOutput->createSettings.cdb.block, hMuxOutput->cdb.offset);
     BMMA_Unlock(hMuxOutput->createSettings.cdb.block, hMuxOutput->cdb.cached);
@@ -578,13 +582,13 @@ BERR_Code BAPE_MuxOutput_Start(
     }
     else
     {
+        BDSP_QueueCreateSettings queueSettings;
+        BAPE_PathConnection *pInputConnection;
+        int dspIndex = -1;
+        uint32_t tmp;
+        uint32_t numBuffers = 1;
         if (!hMuxOutput->cdb.queue)
         {
-            BDSP_QueueCreateSettings queueSettings;
-            BAPE_PathConnection *pInputConnection;
-            int dspIndex = -1;
-            uint32_t tmp;
-
             for ( pInputConnection = BLST_S_FIRST(&hMuxOutput->node.upstreamList);
                   pInputConnection != NULL;
                   pInputConnection = BLST_S_FIRST(&pInputConnection->pSource->pParent->upstreamList) )
@@ -603,8 +607,8 @@ BERR_Code BAPE_MuxOutput_Start(
 
             BDSP_Queue_GetDefaultSettings(hMuxOutput->node.deviceHandle->dspContext, &queueSettings);
             queueSettings.dataType = BDSP_DataType_eRdbCdb;
-            queueSettings.numBuffers = 1;
-            queueSettings.bufferInfo[0].bufferSize = hMuxOutput->createSettings.cdb.size - 1;
+            queueSettings.numBuffers = numBuffers;
+            queueSettings.bufferInfo[0].bufferSize = hMuxOutput->createSettings.cdb.size;
             queueSettings.bufferInfo[0].bufferAddress = hMuxOutput->cdb.offset;
 
             errCode = BDSP_Queue_Create(hMuxOutput->node.deviceHandle->dspContext,
@@ -612,23 +616,14 @@ BERR_Code BAPE_MuxOutput_Start(
                             &queueSettings,
                             &hMuxOutput->cdb.queue);
             if ( errCode ) { return BERR_TRACE(errCode); }
+        }
 
-            BDSP_Queue_GetBufferAddr(hMuxOutput->cdb.queue,
-                            queueSettings.numBuffers,
-                            &hMuxOutput->cdb.buffer);
-
-            errCode = BDSP_Stage_AddQueueOutput(
-                            hMuxOutput->hStage,
-                            hMuxOutput->cdb.queue,
-                            &tmp /*[out]*/
-                            );
-            if ( errCode ) { BDSP_Queue_Destroy(hMuxOutput->cdb.queue); return BERR_TRACE(errCode); }
-
+        if (!hMuxOutput->itb.queue) {
 
             BDSP_Queue_GetDefaultSettings(hMuxOutput->node.deviceHandle->dspContext, &queueSettings);
             queueSettings.dataType = BDSP_DataType_eRdbItb;
-            queueSettings.numBuffers = 1;
-            queueSettings.bufferInfo[0].bufferSize = hMuxOutput->createSettings.itb.size - 1;
+            queueSettings.numBuffers = numBuffers;
+            queueSettings.bufferInfo[0].bufferSize = hMuxOutput->createSettings.itb.size;
             queueSettings.bufferInfo[0].bufferAddress = hMuxOutput->itb.offset;
 
             errCode = BDSP_Queue_Create(hMuxOutput->node.deviceHandle->dspContext,
@@ -636,38 +631,53 @@ BERR_Code BAPE_MuxOutput_Start(
                             &queueSettings,
                             &hMuxOutput->itb.queue);
             if ( errCode ) {
-                BDSP_Stage_RemoveAllOutputs(hMuxOutput->hStage);
                 BDSP_Queue_Destroy(hMuxOutput->cdb.queue);
                 return BERR_TRACE(errCode);
             }
-
-            BDSP_Queue_GetBufferAddr(hMuxOutput->itb.queue,
-                            queueSettings.numBuffers,
-                            &hMuxOutput->itb.buffer);
-
-            errCode = BDSP_Stage_AddQueueOutput(
-                hMuxOutput->hStage,
-                hMuxOutput->itb.queue,
-                &tmp /*[out]*/
-                );
-            if ( errCode ) {
-                BDSP_Stage_RemoveAllOutputs(hMuxOutput->hStage);
-                BDSP_Queue_Destroy(hMuxOutput->cdb.queue);
-                BDSP_Queue_Destroy(hMuxOutput->itb.queue);
-                return BERR_TRACE(errCode);
-            }
-
-            hMuxOutput->cdb.bufferInterface.base = hMuxOutput->cdb.buffer.ui32BaseAddr;
-            hMuxOutput->cdb.bufferInterface.end = hMuxOutput->cdb.buffer.ui32EndAddr;
-            hMuxOutput->cdb.bufferInterface.read = hMuxOutput->cdb.buffer.ui32ReadAddr;
-            hMuxOutput->cdb.bufferInterface.valid = hMuxOutput->cdb.buffer.ui32WriteAddr;
-            hMuxOutput->cdb.bufferInterface.inclusive = false;
-            hMuxOutput->itb.bufferInterface.base = hMuxOutput->itb.buffer.ui32BaseAddr;
-            hMuxOutput->itb.bufferInterface.end = hMuxOutput->itb.buffer.ui32EndAddr;
-            hMuxOutput->itb.bufferInterface.read = hMuxOutput->itb.buffer.ui32ReadAddr;
-            hMuxOutput->itb.bufferInterface.valid = hMuxOutput->itb.buffer.ui32WriteAddr;
-            hMuxOutput->itb.bufferInterface.inclusive = false;
         }
+
+        errCode = BDSP_Queue_GetBufferAddr(hMuxOutput->cdb.queue,
+                        numBuffers,
+                        &hMuxOutput->cdb.buffer);
+
+        errCode = BDSP_Stage_AddQueueOutput(
+                        hMuxOutput->hStage,
+                        hMuxOutput->cdb.queue,
+                        &tmp /*[out]*/
+                        );
+        if ( errCode ) {
+            BDSP_Queue_Destroy(hMuxOutput->cdb.queue);
+            BDSP_Queue_Destroy(hMuxOutput->itb.queue);
+            return BERR_TRACE(errCode);
+        }
+
+        errCode = BDSP_Queue_GetBufferAddr(hMuxOutput->itb.queue,
+                        numBuffers,
+                        &hMuxOutput->itb.buffer);
+
+        errCode = BDSP_Stage_AddQueueOutput(
+                        hMuxOutput->hStage,
+                        hMuxOutput->itb.queue,
+                        &tmp /*[out]*/
+                        );
+        if ( errCode ) {
+            BDSP_Stage_RemoveAllOutputs(hMuxOutput->hStage);
+            BDSP_Queue_Destroy(hMuxOutput->cdb.queue);
+            BDSP_Queue_Destroy(hMuxOutput->itb.queue);
+            return BERR_TRACE(errCode);
+            }
+
+        hMuxOutput->cdb.bufferInterface.base = hMuxOutput->cdb.buffer.ui32BaseAddr;
+        hMuxOutput->cdb.bufferInterface.end = hMuxOutput->cdb.buffer.ui32EndAddr;
+        hMuxOutput->cdb.bufferInterface.read = hMuxOutput->cdb.buffer.ui32ReadAddr;
+        hMuxOutput->cdb.bufferInterface.valid = hMuxOutput->cdb.buffer.ui32WriteAddr;
+        hMuxOutput->cdb.bufferInterface.inclusive = false;
+        hMuxOutput->itb.bufferInterface.base = hMuxOutput->itb.buffer.ui32BaseAddr;
+        hMuxOutput->itb.bufferInterface.end = hMuxOutput->itb.buffer.ui32EndAddr;
+        hMuxOutput->itb.bufferInterface.read = hMuxOutput->itb.buffer.ui32ReadAddr;
+        hMuxOutput->itb.bufferInterface.valid = hMuxOutput->itb.buffer.ui32WriteAddr;
+        hMuxOutput->itb.bufferInterface.inclusive = false;
+
         BDSP_Queue_Flush(hMuxOutput->cdb.queue);
         BDSP_Queue_Flush(hMuxOutput->itb.queue);
     }
@@ -1618,7 +1628,7 @@ static void BAPE_MuxOutput_P_ParseItb(BAPE_MuxOutputHandle hMuxOutput, BAPE_Fram
     uiITBValidOffset= BREG_Read32(hReg, hMuxOutput->itb.bufferInterface.valid);
     uiITBReadOffset= BREG_Read32(hReg, hMuxOutput->itb.bufferInterface.read);
 
-    if ( uiITBEndOffset != 0 && hMuxOutput->cdb.bufferInterface.inclusive )
+    if ( uiITBEndOffset != 0 && hMuxOutput->itb.bufferInterface.inclusive )
     {
         uiITBEndOffset += 1; /* end is inclusive */
     }
@@ -1696,23 +1706,19 @@ static void BAPE_MuxOutput_P_ParseItb(BAPE_MuxOutputHandle hMuxOutput, BAPE_Fram
         BDBG_ASSERT(BAPE_ITB_GET_FIELD(&pITBEntry->escrMetadata, GENERIC, ENTRY_TYPE) == BAPE_ITB_ENTRY_TYPE_MUX_ESCR);
 
         BDBG_MSG(("*** ITB Dump (entry size = %lu bytes)***", (unsigned long)sizeof(BAPE_FrameItbEntries)));
-        BDBG_MSG(("\n error = %1x\n valid = %1x cdb_address = %08x\n length = %04x\n pts[32] = %1x\n \
-            \n pts[31:0] = %08x\n stc[31:0] = %08x\n ticks_per_bit = %04x\n \
-            \n shr = %4d\n samplerate = %08x\n ui32ESCR = %08x\n ui32OriginalPTS = %8x\n ui32OriginalPTSValid = %8x\n",
-                  BAPE_ITB_GET_FIELD(&pITBEntry->baseAddress, BASE_ADDRESS, ERROR),
-                  BAPE_ITB_GET_FIELD(&pITBEntry->baseAddress, BASE_ADDRESS, FRAME_VALID),
-                  BAPE_ITB_GET_FIELD(&pITBEntry->baseAddress, BASE_ADDRESS, CDB_ADDRESS),
-                  BAPE_ITB_GET_FIELD(&pITBEntry->baseAddress, BASE_ADDRESS, FRAME_LENGTH),
-                  BAPE_ITB_GET_FIELD(&pITBEntry->ptsDts, PTS_DTS, PTS_32),
-                  BAPE_ITB_GET_FIELD(&pITBEntry->ptsDts, PTS_DTS, PTS),
-                  BAPE_ITB_GET_FIELD(&pITBEntry->ptsDts, PTS_DTS, STC_LOWER),
-                  BAPE_ITB_GET_FIELD(&pITBEntry->bitRate, BIT_RATE, TICKS_PER_BIT),
-                  BAPE_ITB_GET_FIELD(&pITBEntry->bitRate, BIT_RATE, SHR),
-                  BAPE_ITB_GET_FIELD(&pITBEntry->bitRate, BIT_RATE, SAMPLE_RATE),
-                  BAPE_ITB_GET_FIELD(&pITBEntry->escrMetadata, ESCR_METADATA, ESCR),
-                  BAPE_ITB_GET_FIELD(&pITBEntry->escrMetadata, ESCR_METADATA, ORIGINAL_PTS),
-                  BAPE_ITB_GET_FIELD(&pITBEntry->escrMetadata, ESCR_METADATA, ORIGINAL_PTS_VALID)
-                 ));
+        BDBG_MSG((" error = %1x", BAPE_ITB_GET_FIELD(&pITBEntry->baseAddress, BASE_ADDRESS, ERROR)));
+        BDBG_MSG((" valid = %1x", BAPE_ITB_GET_FIELD(&pITBEntry->baseAddress, BASE_ADDRESS, FRAME_VALID)));
+        BDBG_MSG((" cdb_address = %08x", BAPE_ITB_GET_FIELD(&pITBEntry->baseAddress, BASE_ADDRESS, CDB_ADDRESS)));
+        BDBG_MSG((" length = %04x", BAPE_ITB_GET_FIELD(&pITBEntry->baseAddress, BASE_ADDRESS, FRAME_LENGTH)));
+        BDBG_MSG((" pts[32] = %1x", BAPE_ITB_GET_FIELD(&pITBEntry->ptsDts, PTS_DTS, PTS_32)));
+        BDBG_MSG((" pts[31:0] = %08x", BAPE_ITB_GET_FIELD(&pITBEntry->ptsDts, PTS_DTS, PTS)));
+        BDBG_MSG((" stc[31:0] = %08x", BAPE_ITB_GET_FIELD(&pITBEntry->ptsDts, PTS_DTS, STC_LOWER)));
+        BDBG_MSG((" ticks_per_bit = %04x", BAPE_ITB_GET_FIELD(&pITBEntry->bitRate, BIT_RATE, TICKS_PER_BIT)));
+        BDBG_MSG((" shr = %4d", BAPE_ITB_GET_FIELD(&pITBEntry->bitRate, BIT_RATE, SHR)));
+        BDBG_MSG((" samplerate = %08x", BAPE_ITB_GET_FIELD(&pITBEntry->bitRate, BIT_RATE, SAMPLE_RATE)));
+        BDBG_MSG((" ui32ESCR = %08x", BAPE_ITB_GET_FIELD(&pITBEntry->escrMetadata, ESCR_METADATA, ESCR)));
+        BDBG_MSG((" ui32OriginalPTS = %8x", BAPE_ITB_GET_FIELD(&pITBEntry->escrMetadata, ESCR_METADATA, ORIGINAL_PTS)));
+        BDBG_MSG((" ui32OriginalPTSValid = %8x", BAPE_ITB_GET_FIELD(&pITBEntry->escrMetadata, ESCR_METADATA, ORIGINAL_PTS_VALID)));
 
         uiNextEntryOffset = uiShadowReadOffset + sizeof(BAPE_FrameItbEntries);
         if ( uiNextEntryOffset >= uiITBEndOffset )

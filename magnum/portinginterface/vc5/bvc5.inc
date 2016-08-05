@@ -82,12 +82,12 @@ BVC5_SOURCES += \
 
 ifeq ($(B_REFSW_ANDROID),y)
 BVC5_SOURCES += \
-      $(V3D_MAGNUM_TOP)/src/$(B_REFSW_OS)/bvc5_android_fences.c \
-      $(V3D_MAGNUM_TOP)/src/$(B_REFSW_OS)/bvc5_android_bin_pool_alloc.c
+				$(V3D_MAGNUM_TOP)/src/$(B_REFSW_OS)/bvc5_android_fences.c \
+				$(V3D_MAGNUM_TOP)/src/$(B_REFSW_OS)/bvc5_android_bin_pool_alloc.c
 else
 BVC5_SOURCES += \
-      $(V3D_MAGNUM_TOP)/src/bvc5_fence.c \
-      $(V3D_MAGNUM_TOP)/src/bvc5_bin_pool_alloc.c
+				$(V3D_MAGNUM_TOP)/src/bvc5_fence.c \
+				$(V3D_MAGNUM_TOP)/src/bvc5_bin_pool_alloc.c
 endif
 
 
@@ -98,8 +98,17 @@ $(error [VC5] OS must be one of the following: $(BVC5_SUPPORTED_OS))
 endif
 
 BVC5_DEFINES += BVC5_HARDWARE_REAL
+
+ifeq ($(V3D_DRM_SUPPORT),y)
+	BVC5_DEFINES += BVC5_USE_DRM
+endif
+
+
 ifeq ($(findstring $(B_REFSW_OS), linuxuser linuxclient linuxemu linuxpal),${B_REFSW_OS})
-BVC5_DEFINES += BVC5_USERMODE
+	BVC5_DEFINES += BVC5_USERMODE
+	ifeq ($(V3D_DRM_SUPPORT),y)
+		BVC5_INCLUDES += $(B_REFSW_OBJ_ROOT)/BSEAV/linux/usr/include
+	endif
 else
-BVC5_DEFINES += BVC5_KERNELMODE
+	BVC5_DEFINES += BVC5_KERNELMODE
 endif

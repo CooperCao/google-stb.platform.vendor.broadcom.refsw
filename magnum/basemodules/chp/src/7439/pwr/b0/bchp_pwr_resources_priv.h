@@ -1,21 +1,41 @@
 /***************************************************************************
-*     Copyright (c) 2006-2014, Broadcom Corporation*
-*     All Rights Reserved*
-*     Confidential Property of Broadcom Corporation*
-*
-*  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
-*  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
-*  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
-*
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *
 * Module Description:
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 /***************************************************************
@@ -74,49 +94,51 @@
 #define BCHP_PWR_HW_XPT_CORE_GISB                        0xff000025
 #define BCHP_PWR_HW_XPT_WAKEUP                           0xff000026
 #define BCHP_PWR_HW_DVPHT                                0xff000027
-#define BCHP_PWR_HW_HDMI_RX0_PHY                         0xff000028
-#define BCHP_PWR_HW_HDMI_RX0_SRAM                        0xff000029
-#define BCHP_PWR_HW_M2MC0                                0xff00002a
-#define BCHP_PWR_HW_VEC_AIO_GFX_M2MC0_GFX_M2MC0_M2MC0    0xff00002b
-#define BCHP_PWR_HW_M2MC1                                0xff00002c
-#define BCHP_PWR_HW_VEC_AIO_GFX_M2MC1_GFX_M2MC1_M2MC1    0xff00002d
-#define BCHP_PWR_HW_M2MC0_SRAM                           0xff00002e
-#define BCHP_PWR_HW_M2MC1_SRAM                           0xff00002f
-#define BCHP_PWR_HW_V3D                                  0xff000030
-#define BCHP_PWR_HW_V3D_V3D                              0xff000031
-#define BCHP_PWR_HW_V3D_SRAM                             0xff000032
-#define BCHP_PWR_HW_SC0                                  0xff000033
-#define BCHP_PWR_HW_SC1                                  0xff000034
-#define BCHP_PWR_HW_SID                                  0xff000035
-#define BCHP_PWR_HW_SID_SRAM                             0xff000036
-#define BCHP_PWR_HW_RFM                                  0xff000037
-#define BCHP_PWR_HW_RFM_PHY                              0xff000038
-#define BCHP_PWR_HW_PLL_HVD_CH0                          0xff000039
-#define BCHP_PWR_HW_PLL_HVD_CH1                          0xff00003a
-#define BCHP_PWR_HW_PLL_HVD_CH2                          0xff00003b
-#define BCHP_PWR_HW_PLL_HVD_CH5                          0xff00003c
-#define BCHP_PWR_HW_AUD_PLL0                             0xff00003d
-#define BCHP_PWR_HW_AUD_PLL1                             0xff00003e
-#define BCHP_PWR_HW_PLL_VCXO_PLL0_CH0                    0xff00003f
-#define BCHP_PWR_HW_PLL_VCXO_PLL0_CH1                    0xff000040
-#define BCHP_PWR_HW_PLL_VCXO_PLL0_CH2                    0xff000041
-#define BCHP_PWR_HW_PLL_VCXO_PLL0                        0xff000042
-#define BCHP_PWR_HW_PLL_VCXO_PLL1_CH0                    0xff000043
-#define BCHP_PWR_HW_PLL_VCXO_PLL1_CH1                    0xff000044
-#define BCHP_PWR_HW_PLL_VCXO_PLL1_CH2                    0xff000045
-#define BCHP_PWR_HW_PLL_VCXO_PLL1                        0xff000046
-#define BCHP_PWR_HW_PLL_SC0_CH0                          0xff000047
-#define BCHP_PWR_HW_PLL_SC0                              0xff000048
-#define BCHP_PWR_HW_PLL_SC1_CH0                          0xff000049
-#define BCHP_PWR_HW_PLL_SC1                              0xff00004a
-#define BCHP_PWR_HW_PLL_SYS_PLL_CH3                      0xff00004b
-#define BCHP_PWR_HW_PLL_SYS_PLL_CH4                      0xff00004c
-#define BCHP_PWR_DV_PLL_HVD_CH0                          0xff00004d
-#define BCHP_PWR_DV_PLL_HVD_CH1                          0xff00004e
-#define BCHP_PWR_DV_PLL_HVD_CH2                          0xff00004f
-#define BCHP_PWR_DV_PLL_HVD_CH5                          0xff000050
-#define BCHP_PWR_DV_PLL_SYS_PLL_CH3                      0xff000051
-#define BCHP_PWR_DV_PLL_SYS_PLL_CH4                      0xff000052
+#define BCHP_PWR_HW_DVPHR_RBUS                           0xff000028
+#define BCHP_PWR_HW_HDMI_RX0_PHY                         0xff000029
+#define BCHP_PWR_HW_HDMI_RX0_SRAM                        0xff00002a
+#define BCHP_PWR_HW_M2MC0                                0xff00002b
+#define BCHP_PWR_HW_VEC_AIO_GFX_M2MC0_GFX_M2MC0_M2MC0    0xff00002c
+#define BCHP_PWR_HW_M2MC1                                0xff00002d
+#define BCHP_PWR_HW_VEC_AIO_GFX_M2MC1_GFX_M2MC1_M2MC1    0xff00002e
+#define BCHP_PWR_HW_M2MC0_SRAM                           0xff00002f
+#define BCHP_PWR_HW_M2MC1_SRAM                           0xff000030
+#define BCHP_PWR_HW_V3D                                  0xff000031
+#define BCHP_PWR_HW_V3D_V3D                              0xff000032
+#define BCHP_PWR_HW_V3D_SRAM                             0xff000033
+#define BCHP_PWR_HW_SC0                                  0xff000034
+#define BCHP_PWR_HW_SC1                                  0xff000035
+#define BCHP_PWR_HW_SID                                  0xff000036
+#define BCHP_PWR_HW_SID_GISB                             0xff000037
+#define BCHP_PWR_HW_SID_SRAM                             0xff000038
+#define BCHP_PWR_HW_RFM                                  0xff000039
+#define BCHP_PWR_HW_RFM_PHY                              0xff00003a
+#define BCHP_PWR_HW_PLL_HVD_CH0                          0xff00003b
+#define BCHP_PWR_HW_PLL_HVD_CH1                          0xff00003c
+#define BCHP_PWR_HW_PLL_HVD_CH2                          0xff00003d
+#define BCHP_PWR_HW_PLL_HVD_CH5                          0xff00003e
+#define BCHP_PWR_HW_AUD_PLL0                             0xff00003f
+#define BCHP_PWR_HW_AUD_PLL1                             0xff000040
+#define BCHP_PWR_HW_PLL_VCXO_PLL0_CH0                    0xff000041
+#define BCHP_PWR_HW_PLL_VCXO_PLL0_CH1                    0xff000042
+#define BCHP_PWR_HW_PLL_VCXO_PLL0_CH2                    0xff000043
+#define BCHP_PWR_HW_PLL_VCXO_PLL0                        0xff000044
+#define BCHP_PWR_HW_PLL_VCXO_PLL1_CH0                    0xff000045
+#define BCHP_PWR_HW_PLL_VCXO_PLL1_CH1                    0xff000046
+#define BCHP_PWR_HW_PLL_VCXO_PLL1_CH2                    0xff000047
+#define BCHP_PWR_HW_PLL_VCXO_PLL1                        0xff000048
+#define BCHP_PWR_HW_PLL_SC0_CH0                          0xff000049
+#define BCHP_PWR_HW_PLL_SC0                              0xff00004a
+#define BCHP_PWR_HW_PLL_SC1_CH0                          0xff00004b
+#define BCHP_PWR_HW_PLL_SC1                              0xff00004c
+#define BCHP_PWR_HW_PLL_SYS_PLL_CH3                      0xff00004d
+#define BCHP_PWR_HW_PLL_SYS_PLL_CH4                      0xff00004e
+#define BCHP_PWR_DV_PLL_HVD_CH0                          0xff00004f
+#define BCHP_PWR_DV_PLL_HVD_CH1                          0xff000050
+#define BCHP_PWR_DV_PLL_HVD_CH2                          0xff000051
+#define BCHP_PWR_DV_PLL_HVD_CH5                          0xff000052
+#define BCHP_PWR_DV_PLL_SYS_PLL_CH3                      0xff000053
+#define BCHP_PWR_DV_PLL_SYS_PLL_CH4                      0xff000054
 
 /* This is the link between the public and private interface */
 void BCHP_PWR_P_HW_Control(BCHP_Handle handle, const BCHP_PWR_P_Resource *resource, bool activate);
@@ -126,9 +148,9 @@ void BCHP_PWR_P_DIV_Control(BCHP_Handle handle, const BCHP_PWR_P_Resource *resou
 
 #define BCHP_PWR_P_NUM_NONLEAFS   65
 #define BCHP_PWR_P_NUM_NONLEAFSHW 31
-#define BCHP_PWR_P_NUM_LEAFS      45
+#define BCHP_PWR_P_NUM_LEAFS      47
 #define BCHP_PWR_P_NUM_MUXES      0
 #define BCHP_PWR_P_NUM_DIVS       6
-#define BCHP_PWR_P_NUM_ALLNODES   147
+#define BCHP_PWR_P_NUM_ALLNODES   149
 
 #endif

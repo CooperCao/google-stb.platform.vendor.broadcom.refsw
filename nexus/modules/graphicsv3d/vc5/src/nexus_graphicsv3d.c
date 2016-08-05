@@ -307,6 +307,7 @@ static void NEXUS_Graphicsv3d_P_SchedulerStart(void)
 {
    BVC5_SchedulerSettings  schedulerSettings;
    NEXUS_ThreadSettings    threadSettings;
+   BERR_Code               rc;
 
    NEXUS_Thread_GetDefaultSettings(&threadSettings);
 
@@ -323,7 +324,8 @@ static void NEXUS_Graphicsv3d_P_SchedulerStart(void)
       NEXUS_Thread_Create("graphicsv3d_worker", BVC5_Scheduler, (void *)&schedulerSettings, &threadSettings);
 
    /* Wait for the thread to start up */
-   BKNI_WaitForEvent(g_NEXUS_Graphicsv3d_P_ModuleState.hSchedulerSyncEvent, BKNI_INFINITE);
+   rc = BKNI_WaitForEvent(g_NEXUS_Graphicsv3d_P_ModuleState.hSchedulerSyncEvent, BKNI_INFINITE);
+   if (rc) BERR_TRACE(rc);
 
    return;
 }
@@ -399,6 +401,16 @@ NEXUS_ModuleHandle NEXUS_Graphicsv3dModule_Init(
 
    pcEnv = NEXUS_GetEnv("V3D_NO_BURST_SPLITTING");
    openParams.bNoBurstSplitting = pcEnv != NULL ? (NEXUS_atoi(pcEnv) == 0 ? false : true) : openParams.bNoBurstSplitting;
+
+   /*
+    * These options must be the same EV names as those used by memory_drm.c
+    * in the nxpl library to initialize the client's DRM usage.
+    */
+   pcEnv = NEXUS_GetEnv("V3D_DRM_DISABLE");
+   openParams.bDoDRMClientTerm = pcEnv != NULL ? (NEXUS_atoi(pcEnv) != 0 ? false : true) : openParams.bDoDRMClientTerm;
+
+   pcEnv = NEXUS_GetEnv("V3D_DRM_DEVICE_NUM");
+   openParams.uiDRMDevice = pcEnv != NULL ? (uint32_t)NEXUS_atoi(pcEnv) : openParams.uiDRMDevice;
 
    callbacks.fpUsermodeHandler     = NEXUS_Graphicsv3d_P_UsermodeHandler;
    callbacks.fpCompletionHandler   = NEXUS_Graphicsv3d_P_CompletionHandler;
@@ -559,7 +571,7 @@ NEXUS_Graphicsv3dHandle NEXUS_Graphicsv3d_Create(
 
 
    /* Register this client with Magnum */
-   berr = BVC5_RegisterClient(g_NEXUS_Graphicsv3d_P_ModuleState.hVc5, gfx, &gfx->uiClientId);
+   berr = BVC5_RegisterClient(g_NEXUS_Graphicsv3d_P_ModuleState.hVc5, gfx, &gfx->uiClientId, pSettings->iUnsecureBinTranslation, pSettings->iSecureBinTranslation, pSettings->uiPlatformToken);
 
    if (berr != BERR_SUCCESS)
       goto exit;
@@ -892,6 +904,24 @@ NEXUS_Error NEXUS_Graphicsv3d_FenceMake(
    return berr ==  BERR_SUCCESS ? NEXUS_SUCCESS : NEXUS_UNKNOWN;
 }
 
+NEXUS_Error NEXUS_Graphicsv3d_FenceKeep(
+   NEXUS_Graphicsv3dHandle  hGfx,
+   int                      fence)
+{
+   BERR_Code   berr;
+
+   BSTD_UNUSED(hGfx);
+
+   BDBG_ENTER(NEXUS_Graphicsv3d_FenceKeep);
+   BDBG_MSG(("Keeping fence %d reference", fence));
+
+   berr = BVC5_FenceKeep(g_NEXUS_Graphicsv3d_P_ModuleState.hVc5, fence);
+
+   BDBG_LEAVE(NEXUS_Graphicsv3d_FenceKeep);
+
+   return berr ==  BERR_SUCCESS ? NEXUS_SUCCESS : NEXUS_UNKNOWN;
+}
+
 NEXUS_Error NEXUS_Graphicsv3d_RegisterFenceWait(
    NEXUS_Graphicsv3dHandle             hGfx,
    int                                 fence,
@@ -906,6 +936,7 @@ NEXUS_Error NEXUS_Graphicsv3d_RegisterFenceWait(
 
    /* Magnum will callback FenceHandler(handler) */
    err = BVC5_FenceRegisterWaitCallback(g_NEXUS_Graphicsv3d_P_ModuleState.hVc5, fence,
+                                        hGfx->uiClientId,
                                         NEXUS_Graphicsv3d_P_FenceHandler, hGfx, hEvent);
 
    BDBG_LEAVE(NEXUS_Graphicsv3d_RegisterFenceWait);
@@ -914,15 +945,18 @@ NEXUS_Error NEXUS_Graphicsv3d_RegisterFenceWait(
 }
 
 NEXUS_Error NEXUS_Graphicsv3d_UnregisterFenceWait(
-   NEXUS_Graphicsv3dHandle     hGfx,
-   int                         fence
+   NEXUS_Graphicsv3dHandle           hGfx,
+   int                               fence,
+   NEXUS_Graphicsv3dFenceEventHandle hEvent,
+   bool                              *signalled
    )
 {
-   BSTD_UNUSED(hGfx);
-
    BDBG_ENTER(NEXUS_Graphicsv3d_UnregisterFenceWait);
 
-   BVC5_FenceUnregisterWaitCallback(g_NEXUS_Graphicsv3d_P_ModuleState.hVc5, fence);
+   BVC5_FenceUnregisterWaitCallback(g_NEXUS_Graphicsv3d_P_ModuleState.hVc5, fence,
+                                    hGfx->uiClientId,
+                                    NEXUS_Graphicsv3d_P_FenceHandler, hGfx, hEvent,
+                                    signalled);
 
    BDBG_LEAVE(NEXUS_Graphicsv3d_UnregisterFenceWait);
 

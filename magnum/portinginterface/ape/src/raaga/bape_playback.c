@@ -1,22 +1,42 @@
 /***************************************************************************
- *     Copyright (c) 2006-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * Module Description: Audio Decoder Interface
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  ***************************************************************************/
 
 #include "bstd.h"
@@ -304,6 +324,12 @@ BERR_Code BAPE_Playback_Start(
         return BERR_TRACE(BERR_NOT_SUPPORTED);
     }
 
+    if ( hPlayback->suspended )
+    {
+        BDBG_ERR(("Playback %p (%d) is suspended.  Can't start.", (void *)hPlayback, hPlayback->index));
+        return BERR_TRACE(BERR_NOT_SUPPORTED);
+    }
+
     /* Sanity Checks */
     numBuffers = BAPE_FMT_P_GetNumChannelPairs_isrsafe(&hPlayback->node.connectors[0].format);
     if ( !pSettings->interleaved )
@@ -472,25 +498,169 @@ void BAPE_Playback_Stop(
 {
     BDBG_OBJECT_ASSERT(hPlayback, BAPE_Playback);
     
-    if ( !hPlayback->running )
+    if ( !hPlayback->running && !hPlayback->suspended)
     {
         BDBG_MSG(("Playback %p (%d) already stopped.", (void *)hPlayback, hPlayback->index));
         return;
     }
 
-    /* Stop Paths Downstream */
-    BAPE_PathNode_P_StopPaths(&hPlayback->node);
-    
-    /* Remove the interrupt handler */    
-    if ( hPlayback->pMaster && hPlayback->interrupts.watermark.pCallback_isr )
+    if (hPlayback->running)
     {
-        (void)BAPE_SfifoGroup_P_SetFreemarkInterrupt(hPlayback->pMaster->sfifoGroup, NULL, NULL, 0);
+        /* Stop Paths Downstream */
+        BAPE_PathNode_P_StopPaths(&hPlayback->node);
+
+        /* Remove the interrupt handler */
+        if ( hPlayback->pMaster && hPlayback->interrupts.watermark.pCallback_isr )
+        {
+            (void)BAPE_SfifoGroup_P_SetFreemarkInterrupt(hPlayback->pMaster->sfifoGroup, NULL, NULL, 0);
+        }
     }
 
     /* Clear the started flag and flush the buffer */
     hPlayback->running = false;
+    hPlayback->suspended = false;
     hPlayback->bufferDepth = 0;
     hPlayback->pMaster = NULL;
+}
+
+
+BERR_Code BAPE_Playback_Resume(
+    BAPE_PlaybackHandle hPlayback
+    )
+{
+    BAPE_PlaybackStartSettings startSettings;
+    BDBG_OBJECT_ASSERT(hPlayback, BAPE_Playback);
+
+    /* If we're already running, return error */
+    if ( hPlayback->running )
+    {
+        BDBG_ERR(("Playback %p (%d) is already running.  Can't resume.", (void *)hPlayback, hPlayback->index));
+        return BERR_TRACE(BERR_NOT_SUPPORTED);
+    }
+
+    if ( !hPlayback->suspended )
+    {
+        BDBG_ERR(("Playback %p (%d) is not suspended.  Can't resume.", (void *)hPlayback, hPlayback->index));
+        return BERR_TRACE(BERR_NOT_SUPPORTED);
+    }
+    BKNI_Memcpy(&startSettings, &hPlayback->startSettings, sizeof(BAPE_PlaybackStartSettings));
+    hPlayback->suspended = false;
+    return BAPE_Playback_Start(hPlayback, &startSettings);
+}
+
+void BAPE_Playback_Suspend(
+    BAPE_PlaybackHandle hPlayback
+    )
+{
+    BERR_Code errCode;
+    unsigned bufferDepth;
+    BDBG_OBJECT_ASSERT(hPlayback, BAPE_Playback);
+
+    BDBG_MSG(("Playback %p (%d) Suspend", (void *)hPlayback, hPlayback->index));
+    if ( !hPlayback->running )
+    {
+        BDBG_MSG(("Playback %p (%d) already stopped.", (void *)hPlayback, hPlayback->index));
+        return;
+    }
+    hPlayback->running = false;
+    hPlayback->suspending = true;
+    BKNI_EnterCriticalSection();
+    /* Start */
+    BAPE_SfifoGroup_P_Halt_isr(hPlayback->pMaster->sfifoGroup);
+    BKNI_LeaveCriticalSection();
+
+    errCode = BAPE_SfifoGroup_P_GetQueuedBytes(hPlayback->pMaster->sfifoGroup, &bufferDepth);
+    if ( errCode )
+    {
+        BDBG_ERR(("Unable to suspend, stopping playback"));
+        BAPE_Playback_Stop(hPlayback);
+        hPlayback->suspending = false;
+        return;
+    }
+    hPlayback->bufferDepth = bufferDepth;
+    if ( bufferDepth > 0 )
+    {
+        uint32_t baseAddr, rdAddr, length;
+        unsigned chPairs, i;
+        void *pBuffer, *pSrcCached, *pDstCached;
+        unsigned preWrap;
+        unsigned postWrap;
+        BAPE_SfifoGroupSettings sfifoSettings;
+
+        BAPE_SfifoGroup_P_GetSettings(hPlayback->pMaster->sfifoGroup, &sfifoSettings);
+        length = hPlayback->bufferSize;
+        pBuffer = BMEM_AllocAligned(hPlayback->hHeap, length, 5, 0);
+        if ( NULL == pBuffer )
+        {
+            BDBG_ERR(("Unable to suspend, stopping playback"));
+            BAPE_Playback_Stop(hPlayback);
+            hPlayback->suspending = false;
+            return;
+        }
+        BMEM_ConvertAddressToCached(hPlayback->hHeap, pBuffer, &pDstCached);
+
+        /* copy the data*/
+        chPairs = BAPE_FMT_P_GetNumChannelPairs_isrsafe(&hPlayback->node.connectors[0].format);
+        /* Setup Buffers */
+        for ( i = 0; i < chPairs; i++)
+        {
+            baseAddr = sfifoSettings.bufferInfo[i*2].base;
+            BAPE_SfifoGroup_P_GetReadAddress(hPlayback->pMaster->sfifoGroup, i*2, 0, &rdAddr);
+
+            BMEM_ConvertAddressToCached(hPlayback->hHeap, hPlayback->pBuffer[i*2], &pSrcCached);
+
+            if (rdAddr+bufferDepth <= baseAddr+length) /* there is no wrap */
+            {
+                BKNI_Memcpy(pDstCached, (uint8_t*)pSrcCached+(rdAddr-baseAddr), bufferDepth);
+            }
+            else /* there is wrap */
+            {
+                preWrap = baseAddr + length - rdAddr;
+                postWrap = bufferDepth - preWrap;
+
+                BKNI_Memcpy(pDstCached, (uint8_t*)pSrcCached+(rdAddr-baseAddr), preWrap);
+                BKNI_Memcpy((uint8_t*)pDstCached+preWrap, pSrcCached, postWrap);
+            }
+            BKNI_Memcpy(pSrcCached, pDstCached, bufferDepth);
+            BMEM_Heap_FlushCache(hPlayback->hHeap, pSrcCached, bufferDepth);
+
+            if (!sfifoSettings.interleaveData)
+            {
+                baseAddr = sfifoSettings.bufferInfo[i*2+1].base;
+                BAPE_SfifoGroup_P_GetReadAddress(hPlayback->pMaster->sfifoGroup, i*2, 1, &rdAddr);
+
+                BMEM_ConvertAddressToCached(hPlayback->hHeap, hPlayback->pBuffer[i*2+1], &pSrcCached);
+
+                if (rdAddr+bufferDepth <= baseAddr+length) /* there is no wrap */
+                {
+                    BKNI_Memcpy(pDstCached, (uint8_t*)pSrcCached+(rdAddr-baseAddr), bufferDepth);
+                }
+                else /* there is wrap */
+                {
+                    preWrap = baseAddr + length - rdAddr;
+                    postWrap = bufferDepth - preWrap;
+
+                    BKNI_Memcpy(pDstCached, (uint8_t*)pSrcCached+(rdAddr-baseAddr), preWrap);
+                    BKNI_Memcpy((uint8_t*)pDstCached+preWrap, pSrcCached, postWrap);
+                }
+                BKNI_Memcpy(pSrcCached, pDstCached, bufferDepth);
+                BMEM_Heap_FlushCache(hPlayback->hHeap, pSrcCached, bufferDepth);
+            }
+        }
+        BMEM_Free(hPlayback->hHeap, pBuffer);
+    }
+
+    /* Stop Paths Downstream */
+    BAPE_PathNode_P_StopPaths(&hPlayback->node);
+
+    /* Remove the interrupt handler */
+    if ( hPlayback->interrupts.watermark.pCallback_isr )
+    {
+        (void)BAPE_SfifoGroup_P_SetFreemarkInterrupt(hPlayback->pMaster->sfifoGroup, NULL, NULL, 0);
+    }
+    hPlayback->suspended = true;
+    hPlayback->pMaster = NULL;
+    hPlayback->suspending = false;
 }
 
 void BAPE_Playback_Flush(
@@ -523,7 +693,7 @@ BERR_Code BAPE_Playback_GetBuffer(
 
     BKNI_Memset(pBuffers, 0, sizeof(BAPE_BufferDescriptor));
     
-    if ( hPlayback->running && !hPlayback->startSettings.loopEnabled )
+    if ( (hPlayback->running) && !hPlayback->startSettings.loopEnabled )
     {
         BDBG_ASSERT(NULL != hPlayback->pMaster);
         BAPE_SfifoGroup_P_GetBuffer(hPlayback->pMaster->sfifoGroup, pBuffers);
@@ -534,23 +704,25 @@ BERR_Code BAPE_Playback_GetBuffer(
         numChannelPairs = BAPE_FMT_P_GetNumChannelPairs_isrsafe(&hPlayback->node.connectors[0].format);
         pBuffers->numBuffers = 2*numChannelPairs;
         pBuffers->interleaved = hPlayback->startSettings.interleaved;
-        pBuffers->bufferSize = hPlayback->bufferSize - hPlayback->bufferDepth;
-
-        if ( pBuffers->bufferSize )
+        if ( !hPlayback->suspending ) /* As long as we aren't in the middle of suspending */
         {
-            if ( pBuffers->interleaved ) 
+            pBuffers->bufferSize = hPlayback->bufferSize - hPlayback->bufferDepth;
+            if ( pBuffers->bufferSize )
             {
-                for ( i = 0; i < numChannelPairs; i++) 
+                if ( pBuffers->interleaved )
                 {
-                    pBuffers->buffers[i*2].pBuffer = (void *)((unsigned long)hPlayback->pBuffer[i] + hPlayback->bufferDepth);
+                    for ( i = 0; i < numChannelPairs; i++)
+                    {
+                        pBuffers->buffers[i*2].pBuffer = (void *)((unsigned long)hPlayback->pBuffer[i] + hPlayback->bufferDepth);
+                    }
                 }
-            }
-            else
-            {
-                for ( i = 0; i < numChannelPairs; i++) 
+                else
                 {
-                    pBuffers->buffers[i*2].pBuffer = (void *)((unsigned long)hPlayback->pBuffer[i] + hPlayback->bufferDepth);
-                    pBuffers->buffers[i*2 + 1].pBuffer = (void *)((unsigned long)hPlayback->pBuffer[i] + hPlayback->bufferDepth);
+                    for ( i = 0; i < numChannelPairs; i++)
+                    {
+                        pBuffers->buffers[i*2].pBuffer = (void *)((unsigned long)hPlayback->pBuffer[i] + hPlayback->bufferDepth);
+                        pBuffers->buffers[i*2 + 1].pBuffer = (void *)((unsigned long)hPlayback->pBuffer[i] + hPlayback->bufferDepth);
+                    }
                 }
             }
         }
@@ -572,8 +744,11 @@ BERR_Code BAPE_Playback_CommitData(
     BERR_Code errCode;
 
     BDBG_OBJECT_ASSERT(hPlayback, BAPE_Playback);
-    
-    if ( hPlayback->running )
+
+    BDBG_MSG(("Playback %p (%d) CommitData", (void *)hPlayback, hPlayback->index));
+
+    /* todo what should happen if we are suspending? */
+    if (hPlayback->running)
     {
         BDBG_ASSERT(NULL != hPlayback->pMaster);
         errCode = BAPE_SfifoGroup_P_CommitData(hPlayback->pMaster->sfifoGroup, numBytes);
@@ -610,11 +785,13 @@ void BAPE_Playback_GetStatus(
     BDBG_OBJECT_ASSERT(hPlayback, BAPE_Playback);
     BDBG_ASSERT(NULL != pStatus);
     
+
     BKNI_Memset(pStatus, 0, sizeof(*pStatus));
     pStatus->fifoSize = hPlayback->bufferSize;
     
     if ( !hPlayback->running )
     {
+        pStatus->queuedBytes = hPlayback->bufferDepth;
         return;
     }
     
@@ -860,4 +1037,3 @@ static void BAPE_Playback_P_StopPathToOutput(BAPE_PathNode *pNode, BAPE_PathConn
     /* Stop master last */
     BAPE_SfifoGroup_P_Stop(hPlayback->pMaster->sfifoGroup);
 }
-

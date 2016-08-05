@@ -59,7 +59,163 @@
 
 BDBG_MODULE(nexus_platform_frontend);
 
-#if (NEXUS_USE_7445_VMS_SFF && NEXUS_HAS_GPIO) || (NEXUS_USE_7445_SV && BCHP_VER >= BCHP_VER_D0)
+#if NEXUS_USE_7445_EXT24
+#include "nexus_gpio.h"
+
+#define NEXUS_PLATFORM_NUM_FRONTEND_INTERRUPTS 2
+
+static NEXUS_GpioHandle gpioHandleInt[NEXUS_PLATFORM_NUM_FRONTEND_INTERRUPTS] = {NULL};
+
+NEXUS_Error NEXUS_Platform_InitFrontend(void)
+{
+    NEXUS_PlatformConfiguration *pConfig = &g_NEXUS_platformHandles.config;
+    NEXUS_FrontendDeviceHandle device;
+    unsigned i=0;
+    unsigned offset = 0;
+    NEXUS_FrontendDeviceOpenSettings deviceSettings;
+    NEXUS_GpioSettings gpioSettings;
+    NEXUS_FrontendProbeResults probeResults;
+    unsigned intGpio = 0;
+
+    /* open first frontend */
+    NEXUS_FrontendDevice_GetDefaultOpenSettings(&deviceSettings);
+    deviceSettings.i2cDevice = pConfig->i2c[4];
+    deviceSettings.i2cAddress = 0x68;
+
+    NEXUS_FrontendDevice_Probe(&deviceSettings, &probeResults);
+    if (probeResults.chip.familyId != 0) {
+        BDBG_MSG(("Opening %x...", probeResults.chip.familyId));
+
+        intGpio = 46;
+        BDBG_MSG(("Setting up interrupt on GPIO %d", intGpio));
+        NEXUS_Gpio_GetDefaultSettings(NEXUS_GpioType_eStandard, &gpioSettings);
+        gpioSettings.mode = NEXUS_GpioMode_eInput;
+        gpioSettings.interruptMode = NEXUS_GpioInterrupt_eLow;
+        gpioHandleInt[0] = NEXUS_Gpio_Open(NEXUS_GpioType_eStandard, intGpio, &gpioSettings);
+        BDBG_ASSERT(NULL != gpioHandleInt[0]);
+
+        deviceSettings.gpioInterrupt = gpioHandleInt[0];
+
+        device = NEXUS_FrontendDevice_Open(0, &deviceSettings);
+
+        if (device) {
+            NEXUS_FrontendDeviceCapabilities capabilities;
+
+            NEXUS_FrontendDevice_GetCapabilities(device, &capabilities);
+            BDBG_MSG(("Opening %d %x frontends",capabilities.numTuners,probeResults.chip.familyId));
+            for (i=0; i < capabilities.numTuners ; i++)
+            {
+                NEXUS_FrontendChannelSettings channelSettings;
+                channelSettings.device = device;
+                channelSettings.channelNumber = i;
+                channelSettings.type = NEXUS_FrontendChannelType_eSatellite;
+                pConfig->frontend[i] = NEXUS_Frontend_Open(&channelSettings);
+                if ( NULL == (pConfig->frontend[i]) )
+                {
+                    BDBG_ERR(("Unable to open %x demod %d (as frontend[%d])",probeResults.chip.familyId,i,i));
+                    continue;
+                }
+                BDBG_MSG(("%xfe: %d(%d):%p",probeResults.chip.familyId,i,i,(void *)pConfig->frontend[i]));
+            }
+            offset = i;
+        } else {
+            BDBG_ERR(("Unable to open detected %x frontend", probeResults.chip.familyId));
+        }
+    }
+
+    /* open second frontend */
+    NEXUS_FrontendDevice_GetDefaultOpenSettings(&deviceSettings);
+    deviceSettings.i2cDevice = pConfig->i2c[4];
+    deviceSettings.i2cAddress = 0x69;
+
+    NEXUS_FrontendDevice_Probe(&deviceSettings, &probeResults);
+    if (probeResults.chip.familyId != 0) {
+        BDBG_MSG(("Opening %x...", probeResults.chip.familyId));
+
+        intGpio = 48;
+        BDBG_MSG(("Setting up interrupt on GPIO %d", intGpio));
+        NEXUS_Gpio_GetDefaultSettings(NEXUS_GpioType_eStandard, &gpioSettings);
+        gpioSettings.mode = NEXUS_GpioMode_eInput;
+        gpioSettings.interruptMode = NEXUS_GpioInterrupt_eLow;
+        gpioHandleInt[1] = NEXUS_Gpio_Open(NEXUS_GpioType_eStandard, intGpio, &gpioSettings);
+        BDBG_ASSERT(NULL != gpioHandleInt[1]);
+
+        deviceSettings.gpioInterrupt = gpioHandleInt[1];
+
+        device = NEXUS_FrontendDevice_Open(0, &deviceSettings);
+
+        if (device) {
+            NEXUS_FrontendDeviceCapabilities capabilities;
+
+            NEXUS_FrontendDevice_GetCapabilities(device, &capabilities);
+            BDBG_MSG(("Opening %d %x frontends",capabilities.numTuners,probeResults.chip.familyId));
+            for (i=0; i < capabilities.numTuners ; i++)
+            {
+                NEXUS_FrontendChannelSettings channelSettings;
+                channelSettings.device = device;
+                channelSettings.channelNumber = i;
+                channelSettings.type = NEXUS_FrontendChannelType_eSatellite;
+                pConfig->frontend[i+offset] = NEXUS_Frontend_Open(&channelSettings);
+                if ( NULL == (pConfig->frontend[i+offset]) )
+                {
+                    BDBG_ERR(("Unable to open %x demod %d (as frontend[%d])",probeResults.chip.familyId,i,i+offset));
+                    continue;
+                }
+                BDBG_MSG(("%xfe: %d(%d):%p",probeResults.chip.familyId,i,i,(void *)pConfig->frontend[i+offset]));
+            }
+        } else {
+            BDBG_ERR(("Unable to open detected %x frontend", probeResults.chip.familyId));
+        }
+    }
+
+    return BERR_SUCCESS;
+}
+
+void NEXUS_Platform_UninitFrontend(void)
+{
+    NEXUS_PlatformConfiguration *pConfig = &g_NEXUS_platformHandles.config;
+    unsigned i=0, j=0;
+    NEXUS_FrontendDeviceHandle tempHandle, deviceHandles[NEXUS_MAX_FRONTENDS];
+    bool handleFound = false;
+
+    BKNI_Memset(deviceHandles, 0, sizeof(deviceHandles));
+
+    for (i=0; i<NEXUS_MAX_FRONTENDS; i++)
+    {
+        handleFound = false;
+        if (pConfig->frontend[i]) {
+            tempHandle = NEXUS_Frontend_GetDevice(pConfig->frontend[i]);
+            if(tempHandle != NULL){
+                for( j = 0; j<i; j++){
+                    if(tempHandle == deviceHandles[j])
+                        handleFound = true;
+                }
+                if(!handleFound)
+                    deviceHandles[j] = tempHandle;
+            }
+            NEXUS_Frontend_Close(pConfig->frontend[i]);
+            pConfig->frontend[i] = NULL;
+        }
+    }
+
+    for (i=0; i<NEXUS_MAX_FRONTENDS; i++)
+    {
+        if (deviceHandles[i])
+        {
+            NEXUS_FrontendDevice_Close(deviceHandles[i]);
+            deviceHandles[i] = NULL;
+        }
+    }
+
+    for (i=0; i<NEXUS_PLATFORM_NUM_FRONTEND_INTERRUPTS; i++) {
+        if(gpioHandleInt[i])
+        {
+            NEXUS_Gpio_Close(gpioHandleInt[i]);
+            gpioHandleInt[i] = NULL;
+        }
+    }
+}
+#elif (NEXUS_USE_7445_VMS_SFF && NEXUS_HAS_GPIO) || (NEXUS_USE_7445_SV && BCHP_VER >= BCHP_VER_D0)
 #if NEXUS_HAS_GPIO
 static NEXUS_GpioHandle gpioHandle = NULL;
 #endif
@@ -236,9 +392,10 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
 
     tunerGpioSettings.mode = NEXUS_GpioMode_eInput;
     tunerGpioSettings.interruptMode = NEXUS_GpioInterrupt_eLow;
-#if NEXUS_USE_7445_C
+#if NEXUS_USE_7445_C && (BCHP_VER < BCHP_VER_D0)
+    /* 7445_C V00 board IRQ is on 109. V10 and later (D0 and up) is on 104, same as 7445_AUTO */
     gpioHandle = NEXUS_Gpio_Open(NEXUS_GpioType_eStandard,109, &tunerGpioSettings);
-#elif NEXUS_USE_7445_AUTO
+#else /* NEXUS_USE_7445_AUTO || (NEXUS_USE_7445_C && (BCHP_VER >= BCHP_VER_D0)) */
     gpioHandle = NEXUS_Gpio_Open(NEXUS_GpioType_eStandard,104, &tunerGpioSettings);
 #endif
     if (NULL == gpioHandle)

@@ -65,6 +65,7 @@ typedef struct _ZbProNwkRouteDiscoveryDescr_t
 {
     SYS_QueueDescriptor_t reqQueue;
     SYS_QueueDescriptor_t repeatedQueue;
+    SYS_QueueDescriptor_t delayedQueue;
 } ZbProNwkRouteDiscoveryDescr_t;
 
 /************************* PROTOTYPES **************************************************/
@@ -72,16 +73,6 @@ typedef struct _ZbProNwkRouteDiscoveryDescr_t
   \brief Route Discovery task handler.
  ****************************************************************************************/
 NWK_PRIVATE void zbProNwkRouteDiscoveryTaskHandler(SYS_SchedulerTaskDescriptor_t *const taskDescriptor);
-
-/************************************************************************************//**
-  \brief Raises a confirm with specified parameters.
-  \param[in] reqDescr - pointer to the request descriptor.
-  \param[in] status - result status.
-  \param[in] networkStatus - result network status.
- ****************************************************************************************/
-NWK_PRIVATE void zbProNwkRaiseRouteDiscoveryConfirm(ZBPRO_NWK_RouteDiscoveryReqDescr_t *const reqDescr,
-                                                    const ZBPRO_NWK_Status_t status,
-                                                    const ZBPRO_NWK_NetworkStatusCode_t networkStatus);
 
 /************************************************************************************//**
   \brief Route Discovery reset routine

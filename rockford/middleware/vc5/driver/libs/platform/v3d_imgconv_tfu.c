@@ -32,10 +32,11 @@ static size_t imgconv_base_align(const struct v3d_imgconv_base_tgt * base)
 static void fill_yv12_conv_dst_desc(GFX_BUFFER_DESC_T *dst_desc,
                                     const GFX_BUFFER_DESC_T *src_desc)
 {
+   /* YV12 is provided by Android and BSG as YCrCb/YVU */
    assert(src_desc->num_planes == 3);
    assert(src_desc->planes[0].lfmt == GFX_LFMT_Y8_UNORM_2D_RSO);
-   assert(src_desc->planes[1].lfmt == GFX_LFMT_U8_2X2_UNORM_2D_RSO);
-   assert(src_desc->planes[2].lfmt == GFX_LFMT_V8_2X2_UNORM_2D_RSO);
+   assert(src_desc->planes[1].lfmt == GFX_LFMT_V8_2X2_UNORM_2D_RSO);
+   assert(src_desc->planes[2].lfmt == GFX_LFMT_U8_2X2_UNORM_2D_RSO);
 
    dst_desc->width = src_desc->width;
    dst_desc->height = src_desc->height;
@@ -70,8 +71,7 @@ static bool claim_conversion(
          depth <= src->desc.depth);
 
    V3D_TFU_COMMAND_T tfu_cmd;
-   if (!v3d_build_tfu_cmd(&tfu_cmd, &src->desc, &dst->desc, 1, false, 0, 0,
-                          v3d_scheduler_get_v3d_ver()))
+   if (!v3d_build_tfu_cmd(&tfu_cmd, &src->desc, &dst->desc, 1, false, 0, 0))
       return false;
 
    return true;
@@ -110,20 +110,17 @@ static bool claim_yv12_conversion(
       unsigned int width, unsigned int height,
       unsigned int depth, const security_info_t *sec_info)
 {
+
+#if V3D_VER_AT_LEAST(3,3,0,0)
+   /* This code is only required for 3.2 or older h/w */
+   /* The TFU should do the conversion for HW >= 3.3  */
+   return false;
+#else
    if (!v3d_imgconv_valid_hw_sec_info(sec_info))
       return false;
 
    if (sec_info->secure_context && sec_info->secure_src)
       return false;
-
-   /* The path for new hardware has not been implemented yet
-    * so we are using the path for older HW for the moment.
-    * TODO: implementing the path for v3.3
-    */
-   /* if (v3d_scheduler_get_v3d_ver() >= V3D_MAKE_VER(3,3,0,0))
-      This code is only required for 3.2 or older h/w
-      return false;
-   */
 
    /* only from/to origin */
    if (dst->x != 0 || dst->y != 0 || dst->z != 0 ||
@@ -144,15 +141,14 @@ static bool claim_yv12_conversion(
    {
       /* Can only convert from YV12 */
       if (src->desc.planes[0].lfmt == GFX_LFMT_Y8_UNORM_2D_RSO &&
-          src->desc.planes[1].lfmt == GFX_LFMT_U8_2X2_UNORM_2D_RSO &&
-          src->desc.planes[2].lfmt == GFX_LFMT_V8_2X2_UNORM_2D_RSO)
+          src->desc.planes[1].lfmt == GFX_LFMT_V8_2X2_UNORM_2D_RSO &&
+          src->desc.planes[2].lfmt == GFX_LFMT_U8_2X2_UNORM_2D_RSO)
       {
          GFX_BUFFER_DESC_T tmp_desc;
          fill_yv12_conv_dst_desc(&tmp_desc, &src->desc);
 
          V3D_TFU_COMMAND_T tfu_cmd;
-         if (!v3d_build_tfu_cmd(&tfu_cmd, &tmp_desc, &dst->desc, 1, false, 0, 0,
-                                v3d_scheduler_get_v3d_ver()))
+         if (!v3d_build_tfu_cmd(&tfu_cmd, &tmp_desc, &dst->desc, 1, false, 0, 0))
             return false;
 
          return true;
@@ -160,6 +156,7 @@ static bool claim_yv12_conversion(
    }
 
    return false;
+#endif
 }
 
 static bool convert_async(
@@ -174,8 +171,8 @@ static bool convert_async(
    if (!completion_data)
       return false;
 
-   v3d_addr_t src_addr = gmem_lock(&completion_data->lock_list, src->handle);
-   v3d_addr_t dst_addr = gmem_lock(&completion_data->lock_list, dst->handle);
+   v3d_addr_t src_addr = gmem_lock(&completion_data->lock_list, src->handle) + src->offset;
+   v3d_addr_t dst_addr = gmem_lock(&completion_data->lock_list, dst->handle) + dst->offset;
    if (gmem_lock_list_is_bad(&completion_data->lock_list))
    {
       v3d_lock_sync_destroy(completion_data);
@@ -187,22 +184,23 @@ static bool convert_async(
 
    V3D_TFU_COMMAND_T tfu_cmd;
    bool ok = v3d_build_tfu_cmd(&tfu_cmd, &src->base.desc, &dst->base.desc, 1,
-         false, src_addr + src_off, dst_addr + dst_off,
-         v3d_scheduler_get_v3d_ver());
+         false, src_addr + src_off, dst_addr + dst_off);
    assert(ok);
 
    for  (unsigned p = 0; p < src->base.desc.num_planes; p++)
    {
       size_t src_plane_off = src_off + src->base.desc.planes[p].offset;
-      /* we sync the whole plane, thought the addreess could be inside this
+      /* we sync the whole plane, though the address could be inside this
        * plane */
       gmem_v3d_sync_list_add_range(&completion_data->sync_list, src->handle,
-            src_plane_off, src->base.plane_sizes[p], GMEM_SYNC_TFU_READ | GMEM_SYNC_RELAXED);
+            src->offset + src_plane_off, src->base.plane_sizes[p],
+            GMEM_SYNC_TFU_READ | GMEM_SYNC_RELAXED);
    }
 
    size_t dst_plane_off = dst_off + dst->base.desc.planes[0].offset;
    gmem_v3d_sync_list_add_range(&completion_data->sync_list, dst->handle,
-      dst_plane_off, dst->base.plane_sizes[0], GMEM_SYNC_TFU_WRITE | GMEM_SYNC_RELAXED);
+         dst->offset + dst_plane_off, dst->base.plane_sizes[0],
+         GMEM_SYNC_TFU_WRITE | GMEM_SYNC_RELAXED);
 
    // This path is only claimed if dst is secure in secure context and
    // in unsecure context a secure dst is not allowed.
@@ -238,6 +236,7 @@ static bool create_scratch_src_copy(struct v3d_imgconv_gmem_tgt *dst,
    dst->handle = gmem_alloc(*copy_size, dst_align,
                             GMEM_USAGE_CPU_WRITE | GMEM_USAGE_V3D_READ | GMEM_USAGE_HINT_DYNAMIC,
                             "imgconv_scratch");
+   dst->offset = 0;
 
    return dst->handle != GMEM_HANDLE_INVALID;
 }
@@ -256,6 +255,7 @@ static bool create_yv12_scratch(struct v3d_imgconv_gmem_tgt *dst,
    dst->handle = gmem_alloc(v3d_imgconv_base_size(&dst->base), imgconv_base_align(&dst->base),
                             GMEM_USAGE_CPU_WRITE | GMEM_USAGE_V3D_READ | GMEM_USAGE_HINT_DYNAMIC,
                             "imgconv_yv12_scratch");
+   dst->offset = 0;
 
    return dst->handle != GMEM_HANDLE_INVALID;
 }
@@ -269,7 +269,7 @@ static void free_prep_buffer(void *data, uint64_t jobId, enum bcm_sched_job_erro
       gmem_free(scratch);
 }
 
-bool prep_conv_memcpy(
+static bool prep_conv_memcpy(
    struct v3d_imgconv_gmem_tgt *dst,
    const struct v3d_imgconv_base_tgt *src, void *src_data,
    unsigned int width, unsigned int height, unsigned int depth,
@@ -326,6 +326,10 @@ end:
    return ok;
 }
 
+/* This function takes a YCrCb 3 planes buffer  */
+/* into a YCbCr 2 plane buffer (Note the change */
+/* between CrCb and CbCr)                       */
+/* Both Android and BSG provide YCrCb buffers   */
 static void yv12_to_YCbCr(
    struct v3d_imgconv_base_tgt *dst, void *dst_data,
    const struct v3d_imgconv_base_tgt *src, void *src_data,

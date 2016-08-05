@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -318,8 +318,7 @@ NEXUS_RaveHandle NEXUS_Rave_Open_priv(const NEXUS_RaveOpenSettings *pSettings)
         BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
         return NULL;
     }
-    BKNI_Memset(rave, 0, sizeof(*rave));
-    BDBG_OBJECT_SET(rave, NEXUS_Rave);
+    NEXUS_OBJECT_INIT(NEXUS_Rave, rave);
     pTransport->rave[0].context[i] = rave;
     rave->array_index = i;
     rave->pidChannel = NULL;
@@ -450,9 +449,9 @@ error:
     return NULL;
 }
 
-void NEXUS_Rave_Close_priv(NEXUS_RaveHandle rave)
+static void NEXUS_Rave_P_Finalizer(NEXUS_RaveHandle rave)
 {
-    BDBG_OBJECT_ASSERT(rave, NEXUS_Rave);
+    NEXUS_OBJECT_ASSERT(NEXUS_Rave, rave);
     NEXUS_ASSERT_MODULE();
 
     if (rave->raveHandle) {
@@ -528,9 +527,11 @@ void NEXUS_Rave_Close_priv(NEXUS_RaveHandle rave)
 #endif
 
     pTransport->rave[0].context[rave->array_index] = NULL;
-    BDBG_OBJECT_DESTROY(rave, NEXUS_Rave);
+    NEXUS_OBJECT_DESTROY(NEXUS_Rave, rave);
     BKNI_Free(rave);
 }
+
+NEXUS_OBJECT_CLASS_MAKE(NEXUS_Rave, NEXUS_Rave_Close_priv);
 
 void NEXUS_Rave_GetDefaultSettings_priv(NEXUS_RaveSettings *pSettings)
 {
@@ -622,6 +623,7 @@ NEXUS_Error NEXUS_Rave_ConfigureVideo_priv(NEXUS_RaveHandle rave,
 #if NEXUS_RAVE_INPUT_CAPTURE_ENABLED
     NEXUS_Rave_P_CreateTransportClientCapture(rave, pSettings);
 #endif
+    rave->numOutputBytes = 0;
 
     if(hwPidChannel==NULL) {
         if(pSettings->pidChannel==NULL) {
@@ -722,11 +724,7 @@ NEXUS_Error NEXUS_Rave_ConfigureVideo_priv(NEXUS_RaveHandle rave,
         AvCtxCfg.StreamIdLo = 0xE0;
         AvCtxCfg.EsRanges[0].RangeHi = 0xAF; /* MPEG slices */
         AvCtxCfg.EsRanges[0].RangeLo = 0x01;
-#if BCHP_CHIP == 7271 || BCHP_CHIP == 7268
-        AvCtxCfg.EsRanges[0].RangeIsASlice = false;
-#else
-        AvCtxCfg.EsRanges[0].RangeIsASlice = true;
-#endif
+        AvCtxCfg.EsRanges[0].RangeIsASlice = !pSettings->includeRepeatedItbStartCodes;
         AvCtxCfg.EsRanges[0].Enable = true;
         AvCtxCfg.EsRanges[1].RangeHi = 0xBF; /* start of frame */
         AvCtxCfg.EsRanges[1].RangeLo = 0xB0;
@@ -920,6 +918,7 @@ NEXUS_Error NEXUS_Rave_ConfigureAudio_priv(
 #if NEXUS_RAVE_INPUT_CAPTURE_ENABLED
     NEXUS_Rave_P_CreateTransportClientCapture(rave, pSettings);
 #endif
+    rave->numOutputBytes = 0;
 
     if(hwPidChannel==NULL) {
         if(pSettings->pidChannel==NULL) {
@@ -1174,6 +1173,7 @@ NEXUS_Error NEXUS_Rave_ConfigureAll_priv(NEXUS_RaveHandle rave, const NEXUS_Rave
 #if NEXUS_RAVE_INPUT_CAPTURE_ENABLED
     NEXUS_Rave_P_CreateTransportClientCapture(rave, pSettings);
 #endif
+    rave->numOutputBytes = 0;
 
     if(hwPidChannel==NULL) {
         if(pSettings->pidChannel==NULL) {
@@ -1260,6 +1260,7 @@ void NEXUS_Rave_Enable_priv(NEXUS_RaveHandle rave)
     rc = BXPT_Rave_EnableContext(rave->raveHandle);
     if(rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc);}
 
+    rave->readItbEvents.DataPtr = NULL;
     rave->enabled = true;
 }
 
@@ -1421,60 +1422,45 @@ void NEXUS_Rave_GetItbBufferInfo(NEXUS_RaveHandle rave, unsigned *depth, unsigne
     return;
 }
 
-static BERR_Code NEXUS_Rave_P_ConvertPointer(uint8_t **ptr)
-{
-    /* do nothing, ptr is already cached */
-    BSTD_UNUSED(ptr);
-    return NEXUS_SUCCESS;
-}
-
-/* get BXPT_Rave_ContextPtrs and convert Itb.DataPtr to cached. caller must flush. */
-static BERR_Code get_itb_context(BXPT_RaveCx_Handle rave, BXPT_Rave_ContextPtrs *pCtxPtrs)
+static BERR_Code get_itb_context(NEXUS_RaveHandle rave, BXPT_Rave_ContextPtrs *pCtxPtrs)
 {
     BERR_Code rc;
+    BXPT_RaveCx_Handle raveCtx;
 
-    rc = BXPT_Rave_CheckBuffer(rave, pCtxPtrs);
+#if NEXUS_SW_RAVE_SUPPORT
+    if (rave->swRave.raveHandle && rave->swRave.enabled) {
+        raveCtx = rave->swRave.raveHandle;
+    }
+    else
+#endif
+    {
+        raveCtx = rave->raveHandle;
+    }
+
+
+    rc = BXPT_Rave_CheckBuffer(raveCtx, pCtxPtrs);
     if (rc) return BERR_TRACE(rc);
 
-    rc = NEXUS_Rave_P_ConvertPointer(&pCtxPtrs->Itb.DataPtr);
-    if(rc!=NEXUS_SUCCESS) {return BERR_TRACE(rc);}
-
+    /* check for an empty or reset buffer. super large ByteCount can happen because of reset */
+    if ( !pCtxPtrs->Cdb.DataPtr || pCtxPtrs->Cdb.ByteCount > 0x1000000) {
+        return NEXUS_NOT_AVAILABLE; /* no BERR_TRACE */
+    }
+    if ( !pCtxPtrs->Itb.DataPtr || pCtxPtrs->Itb.ByteCount < NEXUS_RAVE_P_ITB_SIZE || pCtxPtrs->Itb.ByteCount > 0x1000000) {
+        return NEXUS_NOT_AVAILABLE; /* no BERR_TRACE */
+    }
     return NEXUS_SUCCESS;
 }
 
 #if NEXUS_NUM_SOFT_VIDEO_DECODERS
 NEXUS_Error NEXUS_Rave_CheckBuffer_priv(NEXUS_RaveHandle rave, struct BXPT_Rave_ContextPtrs *pCtxPtrs)
 {
-    BXPT_RaveCx_Handle raveHandle;
     BERR_Code rc;
 
     BDBG_OBJECT_ASSERT(rave, NEXUS_Rave);
     NEXUS_ASSERT_MODULE();
 
-    raveHandle = rave->raveHandle;
-#if NEXUS_SW_RAVE_SUPPORT
-    if (rave->swRave.enabled) {
-        raveHandle = rave->swRave.raveHandle;
-    }
-#endif
-    if(raveHandle==NULL) {
-        return BERR_TRACE(NEXUS_NOT_SUPPORTED);
-    }
-    rc = get_itb_context(rave->raveHandle, pCtxPtrs );
+    rc = get_itb_context(rave, pCtxPtrs );
     if (rc!=BERR_SUCCESS) {return BERR_TRACE(rc); }
-
-    if ( !pCtxPtrs->Itb.DataPtr || pCtxPtrs->Itb.ByteCount < NEXUS_RAVE_P_ITB_SIZE || pCtxPtrs->Itb.ByteCount > 0x1000000) {
-        return NEXUS_NOT_AVAILABLE;
-    }
-    if ( !pCtxPtrs->Cdb.DataPtr || pCtxPtrs->Cdb.ByteCount > 0x1000000) {
-        return NEXUS_NOT_AVAILABLE;
-    }
-    rc = NEXUS_Rave_P_ConvertPointer(&pCtxPtrs->Itb.WrapDataPtr);
-    if(rc!=NEXUS_SUCCESS) {return BERR_TRACE(rc);}
-    rc = NEXUS_Rave_P_ConvertPointer(&pCtxPtrs->Cdb.DataPtr);
-    if(rc!=NEXUS_SUCCESS) {return BERR_TRACE(rc);}
-    rc = NEXUS_Rave_P_ConvertPointer(&pCtxPtrs->Cdb.WrapDataPtr);
-    if(rc!=NEXUS_SUCCESS) {return BERR_TRACE(rc);}
 
     return NEXUS_SUCCESS;
 }
@@ -1507,27 +1493,13 @@ NEXUS_Error NEXUS_Rave_UpdateReadOffset_priv(NEXUS_RaveHandle rave, size_t CdbBy
 NEXUS_Error NEXUS_Rave_ScanItb_priv(NEXUS_RaveHandle rave, bool (*one_itb)(void *, const NEXUS_Rave_P_ItbEntry *), void *context)
 {
     BXPT_Rave_ContextPtrs CtxPtrs;
-    BXPT_RaveCx_Handle raveHandle;
     BERR_Code rc;
 
     BDBG_OBJECT_ASSERT(rave, NEXUS_Rave);
     NEXUS_ASSERT_MODULE();
 
-    raveHandle = rave->raveHandle;
-#if NEXUS_SW_RAVE_SUPPORT
-    if (rave->swRave.enabled) {
-        raveHandle = rave->swRave.raveHandle;
-    }
-#endif
-    if(raveHandle==NULL) {
-        return BERR_TRACE(NEXUS_NOT_SUPPORTED);
-    }
-    rc = get_itb_context(rave->raveHandle, &CtxPtrs );
-    if (rc!=BERR_SUCCESS) {return BERR_TRACE(rc); }
-    /* check for an empty or reset buffer. super large ByteCount can happen because of reset */
-    if ( !CtxPtrs.Itb.DataPtr || CtxPtrs.Itb.ByteCount < NEXUS_RAVE_P_ITB_SIZE || CtxPtrs.Itb.ByteCount > 0x1000000) {
-        return NEXUS_NOT_AVAILABLE;
-    }
+    rc = get_itb_context(rave, &CtxPtrs );
+    if (rc!=BERR_SUCCESS) {return rc; } /* no BERR_TRACE */
     {
         const NEXUS_Rave_P_ItbEntry *entry;
         unsigned itbCount;
@@ -1539,8 +1511,6 @@ NEXUS_Error NEXUS_Rave_ScanItb_priv(NEXUS_RaveHandle rave, bool (*one_itb)(void 
                 return NEXUS_SUCCESS;
             }
         }
-        rc = NEXUS_Rave_P_ConvertPointer(&CtxPtrs.Itb.WrapDataPtr);
-        if(rc!=NEXUS_SUCCESS) {return BERR_TRACE(rc);}
         entry = (void *)CtxPtrs.Itb.WrapDataPtr;
         for(itbCount = CtxPtrs.Itb.WrapByteCount/NEXUS_RAVE_P_ITB_SIZE;itbCount;itbCount--,entry++) {
             NEXUS_FlushCache(entry, sizeof(*entry));
@@ -1598,22 +1568,8 @@ bool NEXUS_Rave_FindVideoStartCode_priv(NEXUS_RaveHandle rave, uint8_t startCode
     BDBG_OBJECT_ASSERT(rave, NEXUS_Rave);
     NEXUS_ASSERT_MODULE();
 
-#if NEXUS_SW_RAVE_SUPPORT
-    if (rave->swRave.raveHandle && rave->swRave.enabled) {
-        rc = get_itb_context(rave->swRave.raveHandle, &CtxPtrs );
-        if (rc) {rc = BERR_TRACE(rc); return false;}
-    }
-    else
-#endif
-    {
-        rc = get_itb_context(rave->raveHandle, &CtxPtrs );
-        if (rc) {rc = BERR_TRACE(rc); return false;}
-    }
-
-    /* check for an empty or reset buffer. super large ByteCount can happen because of reset */
-    if ( !CtxPtrs.Itb.DataPtr || CtxPtrs.Itb.ByteCount < NEXUS_RAVE_P_ITB_SIZE || CtxPtrs.Itb.ByteCount > 0x1000000) {
-        return false;
-    }
+    rc = get_itb_context(rave, &CtxPtrs );
+    if (rc) return false; /* no BERR_TRACE */
 
     /*
     ** If the entire pic is in the CDB, there will be a startcode at the end of the ITB.
@@ -1934,14 +1890,12 @@ NEXUS_Error NEXUS_Rave_GetPtsRange_priv( NEXUS_RaveHandle rave, uint32_t *pMostR
 
 int nexus_rave_add_one_pid(NEXUS_RaveHandle rave, NEXUS_P_HwPidChannelHandle pidChannel)
 {
-    BDBG_OBJECT_ASSERT(rave, NEXUS_Rave);
     NEXUS_OBJECT_ASSERT(NEXUS_P_HwPidChannel, pidChannel);
     return BXPT_Rave_AddPidChannel(rave->raveHandle, pidChannel->status.pidChannelIndex, false);
 }
 
 void nexus_rave_remove_one_pid(NEXUS_RaveHandle rave, NEXUS_P_HwPidChannelHandle pidChannel)
 {
-    BDBG_OBJECT_ASSERT(rave, NEXUS_Rave);
     NEXUS_OBJECT_ASSERT(NEXUS_P_HwPidChannel, pidChannel);
     (void)BXPT_Rave_RemovePidChannel(rave->raveHandle, pidChannel->status.pidChannelIndex);
 }
@@ -1952,7 +1906,7 @@ static int nexus_rave_add_pid(NEXUS_RaveHandle rave, NEXUS_P_HwPidChannel *pidCh
     NEXUS_P_HwPidChannel *slave;
     struct NEXUS_Rave_P_ErrorCounter_Link* raveLink;
 
-    BDBG_OBJECT_ASSERT(rave, NEXUS_Rave);
+    NEXUS_OBJECT_ASSERT(NEXUS_Rave, rave);
     if (pidChannel->master) {
         /* can't add slave here */
         return BERR_TRACE(NEXUS_INVALID_PARAMETER);
@@ -2017,4 +1971,133 @@ static void nexus_rave_remove_pid(NEXUS_RaveHandle rave)
         nexus_rave_remove_one_pid(rave, slave);
     }
     rave->pidChannel = NULL;
+}
+
+/* Stub calls for the reference counting. */
+
+void NEXUS_Rave_GetDefaultOpenSetting(
+    NEXUS_RaveOpenSetting *pSetting /* [out] */
+    )
+{
+    BSTD_UNUSED(pSetting);
+    BERR_TRACE(NEXUS_NOT_SUPPORTED);
+    BDBG_ERR(("%s: Unsupported, do not use.", __FUNCTION__));
+}
+
+NEXUS_RaveHandle NEXUS_Rave_Open(  /* attr{destructor=NEXUS_Rave_Close} */
+    const NEXUS_RaveOpenSetting *pSetting
+    )
+{
+    BSTD_UNUSED(pSetting);
+    BERR_TRACE(NEXUS_NOT_SUPPORTED);
+    BDBG_ERR(("%s: Unsupported, do not use.", __FUNCTION__));
+    return NULL;
+}
+
+void NEXUS_Rave_Close(
+    NEXUS_RaveHandle handle
+    )
+{
+    BSTD_UNUSED(handle);
+    BERR_TRACE(NEXUS_NOT_SUPPORTED);
+    BDBG_ERR(("%s: Unsupported, do not use.", __FUNCTION__));
+}
+
+/* pTotal and ppNext are in/out */
+static void
+nexus_rave_process_itb_events(const NEXUS_Rave_P_ItbEntry *base, const NEXUS_Rave_P_ItbEntry *limit, const NEXUS_Rave_P_ItbEntry **ppNext, NEXUS_ItbEvent *pEvents, unsigned numEvents, unsigned *pTotal)
+{
+    unsigned total = *pTotal;
+    BDBG_MSG(("[%p, %p): %d", (void*)base, (void*)limit, (int)(limit - base)));
+    /* though we may not read all of it if the user buffer fills, this is unlikely, so flush all in one go */
+    NEXUS_FlushCache(base, (uint8_t*)limit - (uint8_t*)base);
+    while (base < limit && total < numEvents) {
+        unsigned type;
+        type = B_GET_BITS(base->word[0], 31, 24);
+        if (type == NEXUS_Rave_P_ItbType_ePtsDts) {
+            BDBG_MSG(("%p: PTS %d", (void*)base, base->word[1]));
+            pEvents[total].type = NEXUS_ItbEventType_ePts;
+            pEvents[total].data.pts = base->word[1];
+            total++;
+        }
+        else if (type == NEXUS_Rave_P_ItbType_eBtp && B_GET_BITS(base->word[0], 15, 8) == 13) {
+            BDBG_MSG(("%p: BTP tag 0x%x", (void*)base, base->word[3]));
+            pEvents[total].type = NEXUS_ItbEventType_eBtp;
+            pEvents[total].data.btp.tag = base->word[3];
+            total++;
+        }
+        base++;
+    }
+    *pTotal = total;
+    *ppNext = base;
+}
+
+NEXUS_Error NEXUS_PidChannel_ReadItbEvents( NEXUS_PidChannelHandle pidChannel, NEXUS_ItbEvent *pEvents, unsigned numEvents, unsigned *pNumReturned )
+{
+    NEXUS_RaveHandle rave;
+    BXPT_Rave_ContextPtrs CtxPtrs;
+    unsigned total = 0;
+    int rc;
+    bool init;
+    const uint8_t *validPtr;
+    const NEXUS_Rave_P_ItbEntry *nextPtr;
+
+    rave = BLST_S_FIRST(&pidChannel->hwPidChannel->raves);
+    if (!rave) return NEXUS_NOT_AVAILABLE; /* no BERR_TRACE */
+
+    rc = get_itb_context(rave, &CtxPtrs);
+    if (rc) return rc;
+
+    init = (pEvents == NULL || numEvents == 0);
+
+    /* set SW DataPtr on first call after Start or Flush */
+    if (init || !rave->readItbEvents.DataPtr) {
+        /* Because the decoder may move ITB_Read before we poll the first time, we can miss events if we initialise to ITB_Read. Instead, initialise to base */
+        rave->readItbEvents.DataPtr = (const NEXUS_Rave_P_ItbEntry *)rave->itb.ptr;
+        BDBG_MSG(("DataPtr initialised to %p", (void*)rave->readItbEvents.DataPtr));
+    }
+
+    if (init) {
+        goto done;
+    }
+
+    if (CtxPtrs.Itb.WrapDataPtr == NULL) {
+        validPtr = CtxPtrs.Itb.DataPtr + CtxPtrs.Itb.ByteCount;
+    }
+    else {
+        validPtr = CtxPtrs.Itb.WrapDataPtr + CtxPtrs.Itb.WrapByteCount;
+    }
+    if ((uint8_t *)rave->readItbEvents.DataPtr < validPtr) {
+        nexus_rave_process_itb_events(rave->readItbEvents.DataPtr, (const NEXUS_Rave_P_ItbEntry *)validPtr, &nextPtr, pEvents, numEvents, &total);
+        rave->readItbEvents.DataPtr = nextPtr;
+        BDBG_MSG(("ReadItbEvents: DataPtr saved as %p", (void*)rave->readItbEvents.DataPtr));
+    }
+    else if ((uint8_t *)rave->readItbEvents.DataPtr > validPtr) {
+        const NEXUS_Rave_P_ItbEntry *basePtr = (const NEXUS_Rave_P_ItbEntry *)rave->itb.ptr; /* ITB Base */
+        BAVC_XptContextMap *pXptContextMap = NEXUS_RAVE_CONTEXT_MAP(rave);
+        uint32_t wrapOffset = BREG_Read32(g_pCoreHandles->reg, pXptContextMap->ITB_Wrap);
+        if (wrapOffset) {
+            const NEXUS_Rave_P_ItbEntry *wrapPtr;
+            wrapPtr = (const NEXUS_Rave_P_ItbEntry *)((uint8_t*)rave->itb.ptr + (wrapOffset - BREG_Read32(g_pCoreHandles->reg, pXptContextMap->ITB_Base) + 1));
+            BDBG_MSG(("ReadItbEvents: wrap %p %x %x %p", (void*)rave->itb.ptr, BREG_Read32(g_pCoreHandles->reg, pXptContextMap->ITB_Base), wrapOffset, (void*)wrapPtr));
+            nexus_rave_process_itb_events(rave->readItbEvents.DataPtr, wrapPtr, &nextPtr, pEvents, numEvents, &total);
+            if (nextPtr >= wrapPtr) {
+                /* make sure we are positioned at the base if we have reached the wrap and the user buffer is full */
+                nextPtr = basePtr;
+            }
+        }
+        else {
+            BDBG_MSG(("ReadItbEvents: readItbEvents.DataPtr > validPtr && ITB_Wrap == 0"));
+            nextPtr = basePtr;
+        }
+        if (total < numEvents) {
+            /* can eat more */
+            nexus_rave_process_itb_events(basePtr, (const NEXUS_Rave_P_ItbEntry *)validPtr, &nextPtr, pEvents, numEvents, &total);
+        }
+        rave->readItbEvents.DataPtr = nextPtr;
+        BDBG_MSG(("ReadItbEvents: DataPtr saved as %p", (void*)rave->readItbEvents.DataPtr));
+    }
+done:
+    *pNumReturned = total;
+    return 0;
 }

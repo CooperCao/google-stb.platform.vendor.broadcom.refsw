@@ -1501,4 +1501,43 @@ void BREG_Update32_isrsafe(BREG_Handle RegHandle, uint32_t reg, uint32_t mask, u
     return;
 }
 
+BDBG_FILE_MODULE(breg_tracelog);
+#define BDBG_MODULE_MSG_TRACE(m,x)
+
+void BREG_P_Tracelog_Event_isrsafe( BREG_Handle RegHandle, unsigned offset, uint32_t data)
+{
+#if BCHP_MEMC_SENTINEL_0_0_REG_START
+    uint32_t sentinel;
+    BDBG_OBJECT_ASSERT(RegHandle, BREG);
+    BDBG_MODULE_MSG_TRACE(breg_tracelog, ("EVENT:%#x:%u -> %#x", offset/BREG_P_TRACELOG_MAX_EVENTS_PER_DEVICE, offset%BREG_P_TRACELOG_MAX_EVENTS_PER_DEVICE, (unsigned)data));
+    BDBG_CASSERT(BREG_P_TRACELOG_MAX_MODULES * BREG_P_TRACELOG_MAX_EVENTS_PER_DEVICE * 4 <= (BCHP_MEMC_SENTINEL_0_0_REG_END - BCHP_MEMC_SENTINEL_0_0_REG_START));
+    sentinel = offset*4+BCHP_MEMC_SENTINEL_0_0_REG_START;
+    if(sentinel > BCHP_MEMC_SENTINEL_0_0_REG_END) {
+        BDBG_ASSERT(0);
+    }
+    BREG_Write32(RegHandle, sentinel, data);
+#else
+    BSTD_UNUSED(RegHandle);
+    BSTD_UNUSED(offset);
+    BSTD_UNUSED(data);
+#endif
+    return;
+}
+
+void BREG_P_Tracelog_Register(BREG_Handle RegHandle, unsigned moduleId, const char *moduleName)
+{
+    BDBG_OBJECT_ASSERT(RegHandle, BREG);
+#if BCHP_MEMC_SENTINEL_0_0_REG_START
+    if(moduleName) {
+        unsigned sentinel;
+        sentinel = moduleId*BREG_P_TRACELOG_MAX_EVENTS_PER_DEVICE*4+BCHP_MEMC_SENTINEL_0_0_REG_START;
+        sentinel += (BCHP_PHYSICAL_OFFSET+BCHP_REGISTER_START);
+        BDBG_MODULE_LOG(breg_tracelog,("DEVICE:%s(%#x) uses gisb %#x .. %#x",moduleName,moduleId,sentinel,sentinel+BREG_P_TRACELOG_MAX_EVENTS_PER_DEVICE*4));
+    }
+#else
+    BSTD_UNUSED(moduleId);
+    BSTD_UNUSED(moduleName);
+#endif
+}
+
 /* End of File */

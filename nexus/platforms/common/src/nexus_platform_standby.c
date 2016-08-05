@@ -310,6 +310,11 @@ NEXUS_Error NEXUS_Platform_P_SetStandbySettings( const NEXUS_PlatformStandbySett
 
     BSTD_UNUSED(resetWakeupStatus);
 
+#if !NEXUS_CPU_ARM
+    if (pSettings->mode != NEXUS_PlatformStandbyMode_eOn) {
+        NEXUS_Platform_P_ResetWakeupDevices(pSettings);
+    }
+#endif
     /* If state is unchanged; let app reconfigure wakeup up devices and exit */
     /* If Sage is defined, then we need to wakeup and go to sleep again. This allows
      * for Sage BSP handshake to complete.
@@ -348,9 +353,6 @@ NEXUS_Error NEXUS_Platform_P_SetStandbySettings( const NEXUS_PlatformStandbySett
 
     case NEXUS_PlatformStandbyMode_eActive:
     case NEXUS_PlatformStandbyMode_ePassive:
-#if !NEXUS_CPU_ARM
-        NEXUS_Platform_P_ResetWakeupDevices(pSettings);
-#endif
         errCode = NEXUS_Platform_P_Standby(pSettings);
         if (errCode) { errCode = BERR_TRACE(errCode);goto err; }
 	break;

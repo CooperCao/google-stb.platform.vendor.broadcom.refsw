@@ -182,6 +182,8 @@ public:
     static void init();
     static void initSecondaryCpu();
 
+    static void initNoTask();
+
     static void terminationLock();
     static void terminationUnlock();
 

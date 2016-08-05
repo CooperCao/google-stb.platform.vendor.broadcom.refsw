@@ -302,7 +302,7 @@ endif
 
 
 # Assemble the Nexus flags into our CFLAGS and LDFLAGS
-CFLAGS += $(NEXUS_CFLAGS) $(addprefix -I,$(NEXUS_APP_INCLUDE_PATHS)) $(addprefix -D,$(NEXUS_APP_DEFINES))
+CFLAGS += $(NEXUS_CFLAGS) ${NEXUS_INTERNAL_CFLAGS} $(addprefix -I,$(NEXUS_APP_INCLUDE_PATHS)) $(addprefix -D,$(NEXUS_APP_DEFINES))
 LDFLAGS += $(NEXUS_LDFLAGS) $(NEXUS_LD_LIBRARIES)
 LDFLAGS += -lm
 

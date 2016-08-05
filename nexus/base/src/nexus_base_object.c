@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2012-2014 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2012-2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -52,7 +52,16 @@
 #include "bkni_multi.h"
 
 BDBG_MODULE(nexus_base_object);
-#define BDBG_MSG_OBJECT(x) BDBG_MSG(x)
+#if 0
+/* Replace "NEXUS_SomeObject" with object to trace */
+#define NEXUS_P_TRACE_OBJECT(object) (NEXUS_P_Base_StrCmp((object)->descriptor->type_name,"NEXUS_SomeObject")==0)
+#endif
+
+#if defined(NEXUS_P_TRACE_OBJECT)
+#define BDBG_MSG_OBJECT(o,x) do { if(NEXUS_P_TRACE_OBJECT(o)) {BDBG_LOG(x);} else { BDBG_MSG(x);}} while(0)
+#else
+#define BDBG_MSG_OBJECT(o,x) BDBG_MSG(x)
+#endif
 
 BDBG_OBJECT_ID(NEXUS_BaseObject);
 
@@ -60,7 +69,6 @@ void NEXUS_BaseObject_P_Init(NEXUS_BaseObject *object, const NEXUS_BaseClassDesc
 {
     BDBG_ASSERT(object);
     BDBG_ASSERT(descriptor);
-    BDBG_MSG_OBJECT(("%p'%s': Init %p %p'%s'", (void *)descriptor, descriptor->type_name, (void *)(((uint8_t *)object)-descriptor->offset), (void *)object_module, object_module->pModuleName));
     BDBG_OBJECT_INIT(object, NEXUS_BaseObject);
 #if NEXUS_P_BASE_OBJECT_USE_REFCNT 
     object->ref_cnt = 1;
@@ -73,6 +81,7 @@ void NEXUS_BaseObject_P_Init(NEXUS_BaseObject *object, const NEXUS_BaseClassDesc
     object->state.order = 0;
     object->state.client = NULL;
     object->state.acquired_client = NULL;
+    BDBG_MSG_OBJECT(object,("%p'%s': Init %p %p'%s'", (void *)descriptor, descriptor->type_name, (void *)(((uint8_t *)object)-descriptor->offset), (void *)object_module, object_module->pModuleName));
     return;
 }
 
@@ -102,7 +111,7 @@ void NEXUS_BaseObject_P_Acquire(NEXUS_BaseObject *owner, void *object, const NEX
     base_object = (void *)((uint8_t *)object + descriptor->offset);
     BDBG_OBJECT_ASSERT(base_object, NEXUS_BaseObject);
 
-    BDBG_MSG_OBJECT(("%p'%s': Acquire %p %u %s:%u (%p'%s':%p'%s')", (void *)base_object->descriptor, base_object->descriptor->type_name, object, base_object->ref_cnt, pFileName, lineNumber, (void *)base_object->module, base_object->module->pModuleName, (void *)source_module, source_module->pModuleName ));
+    BDBG_MSG_OBJECT(base_object,("%p'%s': Acquire %p %u %s:%u (%p'%s':%p'%s')", (void *)base_object->descriptor, base_object->descriptor->type_name, object, base_object->ref_cnt, pFileName, lineNumber, (void *)base_object->module, base_object->module->pModuleName, (void *)source_module, source_module->pModuleName ));
     BKNI_AcquireMutex(NEXUS_P_Base_State.baseObject.lock);
     result = b_add_ref_cnf(base_object, 1);
     BKNI_ReleaseMutex(NEXUS_P_Base_State.baseObject.lock);
@@ -116,7 +125,7 @@ void NEXUS_BaseObject_P_AcquireBaseObject(NEXUS_BaseObject *base_object)
     int result;
 
     BDBG_OBJECT_ASSERT(base_object, NEXUS_BaseObject);
-    BDBG_MSG_OBJECT(("%p'%s': AcquireBaseObject %p %u ", (void *)base_object->descriptor, base_object->descriptor->type_name, (void *)base_object, base_object->ref_cnt));
+    BDBG_MSG_OBJECT(base_object,("%p'%s': AcquireBaseObject %p %u ", (void *)base_object->descriptor, base_object->descriptor->type_name, (void *)base_object, base_object->ref_cnt));
     result = b_add_ref_cnf(base_object, 1);
     BDBG_ASSERT(result>0);
     return;
@@ -138,7 +147,7 @@ void NEXUS_BaseObject_P_Release(NEXUS_BaseObject *owner, void *object, const NEX
     base_object = (void *)((uint8_t *)object + descriptor->offset);
     BDBG_OBJECT_ASSERT(base_object, NEXUS_BaseObject);
 
-    BDBG_MSG_OBJECT(("%p'%s': Release %p %u %s:%u (%p'%s':%p'%s'", (void *)base_object->descriptor, base_object->descriptor->type_name, object, base_object->ref_cnt, pFileName, lineNumber, (void *)base_object->module, base_object->module->pModuleName, (void *)source_module, source_module->pModuleName ));
+    BDBG_MSG_OBJECT(base_object,("%p'%s': Release %p %u %s:%u (%p'%s':%p'%s'", (void *)base_object->descriptor, base_object->descriptor->type_name, object, base_object->ref_cnt, pFileName, lineNumber, (void *)base_object->module, base_object->module->pModuleName, (void *)source_module, source_module->pModuleName ));
     BKNI_AcquireMutex(NEXUS_P_Base_State.baseObject.lock);
     result = b_add_ref_cnf(base_object, -1);
     BKNI_ReleaseMutex(NEXUS_P_Base_State.baseObject.lock);
@@ -153,7 +162,7 @@ void NEXUS_BaseObject_P_Release(NEXUS_BaseObject *owner, void *object, const NEX
             NEXUS_Module_Lock(lock_module);
 #endif
         }
-        BDBG_MSG_OBJECT(("%p: Finalize %p %u %s:%u", (void *)base_object->descriptor, object, base_object->ref_cnt, pFileName, lineNumber));
+        BDBG_MSG_OBJECT(base_object,("%p: Finalize %p %u %s:%u", (void *)base_object->descriptor, object, base_object->ref_cnt, pFileName, lineNumber));
         BDBG_ASSERT(descriptor->finalizer);
         if(base_object->state.objdb_class) {
             BDBG_ERR(("about to destroy object %p:'%s' which still in the object database client:%p acquired_client:%p", (void *)base_object, base_object->descriptor->type_name, (void*)base_object->state.client, (void *)base_object->state.acquired_client));

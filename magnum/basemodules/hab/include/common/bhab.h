@@ -1,23 +1,40 @@
-/***************************************************************************
- *     Copyright (c) 2003-2014, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ *  Except as expressly set forth in the Authorized License,
  *
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * Revision History:
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
- *
- ***************************************************************************/
-
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+ ******************************************************************************/
 #ifndef BHAB_H
 #define BHAB_H
 
@@ -57,7 +74,7 @@ extern "C" {
 
 /***************************************************************************
 Summary:
-	BHAB error codes
+    BHAB error codes
 
 Description:
 
@@ -98,13 +115,13 @@ See Also:
 
 /***************************************************************************
 Summary:
-	Enum for HAB interrupt tyes
+    Enum for HAB interrupt tyes
 
 Description:
-	This enum lists the different types of interrupts from the device
+    This enum lists the different types of interrupts from the device
 
 See Also:
-	None.
+    None.
 
 ****************************************************************************/
 typedef enum BHAB_InterruptType{
@@ -137,26 +154,20 @@ typedef enum BHAB_InterruptType{
 typedef enum BHAB_DevId{
     BHAB_DevId_eADS0 = 0,
     BHAB_DevId_eADS1,
-    BHAB_DevId_eADS2,
-    BHAB_DevId_eADS3,
-    BHAB_DevId_eADS4,
-    BHAB_DevId_eADS5,
-    BHAB_DevId_eADS6,
-    BHAB_DevId_eADS7,
-    BHAB_DevId_eAOB0 = 10,
-    BHAB_DevId_eAOB1,
-    BHAB_DevId_eAUS0 = 20,
-    BHAB_DevId_eAUS1,
-    BHAB_DevId_eVSB0 = 30,
-    BHAB_DevId_eVSB1,
-    BHAB_DevId_eTC20 = 40,
+    BHAB_DevId_eTC20 = 0x20,
     BHAB_DevId_eTC21,
-    BHAB_DevId_eTHD0 = 50,
+    BHAB_DevId_eTHD0 = 0x30,
     BHAB_DevId_eTHD1,
-    BHAB_DevId_eTNR0 = 60,
+    BHAB_DevId_eTNR0 = 0x40,
     BHAB_DevId_eTNR1,
-    BHAB_DevId_eODS0 = 70,
+    BHAB_DevId_eODS0 = 0x50,
     BHAB_DevId_eODS1,
+    BHAB_DevId_eAOB0 = 0x60,
+    BHAB_DevId_eAOB1,
+    BHAB_DevId_eAUS0 = 0x70,
+    BHAB_DevId_eAUS1,
+    BHAB_DevId_eVSB0 = 0x80,
+    BHAB_DevId_eVSB1,
     BHAB_DevId_eAST,
     BHAB_DevId_eWFE,
     BHAB_DevId_eSAT,
@@ -171,11 +182,11 @@ Summary:
     Enumeration for Daisy Chain
 
 Description:
-	This enum lists the different types of Daisy Chain outputs from the
+    This enum lists the different types of Daisy Chain outputs from the
     device.
 
 See Also:
-	BHAB_GetConfigSettings(), BHAB_SetConfigSettings()
+    BHAB_GetConfigSettings(), BHAB_SetConfigSettings()
 
 ****************************************************************************/
 typedef enum BHAB_RfDaisyChain
@@ -188,13 +199,13 @@ typedef enum BHAB_RfDaisyChain
 
 /***************************************************************************
 Summary:
-	The handle for hab module.
+    The handle for hab module.
 
 Description:
-	This is an opaque handle that is used to access HAB.
+    This is an opaque handle that is used to access HAB.
 
 See Also:
-	BHAB_Open()
+    BHAB_Open()
 
 ****************************************************************************/
 typedef struct BHAB_P_Handle *BHAB_Handle;
@@ -202,13 +213,13 @@ typedef struct BHAB_P_Handle *BHAB_Handle;
 
 /***************************************************************************
 Summary:
-	Typedef for status information
+    Typedef for status information
 
 Description:
-	This typedef contains AP status information
+    This typedef contains AP status information
 
 See Also:
-	None.
+    None.
 
 ****************************************************************************/
 typedef uint32_t BHAB_ApStatus;
@@ -223,9 +234,9 @@ See Also:
 ****************************************************************************/
 typedef struct BHAB_NmiGpioSettings
 {
-	bool		polarity;
-	bool		enable;
-	uint8_t		select;
+    bool        polarity;
+    bool        enable;
+    uint8_t     select;
 } BHAB_NmiGpioSettings;
 
 /***************************************************************************
@@ -238,11 +249,11 @@ See Also:
 ****************************************************************************/
 typedef struct BHAB_WatchDogTimerSettings
 {
-	bool					start;
-	bool					oneShot;
-	bool					nmiMode;
-	uint32_t				timeout;
-	BHAB_NmiGpioSettings	clearWatchDog;
+    bool                    start;
+    bool                    oneShot;
+    bool                    nmiMode;
+    uint32_t                timeout;
+    BHAB_NmiGpioSettings    clearWatchDog;
 } BHAB_WatchDogTimerSettings;
 
 /***************************************************************************
@@ -255,10 +266,10 @@ See Also:
 ****************************************************************************/
 typedef struct BHAB_NmiSettings
 {
-	BHAB_NmiGpioSettings	powerDownDetect;
-	BHAB_NmiGpioSettings	spare1;
-	BHAB_NmiGpioSettings	spare2;
-	BHAB_NmiGpioSettings	nmi;			/*Here the polarity is always high. */
+    BHAB_NmiGpioSettings    powerDownDetect;
+    BHAB_NmiGpioSettings    spare1;
+    BHAB_NmiGpioSettings    spare2;
+    BHAB_NmiGpioSettings    nmi;            /*Here the polarity is always high. */
 } BHAB_NmiSettings;
 
 /***************************************************************************
@@ -327,7 +338,7 @@ Description:
     Defines the structure to set HAB config settings.
 
 See Also:
-	BHAB_GetConfigSettings(), BHAB_SetConfigSettings()
+    BHAB_GetConfigSettings(), BHAB_SetConfigSettings()
 
 ****************************************************************************/
 typedef struct BHAB_ConfigSettings
@@ -496,13 +507,13 @@ typedef struct BHAB_LnaStatus
 
 /***************************************************************************
 Summary:
-	This defines the function prototype that is used for callbacks.
+    This defines the function prototype that is used for callbacks.
 
 Description:
-	None.
+    None.
 
 See Also:
-	None.
+    None.
 
 ****************************************************************************/
 typedef BERR_Code (*BHAB_IntCallbackFunc)( void * pParm1, int parm2 );
@@ -513,13 +524,13 @@ typedef struct BHAB_Settings BHAB_Settings;
 
 /***************************************************************************
 Summary:
-	Structure for API function table
+    Structure for API function table
 
 Description:
    This structure contains pointers to all public BHAB functions.
 
 See Also:
-	None.
+    None.
 
 ****************************************************************************/
 typedef struct BHAB_ApiFuncTable
@@ -565,13 +576,13 @@ typedef struct BHAB_ApiFuncTable
 
 /***************************************************************************
 Summary:
-	Structure for HAB settings
+    Structure for HAB settings
 
 Description:
-	This structure contains the settings for HAB.
+    This structure contains the settings for HAB.
 
 See Also:
-	None.
+    None.
 
 ****************************************************************************/
 struct BHAB_Settings
@@ -598,9 +609,9 @@ Returns:
    BERR_Code
 ******************************************************************************/
 BERR_Code BHAB_Open(
-	BHAB_Handle *handle,     /* [out] BHAB handle */
-	void        *pReg,       /* [in] pointer ot i2c or spi handle */
-	const BHAB_Settings *pDefSettings /* [in] Default Settings */
+    BHAB_Handle *handle,     /* [out] BHAB handle */
+    void        *pReg,       /* [in] pointer ot i2c or spi handle */
+    const BHAB_Settings *pDefSettings /* [in] Default Settings */
 );
 
 
@@ -614,7 +625,7 @@ Returns:
    BERR_Code
 ******************************************************************************/
 BERR_Code BHAB_Close(
-	BHAB_Handle h   /* [in] BHAB handle */
+    BHAB_Handle h   /* [in] BHAB handle */
 );
 
 
@@ -628,8 +639,8 @@ Returns:
    BERR_Code : BERR_SUCCESS = AP is running and successfully initialized
 ******************************************************************************/
 BERR_Code BHAB_InitAp(
-	BHAB_Handle   h,       /* [in] BHAB handle */
-	const uint8_t *pImage  /* [in] pointer to AP microcode image */
+    BHAB_Handle   h,       /* [in] BHAB handle */
+    const uint8_t *pImage  /* [in] pointer to AP microcode image */
 );
 
 
@@ -676,9 +687,9 @@ Returns:
    BERR_Code
 ******************************************************************************/
 BERR_Code BHAB_ReadRegister(
-	BHAB_Handle handle,     /* [in] BHAB handle */
-	uint32_t    reg,        /* [in] address of register to read */
-	uint32_t    *val        /* [in] contains data that was read */
+    BHAB_Handle handle,     /* [in] BHAB handle */
+    uint32_t    reg,        /* [in] address of register to read */
+    uint32_t    *val        /* [in] contains data that was read */
 );
 
 
@@ -691,9 +702,9 @@ Returns:
    BERR_Code
 ******************************************************************************/
 BERR_Code BHAB_WriteRegister(
-	BHAB_Handle handle,     /* [in] BHAB handle */
-	uint32_t    reg,        /* [in] address of register to read */
-	uint32_t    *val        /* [in] contains data that was read */
+    BHAB_Handle handle,     /* [in] BHAB handle */
+    uint32_t    reg,        /* [in] address of register to read */
+    uint32_t    *val        /* [in] contains data that was read */
 );
 
 
@@ -708,10 +719,10 @@ Returns:
    BERR_Code
 ******************************************************************************/
 BERR_Code BHAB_ReadMemory(
-	BHAB_Handle h,  /* [in] BHAB PI Handle */
-	uint32_t addr,  /* [in] starting address */
-	uint8_t *buf,   /* [out] holds the data read */
-	uint32_t n      /* [in] number of bytes to read */
+    BHAB_Handle h,  /* [in] BHAB PI Handle */
+    uint32_t addr,  /* [in] starting address */
+    uint8_t *buf,   /* [out] holds the data read */
+    uint32_t n      /* [in] number of bytes to read */
 );
 
 
@@ -725,10 +736,10 @@ Returns:
    BERR_Code
 ******************************************************************************/
 BERR_Code BHAB_WriteMemory(
-	BHAB_Handle handle, /* [in] BHAB PI Handle */
-	uint32_t addr, /* [in] starting address in AP RAM */
-	uint8_t *buf,  /* [in] specifies the data to write */
-	uint32_t n     /* [in] number of bytes to write */
+    BHAB_Handle handle, /* [in] BHAB PI Handle */
+    uint32_t addr, /* [in] starting address in AP RAM */
+    uint8_t *buf,  /* [in] specifies the data to write */
+    uint32_t n     /* [in] number of bytes to write */
 );
 
 /******************************************************************************
@@ -739,9 +750,9 @@ Returns:
    BERR_Code
 ******************************************************************************/
 BERR_Code BHAB_ReadMbox(
-	BHAB_Handle handle,    /* [in] BHAB PI Handle */
-	uint32_t    reg,  /* [in] RBUS register address */
-	uint32_t    *val  /* [out] value read from register */
+    BHAB_Handle handle,    /* [in] BHAB PI Handle */
+    uint32_t    reg,  /* [in] RBUS register address */
+    uint32_t    *val  /* [out] value read from register */
 );
 
 /******************************************************************************
@@ -752,9 +763,9 @@ Returns:
    BERR_Code
 ******************************************************************************/
 BERR_Code BHAB_WriteMbox(
-	BHAB_Handle handle,    /* [in] BHAB PI Handle */
-	uint32_t    reg,  /* [in] RBUS register address */
-	uint32_t    *val  /* [in] value to write */
+    BHAB_Handle handle,    /* [in] BHAB PI Handle */
+    uint32_t    reg,  /* [in] RBUS register address */
+    uint32_t    *val  /* [in] value to write */
 );
 
 /******************************************************************************
@@ -767,7 +778,7 @@ Returns:
    BERR_Code
 ******************************************************************************/
 BERR_Code BHAB_HandleInterrupt_isr(
-	BHAB_Handle handle   /* [in] BHAB handle */
+    BHAB_Handle handle   /* [in] BHAB handle */
 );
 
 
@@ -784,7 +795,7 @@ Returns:
    BERR_Code
 ******************************************************************************/
 BERR_Code BHAB_ProcessInterruptEvent(
-	BHAB_Handle handle  /* [in] HAB device handle */
+    BHAB_Handle handle  /* [in] HAB device handle */
 );
 
 
@@ -798,9 +809,9 @@ Returns:
    BERR_Code
 ******************************************************************************/
 BERR_Code BHAB_EnableLockInterrupt(
-	BHAB_Handle handle, /* [in] BHAB Handle */
-	BHAB_DevId eDevId,    /* [in] Device ID */
-	bool bEnable   /* [in] true = enable lock interrupts, false = disables lock interrupts */
+    BHAB_Handle handle, /* [in] BHAB Handle */
+    BHAB_DevId eDevId,    /* [in] Device ID */
+    bool bEnable   /* [in] true = enable lock interrupts, false = disables lock interrupts */
 );
 
 
@@ -813,11 +824,11 @@ Returns:
    BERR_Code
 ******************************************************************************/
 BERR_Code BHAB_InstallInterruptCallback(
-	BHAB_Handle handle,                /* [in] BHAB handle */
-	BHAB_DevId eDevId,    /* [in] Device ID */
-	BHAB_IntCallbackFunc fCallBack,    /* [in] Callback function pointer */
-	void * pParm1,                     /* [in] Paramater1 for callback function*/
-	int parm2                          /* [in] Paramater2 for callback function*/
+    BHAB_Handle handle,                /* [in] BHAB handle */
+    BHAB_DevId eDevId,    /* [in] Device ID */
+    BHAB_IntCallbackFunc fCallBack,    /* [in] Callback function pointer */
+    void * pParm1,                     /* [in] Paramater1 for callback function*/
+    int parm2                          /* [in] Paramater2 for callback function*/
 );
 
 
@@ -830,8 +841,8 @@ Returns:
    BERR_Code
 ******************************************************************************/
 BERR_Code BHAB_UnInstallInterruptCallback(
-	BHAB_Handle handle,  /* [in] BHAB handle */
-	BHAB_DevId eDevId    /* [in] Device ID */
+    BHAB_Handle handle,  /* [in] BHAB handle */
+    BHAB_DevId eDevId    /* [in] Device ID */
 );
 
 
@@ -846,14 +857,14 @@ Returns:
    BERR_Code
 ******************************************************************************/
 BERR_Code BHAB_SendHabCommand(
-	BHAB_Handle h,      /* [in] BHAB PI Handle */
-	uint8_t *write_buf, /* [in] specifies the HAB command to send */
-	uint16_t write_len,  /* [in] number of bytes of the HAB command to be written using either I2c or SPI. */
-	uint8_t *read_buf,  /* [out] holds the data read from the HAB */
-	uint16_t read_len,   /* [in] number of bytes to read from the HAB */
-	bool bCheckForAck,  /* [in] true = determine if the AP has serviced the command */
-	bool bInsertTermination, /* [in] true = insert termination byte 0x00 in write buffer at read_len position */
-	uint16_t command_len /* [in] Total number of bytes in the HAB command so that the termination byte is inserted at the right HAB location. */
+    BHAB_Handle h,      /* [in] BHAB PI Handle */
+    uint8_t *write_buf, /* [in] specifies the HAB command to send */
+    uint16_t write_len,  /* [in] number of bytes of the HAB command to be written using either I2c or SPI. */
+    uint8_t *read_buf,  /* [out] holds the data read from the HAB */
+    uint16_t read_len,   /* [in] number of bytes to read from the HAB */
+    bool bCheckForAck,  /* [in] true = determine if the AP has serviced the command */
+    bool bInsertTermination, /* [in] true = insert termination byte 0x00 in write buffer at read_len position */
+    uint16_t command_len /* [in] Total number of bytes in the HAB command so that the termination byte is inserted at the right HAB location. */
 );
 
 
@@ -866,8 +877,8 @@ Returns:
    BERR_Code
 ******************************************************************************/
 BERR_Code BHAB_GetApStatus(
-	BHAB_Handle   handle,    /* [in] HAB device handle */
-	BHAB_ApStatus *pStatus   /* [out] AP status */
+    BHAB_Handle   handle,    /* [in] HAB device handle */
+    BHAB_ApStatus *pStatus   /* [out] AP status */
 );
 
 /******************************************************************************
@@ -879,8 +890,8 @@ Returns:
    BERR_Code
 ******************************************************************************/
 BERR_Code BHAB_GetInterruptEventHandle(
-	BHAB_Handle handle,
-	BKNI_EventHandle *event /* [out] Interrupt event handle */
+    BHAB_Handle handle,
+    BKNI_EventHandle *event /* [out] Interrupt event handle */
 );
 
 /******************************************************************************
@@ -893,7 +904,7 @@ Returns:
    BERR_Code
 ******************************************************************************/
 BERR_Code BHAB_GetWatchDogTimer(BHAB_Handle h,
-	BHAB_WatchDogTimerSettings *wdtSettings);
+    BHAB_WatchDogTimerSettings *wdtSettings);
 
 /******************************************************************************
 Summary:
@@ -905,7 +916,7 @@ Returns:
    BERR_Code
 ******************************************************************************/
 BERR_Code BHAB_SetWatchDogTimer(BHAB_Handle h,      /* [in] BHAB PI Handle */
-	const BHAB_WatchDogTimerSettings *wdtSettings);
+    const BHAB_WatchDogTimerSettings *wdtSettings);
 
 /******************************************************************************
 Summary:
@@ -917,7 +928,7 @@ Returns:
    BERR_Code
 ******************************************************************************/
 BERR_Code BHAB_GetNmiConfig(BHAB_Handle h,      /* [in] BHAB PI Handle */
-	BHAB_NmiSettings *nmiSettings);
+    BHAB_NmiSettings *nmiSettings);
 
 /******************************************************************************
 Summary:
@@ -929,7 +940,7 @@ Returns:
    BERR_Code
 ******************************************************************************/
 BERR_Code BHAB_SetNmiConfig(BHAB_Handle h,      /* [in] BHAB PI Handle */
-	const BHAB_NmiSettings *nmiSettings);
+    const BHAB_NmiSettings *nmiSettings);
 
 /***************************************************************************
 Summary:
@@ -978,10 +989,10 @@ Returns:
 ******************************************************************************/
 BERR_Code BHAB_ReadSlave(
     BHAB_Handle handle,     /* [in] Device channel handle */
-	uint8_t chipAddr,       /* [in] chip addr of the i2c slave device */
-	uint32_t subAddr,       /* [in] sub addr of the register to read from the slave device */
-	uint32_t *data,         /* [out] ptr to the data that we will read from the slave device */
-	uint8_t dataLen         /* [in] how many bytes are we going to read?, for 3412 LNA, this should be in multiples of 4-bytes,
+    uint8_t chipAddr,       /* [in] chip addr of the i2c slave device */
+    uint32_t subAddr,       /* [in] sub addr of the register to read from the slave device */
+    uint32_t *data,         /* [out] ptr to the data that we will read from the slave device */
+    uint8_t dataLen         /* [in] how many bytes are we going to read?, for 3412 LNA, this should be in multiples of 4-bytes,
                                 for 3128, dataLen can only be 4 bytes */
 );
 
@@ -995,10 +1006,10 @@ Returns:
 ******************************************************************************/
 BERR_Code BHAB_WriteSlave(
     BHAB_Handle handle,     /* [in] Device channel handle */
-	uint8_t chipAddr,       /* [in] chip addr of the i2c slave device */
-	uint32_t subAddr,       /* [in] sub addr of the register to read from the slave device */
-	uint32_t *data,         /* [out] ptr to the data that we will read from the slave device */
-	uint8_t dataLen        /* [in] how many bytes are we going to read?, for 3412 LNA, this should be in multiples of 4-bytes,
+    uint8_t chipAddr,       /* [in] chip addr of the i2c slave device */
+    uint32_t subAddr,       /* [in] sub addr of the register to read from the slave device */
+    uint32_t *data,         /* [out] ptr to the data that we will read from the slave device */
+    uint8_t dataLen        /* [in] how many bytes are we going to read?, for 3412 LNA, this should be in multiples of 4-bytes,
                                 for 3128, dataLen can only be 4 bytes */
 );
 

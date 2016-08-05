@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -350,6 +350,9 @@ B_PlaybackIpPsiStateHandle B_PlaybackIp_CreatePsiState(B_PlaybackIpHandle playba
         if (playback_ip->ipVerboseLog)
             BDBG_WRN(("%s:%p: Created: initial AV PID info: pPsi=%p pcr=%u video=%u audio=%u", __FUNCTION__, (void *)playback_ip, (void *)hPsi, hPsi->pcrPid, hPsi->videoPid, hPsi->audioPid1));
 #endif
+#if defined(LOG_IP_LATENCY)
+    B_PlaybackIp_UtilsTrkLatencyInit(playback_ip);
+#endif
     return (hPsi);
 }
 
@@ -566,7 +569,10 @@ B_PlaybackIpError B_PlaybackIp_ParseAndProcessPsiState(
             rc = B_ERROR_CHANNEL_CHANGE;
             break;
         }
-        if (playback_ip->playback_state == B_PlaybackIpState_eWaitingToEnterTrickMode || playback_ip->playback_state == B_PlaybackIpState_ePaused)
+        if (playback_ip->playback_state == B_PlaybackIpState_eWaitingToEnterTrickMode ||
+                playback_ip->playback_state == B_PlaybackIpState_eEnteringTrickMode ||
+                playback_ip->playback_state == B_PlaybackIpState_ePaused
+                )
         {
             BKNI_ReleaseMutex(playback_ip->lock);
             unlocked = true;
@@ -675,6 +681,16 @@ B_PlaybackIpError B_PlaybackIp_ParseAndProcessPsiState(
                                 pPsi->syncByteCount, BMPEG2TS_INITIAL_SYNC_COUNT, pPsi->totalInitialTsPktsSkipped));
                 }
                 TS_parseTsPacket(pPsi->pTsPkt, &tsPkt);
+#if defined(LOG_IP_LATENCY)
+                if (tsPkt.adaptation_field.PCR_flag || tsPkt.adaptation_field.discontinuity_indicator)
+                {
+                    B_PlaybackIp_UtilsTrkPcrJitter(playback_ip,&tsPkt);
+                }
+                if (tsPkt.payload_unit_start_indicator && tsPkt.adaptation_field_control)
+                {
+                    B_PlaybackIp_UtilsTrkLatencyStreamToDecodePts(playback_ip, &tsPkt);
+                }
+#endif
                 if (tsPkt.data_size == 0)
                 {
                     pPsi->tsPktWithNoPayload++;

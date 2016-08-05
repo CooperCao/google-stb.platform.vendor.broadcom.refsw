@@ -1,52 +1,40 @@
-/***************************************************************************
- *     (c)2002-2013 Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- *  Except as expressly set forth in the Authorized License,
+ * Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- * 
- ***************************************************************************/
-
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
 #include "b_api_shim.h"
 #include "nexus_surface.h"
 #include "bcc_winlib.h"
@@ -1020,7 +1008,19 @@ BDCC_WINLIB_ErrCode BDCC_WINLIB_LoadFont(
     BDBG_ASSERT( BDCC_PenSize_Max_Size > penSize );
     BDBG_ASSERT( BDCC_PenStyle_Underline > penStyle ); /* no underline font supported, draw the underline instead */
 
-    font = bfont_open(pFontFile);
+#ifdef FREETYPE_SUPPORT
+    {
+        struct bfont_open_freetype_settings settings;
+        bfont_get_default_open_freetype_settings(&settings);
+        settings.filename = pFontFile;
+        settings.size = fontSize;
+        settings.italics = (penStyle == BDCC_PenStyle_Italics) ? 1 : 0;
+        font = bfont_open_freetype(&settings);
+    }
+#else
+     font = bfont_open(pFontFile);
+#endif
+
     hWinLibHandle->fontFaces[ fontStyle ][ penSize ][ penStyle ] = font;
 
     BDBG_MSG(("BDCC_WINLIB_LoadFont %p %s", (void*)font, (penStyle == BDCC_PenStyle_Standard) ? "standard" : "italic"));
@@ -1211,23 +1211,24 @@ BDCC_WINLIB_ErrCode
                     len,
                     row->hWinLibHandle->edgeColorARGB32,
                     &draw_text_settings);
-			break;
+            break;
 
         case BDCC_Edge_Style_Uniform:
         case BDCC_Edge_Style_None:
         default:
-            rect.x = row->penPositionx + (edgeOffsets[row->hWinLibHandle->edgeType][0] * row->hWinLibHandle->edgeWidth);
-            rect.y = row->penPositiony + (edgeOffsets[row->hWinLibHandle->edgeType][1] * row->hWinLibHandle->edgeWidth);
-            rc2 =  bfont_draw_text_ex(
-                    &row->surface_desc,
-                    row->hWinLibHandle->font,
-                    &rect,
-                    (const char *)str,
-                    len,
-                    row->hWinLibHandle->foreGroundColorARGB32,
-                    &draw_text_settings);
             break;
     }
+
+    rect.x = row->penPositionx + (edgeOffsets[row->hWinLibHandle->edgeType][0] * row->hWinLibHandle->edgeWidth);
+    rect.y = row->penPositiony + (edgeOffsets[row->hWinLibHandle->edgeType][1] * row->hWinLibHandle->edgeWidth);
+    rc2 =  bfont_draw_text_ex(
+            &row->surface_desc,
+            row->hWinLibHandle->font,
+            &rect,
+            (const char *)str,
+            len,
+            row->hWinLibHandle->foreGroundColorARGB32,
+            &draw_text_settings);
 
     if(rc || rc2)
         BDBG_MSG(("bfont_draw_text failed ! rc = %d\n", rc));

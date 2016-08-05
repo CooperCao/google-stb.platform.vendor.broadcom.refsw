@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,6 +34,7 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
+
  ******************************************************************************/
 
 /* Nexus example app: Play Ready decrypt, PIFF parser, and PES conversion decode */
@@ -1276,6 +1277,9 @@ int playback_piff( NEXUS_VideoDecoderHandle videoDecoder,
                 goto clean_up;
             }
         }
+
+        BKNI_Sleep(500);
+
         decoder_data = piff_parser_get_dec_data(piff_handle, &decoder_len, frag_info.trackId);
 
 #if USE_SVP

@@ -1,51 +1,42 @@
 /********************************************************************************************
-*     (c)2004-2015 Broadcom Corporation                                                     *
-*                                                                                           *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,   *
-*  and may only be used, duplicated, modified or distributed pursuant to the terms and      *
-*  conditions of a separate, written license agreement executed between you and Broadcom    *
-*  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants*
-*  no license (express or implied), right to use, or waiver of any kind with respect to the *
-*  Software, and Broadcom expressly reserves all rights in and to the Software and all      *
-*  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU       *
-*  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY                    *
-*  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.                                 *
+*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
-*  Except as expressly set forth in the Authorized License,                                 *
+*  This program is the proprietary software of Broadcom and/or its licensors,
+*  and may only be used, duplicated, modified or distributed pursuant to the terms and
+*  conditions of a separate, written license agreement executed between you and Broadcom
+*  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+*  no license (express or implied), right to use, or waiver of any kind with respect to the
+*  Software, and Broadcom expressly reserves all rights in and to the Software and all
+*  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+*  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+*  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
 *
-*  1.     This program, including its structure, sequence and organization, constitutes     *
-*  the valuable trade secrets of Broadcom, and you shall use all reasonable efforts to      *
-*  protect the confidentiality thereof,and to use this information only in connection       *
-*  with your use of Broadcom integrated circuit products.                                   *
-*                                                                                           *
-*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"          *
-*  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR                   *
-*  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO            *
-*  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES            *
-*  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,            *
-*  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION             *
-*  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF              *
-*  USE OR PERFORMANCE OF THE SOFTWARE.                                                      *
-*                                                                                           *
-*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS         *
-*  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR             *
-*  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR               *
-*  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF             *
-*  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT              *
-*  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE            *
-*  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF              *
+*  Except as expressly set forth in the Authorized License,
+*
+*  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+*  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+*  and to use this information only in connection with your use of Broadcom integrated circuit products.
+*
+*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+*  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+*  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+*  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+*  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+*  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+*  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+*  USE OR PERFORMANCE OF THE SOFTWARE.
+*
+*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+*  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+*  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+*  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+*  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+*  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+*  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
+*
  * Module Description:
  *     AKE core funtions.
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  *********************************************************************************************/
 /*! \file b_dtcp_ake.c
@@ -271,9 +262,9 @@ static void B_DTCP_StopRtNonceThread(B_AkeCoreData_T * CoreData)
 void B_DTCP_ExchKeyThreadFunc(void * data)
 {
     BDBG_ASSERT(data);
-    BDBG_MSG(("Starting ExchKey scheduler... 0x%08x\n", (unsigned)data));
+    BDBG_MSG(("Starting ExchKey scheduler... %p\n", (void *)data));
     B_Scheduler_Run((B_SchedulerHandle)data);
-    BDBG_MSG(("Scheduler 0x%08x terminated\n", (unsigned)data));
+    BDBG_MSG(("Scheduler %p terminated\n", (void *)data));
 }
 /*! \brief initialize AKE core data.
  *  \param[in] Mode device mode, source or sink.
@@ -411,7 +402,7 @@ void B_DTCP_AkeCore_UnInit(B_AkeCoreData_T * CoreData)
 #endif
     if(CoreData->pProtocolData != NULL)
     {
-        BDBG_WRN(("protocol data 0x%08x  hasn't been released yet?\n", CoreData->pProtocolData));
+        BDBG_WRN(("protocol data %p  hasn't been released yet?\n", (void *) CoreData->pProtocolData));
     }
     B_Scheduler_Stop(CoreData->hExchKeyScheduler);
     B_Scheduler_Destroy(CoreData->hExchKeyScheduler);
@@ -559,7 +550,7 @@ void B_DTCP_CleanAkeSessionList(B_AkeCoreData_T * pAkeCoreData, bool destroy)
             tmp = iter;
             iter = BLST_S_NEXT(iter, node);
             if(destroy == true) {
-                BDBG_MSG(("Removing AKE session: %08x\n", tmp));
+                BDBG_MSG(("Removing AKE session: %p\n", (void *)tmp));
                 BLST_S_REMOVE(&(pAkeCoreData->AkeSession_list), tmp, B_DTCP_AkeCoreSessionData, node);
                 /*
                  * Force release protocol specific data, e.g. IpAkeSession.
@@ -630,7 +621,7 @@ bool B_DTCP_IsDeviceAuthenticated(B_AkeCoreData_T * CoreData, unsigned char Devi
 
     B_Mutex_Lock(CoreData->hMutex);
     iter = BLST_S_FIRST(&(CoreData->AkeSession_list));
-    BDBG_MSG(("Checking session 0x%08x\n", iter));
+    BDBG_MSG(("Checking session %p\n", (void *)iter));
     while(iter != NULL){
         BDBG_MSG(("Iter DeviceID: %02x %02x %02x %02x %02x\n", iter->OtherDeviceId[0], iter->OtherDeviceId[1],iter->OtherDeviceId[2], iter->OtherDeviceId[3], iter->OtherDeviceId[4]));
         BDBG_MSG(("New DeviceID:  %02x %02x %02x %02x %02x\n", DeviceId[0], DeviceId[1], DeviceId[2], DeviceId[3], DeviceId[4]));
@@ -658,7 +649,7 @@ bool B_DTCP_GetSessionEntryForDeviceId(B_AkeCoreData_T * CoreData, unsigned char
 
     B_Mutex_Lock(CoreData->hMutex);
     iter = BLST_S_FIRST(&(CoreData->AkeSession_list));
-    BDBG_MSG(("Checking session 0x%08x\n", iter));
+    BDBG_MSG(("Checking session %p\n", (void *)iter));
     while(iter != NULL){
         if (!BKNI_Memcmp(iter->OtherDeviceId, DeviceId, DTCP_DEVICE_ID_SIZE))
         {
@@ -785,7 +776,7 @@ static void B_DTCP_AkeInvalidateSinkExchKeys(void * data)
 
     if(Session->ExchKeyTimer == NULL)
     {
-        BDBG_ERR(("%s: Failed to start timer!\n"));
+        BDBG_ERR(("%s: Failed to start timer!\n", __FUNCTION__));
     }
 
 }

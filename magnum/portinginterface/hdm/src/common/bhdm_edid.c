@@ -522,10 +522,8 @@ static uint8_t BHDM_EDID_P_EdidCheckSum(uint8_t *pEDID)
 	if (checksum % 256)
 	{
 		BDBG_WRN(("Checksum:      %#X", checksum)) ;
-		BDBG_WRN(("Invalid Checksum Byte: %#02X", (unsigned char) pEDID[BHDM_EDID_CHECKSUM])) ;
-
-		/* determine the correct checksum value */
-		BDBG_WRN(("Correct Checksum Byte = %#02X",
+		BDBG_WRN(("Invalid Checksum Byte: %#02X ; byte should be %#02X",
+			(unsigned char) pEDID[BHDM_EDID_CHECKSUM],
 			(uint8_t) (256 - (checksum - (unsigned int) pEDID[BHDM_EDID_CHECKSUM])))) ;
 	}
 #endif
@@ -547,11 +545,13 @@ BERR_Code BHDM_EDID_GetNthBlock(
 )
 {
 	BERR_Code rc = BERR_SUCCESS ;
+	uint8_t EdidErrorRetryCount ;
 	uint8_t uiSegment ;
-#if ! BHDM_CONFIG_DEBUG_EDID_PROCESSING
-	uint8_t timeoutMs ;
-#endif
 	uint8_t RxDeviceAttached ;
+	uint8_t validChecksum = 0 ;
+#if BHDM_CONFIG_HAS_HDCP22
+	bool Autoi2cDisabled = false ;
+#endif
 
 	BDBG_OBJECT_ASSERT(hHDMI, HDMI) ;
 
@@ -601,32 +601,20 @@ BERR_Code BHDM_EDID_GetNthBlock(
 	uiSegment = BlockNumber / 2 ;
 
 
-	if (hHDMI->DeviceSettings.UseDebugEdid)
-	{
-		const uint8_t *DebugRxEdid ;
-
-		BDBG_WRN(("<$$$ BHDM_CONFIG_DEBUG_EDID_PROCESSING  $$$>")) ;
-		BDBG_WRN(("<$$$ Using EDID declared in bhdm_edid_debug.c $$$>")) ;
-
-		DebugRxEdid = BHDM_EDID_P_GetDebugEdid() ;
-
-		BKNI_Memcpy(pBuffer,
-			DebugRxEdid + (uint8_t) (BHDM_EDID_BLOCKSIZE * (BlockNumber % 2)) + (BHDM_EDID_BLOCKSIZE * 2 * uiSegment),
-			BHDM_EDID_BLOCKSIZE) ;
-	}
-	else
 	{
 #if BHDM_CONFIG_HAS_HDCP22
 		/* make sure polling Auto I2C channels are disabled; prior to the read */
 		BKNI_EnterCriticalSection() ;
-		BHDM_AUTO_I2C_SetChannels_isr(hHDMI, 0) ;
+			BHDM_AUTO_I2C_SetChannels_isr(hHDMI, 0) ;
+			Autoi2cDisabled = true ;
 		BKNI_LeaveCriticalSection() ;
 #endif
 
 		/* Read the EDID block; sometimes the EDID block is not ready/available */
 		/* try again if a READ failure occurs */
 
-		timeoutMs = 1 ;
+#define BHDM_EDID_P_MAX_EDID_ERROR_RETRY 3
+		EdidErrorRetryCount  = 1 ;
 		do
 		{
 #if BHDM_CONFIG_MHL_SUPPORT
@@ -639,6 +627,21 @@ BERR_Code BHDM_EDID_GetNthBlock(
 			}
 			else
 #endif
+			if (hHDMI->DeviceSettings.UseDebugEdid)
+			{
+				const uint8_t *DebugRxEdid ;
+
+				BDBG_WRN(("<$$$ BHDM_CONFIG_DEBUG_EDID_PROCESSING  $$$>")) ;
+				BDBG_WRN(("<$$$ Using EDID declared in bhdm_edid_debug.c $$$>")) ;
+
+				DebugRxEdid = BHDM_EDID_P_GetDebugEdid() ;
+
+				BKNI_Memcpy(pBuffer,
+					DebugRxEdid + (uint8_t) (BHDM_EDID_BLOCKSIZE * (BlockNumber % 2)) + (BHDM_EDID_BLOCKSIZE * 2 * uiSegment),
+					BHDM_EDID_BLOCKSIZE) ;
+				rc = BERR_SUCCESS ;
+			}
+			else
 			{
 				rc = BREG_I2C_ReadEDDC(hHDMI->hI2cRegHandle, (uint8_t) BHDM_EDID_I2C_ADDR,
 					(uint8_t) uiSegment,
@@ -647,12 +650,30 @@ BERR_Code BHDM_EDID_GetNthBlock(
 			}
 
 			if (rc == BERR_SUCCESS)
-				break ;
+			{
+				/* check for a valid checksum */
+				validChecksum = BHDM_EDID_P_EdidCheckSum(hHDMI->AttachedEDID.Block) ;
 
-			BDBG_WRN(("Error reading EDID Block; Attempt to re-read...")) ;
-			BKNI_Sleep(1) ;
-		} while ( timeoutMs-- ) ;
+				/*
+				-- EDID with a valid checksum has been read
+				-- OR using a debug EDID; a re-read will never change the EDID
+				-- so additional reads are not needed
+				*/
+				if ((validChecksum) || (hHDMI->DeviceSettings.UseDebugEdid))
+				{
+					/* EDID with correct checksum found or debug EDID: exit loop */
+					break ;
+				}
 
+				BDBG_WRN(("Checksum Error for EDID Block #%d", BlockNumber)) ;
+			}
+
+			BDBG_WRN(("Error (%x) reading EDID Block; Attempt retry %d of %d...",
+				rc, EdidErrorRetryCount, BHDM_EDID_P_MAX_EDID_ERROR_RETRY )) ;
+			BKNI_Sleep(10) ;
+		} while ( ++EdidErrorRetryCount <=  BHDM_EDID_P_MAX_EDID_ERROR_RETRY)  ;
+
+		/* ERROR reading the EDID block */
 		if (rc != BERR_SUCCESS)
 		{
 			BDBG_ERR(("Can't find/read Rx EDID device")) ;
@@ -660,31 +681,31 @@ BERR_Code BHDM_EDID_GetNthBlock(
 			goto done ;
 		}
 	}
-#if BHDM_CONFIG_HAS_HDCP22
-		/* re-enable any polling Auto I2C channels that had to be disabled prior to the read */
-		BKNI_EnterCriticalSection() ;
-		BHDM_AUTO_I2C_SetChannels_isr(hHDMI, 1) ;
-		BKNI_LeaveCriticalSection() ;
-#endif
 
 	/* copy the EDID block to the EDID handle */
 	if (pBuffer != hHDMI->AttachedEDID.Block)
 		BKNI_Memcpy(hHDMI->AttachedEDID.Block, pBuffer, BHDM_EDID_BLOCKSIZE) ;
 
-	/* check for a valid checksum */
-	if (!BHDM_EDID_P_EdidCheckSum(hHDMI->AttachedEDID.Block))
+	/* report invalid checksum */
+	if (!validChecksum)
 	{
 		BDBG_WRN(("Checksum Error for EDID Block #%d Ignored", BlockNumber)) ;
-#if 0
 		rc = BERR_TRACE(BHDM_EDID_CHECKSUM_ERROR) ;
-		goto done ;
-#endif
 	}
 
 	hHDMI->AttachedEDID.CachedBlock = BlockNumber ;
 	hHDMI->edidStatus = BHDM_EDID_STATE_eOK;
 
 done:
+#if BHDM_CONFIG_HAS_HDCP22
+	/* re-enable any polling Auto I2C channels disabled prior to the EDID read */
+	if (Autoi2cDisabled)
+	{
+		BKNI_EnterCriticalSection() ;
+			BHDM_AUTO_I2C_SetChannels_isr(hHDMI, 1) ;
+		BKNI_LeaveCriticalSection() ;
+	}
+#endif
 	return rc ;
 } /* end BHDM_EDID_GetNthBlock */
 
@@ -1419,10 +1440,14 @@ BcmSupportedFormatFound:
 		/*	else fall to BcmSupportedFormatNotFound: label	*/
 		goto BcmSupportedFormatNotFound;
 	}
+	else if (*BCM_VideoFmt == BFMT_VideoFmt_eDVI_640x480p)
+	{
+		BDBG_MSG(("Preferred format is VGA...")) ;
+	}
 	else if (BFMT_IS_VESA_MODE(*BCM_VideoFmt))
 	{
 		*BCM_VideoFmt = BFMT_VideoFmt_eDVI_640x480p ;
-		BDBG_WRN(("Requested Detail Timing #%d is a PC format; Override with HDMI supported VGA\n\n",
+		BDBG_WRN(("Requested Detail Timing #%d is a PC format; Override with HDMI supported VGA",
 			NthTimingRequested)) ;
 	}
 
@@ -1886,13 +1911,13 @@ BERR_Code BHDM_EDID_IsRxDeviceHdmi(
 	if (hHDMI->edidStatus == BHDM_EDID_STATE_eInitialize)
 	{
 		BDBG_MSG(("HDMI Rx Supported Features (%p):", (void *)RxVSDB)) ;
-		BDBG_MSG(("\tUnderscan:    %s", g_status[RxVSDB->Underscan ? 1 : 0])) ;
-		BDBG_MSG(("\tAudio Caps:   %s", g_status[RxVSDB->Audio ? 1 : 0])) ;
-		BDBG_MSG(("\tYCbCr: 4:2:2 %s   4:4:4 %s",
+		BDBG_MSG(("   Underscan:    %s", g_status[RxVSDB->Underscan ? 1 : 0])) ;
+		BDBG_MSG(("   Audio Caps:   %s", g_status[RxVSDB->Audio ? 1 : 0])) ;
+		BDBG_MSG(("   YCbCr: 4:2:2 %s   4:4:4 %s",
 			g_status[RxVSDB->YCbCr422 ? 1 : 0],
 			g_status[RxVSDB->YCbCr444 ? 1 : 0])) ;
 
-		BDBG_MSG(("\tNative Formats in Descriptors: %d",
+		BDBG_MSG(("   Native Formats in Descriptors: %d",
 			RxVSDB->NativeFormatsInDescriptors)) ;
 
 		BDBG_MSG(("END HDMI Rx Supported Features")) ;
@@ -2137,7 +2162,8 @@ BERR_Code BHDM_EDID_CheckRxHdmiVideoSupport(
 
 			/* return error on unknown Tags */
 			default :
-				BDBG_WRN(("\nCEA-861 Data Block Tag Code <%d> is not supported",
+				BDBG_WRN((" ")) ;
+				BDBG_WRN(("CEA-861 Data Block Tag Code <%d> is not supported",
 					DataBlockTag)) ;
 				rc = BHDM_EDID_HDMI_UNKNOWN_CEA_TAG ;
 				goto done ;
@@ -3117,7 +3143,7 @@ static BERR_Code BHDM_EDID_P_ParseAudioDB(
 				/* check that at least one sample rate is supported */
 				if (EdidAudioSampleRate & EdidAudioSampleRateTable[i].EdidAudioSampleRate)
 				{
-					BDBG_MSG(("\tSample Rate %s", CeaAudioSampleRateTypeText[i])) ;
+					BDBG_MSG(("   Sample Rate %s", CeaAudioSampleRateTypeText[i])) ;
 				}
 #endif
 		} /* END if compressed formats */
@@ -3149,7 +3175,7 @@ static BERR_Code BHDM_EDID_P_ParseAudioDB(
 				/* check that at least one sample rate is supported */
 				if (EdidAudioSampleRate & EdidAudioSampleRateTable[i].EdidAudioSampleRate)
 				{
-					BDBG_MSG(("\tSample Rate %s", CeaAudioSampleRateTypeText[i])) ;
+					BDBG_MSG(("   Sample Rate %s", CeaAudioSampleRateTypeText[i])) ;
 				}
 #endif
 		} /* END ELSE uncompressed formats */
@@ -3734,39 +3760,39 @@ done:
 				pVideoFormatInfo = (BFMT_VideoInfo *) BFMT_GetVideoFormatInfoPtr((BFMT_VideoFmt) i) ;
 
 				if (hHDMI->AttachedEDID.BcmSupported3DFormats[i] & BHDM_EDID_VSDB_3D_STRUCTURE_ALL_FRAME_PACKING) {
-					BDBG_MSG(("\t%s Frame Packing ", pVideoFormatInfo->pchFormatStr)) ;
+					BDBG_MSG(("   %s Frame Packing ", pVideoFormatInfo->pchFormatStr)) ;
 				}
 
 				if (hHDMI->AttachedEDID.BcmSupported3DFormats[i] & BHDM_EDID_VSDB_3D_STRUCTURE_ALL_FIELD_ALTERNATIVE) {
-					BDBG_MSG(("\t%s FieldAlternative ",	pVideoFormatInfo->pchFormatStr)) ;
+					BDBG_MSG(("   %s FieldAlternative ",	pVideoFormatInfo->pchFormatStr)) ;
 				}
 
 				if (hHDMI->AttachedEDID.BcmSupported3DFormats[i] & BHDM_EDID_VSDB_3D_STRUCTURE_ALL_LINE_ALTERNATIVE) {
-					BDBG_MSG(("\t%s LineAlternative ", pVideoFormatInfo->pchFormatStr)) ;
+					BDBG_MSG(("   %s LineAlternative ", pVideoFormatInfo->pchFormatStr)) ;
 				}
 
 				if (hHDMI->AttachedEDID.BcmSupported3DFormats[i] & BHDM_EDID_VSDB_3D_STRUCTURE_ALL_LDEPTH) {
-					BDBG_MSG(("\t%s LDepth ", pVideoFormatInfo->pchFormatStr)) ;
+					BDBG_MSG(("   %s LDepth ", pVideoFormatInfo->pchFormatStr)) ;
 				}
 
 				if (hHDMI->AttachedEDID.BcmSupported3DFormats[i] & BHDM_EDID_VSDB_3D_STRUCTURE_ALL_LDEPTH_GFX)	{
-					BDBG_MSG(("\t%s LDepth+Graphics ", pVideoFormatInfo->pchFormatStr)) ;
+					BDBG_MSG(("    %s LDepth+Graphics ", pVideoFormatInfo->pchFormatStr)) ;
 				}
 
 				if (hHDMI->AttachedEDID.BcmSupported3DFormats[i] & BHDM_EDID_VSDB_3D_STRUCTURE_ALL_TOP_BOTTOM) {
-					BDBG_MSG(("\t%s TopAndBottom ", pVideoFormatInfo->pchFormatStr)) ;
+					BDBG_MSG(("   %s TopAndBottom ", pVideoFormatInfo->pchFormatStr)) ;
 				}
 
 				if (hHDMI->AttachedEDID.BcmSupported3DFormats[i] & BHDM_EDID_VSDB_3D_STRUCTURE_ALL_SBS_FULL) {
-					BDBG_MSG(("\t%s SideBySide_Full ", pVideoFormatInfo->pchFormatStr)) ;
+					BDBG_MSG(("   %s SideBySide_Full ", pVideoFormatInfo->pchFormatStr)) ;
 				}
 
 				if (hHDMI->AttachedEDID.BcmSupported3DFormats[i] & BHDM_EDID_VSDB_3D_STRUCTURE_ALL_SBS_HALF_HORIZ) {
-					BDBG_MSG(("\t%s SideBySide_Half_Horizontal ", pVideoFormatInfo->pchFormatStr)) ;
+					BDBG_MSG(("   %s SideBySide_Half_Horizontal ", pVideoFormatInfo->pchFormatStr)) ;
 				}
 
 				if (hHDMI->AttachedEDID.BcmSupported3DFormats[i] & BHDM_EDID_VSDB_3D_STRUCTURE_ALL_SBS_HALF_QUINC) {
-					BDBG_MSG(("\t%s SideBySide_Half_QuincunxMatrix ", pVideoFormatInfo->pchFormatStr)) ;
+					BDBG_MSG(("   %s SideBySide_Half_QuincunxMatrix ", pVideoFormatInfo->pchFormatStr)) ;
 				}
 			}
 		}
@@ -3850,7 +3876,7 @@ static void BHDM_EDID_P_ParseHdmi_HF_VSDB(const BHDM_Handle hHDMI, uint8_t DataB
 		g_status[hHDMI->AttachedEDID.RxHdmiForumVsdb.SCDCSupport ? 1 : 0])) ;
 
 	BDBG_MSG(("HDMI Forum 4:2:0 Deep Color Support")) ;
-	BDBG_MSG(("\t 16 bit: %s;   12 bit: %s;   10 bit: %s;  ",
+	BDBG_MSG(("    16 bit: %s;   12 bit: %s;   10 bit: %s;  ",
 		g_status[hHDMI->AttachedEDID.RxHdmiForumVsdb.DeepColor_420_48bit ? 1 : 0],
 		g_status[hHDMI->AttachedEDID.RxHdmiForumVsdb.DeepColor_420_36bit ? 1 : 0],
 		g_status[hHDMI->AttachedEDID.RxHdmiForumVsdb.DeepColor_420_30bit ? 1 : 0])) ;
@@ -3909,11 +3935,12 @@ static BERR_Code BHDM_EDID_P_ProcessDetailedTimingBlock(const BHDM_Handle hHDMI,
 	rc = BHDM_EDID_P_DetailTiming2VideoFmt(hHDMI, DetailTimingBlock, eVideoFmt) ;
 	if (rc)
 	{
-		BDBG_WRN(("Unknown/Unsupported Detailed Timing Format %4d x %d (%4d%c)\n",
+		BDBG_WRN(("Unknown/Unsupported Detailed Timing Format %4d x %d (%4d%c)",
 			DetailTimingBlock->HorizActivePixels, DetailTimingBlock->VerticalActiveLines,
 			DetailTimingBlock->Mode ?
 				DetailTimingBlock->VerticalActiveLines * 2 : DetailTimingBlock->VerticalActiveLines,
 			Mode[DetailTimingBlock->Mode])) ;
+		BDBG_WRN((" ")) ;
 
 		/* no need to error trace here; format is unknown or unsupported by the STB */
 	}
@@ -4304,7 +4331,7 @@ static BERR_Code BHDM_EDID_P_ParseV3TimingExtension (const BHDM_Handle hHDMI)
 			/* skip to next descriptor */
 			offset = offset + BHDM_EDID_MONITOR_DESC_SIZE ;
 		}
-		if (HeaderPrinted) { BDBG_MSG(("\n")) ; }
+		if (HeaderPrinted) { BDBG_MSG(("  ")) ; }
 	}
 
 	/* Check if a RxVSDB has been found in the V3 Timing Extension */
@@ -4321,8 +4348,7 @@ static BERR_Code BHDM_EDID_P_ParseV3TimingExtension (const BHDM_Handle hHDMI)
 	{
 		/* all HDMI Rx that set VSDB.Audio must support Basic Audio (eg 2 Ch PCM)
 		 although not all devices explicitly specify it in Audio Descriptors */
-		BDBG_WRN(("VSDB indicates audio support, but no PCM Audio Descriptors found!")) ;
-		BDBG_WRN(("Assuming 2 channel PCM is supported")) ;
+		BDBG_WRN(("VSDB implies audio support, but no PCM Audio Descriptors found; Assuming 2Ch PCM support")) ;
 
 		/* all HDMI Rxs are required to support PCM Audio; list 48KHz PCM as supported */
 		hHDMI->AttachedEDID.BcmSupportedAudioFormats[BAVC_AudioFormat_ePCM].Supported = 1 ;
@@ -4526,21 +4552,54 @@ BERR_Code BHDM_EDID_Initialize(
 	/* incorrectly implemented Hot Plug signals sometimes cause a problem */
 	hHDMI->edidStatus = BHDM_EDID_STATE_eInitialize;
 
-	BHDM_CHECK_RC(rc, BHDM_EDID_GetNthBlock(hHDMI, 0, hHDMI->AttachedEDID.Block, BHDM_EDID_BLOCKSIZE)) ;
+	rc = BHDM_EDID_GetNthBlock(hHDMI, 0, hHDMI->AttachedEDID.Block, BHDM_EDID_BLOCKSIZE) ;
+	if (rc)  /* error reading/getting EDID block */
+	{
+	/* check/warn if the EDID HEADER is INVALID */
+		if (BKNI_Memcmp(&ucEdidHeader[0], &hHDMI->AttachedEDID.Block[0],
+			BHDM_EDID_HEADER_SIZE))
+		{
+			BDBG_WRN(("Invalid/Missing EDID Header %02X %02X %02X %02X %02X %02X %02X %02X... ignoring",
+				hHDMI->AttachedEDID.Block[0], hHDMI->AttachedEDID.Block[1],
+				hHDMI->AttachedEDID.Block[2], hHDMI->AttachedEDID.Block[3],
+				hHDMI->AttachedEDID.Block[4], hHDMI->AttachedEDID.Block[5],
+				hHDMI->AttachedEDID.Block[6], hHDMI->AttachedEDID.Block[7])) ;
+		}
+	}
+
+
+	/* check if the EDID Version, Revision, or number of extensions is valid */
+	hHDMI->AttachedEDID.BasicData.EdidVersion = hHDMI->AttachedEDID.Block[BHDM_EDID_VERSION] ;
+	hHDMI->AttachedEDID.BasicData.EdidRevision = hHDMI->AttachedEDID.Block[BHDM_EDID_REVISION] ;
+	hHDMI->AttachedEDID.BasicData.Extensions = hHDMI->AttachedEDID.Block[BHDM_EDID_EXTENSION] ;
+
+	if ((hHDMI->AttachedEDID.BasicData.EdidVersion == 0xFF)
+	||  (hHDMI->AttachedEDID.BasicData.EdidRevision	== 0xFF)
+	||  (hHDMI->AttachedEDID.BasicData.Extensions == 0xFF)
+	|| ( (hHDMI->AttachedEDID.BasicData.EdidVersion == 0x00) &&
+		(hHDMI->AttachedEDID.BasicData.EdidRevision == 0x00) &&
+		(hHDMI->AttachedEDID.BasicData.Extensions == 0x00) ))
+	{
+		/* probably read all 0xFF or 0x00; invalid EDID */
+		BDBG_ERR(("EDID returns possible all 0xFF or 0x00 values. Invalid EDID information"));
+		hHDMI->edidStatus = BHDM_EDID_STATE_eInvalid;
+		rc = BERR_TRACE(BHDM_EDID_NOT_FOUND) ;
+		goto done ;
+	}
+
+	if (rc == BHDM_EDID_CHECKSUM_ERROR)
+	{
+		BDBG_WRN(("EDID Ver: %d.%d and Num Exts: %d is probably OK; checksum error will be ignored",
+			hHDMI->AttachedEDID.BasicData.EdidVersion,
+			hHDMI->AttachedEDID.BasicData.EdidRevision,
+			hHDMI->AttachedEDID.BasicData.Extensions)) ;
+		hHDMI->AttachedEDID.CachedBlock = 0 ;
+		rc = BERR_SUCCESS ;
+	}
 
 	/**************************************
 	 Parse Basic EDID Data
 	**************************************/
-
-	if (BKNI_Memcmp(&ucEdidHeader[0], &hHDMI->AttachedEDID.Block[0],
-		BHDM_EDID_HEADER_SIZE))
-	{
-		BDBG_WRN(("Invalid/Missing EDID Header %02X %02X %02X %02X %02X %02X %02X %02X... ignoring",
-			hHDMI->AttachedEDID.Block[0], hHDMI->AttachedEDID.Block[1],
-			hHDMI->AttachedEDID.Block[2], hHDMI->AttachedEDID.Block[3],
-			hHDMI->AttachedEDID.Block[4], hHDMI->AttachedEDID.Block[5],
-			hHDMI->AttachedEDID.Block[6], hHDMI->AttachedEDID.Block[7])) ;
-	}
 
 	BKNI_Memcpy(&hHDMI->AttachedEDID.BasicData.VendorID,
 		&hHDMI->AttachedEDID.Block[BHDM_EDID_VENDOR_ID], 2) ;
@@ -4558,24 +4617,6 @@ BERR_Code BHDM_EDID_Initialize(
 	 hHDMI->AttachedEDID.BasicData.features =
 	 	hHDMI->AttachedEDID.Block[BHDM_EDID_FEATURE_SUPPORT] ;
 
-
-	hHDMI->AttachedEDID.BasicData.EdidVersion = hHDMI->AttachedEDID.Block[BHDM_EDID_VERSION] ;
-	hHDMI->AttachedEDID.BasicData.EdidRevision = hHDMI->AttachedEDID.Block[BHDM_EDID_REVISION] ;
-	hHDMI->AttachedEDID.BasicData.Extensions = hHDMI->AttachedEDID.Block[BHDM_EDID_EXTENSION] ;
-
-	if ((hHDMI->AttachedEDID.BasicData.EdidVersion == 0xFF)
-	||  (hHDMI->AttachedEDID.BasicData.EdidRevision	== 0xFF)
-	||  (hHDMI->AttachedEDID.BasicData.Extensions == 0xFF)
-	|| ( (hHDMI->AttachedEDID.BasicData.EdidVersion == 0x00) &&
-		(hHDMI->AttachedEDID.BasicData.EdidRevision == 0x00) &&
-		(hHDMI->AttachedEDID.BasicData.Extensions == 0x00) ))
-	{
-		/* probably read all 0xFF or 0x00; invalid EDID */
-		BDBG_ERR(("EDID returns all 0xFF or 0x00 values. Invalid EDID information"));
-		hHDMI->edidStatus = BHDM_EDID_STATE_eInvalid;
-		rc = BERR_TRACE(BHDM_EDID_NOT_FOUND) ;
-		goto done ;
-	}
 
 	BDBG_MSG(("Version %d.%d  Number of Extensions: %d",
 		hHDMI->AttachedEDID.BasicData.EdidVersion,
@@ -4610,19 +4651,19 @@ BERR_Code BHDM_EDID_Initialize(
 		 	"Undefined"
 		 } ;
 		 BDBG_MSG(("Feature Support: <%#x>", hHDMI->AttachedEDID.BasicData.features)) ;
-		 BDBG_MSG(("\tStandby Supported: %s",
+		 BDBG_MSG(("   Standby Supported: %s",
 		 	g_status[(hHDMI->AttachedEDID.BasicData.features & 0x80) ? 1 : 0])) ;
-		 BDBG_MSG(("\tSuspend Supported: %s",
+		 BDBG_MSG(("   Suspend Supported: %s",
 			 g_status[(hHDMI->AttachedEDID.BasicData.features & 0x40) ? 1 : 0])) ;
-		 BDBG_MSG(("\tActive Off Supported: %s",
+		 BDBG_MSG(("   Active Off Supported: %s",
 			 g_status[(hHDMI->AttachedEDID.BasicData.features & 0x20) ? 1 : 0])) ;
-		 BDBG_MSG(("\tDisplay Type: %s",
+		 BDBG_MSG(("   Display Type: %s",
 		 	DisplayType[ (hHDMI->AttachedEDID.BasicData.features & 0x18) >> 3])) ;
-		 BDBG_MSG(("\tsRGB Colorspace Supported: %s",
+		 BDBG_MSG(("   sRGB Colorspace Supported: %s",
 			 g_status[(hHDMI->AttachedEDID.BasicData.features & 0x04) ? 1 : 0])) ;
-		 BDBG_MSG(("\tPreferred Timing in Block 1 (must always be set): %s",
+		 BDBG_MSG(("   Preferred Timing in Block 1 (must always be set): %s",
 			 g_status[(hHDMI->AttachedEDID.BasicData.features & 0x02) ? 1 : 0])) ;
-		 BDBG_MSG(("\tDefault GTF Supported: %s",
+		 BDBG_MSG(("   Default GTF Supported: %s",
 			 g_status[(hHDMI->AttachedEDID.BasicData.features & 0x01) ? 1 : 0])) ;
 	}
 #endif
@@ -4729,7 +4770,7 @@ BERR_Code BHDM_EDID_Initialize(
 				continue ;
 			}
 
-			BDBG_MSG(("\n")) ;
+			BDBG_MSG((" ")) ;
 
 			/* keep a copy of first two supported detailed timings for quick retrieval */
 			if (SupportedTimingsFound < 2)

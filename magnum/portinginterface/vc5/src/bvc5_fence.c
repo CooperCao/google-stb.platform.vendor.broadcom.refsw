@@ -43,19 +43,26 @@
 
 #include "bvc5_fence_priv.h"
 
+#include <stdbool.h>
+
 BDBG_MODULE(BVC5_Fence);
+
+#define MAX_FENCE_CALLBACKS 2
 
 typedef struct BVC5_P_Fence
 {
    bool               bSignaled;
 
-   /* TODO: this should be a list/array of callbacks */
-   void              (*pfnCallback)(void *, void *);  /* pfnCallback(pContext, pParam) */
-   void               *pContext;                      /* hVC5 or Nexus module handle   */
-   void               *pParam;                        /* Auxiliiary data e.g. hEvent   */
+   /* Client id is used when client dies to remove fences and callbacks belonging to it */
+   struct Callback
+   {
+      uint32_t         uiClientId;                    /* owner of the callback         */
+      void           (*pfnCallback)(void *, void *);  /* pfnCallback(pContext, pParam) */
+      void            *pContext;                      /* hVC5 or Nexus module handle   */
+      void            *pParam;                        /* Auxiliiary data e.g. hEvent   */
+   } sCallback[MAX_FENCE_CALLBACKS];
 
-   /* Client id is used when client dies to remove fences belonging to it              */
-   uint32_t            uiClientId;
+   uint32_t            uiClientId;                     /* owner of the fence */
    unsigned            uiRefCount;
    unsigned            uiIndex;                        /* index in the fenceArray
                                                           equal with the iFenceId */
@@ -149,27 +156,40 @@ static void BVC5_P_FenceRefCountInc(
 }
 
 /* the caller must held the lock to hFenceArr */
+static void BVC5_P_FenceDestroy(
+    BVC5_P_Fence *pFence,
+    BVC5_FenceArrayHandle hFenceArr
+)
+{
+   unsigned index;
+
+   BDBG_ASSERT(pFence && pFence->uiIndex < hFenceArr->uiCapacity);
+   BDBG_ASSERT(hFenceArr->pFences[pFence->uiIndex] == pFence);
+
+   index = pFence->uiIndex;
+   BDBG_MSG(("destroy fence pFence=%p fenceId=%d, refcount=%d", (void*)pFence,
+         pFence->uiIndex, pFence->uiRefCount));
+   hFenceArr->pFences[index] = NULL;
+   BKNI_Free(pFence);
+
+   if (hFenceArr->iFirstAvailable < 0 ||
+         (index < (unsigned)hFenceArr->iFirstAvailable))
+   {
+      hFenceArr->iFirstAvailable = index;
+   }
+}
+
+/* the caller must held the lock to hFenceArr */
 static void BVC5_P_FenceRefCountDec(
     BVC5_P_Fence *pFence,
     BVC5_FenceArrayHandle hFenceArr
 )
 {
-   BDBG_ASSERT(pFence && pFence->uiIndex < hFenceArr->uiCapacity);
+   BDBG_ASSERT(pFence);
 
    pFence->uiRefCount--;
    if (pFence->uiRefCount == 0)
-   {
-      unsigned index = pFence->uiIndex;
-      BDBG_MSG(("free last refcount pFence=%p fenceId=%d", (void*)pFence, pFence->uiIndex));
-      hFenceArr->pFences[index] = NULL;
-      BKNI_Free(pFence);
-
-      if (hFenceArr->iFirstAvailable < 0 ||
-            (index < (unsigned)hFenceArr->iFirstAvailable))
-      {
-         hFenceArr->iFirstAvailable = index;
-      }
-   }
+      BVC5_P_FenceDestroy(pFence, hFenceArr);
 }
 
 int BVC5_P_FenceCreate(
@@ -216,7 +236,9 @@ int BVC5_P_FenceCreate(
    pFence->bSignaled = false;
    pFence->uiClientId = uiClientId;
    pFence->uiIndex   = (unsigned)index;
-   pFence->uiRefCount = 1;
+
+   /* start with 2 references - one for the signalling and one for the waiting end */
+   pFence->uiRefCount = 2;
 
    BDBG_MSG(("Fence %d = %p\n", index, (void*)hFenceArr->pFences[index]));
 
@@ -234,8 +256,6 @@ int BVC5_P_FenceCreate(
    if (!found)
       hFenceArr->iFirstAvailable = -1;
 
-
-   BVC5_P_FenceRefCountInc(pFence);
    *dataToSignal = &pFence->uiIndex;
 
 exit:
@@ -277,6 +297,30 @@ static BVC5_P_Fence *BVC5_P_FenceGet(
 }
 
 
+int BVC5_P_FenceKeep(
+   BVC5_FenceArrayHandle hFenceArr,
+   int                   iFenceId
+)
+{
+   BVC5_P_Fence *pFence = NULL;
+
+   BKNI_AcquireMutex(hFenceArr->hMutex);
+
+   BDBG_MSG(("BVC5_P_FenceDup %d", iFenceId));
+
+   pFence = BVC5_P_FenceGet(hFenceArr, iFenceId);
+   if (pFence == NULL)
+   {
+      goto end;
+   }
+
+   BVC5_P_FenceRefCountInc(pFence);
+
+end:
+   BKNI_ReleaseMutex(hFenceArr->hMutex);
+   return pFence != NULL ? 0 : -1;
+}
+
 void BVC5_P_FenceClose(
    BVC5_FenceArrayHandle hFenceArr,
    int                   iFenceId
@@ -298,14 +342,121 @@ end:
    BKNI_ReleaseMutex(hFenceArr->hMutex);
 }
 
+static struct Callback *BVC5_P_FenceCbEnd(BVC5_P_Fence *pFence)
+{
+   static const int count = sizeof(pFence->sCallback) / sizeof(pFence->sCallback[0]);
+   return pFence->sCallback + count; /* one past the last item */
+}
+
+static struct Callback  *BVC5_P_FenceCbInit(
+   struct Callback        *pCallback,
+   uint32_t                uiClientId,
+   void                  (*pfnCallback)(void *, void *),
+   void                   *pContext,
+   void                   *pParam
+)
+{
+   pCallback->uiClientId = uiClientId;
+   pCallback->pfnCallback = pfnCallback;
+   pCallback->pContext = pContext;
+   pCallback->pParam = pParam;
+   return pCallback;
+}
+
+static bool BVC5_P_FenceCbMatch(
+   const struct Callback *pLeft,
+   const struct Callback *pRight
+)
+{
+   return
+      (pLeft->uiClientId  == pRight->uiClientId) &&
+      (pLeft->pfnCallback == pRight->pfnCallback) &&
+      (pLeft->pContext    == pRight->pContext) &&
+      (pLeft->pParam      == pRight->pParam);
+}
+
+static struct Callback *BVC5_P_FenceFindCbMatch(
+   BVC5_P_Fence           *pFence,
+   const struct Callback  *pCallback
+)
+{
+   struct Callback *cb = pFence->sCallback;
+   struct Callback *end = BVC5_P_FenceCbEnd(pFence);
+   struct Callback *found = NULL;
+   while(cb < end)
+   {
+      if (BVC5_P_FenceCbMatch(cb, pCallback))
+      {
+         found = cb;
+         break;
+      }
+      cb++;
+   }
+   return found;
+}
+
+static const struct Callback empty_cb = { 0, NULL, NULL, NULL };
+
+static bool BVC5_P_FenceReplaceCb(
+   BVC5_P_Fence           *pFence,
+   const struct Callback  *pFind,
+   const struct Callback  *pReplace
+)
+{
+   struct Callback *found = BVC5_P_FenceFindCbMatch(pFence, pFind);
+   if (found)
+      *found = *pReplace;
+   return found != NULL;
+}
+
+static bool BVC5_P_FenceAddCb(
+   BVC5_P_Fence           *pFence,
+   struct Callback        *pCallback
+)
+{
+   return BVC5_P_FenceReplaceCb(pFence, &empty_cb, pCallback);
+}
+
+static bool BVC5_P_FenceDelCb(
+   BVC5_P_Fence           *pFence,
+   struct Callback        *pCallback
+)
+{
+   return BVC5_P_FenceReplaceCb(pFence, pCallback, &empty_cb);
+}
+
+static void BVC5_P_FenceDelClientCb(
+   BVC5_P_Fence           *pFence,
+   uint32_t                uiClientId
+)
+{
+   struct Callback *cb = pFence->sCallback;
+   struct Callback *end = BVC5_P_FenceCbEnd(pFence);
+   while(cb < end)
+   {
+      if (cb->uiClientId == uiClientId)
+         *cb = empty_cb;
+      cb++;
+   }
+}
+
+
 static void BVC5_P_FenceCallback(
    BVC5_P_Fence   *pFence
 )
 {
-   /* TODO: handle multiple callbacks */
-   if (pFence->pfnCallback != NULL)
+   struct Callback *cb = pFence->sCallback;
+   struct Callback *end = BVC5_P_FenceCbEnd(pFence);
+   while(cb < end)
    {
-      pFence->pfnCallback(pFence->pContext, pFence->pParam);
+      if (cb->pfnCallback)
+      {
+         cb->pfnCallback(cb->pContext, cb->pParam);
+
+         /* don't call more than once */
+         *cb = empty_cb;
+      }
+      ++cb;
    }
 }
 
@@ -352,8 +503,7 @@ int BVC5_P_FenceWaitAsync(
 {
    BVC5_P_Fence *pFence;
    int           res = -1;
-
-   BSTD_UNUSED(uiClientId);
+   struct Callback cb;
 
    BKNI_AcquireMutex(hFenceArr->hMutex);
    *waitData = NULL;
@@ -367,17 +517,19 @@ int BVC5_P_FenceWaitAsync(
       goto end;
     };
 
-   BDBG_ASSERT(pFence->pfnCallback == NULL);
-
    if (pFence->bSignaled)
    {
       res = 1;
       goto end;
    }
 
-   pFence->pfnCallback = pfnCallback;
-   pFence->pContext    = pContext;
-   pFence->pParam      = pParam;
+   BVC5_P_FenceCbInit(&cb, uiClientId, pfnCallback, pContext, pParam);
+   if (!BVC5_P_FenceAddCb(pFence, &cb))
+   {
+      res = -1;
+      goto end;
+   }
+
    /* we get ownership of iFenceId; it will be decremented when we
     * WaitAsyncCleanup gets called */
    *waitData = &pFence->uiIndex;
@@ -414,11 +566,16 @@ end:
 
 void BVC5_P_FenceWaitAsyncCleanup(
    BVC5_FenceArrayHandle  hFenceArr,
+   uint32_t               uiClientId,
+   void                 (*pfnCallback)(void *, void *),
+   void                  *pContext,
+   void                  *pParam,
    void                  *waitData
 )
 {
    BVC5_P_Fence *pFence;
    int           fenceId;
+   struct Callback cb;
 
    BKNI_AcquireMutex(hFenceArr->hMutex);
    fenceId = *(int*)waitData;
@@ -432,9 +589,8 @@ void BVC5_P_FenceWaitAsyncCleanup(
       goto end;
    }
 
-   pFence->pfnCallback = NULL;
-   pFence->pContext    = NULL;
-   pFence->pParam      = NULL;
+   BVC5_P_FenceCbInit(&cb, uiClientId, pfnCallback, pContext, pParam);
+   BVC5_P_FenceDelCb(pFence, &cb);
 
    BVC5_P_FenceRefCountDec(pFence, hFenceArr);
 end:
@@ -446,12 +602,14 @@ end:
 void BVC5_P_FenceAddCallback(
    BVC5_FenceArrayHandle  hFenceArr,
    int                    iFenceId,
+   uint32_t               uiClientId,
    void                 (*pfnCallback)(void *, void *),
    void                  *pContext,
    void                  *pParam
 )
 {
    BVC5_P_Fence   *pFence = NULL;
+   struct Callback cb;
 
    BDBG_MSG(("Add callback fenceId=%d", iFenceId));
 
@@ -462,38 +620,43 @@ void BVC5_P_FenceAddCallback(
    if (pFence == NULL)
       goto end;
 
-   BDBG_ASSERT(pFence->pfnCallback == NULL);
-
-   pFence->pfnCallback = pfnCallback;
-   pFence->pContext    = pContext;
-   pFence->pParam      = pParam;
-
    if (pFence->bSignaled)
-      BVC5_P_FenceCallback(pFence);
+      pfnCallback(pContext, pParam);
+   else
+   {
+      BVC5_P_FenceCbInit(&cb, uiClientId, pfnCallback, pContext, pParam);
+      BVC5_P_FenceAddCb(pFence, &cb);
+   }
 
 end:
    BKNI_ReleaseMutex(hFenceArr->hMutex);
 }
 
-void BVC5_P_FenceRemoveCallback(
+bool BVC5_P_FenceRemoveCallback(
    BVC5_FenceArrayHandle hFenceArr,
-   int                   iFenceId
+   int                   iFenceId,
+   uint32_t              uiClientId,
+   void                (*pfnCallback)(void *, void *),
+   void                 *pContext,
+   void                 *pParam
 )
 {
    BVC5_P_Fence   *pFence = NULL;
+   struct Callback cb;
+   bool signalled = false;
 
    BKNI_AcquireMutex(hFenceArr->hMutex);
    pFence = BVC5_P_FenceGet(hFenceArr, iFenceId);
    if (pFence == NULL)
       goto end;
 
-   /* TODO: handle multiple callbacks */
-   pFence->pfnCallback = NULL;
-   pFence->pContext    = NULL;
-   pFence->pParam      = NULL;
+   signalled = pFence->bSignaled;
+   BVC5_P_FenceCbInit(&cb, uiClientId, pfnCallback, pContext, pParam);
+   BVC5_P_FenceDelCb(pFence, &cb);
 
 end:
    BKNI_ReleaseMutex(hFenceArr->hMutex);
+   return signalled;
 }
 
 
@@ -502,7 +665,7 @@ void BVC5_P_FenceClientDestroy(
    uint32_t              uiClientId
 )
 {
-   uint32_t i, j;
+   uint32_t i;
 
    BDBG_MSG(("BVC5_P_FenceClientDestroy uiClientId=%d", uiClientId));
 
@@ -511,16 +674,24 @@ void BVC5_P_FenceClientDestroy(
    /* this gets called after we made sure that the scheduler had
     * signal/cleanup all the signal jobs and wait_for_fence jobs;
     * At this point, we should only have fences that were not closed and/or
-    * signaled from user space -->max refcount == 2 */
+    * signaled from user space */
+
+   /* delete this client's callbacks from all fences */
    for (i = 0; i < hFenceArr->uiCapacity; ++i)
    {
-      for (j = 0; j < 2; ++j)
-      {
-         /* important to get again the fence from the array when j = 1 */
-         BVC5_P_Fence   *pFence = hFenceArr->pFences[i];
+      BVC5_P_Fence   *pFence = hFenceArr->pFences[i];
+      if (pFence)
+         BVC5_P_FenceDelClientCb(pFence, uiClientId);
+   }
 
-         if (pFence && pFence->uiClientId == uiClientId)
-            BVC5_P_FenceRefCountDec(pFence, hFenceArr);
+   /* signal and delete this client's fences - callbacks are already deleted */
+   for (i = 0; i < hFenceArr->uiCapacity; ++i)
+   {
+      BVC5_P_Fence   *pFence = hFenceArr->pFences[i];
+      if (pFence && (pFence->uiClientId == uiClientId))
+      {
+         BVC5_P_FenceCallback(pFence); /* de-block anyone waiting */
+         BVC5_P_FenceDestroy(pFence, hFenceArr);
       }
    }
 

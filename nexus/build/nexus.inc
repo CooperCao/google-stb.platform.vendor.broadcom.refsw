@@ -1,7 +1,7 @@
 ############################################################
-#     (c)2003-2013 Broadcom Corporation
+#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 #
-#  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+#  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
 #  conditions of a separate, written license agreement executed between you and Broadcom
 #  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,20 +35,9 @@
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
 #
-# $brcm_Workfile: $
-# $brcm_Revision: $
-# $brcm_Date: $
-#
 # Module Description:
 #       This makefile contains the OS-independent rules for building
 #       nexus modules.
-#
-# Revision History:
-#
-# Created: 08/28/2007 by Jon Garrett
-#
-# $brcm_Log: $
-#
 ############################################################
 
 ############################################################
@@ -232,6 +221,13 @@ include $(NEXUS_BUILD_OS_DIR)/os_rules.inc
 .PHONY: nexus_print_options
 nexus_print_options:
 	@echo "See \"Build System Variables\" in nexus/docs/Nexus_Usage.pdf"
+
+$(NEXUS_OBJ_DIR)/PLATFORM/nexus_platform.$(NEXUS_OBJ_SUFFIX): ${NEXUS_SYNCTHUNK_DIR}/nexus_scm_id_string.h
+
+${NEXUS_SYNCTHUNK_DIR}/nexus_scm_id_string.h:${NEXUS_SYNCTHUNK_DIR}/exists
+	@echo "[Git....... $(notdir $@)]"
+	${Q_}(git log -n 1 --format='#define NEXUS_SCM_ID_STRING "%H"' 2>/dev/null || echo '#define NEXUS_SCM_ID_STRING "UNKNOWN"') >$@
+
 
 # NOTE: It's important that NEXUS_$(module)_PUBLIC_INCLUDES not be rolled up into a single, global include path inside nexus.inc.
 # Having per-module include paths is required for perserving modularity by preventing unmanaged calls from one module to another.

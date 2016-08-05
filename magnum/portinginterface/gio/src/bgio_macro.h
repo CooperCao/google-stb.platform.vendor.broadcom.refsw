@@ -61,7 +61,7 @@ extern "C" {
        (((structname*)(handle))->ulBlackMagic != \
         (sizeof(structname) & 0xbac98800))) \
     { \
-        BDBG_ERR(("NULL context handle\n")); \
+        BDBG_ERR(("NULL context handle")); \
         (context) = NULL; \
     } \
     else \

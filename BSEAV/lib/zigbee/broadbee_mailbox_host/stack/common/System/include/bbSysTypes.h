@@ -84,6 +84,9 @@
 #undef  UINT8_MAX
 #define UINT8_MAX   0xFFU
 
+#undef  UINT16_MAX
+#define UINT16_MAX  0xFFFFU
+
 #undef  INT32_MAX
 #define INT32_MAX   0x7FFFFFFFL
 

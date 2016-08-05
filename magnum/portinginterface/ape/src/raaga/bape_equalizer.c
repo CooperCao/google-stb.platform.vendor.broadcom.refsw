@@ -1,22 +1,42 @@
 /***************************************************************************
- *     Copyright (c) 2006-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
- * 
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * Module Description: Audio Equalizer Interface
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  ***************************************************************************/
 #include "bape.h"
 #include "bape_priv.h"
@@ -633,12 +653,12 @@ static BERR_Code BAPE_Equalizer_P_AllocatePathFromInput(
         return BERR_TRACE(errCode);
     }
 
-	/** This will set the src coefficients with the saved settings ***/
-	for(i=0; i< handle->numCascadeSrcs; i++)
-	{
-		BAPE_EqualizerStage_SetSettings(handle->eqStage[i],&(handle->eqStage[i]->settings));
+    /** This will set the src coefficients with the saved settings ***/
+    for(i=0; i< handle->numCascadeSrcs; i++)
+    {
+        BAPE_EqualizerStage_SetSettings(handle->eqStage[i],&(handle->eqStage[i]->settings));
 
-	}
+    }
 
     return BERR_SUCCESS;
 }
@@ -1008,7 +1028,7 @@ static void BAPE_Equalizer_P_InputSampleRateChange_isr(
     /* Initialize to Bypass */
     BKNI_Memset(&coeff, 0, sizeof(BAPE_SRC_P_IIRCoeff));
 
-	for(i=0; i<BAPE_CHIP_P_MAX_IIR_FILTERS_PER_SRC; i++)
+    for(i=0; i<BAPE_CHIP_P_MAX_IIR_FILTERS_PER_SRC; i++)
     {    
         coeff.b0[i] = 0x02000000; /* Coefficients registers are 3.25 format */
     }    
@@ -1059,17 +1079,19 @@ static void BAPE_EqualizerStage_P_GenerateCoefficients_isr(
            
             /* Cut off Freq of Bass and Treble hardcoded to 100 and 10000 for 
                 now */
-            BDBG_MSG(("\n bassGain = %d trebleGain = %d \n bassFreq = %u trebleFreq = %u"
-            "\n bassEqType = %d trebleEqType = %d \n bassBandwidthFreq = %u trebleBandwidthFreq = %u",
-                eqStage->settings.modeSettings.toneControl.bassGain,                 
-                eqStage->settings.modeSettings.toneControl.trebleGain,
-                eqStage->settings.modeSettings.toneControl.bassFreq,
-                eqStage->settings.modeSettings.toneControl.trebleFreq,
-                eqStage->settings.modeSettings.toneControl.bassEqType,
-                eqStage->settings.modeSettings.toneControl.trebleEqType,
-                eqStage->settings.modeSettings.toneControl.bassBandwidthFreq,
-                eqStage->settings.modeSettings.toneControl.trebleBandwidthFreq));
-            
+            BDBG_MSG((" bassGain = %d trebleGain = %d",
+                      eqStage->settings.modeSettings.toneControl.bassGain,
+                      eqStage->settings.modeSettings.toneControl.trebleGain));
+            BDBG_MSG((" bassFreq = %u trebleFreq = %u",
+                      eqStage->settings.modeSettings.toneControl.bassFreq,
+                      eqStage->settings.modeSettings.toneControl.trebleFreq));
+            BDBG_MSG((" bassEqType = %d trebleEqType = %d",
+                      eqStage->settings.modeSettings.toneControl.bassEqType,
+                      eqStage->settings.modeSettings.toneControl.trebleEqType));
+            BDBG_MSG((" bassBandwidthFreq = %u trebleBandwidthFreq = %u",
+                      eqStage->settings.modeSettings.toneControl.bassBandwidthFreq,
+                      eqStage->settings.modeSettings.toneControl.trebleBandwidthFreq));
+
             EQ_generate_tone_control_isrsafe (
                 eqStage->sampleRate, 
                 (eqStage->settings.modeSettings.toneControl.bassGain)/10,                 
@@ -1095,12 +1117,12 @@ static void BAPE_EqualizerStage_P_GenerateCoefficients_isr(
             geqdB[3] = (eqStage->settings.modeSettings.fiveBand.gain3000Hz)/10;
             geqdB[4] = (eqStage->settings.modeSettings.fiveBand.gain10000Hz)/10; 
 
-            BDBG_MSG(("Gain at Frequencies: \n 100: %d \n 300: %d \n 1000: %d \n 3000: %d \n 10000: %d",
-                eqStage->settings.modeSettings.fiveBand.gain100Hz,eqStage->settings.modeSettings.fiveBand.gain300Hz,
-                eqStage->settings.modeSettings.fiveBand.gain1000Hz,
-                eqStage->settings.modeSettings.fiveBand.gain3000Hz,
-                eqStage->settings.modeSettings.fiveBand.gain10000Hz));
-
+            BDBG_MSG(("Gain at Frequencies:"));
+            BDBG_MSG((" 100: %d", eqStage->settings.modeSettings.fiveBand.gain100Hz));
+            BDBG_MSG((" 300: %d", eqStage->settings.modeSettings.fiveBand.gain300Hz));
+            BDBG_MSG((" 1000: %d", eqStage->settings.modeSettings.fiveBand.gain1000Hz));
+            BDBG_MSG((" 3000: %d", eqStage->settings.modeSettings.fiveBand.gain3000Hz));
+            BDBG_MSG((" 10000: %d", eqStage->settings.modeSettings.fiveBand.gain10000Hz));
           
             EQ_generate_geq_isrsafe (
                 eqStage->sampleRate, 
@@ -1115,7 +1137,7 @@ static void BAPE_EqualizerStage_P_GenerateCoefficients_isr(
         
         case BAPE_EqualizerStageType_eSevenBand:    
             for (i=0;i<7;i++)
-        	{
+            {
                 EQ_generate_peq_isrsafe(
                     eqStage->settings.modeSettings.sevenBand.bandSettings[i].peak,
                     eqStage->settings.modeSettings.sevenBand.bandSettings[i].q,
@@ -1125,11 +1147,11 @@ static void BAPE_EqualizerStage_P_GenerateCoefficients_isr(
                     b,
                     a
                     );
-        		pCoeff->b0[i] = b[0];
-        		pCoeff->b1[i] = b[1];
-        		pCoeff->b2[i] = b[2];
-        		pCoeff->a1[i] = a[1];
-        		pCoeff->a2[i] = a[2];
+                pCoeff->b0[i] = b[0];
+                pCoeff->b1[i] = b[1];
+                pCoeff->b2[i] = b[2];
+                pCoeff->a1[i] = a[1];
+                pCoeff->a2[i] = a[2];
             }
             break;            
             
@@ -1250,7 +1272,7 @@ static void BAPE_EqualizerStage_P_UpdateCoefficients_isr(
     {
         if(NULL != eqStage->srcGroups[i])
         {
-        	BAPE_SrcGroup_P_UpdateCoefficients_isr(eqStage->srcGroups[i], pCoeff, pStepSize);
+            BAPE_SrcGroup_P_UpdateCoefficients_isr(eqStage->srcGroups[i], pCoeff, pStepSize);
         }
     }    
     
@@ -1391,4 +1413,3 @@ void BAPE_Equalizer_GetConnector(
     BSTD_UNUSED(pConnector);
 }
 #endif
-

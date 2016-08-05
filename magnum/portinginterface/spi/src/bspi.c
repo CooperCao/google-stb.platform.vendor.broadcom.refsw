@@ -53,7 +53,7 @@
 #include "bchp_irq0.h"
 #endif
 
-#if (BCHP_CHIP==7271) || (BCHP_CHIP==7268)
+#if (BCHP_CHIP==7271) || (BCHP_CHIP==7268) || (BCHP_CHIP==7260)
 #include "bchp_upg_spi_aon_irq.h"
 #else
 #include "bchp_int_id_irq0.h"

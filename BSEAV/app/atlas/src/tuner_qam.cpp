@@ -1,42 +1,39 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *****************************************************************************/
 
 #if NEXUS_HAS_FRONTEND
@@ -491,12 +488,12 @@ error:
 
 NEXUS_FrontendQamMode CTunerQam::getDefaultMode()
 {
+#if 1
     /* dtt todo: 7231 is incorrectly reporting NEXUS_FrontendQamMode_eAuto_64_256 is
      * is a valid qam mode, but then chokes on it if you use it while tuning.  for now
      * we'll always use e256 as the default mode */
     return(NEXUS_FrontendQamMode_e256);
-
-#if 0
+#else
     if (true == _capabilities.qamModes[NEXUS_FrontendQamMode_eAuto_64_256])
     {
         return(NEXUS_FrontendQamMode_eAuto_64_256);
@@ -515,7 +512,7 @@ uint32_t CTunerQam::getDefaultSymbolRateMax(NEXUS_FrontendQamMode mode)
     switch (mode)
     {
     case NEXUS_FrontendQamMode_e64:
-        symbolRate = 5056900;
+        symbolRate = 5056971;
         break;
 
     case NEXUS_FrontendQamMode_e256:
@@ -542,7 +539,7 @@ uint32_t CTunerQam::getDefaultSymbolRateMin(NEXUS_FrontendQamMode mode)
     switch (mode)
     {
     case NEXUS_FrontendQamMode_e64:
-        symbolRate = 5056900;
+        symbolRate = 5056971;
         break;
 
     case NEXUS_FrontendQamMode_e256:
@@ -709,24 +706,32 @@ void CTunerQam::doScan()
         settings.mode                   = (-1 != _scanData._mode) ? (NEXUS_FrontendQamMode)_scanData._mode : getDefaultMode();
         settings.scan.upperBaudSearch   = (-1 != _scanData._symbolRateMax) ? _scanData._symbolRateMax : getDefaultSymbolRateMax(settings.mode);
         settings.scan.lowerBaudSearch   = (-1 != _scanData._symbolRateMin) ? _scanData._symbolRateMin : getDefaultSymbolRateMin(settings.mode);
+        settings.scan.frequencyOffset   = 250000;
 
         /* set standard symbol rate setting for older platforms do not support advanced scan */
         settings.symbolRate = settings.scan.upperBaudSearch;
 
-        if (-1 != _scanData._mode)
+        if (-1 != settings.mode)
         {
-            int annexSum = 0;
-
-            /* sanity check: make sure at least one annex is set */
-            for (int i = 0; i < NEXUS_FrontendQamAnnex_eMax; i++)
             {
-                annexSum += _scanData._annex[i];
+                int annexSum = 0;
+
+                /* sanity check: make sure at least one annex is set */
+                for (int i = 0; i < NEXUS_FrontendQamAnnex_eMax; i++)
+                {
+                    annexSum += _scanData._annex[i];
+                }
+
+                if (0 == annexSum)
+                {
+                    /* no annex set so default to annex B */
+                    _scanData._annex[NEXUS_FrontendQamAnnex_eB] = true;
+                }
             }
-            BDBG_ASSERT(0 < annexSum);
 
             memset(settings.scan.mode, 0, sizeof(settings.scan.mode));
 
-            if (NEXUS_FrontendQamMode_eAuto_64_256 == (NEXUS_FrontendQamMode)_scanData._mode)
+            if (NEXUS_FrontendQamMode_eAuto_64_256 == (NEXUS_FrontendQamMode)settings.mode)
             {
                 for (int i = 0; i < NEXUS_FrontendQamAnnex_eMax; i++)
                 {
@@ -738,7 +743,7 @@ void CTunerQam::doScan()
             {
                 for (int i = 0; i < NEXUS_FrontendQamAnnex_eMax; i++)
                 {
-                    settings.scan.mode[i][(NEXUS_FrontendQamMode)_scanData._mode] = _scanData._annex[i];
+                    settings.scan.mode[i][(NEXUS_FrontendQamMode)settings.mode] = _scanData._annex[i];
                 }
             }
         }
@@ -761,7 +766,6 @@ void CTunerQam::doScan()
                      * likely when specifying auto mode which really may not be supported. if this is the
                      * case, we will default to 256 mode and try tuning again. */
                     settings.mode   = NEXUS_FrontendQamMode_e256;
-                    _scanData._mode = NEXUS_FrontendQamMode_e256;
                     chQam.setSettings(settings);
 
                     BDBG_WRN(("Failure tuning with unsupported QAM mode - defaulting to 256"));

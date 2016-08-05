@@ -1,5 +1,5 @@
 /********************************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -49,6 +49,7 @@
 #include "b_dtcp_applib.h"
 #include "b_dtcp_ake.h"
 #include "b_dtcp_stack.h"
+#include "b_dtcp_srm.h"
 #include "b_dtcp_ip_stack.h"
 #include "b_dtcp_stream.h"
 #include "b_ecc_wrapper.h"
@@ -134,6 +135,27 @@ int DtcpAppLib_Listen(const void * ctx, const char *aSourceIp, unsigned short aS
     } else {
         BDBG_MSG(("DTCP Listen FAILED: %d\r\n", returnValue) );
     }
+    return returnValue;
+}
+
+/*
+ * Get some common device info for diagnostic purposes.
+ */
+BERR_Code DtcpAppLib_GetDeviceInfo(void * ctx, B_DTCP_Info *info)
+{
+    BERR_Code returnValue = BERR_SUCCESS;
+    B_DTCP_StackHandle_T pStack = (B_DTCP_StackHandle_T)ctx;
+
+    BDBG_ASSERT(pStack);
+    BDBG_ASSERT(info);
+    B_BaselineFullCert_T * cert = (B_BaselineFullCert_T *)pStack->DeviceParams->Cert;
+    info->AL = cert->AL & 0x01;
+    info->CommonDeviceCert = pStack->DeviceParams->CommonDeviceCert;
+
+    info->SrmVersion = B_DTCP_GetSrmV((unsigned char *)pStack->DeviceParams->Srm);
+    info->SrmGen = B_DTCP_GetSrmC((unsigned char *)pStack->DeviceParams->Srm);
+    info->SrmLength = B_DTCP_GetSrmLength((unsigned char *)pStack->DeviceParams->Srm);
+
     return returnValue;
 }
 
@@ -280,7 +302,7 @@ bool DtcpAppLib_VerifyExchKey(void * ctx, void *aAkeHandle)
 
     if(pStack->VerifyExchKey_Func(pStack, aAkeHandle, &Valid) != BERR_SUCCESS)
     {
-        BDBG_ERR(("Couldn't verify exchange Key for session: %08x\n", (unsigned int)aAkeHandle));
+        BDBG_ERR(("Couldn't verify exchange Key for session: %p\n", (void *)aAkeHandle));
         return Valid;
     }
 

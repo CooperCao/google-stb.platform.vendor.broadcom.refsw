@@ -154,9 +154,12 @@ NEXUS_Display_P_DequeVbi_isr(void* parm1, int parm2)
     rc = BVBIlib_Encode_Data_isr(display->vbi.enc, polarity);
     if (rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc);}
 
-#if NEXUS_NUM_HDMI_OUTPUTS
-    /* HdmiOuptput vsync isr must occur after actual video vsync.
-    VDC vsync is actually based on completion of RDC fire, which is based on last pixel, not vsync. */
+    /* The CRC register in the HDMI output block is currently updated on the
+     * rising edge of the vsync signal. This is not a convenient time for
+     * software to read the value in a reliable manner.  The work-around is
+     * to use VBI line (adjustible) interrupt for reading.  Later chips with
+     * BAVC_HDMI_CRC_READING_FIX = 1 can be read using regular display vsync. */
+#if((NEXUS_NUM_HDMI_OUTPUTS) && (!BAVC_HDMI_CRC_READING_FIX))
     if (display->hdmi.vsync_isr) {
         /* general purpose per-vsync isr. one use is CRC capture. */
         (display->hdmi.vsync_isr)(display->hdmi.pCbParam);

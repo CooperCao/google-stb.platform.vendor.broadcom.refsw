@@ -120,19 +120,19 @@ static const char * const ErrorsSemantic[] =
    //S0001
    "Type mismatch in expression",
    //S0002
-   BAD_ERROR_CODE,
+   "Invalid initialiser",
    //S0003
-   BAD_ERROR_CODE,
+   "Invalid constructor",
    //S0004
    "Operator not supported for operand types",
    //S0005
    "Read expression is not an r-value",
    //S0006
-   BAD_ERROR_CODE,
+   "Function definition inconsistent with declaration",
    //S0007
-   "Invalid constructor",
+   "Interface variables must be declared at global scope",
    //S0008
-   BAD_ERROR_CODE,
+   "Illegal data type for input or output",
    //S0009
    BAD_ERROR_CODE,
    //S0010
@@ -142,7 +142,7 @@ static const char * const ErrorsSemantic[] =
    //S0012
    BAD_ERROR_CODE,
    //S0013
-   "Invalid initialiser",
+   BAD_ERROR_CODE,
    //S0014
    BAD_ERROR_CODE,
    //S0015
@@ -180,43 +180,11 @@ static const char * const ErrorsSemantic[] =
    //S0031
    "Overloading built-in functions not allowed.",
    //S0032
-   "Use of float or int without a precision qualifier where the default precision is not defined",
+   BAD_ERROR_CODE,
    //S0033
    "Expression that does not have an intrinsic precision where the default precision is not defined",
    //S0034
    "Variable cannot be declared invariant",
-   //S0035
-   BAD_ERROR_CODE,
-   //S0036
-   BAD_ERROR_CODE,
-   //S0037
-   BAD_ERROR_CODE,
-   //S0038
-   BAD_ERROR_CODE,
-   //S0039
-   BAD_ERROR_CODE,
-   //S0040
-   BAD_ERROR_CODE,
-   //S0041
-   "Function return type is an array",
-   //S0042
-   "Return type of function definition must match return type of function declaration",
-   //S0043
-   "Parameter qualifiers of function definition must match parameter qualifiers of function declaration",
-   //S0044
-   BAD_ERROR_CODE,
-   //S0045
-   BAD_ERROR_CODE,
-   //S0046
-   BAD_ERROR_CODE,
-   //S0047
-   "Interface variables must be declared at global scope",
-   //S0048
-   "Illegal data type for vertex output or fragment input",
-   //S0049
-   "Illegal data type for vertex input (can only use float, floating-point vectors, matrices, signed and unsigned integers and integer vectors)",
-   //S0050
-   "Illegal data type for fragment output",
 };
 
 static const char * const ErrorsLinker[] =
@@ -230,11 +198,11 @@ static const char * const ErrorsLinker[] =
    //L0003
    "Too many vertex input values",
    //L0004
-   "Too many vertex output values (varyings)",
+   "Invalid output declaration",
    //L0005
    "Too many uniform values",
    //L0006
-   "Too many fragment output values",
+   "Invalid combination of stages",
    //L0007
    "Input variable not declared in the previous shader stage",
    //L0008

@@ -45,8 +45,8 @@
  * DESCRIPTION:
  *   This is the header file for the RF4CE Network Layer component NIB Attributes handlers.
  *
- * $Revision: 3201 $
- * $Date: 2014-08-11 07:55:24Z $
+ * $Revision: 12956 $
+ * $Date: 2016-07-14 01:20:40Z $
  *
  ****************************************************************************************/
 #ifndef _RF4CE_NWK_NIB_ATTRIBUTES_H
@@ -103,12 +103,16 @@ typedef enum _RF4CE_NWK_NIB_Ids_t
     RF4CE_NWK_FA_SCAN_THRESHOLD,
     RF4CE_NWK_NUM_SUPPORTED_PROFILES,
     RF4CE_NWK_ANTENNA_AVAILABLE,
-//#ifdef _PHY_TEST_HOST_INTERFACE_
     RF4CE_NWK_SUPPORTED_PROFILES,
     RF4CE_NWK_TX_POWER_KEY_EXCHANGE,           /*!< Tx Power for the key seed tranmission */
-//#endif
+    RF4CE_NWK_FA_COUNT_THRESHOLD,              /*!<  Frequency Agility Count Threshold */
+    RF4CE_NWK_FA_DECREMENT,                    /*!<  Frequency Agility Decrement */
     RF4CE_NWK_ATTRIBUTE_MAXIMUM
 } RF4CE_NWK_NIB_Ids_t;
+
+#if RF4CE_NWK_ATTRIBUTE_MAXIMUM > 0x7f
+    #error ('Too many RF4CE NWK attributes')
+#endif
 
 /**//**
  * \brief NWK NIB Pairing entry helper macros.
@@ -174,6 +178,8 @@ typedef struct _RF4CE_NIB_Attributes_t
         uint8_t nwkMaxReportedNodeDescriptors;           /*!< The maximum number of node descriptors that can be obtained
                                                               before reporting to the application. */
         int8_t  nwkFaScanThreshold;
+        uint8_t  nwkFaCountThreshold;
+        int8_t  nwkFaDecrement;
     } nonStorable;
 
     struct
@@ -200,9 +206,7 @@ typedef struct _RF4CE_NIB_Attributes_t
         uint8_t nwkNodeCapabilities;                     /*!< Current node capabilities */
         uint8_t nwkDiscoveryLQIThreshold;                /*!< The LQI threshold below which discovery requests will be
                                                               rejected. */
-//#ifdef _PHY_TEST_HOST_INTERFACE_
         int8_t  nwkTxPowerKeyExchange;                   /*!< Tx Power during Key Exchange. */
-//#endif //ifdef _PHY_TEST_HOST_INTERFACE_
     } storable;
 } RF4CE_NIB_Attributes_t;
 
@@ -250,14 +254,14 @@ typedef union _RF4CE_NIB_AttributesAll_t
     uint8_t nwkChannelNormalization;                 /*!< Node capabilities: If the node is channel normalization capable. */
     uint8_t nwkSecurityCapable;                      /*!< Node capabilities: If the node is security capable. */
     uint8_t nwkPowerSource;                          /*!< Node capabilities: If the node is powered from mains. */
-    uint8_t nwkFaScanThreshold;                      /*!< Extension of constant RF4CE_NWKC_FA_SCAN_THRESHOLD */
+    int8_t nwkFaScanThreshold;                      /*!< Extension of constant RF4CE_NWKC_FA_SCAN_THRESHOLD */
     uint8_t nwkNumSupportedProfiles;
     uint8_t antennaAvailable;
-//#ifdef _PHY_TEST_HOST_INTERFACE_
     uint8_t nwkSupportedProfiles[RF4CE_NWK_MAX_PROFILE_ID_LIST_LENGTH];
     int8_t  nwkTxPowerKeyExchange;                   /*!< Tx Power during Key Exchange. */
-//#endif  //ifdef _PHY_TEST_HOST_INTERFACE_
-} RF4CE_NIB_AttributesAll_t;
+    uint8_t nwkFaCountThreshold;                     /*!< Self-defined attribute for RF4CE_NWKC_FA_COUNT */
+    int8_t nwkFaDecrement;                           /*!< Self-defined attribute for RF4CE_NWKC_FA_DECREMENT */
+ } RF4CE_NIB_AttributesAll_t;
 
 /**//**
  * \brief NLME-SET identification structure declaration.
@@ -306,7 +310,7 @@ typedef struct _RF4CE_NWK_SetReqDescr_t
 #ifndef _HOST_
     RF4CE_NWK_RequestService_t service;   /*!< Service field */
 #else
-	void *context;
+    void *context;
 #endif /* _HOST_ */
     RF4CE_NWK_SetReqParams_t params;   /*!< Request containing structure */
     RF4CE_NWK_SetConfCallback_t callback; /*!< Callback for confirmation. */
@@ -348,7 +352,7 @@ typedef struct _RF4CE_NWK_GetReqDescr_t
 #ifndef _HOST_
     RF4CE_NWK_RequestService_t service;   /*!< Service field */
 #else
-	void *context;
+    void *context;
 #endif /* _HOST_ */
     RF4CE_NWK_GetReqParams_t params;   /*!< Request containing structure */
     RF4CE_NWK_GetConfCallback_t callback; /*!< Callback for confirmation. */
@@ -365,24 +369,15 @@ typedef struct _RF4CE_NWK_GetReqDescr_t
 #    define RF4CE_DEFAULT_NODE_CAPS \
         .nwkNodeCapabilities = RF4CE_NWKC_NODE_CAPABILITIES & (~RF4CE_NWK_NODE_TARGET)
 #endif /* RF4CE_TARGET */
+
 #define RF4CE_DEFAULT_NONSTORABLE_NIB_VALUES() \
     .nwkDiscoveryRepetitionInterval = 0x0030d4, \
     .nwkMaxDiscoveryRepetitions = 1, \
     .nwkMaxReportedNodeDescriptors = 3,\
-    .nwkFaScanThreshold = RF4CE_NWKC_FA_SCAN_THRESHOLD,
+    .nwkFaScanThreshold = RF4CE_NWKC_FA_SCAN_THRESHOLD, \
+    .nwkFaCountThreshold = RF4CE_NWK_FREQUENCY_AGILITY_COUTER, \
+    .nwkFaDecrement = RF4CE_NWK_FREQUENCY_AGILITY_DECREMENT,
 
-#if 0
-#define RF4CE_DEFAULT_STORABLE_NIB_VALUES() \
-    .nwkActivePeriod = RF4CE_NWKC_MIN_ACTIVE_PERIOD, \
-    .nwkDutyCycle = 0, \
-    .nwkResponseWaitTime = 0x00186a, \
-    .nwkMaxFirstAttemptFrameRetries = 3, \
-    .nwkIndicateDiscoveryRequests = 0, \
-    .nwkMaxFirstAttemptCSMABackoffs = 4, \
-    .nwkScanDuration = 6, \
-    .nwkDiscoveryLQIThreshold = 0xff, \
-    RF4CE_DEFAULT_NODE_CAPS,
-#else   //ifdef _PHY_TEST_HOST_INTERFACE_
 #define RF4CE_DEFAULT_STORABLE_NIB_VALUES() \
     .nwkActivePeriod = RF4CE_NWKC_MIN_ACTIVE_PERIOD, \
     .nwkDutyCycle = 0, \
@@ -394,11 +389,11 @@ typedef struct _RF4CE_NWK_GetReqDescr_t
     .nwkDiscoveryLQIThreshold = 0xff, \
     .nwkTxPowerKeyExchange = RF4CE_NWKC_SEC_CMD_TX_POWER, \
     RF4CE_DEFAULT_NODE_CAPS,
-#endif  //ifdef _PHY_TEST_HOST_INTERFACE_
 
 #define RF4CE_DEFAULT_AUTO_NIB_VALUES() \
     .nwkBaseChannel = 15, \
     .nwkInPowerSave = 1,
+
 #define RF4CE_DEFAULT_NIB_VALUES() \
     .frameCounter = \
     { \

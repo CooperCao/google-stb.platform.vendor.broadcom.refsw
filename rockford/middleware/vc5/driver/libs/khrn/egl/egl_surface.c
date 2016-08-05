@@ -17,14 +17,19 @@ FILE DESCRIPTION
 #include "../glxx/glxx_int_config.h"
 #include "libs/util/profile/profile.h"
 
-v3d_scheduler_deps *egl_surface_flush_rendering(EGL_SURFACE_T *surface)
+const v3d_scheduler_deps *egl_surface_flush_back_buffer_writer(EGL_SURFACE_T *surface)
 {
-   return egl_context_flush_rendering(surface->context, surface);
-}
+   const v3d_scheduler_deps *deps = NULL;
 
-bool egl_surface_copy(EGL_SURFACE_T *surface, KHRN_IMAGE_T *dst)
-{
-   return egl_context_copy_surface(surface->context, surface, dst);
+   if (egl_context_gl_lock())
+   {
+      KHRN_INTERLOCK_T *interlock = khrn_image_get_interlock(egl_surface_get_back_buffer(surface));
+      khrn_interlock_flush_writer(interlock);
+      deps = khrn_interlock_get_sync(interlock, false);
+      egl_context_gl_unlock();
+   }
+
+   return deps;
 }
 
 static bool surface_get_attrib(const EGL_SURFACE_T *surface,
@@ -227,7 +232,20 @@ EGLAPI EGLBoolean EGLAPIENTRY eglSwapBuffers(EGLDisplay dpy, EGLSurface surf)
          error = EGL_BAD_SURFACE;
          goto end;
       }
+      assert(surface->context == context);
 
+      /* Invalidate all auxiliary buffers. Do this before flushing so we can
+       * avoid storing the invalidated buffers out! Note that we always throw
+       * away the multisample color information here, even if the color buffer
+       * is to be preserved across the swap! */
+      egl_context_invalidate_draw(context, /*color=*/false, /*color_ms=*/true, /*other_aux=*/true);
+
+      /* swap_buffers() will:
+       * 1. Flush.
+       * 2. Queue the back buffer for display.
+       * 3. If preserve=true queue a copy of the back buffer to the next back
+       *    buffer.
+       * 4. Switch to the next back buffer. */
       preserve = surface->swap_behavior == EGL_BUFFER_PRESERVED;
       if (surface->fns->swap_buffers)
          swap_result = surface->fns->swap_buffers(surface, preserve);
@@ -248,13 +266,17 @@ EGLAPI EGLBoolean EGLAPIENTRY eglSwapBuffers(EGLDisplay dpy, EGLSurface surf)
          if (surface->context)
             egl_context_reattach(surface->context);
 
-         egl_surface_invalidate(surface, !preserve);
          break;
 
       case EGL_SWAP_NOT_SWAPPED:
-         // In this case we just invalidate the auxiliary buffers.
-         egl_surface_invalidate(surface, false);
          break;
+      }
+
+      if (!preserve && egl_context_gl_lock())
+      {
+         /* Invalidate the new back buffer */
+         khrn_image_invalidate(egl_surface_get_back_buffer(surface));
+         egl_context_gl_unlock();
       }
 
       error = EGL_SUCCESS;
@@ -338,39 +360,4 @@ void egl_surface_unlock(EGL_SURFACE_T *surface)
 {
    if (!surface) return;
    vcos_mutex_unlock(&surface->lock);
-}
-
-static void invalidate_image(KHRN_IMAGE_T *image)
-{
-   KHRN_RES_INTERLOCK_T *res_i;
-
-   /*
-    * FIXME: Images and interlocks shouldn't be considered part of GL, but we
-    * aren't going to separate that out now.
-    */
-   if (egl_context_gl_lock())
-   {
-      res_i = khrn_image_get_res_interlock(image);
-      khrn_interlock_invalidate(&res_i->interlock);
-
-      egl_context_gl_unlock();
-   }
-}
-
-void egl_surface_invalidate(EGL_SURFACE_T *surface, bool include_color)
-{
-   KHRN_IMAGE_T *image;
-   egl_aux_buf_t aux_buf;
-
-   for (aux_buf = 0; aux_buf < AUX_MAX; aux_buf++)
-   {
-      image = egl_surface_get_aux_buffer(surface, aux_buf);
-      if (image) invalidate_image(image);
-   }
-
-   if (include_color)
-   {
-      image = egl_surface_get_back_buffer(surface);
-      if (image) invalidate_image(image);
-   }
 }

@@ -735,7 +735,7 @@ CAutoDiscoveryClient::CAutoDiscoveryClient(
     _beaconMcastAddress(GET_STR(pCfg, AUTO_DISCOVERY_BEACON_MCAST_ADDRESS)),
     _beaconMcastPort((unsigned short)GET_INT(pCfg, AUTO_DISCOVERY_BEACON_MCAST_PORT)),
     _beaconIntervalMsec(GET_INT(pCfg, AUTO_DISCOVERY_BEACON_INTERVAL)),
-    _beaconExpiryTimeout((GET_INT(pCfg, AUTO_DISCOVERY_BEACON_INTERVAL)*2)/1000),
+    _beaconExpiryTimeout((GET_INT(pCfg, AUTO_DISCOVERY_BEACON_INTERVAL)*4)/1000),
     _beacon_fd(0),
     _bEnabled(GET_BOOL(pCfg, AUTO_DISCOVERY_CLIENT_ENABLED))
 {

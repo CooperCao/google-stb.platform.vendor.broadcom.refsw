@@ -44,17 +44,19 @@
  * This module was generated magically with RDB from a source description
  * file. You must edit the source file for changes to be made to this file.
  *
+ * The launch point for all information concerning RDB is found at:
+ *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Tue Feb 23 15:26:06 2016
- *                 Full Compile MD5 Checksum  4b84f30a4b3665aac5b824a1ed76e56c
+ * Date:           Generated on               Thu Jun 23 18:55:21 2016
+ *                 Full Compile MD5 Checksum  726d365438fe88693b6f0a492958face
  *                     (minus title and desc)
- *                 MD5 Checksum               4894bba0ec078aee10b5b5954262d56e
+ *                 MD5 Checksum               942083b46396c70655d90e546c008796
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     804
+ *                 RDB.pm                     1048
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
  *                 Script Source              /home/pntruong/sbin/combo_header.pl
  *                 DVTSWVER                   n/a
@@ -113,10 +115,9 @@
 #define BCHP_AIF_WB_CAB_ANA_PLLAUX_STAT          0x042010a8 /* [RO] pllaux_stat */
 #define BCHP_AIF_WB_CAB_ANA_RF_STAT0             0x042010ac /* [RO] rf_stat0 */
 #define BCHP_AIF_WB_CAB_ANA_CLK_CTRL             0x042010b0 /* [RW] CLK_CTRL */
-#define BCHP_AIF_WB_CAB_ANA_PGA_GAIN             0x042010b4 /* [RW] PGA_GAIN */
-#define BCHP_AIF_WB_CAB_ANA_MISC                 0x042010b8 /* [RW] MISC */
-#define BCHP_AIF_WB_CAB_ANA_SW_SPARE0            0x042010bc /* [RW] SW_SPARE0 */
-#define BCHP_AIF_WB_CAB_ANA_SW_SPARE1            0x042010c0 /* [RW] SW_SPARE1 */
+#define BCHP_AIF_WB_CAB_ANA_MISC                 0x042010b4 /* [RW] MISC */
+#define BCHP_AIF_WB_CAB_ANA_SW_SPARE0            0x042010b8 /* [RW] SW_SPARE0 */
+#define BCHP_AIF_WB_CAB_ANA_SW_SPARE1            0x042010bc /* [RW] SW_SPARE1 */
 
 /***************************************************************************
  *CNTL0 - cntl0
@@ -1520,10 +1521,25 @@
 #define BCHP_AIF_WB_CAB_ANA_RF_CNTL0_RF_Vcmo_SHIFT                 14
 #define BCHP_AIF_WB_CAB_ANA_RF_CNTL0_RF_Vcmo_DEFAULT               0x00000003
 
-/* AIF_WB_CAB_ANA :: RF_CNTL0 :: rf_cntl0_13_10 [13:10] */
-#define BCHP_AIF_WB_CAB_ANA_RF_CNTL0_rf_cntl0_13_10_MASK           0x00003c00
-#define BCHP_AIF_WB_CAB_ANA_RF_CNTL0_rf_cntl0_13_10_SHIFT          10
-#define BCHP_AIF_WB_CAB_ANA_RF_CNTL0_rf_cntl0_13_10_DEFAULT        0x00000000
+/* AIF_WB_CAB_ANA :: RF_CNTL0 :: i_Vcenter_conn1 [13:13] */
+#define BCHP_AIF_WB_CAB_ANA_RF_CNTL0_i_Vcenter_conn1_MASK          0x00002000
+#define BCHP_AIF_WB_CAB_ANA_RF_CNTL0_i_Vcenter_conn1_SHIFT         13
+#define BCHP_AIF_WB_CAB_ANA_RF_CNTL0_i_Vcenter_conn1_DEFAULT       0x00000000
+
+/* AIF_WB_CAB_ANA :: RF_CNTL0 :: i_Vcenter_conn0 [12:12] */
+#define BCHP_AIF_WB_CAB_ANA_RF_CNTL0_i_Vcenter_conn0_MASK          0x00001000
+#define BCHP_AIF_WB_CAB_ANA_RF_CNTL0_i_Vcenter_conn0_SHIFT         12
+#define BCHP_AIF_WB_CAB_ANA_RF_CNTL0_i_Vcenter_conn0_DEFAULT       0x00000000
+
+/* AIF_WB_CAB_ANA :: RF_CNTL0 :: frac_mode_sel [11:11] */
+#define BCHP_AIF_WB_CAB_ANA_RF_CNTL0_frac_mode_sel_MASK            0x00000800
+#define BCHP_AIF_WB_CAB_ANA_RF_CNTL0_frac_mode_sel_SHIFT           11
+#define BCHP_AIF_WB_CAB_ANA_RF_CNTL0_frac_mode_sel_DEFAULT         0x00000000
+
+/* AIF_WB_CAB_ANA :: RF_CNTL0 :: DAC_decode_sel [10:10] */
+#define BCHP_AIF_WB_CAB_ANA_RF_CNTL0_DAC_decode_sel_MASK           0x00000400
+#define BCHP_AIF_WB_CAB_ANA_RF_CNTL0_DAC_decode_sel_SHIFT          10
+#define BCHP_AIF_WB_CAB_ANA_RF_CNTL0_DAC_decode_sel_DEFAULT        0x00000000
 
 /* AIF_WB_CAB_ANA :: RF_CNTL0 :: tilt_disable [09:09] */
 #define BCHP_AIF_WB_CAB_ANA_RF_CNTL0_tilt_disable_MASK             0x00000200
@@ -1685,25 +1701,25 @@
 /***************************************************************************
  *RF_CNTL5 - rf_cntl5
  ***************************************************************************/
-/* AIF_WB_CAB_ANA :: RF_CNTL5 :: rf_cntl5_31_30 [31:30] */
-#define BCHP_AIF_WB_CAB_ANA_RF_CNTL5_rf_cntl5_31_30_MASK           0xc0000000
-#define BCHP_AIF_WB_CAB_ANA_RF_CNTL5_rf_cntl5_31_30_SHIFT          30
-#define BCHP_AIF_WB_CAB_ANA_RF_CNTL5_rf_cntl5_31_30_DEFAULT        0x00000000
+/* AIF_WB_CAB_ANA :: RF_CNTL5 :: rf_cntl5_31 [31:31] */
+#define BCHP_AIF_WB_CAB_ANA_RF_CNTL5_rf_cntl5_31_MASK              0x80000000
+#define BCHP_AIF_WB_CAB_ANA_RF_CNTL5_rf_cntl5_31_SHIFT             31
+#define BCHP_AIF_WB_CAB_ANA_RF_CNTL5_rf_cntl5_31_DEFAULT           0x00000000
 
-/* AIF_WB_CAB_ANA :: RF_CNTL5 :: SD_LPF_en [29:29] */
-#define BCHP_AIF_WB_CAB_ANA_RF_CNTL5_SD_LPF_en_MASK                0x20000000
-#define BCHP_AIF_WB_CAB_ANA_RF_CNTL5_SD_LPF_en_SHIFT               29
-#define BCHP_AIF_WB_CAB_ANA_RF_CNTL5_SD_LPF_en_DEFAULT             0x00000000
+/* AIF_WB_CAB_ANA :: RF_CNTL5 :: RAMP_LPF_cntl [30:29] */
+#define BCHP_AIF_WB_CAB_ANA_RF_CNTL5_RAMP_LPF_cntl_MASK            0x60000000
+#define BCHP_AIF_WB_CAB_ANA_RF_CNTL5_RAMP_LPF_cntl_SHIFT           29
+#define BCHP_AIF_WB_CAB_ANA_RF_CNTL5_RAMP_LPF_cntl_DEFAULT         0x00000000
 
 /* AIF_WB_CAB_ANA :: RF_CNTL5 :: lut_th_addr [28:22] */
 #define BCHP_AIF_WB_CAB_ANA_RF_CNTL5_lut_th_addr_MASK              0x1fc00000
 #define BCHP_AIF_WB_CAB_ANA_RF_CNTL5_lut_th_addr_SHIFT             22
 #define BCHP_AIF_WB_CAB_ANA_RF_CNTL5_lut_th_addr_DEFAULT           0x00000000
 
-/* AIF_WB_CAB_ANA :: RF_CNTL5 :: gain_bypass [21:12] */
-#define BCHP_AIF_WB_CAB_ANA_RF_CNTL5_gain_bypass_MASK              0x003ff000
-#define BCHP_AIF_WB_CAB_ANA_RF_CNTL5_gain_bypass_SHIFT             12
-#define BCHP_AIF_WB_CAB_ANA_RF_CNTL5_gain_bypass_DEFAULT           0x00000000
+/* AIF_WB_CAB_ANA :: RF_CNTL5 :: rf_cntl5_21_12 [21:12] */
+#define BCHP_AIF_WB_CAB_ANA_RF_CNTL5_rf_cntl5_21_12_MASK           0x003ff000
+#define BCHP_AIF_WB_CAB_ANA_RF_CNTL5_rf_cntl5_21_12_SHIFT          12
+#define BCHP_AIF_WB_CAB_ANA_RF_CNTL5_rf_cntl5_21_12_DEFAULT        0x00000000
 
 /* AIF_WB_CAB_ANA :: RF_CNTL5 :: DAC_SD_en [11:11] */
 #define BCHP_AIF_WB_CAB_ANA_RF_CNTL5_DAC_SD_en_MASK                0x00000800
@@ -1753,18 +1769,18 @@
 #define BCHP_AIF_WB_CAB_ANA_RF_CNTL6_rx_cntl_bypass_SHIFT          1
 #define BCHP_AIF_WB_CAB_ANA_RF_CNTL6_rx_cntl_bypass_DEFAULT        0x00000000
 
-/* AIF_WB_CAB_ANA :: RF_CNTL6 :: r0_cntl_bypass [00:00] */
-#define BCHP_AIF_WB_CAB_ANA_RF_CNTL6_r0_cntl_bypass_MASK           0x00000001
-#define BCHP_AIF_WB_CAB_ANA_RF_CNTL6_r0_cntl_bypass_SHIFT          0
-#define BCHP_AIF_WB_CAB_ANA_RF_CNTL6_r0_cntl_bypass_DEFAULT        0x00000000
+/* AIF_WB_CAB_ANA :: RF_CNTL6 :: rf_cntl6_0 [00:00] */
+#define BCHP_AIF_WB_CAB_ANA_RF_CNTL6_rf_cntl6_0_MASK               0x00000001
+#define BCHP_AIF_WB_CAB_ANA_RF_CNTL6_rf_cntl6_0_SHIFT              0
+#define BCHP_AIF_WB_CAB_ANA_RF_CNTL6_rf_cntl6_0_DEFAULT            0x00000000
 
 /***************************************************************************
  *RF_CNTL7 - rf_cntl7
  ***************************************************************************/
-/* AIF_WB_CAB_ANA :: RF_CNTL7 :: rf_cntl7_31_29 [31:29] */
-#define BCHP_AIF_WB_CAB_ANA_RF_CNTL7_rf_cntl7_31_29_MASK           0xe0000000
-#define BCHP_AIF_WB_CAB_ANA_RF_CNTL7_rf_cntl7_31_29_SHIFT          29
-#define BCHP_AIF_WB_CAB_ANA_RF_CNTL7_rf_cntl7_31_29_DEFAULT        0x00000000
+/* AIF_WB_CAB_ANA :: RF_CNTL7 :: r0_cntl_bypass [31:29] */
+#define BCHP_AIF_WB_CAB_ANA_RF_CNTL7_r0_cntl_bypass_MASK           0xe0000000
+#define BCHP_AIF_WB_CAB_ANA_RF_CNTL7_r0_cntl_bypass_SHIFT          29
+#define BCHP_AIF_WB_CAB_ANA_RF_CNTL7_r0_cntl_bypass_DEFAULT        0x00000000
 
 /* AIF_WB_CAB_ANA :: RF_CNTL7 :: ladder_cal_P_value [28:24] */
 #define BCHP_AIF_WB_CAB_ANA_RF_CNTL7_ladder_cal_P_value_MASK       0x1f000000
@@ -1834,18 +1850,68 @@
 /***************************************************************************
  *RF_CNTL8 - rf_cntl8
  ***************************************************************************/
-/* AIF_WB_CAB_ANA :: RF_CNTL8 :: rf_cntl8_31_0 [31:00] */
-#define BCHP_AIF_WB_CAB_ANA_RF_CNTL8_rf_cntl8_31_0_MASK            0xffffffff
-#define BCHP_AIF_WB_CAB_ANA_RF_CNTL8_rf_cntl8_31_0_SHIFT           0
-#define BCHP_AIF_WB_CAB_ANA_RF_CNTL8_rf_cntl8_31_0_DEFAULT         0x00000000
+/* AIF_WB_CAB_ANA :: RF_CNTL8 :: rf_cntl8_31_15 [31:15] */
+#define BCHP_AIF_WB_CAB_ANA_RF_CNTL8_rf_cntl8_31_15_MASK           0xffff8000
+#define BCHP_AIF_WB_CAB_ANA_RF_CNTL8_rf_cntl8_31_15_SHIFT          15
+#define BCHP_AIF_WB_CAB_ANA_RF_CNTL8_rf_cntl8_31_15_DEFAULT        0x00000000
+
+/* AIF_WB_CAB_ANA :: RF_CNTL8 :: GmN_Ramp_VT [14:12] */
+#define BCHP_AIF_WB_CAB_ANA_RF_CNTL8_GmN_Ramp_VT_MASK              0x00007000
+#define BCHP_AIF_WB_CAB_ANA_RF_CNTL8_GmN_Ramp_VT_SHIFT             12
+#define BCHP_AIF_WB_CAB_ANA_RF_CNTL8_GmN_Ramp_VT_DEFAULT           0x00000002
+
+/* AIF_WB_CAB_ANA :: RF_CNTL8 :: GmP_Ramp_VT [11:09] */
+#define BCHP_AIF_WB_CAB_ANA_RF_CNTL8_GmP_Ramp_VT_MASK              0x00000e00
+#define BCHP_AIF_WB_CAB_ANA_RF_CNTL8_GmP_Ramp_VT_SHIFT             9
+#define BCHP_AIF_WB_CAB_ANA_RF_CNTL8_GmP_Ramp_VT_DEFAULT           0x00000002
+
+/* AIF_WB_CAB_ANA :: RF_CNTL8 :: Rfb_Ramp_VT [08:06] */
+#define BCHP_AIF_WB_CAB_ANA_RF_CNTL8_Rfb_Ramp_VT_MASK              0x000001c0
+#define BCHP_AIF_WB_CAB_ANA_RF_CNTL8_Rfb_Ramp_VT_SHIFT             6
+#define BCHP_AIF_WB_CAB_ANA_RF_CNTL8_Rfb_Ramp_VT_DEFAULT           0x00000002
+
+/* AIF_WB_CAB_ANA :: RF_CNTL8 :: Rlad_Ramp_VT [05:03] */
+#define BCHP_AIF_WB_CAB_ANA_RF_CNTL8_Rlad_Ramp_VT_MASK             0x00000038
+#define BCHP_AIF_WB_CAB_ANA_RF_CNTL8_Rlad_Ramp_VT_SHIFT            3
+#define BCHP_AIF_WB_CAB_ANA_RF_CNTL8_Rlad_Ramp_VT_DEFAULT          0x00000002
+
+/* AIF_WB_CAB_ANA :: RF_CNTL8 :: Rout_Ramp_VT [02:00] */
+#define BCHP_AIF_WB_CAB_ANA_RF_CNTL8_Rout_Ramp_VT_MASK             0x00000007
+#define BCHP_AIF_WB_CAB_ANA_RF_CNTL8_Rout_Ramp_VT_SHIFT            0
+#define BCHP_AIF_WB_CAB_ANA_RF_CNTL8_Rout_Ramp_VT_DEFAULT          0x00000002
 
 /***************************************************************************
  *RF_CNTL9 - rf_cntl9
  ***************************************************************************/
-/* AIF_WB_CAB_ANA :: RF_CNTL9 :: rf_cntl9_31_0 [31:00] */
-#define BCHP_AIF_WB_CAB_ANA_RF_CNTL9_rf_cntl9_31_0_MASK            0xffffffff
-#define BCHP_AIF_WB_CAB_ANA_RF_CNTL9_rf_cntl9_31_0_SHIFT           0
-#define BCHP_AIF_WB_CAB_ANA_RF_CNTL9_rf_cntl9_31_0_DEFAULT         0x00000000
+/* AIF_WB_CAB_ANA :: RF_CNTL9 :: gain_bypass [31:16] */
+#define BCHP_AIF_WB_CAB_ANA_RF_CNTL9_gain_bypass_MASK              0xffff0000
+#define BCHP_AIF_WB_CAB_ANA_RF_CNTL9_gain_bypass_SHIFT             16
+#define BCHP_AIF_WB_CAB_ANA_RF_CNTL9_gain_bypass_DEFAULT           0x00000000
+
+/* AIF_WB_CAB_ANA :: RF_CNTL9 :: rf_cntl9_15_10 [15:10] */
+#define BCHP_AIF_WB_CAB_ANA_RF_CNTL9_rf_cntl9_15_10_MASK           0x0000fc00
+#define BCHP_AIF_WB_CAB_ANA_RF_CNTL9_rf_cntl9_15_10_SHIFT          10
+#define BCHP_AIF_WB_CAB_ANA_RF_CNTL9_rf_cntl9_15_10_DEFAULT        0x00000000
+
+/* AIF_WB_CAB_ANA :: RF_CNTL9 :: ramp_settle_dly [09:06] */
+#define BCHP_AIF_WB_CAB_ANA_RF_CNTL9_ramp_settle_dly_MASK          0x000003c0
+#define BCHP_AIF_WB_CAB_ANA_RF_CNTL9_ramp_settle_dly_SHIFT         6
+#define BCHP_AIF_WB_CAB_ANA_RF_CNTL9_ramp_settle_dly_DEFAULT       0x00000004
+
+/* AIF_WB_CAB_ANA :: RF_CNTL9 :: ramp_start_dly [05:02] */
+#define BCHP_AIF_WB_CAB_ANA_RF_CNTL9_ramp_start_dly_MASK           0x0000003c
+#define BCHP_AIF_WB_CAB_ANA_RF_CNTL9_ramp_start_dly_SHIFT          2
+#define BCHP_AIF_WB_CAB_ANA_RF_CNTL9_ramp_start_dly_DEFAULT        0x00000004
+
+/* AIF_WB_CAB_ANA :: RF_CNTL9 :: skip_ramp [01:01] */
+#define BCHP_AIF_WB_CAB_ANA_RF_CNTL9_skip_ramp_MASK                0x00000002
+#define BCHP_AIF_WB_CAB_ANA_RF_CNTL9_skip_ramp_SHIFT               1
+#define BCHP_AIF_WB_CAB_ANA_RF_CNTL9_skip_ramp_DEFAULT             0x00000000
+
+/* AIF_WB_CAB_ANA :: RF_CNTL9 :: fast_clk_en [00:00] */
+#define BCHP_AIF_WB_CAB_ANA_RF_CNTL9_fast_clk_en_MASK              0x00000001
+#define BCHP_AIF_WB_CAB_ANA_RF_CNTL9_fast_clk_en_SHIFT             0
+#define BCHP_AIF_WB_CAB_ANA_RF_CNTL9_fast_clk_en_DEFAULT           0x00000000
 
 /***************************************************************************
  *SYSTEM_POWERUP - system_powerup
@@ -2137,10 +2203,20 @@
 #define BCHP_AIF_WB_CAB_ANA_CLK_CTRL_PLL_ISOLATION_EN_WBADC_SHIFT  30
 #define BCHP_AIF_WB_CAB_ANA_CLK_CTRL_PLL_ISOLATION_EN_WBADC_DEFAULT 0x00000001
 
-/* AIF_WB_CAB_ANA :: CLK_CTRL :: reserved_for_eco0 [29:09] */
-#define BCHP_AIF_WB_CAB_ANA_CLK_CTRL_reserved_for_eco0_MASK        0x3ffffe00
-#define BCHP_AIF_WB_CAB_ANA_CLK_CTRL_reserved_for_eco0_SHIFT       9
+/* AIF_WB_CAB_ANA :: CLK_CTRL :: reserved_for_eco0 [29:11] */
+#define BCHP_AIF_WB_CAB_ANA_CLK_CTRL_reserved_for_eco0_MASK        0x3ffff800
+#define BCHP_AIF_WB_CAB_ANA_CLK_CTRL_reserved_for_eco0_SHIFT       11
 #define BCHP_AIF_WB_CAB_ANA_CLK_CTRL_reserved_for_eco0_DEFAULT     0x00000000
+
+/* AIF_WB_CAB_ANA :: CLK_CTRL :: DAGC_EN [10:10] */
+#define BCHP_AIF_WB_CAB_ANA_CLK_CTRL_DAGC_EN_MASK                  0x00000400
+#define BCHP_AIF_WB_CAB_ANA_CLK_CTRL_DAGC_EN_SHIFT                 10
+#define BCHP_AIF_WB_CAB_ANA_CLK_CTRL_DAGC_EN_DEFAULT               0x00000001
+
+/* AIF_WB_CAB_ANA :: CLK_CTRL :: RFAGC_EN [09:09] */
+#define BCHP_AIF_WB_CAB_ANA_CLK_CTRL_RFAGC_EN_MASK                 0x00000200
+#define BCHP_AIF_WB_CAB_ANA_CLK_CTRL_RFAGC_EN_SHIFT                9
+#define BCHP_AIF_WB_CAB_ANA_CLK_CTRL_RFAGC_EN_DEFAULT              0x00000001
 
 /* AIF_WB_CAB_ANA :: CLK_CTRL :: MISC_EN [08:08] */
 #define BCHP_AIF_WB_CAB_ANA_CLK_CTRL_MISC_EN_MASK                  0x00000100
@@ -2186,24 +2262,6 @@
 #define BCHP_AIF_WB_CAB_ANA_CLK_CTRL_SAR_INL_EN_MASK               0x00000001
 #define BCHP_AIF_WB_CAB_ANA_CLK_CTRL_SAR_INL_EN_SHIFT              0
 #define BCHP_AIF_WB_CAB_ANA_CLK_CTRL_SAR_INL_EN_DEFAULT            0x00000001
-
-/***************************************************************************
- *PGA_GAIN - PGA_GAIN
- ***************************************************************************/
-/* AIF_WB_CAB_ANA :: PGA_GAIN :: pga_gain_override [31:31] */
-#define BCHP_AIF_WB_CAB_ANA_PGA_GAIN_pga_gain_override_MASK        0x80000000
-#define BCHP_AIF_WB_CAB_ANA_PGA_GAIN_pga_gain_override_SHIFT       31
-#define BCHP_AIF_WB_CAB_ANA_PGA_GAIN_pga_gain_override_DEFAULT     0x00000000
-
-/* AIF_WB_CAB_ANA :: PGA_GAIN :: reserved_for_eco0 [30:10] */
-#define BCHP_AIF_WB_CAB_ANA_PGA_GAIN_reserved_for_eco0_MASK        0x7ffffc00
-#define BCHP_AIF_WB_CAB_ANA_PGA_GAIN_reserved_for_eco0_SHIFT       10
-#define BCHP_AIF_WB_CAB_ANA_PGA_GAIN_reserved_for_eco0_DEFAULT     0x00000000
-
-/* AIF_WB_CAB_ANA :: PGA_GAIN :: pga_gain [09:00] */
-#define BCHP_AIF_WB_CAB_ANA_PGA_GAIN_pga_gain_MASK                 0x000003ff
-#define BCHP_AIF_WB_CAB_ANA_PGA_GAIN_pga_gain_SHIFT                0
-#define BCHP_AIF_WB_CAB_ANA_PGA_GAIN_pga_gain_DEFAULT              0x00000000
 
 /***************************************************************************
  *MISC - MISC

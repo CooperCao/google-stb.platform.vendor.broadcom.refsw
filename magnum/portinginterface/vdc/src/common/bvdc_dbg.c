@@ -41,6 +41,7 @@
  ***************************************************************************/
 #include "bstd.h"
 #include "bdbg.h"
+#include "bkni.h"
 #include "bvdc.h"
 #include "brdc_dbg.h"
 #include "bvdc_priv.h"
@@ -58,7 +59,6 @@
 #include "bvdc_feeder_priv.h"
 
 BDBG_MODULE(BVDC_DBG);
-BDBG_FILE_MODULE(display_proc);
 
 
 /***************************************************************************
@@ -135,11 +135,13 @@ BERR_Code BVDC_P_CreateErrCb
 
     for(i = 0; i < BVDC_BvnError_eMaxCount; i++)
     {
+        BKNI_EnterCriticalSection();
         pIntCb = BVDC_P_GetBvnErrorCb_isr(i);
+        BKNI_LeaveCriticalSection();
         if(pIntCb == NULL)
             continue;
 
-#if (BVDC_P_SUPPORT_VIDEO_TESTFEATURE1_CAP_DCXM)
+#if (BVDC_P_DCXM_CAP_PADDING_WORKAROUND)
         if(pIntCb->ulGroupBase == BCHP_CAP_0_REG_START)
             continue;
 #endif
@@ -384,7 +386,11 @@ void BVDC_Dbg_Window_GetDebugStatus
         }
         hWindow->hCompositor->hVdc->bLog = true;
         if (BVDC_P_WIN_IS_VIDEO_WINDOW(hWindow->eId))
+        {
+            BKNI_EnterCriticalSection();
             BVDC_P_Window_DumpRects_isr(hWindow, pPicture);
+            BKNI_LeaveCriticalSection();
+        }
 #endif
     }
 
@@ -472,7 +478,11 @@ void BVDC_Dbg_Source_GetDebugStatus
 #if (BVDC_SUPPORT_BVN_DEBUG && BDBG_DEBUG_BUILD)
                 hWindow->hCompositor->hVdc->bLog = true;
                 if (BVDC_P_WIN_IS_VIDEO_WINDOW(hWindow->eId))
+                {
+                    BKNI_EnterCriticalSection();
                     BVDC_P_Window_DumpRects_isr(hWindow, pPicture);
+                    BKNI_LeaveCriticalSection();
+                }
 #else
                 BSTD_UNUSED(pPicture);
 #endif
@@ -998,9 +1008,12 @@ BERR_Code BVDC_SetBufLogStateAndDumpTrigger
  * Print out the captured multi-buffering events log.
  *
  */
-void BVDC_DumpBufLog(void)
+void BVDC_DumpBufLog
+    ( char                  *pLog,
+      unsigned int           uiSizeToRead,
+      unsigned int          *puiReadCount )
 {
-    BVDC_P_Buffer_DumpLog();
+    BVDC_P_Buffer_DumpLog(pLog, uiSizeToRead, puiReadCount);
 }
 
 /***************************************************************************

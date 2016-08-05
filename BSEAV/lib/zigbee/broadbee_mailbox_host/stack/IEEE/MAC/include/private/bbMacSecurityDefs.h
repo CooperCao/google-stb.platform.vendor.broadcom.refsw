@@ -88,6 +88,17 @@ typedef MAC_KeyUsageListEntries_t           MAC_KeyUsageDescriptorId_t;         
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 /**//**
+ * \brief   Data type for passing three indices of KeyDescriptor, DeviceDescriptor, and KeyDeviceDescriptor.
+ * \details This set of indices is used for remote frame counter update and key blacklisting procedure.
+ */
+typedef struct PACKED _MAC_KeyDescriptorsIdSet_t {
+    MAC_KeyDescriptorId_t           keyDescriptorId;            /*!< Index of retrieved KeyDescriptor. */
+    MAC_DeviceDescriptorId_t        deviceDescriptorId;         /*!< Index of retrieved DeviceDescriptor. */
+    MAC_KeyDeviceDescriptorId_t     keyDeviceDescriptorId;      /*!< Index of retrieved KeyDeviceDescriptor. */
+} MAC_KeyDescriptorsIdSet_t;
+
+/*--------------------------------------------------------------------------------------------------------------------*/
+/**//**
  * \brief   Structure representing single packed KeyDescriptor item of macKeyTable security attribute.
  * \note    This format does not coincide with the serialized format in which the KeyDescriptor item is transferred over
  *  the external channel (with MLME-GET/SET primitives).
@@ -144,19 +155,21 @@ SYS_DbgAssertStatic(sizeof(MAC_DeviceLookupSize_t) == 1);
  */
 typedef union PACKED _MAC_DeviceLookupData_t {
     struct PACKED {
-        MAC_PanId_t             panId;              /*!< The 16-bit PAN identifier of the device. */
         MAC_ShortAddress_t      shortAddress;       /*!< The 16-bit short address of the device. */
+        MAC_PanId_t             panId;              /*!< The 16-bit PAN identifier of the device. */
     };
     uint32_t                    panShortAddress;    /*!< Combined 32-bit value of ShortAddress and PAN Id. */
     MAC_ExtendedAddress_t       extAddress;         /*!< The 64-bit IEEE extended address of the device. */
+    uint64_t                    plain;              /*!< Plain 64-bit value. */
 } MAC_DeviceLookupData_t;
-SYS_DbgAssertStatic(FIELD_SIZE(MAC_DeviceLookupData_t, panId) == 2 && OFFSETOF(MAC_DeviceLookupData_t, panId) == 0);
 SYS_DbgAssertStatic(FIELD_SIZE(MAC_DeviceLookupData_t, shortAddress) == 2 &&
-        OFFSETOF(MAC_DeviceLookupData_t, shortAddress) == 2);
+        OFFSETOF(MAC_DeviceLookupData_t, shortAddress) == 0);
+SYS_DbgAssertStatic(FIELD_SIZE(MAC_DeviceLookupData_t, panId) == 2 && OFFSETOF(MAC_DeviceLookupData_t, panId) == 2);
 SYS_DbgAssertStatic(FIELD_SIZE(MAC_DeviceLookupData_t, panShortAddress) == MAC_DEVICE_LOOKUP_SIZE_4B_VALUE &&
         OFFSETOF(MAC_DeviceLookupData_t, panShortAddress) == 0);
 SYS_DbgAssertStatic(FIELD_SIZE(MAC_DeviceLookupData_t, extAddress) == MAC_DEVICE_LOOKUP_SIZE_8B_VALUE &&
         OFFSETOF(MAC_DeviceLookupData_t, extAddress) == 0);
+SYS_DbgAssertStatic(FIELD_SIZE(MAC_DeviceLookupData_t, plain) == 8 && OFFSETOF(MAC_DeviceLookupData_t, plain) == 0);
 SYS_DbgAssertStatic(sizeof(MAC_DeviceLookupData_t) == 8);
 
 /**//**
@@ -169,8 +182,8 @@ SYS_DbgAssertStatic(sizeof(MAC_DeviceLookupData_t) == 8);
 typedef struct PACKED _MAC_DeviceDescriptor_t {
     union PACKED {
         struct PACKED {
-            MAC_PanId_t         panId;              /*!< The 16-bit PAN identifier of the device. */
             MAC_ShortAddress_t  shortAddress;       /*!< The 16-bit short address of the device. */
+            MAC_PanId_t         panId;              /*!< The 16-bit PAN identifier of the device. */
         };
         uint32_t                panShortAddress;    /*!< Combined 32-bit value of ShortAddress and PAN Id. */
     };
@@ -179,9 +192,9 @@ typedef struct PACKED _MAC_DeviceDescriptor_t {
     Bool8_t                     exempt;             /*!< Indication of whether the device may override the minimum
                                                         security level settings defined in macSecurityLevelTable. */
 } MAC_DeviceDescriptor_t;
-SYS_DbgAssertStatic(FIELD_SIZE(MAC_DeviceDescriptor_t, panId) == 2 && OFFSETOF(MAC_DeviceDescriptor_t, panId) == 0);
 SYS_DbgAssertStatic(FIELD_SIZE(MAC_DeviceDescriptor_t, shortAddress) == 2 &&
-        OFFSETOF(MAC_DeviceDescriptor_t, shortAddress) == 2);
+        OFFSETOF(MAC_DeviceDescriptor_t, shortAddress) == 0);
+SYS_DbgAssertStatic(FIELD_SIZE(MAC_DeviceDescriptor_t, panId) == 2 && OFFSETOF(MAC_DeviceDescriptor_t, panId) == 2);
 SYS_DbgAssertStatic(FIELD_SIZE(MAC_DeviceDescriptor_t, panShortAddress) == MAC_DEVICE_LOOKUP_SIZE_4B_VALUE &&
         OFFSETOF(MAC_DeviceDescriptor_t, panShortAddress) == 0);
 SYS_DbgAssertStatic(FIELD_SIZE(MAC_DeviceDescriptor_t, extAddress) == MAC_DEVICE_LOOKUP_SIZE_8B_VALUE &&

@@ -54,6 +54,7 @@
 
 #include "bbSysTypes.h"
 #include "bbSysPayload.h"
+#include "bbMailService.h"
 
 /************************* TYPES *******************************************************/
 #ifdef _MAILBOX_WRAPPERS_TEST_ENGINE_
@@ -166,6 +167,57 @@ struct _TE_MailboxAckReqDescr_t
 {
     void (*callback)(TE_MailboxAckDescr_t *const , TE_MailboxAckConfParams_t *const);
 };
+
+
+/**//**
+ * \brief Enum with statuses which primitive TE_RoutingChangeReq could return in confirmation.
+*/
+typedef enum _TE_RoutingStatus_t
+{
+    TE_ROUTING_SUCCESS = 0,
+    TE_ROUTING_FAILED,
+} TE_RoutingStatus_t;
+
+/**//**
+ * \brief Parameters of the TE_RoutingChangeReq primitive.
+*/
+typedef struct _TE_RoutingChangeReqParams_t
+{
+    MailFID_t                fid;
+    MailRouteDirection_t     routeDirection;
+} TE_RoutingChangeReqParams_t;
+
+/**//**
+ * \brief Request descriptor for the TE_RoutingChangeReq primitive.
+*/
+typedef struct _TE_RoutingChangeReqDescr_t TE_RoutingChangeReqDescr_t;
+
+/**//**
+ * \brief Confirmation for TE_RoutingChangeReq primitive.
+*/
+typedef struct _TE_RoutingChangeConfParams_t
+{
+    TE_RoutingStatus_t status;
+} TE_RoutingChangeConfParams_t;
+
+/**//**
+ * \brief Callback type of the ChangeRouting primitive.
+*/
+typedef void (*TE_RoutingChangeCb_t)(TE_RoutingChangeReqDescr_t *reqDescr, TE_RoutingChangeConfParams_t *conf);
+
+/**//**
+ * \brief Request descriptor for the ChangeRouting primitive.
+*/
+struct _TE_RoutingChangeReqDescr_t
+{
+    TE_RoutingChangeReqParams_t   params;
+    TE_RoutingChangeCb_t          callback;
+};
+
+/**//**
+ * \brief Public primitive for changing direction of the indication routing.
+*/
+void TE_RoutingChangeReq(TE_RoutingChangeReqDescr_t *const reqDescr);
 
 /************************* PROTOTYPES **************************************************/
 void Mail_TestEnginePing(TE_PingCommandReqDescr_t *const req);

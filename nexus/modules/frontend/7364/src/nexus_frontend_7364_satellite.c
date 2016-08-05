@@ -487,15 +487,26 @@ static NEXUS_Error NEXUS_Frontend_P_7364_GetSatelliteAgcStatus(void *handle, NEX
     }
 
     errCode = BSAT_GetChannelStatus(pSatChannel->satChannel, &satStatus);
-    if ( errCode ) {
+    if (errCode) {
         BDBG_MSG(("BSAT_GetChannelStatus returned %x",errCode));
         rc = errCode;
     } else {
         int i;
+        uint8_t wfeBuf[4];
+
         BKNI_Memset(pStatus,0,sizeof(*pStatus));
         for (i=0; i<3; i++) {
             pStatus->agc[i].value = satStatus.agc.value[i];
             pStatus->agc[i].valid = (satStatus.agc.flags & 1<<i);
+        }
+
+        errCode = BWFE_ReadConfig(pSatChannel->satDevice->wfeChannels[pSatChannel->selectedAdc], BWFE_G3_CONFIG_RF_AGC_INT, wfeBuf, 4);
+        if (errCode) {
+            BDBG_MSG(("BSAT_GetChannelStatus returned %x",errCode));
+            rc = errCode;
+        } else {
+            pStatus->agc[3].value = (wfeBuf[0] << 24) | (wfeBuf[1] << 16) | (wfeBuf[2] << 8) | wfeBuf[3];
+            pStatus->agc[3].valid = true;
         }
     }
 

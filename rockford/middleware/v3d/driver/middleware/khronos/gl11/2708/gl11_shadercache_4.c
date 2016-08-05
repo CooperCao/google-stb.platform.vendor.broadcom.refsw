@@ -228,10 +228,6 @@ bool gl11_hw_get_shaders(
       }
    }
 
-#ifdef XXX_OFFLINE
-   vcos_assert(!cache[hash].data.use_offline);
-#endif
-
    for (i = 0; i < GLXX_CONFIG_MAX_VERTEX_ATTRIBS*2; i++)
    {
       cattribs_order[i] = cache[hash].data.cattribs_order[i];
@@ -263,9 +259,6 @@ bool gl11_hw_get_shaders(
    *vunifmap_out = cache[hash].data.mh_vuniform_map;
    *funifmap_out = cache[hash].data.mh_funiform_map;
 
-#ifdef XXX_OFFLINE
-   vcos_assert(!cache[hash].data.use_offline);
-#endif
    *color_varyings_out = cache[hash].color_varyings;
    return true;
 }

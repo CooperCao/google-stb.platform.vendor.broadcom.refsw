@@ -113,7 +113,7 @@ static void InitializeSlot
 	uint32_t        *apulCached[30];
     BERR_Code        rc;
 
-    BDBG_MSG(("InitializeSlot : iSlotIndex:%d ulTriggerSelect:%d pListCount:%p pulList:%p iListCount:%d \n",
+    BDBG_MSG(("InitializeSlot : iSlotIndex:%d ulTriggerSelect:%d pListCount:%p pulList:%p iListCount:%d",
 			  iSlotIndex,   ulTriggerSelect,(void *)pListCount,(void *)pulList, iListCount));
     /************************
      * We have to place the dumped RULs into allocated memory. Instead a user could
@@ -146,7 +146,7 @@ static void InitializeSlot
             /* get pointer to the current end of the list */
             pulCurr = apulCached[iRUL-1] + iPrvNumEntries;
 
-            BDBG_MSG(("********* pulCurr = %p, apulAlloced[%d] = %p i=%d, iPrvNumEntries=%d\n",
+            BDBG_MSG(("********* pulCurr = %p, apulAlloced[%d] = %p i=%d, iPrvNumEntries=%d",
                 (void*)pulCurr, iRUL-1, (void*)apulAlloced[iRUL-1],i, iPrvNumEntries));
 
             /* write command to install new RUL address into slot after the
@@ -242,13 +242,13 @@ BREG_Handle hRegister, SplashBufInfo *pSplashBufInfo, SplashData* pSplashData)
 
     if( 0 == pSplashData->nAulReg )
     {
-        BDBG_ERR(("\n\n\n" "***************************************************************************"
-                  "\n" "Error ... Error ... Error ! " "\n" "Register Dump is empty !!! "
-                  "\n" "Looks like you have not chosen the instrumented version of REG basemodule"
-                  "\n" "Please rebuild/rerun the splash script generator with instrumented BREG "
-                  "\n" "module"
-                  "\n" "***************************************************************************"
-                  "\n\n\n")) ;
+        BDBG_ERR(("***************************************************************************")) ;
+        BDBG_ERR(("Error ... Error ... Error ! "));
+        BDBG_ERR(("Register Dump is empty !!! "));
+        BDBG_ERR(("Looks like you have not chosen the instrumented version of REG basemodule")) ;
+        BDBG_ERR(("Please rebuild/rerun the splash script generator with instrumented BREG ")) ;
+        BDBG_ERR(("module")) ;
+        BDBG_ERR(("***************************************************************************")) ;
         return ;
     }
     /* Dumped registers */
@@ -274,17 +274,17 @@ BREG_Handle hRegister, SplashBufInfo *pSplashBufInfo, SplashData* pSplashData)
 				hRegister, pSplashData->pDispInfo[ii].ulRdcScratchReg1,
 				pSplashBufInfo->aulSurfaceBufOffset[iSurIdx]);
 		}
-		BDBG_MSG(("** set surface offset 0x%8.8x for display %d\n",pSplashBufInfo->aulSurfaceBufOffset[iSurIdx], ii));
+		BDBG_MSG(("** set surface offset 0x%8.8x for display %d",pSplashBufInfo->aulSurfaceBufOffset[iSurIdx], ii));
 	}
 
-    BDBG_MSG(("***** Number of triggers = %d \n", pSplashData->iNumTrigMap )) ;
+    BDBG_MSG(("***** Number of triggers = %d", pSplashData->iNumTrigMap )) ;
     for( iTriggerIndex = 0 ;
 	     iTriggerIndex < pSplashData->iNumTrigMap ;
 		 ++iTriggerIndex)
     {
         if(pSplashData->pTrigMap[iTriggerIndex].TriggerHwNum != -1)
         {
-            BDBG_MSG(("Slot number %d, Trigger number %d aList%d[]\n",
+            BDBG_MSG(("Slot number %d, Trigger number %d aList%d[]",
                 pSplashData->pTrigMap[iTriggerIndex].SlotNum,
 				pSplashData->pTrigMap[iTriggerIndex].TriggerHwNum,
 				iTriggerIndex));

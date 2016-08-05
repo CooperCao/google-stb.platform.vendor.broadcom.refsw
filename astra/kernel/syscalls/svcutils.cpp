@@ -54,6 +54,7 @@
 #include "crypto/csprng.h"
 #include "seccomp.h"
 #include "arm/gic.h"
+#include "tracelog.h"
 
 SysCalls::SvcPerformer SysCalls::dispatchTable[NUM_SYS_CALLS];
 SysCalls::SvcPerformer SysCalls::dispatchTableExt[NUM_EXT_SYS_CALLS];
@@ -312,6 +313,10 @@ void SysCalls::init() {
     dispatchTableExt[EXT_cache_clean - EXT_SYS_CALL_BASE] = doCacheClean;
     dispatchTableExt[EXT_set_thread_area - EXT_SYS_CALL_BASE] = doSetThreadArea;
     dispatchTableExt[EXT_get_thread_area - EXT_SYS_CALL_BASE] = doGetThreadArea;
+    dispatchTableExt[EXT_tracelog_inval - EXT_SYS_CALL_BASE] = doTraceLogInval;
+    dispatchTableExt[EXT_tracelog_start - EXT_SYS_CALL_BASE] = doTraceLogStart;
+    dispatchTableExt[EXT_tracelog_stop - EXT_SYS_CALL_BASE] = doTraceLogStop;
+    dispatchTableExt[EXT_tracelog_add - EXT_SYS_CALL_BASE] = doTraceLogAdd;
 
     paramsPagePhys = TzMem::allocPage(KERNEL_PID);
     if (paramsPagePhys == nullptr) {
@@ -859,5 +864,28 @@ void SysCalls::doCacheOp(TzTask *currTask, CacheOp cacheOp) {
     }
 
     asm volatile("dsb");
+    currTask->writeUserReg(TzTask::UserRegs::r0, 0);
+}
+
+void SysCalls::doTraceLogInval(TzTask *currTask) {
+    TraceLog::inval();
+    currTask->writeUserReg(TzTask::UserRegs::r0, 0);
+}
+
+void SysCalls::doTraceLogStart(TzTask *currTask) {
+    TraceLog::start();
+    currTask->writeUserReg(TzTask::UserRegs::r0, 0);
+}
+
+void SysCalls::doTraceLogStop(TzTask *currTask) {
+    TraceLog::stop();
+    currTask->writeUserReg(TzTask::UserRegs::r0, 0);
+}
+
+void SysCalls::doTraceLogAdd(TzTask *currTask) {
+    unsigned long event = currTask->userReg(TzTask::UserRegs::r0);
+    unsigned long index = currTask->userReg(TzTask::UserRegs::r1);
+
+    TraceLog::add(event, index);
     currTask->writeUserReg(TzTask::UserRegs::r0, 0);
 }

@@ -46,6 +46,8 @@
 
 BDBG_MODULE(BHSM);
 
+BDBG_OBJECT_ID_DECLARE( BHSM_P_Handle );
+
 BERR_Code BHSM_PwrMgmt ( BHSM_Handle  hHsm,
                          BHSM_PwrMgmtIO_t    *pPwrMgmt )
 {
@@ -57,7 +59,9 @@ BERR_Code BHSM_PwrMgmt ( BHSM_Handle  hHsm,
 
     BDBG_ENTER( BHSM_PwrMgmt );
 
-    if( ( hHsm == NULL ) || ( hHsm->ulMagicNumber != BHSM_P_HANDLE_MAGIC_NUMBER ) || ( pPwrMgmt == NULL )  )
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
+
+    if( pPwrMgmt == NULL )
     {
         return  BERR_TRACE( BHSM_STATUS_INPUT_PARM_ERR );
     }
@@ -115,7 +119,9 @@ BERR_Code BHSM_GROURMacKey( BHSM_Handle hHsm,
 
     BDBG_ENTER( BHSM_GROURMacKey );
 
-    if( ( hHsm == NULL ) || ( hHsm->ulMagicNumber != BHSM_P_HANDLE_MAGIC_NUMBER ) || ( pGropuMacKey == NULL )  )
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
+
+    if( pGropuMacKey == NULL )
     {
         return  BERR_TRACE( BHSM_STATUS_INPUT_PARM_ERR );
     }

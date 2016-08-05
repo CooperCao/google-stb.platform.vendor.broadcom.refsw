@@ -673,8 +673,7 @@ static void BCHP_PWR_P_HW_HDMI_RX0_CLK_Control(BCHP_Handle handle, bool activate
     mask = ( BCHP_CLKGEN_DVP_HR_INST_CLOCK_ENABLE_DVPHR_HD_DVI_CLOCK_ENABLE_MASK |
              BCHP_CLKGEN_DVP_HR_INST_CLOCK_ENABLE_DVPHR_BVB_648_CLOCK_ENABLE_MASK |
              BCHP_CLKGEN_DVP_HR_INST_CLOCK_ENABLE_DVPHR_BVB_324_CLOCK_ENABLE_MASK |
-             BCHP_CLKGEN_DVP_HR_INST_CLOCK_ENABLE_DVPHR_54_CLOCK_ENABLE_MASK |
-             BCHP_CLKGEN_DVP_HR_INST_CLOCK_ENABLE_DVPHR_RBUS_CLOCK_ENABLE_MASK );
+             BCHP_CLKGEN_DVP_HR_INST_CLOCK_ENABLE_DVPHR_54_CLOCK_ENABLE_MASK );
     BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_DVP_HR_INST_CLOCK_ENABLE, mask, activate?mask:0);
 
     mask = ( BCHP_CLKGEN_DVP_HR_INST_CLOCK_ENABLE0_DVPHR_108_CLOCK_ENABLE0_MASK );
@@ -682,6 +681,16 @@ static void BCHP_PWR_P_HW_HDMI_RX0_CLK_Control(BCHP_Handle handle, bool activate
 
     mask = ( BCHP_CLKGEN_DVP_HR_INST_CLOCK_ENABLE2_DVPHR_108_CLOCK_ENABLE2_MASK );
 	BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_DVP_HR_INST_CLOCK_ENABLE2, mask, activate?mask:0);
+}
+
+static void BCHP_PWR_P_HW_HDMI_RX0_RBUS_Control(BCHP_Handle handle, bool activate)
+{
+    uint32_t mask;
+
+    BDBG_MSG(("HW_HDMI_RX0_RBUS: %s", activate?"on":"off"));
+
+    mask = BCHP_CLKGEN_DVP_HR_INST_CLOCK_ENABLE_DVPHR_RBUS_CLOCK_ENABLE_MASK;
+    BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_DVP_HR_INST_CLOCK_ENABLE, mask, activate?mask:0);
 }
 
 static void BCHP_PWR_P_HW_HDMI_RX0_SRAM_Control(BCHP_Handle handle, bool activate)

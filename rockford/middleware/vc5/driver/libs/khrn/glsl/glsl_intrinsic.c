@@ -55,7 +55,15 @@ static const struct intrinsic_info_s intrinsic_info[INTRINSIC_COUNT] = {
    { INTRINSIC_ATOMIC_XOR,     "atomic_xor"     },
    { INTRINSIC_ATOMIC_XCHG,    "atomic_xchg"    },
    { INTRINSIC_ATOMIC_CMPXCHG, "atomic_cmpxchg" },
-   { INTRINSIC_IMAGE_STORE,    "imageStore"    },
+   { INTRINSIC_IMAGE_STORE,    "imageStore"     },
+   { INTRINSIC_IMAGE_ADD,      "imageAtomicAdd" },
+   { INTRINSIC_IMAGE_MIN,      "imageAtomicMin" },
+   { INTRINSIC_IMAGE_MAX,      "imageAtomicMax" },
+   { INTRINSIC_IMAGE_AND,      "imageAtomicAnd" },
+   { INTRINSIC_IMAGE_OR,       "imageAtomicOr"  },
+   { INTRINSIC_IMAGE_XOR,      "imageAtomicXor" },
+   { INTRINSIC_IMAGE_XCHG,     "imageAtomicXchg" },
+   { INTRINSIC_IMAGE_CMPXCHG,  "imageAtomicCmpxchg" },
    { INTRINSIC_IMAGE_SIZE,     "imageSize"      },
 };
 
@@ -64,8 +72,12 @@ static unsigned count_sampler_derivs(const PrimSamplerInfo *sampler_info) {
    return sampler_info->coord_count;
 }
 
-static unsigned count_sampler_coords(const PrimSamplerInfo *sampler_info) {
-   return sampler_info->coord_count + (sampler_info->array ? 1 : 0);
+static unsigned count_sampler_coords(const PrimSamplerInfo *sampler_info, bool is_image) {
+   unsigned count = sampler_info->coord_count;
+   /* for image cube arrays do not have another coord */
+   if (sampler_info->array && (!is_image || !sampler_info->cube))
+      count += 1;
+   return count;
 }
 
 static void validate_texture_lookup(ExprChain *args) {
@@ -76,10 +88,11 @@ static void validate_texture_lookup(ExprChain *args) {
    Expr *offset  = NULL, *comp = NULL, *dref = NULL;
 
    PrimSamplerInfo *sampler_info;
-   if (glsl_prim_is_prim_sampler_type(sampler->type))
-      sampler_info = glsl_prim_get_sampler_info(sampler->type->u.primitive_type.index);
-   else
+   bool is_image = glsl_prim_is_prim_image_type(sampler->type);
+   if (is_image)
       sampler_info = glsl_prim_get_image_info(sampler->type->u.primitive_type.index);
+   else
+      sampler_info = glsl_prim_get_sampler_info(sampler->type->u.primitive_type.index);
 
    assert(bits->type->flavour                == SYMBOL_PRIMITIVE_TYPE &&
           bits->type->u.primitive_type.index == PRIM_INT);
@@ -102,10 +115,10 @@ static void validate_texture_lookup(ExprChain *args) {
    assert(arg == NULL);
 
    if (texture_bits & (DF_TEXBITS_FETCH | DF_TEXBITS_SAMPLER_FETCH)) {
-      assert(glsl_prim_is_vector_type(coord->type, PRIM_INT,   count_sampler_coords(sampler_info)));
+      assert(glsl_prim_is_vector_type(coord->type, PRIM_INT, count_sampler_coords(sampler_info, is_image)));
       assert(lod->type == &primitiveTypes[PRIM_INT]);
    } else {
-      assert(glsl_prim_is_vector_type(coord->type, PRIM_FLOAT, count_sampler_coords(sampler_info)));
+      assert(glsl_prim_is_vector_type(coord->type, PRIM_FLOAT, count_sampler_coords(sampler_info, is_image)));
       assert(lod->type == &primitiveTypes[PRIM_FLOAT]);
    }
 
@@ -119,22 +132,35 @@ static void validate_texture_lookup(ExprChain *args) {
    assert(!dref || dref->type == &primitiveTypes[PRIM_FLOAT]);
 }
 
-static void validate_image_store(ExprChain *args)
+static void validate_image_atomic(glsl_intrinsic_index_t index, ExprChain *args)
 {
-   assert(args->count == 3);
+   assert( (index != INTRINSIC_IMAGE_CMPXCHG && args->count == 3) ||
+           (index == INTRINSIC_IMAGE_CMPXCHG && args->count == 4)  );
 
    Expr *sampler = args->first->expr;
-   Expr *coord = args->first->next->expr;
-   Expr *data = args->first->next->next->expr;
+   Expr *coord   = args->first->next->expr;
+   Expr *data    = args->first->next->next->expr;
 
    PrimSamplerInfo *sampler_info;
    sampler_info = glsl_prim_get_image_info(sampler->type->u.primitive_type.index);
-   assert(glsl_prim_is_vector_type(coord->type, PRIM_INT, count_sampler_coords(sampler_info)));
-
-   //validate that data type is ivec4, uvec4 or uvec4 depending on the sampler's return_type
-   assert(data->type->scalar_count == 4);
+   assert(glsl_prim_is_vector_type(coord->type, PRIM_INT, count_sampler_coords(sampler_info, true)));
    assert(data->type->flavour == SYMBOL_PRIMITIVE_TYPE);
-   assert(data->type->u.primitive_type.index == sampler_info->return_type);
+
+   if (index != INTRINSIC_IMAGE_STORE) {
+      //validate that data type is uint or int
+      assert(data->type->scalar_count == 1);
+      assert(glsl_prim_is_base_of_prim_type(&primitiveTypes[sampler_info->return_type], data->type));
+   } else {
+      //validate that data type is ivec4, uvec4 or uvec4 depending on the sampler's return_type
+      assert(data->type->scalar_count == 4);
+      assert(data->type->u.primitive_type.index == sampler_info->return_type);
+   }
+
+   if (args->count == 4) {
+      Expr *cmp_expr = args->first->next->next->next->expr;
+      assert(cmp_expr->type->scalar_count == 1);
+      assert(cmp_expr->type == data->type);
+   }
 }
 
 /* Can this be simplified into a table? */
@@ -260,15 +286,23 @@ static void validate_intrinsic(glsl_intrinsic_index_t intrinsic, ExprChain *args
               (args->first->expr->type == &primitiveTypes[PRIM_INT] ||
                args->first->expr->type == &primitiveTypes[PRIM_UINT]  ) );
       break;
+   case INTRINSIC_IMAGE_ADD:
+   case INTRINSIC_IMAGE_MIN:
+   case INTRINSIC_IMAGE_MAX:
+   case INTRINSIC_IMAGE_AND:
+   case INTRINSIC_IMAGE_OR:
+   case INTRINSIC_IMAGE_XOR:
+   case INTRINSIC_IMAGE_XCHG:
+   case INTRINSIC_IMAGE_CMPXCHG:
    case INTRINSIC_IMAGE_STORE:
-      validate_image_store(args);
+      validate_image_atomic(intrinsic, args);
       break;
    case INTRINSIC_IMAGE_SIZE:
       assert(args->count == 1);
       assert(glsl_prim_is_prim_image_type(args->first->expr->type));
       break;
    default:
-      UNREACHABLE();
+      unreachable();
       break;
    }
 }
@@ -352,15 +386,15 @@ static SymbolType *calculate_image_size_return_type(ExprChain *args) {
    return glsl_prim_vector_type(PRIM_INT, sampler_info->size_dim);
 }
 
-Expr *glsl_intrinsic_construct_expr(glsl_intrinsic_index_t intrinsic, ExprChain *args)
+Expr *glsl_intrinsic_construct_expr(int line_num, glsl_intrinsic_index_t intrinsic, ExprChain *args)
 {
 #ifndef NDEBUG
    validate_intrinsic(intrinsic, args);
 #endif
 
    Expr *expr               = malloc_fast(sizeof(*expr));
-   expr->line_num           = g_LineNumber;
    expr->flavour            = EXPR_INTRINSIC;
+   expr->line_num           = line_num;
    expr->compile_time_value = NULL;
 
    expr->u.intrinsic.flavour = intrinsic;
@@ -373,6 +407,16 @@ Expr *glsl_intrinsic_construct_expr(glsl_intrinsic_index_t intrinsic, ExprChain 
       break;
    case INTRINSIC_TEXTURE_SIZE:
       expr->type = calculate_texture_size_return_type(args);
+      break;
+   case INTRINSIC_IMAGE_ADD:
+   case INTRINSIC_IMAGE_MIN:
+   case INTRINSIC_IMAGE_MAX:
+   case INTRINSIC_IMAGE_AND:
+   case INTRINSIC_IMAGE_OR:
+   case INTRINSIC_IMAGE_XOR:
+   case INTRINSIC_IMAGE_XCHG:
+   case INTRINSIC_IMAGE_CMPXCHG:
+      expr->type = args->first->next->next->expr->type;  /* Matches data argument */
       break;
    case INTRINSIC_IMAGE_STORE:
       expr->type = &primitiveTypes[PRIM_VOID];

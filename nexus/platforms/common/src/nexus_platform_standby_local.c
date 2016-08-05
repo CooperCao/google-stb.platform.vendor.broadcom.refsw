@@ -366,6 +366,8 @@ NEXUS_Error NEXUS_Platform_GetStandbyStatus(NEXUS_PlatformStandbyStatus *pStatus
     wakeup_devices wakeups;
     unsigned int wktmr_count=0, wkgpio_count=0;
 
+    BKNI_Memset(&wakeups, 0, sizeof(wakeup_devices));
+
     if(!g_Standby_State.wakeupStatusCached) {
         rc |= NEXUS_Platform_P_InitWakeupDriver();
         if (rc) {

@@ -37,8 +37,6 @@
 #
 #############################################################################
 
-.NOTPARALLEL:
-
 # Get the platform locations sorted
 ifndef NEXUS_PLATFORM
 $(error NEXUS_PLATFORM is not defined)

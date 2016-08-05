@@ -81,7 +81,7 @@ void glsl_print_qualifiers(FILE* f, Symbol* symbol)
          fprintf(f, "%s ", glsl_type_qual_string(symbol->u.var_instance.type_qual));
          return;
       default:
-         UNREACHABLE();
+         unreachable();
          return;
    }
 }
@@ -117,7 +117,7 @@ void glsl_print_compile_time_value(FILE *f, SymbolType *type, const_value *compi
                }
                else
                {
-                  UNREACHABLE();
+                  unreachable();
                }
                return;
             case PRIM_VECTOR_TYPE:
@@ -133,7 +133,7 @@ void glsl_print_compile_time_value(FILE *f, SymbolType *type, const_value *compi
                fprintf(f, ")");
                return;
             default:
-               UNREACHABLE();
+               unreachable();
                return;
          }
 
@@ -151,7 +151,7 @@ void glsl_print_compile_time_value(FILE *f, SymbolType *type, const_value *compi
 
       default:
          // Nothing else can have a compile time value.
-         UNREACHABLE();
+         unreachable();
          return;
    }
 }
@@ -163,14 +163,14 @@ void glsl_print_compile_time_value(FILE *f, SymbolType *type, const_value *compi
 
 static void print_expr_value(FILE *f, Expr *expr, bool fully_evaluated)
 {
-   UNUSED(fully_evaluated);
+   ((void)fully_evaluated);
 
    glsl_print_compile_time_value(f, expr->type, expr->compile_time_value);
 }
 
 static void print_expr_instance(FILE *f, Expr *expr, bool fully_evaluated)
 {
-   UNUSED(fully_evaluated);
+   ((void)fully_evaluated);
 
    fprintf(f, "%s", expr->u.instance.symbol->name);
 }
@@ -250,7 +250,7 @@ static void print_expr_unary_op(FILE* f, Expr* expr, bool fully_evaluated)
          glsl_print_expr(f, expr->u.unary_op.operand, fully_evaluated);
          return;
       default:
-         UNREACHABLE();
+         unreachable();
          return;
    }
 }
@@ -319,7 +319,7 @@ static void print_expr_binary_op(FILE* f, Expr* expr, bool fully_evaluated)
          infix = "|";
          break;
       default:
-         UNREACHABLE();
+         unreachable();
          return;
    }
 
@@ -472,7 +472,7 @@ void glsl_print_expr(FILE* f, Expr* expr, bool fully_evaluated)
          return;
 
       case EXPR_FLAVOUR_COUNT:
-         UNREACHABLE();
+         unreachable();
          return;
    }
 }
@@ -673,7 +673,7 @@ static void print_statement_jump(FILE* f, Statement* statement, bool fully_evalu
          glsl_print_expr(f, statement->u.return_expr.expr, fully_evaluated);
          break;
       default:
-         UNREACHABLE();
+         unreachable();
          return;
    }
 
@@ -682,8 +682,8 @@ static void print_statement_jump(FILE* f, Statement* statement, bool fully_evalu
 
 static void print_statement_null(FILE* f, Statement* statement, bool fully_evaluated, unsigned int indent_depth, bool suppress_semicolon)
 {
-   UNUSED(statement);
-   UNUSED(fully_evaluated);
+   ((void)statement);
+   ((void)fully_evaluated);
 
    for (unsigned i = 0; i < indent_depth; i++) fprintf(f, "\t");
    if (!suppress_semicolon) fprintf(f, ";");
@@ -746,7 +746,7 @@ void glsl_print_statement(FILE* f, Statement* statement, bool fully_evaluated, u
          break;
 
       default:
-         UNREACHABLE();
+         unreachable();
          break;
    }
 
@@ -764,12 +764,12 @@ void glsl_print_statement(FILE* f, Statement* statement, bool fully_evaluated, u
 
 void glsl_print_statement(FILE* f, Statement* statement, bool fully_evaluated, unsigned int indent_depth, bool suppress_semicolon)
 {
-   UNUSED(f);
-   UNUSED(statement);
-   UNUSED(fully_evaluated);
-   UNUSED(indent_depth);
-   UNUSED(suppress_semicolon);
+   (void)(f);
+   (void)(statement);
+   (void)(fully_evaluated);
+   (void)(indent_depth);
+   (void)(suppress_semicolon);
 
-   UNREACHABLE();
+   unreachable();
 }
 #endif // _DEBUG

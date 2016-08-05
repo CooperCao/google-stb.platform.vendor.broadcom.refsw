@@ -161,8 +161,8 @@ upon the chip usage. See below */
 #define NEXUS_MEMC0_GRAPHICS_HEAP       5 /* Single large graphics heap*/
 #define NEXUS_MEMC0_SECURE_PICTURE_BUFFER_HEAP 6
 #define NEXUS_EXPORT_HEAP 7
+#define NEXUS_MEMC0_SECURE_GRAPHICS_HEAP 8
 
-#define NEXUS_PLATFORM_P_GET_FRAMEBUFFER_HEAP_INDEX 1
 
 #define NEXUS_AVS_MONITOR           0
 

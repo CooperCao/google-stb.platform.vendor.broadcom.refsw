@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -59,6 +59,7 @@ typedef enum BAPE_MixerType
     BAPE_MixerType_eMax
 } BAPE_MixerType;
 
+
 /***************************************************************************
 Summary:
 Mixer Format
@@ -72,6 +73,18 @@ typedef enum BAPE_MixerFormat
     BAPE_MixerFormat_eCompressed,   /* Mixer Format is Compressed */
     BAPE_MixerFormat_eMax
 } BAPE_MixerFormat;
+
+/***************************************************************************
+Summary:
+Output Volume Settings
+***************************************************************************/
+typedef struct BAPE_OutputVolume
+{
+    uint32_t volume[BAPE_Channel_eMax];         /* Output volume scaling per output channel.  Default is BAPE_VOLUME_NORMAL for all channels.
+                                                   Ignored for compressed data.  Values are specified in 5.23 integers, so 0x800000 corresponds
+                                                   to unity (BAPE_VOLUME_NORMAL). */
+    bool muted;                                 /* Mute all output channels if true. */
+} BAPE_OutputVolume;
 
 /***************************************************************************
 Summary:
@@ -170,6 +183,33 @@ typedef struct BAPE_MixerSettings
                                            favor associated audio in dB steps.  32 will mute main audio.  Negative
                                            values down to -32 favor main audio in dB steps.  -32 will mute the
                                            associated audio. */
+
+    bool loopbackMixerEnabled;          /* When set to true[Default], for DspMixers, we will create a stereo loopback mixer when
+                                           required and aggregate any FMM source inputs into a single FMM path for the
+                                           DSP to consume. If false, no such mixer will be created and only ONE FMM source
+                                           will be allowed into the DspMixer. */
+
+    int32_t loopbackVolumeMatrix[BAPE_Channel_eMax][BAPE_Channel_eMax]; /* If this is a DSP mixer, and we have one
+                                           or more PcmPlayback/FMM (loopback) inputs, apply these mixing coefficients.
+                                           This can be used to mix across channel pairs, including subtraction.
+                                           Common use case would be to map stereo into multichannel in a variety
+                                           of different ways. For example, if content is mono, choose where that should
+                                           be routed into the multichannel domain.
+                                           Some example matrices:
+                                           1. L->L, R->R (default)
+                                              coeff[i][i] = BAPE_VOLUME_NORMAL, zero all others
+                                           2. L->C
+                                              coeff[BAPE_Channel_eCenter][BAPE_Channel_eLeft] = BAPE_VOLUME_NORMAL
+                                           3. (L/2+R/2)->C, L-3(L+R)/8, R-3(L+R)/8 (upmix L and R to center, subtract 3/8 from L and R)
+                                              coeff[BAPE_Channel_eLeft][BAPE_Channel_eLeft] = BAPE_VOLUME_NORMAL - 3*BAPE_VOLUME_NORMAL/8
+                                              coeff[BAPE_Channel_eLeft][BAPE_Channel_eRight] = -3*BAPE_VOLUME_NORMAL/8
+                                              coeff[BAPE_Channel_eRight][BAPE_Channel_eLeft] = -3*BAPE_VOLUME_NORMAL/8
+                                              coeff[BAPE_Channel_eRight][BAPE_Channel_eRight] = BAPE_VOLUME_NORMAL - 3*BAPE_VOLUME_NORMAL/8
+                                              coeff[BAPE_Channel_eCenter][BAPE_Channel_eLeft] = BAPE_VOLUME_NORMAL/2
+                                              coeff[BAPE_Channel_eCenter][BAPE_Channel_eRight] = BAPE_VOLUME_NORMAL/2
+                                              */
+    BAPE_OutputVolume outputVolume;     /* applies ONLY to downstream connections. Physical outputs have
+                                           their own volume control in BAPE_OutputPort->volume */
 
     /* The following fields apply MS12 mixing only */
     /* Start Dolby MS12 DAP features */
@@ -440,18 +480,6 @@ BERR_Code BAPE_Mixer_SetInputVolume(
     BAPE_Connector input,
     const BAPE_MixerInputVolume *pVolume
     );
-
-/***************************************************************************
-Summary:
-Output Volume Settings
-***************************************************************************/
-typedef struct BAPE_OutputVolume
-{
-    uint32_t volume[BAPE_Channel_eMax];         /* Output volume scaling per output channel.  Default is BAPE_VOLUME_NORMAL for all channels.
-                                                   Ignored for compressed data.  Values are specified in 5.23 integers, so 0x800000 corresponds
-                                                   to unity (BAPE_VOLUME_NORMAL). */
-    bool muted;                                 /* Mute all output channels if true. */
-} BAPE_OutputVolume;
 
 /***************************************************************************
 Summary:

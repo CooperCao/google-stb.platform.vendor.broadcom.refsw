@@ -76,8 +76,6 @@
 internally see http://www.sj.broadcom.com/projects/MIPS3300/. */
 #if BCHP_CHIP==7422 || BCHP_CHIP==7425 || BCHP_CHIP==7435 || BCHP_CHIP==7429 || BCHP_CHIP==74295
  #define BMIPS5000_40NM 1
-#elif BCHP_CHIP==7420
- #define BMIPS5000_65NM 1
 #elif BCHP_CHIP==7344 || BCHP_CHIP==7346 || BCHP_CHIP==7231 || BCHP_CHIP==7584 || BCHP_CHIP==7563 || BCHP_CHIP==7362 || BCHP_CHIP==7228 ||  BCHP_CHIP==75635 || BCHP_CHIP==73625 || BCHP_CHIP==75845 || BCHP_CHIP==73465 || BCHP_CHIP==75525
  #define BMIPS4380_40NM 1
 #elif BCHP_CHIP==7552 || BCHP_CHIP==7358 || BCHP_CHIP==7360
@@ -417,40 +415,6 @@ NEXUS_Error NEXUS_Platform_P_InitPinmux(void);
 
 /***************************************************************************
 Summary:
-Powers off internal cable modem (BNM)
- ***************************************************************************/
-NEXUS_Error NEXUS_Platform_P_ShutdownCM(void);
-
-/***************************************************************************
-Summary:
-Returns chip number of the frontend
- ***************************************************************************/
-#if NEXUS_HAS_FRONTEND
-unsigned NEXUS_Platform_P_FrontendType(NEXUS_FrontendHandle h);
-#endif
-
-/***************************************************************************
-Summary:
-Returns power-on status of internal cable modem
- ***************************************************************************/
-bool NEXUS_Platform_P_CMPowerIsOn(void);
-
-/***************************************************************************
-Summary:
-Switch BSC_M3 and external interrupts for frontends on it to host control if host==true,
-to BNM control otherwise.
- ***************************************************************************/
-NEXUS_Error NEXUS_Platform_P_HostFrontendPinmux(bool host);
-
-/***************************************************************************
-Summary:
-True if pin-muxes for host control of BSC_M3 and the external
-frontend(s) on that bus on 97125 platform.  False if BNM control.
- ***************************************************************************/
-bool NEXUS_Platform_P_IsHostFrontendPinmux(void);
-
-/***************************************************************************
-Summary:
 Configure VCXO in a platform-specific way
  ***************************************************************************/
 NEXUS_Error NEXUS_Platform_P_InitVcxo(void);
@@ -681,6 +645,9 @@ BTEE_InstanceHandle NEXUS_Platform_P_CreateTeeInstance(void);
 void NEXUS_Platform_P_DestroyTeeInstance(BTEE_InstanceHandle teeHandle);
 #endif
 
+#if NEXUS_CPU_ARM
+#define NEXUS_PLATFORM_P_GET_FRAMEBUFFER_HEAP_INDEX 1
+#endif
 
 #endif /* #ifndef NEXUS_PLATFORM_PRIV_H__ */
 

@@ -17,7 +17,7 @@ asynchronous query opengles API implementation
 
 GL_API void GL_APIENTRY glGenQueries(GLsizei n, GLuint *ids)
 {
-   GLXX_SERVER_STATE_T *state = GL30_LOCK_SERVER_STATE_UNCHANGED();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state_unchanged(OPENGL_ES_3X);
    GLsizei i;
    uint32_t start_name;
    GLXX_QUERY_T *query;
@@ -71,7 +71,7 @@ end:
       glxx_server_state_set_error(state, error);
    }
 
-   GL30_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_API GLboolean GL_APIENTRY glIsQuery(GLuint id)
@@ -80,7 +80,7 @@ GL_API GLboolean GL_APIENTRY glIsQuery(GLuint id)
    GLXX_SERVER_STATE_T *state;
    GLXX_QUERY_T *query;
 
-   state = GL30_LOCK_SERVER_STATE();
+   state = glxx_lock_server_state(OPENGL_ES_3X);
    if (!state)
       return result;
 
@@ -88,13 +88,13 @@ GL_API GLboolean GL_APIENTRY glIsQuery(GLuint id)
    if (query && query->target != GL_NONE)
       result = GL_TRUE;
 
-   GL30_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
    return result;
 }
 
 GL_API void GL_APIENTRY glDeleteQueries(GLsizei n, const GLuint *ids)
 {
-   GLXX_SERVER_STATE_T *state = GL30_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
    GLenum error = GL_NO_ERROR;
    GLsizei i;
 
@@ -113,7 +113,7 @@ GL_API void GL_APIENTRY glDeleteQueries(GLsizei n, const GLuint *ids)
 end:
    if (error != GL_NO_ERROR)
       glxx_server_state_set_error(state, error);
-   GL30_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GLXX_QUERY_T *glxx_get_query(GLXX_SERVER_STATE_T *state, GLuint id)
@@ -226,7 +226,7 @@ static bool is_active_query_non_zero(const GLXX_SERVER_STATE_T *state,
 
 GL_API void GL_APIENTRY glBeginQuery(GLenum target, GLuint id)
 {
-   GLXX_SERVER_STATE_T *state = GL30_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
    GLXX_QUERY_T *query;
    GLenum error = GL_NO_ERROR;
 
@@ -272,12 +272,12 @@ GL_API void GL_APIENTRY glBeginQuery(GLenum target, GLuint id)
 end:
    if (error != GL_NO_ERROR)
       glxx_server_state_set_error(state, error);
-   GL30_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_API void GL_APIENTRY glEndQuery(GLenum target)
 {
-   GLXX_SERVER_STATE_T  *state = GL30_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T  *state = glxx_lock_server_state(OPENGL_ES_3X);
    GLXX_QUERY_T *active_query;
    GLenum error = GL_NO_ERROR;
 
@@ -304,14 +304,14 @@ GL_API void GL_APIENTRY glEndQuery(GLenum target)
 end:
    if (error != GL_NO_ERROR)
       glxx_server_state_set_error(state, error);
-   GL30_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_API void GL_APIENTRY glGetQueryObjectuiv(GLuint id, GLenum pname, GLuint* params)
 {
    PROFILE_FUNCTION_MT("GL");
 
-   GLXX_SERVER_STATE_T  *state = GL30_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T  *state = glxx_lock_server_state(OPENGL_ES_3X);
    GLenum error = GL_NO_ERROR;
    GLXX_QUERY_T *query;
    struct glxx_queries_of_type *qot;
@@ -354,12 +354,12 @@ GL_API void GL_APIENTRY glGetQueryObjectuiv(GLuint id, GLenum pname, GLuint* par
 end:
    if (error != GL_NO_ERROR)
       glxx_server_state_set_error(state, error);
-   GL30_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_API void GL_APIENTRY glGetQueryiv(GLenum target, GLenum pname, GLint* params)
 {
-   GLXX_SERVER_STATE_T  *state = GL30_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T  *state = glxx_lock_server_state(OPENGL_ES_3X);
    GLXX_QUERY_T *active_query;
    GLenum error = GL_NO_ERROR;
 
@@ -381,7 +381,7 @@ GL_API void GL_APIENTRY glGetQueryiv(GLenum target, GLenum pname, GLint* params)
 end:
    if (error != GL_NO_ERROR)
       glxx_server_state_set_error(state, error);
-   GL30_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 bool glxx_server_active_queries_install(GLXX_SERVER_STATE_T *state,
@@ -406,4 +406,12 @@ bool glxx_server_active_queries_install(GLXX_SERVER_STATE_T *state,
          break;
    }
    return ok;
+}
+
+bool glxx_server_has_active_query_type(enum glxx_query_type type,
+      const GLXX_SERVER_STATE_T *state, const GLXX_HW_RENDER_STATE_T *rs)
+{
+   const struct glxx_queries         *queries = &state->queries;
+   const struct glxx_queries_of_type *qot = &queries->queries[type];
+   return qot->active;
 }

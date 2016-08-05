@@ -11,7 +11,6 @@ generated each frame as HW input.
 =============================================================================*/
 
 #include "khrn_fmem.h"
-#include "khrn_control_list.h"
 #include "khrn_mr_crc.h"
 #include "khrn_render_state.h"
 #include "khrn_record.h"
@@ -58,12 +57,12 @@ static void free_client_handles(KHRN_UINTPTR_VECTOR_T *handles)
    khrn_uintptr_vector_destroy(handles);
 }
 
-static void release_queries(KHRN_QUERY_BLOCK_T *query_list)
+static void release_occlusion_queries(KHRN_OCCLUSION_QUERY_BLOCK_T *occlusion_query_list)
 {
-   KHRN_QUERY_BLOCK_T *b;
+   KHRN_OCCLUSION_QUERY_BLOCK_T *b;
    unsigned i;
 
-   b = query_list;
+   b = occlusion_query_list;
    while (b)
    {
       for (i = 0; i < b->count; ++i)
@@ -85,7 +84,7 @@ static void stage_persist_init(khrn_fmem_stage_persist *stage_per,
 static void stage_persist_term(void *p, size_t size)
 {
    khrn_fmem_stage_persist *stage_per = (khrn_fmem_stage_persist *)p;
-   UNUSED(size);
+   vcos_unused(size);
 
    gmem_lock_list_unlock_and_destroy(&stage_per->lock_list);
    khrn_synclist_destroy(&stage_per->sync_list);
@@ -126,9 +125,9 @@ static bool common_persist_init(khrn_fmem_common_persist *per,
 static void common_persist_term(void *v, size_t size)
 {
    khrn_fmem_common_persist *per = (khrn_fmem_common_persist *)v;
-   UNUSED(size);
+   vcos_unused(size);
 
-   release_queries(per->query_list);
+   release_occlusion_queries(per->occlusion_query_list);
    khrn_fmem_pool_deinit(&per->pool);
 
    for (unsigned i = 0; i != per->num_bin_tile_states; ++i)
@@ -163,7 +162,7 @@ static void render_completion(void *data, uint64_t job_id,
 
    /* go through the list of queries and update the queries results */
    khrn_fmem_pool_pre_cpu_read_outputs(&stage_per->common->pool);
-   glxx_queries_update(stage_per->common->query_list, true);
+   glxx_occlusion_queries_update(stage_per->common->occlusion_query_list, true);
 
    KHRN_MEM_ASSIGN(stage_per, NULL);
 }
@@ -291,8 +290,7 @@ void khrn_fmem_discard(KHRN_FMEM_T *fmem)
     * record things as we would have got a completion callback, but without
     * updating results */
    khrn_fmem_common_persist *fmem_common = khrn_fmem_get_common_persist(fmem);
-   glxx_queries_update(fmem_common->query_list, false);
-
+   glxx_occlusion_queries_update(fmem_common->occlusion_query_list, false);
 
    for (unsigned stage = 0; stage < COUNT_STAGES; stage++)
       KHRN_MEM_ASSIGN(fmem->persist[stage], NULL);
@@ -322,7 +320,7 @@ static void *alloc(KHRN_FMEM_POOL_T *pool, KHRN_FMEM_BLOCK_T *block,
    size_t start_offset;
 
    assert(align <= KHRN_FMEM_ALIGN_MAX);
-   assert(size <= KHRN_FMEM_BUFFER_SIZE);
+   assert(size <= KHRN_FMEM_USABLE_BUFFER_SIZE);
 
    /* alignment is relative to the start of the buffer */
    start_offset = (block->current + align - 1) & ~(align - 1);
@@ -333,11 +331,7 @@ static void *alloc(KHRN_FMEM_POOL_T *pool, KHRN_FMEM_BLOCK_T *block,
          return NULL;
 
       start_offset = (block->current  + align - 1) & ~(align - 1);
-      if (start_offset + size >= block->end)
-      {
-         assert(0);
-         return NULL;
-      }
+      assert(start_offset + size < block->end);
    }
 
    result = block->start + start_offset;
@@ -366,8 +360,7 @@ uint8_t *khrn_fmem_cle(KHRN_FMEM_T *fmem, unsigned size)
       {
          /* link old block cl to new */
          last_block += last_current;
-         add_byte(&last_block, V3D_CL_BRANCH);
-         put_word(last_block, khrn_fmem_pool_hw_address(&fmem_common->pool, result));
+         v3d_cl_branch(&last_block, khrn_fmem_pool_hw_address(&fmem_common->pool, result));
       }
       else
       {
@@ -390,17 +383,17 @@ uint32_t *khrn_fmem_data(KHRN_FMEM_T *fmem, unsigned size, unsigned align)
    return p;
 }
 
-void khrn_fmem_new_query_entry(KHRN_FMEM_T *fmem,
-      KHRN_QUERY_BLOCK_T **p_block, unsigned *index)
+void khrn_fmem_new_occlusion_query_entry(KHRN_FMEM_T *fmem,
+      KHRN_OCCLUSION_QUERY_BLOCK_T **p_block, unsigned *index)
 {
    khrn_fmem_common_persist *fmem_common = khrn_fmem_get_common_persist(fmem);
 
-   KHRN_QUERY_BLOCK_T *block = fmem_common->query_list;
+   KHRN_OCCLUSION_QUERY_BLOCK_T *block = fmem_common->occlusion_query_list;
 
-   if (block == NULL || block->count == KHRN_CLE_QUERY_COUNT)
+   if (block == NULL || block->count == KHRN_CLE_OCCLUSION_QUERY_COUNT)
    {
-      KHRN_QUERY_BLOCK_T *new_block = (KHRN_QUERY_BLOCK_T *)khrn_fmem_data(fmem,
-            sizeof(KHRN_QUERY_BLOCK_T), KHRN_FMEM_ALIGN_MAX);
+      KHRN_OCCLUSION_QUERY_BLOCK_T *new_block = (KHRN_OCCLUSION_QUERY_BLOCK_T *)khrn_fmem_data(fmem,
+            sizeof(KHRN_OCCLUSION_QUERY_BLOCK_T), KHRN_FMEM_ALIGN_MAX);
       if (new_block != NULL)
       {
          khrn_fmem_pool_mark_as_render_output(&fmem_common->pool, new_block);
@@ -411,10 +404,10 @@ void khrn_fmem_new_query_entry(KHRN_FMEM_T *fmem,
           * counters no matter how many cores we have. This is a useful for
           * verification. */
          memset(new_block->query_values, 0, sizeof(new_block->query_values));
-         memset(new_block->query_values, 0x55, V3D_QUERY_COUNTER_SINGLE_CORE_CACHE_LINE_SIZE);
+         memset(new_block->query_values, 0x55, V3D_OCCLUSION_QUERY_COUNTER_SINGLE_CORE_CACHE_LINE_SIZE);
          new_block->count = 0;
          new_block->prev = block;
-         fmem_common->query_list = new_block;
+         fmem_common->occlusion_query_list = new_block;
       }
       block = new_block;
    }
@@ -429,23 +422,24 @@ void khrn_fmem_new_query_entry(KHRN_FMEM_T *fmem,
    return;
 }
 
-uint8_t *khrn_fmem_begin_clist(KHRN_FMEM_T *fmem)
+v3d_addr_t khrn_fmem_begin_clist(KHRN_FMEM_T *fmem)
 {
    // ensure not in middle of another clist
    assert(!fmem->in_begin_clist);
 #ifndef NDEBUG
    fmem->in_begin_clist = true;
 #endif
-   return khrn_fmem_cle(fmem, 0);
+   uint8_t *p = khrn_fmem_cle(fmem, 0);
+   return p ? khrn_fmem_hw_address(fmem, p) : 0;
 }
 
-uint8_t *khrn_fmem_end_clist(KHRN_FMEM_T *fmem)
+v3d_addr_t khrn_fmem_end_clist(KHRN_FMEM_T *fmem)
 {
    assert(fmem->in_begin_clist);
 #ifndef NDEBUG
    fmem->in_begin_clist = false;
 #endif
-   return fmem->cle.start + fmem->cle.current;
+   return fmem->cle.start ? khrn_fmem_hw_address(fmem, fmem->cle.start + fmem->cle.current) : 0;
 }
 
 #if V3D_HAS_NEW_TMU_CFG
@@ -740,12 +734,24 @@ static void pre_submit_debug(
    const struct khrn_synclist *render_synclist)
 {
 #if defined(KHRN_AUTOCLIF) || defined(KHRN_VALIDATE_SYNCLIST)
-   v3d_scheduler_wait_all();
-   gmem_sync_all(/*to_cpu=*/true, /*to_v3d=*/false);
+   bool sync_all = false;
+#ifdef KHRN_AUTOCLIF
+   bool record = khrn_options.autoclif_enabled && br_info->num_bins; // workaround for broken compute shader recording.
+   if (record)
+      sync_all = true;
+#endif
+#ifdef KHRN_VALIDATE_SYNCLIST
+   sync_all = true;
+#endif
+   if (sync_all)
+   {
+      v3d_scheduler_wait_all();
+      gmem_sync_all(/*to_cpu=*/true, /*to_v3d=*/false);
+   }
 #endif
 
 #ifdef KHRN_AUTOCLIF
-   if (br_info->num_bins) // workaround for broken compute shader recording.
+   if (record)
       khrn_record(br_info);
 #endif
 
@@ -972,8 +978,8 @@ bool khrn_fmem_record_res_interlock(KHRN_FMEM_T *fmem,
    return true;
 }
 
-bool khrn_fmem_record_res_interlock_tf_write(KHRN_FMEM_T *fmem,
-      KHRN_RES_INTERLOCK_T *res_i, bool* requires_flush)
+bool khrn_fmem_record_res_interlock_self_read_conflicting_write(KHRN_FMEM_T *fmem,
+      KHRN_RES_INTERLOCK_T *res_i, khrn_interlock_action_t actions, bool* requires_flush)
 {
    KHRN_RENDER_STATE_T *rs = fmem->render_state;
    KHRN_INTERLOCK_T *interlock = &res_i->interlock;
@@ -988,7 +994,7 @@ bool khrn_fmem_record_res_interlock_tf_write(KHRN_FMEM_T *fmem,
    }
 
    // Could pop res_i if added, but leaving it is harmless.
-   bool success = khrn_interlock_add_writer_tf(interlock, ACTION_BIN, rs);
+   bool success = khrn_interlock_add_self_read_conflicting_writer(interlock, actions, rs);
    *requires_flush = !success;
    return success;
 }

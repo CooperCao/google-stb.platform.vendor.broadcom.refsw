@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2011 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2008-2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -108,7 +108,7 @@ int main(void) {
     /* Open a pid channel from playback */
     NEXUS_Playback_GetDefaultPidChannelSettings(&playbackPidChannelSettings);
     /* allpass requires that .pidChannelIndex be set to a special hardware-defined value. */
-    NEXUS_Playpump_GetAllPassPidChannelIndex(playbackSettings.playpump, (unsigned *) &playbackPidChannelSettings.pidSettings.pidSettings.pidChannelIndex );
+    NEXUS_Playpump_GetAllPassPidChannelIndex(playbackSettings.playpump, &playbackPidChannelSettings.pidSettings.pidSettings.pidChannelIndex );
     pidChannel[0] = NEXUS_Playback_OpenPidChannel(playback, 0x0, &playbackPidChannelSettings); /* pidNo is ignored for allpass */
 
     /* Configure remux. ie. Map playback => remux */
@@ -133,7 +133,7 @@ int main(void) {
     /* Open a pid channel from parser band */
     NEXUS_PidChannel_GetDefaultSettings(&pidChannelSettings);
     /* allpass requires pidChannelIndex be set to a hardware-defined value. */
-    NEXUS_ParserBand_GetAllPassPidChannelIndex(parserBand, (unsigned *) &pidChannelSettings.pidChannelIndex);
+    NEXUS_ParserBand_GetAllPassPidChannelIndex(parserBand, &pidChannelSettings.pidChannelIndex);
     pidChannel[1] = NEXUS_PidChannel_Open(parserBand, 0x0, &pidChannelSettings); /* pidNo is ignored for allpass */
 
     /* Open recpump and record */

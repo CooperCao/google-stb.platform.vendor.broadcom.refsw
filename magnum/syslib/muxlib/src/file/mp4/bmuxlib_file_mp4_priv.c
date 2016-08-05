@@ -103,6 +103,8 @@ BDBG_FILE_MODULE(BMUX_MP4_OUTPUT);     /* enables output diagnostics */
 BDBG_FILE_MODULE(BMUX_MP4_STATE);      /* enables state machine diagnostics */
 BDBG_FILE_MODULE(BMUX_MP4_FINISH);     /* enables finish diagnostics */
 
+BDBG_OBJECT_ID_DECLARE(BMUXlib_File_MP4_P_Context);
+
 /* TODO:
    [ ] Auxiliary track creation (SDS, ODS, AVC Params)
    [ ] Store H.264 PPS and SPS in parameter set track
@@ -206,6 +208,7 @@ void BMUXlib_File_MP4_P_InitializeContext(BMUXlib_File_MP4_Handle hMP4Mux)
 
    /* clear out the created context (DO NOT overwrite Create Data) */
    BKNI_Memset(hMP4Mux, 0,  (size_t)pCreateData - (size_t)hMP4Mux);
+   BDBG_OBJECT_SET(hMP4Mux, BMUXlib_File_MP4_P_Context);
 
    /* initialise required values (those not set by memset above) ... */
    hMP4Mux->eCurrentBox = BMUXlib_File_MP4_P_BoxType_eFtyp;          /* always start with the ftyp box */

@@ -35,7 +35,8 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
 
- ******************************************************************************/#include "bhdm.h"
+ ******************************************************************************/
+#include "bhdm.h"
 #include "bhdm_priv.h"
 
 BDBG_MODULE(BHDM) ;
@@ -683,7 +684,7 @@ Summary: Get the current version of the HDM PI (used to identify the HDM PI) for
 *******************************************************************************/
 const char * BHDM_P_GetVersion(void)
 {
-	static const char Version[] = "BHDM URSR 16.2" ;
+	static const char Version[] = "BHDM URSR 16.3" ;
 	return Version ;
 }
 
@@ -713,11 +714,11 @@ static void BHDM_P_SetDisplayStartupDefaults_isr(BHDM_Handle hHDMI)
 
 
 /*******************************************************************************
-void BHDM_P_ResetHdmiScheduler
+void BHDM_P_ResetHdmiScheduler_isrsafe
 Summary: Set the HDMI Scheduler to its default settings for starting in DVI Mode
 (after power down, hot plug, etc.)
 *******************************************************************************/
-static void BHDM_P_ResetHdmiScheduler(BHDM_Handle hHDMI)
+static void BHDM_P_ResetHdmiScheduler_isrsafe(BHDM_Handle hHDMI)
 {
 	BREG_Handle hRegister ;
 	uint32_t Register ;
@@ -1317,17 +1318,6 @@ BERR_Code BHDM_Open(
 	/* Power up everything. This has to happen after the soft reset because the soft reset touches
 	the same registers that BCHP_PWR touches. The soft reset does not require HDMI clocks to be on */
 	BCHP_PWR_AcquireResource(hChip, hHDMI->clkPwrResource[hHDMI->eCoreId]);
-
-
-	/************************************************
-	Temporary work around HSM Timeout issue when enabling HDCP2.2 Rx feature
-	The problem is when we enable HDCP22_RX_SUPPORT in SAGE, some SCPU related interrupts
-	are enabled. That, somehow, requires this clock to be enable otherwise we'll face TIMEOUT
-	when communicating with the BSP. JIRA SWSECURITY-1304
-	************************************************/
-#if BCHP_PWR_RESOURCE_HDMI_RX0_CLK
-	BCHP_PWR_AcquireResource(hChip, BCHP_PWR_RESOURCE_HDMI_RX0_CLK);
-#endif
 #endif
 
 	/* Used only for legacy 65nm. not required for 28nm and 40nm */
@@ -1722,14 +1712,14 @@ BERR_Code BHDM_EnableTmdsData(
 }
 
 
-bool BHDM_P_HdmiSettingsChange(const BHDM_Handle hHDMI, const BHDM_Settings *NewHdmiSettings)
+static bool BHDM_P_HdmiPhyChanges(const BHDM_Handle hHDMI, const BHDM_Settings *NewHdmiSettings)
 {
+	bool bPhyChanges = false ;
+
 	if ((hHDMI->DeviceSettings.eInputVideoFmt == NewHdmiSettings->eInputVideoFmt)
 	&& (hHDMI->DeviceSettings.eTimebase == NewHdmiSettings->eTimebase)
 	&& (hHDMI->DeviceSettings.eOutputPort == NewHdmiSettings->eOutputPort)
 	&& (hHDMI->DeviceSettings.eOutputFormat == NewHdmiSettings->eOutputFormat)
-	&& (hHDMI->DeviceSettings.eColorimetry == NewHdmiSettings->eColorimetry)
-	&& (hHDMI->DeviceSettings.overrideDefaultColorimetry == NewHdmiSettings->overrideDefaultColorimetry)
 	&& (hHDMI->DeviceSettings.eAspectRatio == NewHdmiSettings->eAspectRatio)
 	&& (hHDMI->DeviceSettings.ePixelRepetition == NewHdmiSettings->ePixelRepetition)
 	&& (hHDMI->DeviceSettings.stVideoSettings.eColorSpace == NewHdmiSettings->stVideoSettings.eColorSpace)
@@ -1738,79 +1728,6 @@ bool BHDM_P_HdmiSettingsChange(const BHDM_Handle hHDMI, const BHDM_Settings *New
 	&& (hHDMI->DeviceSettings.stVideoSettings.eBitsPerPixel == NewHdmiSettings->stVideoSettings.eBitsPerPixel)
 	&& (hHDMI->DeviceSettings.stColorDepth.eBitsPerPixel == NewHdmiSettings->stColorDepth.eBitsPerPixel)
 #endif
-
-
-	/**** AVI Info Frame Structure ****/
-	&& (hHDMI->DeviceSettings.stAviInfoFrame.ePixelEncoding == NewHdmiSettings->stAviInfoFrame.ePixelEncoding)
-	&& (hHDMI->DeviceSettings.stAviInfoFrame.bOverrideDefaults == NewHdmiSettings->stAviInfoFrame.bOverrideDefaults)
-	&& (hHDMI->DeviceSettings.stAviInfoFrame.eActiveInfo == NewHdmiSettings->stAviInfoFrame.eActiveInfo)
-	&& (hHDMI->DeviceSettings.stAviInfoFrame.eBarInfo == NewHdmiSettings->stAviInfoFrame.eBarInfo)
-	&& (hHDMI->DeviceSettings.stAviInfoFrame.eScanInfo == NewHdmiSettings->stAviInfoFrame.eScanInfo)
-	&& (hHDMI->DeviceSettings.stAviInfoFrame.eColorimetry == NewHdmiSettings->stAviInfoFrame.eColorimetry)
-	&& (hHDMI->DeviceSettings.stAviInfoFrame.eActiveInfo == NewHdmiSettings->stAviInfoFrame.eActiveInfo)
-	&& (hHDMI->DeviceSettings.stAviInfoFrame.ePictureAspectRatio == NewHdmiSettings->stAviInfoFrame.ePictureAspectRatio)
-	&& (hHDMI->DeviceSettings.stAviInfoFrame.eActiveFormatAspectRatio == NewHdmiSettings->stAviInfoFrame.eActiveFormatAspectRatio)
-	&& (hHDMI->DeviceSettings.stAviInfoFrame.eScaling == NewHdmiSettings->stAviInfoFrame.eScaling)
-	&& (hHDMI->DeviceSettings.stAviInfoFrame.VideoIdCode == NewHdmiSettings->stAviInfoFrame.VideoIdCode)
-	&& (hHDMI->DeviceSettings.stAviInfoFrame.eActiveInfo == NewHdmiSettings->stAviInfoFrame.eActiveInfo)
-	&& (hHDMI->DeviceSettings.stAviInfoFrame.PixelRepeat == NewHdmiSettings->stAviInfoFrame.PixelRepeat)
-#if BAVC_HDMI_1_3_SUPPORT
-	&& (hHDMI->DeviceSettings.stAviInfoFrame.eITContent == NewHdmiSettings->stAviInfoFrame.eITContent)
-	&& (hHDMI->DeviceSettings.stAviInfoFrame.eExtendedColorimetry == NewHdmiSettings->stAviInfoFrame.eExtendedColorimetry)
-	&& (hHDMI->DeviceSettings.stAviInfoFrame.eRGBQuantizationRange == NewHdmiSettings->stAviInfoFrame.eRGBQuantizationRange)
-	&& (hHDMI->DeviceSettings.stAviInfoFrame.eYccQuantizationRange == NewHdmiSettings->stAviInfoFrame.eYccQuantizationRange)
-	&& (hHDMI->DeviceSettings.stAviInfoFrame.eContentType == NewHdmiSettings->stAviInfoFrame.eContentType)
-#endif
-	&& (hHDMI->DeviceSettings.stAviInfoFrame.TopBarEndLineNumber== NewHdmiSettings->stAviInfoFrame.TopBarEndLineNumber)
-	&& (hHDMI->DeviceSettings.stAviInfoFrame.BottomBarStartLineNumber == NewHdmiSettings->stAviInfoFrame.BottomBarStartLineNumber)
-	&& (hHDMI->DeviceSettings.stAviInfoFrame.LeftBarEndPixelNumber == NewHdmiSettings->stAviInfoFrame.LeftBarEndPixelNumber)
-	&& (hHDMI->DeviceSettings.stAviInfoFrame.RightBarEndPixelNumber == NewHdmiSettings->stAviInfoFrame.RightBarEndPixelNumber)
-
-
-	/**** Audio Info Frame Structure ****/
-	&& (hHDMI->DeviceSettings.stAudioInfoFrame.bOverrideDefaults == NewHdmiSettings->stAudioInfoFrame.bOverrideDefaults)
-	&& (hHDMI->DeviceSettings.stAudioInfoFrame.ChannelCount == NewHdmiSettings->stAudioInfoFrame.ChannelCount)
-	&& (hHDMI->DeviceSettings.stAudioInfoFrame.CodingType == NewHdmiSettings->stAudioInfoFrame.CodingType)
-	&& (hHDMI->DeviceSettings.stAudioInfoFrame.SampleSize == NewHdmiSettings->stAudioInfoFrame.SampleSize)
-	&& (hHDMI->DeviceSettings.stAudioInfoFrame.SampleFrequency == NewHdmiSettings->stAudioInfoFrame.SampleFrequency)
-	&& (hHDMI->DeviceSettings.stAudioInfoFrame.SpeakerAllocation == NewHdmiSettings->stAudioInfoFrame.SpeakerAllocation)
-	&& (hHDMI->DeviceSettings.stAudioInfoFrame.DownMixInhibit == NewHdmiSettings->stAudioInfoFrame.DownMixInhibit)
-	&& (hHDMI->DeviceSettings.stAudioInfoFrame.LevelShift == NewHdmiSettings->stAudioInfoFrame.LevelShift)
-
-
-	&& (hHDMI->DeviceSettings.eAudioSamplingRate == NewHdmiSettings->eAudioSamplingRate)
-	&& (hHDMI->DeviceSettings.eAudioFormat == NewHdmiSettings->eAudioFormat)
-	&& (hHDMI->DeviceSettings.eAudioBits == NewHdmiSettings->eAudioBits)
-
-	&& (hHDMI->DeviceSettings.eAudioFormat == NewHdmiSettings->eAudioFormat)
-
-
-	/**** Source Product Description ****/
-	&& (hHDMI->DeviceSettings.eSpdSourceDevice == NewHdmiSettings->eSpdSourceDevice)
-	&& (BKNI_Memcmp(hHDMI->DeviceSettings.SpdVendorName,
-	                      NewHdmiSettings->SpdVendorName, BAVC_HDMI_SPD_IF_VENDOR_LEN) == 0)
-	&& (BKNI_Memcmp(hHDMI->DeviceSettings.SpdDescription,
-	                      NewHdmiSettings->SpdDescription, BAVC_HDMI_SPD_IF_DESC_LEN) == 0)
-
-
-	/**** Vendor Specific Info Frame Structure ****/
-	&& (BKNI_Memcmp(hHDMI->DeviceSettings.stVendorSpecificInfoFrame.uIEEE_RegId,
-	                NewHdmiSettings->stVendorSpecificInfoFrame.uIEEE_RegId,
-	                BAVC_HDMI_IEEE_REGID_LEN) == 0)
-
-	&& (hHDMI->DeviceSettings.stVendorSpecificInfoFrame.eHdmiVideoFormat ==
-	          NewHdmiSettings->stVendorSpecificInfoFrame.eHdmiVideoFormat)
-
-
-	&& (hHDMI->DeviceSettings.stVendorSpecificInfoFrame.eHdmiVic ==
-	          NewHdmiSettings->stVendorSpecificInfoFrame.eHdmiVic)
-	/* or */
-	&& (hHDMI->DeviceSettings.stVendorSpecificInfoFrame.e3DStructure ==
-	          NewHdmiSettings->stVendorSpecificInfoFrame.e3DStructure)
-
-	&& (hHDMI->DeviceSettings.stVendorSpecificInfoFrame.e3DExtData ==
-	          NewHdmiSettings->stVendorSpecificInfoFrame.e3DExtData)
-
 
 	&& (hHDMI->DeviceSettings.CalculateCts == NewHdmiSettings->CalculateCts)
 	&& (hHDMI->DeviceSettings.uiDriverAmpDefault == NewHdmiSettings->uiDriverAmpDefault)
@@ -1821,13 +1738,100 @@ bool BHDM_P_HdmiSettingsChange(const BHDM_Handle hHDMI, const BHDM_Settings *New
 	&& (hHDMI->DeviceSettings.bForceEnableDisplay == NewHdmiSettings->bForceEnableDisplay)
 	&& (hHDMI->DeviceSettings.bEnableAutoRiPjChecking == NewHdmiSettings->bEnableAutoRiPjChecking))
 	{
-		return false  ;
+		bPhyChanges = false ;
 	}
 	else
 	{
-		return true ;
+		bPhyChanges = true ;
 	}
+
+	BDBG_MSG(("HDMI Phy Changes: %s", bPhyChanges ? "Yes" : "No")) ;
+	return bPhyChanges ;
 }
+
+
+
+static bool BHDM_P_HdmiPacketChanges(const BHDM_Handle hHDMI, const BHDM_Settings *pNewHdmiSettings)
+{
+	bool bPacketChanges = false ;
+
+	/**** AVI Info Frame  ****/
+	if ((hHDMI->DeviceSettings.stAviInfoFrame.ePixelEncoding == pNewHdmiSettings->stAviInfoFrame.ePixelEncoding)
+	&& (hHDMI->DeviceSettings.stAviInfoFrame.bOverrideDefaults == pNewHdmiSettings->stAviInfoFrame.bOverrideDefaults)
+	&& (hHDMI->DeviceSettings.stAviInfoFrame.eActiveInfo == pNewHdmiSettings->stAviInfoFrame.eActiveInfo)
+	&& (hHDMI->DeviceSettings.stAviInfoFrame.eBarInfo == pNewHdmiSettings->stAviInfoFrame.eBarInfo)
+	&& (hHDMI->DeviceSettings.stAviInfoFrame.eScanInfo == pNewHdmiSettings->stAviInfoFrame.eScanInfo)
+	&& (hHDMI->DeviceSettings.stAviInfoFrame.eActiveInfo == pNewHdmiSettings->stAviInfoFrame.eActiveInfo)
+	&& (hHDMI->DeviceSettings.stAviInfoFrame.ePictureAspectRatio == pNewHdmiSettings->stAviInfoFrame.ePictureAspectRatio)
+	&& (hHDMI->DeviceSettings.stAviInfoFrame.eActiveFormatAspectRatio == pNewHdmiSettings->stAviInfoFrame.eActiveFormatAspectRatio)
+	&& (hHDMI->DeviceSettings.stAviInfoFrame.eScaling == pNewHdmiSettings->stAviInfoFrame.eScaling)
+	&& (hHDMI->DeviceSettings.stAviInfoFrame.VideoIdCode == pNewHdmiSettings->stAviInfoFrame.VideoIdCode)
+	&& (hHDMI->DeviceSettings.stAviInfoFrame.eActiveInfo == pNewHdmiSettings->stAviInfoFrame.eActiveInfo)
+	&& (hHDMI->DeviceSettings.stAviInfoFrame.PixelRepeat == pNewHdmiSettings->stAviInfoFrame.PixelRepeat)
+#if BAVC_HDMI_1_3_SUPPORT
+	&& (hHDMI->DeviceSettings.stAviInfoFrame.eITContent == pNewHdmiSettings->stAviInfoFrame.eITContent)
+	&& (hHDMI->DeviceSettings.stAviInfoFrame.eExtendedColorimetry == pNewHdmiSettings->stAviInfoFrame.eExtendedColorimetry)
+	&& (hHDMI->DeviceSettings.stAviInfoFrame.eRGBQuantizationRange == pNewHdmiSettings->stAviInfoFrame.eRGBQuantizationRange)
+	&& (hHDMI->DeviceSettings.stAviInfoFrame.eYccQuantizationRange == pNewHdmiSettings->stAviInfoFrame.eYccQuantizationRange)
+	&& (hHDMI->DeviceSettings.stAviInfoFrame.eContentType == pNewHdmiSettings->stAviInfoFrame.eContentType)
+#endif
+	&& (hHDMI->DeviceSettings.stAviInfoFrame.TopBarEndLineNumber== pNewHdmiSettings->stAviInfoFrame.TopBarEndLineNumber)
+	&& (hHDMI->DeviceSettings.stAviInfoFrame.BottomBarStartLineNumber == pNewHdmiSettings->stAviInfoFrame.BottomBarStartLineNumber)
+	&& (hHDMI->DeviceSettings.stAviInfoFrame.LeftBarEndPixelNumber == pNewHdmiSettings->stAviInfoFrame.LeftBarEndPixelNumber)
+	&& (hHDMI->DeviceSettings.stAviInfoFrame.RightBarEndPixelNumber == pNewHdmiSettings->stAviInfoFrame.RightBarEndPixelNumber)
+	&& (hHDMI->DeviceSettings.eColorimetry == pNewHdmiSettings->eColorimetry)
+
+
+	/**** Audio Info Frame ****/
+	&& (hHDMI->DeviceSettings.stAudioInfoFrame.bOverrideDefaults == pNewHdmiSettings->stAudioInfoFrame.bOverrideDefaults)
+	&& (hHDMI->DeviceSettings.stAudioInfoFrame.ChannelCount == pNewHdmiSettings->stAudioInfoFrame.ChannelCount)
+	&& (hHDMI->DeviceSettings.stAudioInfoFrame.CodingType == pNewHdmiSettings->stAudioInfoFrame.CodingType)
+	&& (hHDMI->DeviceSettings.stAudioInfoFrame.SampleSize == pNewHdmiSettings->stAudioInfoFrame.SampleSize)
+	&& (hHDMI->DeviceSettings.stAudioInfoFrame.SampleFrequency == pNewHdmiSettings->stAudioInfoFrame.SampleFrequency)
+	&& (hHDMI->DeviceSettings.stAudioInfoFrame.SpeakerAllocation == pNewHdmiSettings->stAudioInfoFrame.SpeakerAllocation)
+	&& (hHDMI->DeviceSettings.stAudioInfoFrame.DownMixInhibit == pNewHdmiSettings->stAudioInfoFrame.DownMixInhibit)
+	&& (hHDMI->DeviceSettings.stAudioInfoFrame.LevelShift == pNewHdmiSettings->stAudioInfoFrame.LevelShift)
+
+
+	/**** Source Product Description Info Frame ****/
+	&& (hHDMI->DeviceSettings.eSpdSourceDevice == pNewHdmiSettings->eSpdSourceDevice)
+	&& (BKNI_Memcmp(hHDMI->DeviceSettings.SpdVendorName,
+		pNewHdmiSettings->SpdVendorName, BAVC_HDMI_SPD_IF_VENDOR_LEN) == 0)
+	&& (BKNI_Memcmp(hHDMI->DeviceSettings.SpdDescription,
+		pNewHdmiSettings->SpdDescription, BAVC_HDMI_SPD_IF_DESC_LEN) == 0)
+
+
+	/**** Vendor Specific Info Frame ****/
+	&& (BKNI_Memcmp(hHDMI->DeviceSettings.stVendorSpecificInfoFrame.uIEEE_RegId,
+		pNewHdmiSettings->stVendorSpecificInfoFrame.uIEEE_RegId,
+		BAVC_HDMI_IEEE_REGID_LEN) == 0)
+
+	&& (hHDMI->DeviceSettings.stVendorSpecificInfoFrame.eHdmiVideoFormat ==
+	          pNewHdmiSettings->stVendorSpecificInfoFrame.eHdmiVideoFormat)
+
+
+	&& (hHDMI->DeviceSettings.stVendorSpecificInfoFrame.eHdmiVic ==
+	          pNewHdmiSettings->stVendorSpecificInfoFrame.eHdmiVic)
+	/* or */
+	&& (hHDMI->DeviceSettings.stVendorSpecificInfoFrame.e3DStructure ==
+	          pNewHdmiSettings->stVendorSpecificInfoFrame.e3DStructure)
+
+	&& (hHDMI->DeviceSettings.stVendorSpecificInfoFrame.e3DExtData ==
+	          pNewHdmiSettings->stVendorSpecificInfoFrame.e3DExtData))
+	{
+		bPacketChanges = false ;
+	}
+	else
+	{
+		bPacketChanges = true ;
+	}
+
+	BDBG_MSG(("HDMI Packet Updates? %s", bPacketChanges ? "Yes" : "No")) ;
+	return bPacketChanges ;
+}
+
+
+
 
 
 /******************************************************************************
@@ -1851,6 +1855,7 @@ BERR_Code BHDM_EnableDisplay(const BHDM_Handle hHDMI, const BHDM_Settings *NewHd
 	uint8_t FrameDelay ;
 
 	const BFMT_VideoInfo *pVideoInfo ;
+	bool bHdmiPhyChanges ;
 #endif	/* #ifndef BHDM_FOR_BOOTUPDATER */
 
 #if BHDM_CONFIG_FORMAT_DETECT_HSYNC_SATURATION_SUPPORT
@@ -1886,14 +1891,24 @@ BERR_Code BHDM_EnableDisplay(const BHDM_Handle hHDMI, const BHDM_Settings *NewHd
 		goto done;
 	}
 
-	if (!NewHdmiSettings->bForceEnableDisplay
-	&&  !BHDM_P_HdmiSettingsChange(hHDMI, NewHdmiSettings))
+	if (!NewHdmiSettings->bForceEnableDisplay)
 	{
-		BDBG_MSG(("Tx%d: No change in HDMI settings...", hHDMI->eCoreId)) ;
-		rc = BERR_SUCCESS;
-		goto done;
+		bHdmiPhyChanges = BHDM_P_HdmiPhyChanges(hHDMI, NewHdmiSettings) ;
+		if (!bHdmiPhyChanges)
+		{
+			if  (!hHDMI->bForcePacketUpdates)
+			{
+				if (!BHDM_P_HdmiPacketChanges(hHDMI, NewHdmiSettings))
+				{
+					goto done ;
+				}
+			}
+			BDBG_MSG(("HDMI Packet updates only...")) ;
+			goto ConfigureHdmiPackets ;
+		}
 	}
 
+/* Configure HDMI Phy */
 	BHDM_EnableTmdsClock(hHDMI, true) ;  /* make sure clock is enabled */
 	BHDM_EnableTmdsData(hHDMI, true) ;
 
@@ -2105,10 +2120,12 @@ BERR_Code BHDM_EnableDisplay(const BHDM_Handle hHDMI, const BHDM_Settings *NewHd
 		HdmiVideoFormatChange = true ;
 	}
 
+ConfigureHdmiPackets:
 	/* save the new HDMI Settings we used to enable the HDMI device for this HDMI handle */
 	hHDMI->DeviceSettings = *NewHdmiSettings ;
 
 	/* format and send out HDMI info packets */
+
 	if  ((hHDMI->DeviceSettings.eOutputFormat == BHDM_OutputFormat_eHDMIMode))
 	{
 		/* set and enable the General Control Packet */
@@ -2145,6 +2162,7 @@ BERR_Code BHDM_EnableDisplay(const BHDM_Handle hHDMI, const BHDM_Settings *NewHd
 	/* recenter/initialize the FIFO only if the video format has changed */
 	if (HdmiVideoFormatChange || hHDMI->DeviceSettings.bForceEnableDisplay)
 	{
+		BDBG_MSG(("RECENTER FIFO...")) ;
 		BHDM_CHECK_RC(rc, BHDM_InitializeDriftFIFO(hHDMI)) ;
 	}
 
@@ -2183,6 +2201,8 @@ BERR_Code BHDM_EnableDisplay(const BHDM_Handle hHDMI, const BHDM_Settings *NewHd
 #endif
 
 	hHDMI->DeviceSettings.bForceEnableDisplay = false ;
+	hHDMI->bForcePacketUpdates = false ;
+
 done:
 	BDBG_LEAVE(BHDM_EnableDisplay) ;
 	return rc ;
@@ -2222,7 +2242,7 @@ void BHDM_P_DisableDisplay_isr(
 	BHDM_P_EnableTmdsClock_isr(hHDMI, false) ;
 
 	/* reset the HDMI core to DVI Mode whenever disconnected */
-	BHDM_P_ResetHdmiScheduler(hHDMI) ;
+	BHDM_P_ResetHdmiScheduler_isrsafe(hHDMI) ;
 
 	BHDM_P_SetDisplayStartupDefaults_isr(hHDMI) ;
 
@@ -2344,16 +2364,6 @@ BERR_Code BHDM_Close(
 #if BCHP_PWR_RESOURCE_HDMI_TX_CLK || BCHP_PWR_RESOURCE_HDMI_TX_1_CLK
 	/*  power down the TX Clock */
 	BCHP_PWR_ReleaseResource(hHDMI->hChip, hHDMI->clkPwrResource[hHDMI->eCoreId]);
-
-	/************************************************
-	Temporary work around HSM Timeout issue when enabling HDCP2.2 Rx feature
-	The problem is when we enable HDCP22_RX_SUPPORT in SAGE, some SCPU related interrupts
-	are enabled. That, somehow, requires this clock to be enable otherwise we'll face TIMEOUT
-	when communicating with the BSP. JIRA SWSECURITY-1304
-	************************************************/
-#if BCHP_PWR_RESOURCE_HDMI_RX0_CLK
-	BCHP_PWR_ReleaseResource(hHDMI->hChip, BCHP_PWR_RESOURCE_HDMI_RX0_CLK);
-#endif
 #endif
 
 	/* delete previous video descriptors if they exist */
@@ -2477,7 +2487,7 @@ BERR_Code BHDM_SetAvMute(
 
 	if (!hHDMI->DeviceStatus.tmds.dataEnabled) {
 		/* warn, but keep going */
-		BDBG_WRN(("Tx%d: BHDM_SetAvMute called while display is disabled", hHDMI->eCoreId));
+		BDBG_MSG(("Tx%d: BHDM_SetAvMute called while display is disabled", hHDMI->eCoreId));
 	}
 
 	if (bEnableAvMute)
@@ -2733,7 +2743,9 @@ void BHDM_StartDriftFIFORecenter_isrsafe(
 
 	Register = BREG_Read32(hRegister, BCHP_HDMI_FIFO_CTL + ulOffset) ;
 		Register &= ~ BCHP_MASK(HDMI_FIFO_CTL, reserved0) ;
+#if BCHP_HDMI_FIFO_CTL_reserved1_MASK
 		Register &= ~ BCHP_MASK(HDMI_FIFO_CTL, reserved1) ;
+#endif
 		Register &= ~ BCHP_MASK(HDMI_FIFO_CTL, RECENTER) ;
 	BREG_Write32(hRegister, BCHP_HDMI_FIFO_CTL + ulOffset, Register);
 
@@ -3091,51 +3103,42 @@ static void BHDM_P_DebugInputVideoFmtConfiguration(
 
 	uint32_t tmdsRate ;
 	uint8_t divider ;
+	const char *bitsPerPixelStr;
 
 	divider = (hHDMI->DeviceSettings.stVideoSettings.eColorSpace == BAVC_Colorspace_eYCbCr420)  ? 2 : 1 ;
 	BDBG_MSG(("Horizontal Parameter Divider: %d", divider)) ;
+
+       pVideoInfo = BFMT_GetVideoFormatInfoPtr(NewHdmiSettings->eInputVideoFmt) ;
+
+	BHDM_TMDS_P_VideoFormatSettingsToTmdsRate(hHDMI,
+		NewHdmiSettings->eInputVideoFmt, &NewHdmiSettings->stVideoSettings, &tmdsRate) ;
+
 
 	if (NewHdmiSettings->stVideoSettings.eColorSpace == BAVC_Colorspace_eYCbCr422)
 	{
 		/* NOTE: there is no such thing as deep color 4:2:2 */
 		/* Deep Color implies that the pixels are packed differently for different bits per component. */
 		/* See HDMI 1.4 Figure 6-2 */
-		BDBG_LOG(("Tx%d: Output Fmt:   %s (%s 36 bpp) %d [%s]  x %d/%d [%s]",
-			hHDMI->eCoreId,
-			BHDM_VideoFmtParams[index].FormatName,
-
-			BAVC_HDMI_AviInfoFrame_ColorspaceToStr_isrsafe(NewHdmiSettings->stVideoSettings.eColorSpace),
-
-			BHDM_VideoFmtParams[index].H_ActivePixels / divider,
-			sPolarity[BHDM_VideoFmtParams[index].V_Polarity],
-			BHDM_VideoFmtParams[index].V_ActiveLinesField0,
-			BHDM_VideoFmtParams[index].V_ActiveLinesField1,
-			sPolarity[BHDM_VideoFmtParams[index].H_Polarity])) ;
+		bitsPerPixelStr = "36 bpp" ;
 	}
 	else
 	{
-		BDBG_LOG(("Tx%d: Output Fmt:   %s (%s %s) %d [%s]  x %d/%d [%s]",
-			hHDMI->eCoreId,
-			BHDM_VideoFmtParams[index].FormatName,
-
-			BAVC_HDMI_AviInfoFrame_ColorspaceToStr_isrsafe(NewHdmiSettings->stVideoSettings.eColorSpace),
-			BAVC_HDMI_BitsPerPixelToStr(NewHdmiSettings->stVideoSettings.eBitsPerPixel),
-
-			BHDM_VideoFmtParams[index].H_ActivePixels / divider,
-			sPolarity[BHDM_VideoFmtParams[index].V_Polarity],
-			BHDM_VideoFmtParams[index].V_ActiveLinesField0,
-			BHDM_VideoFmtParams[index].V_ActiveLinesField1,
-			sPolarity[BHDM_VideoFmtParams[index].H_Polarity])) ;
+		bitsPerPixelStr = BAVC_HDMI_BitsPerPixelToStr(NewHdmiSettings->stVideoSettings.eBitsPerPixel) ;
 	}
 
+	BDBG_LOG(("Tx%d Output: %s (%s %s) %d [%s] x %d/%d [%s], PxlClk: %dMHz (TMDS %d Mcsc)",
+		hHDMI->eCoreId,
+		BHDM_VideoFmtParams[index].FormatName,
 
-       pVideoInfo = BFMT_GetVideoFormatInfoPtr(hHDMI->DeviceSettings.eInputVideoFmt) ;
+		BAVC_HDMI_AviInfoFrame_ColorspaceToStr_isrsafe(NewHdmiSettings->stVideoSettings.eColorSpace),
+		bitsPerPixelStr,
 
-	BHDM_TMDS_P_VideoFormatSettingsToTmdsRate(hHDMI,
-		NewHdmiSettings->eInputVideoFmt, &NewHdmiSettings->stVideoSettings, &tmdsRate) ;
-       BDBG_LOG(("Tx%d: Pixel Clock:  %d MHz (TMDS Character Rate %d Mcsc)",
-               hHDMI->eCoreId, pVideoInfo->ulPxlFreq / BFMT_FREQ_FACTOR,
-               tmdsRate)) ;
+		BHDM_VideoFmtParams[index].H_ActivePixels / divider,
+		sPolarity[BHDM_VideoFmtParams[index].V_Polarity],
+		BHDM_VideoFmtParams[index].V_ActiveLinesField0,
+		BHDM_VideoFmtParams[index].V_ActiveLinesField1,
+		sPolarity[BHDM_VideoFmtParams[index].H_Polarity],
+		pVideoInfo->ulPxlFreq / BFMT_FREQ_FACTOR, tmdsRate)) ;
 
 	if (index == BHDM_InputVideoFmt_eCustom)
 	{
@@ -4026,9 +4029,7 @@ BERR_Code BHDM_GetHdmiStatus(const BHDM_Handle hHDMI, /* [in] handle to HDMI dev
 	BDBG_OBJECT_ASSERT(hHDMI, HDMI) ;
 	BDBG_ASSERT(pHdmiStatus) ;
 
-	BKNI_EnterCriticalSection() ;
-		*pHdmiStatus = hHDMI->DeviceStatus ;
-	BKNI_LeaveCriticalSection() ;
+	*pHdmiStatus = hHDMI->DeviceStatus ;
 
 	BDBG_LEAVE(BHDM_GetHdmiStatus) ;
 	return rc ;
@@ -4052,18 +4053,25 @@ BERR_Code BHDM_SetHdmiSettings(const BHDM_Handle hHDMI, /* [in] handle to HDMI d
 {
 	BERR_Code rc = BERR_SUCCESS;
 	bool bForceEnableDisplay ;
+	bool bForcePacketUpdates ;
 	BDBG_ENTER(BHDM_SetHdmiSettings) ;
 
 	BDBG_OBJECT_ASSERT(hHDMI, HDMI) ;
 	BDBG_ASSERT(pHdmiSettings) ;
 
 	/* force BHDM_EnableDisplay to update if HdmiSettings have changed */
-	bForceEnableDisplay = BHDM_P_HdmiSettingsChange(hHDMI, pHdmiSettings) ;
+	bForceEnableDisplay = BHDM_P_HdmiPhyChanges(hHDMI, pHdmiSettings) ;
+	bForcePacketUpdates = BHDM_P_HdmiPacketChanges(hHDMI, pHdmiSettings) ;
 
 	BKNI_Memcpy(&(hHDMI->DeviceSettings), pHdmiSettings, sizeof(BHDM_Settings));
 
+	/* do not overwrite possible previous bForceEnableDisplay */
 	if (bForceEnableDisplay)
 		hHDMI->DeviceSettings.bForceEnableDisplay = true ;
+
+	/* do not overwrite possible previous bForceUpdatePackets */
+	if (bForcePacketUpdates)
+		hHDMI->bForcePacketUpdates = true ;
 
 	BDBG_LEAVE(BHDM_SetHdmiSettings) ;
 	return rc ;
@@ -4113,7 +4121,9 @@ void BHDM_P_CaptureFIFOData(const BHDM_Handle hHDMI, BHDM_P_FIFO_DATA *FifoData)
 	/* get the CAPTURE POINTER data for debug, fine tuning, etc. */
 	Register = BREG_Read32(hRegister, BCHP_HDMI_FIFO_CTL + ulOffset);
 		Register &= ~BCHP_MASK(HDMI_FIFO_CTL, reserved0) ;
+#if BCHP_HDMI_FIFO_CTL_reserved1_MASK
 		Register &= ~BCHP_MASK(HDMI_FIFO_CTL, reserved1) ;
+#endif
 		Register &= ~BCHP_MASK(HDMI_FIFO_CTL, CAPTURE_POINTERS) ;
 
 		Register |= BCHP_FIELD_DATA(HDMI_FIFO_CTL, CAPTURE_POINTERS, 1) ;
@@ -5217,6 +5227,7 @@ BERR_Code BHDM_SetVideoSettings(
 )
 {
 	BERR_Code rc = BERR_SUCCESS;
+	bool bPixelEncodingChange =false ;
 	BHDM_ColorDepth_Settings stColorDepthSettings ;
 
 	BDBG_ENTER(BHDM_SetVideoSettings);
@@ -5237,23 +5248,39 @@ BERR_Code BHDM_SetVideoSettings(
 	rc = BHDM_SetColorDepth(hHDMI, &stColorDepthSettings) ;
 	if (rc) {rc = BERR_TRACE(rc) ;}
 
+	bPixelEncodingChange =
+		((pstVideoSettings->eColorSpace == BAVC_Colorspace_eYCbCr420)
+		&& (hHDMI->DeviceSettings.stVideoSettings.eColorSpace != BAVC_Colorspace_eYCbCr420))
 
-	/* set color space */
-	/* color space is simply copied to settings; used for AVI Infoframe transmission */
+		|| ((pstVideoSettings->eColorSpace != BAVC_Colorspace_eYCbCr420)
+		&& (hHDMI->DeviceSettings.stVideoSettings.eColorSpace == BAVC_Colorspace_eYCbCr420))
 
-	/* force updates on the HDMI Ouput... */
-	/* 	if required to do so already e.g resume from standby */
-	/* 	OR settings have changed */
+		|| ((pstVideoSettings->eColorSpace == BAVC_Colorspace_eYCbCr422)
+		&& (hHDMI->DeviceSettings.stVideoSettings.eColorSpace != BAVC_Colorspace_eYCbCr422))
+
+		|| ((pstVideoSettings->eColorSpace != BAVC_Colorspace_eYCbCr422)
+		&& (hHDMI->DeviceSettings.stVideoSettings.eColorSpace == BAVC_Colorspace_eYCbCr422)) ;
+
+	BDBG_MSG(("Force Pixel Encoding Change: %s", bPixelEncodingChange ? "yes" : "no")) ;
+
+
+	/* force an update to the HDMI Phy Output */
+	/*   if not already required to do so e.g. resume from standby  */
+	/*   OR settings have changed */
 	if (!hHDMI->DeviceSettings.bForceEnableDisplay)
 	{
 		hHDMI->DeviceSettings.bForceEnableDisplay =
 			((hHDMI->DeviceSettings.stVideoSettings.eBitsPerPixel != pstVideoSettings->eBitsPerPixel)
-			|| (hHDMI->DeviceSettings.stVideoSettings.eColorRange != pstVideoSettings->eColorRange)
-			|| (hHDMI->DeviceSettings.stVideoSettings.eColorSpace != pstVideoSettings->eColorSpace)) ;
+			|| (bPixelEncodingChange)) ;
 	}
 
-	BDBG_MSG(("HDMI Video Settings changes require reconfiguration? %s",
-		hHDMI->DeviceSettings.bForceEnableDisplay ? "Yes" : "No" )) ;
+
+	if (!hHDMI->bForcePacketUpdates)
+	{
+		hHDMI->bForcePacketUpdates =
+			(( hHDMI->DeviceSettings.stVideoSettings.eColorSpace != pstVideoSettings->eColorSpace)
+			|| (hHDMI->DeviceSettings.stVideoSettings.eColorRange != pstVideoSettings->eColorRange)) ;
+	}
 
 	BKNI_Memcpy(&hHDMI->DeviceSettings.stVideoSettings, pstVideoSettings, sizeof(BHDM_Video_Settings));
 	BKNI_LeaveCriticalSection() ;

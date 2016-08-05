@@ -69,11 +69,7 @@ See NEXUS_TransportCapabilities.numInputBands for actual number. */
 #endif
 
 #ifdef NEXUS_HAS_UHF_INPUT
-#if BCHP_CHIP == 7420
-#define NEXUS_NUM_UHF_INPUTS 2
-#else
 #define NEXUS_NUM_UHF_INPUTS 1
-#endif
 #else
 #define NEXUS_NUM_UHF_INPUTS 0
 #endif
@@ -117,7 +113,7 @@ See NEXUS_TransportCapabilities.numInputBands for actual number. */
 #endif
 
 #ifdef NEXUS_HAS_GRAPHICS2D
-#if (BCHP_CHIP == 7145 || BCHP_CHIP == 7366 || BCHP_CHIP == 7435 || BCHP_CHIP == 74371 || BCHP_CHIP == 7439 || BCHP_CHIP == 7445) && !defined NEXUS_WEBCPU
+#if (BCHP_CHIP == 7366 || BCHP_CHIP == 7435 || BCHP_CHIP == 74371 || BCHP_CHIP == 7439 || BCHP_CHIP == 7445) && !defined NEXUS_WEBCPU
 #define NEXUS_NUM_2D_ENGINES 2
 #else
 #define NEXUS_NUM_2D_ENGINES 1
@@ -130,7 +126,7 @@ See NEXUS_TransportCapabilities.numInputBands for actual number. */
 /* TODO: convert to generic max when BBOX_XVD specifies this */
 #if BCHP_CHIP == 7445
 #define NEXUS_NUM_XVD_DEVICES 3
-#elif BCHP_CHIP == 7145 || BCHP_CHIP == 7420 || BCHP_CHIP == 7422 || BCHP_CHIP == 7425 || BCHP_CHIP == 7435 || BCHP_CHIP == 7439
+#elif BCHP_CHIP == 7422 || BCHP_CHIP == 7425 || BCHP_CHIP == 7435 || BCHP_CHIP == 7439
 #define NEXUS_NUM_XVD_DEVICES 2
 #else
 #define NEXUS_NUM_XVD_DEVICES 1
@@ -140,11 +136,7 @@ See NEXUS_TransportCapabilities.numInputBands for actual number. */
 
 /* NEXUS_NUM_656_INPUTS is unused in Nexus except in some older pinmux code,
 but is retained here for app backward compat */
-#if BCHP_CHIP == 7125
-#define NEXUS_NUM_656_INPUTS 1
-#else
 #define NEXUS_NUM_656_INPUTS 0
-#endif
 
 #define NEXUS_HAS_GFD_VERTICAL_UPSCALE 1
 

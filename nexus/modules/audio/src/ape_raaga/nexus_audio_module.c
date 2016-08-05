@@ -172,7 +172,7 @@ static void NEXUS_AudioModule_Print(void)
                 NEXUS_AudioMixerHandle mixerHandle = NEXUS_AudioInput_P_LocateMixer( &handle->connectors[j], NULL);
                 while (mixerHandle)
                 {
-                    NEXUS_AudioInput connector = NEXUS_AudioMixer_GetConnector(mixerHandle);
+                    NEXUS_AudioInputHandle connector = NEXUS_AudioMixer_GetConnector(mixerHandle);
                     BDBG_LOG(("  %s: (%p)", connector->pName, (void *)mixerHandle));
                     mixerHandle = NEXUS_AudioInput_P_LocateMixer( &handle->connectors[j], mixerHandle);
                 }
@@ -184,7 +184,7 @@ static void NEXUS_AudioModule_Print(void)
         NEXUS_AudioPlaybackHandle playbackHandle = NEXUS_AudioPlayback_P_GetPlaybackByIndex(i);
         if (playbackHandle)
         {
-            NEXUS_AudioInput connector = NEXUS_AudioPlayback_GetConnector(playbackHandle);
+            NEXUS_AudioInputHandle connector = NEXUS_AudioPlayback_GetConnector(playbackHandle);
             NEXUS_AudioMixerHandle mixerHandle = NEXUS_AudioInput_P_LocateMixer(connector, NULL);
             NEXUS_AudioPlaybackSettings playbackSettings;
             NEXUS_AudioPlayback_GetSettings(playbackHandle, &playbackSettings);
@@ -192,7 +192,7 @@ static void NEXUS_AudioModule_Print(void)
             BDBG_LOG(("  started=%c", NEXUS_AudioPlayback_P_IsRunning(playbackHandle)?'y':'n'));
             while (mixerHandle)
             {
-                NEXUS_AudioInput mixerConnector = NEXUS_AudioMixer_GetConnector(mixerHandle);
+                NEXUS_AudioInputHandle mixerConnector = NEXUS_AudioMixer_GetConnector(mixerHandle);
                 BDBG_LOG(("  %s: (%p)", mixerConnector->pName, (void *)mixerHandle));
                 mixerHandle = NEXUS_AudioInput_P_LocateMixer(connector, mixerHandle);
             }
@@ -1459,7 +1459,9 @@ static NEXUS_Error secureFirmwareAudio( BDSP_Handle hRagga )
     if( rc ) { BERR_TRACE( rc );  /* Failed to configure raaga0 */ goto exit; }
 
     LOCK_SECURITY();
-    rc = NEXUS_Security_RegionVerifyEnable_priv( NEXUS_SecurityRegverRegionID_eRaaga0, firmwareAddress, firmwareSize );
+    rc = NEXUS_Security_RegionVerifyEnable_priv( NEXUS_SecurityRegverRegionID_eRaaga0,
+                                                 NEXUS_AddrToOffset( firmwareAddress ),
+                                                 firmwareSize );
     UNLOCK_SECURITY();
     if( rc ) { BERR_TRACE( rc );  /* Failed to verify raaga0 */ goto exit; }
 
@@ -1472,7 +1474,9 @@ static NEXUS_Error secureFirmwareAudio( BDSP_Handle hRagga )
         if( rc ) { BERR_TRACE( rc );  /* Failed to configure raaga1 */ goto exit; }
 
         LOCK_SECURITY();
-        rc = NEXUS_Security_RegionVerifyEnable_priv( NEXUS_SecurityRegverRegionID_eRaaga1, firmwareAddress, firmwareSize );
+        rc = NEXUS_Security_RegionVerifyEnable_priv( NEXUS_SecurityRegverRegionID_eRaaga1,
+                                                     NEXUS_AddrToOffset( firmwareAddress ),
+                                                     firmwareSize );
         UNLOCK_SECURITY();
         if( rc ) { BERR_TRACE( rc ); /* Failed to verify raaga1 */  goto exit; }
     }

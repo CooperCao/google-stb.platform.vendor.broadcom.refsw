@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -1523,9 +1523,7 @@ B_PlaybackIp_GetStatus(
     ipStatus->sessionInfo.ipAddr = (const char *)playback_ip->openSettings.socketOpenSettings.ipAddr;
 
     BDBG_MSG(("%s:%p monitoPsi = %d", __FUNCTION__, (void *)playback_ip, playback_ip->startSettings.monitorPsi));
-    if (playback_ip->startSettings.monitorPsi) {
-        B_PlaybackIp_GetPsiStreamState(playback_ip->pPsiState, &ipStatus->stream);
-    }
+    B_PlaybackIp_GetPsiStreamState(playback_ip->pPsiState, &ipStatus->stream);
     rc = B_ERROR_SUCCESS;
     return rc;
 }

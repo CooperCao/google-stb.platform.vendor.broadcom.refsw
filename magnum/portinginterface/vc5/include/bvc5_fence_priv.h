@@ -60,11 +60,12 @@ int BVC5_P_FenceCreateToSignalFromUser(BVC5_FenceArrayHandle hFenceArr, uint32_t
 void BVC5_P_FenceSignalFromUser(BVC5_FenceArrayHandle hFenceArr, int iFenceId);
 
 void BVC5_P_FenceAddCallback(BVC5_FenceArrayHandle hFenceArr, int iFenceId,
-   void (*pfnCallback)(void *, void *), void *pContext, void *pParam);
+   uint32_t uiClientId, void (*pfnCallback)(void *, void *), void *pContext,
+   void *pParam);
 
-void BVC5_P_FenceRemoveCallback(BVC5_FenceArrayHandle hFenceArr,
-   int iFenceId
-);
+bool BVC5_P_FenceRemoveCallback(BVC5_FenceArrayHandle hFenceArr, int iFenceId,
+   uint32_t uiClientId, void (*pfnCallback)(void *, void *), void *pContext,
+   void *pParam);
 
 
 /*****************************************************************************/
@@ -79,9 +80,19 @@ void BVC5_P_FenceArrayDestroy(BVC5_FenceArrayHandle hFenceArr);
  * The fence returned by this function can be waited on in user space (and closed).
  * When the fence is closed and dataToSignal signaled (in whatever order this
  * happens), the underlying fence struct gets freed.
+ *
+ * A fence created this way already has refcount of 2. One refence is released
+ * by BVC5_P_FenceSignalAndCleanup() and another one by BVC5_P_FenceClose().
+ * In order to have more than one party waiting on a fence call BVC5_P_FenceKeep()
+ * and then BVC5_P_FenceClose().
  */
 int BVC5_P_FenceCreate(BVC5_FenceArrayHandle hFenceArr, uint32_t uiClientId,
    void **dataToSignal);
+
+/* Increment refcount of the fence passed in from user space.
+ * Each call to this function requires a matching BVC5_P_FenceClose()
+ */
+int BVC5_P_FenceKeep(BVC5_FenceArrayHandle hFenceArr, int iFenceId);
 
 /* close the fence passed in from user space */
 void BVC5_P_FenceClose(BVC5_FenceArrayHandle hFenceArr,int iFenceId);
@@ -111,7 +122,9 @@ int BVC5_P_FenceWaitAsync(BVC5_FenceArrayHandle hFenceArr, uint32_t uiClientId,
 
 /* returns 1 if the fence we are waiting for has been signalled */
 int BVC5_P_FenceWaitAsyncIsSignaled(BVC5_FenceArrayHandle hFenceArr, void *waitData);
-void BVC5_P_FenceWaitAsyncCleanup(BVC5_FenceArrayHandle hFenceArr, void *waitData);
+void BVC5_P_FenceWaitAsyncCleanup(BVC5_FenceArrayHandle hFenceArr,
+   uint32_t uiClientId, void (*pfnCallback)(void *, void *), void *pContext,
+   void *pParam, void *waitData);
 
 /* Remove all fences associated with a client */
 void BVC5_P_FenceClientDestroy(BVC5_FenceArrayHandle hFenceArr, uint32_t uiClientId);

@@ -16,6 +16,8 @@ All rights reserved.
 typedef struct gmem_alloc_item *gmem_handle_t;
 typedef void *BEGL_MemHandle;
 
+typedef void (*GMEM_TERM_T)(void *);
+
 #define GMEM_HANDLE_MAGIC 0xfee1900d
 
 typedef struct gmem_alloc_item
@@ -31,6 +33,9 @@ typedef struct gmem_alloc_item
    uint16_t                usage_flags;
    volatile uint8_t        v3d_writes;
    bool                    externalAlloc;
+
+   void                    *nativeSurface;      /* Some external modes need a destructor */
+   GMEM_TERM_T             term;
 
    int                     driver_map_count;    /* Map calls made by the driver - external allocs not counted */
    void                    *cur_map_ptr;
@@ -84,7 +89,9 @@ void gmem_validate_v3d_access(gmem_handle_t handle, uint32_t sync_flags);
 void gmem_validate_v3d_access_range(gmem_handle_t handle, size_t offset, size_t length, uint32_t sync_flags);
 
 /* Wrap an existing platform memory handle in a gmem handle. This is only used for display buffers. */
-extern gmem_handle_t gmem_from_external_memory(uint64_t physOffset, void *cachedPtr, size_t length, const char *desc);
+extern gmem_handle_t gmem_from_external_memory(GMEM_TERM_T term, void *nativeSurface,
+                                               uint64_t physOffset, void *cachedPtr,
+                                               size_t length, const char *desc);
 
 #ifdef __cplusplus
 }

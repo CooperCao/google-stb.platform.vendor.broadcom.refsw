@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2012 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,8 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  **************************************************************************/
 #include "nexus_platform.h"
 #include "nexus_audio_input.h"
@@ -665,7 +657,7 @@ static void SelectInput(TestInput input)
         }
         if ( g_spdifOutput )
         {
-            NEXUS_AudioInput decoderConnector;
+            NEXUS_AudioInputHandle decoderConnector;
             unsigned whichDecoder = (g_compressedSpdif&&!g_simulMode)?1:0;
             decoderConnector = NEXUS_AudioDecoder_GetConnector(g_audioDecoders[whichDecoder],
                                                                (g_compressedSpdif)?NEXUS_AudioDecoderConnectorType_eCompressed:
@@ -894,4 +886,3 @@ static void RestartInput(void)
         return;
     }
 }
-

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -3205,6 +3205,10 @@ B_PlaybackIp_HlsSessionDestroy(B_PlaybackIpHandle playback_ip)
         hlsSession->playlistBuffer = NULL;
     }
 
+    if (hlsSession->lastSegmentUrl) {
+        BKNI_Free(hlsSession->lastSegmentUrl);
+        hlsSession->lastSegmentUrl = NULL;
+    }
     BKNI_Free(hlsSession);
     playback_ip->hlsSessionState = NULL;
     BDBG_MSG(("%s: Done", __FUNCTION__));
@@ -5376,7 +5380,11 @@ B_PlaybackIp_HlsMediaSegmentDownloadThread(
             BDBG_MSG(("%s:%p:%d after SetupHttpSessionToServer ", __FUNCTION__, (void *)playback_ip, playback_ip->playback_state));
             if (hlsSession->currentPlaylistFile) {
                 hlsSession->lastSegmentBitrate = hlsSession->currentPlaylistFile->bandwidth;
-                hlsSession->lastSegmentUrl = hlsSession->currentPlaylistFile->absoluteUri;
+                if (hlsSession->lastSegmentUrl) BKNI_Free(hlsSession->lastSegmentUrl);
+                if ( (hlsSession->lastSegmentUrl = B_PlaybackIp_UtilsStrdup(hlsSession->currentPlaylistFile->absoluteUri)) == NULL ) {
+                    BDBG_ERR(("%s: Failed to allocate %zu bytes of memory for absolute URI ", __FUNCTION__, strlen(hlsSession->currentPlaylistFile->absoluteUri) ));
+                    goto error;
+                }
             }
             hlsSession->lastSegmentDuration = mediaFileSegmentInfo->duration;
             hlsSession->lastSegmentSequence = (unsigned) mediaFileSegmentInfo->mediaSequence;

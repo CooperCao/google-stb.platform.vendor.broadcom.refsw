@@ -169,7 +169,6 @@ static int start_encode(struct EncodeContext *pContext, struct DecodeContext *pD
     NEXUS_SimpleEncoderStartSettings startSettings;
     NEXUS_SimpleEncoderStatus encStatus;
     NEXUS_VideoEncoderCapabilities cap;
-    unsigned i;
     NEXUS_Error rc;
 
     pContext->pOutputFile = fopen(pContext->outputfile, "w+");
@@ -255,7 +254,6 @@ static int start_encode(struct EncodeContext *pContext, struct DecodeContext *pD
 
 static void stop_encode(struct EncodeContext *pContext)
 {
-    NEXUS_SimpleEncoderSettings encoderSettings;
     NEXUS_Recpump_Stop(pContext->hRecpump);
     NEXUS_SimpleEncoder_Stop(pContext->hEncoder);
     NEXUS_Display_Close(pContext->display);
@@ -271,7 +269,6 @@ static int prestart_decode(struct DecodeContext *pContext, const NxClient_AllocR
     NEXUS_PlaybackSettings playbackSettings;
     NEXUS_PlaybackPidChannelSettings playbackPidSettings;
     NEXUS_SimpleStcChannelSettings stcSettings;
-    NxClient_ConnectSettings connectSettings;
     int rc;
 
     pContext->file = NEXUS_FilePlay_OpenPosix(pContext->filename, pContext->filename);
@@ -368,6 +365,7 @@ static int start_decode(struct DecodeContext *pContext)
     }
     rc = NEXUS_Playback_Start(pContext->hPlayback, pContext->file, NULL);
     if (rc) return BERR_TRACE(rc);
+    return rc;
 }
 
 static void stop_decode(struct DecodeContext *pContext)
@@ -540,8 +538,7 @@ int main(int argc, const char **argv)  {
     struct {
         NxClient_AllocResults allocResults;
         unsigned connectId;
-    } main, pip;
-    NEXUS_SimpleEncoderSettings encoderSettings;
+    } _main, pip;
     NEXUS_Error rc = 0;
     int curarg = 1;
     NEXUS_RecpumpSettings recpumpSettings;
@@ -550,12 +547,10 @@ int main(int argc, const char **argv)  {
     struct EncodeContext context;
     struct DecodeContext decodeContext[2];
     unsigned timeout = 0;
-    bool reachedEof = false;
-    unsigned starttime, thistime, eofTime = 0;
+    unsigned starttime, thistime;
     bool gui = true;
     brecord_gui_t record_gui = NULL;
     bool realtime = true;
-    unsigned i;
     char encodeName[128];
 
     BKNI_Memset(&context, 0, sizeof(context));
@@ -665,7 +660,7 @@ int main(int argc, const char **argv)  {
     allocSettings.simpleEncoder = 1;
     allocSettings.simpleVideoDecoder = 1;
     allocSettings.simpleAudioDecoder = 1;
-    rc = NxClient_Alloc(&allocSettings, &main.allocResults);
+    rc = NxClient_Alloc(&allocSettings, &_main.allocResults);
     if (rc) {BDBG_WRN(("unable to alloc transcode resources")); return -1;}
 
     NxClient_GetDefaultAllocSettings(&allocSettings);
@@ -684,15 +679,15 @@ int main(int argc, const char **argv)  {
     }
 
     NxClient_GetDefaultConnectSettings(&connectSettings);
-    connectSettings.simpleVideoDecoder[0].id = main.allocResults.simpleVideoDecoder[0].id;
+    connectSettings.simpleVideoDecoder[0].id = _main.allocResults.simpleVideoDecoder[0].id;
     connectSettings.simpleVideoDecoder[0].windowCapabilities.encoder = true;
     connectSettings.simpleVideoDecoder[0].decoderCapabilities.maxWidth = 1920;
     connectSettings.simpleVideoDecoder[0].decoderCapabilities.maxHeight = 1080;
-    connectSettings.simpleAudioDecoder.id = main.allocResults.simpleAudioDecoder.id;
-    connectSettings.simpleEncoder[0].id = main.allocResults.simpleEncoder[0].id;
+    connectSettings.simpleAudioDecoder.id = _main.allocResults.simpleAudioDecoder.id;
+    connectSettings.simpleEncoder[0].id = _main.allocResults.simpleEncoder[0].id;
     connectSettings.simpleEncoder[0].nonRealTime = !realtime;
     connectSettings.simpleEncoder[0].encoderCapabilities.maxFrameRate = context.encoderSettings.frameRateEnum;
-    rc = NxClient_Connect(&connectSettings, &main.connectId);
+    rc = NxClient_Connect(&connectSettings, &_main.connectId);
     if (rc) {BDBG_WRN(("unable to connect transcode resources")); return -1;}
 
     NxClient_GetDefaultConnectSettings(&connectSettings);
@@ -701,14 +696,14 @@ int main(int argc, const char **argv)  {
     rc = NxClient_Connect(&connectSettings, &pip.connectId);
     if (rc) {BDBG_WRN(("unable to connect pip transcode resources")); return -1;}
 
-    rc = prestart_decode(&decodeContext[0], &main.allocResults);
+    rc = prestart_decode(&decodeContext[0], &_main.allocResults);
     if (rc) return BERR_TRACE(-1);
     rc = prestart_decode(&decodeContext[1], &pip.allocResults);
     if (rc) return BERR_TRACE(-1);
 
     BKNI_CreateEvent(&dataReadyEvent);
 
-    context.hEncoder = NEXUS_SimpleEncoder_Acquire(main.allocResults.simpleEncoder[0].id);
+    context.hEncoder = NEXUS_SimpleEncoder_Acquire(_main.allocResults.simpleEncoder[0].id);
     BDBG_ASSERT(context.hEncoder);
 
     NEXUS_Recpump_GetDefaultOpenSettings(&recpumpOpenSettings);
@@ -818,9 +813,9 @@ check_for_end:
     NEXUS_Recpump_Close(context.hRecpump);
 
     NxClient_Disconnect(pip.connectId);
-    NxClient_Disconnect(main.connectId);
+    NxClient_Disconnect(_main.connectId);
     NxClient_Free(&pip.allocResults);
-    NxClient_Free(&main.allocResults);
+    NxClient_Free(&_main.allocResults);
     NxClient_Uninit();
     return rc;
 }

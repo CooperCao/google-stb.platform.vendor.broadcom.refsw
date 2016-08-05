@@ -61,6 +61,9 @@
 #include "bxvd_reg.h"
 #endif
 
+#if BXVD_P_ENABLE_DRAM_PREF_INFO
+extern int giPerfMemc, giPerfMemcClient;
+#endif
 
 BDBG_MODULE(BXVD_DECODER);
 BDBG_FILE_MODULE(BXVD_QDBG);
@@ -1650,6 +1653,15 @@ static void BXVD_Decoder_S_UnifiedQ_ValidatePicture_isr(
    ePulldown   = pPPB->pulldown;
    eProtocol   = pPPB->protocol;
    eFrameRate  = pPPB->frame_rate;
+
+#if BXVD_P_ENABLE_DRAM_PREF_INFO
+   if( giPerfMemcClient != 0 )
+   {
+      BKNI_Printf("Perf Counters: ClRd:%08x, CAS:%08x, IntrPen:%08x, PostPen:%08x\n",
+                  pPPB->perf.dram_perf.client_read, pPPB->perf.dram_perf.CAS,
+                  pPPB->perf.dram_perf.intra_penalty, pPPB->perf.dram_perf.post_penalty);
+   }
+#endif
 
 #if BXVD_P_PPB_EXTENDED
    uiFlagsExt0 = pPPB->flags_ext0;
@@ -4071,7 +4083,7 @@ static void BXVD_Decoder_S_UnifiedQ_Update_isr(
             }
             else
             {
-                  BXVD_DBG_ERR(hXvdCh, ("%s:: failed to link dependent picture to base.\n", __FUNCTION__ ));
+                  BXVD_DBG_ERR(hXvdCh, ("%s:: failed to link dependent picture to base.", __FUNCTION__ ));
             }
          }
       }

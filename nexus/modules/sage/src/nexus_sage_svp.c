@@ -82,6 +82,15 @@ struct sageSvpInfo {
     } aeCoreStat[BAVC_CoreId_eMax];
 };
 
+static const struct {
+    uint32_t region_id;
+    uint8_t mem_cnt;
+} g_BSAGELIB_RegionIdMap[] = {
+    {BSAGElib_RegionId_Urr0, 0},
+    {BSAGElib_RegionId_Urr1, 1},
+    {BSAGElib_RegionId_Urr2, 2},
+};
+
 static struct sageSvpInfo *lHandle;
 
 #define SAGERESPONSE_TIMEOUT 5000 /* in ms */
@@ -256,7 +265,7 @@ static NEXUS_Error NEXUS_Sage_SVP_P_SetState(secureVideo_Toggle_e urr, secureVid
 
         NEXUS_Security_GetKeySlotInfo(scrubbingKeyHandle, &keyslotInfo);
         lHandle->sageContainer->basicIn[3] = (int32_t)keyslotInfo.keySlotNumber;
-        BDBG_MSG(("%s - keyslotInfo.keySlotNumber %d\n", __FUNCTION__, keyslotInfo.keySlotNumber));
+        BDBG_MSG(("%s - keyslotInfo.keySlotNumber %d", __FUNCTION__, keyslotInfo.keySlotNumber));
 
         /* Allocate enough memory for DMA descriptors */
         pDmaMemoryPool=BSAGElib_Rai_Memory_Allocate(lHandle->sagelibClientHandle, size, BSAGElib_MemoryType_Restricted);
@@ -568,6 +577,20 @@ if (img_context) {
     return;
 }
 
+/*NEXUS_Sage_P_GetBSAGElib_RegionId is the fix for Coverity Issue: SWSTB-2217*/
+static uint32_t NEXUS_Sage_P_GetBSAGElib_RegionId(uint8_t bchp_mem_count)
+{
+    unsigned i;
+    for (i = 0; i < sizeof(g_BSAGELIB_RegionIdMap) / sizeof(g_BSAGELIB_RegionIdMap[0]); i++)
+    {
+        if (g_BSAGELIB_RegionIdMap[i].mem_cnt == bchp_mem_count)
+        {
+            return g_BSAGELIB_RegionIdMap[i].region_id;
+        }
+    }
+    return BSAGElib_RegionId_eInvalid;
+}
+
 NEXUS_Error NEXUS_Sage_P_SvpInit(void)
 {
     BERR_Code rc;
@@ -796,19 +819,9 @@ NEXUS_Error NEXUS_Sage_P_SvpSetRegions(void)
 
     for (i = 0; i < BCHP_P_MEMC_COUNT; i++)
     {
-        switch(i)
+        regionId = NEXUS_Sage_P_GetBSAGElib_RegionId(i);
+        if(BSAGElib_RegionId_eInvalid == regionId)
         {
-        case 0:
-            regionId = BSAGElib_RegionId_Urr0;
-            break;
-        case 1:
-            regionId = BSAGElib_RegionId_Urr1;
-            break;
-        case 2:
-            regionId = BSAGElib_RegionId_Urr2;
-            break;
-        default:
-            regionId = BSAGElib_RegionId_eInvalid;
             continue;
         }
         rc = NEXUS_SageModule_P_AddRegion(regionId, start[i], size[i]);
@@ -857,7 +870,7 @@ NEXUS_Error NEXUS_Sage_UpdateUrr(void)
 {
     unsigned heapIndex;
     NEXUS_Error rc = NEXUS_SUCCESS;
-    uint32_t start[3], len[3];
+    uint32_t start[3] = {0,0,0}, len[3] = {0,0,0};
 
     NEXUS_LockModule();
 
@@ -992,6 +1005,15 @@ EXIT:
     return rc;
 }
 
+#if BDBG_DEBUG_BUILD
+/* Core Id Table Information */
+const struct NEXUS_SageSvpHwBlock g_NEXUS_SvpHwBlockTbl[] = {
+#define BCHP_P_MEMC_DEFINE_SVP_HWBLOCK(svp_block, access) { #svp_block },
+#include "memc/bchp_memc_svp_hwblock.h"
+    {"  -  "},
+#undef BCHP_P_MEMC_DEFINE_SVP_HWBLOCK
+};
+
 BDBG_FILE_MODULE(nexus_sage_module);
 void NEXUS_Sage_P_PrintSvp(void)
 {
@@ -999,10 +1021,11 @@ void NEXUS_Sage_P_PrintSvp(void)
     for (i=0;i<BAVC_CoreId_eMax;i++) {
         /* if it's never toggled, don't bother printing */
         if (lHandle->aeCoreStat[i].toggles) {
-            BDBG_MODULE_LOG(nexus_sage_module, ("core[%u] refcnt %u, toggles %u", i, lHandle->aeCoreStat[i].refcnt, lHandle->aeCoreStat[i].toggles));
+            BDBG_MODULE_LOG(nexus_sage_module, ("core[%s][%u] refcnt %u, toggles %u", g_NEXUS_SvpHwBlockTbl[i].achName, i, lHandle->aeCoreStat[i].refcnt, lHandle->aeCoreStat[i].toggles));
         }
     }
 }
+#endif
 
 /* Not to be called from within SAGE module itself */
 void NEXUS_Sage_RemoveSecureCores(const BAVC_CoreList *pCoreList)

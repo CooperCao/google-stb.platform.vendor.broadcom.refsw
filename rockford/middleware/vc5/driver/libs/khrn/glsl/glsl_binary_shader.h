@@ -12,13 +12,16 @@ FILE DESCRIPTION
 #define GLSL_BINARY_SHADER_H_INCLUDED
 
 #include "glsl_common.h"
+#include "glsl_ir_program.h"
+#include "libs/core/v3d/v3d_limits.h"
 
-#include "../glxx/glxx_shader_cache.h"
+typedef struct glxx_link_result_key GLXX_LINK_RESULT_KEY_T;
 
 typedef struct {
    unsigned scalars_used[V3D_MAX_ATTR_ARRAYS]; /* how many scalars are read for each attrib */
    bool vertexid_used;
    bool instanceid_used;
+   bool baseinstance_used;
 } ATTRIBS_USED_T;
 
 typedef struct {
@@ -35,10 +38,12 @@ typedef struct {
          bool writes_z;
          bool ez_disable;
          bool tlb_wait_first_thrsw;
+         bool per_sample;
       } fragment;
       struct {
-         unsigned reads_total;
+         unsigned       reads_total;
          ATTRIBS_USED_T attribs;
+         bool           has_point_size;
       } vertex;
    } u;
 } BINARY_SHADER_T;

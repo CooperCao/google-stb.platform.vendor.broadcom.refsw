@@ -218,6 +218,11 @@ Type that is used for physical address
 ****************************************************************************/
 typedef uint64_t NEXUS_Addr;
 
+/***************************************************************************
+Summary:
+Type that could represent any NEXUS object
+****************************************************************************/
+typedef void *NEXUS_AnyObject;
 
 #ifdef __cplusplus
 }

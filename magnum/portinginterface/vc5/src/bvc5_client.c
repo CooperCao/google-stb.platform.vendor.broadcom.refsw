@@ -107,7 +107,8 @@ BERR_Code BVC5_P_ClientMapDestroy(
 BERR_Code BVC5_P_ClientCreate(
    BVC5_Handle        hVC5,
    BVC5_ClientHandle *phClient,
-   uint32_t           uiClientId
+   uint32_t           uiClientId,
+   uint64_t           uiPlatformToken
 )
 {
    BERR_Code   err = BERR_OUT_OF_SYSTEM_MEMORY;
@@ -122,6 +123,7 @@ BERR_Code BVC5_P_ClientCreate(
    BKNI_Memset(hClient, 0, sizeof(BVC5_P_Client));
 
    hClient->uiClientId = uiClientId;
+   hClient->uiPlatformToken = uiPlatformToken;
    hClient->uiMaxJobId = 0;
 
    BVC5_P_JobQCreate(&hClient->hWaitQ);
@@ -221,6 +223,9 @@ BERR_Code BVC5_P_ClientDestroy(
    if (hClient->hActiveJobs != NULL)
       BVC5_P_ActiveQDestroy(hClient->hActiveJobs);
 
+   if (hVC5->sOpenParams.bDoDRMClientTerm && hClient->uiPlatformToken != 0)
+      BVC5_P_DRMTerminateClient(hClient->uiPlatformToken);
+
    BKNI_Free(hClient);
 
 exit:
@@ -257,7 +262,8 @@ BERR_Code BVC5_P_ClientMapCreateAndInsert(
    BVC5_Handle             hVC5,
    BVC5_ClientMapHandle    hClientMap,
    void                   *pContext,
-   uint32_t                uiClientId
+   uint32_t                uiClientId,
+   uint64_t                uiPlatformToken
 )
 {
    BVC5_ClientHandle hClient = NULL;
@@ -266,7 +272,7 @@ BERR_Code BVC5_P_ClientMapCreateAndInsert(
    if (hClientMap == NULL)
       return BERR_INVALID_PARAMETER;
 
-   err = BVC5_P_ClientCreate(hVC5, &hClient, uiClientId);
+   err = BVC5_P_ClientCreate(hVC5, &hClient, uiClientId, uiPlatformToken);
    if (err != BERR_SUCCESS)
       goto exit;
 
@@ -800,10 +806,64 @@ void BVC5_P_ClientMarkJobsFlushedV3D(
    for (i = 0; i < 5; i++)
    {
       for (pJob = BVC5_P_JobQFirst(queues[i]);
-         pJob != NULL;
-         pJob = BVC5_P_JobQNext(pJob))
+           pJob != NULL;
+           pJob = BVC5_P_JobQNext(pJob))
       {
          pJob->bFlushedV3D = true;
       }
    }
+}
+
+
+/* BVC5_P_ClientSatisifed
+
+  Has this client been given its slice of the work it wanted?
+
+ */
+bool BVC5_P_ClientSatisifed(
+   BVC5_ClientHandle hClient
+)
+{
+   return (hClient->uiWorkWanted & hClient->uiWorkGiven) == hClient->uiWorkWanted;
+}
+
+/* BVC5_P_SetWanted
+
+  Set the work the client wants to do
+
+ */
+void BVC5_P_ClientSetWanted(
+   BVC5_ClientHandle hClient
+)
+{
+   hClient->uiWorkWanted = (BVC5_P_JobQSize(hClient->hRunnableBinnerQ) > 0 ? BVC5_CLIENT_BIN    : 0) |
+                           (BVC5_P_JobQSize(hClient->hRunnableRenderQ) > 0 ? BVC5_CLIENT_RENDER : 0) |
+                           (BVC5_P_JobQSize(hClient->hRunnableTFUQ)    > 0 ? BVC5_CLIENT_TFU    : 0);
+}
+
+/* BVC5_P_SetGiven
+
+  Mark the work the client has been given
+
+ */
+void BVC5_P_ClientSetGiven(
+   BVC5_ClientHandle hClient,
+   uint32_t          uiGiven
+)
+{
+   hClient->uiWorkGiven |= uiGiven;
+}
+
+/* BVC5_P_ClientHasHardJobs
+
+  Mark the work the client has been given
+
+ */
+bool BVC5_P_ClientHasHardJobs(
+   BVC5_ClientHandle hClient
+)
+{
+   return BVC5_P_JobQSize(hClient->hRunnableBinnerQ) > 0 ||
+          BVC5_P_JobQSize(hClient->hRunnableRenderQ) > 0 ||
+          BVC5_P_JobQSize(hClient->hRunnableTFUQ)    > 0;
 }

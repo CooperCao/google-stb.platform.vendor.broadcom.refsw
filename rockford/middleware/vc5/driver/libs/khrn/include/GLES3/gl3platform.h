@@ -1,14 +1,7 @@
-/******************************************************************************
-* SGI FREE SOFTWARE LICENSE B (Version 2.0, Sept. 18, 2008)
-* Copyright (C) September 18, 2008 Silicon Graphics, Inc. All Rights Reserved.
-* This document is licensed under the SGI Free Software B License Version
-* 2.0. For details, see http://oss.sgi.com/projects/FreeB/ .
-*******************************************************************************/
-
 #ifndef __gl3platform_h_
 #define __gl3platform_h_
 
-/* $Revision: 18437 $ on $Date:: 2012-07-09 07:31:39 +0100 #$ */
+/* $Revision: 23328 $ on $Date:: 2013-10-02 02:28:28 -0700 #$ */
 
 /*
  * This document is licensed under the SGI Free Software B License Version

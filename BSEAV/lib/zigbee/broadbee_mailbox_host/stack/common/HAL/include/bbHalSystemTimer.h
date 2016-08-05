@@ -62,12 +62,16 @@
 
 #ifdef __i386__
 /* TODO: Implement system timer for i386 */
-#define HAL_TIMER_TASK_PERIOD_MS    10
+# ifndef HAL_TIMER_TASK_PERIOD_MS
+#  define HAL_TIMER_TASK_PERIOD_MS    10
+# endif
 #else
 /**//**
  * \brief Period of posting the HAL_TIMER_TASK in milliseconds.
  */
-#define HAL_TIMER_TASK_PERIOD_MS    10
+# ifndef HAL_TIMER_TASK_PERIOD_MS
+#  define HAL_TIMER_TASK_PERIOD_MS    10
+# endif
 #endif
 
 /**//**

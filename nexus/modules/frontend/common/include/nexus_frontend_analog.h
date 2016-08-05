@@ -171,7 +171,7 @@ Description:
 See Also:
     NEXUS_AudioInput_Shutdown
 ***************************************************************************/
-NEXUS_AudioInput NEXUS_Frontend_GetAnalogAudioConnector(
+NEXUS_AudioInputHandle NEXUS_Frontend_GetAnalogAudioConnector(
     NEXUS_FrontendHandle handle
     );
 
@@ -213,4 +213,3 @@ NEXUS_Error NEXUS_Frontend_SetAnalogAgcSettings(
 #endif
 
 #endif /* #ifndef NEXUS_FRONTEND_ANALOG_H__ */
-

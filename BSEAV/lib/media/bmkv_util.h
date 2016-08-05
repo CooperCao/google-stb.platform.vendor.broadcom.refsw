@@ -498,6 +498,7 @@ bool bmkv_IsTrackAudioVorbis(const bmkv_TrackEntry *track);
 bool bmkv_IsTrackVideoVp8(const bmkv_TrackEntry *track);
 bool bmkv_IsTrackVideoVp9(const bmkv_TrackEntry *track);
 bool bmkv_IsTrackAudioOpus(const bmkv_TrackEntry *track);
+bool bmkv_IsTrackAudioPcmInt(const bmkv_TrackEntry *track);
 
 #ifdef __cplusplus
 }

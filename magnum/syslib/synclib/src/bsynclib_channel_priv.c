@@ -1,22 +1,43 @@
 /***************************************************************************
-*     Copyright (c) 2004-2012, Broadcom Corporation
-*     All Rights Reserved
-*     Confidential Property of Broadcom Corporation
-*
-*  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
-*  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
-*  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
-*
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* Revision History:
-*
-* $brcm_Log: $
-* 
-***************************************************************************/
-
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ *  Except as expressly set forth in the Authorized License,
+ *
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+ *
+ * Module Description:
+ *
+ **************************************************************************/
 #include "bstd.h"
 #include "bkni.h"
 #include "bsyslib.h"
@@ -32,7 +53,7 @@ BDBG_MODULE(synclib);
 Summary:
 Opens a SYNC lib channel
 Description:
-*/
+ */
 BERR_Code BSYNClib_Channel_P_Create(
 	const BSYNClib_Settings * psLibSettings,
 	const BSYNClib_Channel_Settings * psSettings,
@@ -55,7 +76,7 @@ BERR_Code BSYNClib_Channel_P_Create(
 		goto error;
 	}
 
-    BDBG_MSG(("create channel: %p", (void *)hChn));
+	BDBG_MSG(("create channel: %p", (void *)hChn));
 
 	BKNI_Memset(hChn, 0, sizeof(struct BSYNClib_Channel_Impl));
 
@@ -74,7 +95,7 @@ BERR_Code BSYNClib_Channel_P_Create(
 	if (rc) goto error;
 
 	/* start state machine */
-        BDBG_MSG(("chn %p: start", (void *)hChn));
+	BDBG_MSG(("chn %p: start", (void *)hChn));
 	rc = BSYNClib_StateMachine_SendSignal(hChn->hMachine, BSYNClib_StateMachine_Signal_eStart);
 	if (rc) goto error;
 
@@ -101,9 +122,9 @@ BERR_Code BSYNClib_Channel_P_Create(
 			rc = hChn->sSettings.cbTimer.pfCreate(pvParm1, iParm2, &psTimer->hTimer);
 			if (rc) 
 			{
-			    BKNI_Free(psTimer);
-    			goto error;
-    	    }
+				BKNI_Free(psTimer);
+				goto error;
+			}
 
 			BSYNClib_ResourcePool_Add(hChn->psTimers, psTimer);
 		}
@@ -146,22 +167,22 @@ BERR_Code BSYNClib_Channel_P_Create(
 	hChn->sAudio.hSinks = BSYSlib_List_Create();
 
 #if BSYNCLIB_JITTER_TOLERANCE_IMPROVEMENT_SUPPORT
-        BDBG_MSG(("chn %p: jitter tolerance improvement supported", (void*)hChn));
+	BDBG_MSG(("chn %p: jitter tolerance improvement supported", (void*)hChn));
 #endif
 
 #if BSYNCLIB_UNCONDITIONAL_VIDEO_UNMUTE_SUPPORT
-    BDBG_MSG(("chn %p: unconditional video unmute supported", (void*)hChn));
+	BDBG_MSG(("chn %p: unconditional video unmute supported", (void*)hChn));
 #endif
 
 #if BSYNCLIB_UNCONDITIONAL_AUDIO_UNMUTE_SUPPORT
-    BDBG_MSG(("chn %p: unconditional audio unmute supported", (void*)hChn));
+	BDBG_MSG(("chn %p: unconditional audio unmute supported", (void*)hChn));
 #endif
 
 	*phChn = hChn;
 
 	goto end;
 
-error:
+	error:
 
 	if (hChn)
 	{
@@ -169,7 +190,7 @@ error:
 		*phChn = NULL;
 	}
 
-end:
+	end:
 
 	BDBG_LEAVE(BSYNClib_Channel_P_Create);
 	return rc;
@@ -180,7 +201,7 @@ end:
 Summary:
 Closes an SYNC lib channel
 Description:
-*/
+ */
 void BSYNClib_Channel_P_Destroy(
 	BSYNClib_Channel_Handle hChn
 )
@@ -270,7 +291,7 @@ void BSYNClib_Channel_P_Destroy(
 
 /*******************************************
 syslib framework stuff
-*******************************************/
+ *******************************************/
 
 BERR_Code BSYNClib_Channel_P_CancelTimer_isr(
 	BSYNClib_Channel_Handle hChn,
@@ -299,9 +320,9 @@ BERR_Code BSYNClib_Channel_P_CancelTimer_isr(
 
 	goto end;
 
-error:
+	error:
 
-end:
+	end:
 
 	BDBG_LEAVE(BSYNClib_Channel_P_CancelTimer_isr);
 	return rc;
@@ -350,9 +371,9 @@ BERR_Code BSYNClib_Channel_P_StartTimer_isr(
 
 	goto end;
 
-error:
+	error:
 
-end:
+	end:
 
 	BDBG_LEAVE(BSYNClib_Channel_P_StartTimer_isr);
 	return rc;
@@ -362,7 +383,7 @@ end:
 /*
 Summary:
 Handles expiry of any channel timer except for the zero length context switching timer
-*/
+ */
 BERR_Code BSYNClib_Channel_P_TimerExpired(
 	BSYNClib_Channel_Handle hChn,
 	BSYSlib_Timer_Handle hTimer
@@ -410,23 +431,9 @@ BERR_Code BSYNClib_Channel_P_ScheduleTask_isr(BSYNClib_Channel_Handle hChn)
 
 	if (!psResults->bSyncTaskScheduled)
 	{
-#ifdef BSYSLIB_TASK_SUPPORT
-		if (hChn->sSettings.cbTask.pfSchedule_isr)
-		{
-			BSYSlib_Task_Settings sTask;
-
-			sTask.pvParm1 = hChn;
-			sTask.iParm2 = 0;
-			sTask.pfDoTask = &BSYNClib_Channel_P_Process;
-
-			rc = hChn->sSettings.cbTask.pfSchedule_isr(hChn->sSettings.cbTask.pvParm1, 
-				hChn->sSettings.cbTask.iParm2, &sTask);
-		}
-#else
 		rc = BSYNClib_Channel_P_StartTimer_isr(hChn,
 			hChn->psTaskTimer, 0,
 			&BSYNClib_Channel_P_TaskTimerExpired, hChn, 0);
-#endif
 
 		if (!rc)
 		{
@@ -446,55 +453,55 @@ BERR_Code BSYNClib_Channel_P_ScheduleTask_isr(BSYNClib_Channel_Handle hChn)
 
 	goto end;
 
-error:
+	error:
 
-end:
+	end:
 	BDBG_LEAVE(BSYNClib_Channel_P_ScheduleTask_isr);
 	return rc;
 }
 
 BERR_Code BSYNClib_Channel_P_EnqueueTaskRequest_isr(BSYNClib_Channel_Handle hChn)
 {
-    BERR_Code rc = BERR_SUCCESS;
-    BSYNClib_Channel_Results * psResults;
+	BERR_Code rc = BERR_SUCCESS;
+	BSYNClib_Channel_Results * psResults;
 
-    BDBG_ENTER(BSYNClib_Channel_P_EnqueueTaskRequest_isr);
+	BDBG_ENTER(BSYNClib_Channel_P_EnqueueTaskRequest_isr);
 
-    BDBG_ASSERT(hChn);
+	BDBG_ASSERT(hChn);
 
-    psResults = &hChn->sResults;
+	psResults = &hChn->sResults;
 
-    if (!psResults->bSyncTaskRequested)
-    {
-        psResults->bSyncTaskRequested = true;
-        BDBG_MSG(("[%d] Sync task request enqueued", hChn->iIndex));
-    }
+	if (!psResults->bSyncTaskRequested)
+	{
+		psResults->bSyncTaskRequested = true;
+		BDBG_MSG(("[%d] Sync task request enqueued", hChn->iIndex));
+	}
 
-    BDBG_LEAVE(BSYNClib_Channel_P_EnqueueTaskRequest_isr);
-    return rc;
+	BDBG_LEAVE(BSYNClib_Channel_P_EnqueueTaskRequest_isr);
+	return rc;
 }
 
 BERR_Code BSYNClib_Channel_P_DequeueTaskRequest_isr(BSYNClib_Channel_Handle hChn)
 {
-    BERR_Code rc = BERR_SUCCESS;
-    BSYNClib_Channel_Results * psResults;
+	BERR_Code rc = BERR_SUCCESS;
+	BSYNClib_Channel_Results * psResults;
 
-    BDBG_ENTER(BSYNClib_Channel_P_DequeueTaskRequest_isr);
+	BDBG_ENTER(BSYNClib_Channel_P_DequeueTaskRequest_isr);
 
-    BDBG_ASSERT(hChn);
+	BDBG_ASSERT(hChn);
 
-    psResults = &hChn->sResults;
+	psResults = &hChn->sResults;
 
-    if (psResults->bSyncTaskRequested)
-    {
-        psResults->bSyncTaskRequested = false;
-        BDBG_MSG(("[%d] Sync task request dequeued", hChn->iIndex));
-        rc = BSYNClib_Channel_P_ScheduleTask_isr(hChn);
-        if (rc) BERR_TRACE(rc);
-    }
+	if (psResults->bSyncTaskRequested)
+	{
+		psResults->bSyncTaskRequested = false;
+		BDBG_MSG(("[%d] Sync task request dequeued", hChn->iIndex));
+		rc = BSYNClib_Channel_P_ScheduleTask_isr(hChn);
+		if (rc) BERR_TRACE(rc);
+	}
 
-    BDBG_LEAVE(BSYNClib_Channel_P_DequeueTaskRequest_isr);
-    return rc;
+	BDBG_LEAVE(BSYNClib_Channel_P_DequeueTaskRequest_isr);
+	return rc;
 }
 
 BERR_Code BSYNClib_Channel_P_TaskTimerExpired(void * pvParm1, int iParm2, BSYSlib_Timer_Handle hTimer)
@@ -516,7 +523,7 @@ BERR_Code BSYNClib_Channel_P_TaskTimerExpired(void * pvParm1, int iParm2, BSYSli
 
 	rc = BSYNClib_Channel_P_Process(hChn, 0);
 
-end:
+	end:
 	BDBG_LEAVE(BSYNClib_Channel_P_TaskTimerExpired);
 	return rc;
 }
@@ -664,13 +671,13 @@ void BSYNClib_Channel_P_Snapshot_isr(
 
 #if !BDBG_NO_MSG
 static const char * const gpcSyncStateNames[] =
-{
-	"stopped",
-	"acquire",
-	"sync",
-	"track",
-	NULL
-};
+	{
+		"stopped",
+		"acquire",
+		"sync",
+		"track",
+		NULL
+	};
 #endif
 
 BERR_Code BSYNClib_Channel_P_Process(void * pvParm1, int iParm2)
@@ -700,7 +707,7 @@ BERR_Code BSYNClib_Channel_P_Process(void * pvParm1, int iParm2)
 	BSYNClib_Channel_P_Snapshot_isr(hChn);
 	BKNI_LeaveCriticalSection();
 
-	if (!BSYNClib_Channel_P_Enabled(hChn))
+	if (!BSYNClib_Channel_P_Enabled_isrsafe(hChn))
 	{
 		goto end;
 	}
@@ -750,9 +757,9 @@ BERR_Code BSYNClib_Channel_P_Process(void * pvParm1, int iParm2)
 
 	goto end;
 
-error:
+	error:
 
-end:
+	end:
 
 	BDBG_LEAVE(BSYNClib_Channel_P_Process);
 	return rc;
@@ -800,9 +807,9 @@ BERR_Code BSYNClib_Channel_P_ApplyDelays(BSYNClib_Channel_Handle hChn)
 
 	goto end;
 
-error:
+	error:
 
-end:
+	end:
 
 	BDBG_LEAVE((BSYNClib_Channel_P_ApplyDelays));
 	return rc;
@@ -932,27 +939,27 @@ BERR_Code BSYNClib_Channel_P_Synchronize(
 	/* TODO: change to 3 separate state machines */
 	if (BSYNClib_Channel_P_VideoVideoSyncCheck(hChn))
 	{
-	    BSYNClib_RateMismatchDetector_Status sRmdStatus;
-	    BSYNClib_RateMismatchDetector_GetStatus(hChn->hDetector, &sRmdStatus);
-	    /* TODO: move this to a better location; here is better than sync check, but still not ideal */
-	    if (!sRmdStatus.bSinkSinkMatched)
-	    {
-	        BDBG_MSG(("[%d] Inconsistent sink refresh rate domains, v/v sync reset", hChn->iIndex));
-	        hChn->sVideo.sResults.bInconsistentSinkDomains = true;
-	    }
-	    else
-	    {
-	        hChn->sVideo.sResults.bInconsistentSinkDomains = false;
-	    }
-	    BSYNClib_Algo_VideoVideo_Sync(&hChn->sVideo);
+		BSYNClib_RateMismatchDetector_Status sRmdStatus;
+		BSYNClib_RateMismatchDetector_GetStatus(hChn->hDetector, &sRmdStatus);
+		/* TODO: move this to a better location; here is better than sync check, but still not ideal */
+		if (!sRmdStatus.bSinkSinkMatched)
+		{
+			BDBG_MSG(("[%d] Inconsistent sink refresh rate domains, v/v sync reset", hChn->iIndex));
+			hChn->sVideo.sResults.bInconsistentSinkDomains = true;
+		}
+		else
+		{
+			hChn->sVideo.sResults.bInconsistentSinkDomains = false;
+		}
+		BSYNClib_Algo_VideoVideo_Sync(&hChn->sVideo);
 	}
 	if (BSYNClib_Channel_P_AudioAudioSyncCheck(hChn))
 	{
-	    BSYNClib_Algo_AudioAudio_Sync(&hChn->sAudio);
+		BSYNClib_Algo_AudioAudio_Sync(&hChn->sAudio);
 	}
 	if (BSYNClib_Channel_P_AudioVideoSyncCheck(hChn))
 	{
-	    BSYNClib_Algo_AudioVideo_Sync(&hChn->sAudio, &hChn->sVideo, &hChn->sResults);
+		BSYNClib_Algo_AudioVideo_Sync(&hChn->sAudio, &hChn->sVideo, &hChn->sResults);
 	}
 
 	if (!hChn->sResults.bSyncTaskScheduled)
@@ -967,9 +974,9 @@ BERR_Code BSYNClib_Channel_P_Synchronize(
 
 	goto end;
 
-error:
+	error:
 
-end:
+	end:
 
 	BDBG_LEAVE(BSYNClib_Channel_P_Synchronize);
 	return rc;
@@ -988,7 +995,10 @@ BERR_Code BSYNClib_Channel_P_GenerateDelayCallback(BSYNClib_Channel_SetDelay pfS
 		if (pfSetDelay)
 		{
 			BSYNClib_UnsignedValue sApplied;
-			sApplied.uiValue = BSYNClib_P_Convert(psElement->sDelay.sResults.uiApplied, BSYNClib_Units_e27MhzTicks, psElement->sDelay.sSnapshot.ePreferredUnits);
+			sApplied.uiValue = BSYNClib_P_Convert_isrsafe(
+				psElement->sDelay.sResults.uiApplied,
+				BSYNClib_Units_e27MhzTicks,
+				psElement->sDelay.sSnapshot.ePreferredUnits);
 			sApplied.eUnits = psElement->sDelay.sSnapshot.ePreferredUnits;
 			rc = pfSetDelay(pvParm1, iParm2, uiDeviceIndex, &sApplied);
 			if (rc) goto error;
@@ -999,9 +1009,9 @@ BERR_Code BSYNClib_Channel_P_GenerateDelayCallback(BSYNClib_Channel_SetDelay pfS
 
 	goto end;
 
-error:
+	error:
 
-end:
+	end:
 
 	BDBG_LEAVE(BSYNClib_Channel_P_GenerateDelayCallback);
 	return rc;
@@ -1024,8 +1034,12 @@ BERR_Code BSYNClib_Channel_P_GenerateDelayNotificationCallback(BSYNClib_Channel_
 			/* convert to preferred units */
 			if (sThreshold.eUnits != psElement->sDelay.sSnapshot.ePreferredUnits)
 			{
-				sThreshold.uiValue = BSYNClib_P_Convert(sThreshold.uiValue, sThreshold.eUnits, BSYNClib_Units_e27MhzTicks);
-				sThreshold.uiValue = BSYNClib_P_Convert(sThreshold.uiValue, BSYNClib_Units_e27MhzTicks, psElement->sNotification.sSnapshot.ePreferredUnits);
+				sThreshold.uiValue = BSYNClib_P_Convert_isrsafe(
+					sThreshold.uiValue, sThreshold.eUnits,
+					BSYNClib_Units_e27MhzTicks);
+				sThreshold.uiValue = BSYNClib_P_Convert_isrsafe(
+					sThreshold.uiValue, BSYNClib_Units_e27MhzTicks,
+					psElement->sNotification.sSnapshot.ePreferredUnits);
 				sThreshold.eUnits = psElement->sNotification.sSnapshot.ePreferredUnits;
 			}
 			rc = pfSetDelayNotification(pvParm1, iParm2, uiDeviceIndex, psElement->sNotification.sResults.bEnabled, &sThreshold);
@@ -1037,9 +1051,9 @@ BERR_Code BSYNClib_Channel_P_GenerateDelayNotificationCallback(BSYNClib_Channel_
 
 	goto end;
 
-error:
+	error:
 
-end:
+	end:
 
 	BDBG_LEAVE(BSYNClib_Channel_P_GenerateDelayNotificationCallback);
 	return rc;
@@ -1141,80 +1155,22 @@ BERR_Code BSYNClib_Channel_P_GenerateCallbacks(BSYNClib_Channel_Handle hChn)
 
 	goto end;
 
-error:
+	error:
 
-end:
+	end:
 
 	BDBG_LEAVE(BSYNClib_Channel_P_GenerateCallbacks);
 	return rc;
 }
 
-bool BSYNClib_Channel_P_Enabled(
+bool BSYNClib_Channel_P_Enabled_isrsafe(
 	BSYNClib_Channel_Handle hChn
 )
 {
-	bool bEnabled = false;
-
-	BDBG_ENTER(BSYNClib_Channel_P_Enabled);
-
+	BDBG_ENTER(BSYNClib_Channel_P_Enabled_isrsafe);
 	BDBG_ASSERT(hChn);
-
-	BKNI_EnterCriticalSection();
-	bEnabled = BSYNClib_Channel_P_Enabled_isr(hChn);
-	BKNI_LeaveCriticalSection();
-
-	BDBG_LEAVE(BSYNClib_Channel_P_Enabled);
-	return bEnabled;
-}
-
-bool BSYNClib_Channel_P_Enabled_isr(
-	BSYNClib_Channel_Handle hChn
-)
-{
-	bool bEnabled = false;
-
-	BDBG_ENTER(BSYNClib_Channel_P_Enabled_isr);
-
-	BDBG_ASSERT(hChn);
-
-	bEnabled = hChn->bEnabled;
-
-	BDBG_LEAVE(BSYNClib_Channel_P_Enabled_isr);
-	return bEnabled;
-}
-
-/* PR26655 20061215 bandrews - added to prevent extra glitches */
-bool BSYNClib_Channel_P_PredictMadStateChange_isr(BSYNClib_Channel_Handle hChn, BSYNClib_VideoSink * psSink)
-{
-	bool bPredict = false;
-	BSYNClib_VideoSource * psSource = NULL;
-	BSYSlib_List_IteratorHandle hIterator = NULL;
-
-	BDBG_ENTER(BSYNClib_Channel_P_PredictMadStateChange_isr);
-
-	BDBG_ASSERT(hChn);
-	BDBG_ASSERT(psSink);
-
-	/* predict wrt 1st source */
-	hIterator = BSYSlib_List_AcquireIterator_isr(hChn->sVideo.hSources);
-
-	if (BSYSlib_List_HasNext_isr(hIterator))
-	{
-		psSource = (BSYNClib_VideoSource *)BSYSlib_List_Next_isr(hIterator);
-	}
-
-	BSYSlib_List_ReleaseIterator_isr(hIterator);
-
-	if (psSource)
-	{
-		bPredict = (psSource->sFormat.sData.uiHeight != psSink->sFormat.sData.uiHeight)
-			&& (psSource->sFormat.sData.bInterlaced);
-	}
-
-	BDBG_MSG(("[%d] deinterlacer state change prediction: %s", hChn->iIndex, bPredict ? "yes" : "no"));
-
-	BDBG_LEAVE(BSYNClib_Channel_P_PredictMadStateChange_isr);
-	return bPredict;
+	BDBG_LEAVE(BSYNClib_Channel_P_Enabled_isrsafe);
+	return hChn->bEnabled;
 }
 
 void BSYNClib_Channel_P_ResetVideoSourceJtiFactor_isr(
@@ -1252,11 +1208,8 @@ void BSYNClib_Channel_P_GetDefaultStatus(
 )
 {
 	BDBG_ENTER(BSYNClib_Channel_P_GetDefaultStatus);
-
 	BDBG_ASSERT(psStatus);
-
 	BKNI_Memset(psStatus, 0, sizeof(BSYNClib_Channel_Status));
-
 	BDBG_LEAVE(BSYNClib_Channel_P_GetDefaultStatus);
 }
 
@@ -1308,4 +1261,3 @@ void BSYNClib_Channel_P_Stop(
 
 	BDBG_LEAVE(BSYNClib_Channel_P_Stop);
 }
-

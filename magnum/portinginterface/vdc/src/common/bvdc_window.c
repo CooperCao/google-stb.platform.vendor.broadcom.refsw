@@ -52,7 +52,7 @@
 BDBG_MODULE(BVDC_WIN);
 BDBG_FILE_MODULE(BVDC_WIN_BUF);
 
-/* max clear rect: index by eWinId */
+/* max clear rect: index by BVDC_P_WindowId */
 static const struct
 {
     uint32_t ulBoxWinId;               /* BBOX's window ID, See bbox_vdc on how it maps. */
@@ -3766,117 +3766,6 @@ BERR_Code BVDC_Window_LoadLabTable
 /***************************************************************************
  *
  */
-BERR_Code BVDC_Window_SetLumaStatsConfiguration
-    ( BVDC_Window_Handle               hWindow,
-      const BVDC_LumaSettings         *pLumaSettings )
-{
-    BERR_Code             err = BERR_SUCCESS;
-
-    BDBG_ENTER(BVDC_Window_SetLumaStatsConfiguration);
-    BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
-
-    if((hWindow->eId != BVDC_P_WindowId_eComp0_V0) && (!hWindow->bHistAvail))
-    {
-        return BERR_TRACE(BERR_NOT_SUPPORTED);
-    }
-
-    if(pLumaSettings && pLumaSettings->eNumBins >= BVDC_HistBinSelect_eInvalid)
-    {
-        return BERR_TRACE(BERR_INVALID_PARAMETER);
-    }
-
-    if(pLumaSettings &&
-       (pLumaSettings->stRegion.ulLeft   > BVDC_P_CLIPRECT_PERCENT ||
-        pLumaSettings->stRegion.ulRight  > BVDC_P_CLIPRECT_PERCENT ||
-        pLumaSettings->stRegion.ulTop    > BVDC_P_CLIPRECT_PERCENT ||
-        pLumaSettings->stRegion.ulBottom > BVDC_P_CLIPRECT_PERCENT ||
-        pLumaSettings->stRegion.ulLeft + pLumaSettings->stRegion.ulRight  > BVDC_P_CLIPRECT_PERCENT ||
-        pLumaSettings->stRegion.ulTop  + pLumaSettings->stRegion.ulBottom > BVDC_P_CLIPRECT_PERCENT))
-    {
-        return BERR_TRACE(BERR_INVALID_PARAMETER);
-    }
-
-    if(pLumaSettings)
-    {
-        hWindow->stNewInfo.stLumaRect = *pLumaSettings;
-        hWindow->stNewInfo.bLumaRectUserSet = true;
-    }
-    else
-    {
-        hWindow->stNewInfo.bLumaRectUserSet = false;
-    }
-
-    BDBG_LEAVE(BVDC_Window_SetLumaStatsConfiguration);
-    return err;
-}
-
-/***************************************************************************
- *
- */
-BERR_Code BVDC_Window_GetLumaStatsConfiguration
-    ( BVDC_Window_Handle               hWindow,
-      BVDC_LumaSettings               *pLumaSettings )
-{
-    BDBG_ENTER(BVDC_Window_GetLumaStatsConfiguration);
-    BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
-
-    if(pLumaSettings)
-    {
-        *pLumaSettings = hWindow->stCurInfo.stLumaRect;
-    }
-
-    BDBG_LEAVE(BVDC_Window_GetLumaStatsConfiguration);
-    return BERR_SUCCESS;
-}
-
-/***************************************************************************
- *
- */
-BERR_Code BVDC_Window_GetLumaStatus
-    ( const BVDC_Window_Handle         hWindow,
-      BVDC_LumaStatus                 *pLumaStatus )
-{
-    BDBG_ENTER(BVDC_Window_GetLumaStatus);
-    BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
-
-    if((hWindow->eId != BVDC_P_WindowId_eComp0_V0) && (!hWindow->bHistAvail))
-    {
-        return BERR_TRACE(BERR_NOT_SUPPORTED);
-    }
-
-    /* set return value */
-    if(pLumaStatus)
-    {
-#if (BVDC_P_SUPPORT_HIST)
-        if(hWindow->bHistAvail)
-        {
-            /* For chipsets that have new hist hardware, only return */
-            /* histogram data if hist is enabled by users or dynamic contrast */
-            if(hWindow->stCurInfo.bHistEnable)
-            {
-                BVDC_P_Hist_GetHistogramData(hWindow, pLumaStatus);
-            }
-            else
-            {
-                BDBG_ERR(("HIST is not enable, cannot retrieve histogram data"));
-                return BERR_TRACE(BERR_NOT_SUPPORTED);
-            }
-        }
-        else
-        {
-            /* Get Min/Max/Histogram from PEP */
-            BVDC_P_Pep_GetLumaStatus(hWindow, pLumaStatus);
-        }
-#endif
-    }
-
-    BDBG_LEAVE(BVDC_Window_GetLumaStatus);
-    return BERR_SUCCESS;
-}
-
-/***************************************************************************
- *
- */
 BERR_Code BVDC_Window_SetCoefficientIndex
     ( BVDC_Window_Handle               hWindow,
       const BVDC_CoefficientIndex     *pCtIndex )
@@ -4329,6 +4218,7 @@ void BVDC_Window_GetCores
             eWinId, hSrc->eId, hCmp->eId));
         return;
     }
+
     /* Get window cores */
     if (pBoxVdcDispCap->bAvailable && pBoxVdcDispCap->astWindow[ulBoxWinId].bAvailable)
     {
@@ -4339,11 +4229,9 @@ void BVDC_Window_GetCores
         /* Get VDC private video window ID */
         if (ulBoxWinId <= BVDC_WindowId_eVideo1)
         {
-
             /* Also add compositor ID */
             pCoreList->aeCores[BAVC_CoreId_eCMP_0 + hCmp->eId] = true;
 
-            /* Account for PIP windows in BVDC_P_WindowId enum */
             pResourceFeature = BVDC_P_Window_GetResourceFeature_isrsafe(eWindowId);
             pResourceRequire = BVDC_P_Window_GetResourceRequire_isrsafe(eWindowId);
             pBoxVdcResource = &pBoxVdcDispCap->astWindow[ulBoxWinId].stResource;

@@ -78,10 +78,6 @@ typedef enum
    GMEM_USAGE_V3D_READ   = 1 << 2,
    GMEM_USAGE_V3D_WRITE  = 1 << 3,
 
-   GMEM_USAGE_CPU = GMEM_USAGE_CPU_READ | GMEM_USAGE_CPU_WRITE,
-   GMEM_USAGE_V3D = GMEM_USAGE_V3D_READ | GMEM_USAGE_V3D_WRITE,
-   GMEM_USAGE_ALL = GMEM_USAGE_CPU | GMEM_USAGE_V3D,
-
    /* Don't cache CPU reads/writes. If this hint is observed, this may
     * significantly impact the performance of reads/writes from the CPU, but will
     * avoid the need to flush the CPU caches before/after accessing from V3D. */
@@ -95,6 +91,20 @@ typedef enum
    GMEM_USAGE_SECURE = 1 << 7,
 } gmem_usage_flags_t;
 
+#define GMEM_USAGE_CPU (                  \
+   GMEM_USAGE_CPU_READ |                  \
+   GMEM_USAGE_CPU_WRITE                   \
+)
+
+#define GMEM_USAGE_V3D (                  \
+   GMEM_USAGE_V3D_READ |                  \
+   GMEM_USAGE_V3D_WRITE                   \
+)
+
+#define GMEM_USAGE_ALL (                  \
+   GMEM_USAGE_CPU |                       \
+   GMEM_USAGE_V3D                         \
+)
 
 /* Alloc/free ============================================================== */
 
@@ -184,39 +194,64 @@ typedef enum
    /* V3D sync-list only flags */
    GMEM_SYNC_CORE_READ           = 1 << 0, /* For reads that are uncached within the V3D core, eg control list reads */
    GMEM_SYNC_CORE_WRITE          = 1 << 1, /* For writes that are uncached within the V3D core, eg TLB writes */
-   GMEM_SYNC_CORE                = GMEM_SYNC_CORE_READ | GMEM_SYNC_CORE_WRITE,
 
    GMEM_SYNC_TMU_DATA_READ       = 1 << 2, /* Cached by L1T and L2T */
    GMEM_SYNC_TMU_DATA_WRITE      = 1 << 3, /* Cached by L2T */
-   GMEM_SYNC_TMU_DATA            = GMEM_SYNC_TMU_DATA_READ | GMEM_SYNC_TMU_DATA_WRITE,
 
    GMEM_SYNC_TMU_CONFIG_READ     = 1 << 4, /* Cached by TMU VCR and L2C */
    GMEM_SYNC_QPU_IU_READ         = 1 << 5, /* QPU instrs/unifs, cached by L1 unif/instr caches and L2C */
    GMEM_SYNC_VCD_READ            = 1 << 6, /* Cached by VCD cache */
    GMEM_SYNC_TFU_READ            = 1 << 7,
    GMEM_SYNC_TFU_WRITE           = 1 << 8,
-   GMEM_SYNC_TFU                 = GMEM_SYNC_TFU_READ | GMEM_SYNC_TFU_WRITE,
-
-   GMEM_SYNC_V3D_READ         = GMEM_SYNC_CORE_READ
-                              | GMEM_SYNC_TMU_DATA_READ
-                              | GMEM_SYNC_TMU_CONFIG_READ
-                              | GMEM_SYNC_QPU_IU_READ
-                              | GMEM_SYNC_TFU_READ
-                              | GMEM_SYNC_VCD_READ,
-   GMEM_SYNC_V3D_WRITE        = GMEM_SYNC_CORE_WRITE
-                              | GMEM_SYNC_TMU_DATA_WRITE
-                              | GMEM_SYNC_TFU_WRITE,
-   GMEM_SYNC_V3D              = GMEM_SYNC_V3D_READ | GMEM_SYNC_V3D_WRITE,
 
    /* CPU sync-list only flags */
    GMEM_SYNC_CPU_READ            = 1 << 9,
    GMEM_SYNC_CPU_WRITE           = 1 << 10,
-   GMEM_SYNC_CPU                 = GMEM_SYNC_CPU_READ | GMEM_SYNC_CPU_WRITE,
 
    /* Common sync-list flags. */
    GMEM_SYNC_RELAXED = 1 << 14,
    GMEM_SYNC_DISCARD = 1 << 15,
 } gmem_sync_flags_t;
+
+#define GMEM_SYNC_CORE (               \
+   GMEM_SYNC_CORE_READ |               \
+   GMEM_SYNC_CORE_WRITE                \
+)
+
+#define GMEM_SYNC_TMU_DATA (           \
+   GMEM_SYNC_TMU_DATA_READ |           \
+   GMEM_SYNC_TMU_DATA_WRITE            \
+)
+
+#define GMEM_SYNC_TFU (                \
+   GMEM_SYNC_TFU_READ |                \
+   GMEM_SYNC_TFU_WRITE                 \
+)
+
+#define GMEM_SYNC_V3D_READ (           \
+   GMEM_SYNC_CORE_READ |               \
+   GMEM_SYNC_TMU_DATA_READ |           \
+   GMEM_SYNC_TMU_CONFIG_READ |         \
+   GMEM_SYNC_QPU_IU_READ |             \
+   GMEM_SYNC_TFU_READ |                \
+   GMEM_SYNC_VCD_READ                  \
+)
+
+#define GMEM_SYNC_V3D_WRITE (          \
+   GMEM_SYNC_CORE_WRITE |              \
+   GMEM_SYNC_TMU_DATA_WRITE |          \
+   GMEM_SYNC_TFU_WRITE                 \
+)
+
+#define GMEM_SYNC_V3D (                \
+   GMEM_SYNC_V3D_READ |                \
+   GMEM_SYNC_V3D_WRITE                 \
+)
+
+#define GMEM_SYNC_CPU (                \
+   GMEM_SYNC_CPU_READ |                \
+   GMEM_SYNC_CPU_WRITE                 \
+)
 
 /* Guaranteed to be a power of 2 >= V3D_MAX_CACHE_LINE_SIZE */
 extern size_t gmem_get_sync_block_size(void);

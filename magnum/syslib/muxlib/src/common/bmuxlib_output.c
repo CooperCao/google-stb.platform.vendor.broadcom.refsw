@@ -49,6 +49,8 @@ BDBG_FILE_MODULE(BMUXLIB_OUTPUT_DESC);    /* enables descriptor diagnostics */
 BDBG_FILE_MODULE(BMUXLIB_OUTPUT_OFFSETS); /* enables diagnostics for offsets */
 BDBG_FILE_MODULE(BMUXLIB_OUTPUT_USAGE);   /* enables descriptor usage statistics */
 
+BDBG_OBJECT_ID(BMUXlib_Output_Context);
+
 /**************/
 /* Signatures */
 /**************/
@@ -66,6 +68,8 @@ typedef struct
 
 typedef struct BMUXlib_Output_Context
 {
+   BDBG_OBJECT(BMUXlib_Output_Context)
+
    BMUXlib_Output_CreateSettings stCreateSettings;
 
    /* incoming descriptors ...*/
@@ -156,6 +160,7 @@ BMUXlib_Output_Create(
       sizeof( BMUXlib_Output_Context )
       );
 
+   BDBG_OBJECT_SET(hOutput, BMUXlib_Output_Context);
    hOutput->stCreateSettings = *pstSettings;
 
    /* allocate the incoming descriptor and metadata array ... */
@@ -196,7 +201,7 @@ BMUXlib_Output_Destroy(
 {
    BDBG_ENTER( BMUXlib_Output_Destroy );
 
-   BDBG_ASSERT( hOutput );
+   BDBG_OBJECT_ASSERT(hOutput, BMUXlib_Output_Context);
 
    BDBG_MODULE_MSG(BMUXLIB_OUTPUT_USAGE, ("[%d] Descriptors Used: %d/%d (peak)",
                                           hOutput->stCreateSettings.uiOutputID,
@@ -213,6 +218,7 @@ BMUXlib_Output_Destroy(
       BKNI_Free(hOutput->astOutDescriptors);
    }
 
+   BDBG_OBJECT_DESTROY(hOutput, BMUXlib_Output_Context);
    BKNI_Free( hOutput );
 
    BDBG_LEAVE( BMUXlib_Output_Destroy );
@@ -225,9 +231,12 @@ BMUXlib_Output_IsSpaceAvailable(
    BMUXlib_Output_Handle hOutput
    )
 {
-   size_t uiTempWriteOffset = hOutput->uiWriteIndex;
+   size_t uiTempWriteOffset;
 
+   BDBG_OBJECT_ASSERT(hOutput, BMUXlib_Output_Context);
+   uiTempWriteOffset = hOutput->uiWriteIndex;
    uiTempWriteOffset++;
+
    if ( uiTempWriteOffset >= hOutput->stCreateSettings.uiCount )
    {
       uiTempWriteOffset -= hOutput->stCreateSettings.uiCount;
@@ -241,6 +250,7 @@ BMUXlib_Output_IsDescriptorPendingCompletion(
    BMUXlib_Output_Handle hOutput
    )
 {
+   BDBG_OBJECT_ASSERT(hOutput, BMUXlib_Output_Context);
    return ( hOutput->uiReadIndex != hOutput->uiWriteIndex );
 }
 
@@ -249,6 +259,7 @@ BMUXlib_Output_IsDescriptorPendingQueue(
    BMUXlib_Output_Handle hOutput
    )
 {
+   BDBG_OBJECT_ASSERT(hOutput, BMUXlib_Output_Context);
    return ( hOutput->uiQueuedIndex != hOutput->uiWriteIndex );
 }
 
@@ -262,7 +273,7 @@ BMUXlib_Output_AddNewDescriptor(
    BERR_Code rc = BERR_SUCCESS;
    BDBG_ENTER( BMUXlib_Output_AddNewDescriptor );
 
-   BDBG_ASSERT( hOutput );
+   BDBG_OBJECT_ASSERT(hOutput, BMUXlib_Output_Context);
    BDBG_ASSERT( pstDescriptor );
 
    if ( true == BMUXlib_Output_IsSpaceAvailable( hOutput ) )
@@ -356,8 +367,7 @@ BMUXlib_Output_ProcessNewDescriptors(
 
    BDBG_ENTER( BMUXlib_Output_ProcessNewDescriptors );
 
-   BDBG_ASSERT( hOutput );
-
+   BDBG_OBJECT_ASSERT(hOutput, BMUXlib_Output_Context);
 
    /* if a previously created storage descriptor is waiting to be queued, send it first ...*/
    if (hOutput->bDescWaiting)
@@ -493,7 +503,7 @@ BERR_Code BMUXlib_Output_ProcessCompletedDescriptors( BMUXlib_Output_Handle hOut
 
    BDBG_ENTER( BMUXlib_Output_ProcessCompletedDescriptors );
 
-   BDBG_ASSERT( hOutput );
+   BDBG_OBJECT_ASSERT(hOutput, BMUXlib_Output_Context);
 
    rc = pstStorage->pfGetCompleteDescriptors( pstStorage->pContext, &uiCompletedCount );
 
@@ -554,7 +564,7 @@ BMUXlib_Output_GetCurrentOffset(
    BMUXlib_Output_Handle hOutput
    )
 {
-   BDBG_ASSERT(hOutput);
+   BDBG_OBJECT_ASSERT(hOutput, BMUXlib_Output_Context);
    BDBG_MODULE_MSG(BMUXLIB_OUTPUT_OFFSETS,("[%2.2d]: GetCurrentOffset: "BDBG_UINT64_FMT, OUTPUT_ID(hOutput), BDBG_UINT64_ARG(hOutput->uiCurrentOffset)));
    return hOutput->uiCurrentOffset;
 }
@@ -564,7 +574,7 @@ BMUXlib_Output_GetEndOffset(
    BMUXlib_Output_Handle hOutput
    )
 {
-   BDBG_ASSERT(hOutput);
+   BDBG_OBJECT_ASSERT(hOutput, BMUXlib_Output_Context);
    BDBG_MODULE_MSG(BMUXLIB_OUTPUT_OFFSETS,("[%2.2d]: GetEndOffset: "BDBG_UINT64_FMT, OUTPUT_ID(hOutput), BDBG_UINT64_ARG(hOutput->uiEndOffset)));
    return hOutput->uiEndOffset;
 }
@@ -576,7 +586,7 @@ BMUXlib_Output_SetCurrentOffset(
    BMUXlib_Output_OffsetReference eOffsetFrom
    )
 {
-   BDBG_ASSERT(hOutput);
+   BDBG_OBJECT_ASSERT(hOutput, BMUXlib_Output_Context);
    switch (eOffsetFrom)
    {
       case BMUXlib_Output_OffsetReference_eEnd:

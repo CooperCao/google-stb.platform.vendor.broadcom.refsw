@@ -1,63 +1,63 @@
 // New texture lookup functions
 
 float __brcm_proj(vec2 coord) {
-   float oocoord = 1.0/coord[1];
+   highp float oocoord = 1.0/coord[1];
    return oocoord * coord.s;
 }
 vec2 __brcm_proj(vec3 coord) {
-   float oocoord = 1.0 / coord[2];
+   highp float oocoord = 1.0 / coord[2];
    return oocoord * coord.st;
 }
 vec3 __brcm_proj(vec4 coord) {
-   float oocoord = 1.0 / coord[3];
+   highp float oocoord = 1.0 / coord[3];
    return oocoord * coord.stp;
 }
 // Special cases where certain component values are ignored
 float __brcm_proj1D(vec4 coord) {
-   float oocoord = 1.0/coord[3];
+   highp float oocoord = 1.0/coord[3];
    return oocoord * coord.s;
 }
 vec2 __brcm_proj2D(vec4 coord) {
-   float oocoord = 1.0 / coord[3];
+   highp float oocoord = 1.0 / coord[3];
    return oocoord * coord.st;
 }
 float __brcm_max_in_vec3(vec3 v) {
    return max(abs(v.x), max(abs(v.y), abs(v.z)));
 }
 vec3 __brcm_cube(vec3 coord) {
-   float maxabs = __brcm_max_in_vec3(coord);
+   highp float maxabs = __brcm_max_in_vec3(coord);
    return coord / maxabs;
 }
 // Like the vec3 version but pass the 3-component through. Used for shadow and array */
 vec4 __brcm_cube(vec4 coord) {
-   float maxabs = __brcm_max_in_vec3(coord.stp);
+   highp float maxabs = __brcm_max_in_vec3(coord.stp);
    return vec4(coord.stp / maxabs, coord[3]);
 }
 float __brcm_lod_from_grads(ivec2 i_tex_size, vec2 dPdx, vec2 dPdy) {
-   vec2 tex_size = vec2(i_tex_size);
+   highp vec2 tex_size = vec2(i_tex_size);
    dPdx = dPdx * tex_size;
    dPdy = dPdy * tex_size;
-   float max_deriv = max(max(abs(dPdx.x), abs(dPdx.y)), max(abs(dPdy.x), abs(dPdy.y)));
+   highp float max_deriv = max(max(abs(dPdx.x), abs(dPdx.y)), max(abs(dPdy.x), abs(dPdy.y)));
    return log2(max_deriv);
 }
 float __brcm_lod_from_grads(ivec3 i_tex_size, vec3 dPdx, vec3 dPdy) {
-   vec3 tex_size = vec3(i_tex_size);
+   highp vec3 tex_size = vec3(i_tex_size);
    dPdx = dPdx * tex_size;
    dPdy = dPdy * tex_size;
-   float max_deriv = max(__brcm_max_in_vec3(dPdx), __brcm_max_in_vec3(dPdy));
+   highp float max_deriv = max(__brcm_max_in_vec3(dPdx), __brcm_max_in_vec3(dPdy));
    return log2(max_deriv);
 }
 float __brcm_cube_project(float s, float m, float dsdv, float dmdv) {
    return dsdv / (2.0 * m) - s * dmdv / (m * m);
 }
 float __brcm_lod_from_cube_grads(ivec2 i_tex_size, vec3 P, vec3 dPdx, vec3 dPdy) {
-   vec2 tex_size = vec2(i_tex_size);
-   float max_P_component = __brcm_max_in_vec3(P);
-   vec3 abs_P = abs(P);
-   vec2 dPdx_proj, dPdy_proj;
+   highp vec2 tex_size = vec2(i_tex_size);
+   highp float max_P_component = __brcm_max_in_vec3(P);
+   highp vec3 abs_P = abs(P);
+   highp vec2 dPdx_proj, dPdy_proj;
 
    /* TODO: this can probably be done more efficiently */
-   vec4 args0, args1, args2, args3;
+   highp vec4 args0, args1, args2, args3;
    if(       abs_P.x == max_P_component) {
       args0 = vec4(P.z, P.x, dPdx.z, dPdx.x);
       args1 = vec4(P.z, P.x, dPdy.z, dPdy.x);
@@ -81,7 +81,7 @@ float __brcm_lod_from_cube_grads(ivec2 i_tex_size, vec3 P, vec3 dPdx, vec3 dPdy)
 
    dPdx_proj = dPdx_proj * tex_size;
    dPdy_proj = dPdy_proj * tex_size;
-   float max_deriv = max(max(abs(dPdx_proj.x),abs(dPdx_proj.y)), max(abs(dPdy_proj.x), abs(dPdy_proj.y)));
+   highp float max_deriv = max(max(abs(dPdx_proj.x),abs(dPdx_proj.y)), max(abs(dPdy_proj.x), abs(dPdy_proj.y)));
    return log2(max_deriv);
 }
 

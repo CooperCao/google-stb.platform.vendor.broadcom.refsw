@@ -502,6 +502,9 @@ typedef enum
 }
 BGRC_PACKET_P_SyncState;
 
+#define SUR_TYPE_SRC  0
+#define SUR_TYPE_DST  1
+#define SUR_TYPE_OUT  2
 
 /****************************************************************************
  * Surface invalid bits
@@ -518,6 +521,21 @@ typedef union
     uint32_t ulInts;
 } BGRC_P_Packet_SurInvalidBits;
 
+/****************************************************************************
+ * Surface compression bits
+ *
+ */
+typedef union
+{
+    struct
+    {
+        uint32_t   bSrc   : 1;  /* 0 */
+        uint32_t   bDst   : 1;
+        uint32_t   bOut   : 1;
+    } stBits;
+    uint32_t ulInts;
+} BGRC_P_Packet_SurCompressedBits;
+
 /***************************************************************************/
 BDBG_OBJECT_ID_DECLARE(BGRC_PacketContext);
 typedef struct BGRC_P_PacketContext
@@ -532,13 +550,15 @@ typedef struct BGRC_P_PacketContext
 
     /* used to drop following blits */
     BGRC_P_Packet_SurInvalidBits stSurInvalid;
+    BGRC_P_Packet_SurCompressedBits stSurCompressed;
     bool      bBlitInvalid;
 
     BGRC_PACKET_P_Scaler scaler;
     BM2MC_PACKET_Header *scaler_header;
-    BGRC_P_Packet_SurInvalidBits saved_stSurInvalid;
-    bool      saved_bBlitInvalid;
 
+    BGRC_P_Packet_SurInvalidBits saved_stSurInvalid;
+    BGRC_P_Packet_SurCompressedBits saved_stSurCompressed;
+    bool      saved_bBlitInvalid;
 
     void     *pSwPktFifoBaseAlloc;
     uint8_t  *pSwPktFifoBase;

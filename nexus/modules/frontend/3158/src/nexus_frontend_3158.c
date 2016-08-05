@@ -716,9 +716,11 @@ static NEXUS_Error NEXUS_Frontend_P_3158_TuneOob(void *handle, const NEXUS_Front
 done:
     return rc;
 }
+#endif
 
 static void NEXUS_Frontend_P_3158_UnTuneOob(void *handle)
 {
+#if NEXUS_FRONTEND_315x_OOB
     NEXUS_Error rc = NEXUS_SUCCESS;
     NEXUS_3158Device *pDevice;
     NEXUS_3158Channel *pChannel;
@@ -736,9 +738,13 @@ static void NEXUS_Frontend_P_3158_UnTuneOob(void *handle)
         pDevice->isPoweredOn[pChannel->chn_num] = false;
     }
 done:
+#else
+    BSTD_UNUSED(handle);
+#endif
     return;
 }
 
+#if NEXUS_FRONTEND_315x_OOB
 static NEXUS_Error NEXUS_Frontend_P_3158_RequestOobAsyncStatus(void *handle)
 {
     NEXUS_Error rc = NEXUS_SUCCESS;
@@ -1429,9 +1435,8 @@ NEXUS_FrontendDeviceHandle NEXUS_FrontendDevice_P_3158_Alloc(unsigned index, con
 
     if ( NULL == pDevice)
     {
-        pFrontendDevice = BKNI_Malloc(sizeof(*pFrontendDevice));
+        pFrontendDevice = NEXUS_FrontendDevice_P_Create();
         if (NULL == pFrontendDevice) { BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY); goto err; }
-        BKNI_Memset(pFrontendDevice, 0, sizeof(*pFrontendDevice));
 
         pDevice = BKNI_Malloc(sizeof(*pDevice));
         if (NULL == pDevice) { BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY); goto err; }
@@ -1868,9 +1873,11 @@ static void NEXUS_Frontend_P_Uninit3158(NEXUS_3158Device *pDevice, bool uninitHa
         pDevice->isrEventCallback = NULL;
     }
 #if NEXUS_HAS_MXT
-    if (pDevice->pGenericDeviceHandle->mtsifConfig.mxt) {
-        BMXT_Close(pDevice->pGenericDeviceHandle->mtsifConfig.mxt);
-        pDevice->pGenericDeviceHandle->mtsifConfig.mxt = NULL;
+    if (pDevice->pGenericDeviceHandle) {
+        if (pDevice->pGenericDeviceHandle->mtsifConfig.mxt) {
+            BMXT_Close(pDevice->pGenericDeviceHandle->mtsifConfig.mxt);
+            pDevice->pGenericDeviceHandle->mtsifConfig.mxt = NULL;
+        }
     }
 #endif
     if (uninitHab && pDevice->hab) {
@@ -1894,7 +1901,7 @@ void NEXUS_FrontendDevice_P_3158_S3Standby(NEXUS_3158Device *pDevice, bool unini
 }
 
 static NEXUS_Error NEXUS_Frontend_P_3158_RestoreCallbacks(NEXUS_3158Device *pDevice) {
-    NEXUS_Error rc;
+    NEXUS_Error rc = NEXUS_SUCCESS;
     unsigned i;
     BDBG_OBJECT_ASSERT(pDevice, NEXUS_3158Device);
 
@@ -2119,12 +2126,10 @@ NEXUS_FrontendHandle NEXUS_Frontend_P_Open3158(const NEXUS_FrontendChannelSettin
      * where cable, oob, ifdac, terrestrial, and/or satellite channels are separately 0-indexed.
      */
     channelNumber = pSettings->channelNumber;
-#if NEXUS_FRONTEND_315x_OOB
     if (channelNumber == p3158Device->numChannels-1 && p3158Device->aobPresent) {
         BDBG_MSG(("opening OOB"));
         type = NEXUS_FrontendChannelType_eCableOutOfBand;
     }
-#endif
 
     /* If already opened, return the previously opened handle */
     if ( p3158Device->frontendHandle[channelNumber] != NULL )
@@ -2167,10 +2172,10 @@ NEXUS_FrontendHandle NEXUS_Frontend_P_Open3158(const NEXUS_FrontendChannelSettin
         frontendHandle->tuneOutOfBand = NEXUS_Frontend_P_3158_TuneOob;
         frontendHandle->getOutOfBandStatus = NEXUS_Frontend_P_3158_GetOobStatus;
         frontendHandle->resetStatus = NEXUS_Frontend_P_3158_ResetOobStatus;
-        frontendHandle->untune = NEXUS_Frontend_P_3158_UnTuneOob;
         frontendHandle->requestOutOfBandAsyncStatus = NEXUS_Frontend_P_3158_RequestOobAsyncStatus;
         frontendHandle->getOutOfBandAsyncStatus = NEXUS_Frontend_P_3158_GetOobAsyncStatus;
 #endif
+        frontendHandle->untune = NEXUS_Frontend_P_3158_UnTuneOob;
     }
 
     frontendHandle->readSoftDecisions = NEXUS_Frontend_P_3158_ReadSoftDecisions;

@@ -85,6 +85,7 @@ void tzioc_client_close(
 int tzioc_client_getid(
     tzioc_client_handle hClient,
     const char *pName,
+    uint32_t ulPid,
     uint8_t *pId)
 {
     struct tzioc_client *pClient = (struct tzioc_client *)hClient;
@@ -97,6 +98,7 @@ int tzioc_client_getid(
     return _tzioc_client_getid(
         pClient,
         pName,
+        ulPid,
         pId);
 }
 

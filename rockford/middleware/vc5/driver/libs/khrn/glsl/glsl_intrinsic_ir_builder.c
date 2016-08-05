@@ -60,6 +60,14 @@ static const struct intrinsic_ir_info_s intrinsic_ir_info[INTRINSIC_COUNT] = {
    { INTRINSIC_ATOMIC_XCHG,    DATAFLOW_FLAVOUR_COUNT, -1 },
    { INTRINSIC_ATOMIC_CMPXCHG, DATAFLOW_FLAVOUR_COUNT, -1 },
    { INTRINSIC_IMAGE_STORE,    DATAFLOW_FLAVOUR_COUNT, -1 },
+   { INTRINSIC_IMAGE_ADD,      DATAFLOW_FLAVOUR_COUNT, -1 },
+   { INTRINSIC_IMAGE_MIN,      DATAFLOW_FLAVOUR_COUNT, -1 },
+   { INTRINSIC_IMAGE_MAX,      DATAFLOW_FLAVOUR_COUNT, -1 },
+   { INTRINSIC_IMAGE_AND,      DATAFLOW_FLAVOUR_COUNT, -1 },
+   { INTRINSIC_IMAGE_OR,       DATAFLOW_FLAVOUR_COUNT, -1 },
+   { INTRINSIC_IMAGE_XOR,      DATAFLOW_FLAVOUR_COUNT, -1 },
+   { INTRINSIC_IMAGE_XCHG,     DATAFLOW_FLAVOUR_COUNT, -1 },
+   { INTRINSIC_IMAGE_CMPXCHG,  DATAFLOW_FLAVOUR_COUNT, -1 },
    { INTRINSIC_IMAGE_SIZE,     DATAFLOW_FLAVOUR_COUNT, -1 },
 };
 
@@ -104,10 +112,11 @@ static void calculate_dataflow_texture_lookup(BasicBlock *ctx, Dataflow **scalar
    Expr *lod       = args->first->next->next->next->expr;
    Expr *offset    = NULL, *comp = NULL, *dref = NULL;
 
-   if (glsl_prim_is_prim_sampler_type(sampler->type))
-      sampler_info = glsl_prim_get_sampler_info(sampler->type->u.primitive_type.index);
-   else
+   bool is_image = glsl_prim_is_prim_image_type(sampler->type);
+   if (is_image)
       sampler_info = glsl_prim_get_image_info(sampler->type->u.primitive_type.index);
+   else
+      sampler_info = glsl_prim_get_sampler_info(sampler->type->u.primitive_type.index);
 
    ExprChainNode *arg = args->first->next->next->next->next;
    if (sampler_info->shadow) {
@@ -132,17 +141,28 @@ static void calculate_dataflow_texture_lookup(BasicBlock *ctx, Dataflow **scalar
    if (comp) glsl_expr_calculate_dataflow(ctx, &comp_scalar, comp);
    if (dref) glsl_expr_calculate_dataflow(ctx, &dref_scalar, dref);
 
-   if (sampler_info->cube) bits_value |= DF_TEXBITS_CUBE;
+   int non_idx_coords = sampler_info->coord_count;
+   bool array = sampler_info->array;
+   bool cube = sampler_info->cube;
+   if (is_image && cube)
+   {
+      /* Cube and cubemap arrays images are treated as 2D arrays... */
+      assert(non_idx_coords == 3);
+      non_idx_coords = 2;
+      array = true;
+      cube = false;
+   }
+
+   if (cube) bits_value |= DF_TEXBITS_CUBE;
 
    Dataflow *gadget_c[4] = { NULL, };
-   for (int i=0; i<sampler_info->coord_count; i++) gadget_c[i] = coord_scalar_values[i];
-   if (sampler_info->array)  gadget_c[3] = coord_scalar_values[sampler_info->coord_count];
+   for (int i=0; i<non_idx_coords; i++) gadget_c[i] = coord_scalar_values[i];
+   if (array) gadget_c[3] = coord_scalar_values[non_idx_coords];
 
    Dataflow *coords = glsl_dataflow_construct_vec4(gadget_c[0], gadget_c[1], gadget_c[2], gadget_c[3]);
 
    /* Except in fragment shaders all non-Fetch lookups use explicit lod 0 */
-   const uint32_t implies_bslod = DF_TEXBITS_FETCH | DF_TEXBITS_SAMPLER_FETCH | DF_TEXBITS_GATHER;
-   if (g_ShaderFlavour != SHADER_FRAGMENT && !(bits_value & implies_bslod))
+   if (g_ShaderFlavour != SHADER_FRAGMENT && !glsl_dataflow_tex_cfg_implies_bslod(bits_value))
       bits_value |= DF_TEXBITS_BSLOD;
 
    Dataflow *gadget_offset = NULL;
@@ -185,6 +205,35 @@ static void calculate_dataflow_texture_lookup(BasicBlock *ctx, Dataflow **scalar
           scalar_result ? NULL : &scalar_values[3],
           bits_value, sampler_scalar_value, coords, dref_scalar, lod_scalar, gadget_offset,
           0, component_type_index);
+
+#if !V3D_HAS_TMU_WRAP_I
+   if (is_image && array)
+   {
+      /* HW clamps array index. We need border behaviour.
+       * Replace result with 0 if array index was out of bounds... */
+
+      Dataflow *num_elems;
+
+      /* we should not see cube map arrays here */
+      assert( (sampler_info->cube && !sampler_info->array) ||
+              (!sampler_info->cube && sampler_info->array));
+
+      if (sampler_info->cube && !sampler_info->array)
+         num_elems = glsl_dataflow_construct_const_uint(6);
+      else
+         num_elems = glsl_dataflow_construct_image_info_param(
+            sampler_scalar_value, IMAGE_INFO_LX_DEPTH);
+
+      Dataflow *idx_ok = glsl_dataflow_construct_binary_op(DATAFLOW_LESS_THAN,
+         glsl_dataflow_construct_reinterp(gadget_c[3], DF_UINT), num_elems);
+
+      Dataflow *zero = glsl_dataflow_construct_const_value(component_type_index, 0);
+      assert(!scalar_result); /* There are no image functions that return scalars */
+      for (int i=0; i<4; i++)
+         scalar_values[i] = glsl_dataflow_construct_ternary_op(DATAFLOW_CONDITIONAL, idx_ok,
+            scalar_values[i], zero);
+   }
+#endif
 }
 
 static void calculate_dataflow_texture_size(BasicBlock *ctx, Dataflow **scalar_values, Expr *expr) {
@@ -345,8 +394,16 @@ void glsl_intrinsic_ir_calculate_dataflow(BasicBlock* ctx, Dataflow **scalar_val
    case INTRINSIC_ATOMIC_CMPXCHG:
       calculate_dataflow_atomic_op(ctx, scalar_values, expr);
       break;
+   case INTRINSIC_IMAGE_ADD:
+   case INTRINSIC_IMAGE_MIN:
+   case INTRINSIC_IMAGE_MAX:
+   case INTRINSIC_IMAGE_AND:
+   case INTRINSIC_IMAGE_OR:
+   case INTRINSIC_IMAGE_XOR:
+   case INTRINSIC_IMAGE_XCHG:
+   case INTRINSIC_IMAGE_CMPXCHG:
    case INTRINSIC_IMAGE_STORE:
-      glsl_calculate_dataflow_image_store(ctx, expr);
+      glsl_calculate_dataflow_image_atomic(ctx, scalar_values, expr);
       break;
    case INTRINSIC_IMAGE_SIZE:
       glsl_calculate_dataflow_image_size(ctx, scalar_values, expr);

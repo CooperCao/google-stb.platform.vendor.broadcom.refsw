@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -988,6 +988,44 @@ static void set_config(char *input, struct dolby_digital_plus_command_args *dolb
                 dolby->ac4CodecSettings.codecSettings.ac4.dialogEnhancerAmount = atoi(value);
             }
         }
+        else if ( !strcmp(input, "AC4PRESSELECT") )
+        {
+            if ( atoi(value) > 2 || atoi(value) < 0 )
+            {
+                dolby->ac4CodecSettings.codecSettings.ac4.selectionMode = NEXUS_AudioDecoderAc4PresentationSelectionMode_ePresentationIndex;
+            }
+            else
+            {
+                dolby->ac4CodecSettings.codecSettings.ac4.selectionMode = (NEXUS_AudioDecoderAc4PresentationSelectionMode)atoi(value);
+            }
+        }
+        else if ( !strcmp(input, "AC4ASSOCTYPE") )
+        {
+            if ( atoi(value) > 3 || atoi(value) < 0 )
+            {
+                dolby->ac4CodecSettings.codecSettings.ac4.preferredAssociateType = NEXUS_AudioAc4AssociateType_eNotSpecified;
+            }
+            else
+            {
+                dolby->ac4CodecSettings.codecSettings.ac4.preferredAssociateType = (NEXUS_AudioAc4AssociateType)atoi(value);
+            }
+        }
+        else if ( !strcmp(input, "AC4ASSOCMIXING") )
+        {
+            dolby->ac4CodecSettings.codecSettings.ac4.enableAssociateMixing = false;
+            if ( atoi(value) == 1 )
+            {
+                dolby->ac4CodecSettings.codecSettings.ac4.enableAssociateMixing = true;
+            }
+        }
+        else if ( !strcmp(input, "AC4LANGPREF") )
+        {
+            memcpy(dolby->ac4CodecSettings.codecSettings.ac4.languagePreference[0].selection, value, 6);
+        }
+        else if ( !strcmp(input, "AC4LANGPREF2") )
+        {
+            memcpy(dolby->ac4CodecSettings.codecSettings.ac4.languagePreference[1].selection, value, 6);
+        }
         else if ( !strcmp(input, "MIXERBALANCE") )
         {
             dolby->mixerBalance = atoi(value);
@@ -1197,6 +1235,7 @@ int dolby_digital_plus_cmdline_parse(int argc, const char *argv[], struct util_o
     int i;
     unsigned audioPid = INVALID_PID, secondaryAudioPid = INVALID_PID;
     NEXUS_AudioCodec audioCodec = NEXUS_AudioCodec_eMax;
+    NEXUS_TransportType transportType = NEXUS_TransportType_eMax;
 
     dolby->loopback = 0;
 
@@ -1224,6 +1263,7 @@ int dolby_digital_plus_cmdline_parse(int argc, const char *argv[], struct util_o
     opts->common.playpumpTimestampReordering = true;
     opts->customFileIo = false;
     opts->playbackMonitor = false;
+    opts->common.videoCodec = NEXUS_VideoCodec_eUnknown;
 
     for ( i = 1; i < argc; i++ )
     {
@@ -1290,7 +1330,7 @@ int dolby_digital_plus_cmdline_parse(int argc, const char *argv[], struct util_o
         }
         else if ( !strcmp(argv[i], "-mpeg_type") && i + 1 < argc )
         {
-            opts->common.transportType = lookup(g_transportTypeStrs, argv[++i]);
+            transportType = lookup(g_transportTypeStrs, argv[++i]);
         }
         else if ( !strcmp(argv[i], "-target_sync_disabled") )
         {
@@ -1323,6 +1363,7 @@ int dolby_digital_plus_cmdline_parse(int argc, const char *argv[], struct util_o
         printf("\n You have selected the primary stream : %s \n\n", dolby->primary_stream);
         opts->common.audioPid = audioPid;
         opts->common.audioCodec = audioCodec;
+        opts->common.transportType = transportType;
     }
     else if ( j == SECONDARY_DECODE && (dolby->secondary_stream != NULL || secondaryAudioPid != INVALID_PID) )
     {
@@ -1335,6 +1376,7 @@ int dolby_digital_plus_cmdline_parse(int argc, const char *argv[], struct util_o
         printf("\n You have selected the secondary stream : %s \n\n", dolby->secondary_stream);
         opts->common.audioPid = secondaryAudioPid;
         opts->common.audioCodec = audioCodec;
+        opts->common.transportType = transportType;
     }
     else if ( j == EFFECTS_DECODE && dolby->sound_effects_stream )
     {
@@ -1760,6 +1802,11 @@ static void translate_args_to_codec_settings(unsigned idx, NEXUS_AudioDecoderHan
         codecSettings->codecSettings.ac4.programBalance = dolby->ac4CodecSettings.codecSettings.ac4.programBalance;
         codecSettings->codecSettings.ac4.presentationId = dolby->ac4CodecSettings.codecSettings.ac4.presentationId;
         codecSettings->codecSettings.ac4.dialogEnhancerAmount = dolby->ac4CodecSettings.codecSettings.ac4.dialogEnhancerAmount;
+        codecSettings->codecSettings.ac4.selectionMode = dolby->ac4CodecSettings.codecSettings.ac4.selectionMode;
+        codecSettings->codecSettings.ac4.preferredAssociateType = dolby->ac4CodecSettings.codecSettings.ac4.preferredAssociateType;
+        codecSettings->codecSettings.ac4.enableAssociateMixing = dolby->ac4CodecSettings.codecSettings.ac4.enableAssociateMixing;
+        memcpy(codecSettings->codecSettings.ac4.languagePreference[0].selection, dolby->ac4CodecSettings.codecSettings.ac4.languagePreference[0].selection, 2);
+        memcpy(codecSettings->codecSettings.ac4.languagePreference[1].selection, dolby->ac4CodecSettings.codecSettings.ac4.languagePreference[1].selection, 2);
     }
     else if ( codecSettings->codec == NEXUS_AudioCodec_eAacAdts || codecSettings->codec == NEXUS_AudioCodec_eAacLoas ||
               codecSettings->codec == NEXUS_AudioCodec_eAacPlusAdts || codecSettings->codec == NEXUS_AudioCodec_eAacPlusLoas )
@@ -1956,6 +2003,7 @@ int main(int argc, const char *argv[])
             NEXUS_StcChannel_GetDefaultSettings(0, &stcSettings);
             stcSettings.timebase = NEXUS_Timebase_e0;
             stcSettings.mode = NEXUS_StcChannelMode_eAuto;
+			stcSettings.modeSettings.Auto.behavior = NEXUS_StcChannelAutoModeBehavior_eAudioMaster;
             stcChannel[i] = NEXUS_StcChannel_Open(i, &stcSettings);
             BDBG_ASSERT(stcChannel[i]);
             stc = stcChannel[i];
@@ -1991,10 +2039,13 @@ int main(int argc, const char *argv[])
 
         if ( cmdline_probe(&opts[i].common, opts[i].filename, &opts[i].indexname) )
         {
-            return 1;
+            if (transportType != NEXUS_TransportType_eEs)
+            {
+                return 1;
+            }
         }
 
-        printf("PROBE of '%s' found:\n\t transport type %d, audio_codec %d\n",
+        printf("\nPROBE of '%s' found:\n\t transport type %d, audio_codec %d\n",
                opts[i].filename, opts[i].common.transportType, opts[i].common.audioCodec);
 
         /* restore what we got from command line after probe */
@@ -2096,6 +2147,15 @@ int main(int argc, const char *argv[])
             videoProgram.codec = opts[i].common.videoCodec;
             videoProgram.pidChannel = videoPidChannel;
             videoProgram.stcChannel = stc;
+        }
+        else if (i == PRIMARY_DECODE)
+        {
+            if (videoDecoder)
+            {
+                NEXUS_VideoWindow_RemoveAllInputs(window);
+                NEXUS_VideoDecoder_Close(videoDecoder);
+                videoDecoder = NULL;
+            }
         }
 
         if ( opts[i].common.pcrPid && opts[i].common.pcrPid != opts[i].common.videoPid && opts[i].common.pcrPid != opts[i].common.audioPid )
@@ -2213,6 +2273,7 @@ int main(int argc, const char *argv[])
                 case NEXUS_AudioCodec_eAacLoas:
                 case NEXUS_AudioCodec_eAacPlusAdts:
                 case NEXUS_AudioCodec_eAacPlusLoas:
+				case NEXUS_AudioCodec_eAc4:
                     break;
                 default:
                     if ( audioDecoders[i] )
@@ -2703,7 +2764,7 @@ int main(int argc, const char *argv[])
                         "  Parametername=value  - Change the value of any user configurable parameter\n"
                         );
                 }
-                else if ( !strcmp(buf, "q") )
+                else if ( (!strcmp(buf, "q")) || (!strcmp(buf, "quit")) )
                 {
                     exit = true;
                     break;
@@ -2879,7 +2940,10 @@ int main(int argc, const char *argv[])
         }
     }
 
-    NEXUS_VideoDecoder_Stop(videoDecoder);
+    if (videoDecoder)
+    {
+        NEXUS_VideoDecoder_Stop(videoDecoder);
+    }
 
     if ( compressedDecoder )
     {
@@ -2954,7 +3018,10 @@ int main(int argc, const char *argv[])
         fclose(file_params);
     }
 
-    NEXUS_VideoDecoder_Close(videoDecoder);
+    if (videoDecoder)
+    {
+        NEXUS_VideoDecoder_Close(videoDecoder);
+    }
     NEXUS_VideoWindow_Close(window);
 
     /* stop/remove HDMI callbacks associated with display,
@@ -3575,12 +3642,22 @@ rbuf_capture_from_rbuf_to_cap_q(rbuf_capture_channel_t *cap)
     else
     {
         /* Already initialized, read the write / read address registers*/
-
+        uint32_t baseaddr;
         /* AUD_FMM_BF_CTRL_RINGBUF_X_WRADDR*/
         rbuf_cur_wraddr = (uint32_t)BREG_Read32(rbuf_reg_handle, cap->rbuf_reg_base + 0x04);
         /* AUD_FMM_BF_CTRL_RINGBUF_X_RDADDR*/
         rbuf_cur_rdaddr = (uint32_t)BREG_Read32(rbuf_reg_handle, cap->rbuf_reg_base + 0x00);
         if ( (rbuf_cur_wraddr == 0) || (rbuf_cur_wraddr == 0x80000000) || (rbuf_cur_rdaddr == 0) || (rbuf_cur_rdaddr == 0x80000000) ) return;
+        if(rbuf_cur_rdaddr<(cap->rbuf_prev_rdaddr & (~(1 << 31))))
+        {
+        baseaddr = (uint32_t)BREG_Read32(rbuf_reg_handle,
+                                         cap->rbuf_reg_base + 0x08);
+        cap->rbuf_prev_rdaddr = baseaddr;
+        }
+		if(rbuf_cur_rdaddr == rbuf_cur_wraddr)
+		{
+			cap->rbuf_prev_wraddr = rbuf_cur_wraddr;
+        }
     }
     /* Extract the wrap bit*/
     wr_cur_wrap = rbuf_cur_wraddr & (1 << 31);

@@ -112,7 +112,7 @@ static void NEXUS_Platform_P_SharedGpio_ClosePin(NEXUS_GpioModuleOsSharedBankPin
 {
     b_shared_gpio_pin_desc pinDesc;
 
-    NEXUS_Platform_P_SharedGpio_GetPinDesc(pin, &pinDesc);
+    NEXUS_Platform_P_SharedGpio_GetPinDesc_isrsafe(pin, &pinDesc);
 
     b_shared_gpio_close_pin(&pinDesc);
 }
@@ -136,7 +136,7 @@ static NEXUS_Error NEXUS_Platform_P_SharedGpio_ClearInterrupt_isr(NEXUS_GpioModu
     int u_rc;
     b_shared_gpio_pin_desc pinDesc;
 
-    NEXUS_Platform_P_SharedGpio_GetPinDesc(pin, &pinDesc);
+    NEXUS_Platform_P_SharedGpio_GetPinDesc_isrsafe(pin, &pinDesc);
 
     u_rc = b_shared_gpio_clear_int(&pinDesc);
     if (u_rc) { rc = NEXUS_OS_ERROR; BERR_TRACE(rc); goto err; }
@@ -151,7 +151,7 @@ static NEXUS_Error NEXUS_Platform_P_SharedGpio_SetInterruptMask_isr(NEXUS_GpioMo
     int u_rc;
     b_shared_gpio_pin_desc pinDesc;
 
-    NEXUS_Platform_P_SharedGpio_GetPinDesc(pin, &pinDesc);
+    NEXUS_Platform_P_SharedGpio_GetPinDesc_isrsafe(pin, &pinDesc);
 
     u_rc = b_shared_gpio_set_int_mask(&pinDesc, disable ? 1 : 0);
     if (u_rc) { rc = NEXUS_OS_ERROR; BERR_TRACE(rc); goto err; }
@@ -166,7 +166,7 @@ static NEXUS_Error NEXUS_Platform_P_SharedGpio_SetStandby(NEXUS_GpioModuleOsShar
     int u_rc;
     b_shared_gpio_pin_desc pinDesc;
 
-    NEXUS_Platform_P_SharedGpio_GetPinDesc(pin, &pinDesc);
+    NEXUS_Platform_P_SharedGpio_GetPinDesc_isrsafe(pin, &pinDesc);
 
     u_rc = b_shared_gpio_set_standby(&pinDesc, enable ? 1 : 0);
     if (u_rc) { rc = NEXUS_OS_ERROR; BERR_TRACE(rc); goto err; }

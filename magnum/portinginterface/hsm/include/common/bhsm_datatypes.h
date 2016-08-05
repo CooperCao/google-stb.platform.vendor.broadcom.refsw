@@ -89,6 +89,7 @@ extern "C" {
 #define BHSM_STATUS_REGION_VERIFICATION_FAILED       BERR_MAKE_CODE(BERR_ICM_ID, 1001) /* region signature verification failed. */
 #define BHSM_STATUS_REGION_VERIFICATION_IN_PROGRESS  BERR_MAKE_CODE(BERR_ICM_ID, 1002) /* region verification is in progress. */
 #define BHSM_STATUS_REGION_VERIFICATION_NOT_DEFINED  BERR_MAKE_CODE(BERR_ICM_ID, 1003) /* region verification is in progress. */
+#define BHSM_STATUS_REGION_ALREADY_CONFIGURED        BERR_MAKE_CODE(BERR_ICM_ID, 1004) /* region is already configured.. */
 
 /* To hide M2M changes from the upper layer Nexus Security */
 #if HSM_IS_ASKM_28NM_ZEUS_4_2

@@ -60,7 +60,6 @@
 #include "clock.h"
 #include "hwtimer.h"
 #include "system.h"
-#include "tracelog.h"
 
 void tzKernelSecondary();
 

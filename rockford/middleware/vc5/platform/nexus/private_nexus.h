@@ -15,9 +15,42 @@ All rights reserved.
 #include "nexus_display.h"
 #include "nexus_surface.h"
 #include "nexus_memory.h"
+#include "berr.h"
+#include "bkni_multi.h"
+
+#ifdef NXCLIENT_SUPPORT
+#include "nxclient.h"
+#endif
+
+/* NXPL_NativeWindow */
+typedef struct
+{
+   /* Main thread data */
+   NXPL_NativeWindowInfoEXT   windowInfo;
+   unsigned int               numSurfaces;
+
+   bool                       initialized;
+   int                        swapInterval;
+
+#ifdef NXPL_PLATFORM_EXCLUSIVE
+   /* create and delete can overlap, although exclusive access to
+      the buffer is mandated.  This delete of one window can remove
+      the callback of another */
+   int                        bound;
+#else
+   uint32_t                   clientID;
+   /* NSC client handle */
+   NEXUS_SurfaceClientHandle  surfaceClient;
+#ifdef NXCLIENT_SUPPORT
+   NxClient_AllocResults      allocResults;
+#endif
+#endif /* NXPL_PLATFORM_EXCLUSIVE */
+
+} NXPL_NativeWindow;
 
 typedef struct
 {
+   uint32_t                   magic;
    NEXUS_SurfaceHandle        surface;
    uint32_t                   physicalOffset;
    void                      *cachedPtr;
@@ -31,38 +64,50 @@ typedef struct
    bool                       secure;
 } NXPL_Surface;
 
+typedef void (*NXPL_SurfaceOffDisplay)(void *context, NEXUS_SurfaceHandle surface);
+
+typedef struct
+{
+   NEXUS_DISPLAYHANDLE        display;
+   NXPL_DisplayType           displayType;
+   struct
+   {
+      NXPL_SurfaceOffDisplay  callback;
+      void                   *context;
+   } bufferOffDisplay;
+#ifdef NXPL_PLATFORM_EXCLUSIVE
+   int                       *bound;
+   struct {
+      NEXUS_SurfaceHandle    current;
+      NEXUS_SurfaceHandle    next;
+      BKNI_MutexHandle       mutex;
+   } surface;
+#else
+   unsigned int               numSurfaces;
+   unsigned int               pushedSurfaces;
+   uint32_t                   clientID;
+   NEXUS_SurfaceClientHandle  surfaceClient;
+#endif
+   void                      *vsyncEvent;
+   bool                       terminating;
+}  NXPL_Display;
+
 typedef struct
 {
    /* Thread data and mutex */
    pthread_t                  displayThread;
    pthread_barrier_t          barrier;
-#ifdef NXPL_PLATFORM_EXCLUSIVE
-   void                      *bufferOnDisplayEvent;
-#endif
-   void                      *vsyncEvent;
-   bool                       terminating;
 
    void                      *displayQueue;
    void                      *fenceQueue;
-#ifdef NXPL_PLATFORM_EXCLUSIVE
-   int                        lastFence;
-#endif
 
    /* data copied through from the owner */
    BEGL_SchedInterface       *schedIface;
    NXPL_NativeWindowInfoEXT   windowInfo;
    BEGL_BufferFormat          format;
    unsigned int               numSurfaces;
-   NEXUS_DISPLAYHANDLE        display;
-   bool                       vsyncAvailable;
 
-#ifndef NXPL_PLATFORM_EXCLUSIVE
-   uint32_t                   clientID;
-   NEXUS_SurfaceClientHandle  surfaceClient;
-#endif
-
-   NXPL_DisplayType           displayType;
-   int                       *bound;
+   NXPL_Display               display;
 
    /* opaque, do not access in the thread */
    void                      *nw;
@@ -71,6 +116,7 @@ typedef struct
 typedef struct
 {
    BEGL_MemoryInterface    *memoryInterface;
+   bool                     drm;
    BEGL_SchedInterface     *schedInterface;
    BEGL_DisplayInterface   *displayInterface;
 } NXPL_InternalPlatformHandle;

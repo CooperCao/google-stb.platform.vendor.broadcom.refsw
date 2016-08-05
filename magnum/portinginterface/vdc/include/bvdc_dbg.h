@@ -471,7 +471,10 @@ Returns:
 See Also:
 
 ****************************************************************************/
-void BVDC_DumpBufLog (void );
+void BVDC_DumpBufLog
+    ( char                  *pLog,
+      unsigned int           uiSizeToRead,
+      unsigned int          *puiReadCount );
 
 /***************************************************************************
 Summary:

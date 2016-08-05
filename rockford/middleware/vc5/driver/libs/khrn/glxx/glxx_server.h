@@ -15,36 +15,35 @@ OpenGL ES 1.1 and 2.0 server-side state structure declaration.
 #include "gl_public_api.h"
 
 #include "../common/khrn_int_process.h"
-#include "glxx_client.h"
-
 #include "../common/khrn_image_plane.h"
 #include "../common/khrn_mem.h"
 #include "../common/khrn_map.h"
-#include "glxx_draw.h"
 #include "../common/khrn_stats.h"
+#include "../common/khrn_options.h"
+#include "../common/khrn_timeline.h"
+
+#include "glxx_client.h"
+#include "glxx_draw.h"
 #include "glxx_texture.h"
 #include "glxx_shared.h"
 #include "glxx_buffer.h"
 #include "glxx_shader_cache.h"
 #include "glxx_draw.h"
-
 #include "glxx_int_attrib.h"
+#include "glxx_pixel_store.h"
+#include "glxx_framebuffer.h"
+#include "glxx_textures.h"
+#include "glxx_query.h"
+#include "glxx_image_unit.h"
+#include "glxx_hw_framebuffer.h"
+#include "glxx_hw_render_state.h"
+#include "../ext/gl_khr_debug.h"
+
 #include "../gl11/gl11_matrix.h"
 #include "../gl11/gl11_texunit.h"
 #include "../gl11/gl11_shader_cache.h"
 
-#include "../common/khrn_options.h"
-#include "glxx_pixel_store.h"
-#include "glxx_framebuffer.h"
 #include "../egl/egl_context_gl.h"
-#include "glxx_textures.h"
-#include "glxx_query.h"
-#include "glxx_image_unit.h"
-
-#include "glxx_hw_framebuffer.h"
-#include "../common/khrn_timeline.h"
-#include "glxx_hw_render_state.h"
-#include "../ext/gl_khr_debug.h"
 
 #include "libs/util/profile/profile.h"
 
@@ -74,7 +73,9 @@ typedef struct glxx_compute_render_state glxx_compute_render_state;
 /* Attrib stuff which doesn't affect shader compilation */
 typedef struct
 {
-   GLenum   type;
+   GLenum   gl_type;
+   v3d_attr_type_t v3d_type;
+   bool     is_signed;
    bool     norm;
    uint32_t size;
    bool     enabled;
@@ -105,9 +106,14 @@ typedef struct
 // Generic attributes, ref table 6.22 in gles 3.0 spec
 typedef struct
 {
-   float     value[4];
-   uint32_t  value_int[4];
-   GLenum    type;
+   union
+   {
+      float f[4];
+      int32_t i[4];
+      uint32_t u[4];
+   };
+   v3d_attr_type_t type;
+   bool is_signed;
 } GLXX_GENERIC_ATTRIBUTE_T;
 
 typedef struct GLXX_VAO_T_ {
@@ -288,12 +294,10 @@ typedef struct {
       GLenum line_smooth;
    } hints;
 
-#if GL_OES_matrix_palette
    /* 0 <= current_palette_matrix < GL11_CONFIG_MAX_PALETTE_MATRICES_OES */
    uint32_t current_palette_matrix;
    float palette_matrices[GL11_CONFIG_MAX_PALETTE_MATRICES_OES][16];
    uint32_t palette_matrices_base_ptr;          /* Direct alias to pass into shaders */
-#endif
 
    /* Current matrices at the top of the stack. */
    float current_modelview[16];
@@ -324,17 +328,13 @@ typedef struct GLXX_TRANSFORM_FEEDBACK_T_
    char                          *debug_label;
 } GLXX_TRANSFORM_FEEDBACK_T;
 
-typedef struct{
-   bool r;
-   bool g;
-   bool b;
-   bool a;
-} glxx_color_write_t;
-
 typedef struct
 {
    khrn_render_state_set_t blend_color;
-   khrn_render_state_set_t blend_mode;
+#if V3D_HAS_PER_RT_BLEND
+   khrn_render_state_set_t blend_enables; // Per-RT enables
+#endif
+   khrn_render_state_set_t blend_cfg;
    khrn_render_state_set_t color_write;
    khrn_render_state_set_t cfg;             // clockwise endo oversample ztest zmask
    khrn_render_state_set_t linewidth;       // also when line_smooth changes
@@ -357,6 +357,16 @@ struct glxx_context_fences
                                         will depend on this fence; */
 };
 
+typedef struct
+{
+   v3d_blend_eqn_t color_eqn;
+   v3d_blend_eqn_t alpha_eqn;
+   v3d_blend_mul_t src_rgb;
+   v3d_blend_mul_t dst_rgb;
+   v3d_blend_mul_t src_alpha;
+   v3d_blend_mul_t dst_alpha;
+} glxx_blend_cfg;
+
 struct GLXX_SERVER_STATE_T_
 {
    /* The EGL Context this state is associated with. */
@@ -376,18 +386,18 @@ struct GLXX_SERVER_STATE_T_
    glxx_compute_render_state* compute_render_state;
 
    struct {
-      v3d_blend_eqn_t color_eqn;
-      v3d_blend_eqn_t alpha_eqn;
-      v3d_blend_mul_t src_rgb;
-      v3d_blend_mul_t dst_rgb;
-      v3d_blend_mul_t src_alpha;
-      v3d_blend_mul_t dst_alpha;
-
+#if V3D_HAS_PER_RT_BLEND
+      uint32_t rt_enables; /* Bit i for RT i */
+      glxx_blend_cfg rt_cfgs[GLXX_MAX_RENDER_TARGETS];
+#else
       bool enable;
+      glxx_blend_cfg cfg;
+#endif
    } blend;
 
-
-   glxx_color_write_t color_write;
+   /* RT i red/green/blue/alpha enable at bit 4*i + 0/1/2/3 */
+   #define GLXX_SERVER_COLOR_WRITE_RED_BITS 0x11111111
+   uint32_t color_write;
 
    glxx_dirty_set_t dirty;
 
@@ -493,7 +503,7 @@ struct GLXX_SERVER_STATE_T_
       float internal_xscale;
       float internal_yscale;
       float internal_zscale;
-      float internal_wscale;
+      float internal_zoffset;
    } viewport;
 
    struct {
@@ -634,9 +644,16 @@ struct GLXX_SERVER_STATE_T_
 
    GLenum fill_mode;
 
-#if GL_BRCM_provoking_vertex
    GLenum provoking_vtx;
+
+#if GLXX_HAS_TNG
+   unsigned num_patch_vertices;
 #endif
+
+   struct {
+      float min[4];
+      float max[4];
+   } primitive_bounding_box;
 
    struct {
       unsigned draw_id;
@@ -655,8 +672,8 @@ extern uint32_t glxx_server_lock_time;
 
 #define IS_GL_11(state) (!!egl_context_gl_api(state->context, OPENGL_ES_11))
 
-static inline GLXX_SERVER_STATE_T *glxx_lock_server_state(uint32_t api,
-      bool changed)
+static inline GLXX_SERVER_STATE_T *glxx_lock_server_state_with_changed(
+   uint32_t api, bool changed)
 {
    GLXX_SERVER_STATE_T *state = NULL;
    bool locked = false;
@@ -692,6 +709,16 @@ end:
    return state;
 }
 
+static inline GLXX_SERVER_STATE_T *glxx_lock_server_state(uint32_t api)
+{
+   return glxx_lock_server_state_with_changed(api, /*changed=*/true);
+}
+
+static inline GLXX_SERVER_STATE_T *glxx_lock_server_state_unchanged(uint32_t api)
+{
+   return glxx_lock_server_state_with_changed(api, /*changed=*/false);
+}
+
 static inline void glxx_unlock_server_state(void)
 {
 #if WANT_PROFILING
@@ -702,36 +729,6 @@ static inline void glxx_unlock_server_state(void)
    profile_timer_add_mt(glxx_server_locked_timer, profile_get_tick_count() - lock_time);
 #endif
 }
-
-#define GLXX_LOCK_SERVER_STATE_UNCHANGED() glxx_lock_server_state(OPENGL_ES_ANY, false)
-#define GLXX_LOCK_SERVER_STATE()           glxx_lock_server_state(OPENGL_ES_ANY, true)
-#define GLXX_UNLOCK_SERVER_STATE()         glxx_unlock_server_state()
-
-#define GLXX_FORCE_UNLOCK_SERVER_STATE()   khrn_process_glxx_force_unlock()
-
-#define GLXX_LOCK_SERVER_STATE_API_UNCHANGED(api) glxx_lock_server_state(api, false)
-#define GLXX_LOCK_SERVER_STATE_API(api)    glxx_lock_server_state(api, true)
-#define GLXX_UNLOCK_SERVER_STATE_API(api)  glxx_unlock_server_state()
-
-#define GL11_LOCK_SERVER_STATE_UNCHANGED() glxx_lock_server_state(OPENGL_ES_11, false)
-#define GL11_LOCK_SERVER_STATE()           glxx_lock_server_state(OPENGL_ES_11, true)
-#define GL11_UNLOCK_SERVER_STATE()         glxx_unlock_server_state()
-
-#define GL20_LOCK_SERVER_STATE_UNCHANGED() glxx_lock_server_state(OPENGL_ES_30 | OPENGL_ES_31 | OPENGL_ES_32, false)
-#define GL20_LOCK_SERVER_STATE()           glxx_lock_server_state(OPENGL_ES_30 | OPENGL_ES_31 | OPENGL_ES_32, true)
-#define GL20_UNLOCK_SERVER_STATE()         glxx_unlock_server_state()
-
-#define GL30_LOCK_SERVER_STATE_UNCHANGED() glxx_lock_server_state(OPENGL_ES_30 | OPENGL_ES_31 | OPENGL_ES_32, false)
-#define GL30_LOCK_SERVER_STATE()           glxx_lock_server_state(OPENGL_ES_30 | OPENGL_ES_31 | OPENGL_ES_32, true)
-#define GL30_UNLOCK_SERVER_STATE()         glxx_unlock_server_state()
-
-#define GL31_LOCK_SERVER_STATE_UNCHANGED() glxx_lock_server_state(OPENGL_ES_31 | OPENGL_ES_32, false)
-#define GL31_LOCK_SERVER_STATE()           glxx_lock_server_state(OPENGL_ES_31 | OPENGL_ES_32, true)
-#define GL31_UNLOCK_SERVER_STATE()         glxx_unlock_server_state()
-
-#define GL32_LOCK_SERVER_STATE_UNCHANGED() glxx_lock_server_state(OPENGL_ES_32, false)
-#define GL32_LOCK_SERVER_STATE()           glxx_lock_server_state(OPENGL_ES_32, true)
-#define GL32_UNLOCK_SERVER_STATE()         glxx_unlock_server_state()
 
 #define GLXX_STATE_OFFSET(x) (offsetof(GLXX_SERVER_STATE_T, x)/4)
 
@@ -775,11 +772,11 @@ extern void glxx_server_state_set_error_ex(GLXX_SERVER_STATE_T *state, GLenum er
 
 static inline void glxx_set_error_api(uint32_t api, GLenum error)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE_API(api);
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(api);
    if (state != NULL)
    {
       glxx_server_state_set_error(state, error);
-      GLXX_UNLOCK_SERVER_STATE();
+      glxx_unlock_server_state();
    }
 }
 

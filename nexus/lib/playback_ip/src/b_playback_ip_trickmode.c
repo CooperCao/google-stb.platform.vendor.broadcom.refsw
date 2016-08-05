@@ -230,7 +230,7 @@ B_PlaybackIp_HttpGetCurrentPlaybackPosition(
             {
                 /* We use the last noted position */
                 *currentPosition = playback_ip->lastPosition;
-                BDBG_MSG_FLOW(("%s: mediaStartTimeNoted=%d mediaEndTimeNoted=%d state=%d", __FUNCTION__, playback_ip->mediaStartTimeNoted, playback_ip->mediaEndTimeNoted, playback_ip->playback_state));
+                BDBG_MSG(("%s: mediaStartTimeNoted=%d mediaEndTimeNoted=%d state=%d", __FUNCTION__, playback_ip->mediaStartTimeNoted, playback_ip->mediaEndTimeNoted, playback_ip->playback_state));
             }
             else
             {
@@ -289,7 +289,7 @@ B_PlaybackIp_HttpGetCurrentPlaybackPosition(
                 }
                 playback_ip->mediaStartTime = currentTime;
             }
-            BDBG_MSG_FLOW(("%s: #### currentPosition %u, num %d, denom %d", __FUNCTION__, *currentPosition, speedNumerator, speedDenominator));
+            BDBG_MSG_FLOW(("%s: #### currentPosition %lu, num %d, denom %d", __FUNCTION__, *currentPosition, speedNumerator, speedDenominator));
         }
 #ifdef B_HAS_HLS_PROTOCOL_SUPPORT
         else if (playback_ip->hlsSessionEnabled) {
@@ -1419,6 +1419,7 @@ trickModePlay_locked(
     }
     BDBG_MSG(("%s: Resuming to Play state, ip state %d", __FUNCTION__, playback_ip->playback_state));
     playback_ip->playApiActive = false;
+    playback_ip->trickmodeCalled = false;
     return rc;
 }
 
@@ -1673,6 +1674,7 @@ B_PlaybackIp_SeekHttp(
             playback_ip->reOpenSocket = true;
             BDBG_MSG(("%s: Completed Seek During Pause", __FUNCTION__));
         }
+        playback_ip->trickmodeCalled = false;
         rc = B_ERROR_SUCCESS;
     }
 error:
@@ -1929,9 +1931,6 @@ B_PlaybackIp_Seek(
     /* Note: we dont un-lock for non-blocking cases as the lock is held until non-blocking API completes. */
     /* Lock is then released in the trickModeThread() after it completes the non-blocking API. */
 out:
-    if (rc == B_ERROR_SUCCESS) {
-        B_PlaybackIp_ResetPsiState(playback_ip->pPsiState);
-    }
     BDBG_MSG(("%s: returning rc =%d", __FUNCTION__, rc));
     return rc;
 
@@ -2091,6 +2090,7 @@ B_PlaybackIp_TrickModeHttp(
         }
     }
     playback_ip->frameRewindCalled = false;
+    playback_ip->trickmodeCalled = true;
     return B_ERROR_SUCCESS;
 error:
     return rc;
@@ -2339,9 +2339,6 @@ B_PlaybackIpError B_PlaybackIp_TrickMode(
     /* Note: we dont un-lock for non-blocking cases as the lock is held until non-blocking API completes. */
     /* Lock is then released in the trickModeThread() after it completes the non-blocking API. */
 out:
-    if (rc == B_ERROR_SUCCESS) {
-        B_PlaybackIp_ResetPsiState(playback_ip->pPsiState);
-    }
     BDBG_MSG(("%s: returning rc =%d", __FUNCTION__, rc));
     return rc;
 
@@ -2413,8 +2410,8 @@ B_PlaybackIpError trickModeFrameAdvance_locked(
     }
 
     /* Check if we should flush the current playpump & decoder buffers. */
-    if (!forward || playback_ip->frameRewindCalled) {
-        /* For going back a frame or doing a frame advance from the previous frame reverse, */
+    if (!forward || playback_ip->frameRewindCalled || playback_ip->trickmodeCalled) {
+        /* For going back a frame, doing a frame advance from the previous frame reverse, or when previous operation was a fwd trickmode (which may cause i-frames to buffer up), */
         /* we need to flush the AV decoders & Nexus playpump buffers so that we cleanly play a frame from the current position. */
         if (B_PlaybackIp_UtilsFlushAvPipeline(playback_ip)) {
             BDBG_ERR(("%s: ERROR: Failed to flush the AV pipeline\n", __FUNCTION__));
@@ -2505,6 +2502,13 @@ B_PlaybackIpError trickModeFrameAdvance_locked(
         playback_ip->frameRewindCalled = true;
     }
     else {
+        /* In forward case, we manually adjust the lastPosition if using the wallClock method. */
+        if (playback_ip->startSettings.mediaPositionUsingWallClockTime) {
+            int frameRateNum;
+
+            frameRateNum = mapNexusFrameRateEnumToNum(playback_ip->frameRate);
+            playback_ip->lastPosition += (1000/frameRateNum);
+        }
         playback_ip->frameRewindCalled = false;
     }
     rc = B_ERROR_SUCCESS;
@@ -2516,6 +2520,7 @@ error:
     }
     playback_ip->playback_state = currentState;
     playback_ip->frameAdvanceApiActive = false;
+    playback_ip->trickmodeCalled = false;
     return rc;
 }
 
@@ -2596,9 +2601,6 @@ B_PlaybackIpError B_PlaybackIp_FrameAdvance(
     /* Note: we dont un-lock for non-blocking cases as the lock is held until non-blocking API completes. */
     /* Lock is then released in the trickModeThread() after it completes the non-blocking API. */
 out:
-    if (rc == B_ERROR_SUCCESS) {
-        B_PlaybackIp_ResetPsiState(playback_ip->pPsiState);
-    }
     BDBG_MSG(("%s: returning rc =%d", __FUNCTION__, rc));
     return rc;
 

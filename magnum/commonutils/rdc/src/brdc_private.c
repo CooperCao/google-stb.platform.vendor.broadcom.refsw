@@ -72,7 +72,7 @@ BERR_Code BRDC_P_SoftReset
     BERR_Code err = BERR_SUCCESS;
     uint32_t  ulReg;
     int       i;
-    uint32_t  ulRegAddr;
+    uint32_t  ulRegOffset;
     uint32_t  ulRegConfig;
     uint32_t ulTrigSelect;
 
@@ -119,21 +119,26 @@ BERR_Code BRDC_P_SoftReset
     ulTrigSelect = hRdc->aTrigInfo[BRDC_Trigger_UNKNOWN].ulTrigVal;
 
     /* setup known values for descriptors */
-    ulRegAddr = BCHP_FIELD_DATA(RDC_desc_0_addr, addr, 0x0);
+    ulRegOffset = BCHP_RDC_desc_1_addr - BCHP_RDC_desc_0_addr;
     ulRegConfig =
-        BCHP_FIELD_DATA(RDC_desc_0_config, count,           0x0          ) |
+#if BCHP_RDC_desc_0_config_count
+        BCHP_FIELD_DATA(RDC_desc_0_config, count,           0            ) |
+#endif
         BCHP_FIELD_DATA(RDC_desc_0_config, trigger_select,  ulTrigSelect ) |
         BCHP_FIELD_DATA(RDC_desc_0_config, repeat,          0            ) |
-        BCHP_FIELD_DATA(RDC_desc_0_config, enable,          0            ) |
+        BCHP_FIELD_DATA(RDC_desc_0_config, enable,          0            )
 #if (BRDC_P_SUPPORT_HIGH_PRIORITY_SLOT)
-        BCHP_FIELD_DATA(RDC_desc_0_config, high_priority,   0            ) |
+      | BCHP_FIELD_DATA(RDC_desc_0_config, high_priority,   0            )
 #endif
 #if (BRDC_P_SUPPORT_SEGMENTED_RUL) /* no side effect if RUL is traditional; */
-        BCHP_FIELD_ENUM(RDC_desc_0_config, segmented,       SEGMENTED    ) |
+      | BCHP_FIELD_ENUM(RDC_desc_0_config, segmented,       SEGMENTED    )
 #endif
-        BCHP_FIELD_DATA(RDC_desc_0_config, done,            1            ) |
+#if BCHP_RDC_desc_0_config_done_MASK
+      | BCHP_FIELD_DATA(RDC_desc_0_config, done,            1            ) |
         BCHP_FIELD_DATA(RDC_desc_0_config, error,           1            ) |
-        BCHP_FIELD_DATA(RDC_desc_0_config, dropped_trigger, 1            );
+        BCHP_FIELD_DATA(RDC_desc_0_config, dropped_trigger, 1            )
+#endif
+        ;
 
     /* set all descriptors */
     for (i=0; i<32; ++i)
@@ -141,8 +146,8 @@ BERR_Code BRDC_P_SoftReset
         BKNI_EnterCriticalSection();
 
         /* write address and config */
-        BRDC_P_Write32(hRdc, BCHP_RDC_desc_0_addr + 16 * i,   ulRegAddr);
-        BRDC_P_Write32(hRdc, BCHP_RDC_desc_0_config + 16 * i, ulRegConfig);
+        BRDC_P_Write32(hRdc, BCHP_RDC_desc_0_addr + ulRegOffset * i, 0);
+        BRDC_P_Write32(hRdc, BCHP_RDC_desc_0_config + ulRegOffset * i, ulRegConfig);
 
         BKNI_LeaveCriticalSection();
     }
@@ -257,22 +262,33 @@ BERR_Code BRDC_Slot_P_Write_Registers_isr
         ulRegVal &= ~(
             BCHP_MASK(RDC_desc_0_config, enable         ) |
             BCHP_MASK(RDC_desc_0_config, repeat         ) |
-            BCHP_MASK(RDC_desc_0_config, trigger_select ) |
+            BCHP_MASK(RDC_desc_0_config, trigger_select )
 #if (BRDC_P_SUPPORT_HIGH_PRIORITY_SLOT)
-            BCHP_MASK(RDC_desc_0_config, high_priority  ) |
+            | BCHP_MASK(RDC_desc_0_config, high_priority  )
 #endif
-            BCHP_MASK(RDC_desc_0_config, count          ));
+#if BCHP_RDC_desc_0_config_count_MASK
+            | BCHP_MASK(RDC_desc_0_config, count          )
+#endif
+            );
 
         ulRegVal |= (
             BCHP_FIELD_DATA(RDC_desc_0_config, enable,         1                          ) |
             BCHP_FIELD_DATA(RDC_desc_0_config, repeat,         bRecurring                 ) |
-            BCHP_FIELD_DATA(RDC_desc_0_config, trigger_select, ulTrigSelect               ) |
+            BCHP_FIELD_DATA(RDC_desc_0_config, trigger_select, ulTrigSelect               )
 #if (BRDC_P_SUPPORT_HIGH_PRIORITY_SLOT)
-            BCHP_FIELD_DATA(RDC_desc_0_config, high_priority,  hSlot->stSlotSetting.bHighPriority) |
+            | BCHP_FIELD_DATA(RDC_desc_0_config, high_priority, hSlot->stSlotSetting.bHighPriority)
 #endif
-            BCHP_FIELD_DATA(RDC_desc_0_config, count,          hSlot->hList->ulEntries -1));
+#if BCHP_RDC_desc_0_config_count_MASK
+            | BCHP_FIELD_DATA(RDC_desc_0_config, count,      hSlot->hList->ulEntries -1)
+#endif
+            );
 
         BRDC_Slot_P_Write32(hSlot, BCHP_RDC_desc_0_config + hSlot->ulRegOffset, ulRegVal);
+
+#if BCHP_RDC_desc_0_count
+        ulRegVal = BCHP_FIELD_DATA(RDC_desc_0_count, count,  hSlot->hList->ulEntries -1);
+        BRDC_Slot_P_Write32(hSlot, BCHP_RDC_desc_0_count + hSlot->ulRegOffset, ulRegVal);
+#endif
     }
     else
     {
@@ -296,20 +312,32 @@ BERR_Code BRDC_Slot_P_Write_Registers_isr
 
         /* enable descriptor and update count */
         ulRegVal &= ~(
-            BCHP_MASK(RDC_desc_0_config, enable ) |
+            BCHP_MASK(RDC_desc_0_config, enable )
 #if (BRDC_P_SUPPORT_HIGH_PRIORITY_SLOT)
-            BCHP_MASK(RDC_desc_0_config, high_priority  ) |
+            | BCHP_MASK(RDC_desc_0_config, high_priority  )
 #endif
-            BCHP_MASK(RDC_desc_0_config, count  ));
+#if BCHP_RDC_desc_0_config_count_MASK
+            | BCHP_MASK(RDC_desc_0_config, count          )
+#endif
+            );
 
         ulRegVal |= (
-            BCHP_FIELD_DATA(RDC_desc_0_config, enable, 1                          ) |
+            BCHP_FIELD_DATA(RDC_desc_0_config, enable, 1                          )
 #if (BRDC_P_SUPPORT_HIGH_PRIORITY_SLOT)
-            BCHP_FIELD_DATA(RDC_desc_0_config, high_priority,  hSlot->stSlotSetting.bHighPriority) |
+            | BCHP_FIELD_DATA(RDC_desc_0_config, high_priority,  hSlot->stSlotSetting.bHighPriority)
 #endif
-            BCHP_FIELD_DATA(RDC_desc_0_config, count,  hSlot->hList->ulEntries - 1));
+#if BCHP_RDC_desc_0_config_count_MASK
+            | BCHP_FIELD_DATA(RDC_desc_0_config, count,          hSlot->hList->ulEntries -1)
+#endif
+            );
 
         BRDC_Slot_P_Write32(hSlot, BCHP_RDC_desc_0_config + hSlot->ulRegOffset, ulRegVal);
+
+
+#if BCHP_RDC_desc_0_count
+        ulRegVal = BCHP_FIELD_DATA(RDC_desc_0_count, count,   hSlot->hList->ulEntries -1);
+        BRDC_Slot_P_Write32(hSlot, BCHP_RDC_desc_0_count + hSlot->ulRegOffset, ulRegVal);
+#endif
 
         /* Set RDC_desc_x_immediate */
         ulRegVal = BCHP_FIELD_DATA(RDC_desc_0_immediate, trigger, 1 );
@@ -343,6 +371,7 @@ BERR_Code BRDC_P_AcquireSemaphore_isr
     BRDC_SlotId      eSlotId
 )
 {
+#if BCHP_RDC_desc_0_lock
     int      iDMABusy = 0;
     bool     bDMABusy;
     uint32_t ulRegVal, ulRegOffset;
@@ -383,6 +412,11 @@ BERR_Code BRDC_P_AcquireSemaphore_isr
         bDMABusy = (BCHP_GET_FIELD_DATA(ulRegVal, RDC_desc_0_lock, semaphore) != 0);
 
     }
+#else /* TODO: add new RDC support */
+    BSTD_UNUSED(hRdc);
+    BSTD_UNUSED(hList);
+    BSTD_UNUSED(eSlotId);
+#endif
 
     /* semaphore acquired */
     return BERR_SUCCESS;
@@ -410,6 +444,7 @@ void BRDC_P_ReleaseSemaphore_isr
     BRDC_SlotId      eSlotId
 )
 {
+#if BCHP_RDC_desc_0_lock
     uint32_t ulRegVal;
     uint32_t ulRegOffset;
 
@@ -421,6 +456,159 @@ void BRDC_P_ReleaseSemaphore_isr
     /* Release semaphore. Write 1 to clear. */
     ulRegVal = BCHP_MASK(RDC_desc_0_lock, semaphore);
     BRDC_P_Write32(hRdc, BCHP_RDC_desc_0_lock + ulRegOffset, ulRegVal);
+#else /* TODO: add new RDC support */
+    BSTD_UNUSED(hRdc);
+    BSTD_UNUSED(hList);
+    BSTD_UNUSED(eSlotId);
+#endif
+}
+
+/***************************************************************************
+Summary:
+    Acquire a synchronizer from pool
+
+Description:
+
+Input:
+    hRdc - The instance handle to acquire synchronizer from.
+
+Output:
+    pulId - The synchronizer ID. Note (uint32_t)(-1) will be returned if no free synchronizer is available.
+
+Returns:
+
+See Also:
+    BRDC_P_ReleaseSync
+    BRDC_P_ArmSync_isr
+****************************************************************************/
+BERR_Code BRDC_P_AcquireSync
+    ( BRDC_Handle                      hRdc,
+      uint32_t                        *pulId )
+{
+#ifdef BCHP_RDC_sync_0_arm
+    uint32_t i;
+    uint32_t ulReg;
+    uint32_t ulAddr;
+    BERR_Code rc = BERR_SUCCESS;
+    BDBG_ENTER(BRDC_P_AcquireSync);
+
+    BDBG_ASSERT(hRdc);
+    BDBG_ASSERT(pulId);
+
+    for(i = 0; i < BRDC_P_MAX_SYNC; i++)
+    {
+        if(!hRdc->abSyncUsed[i])
+        {
+            break;
+        }
+    }
+
+    if(i < BRDC_P_MAX_SYNC) {
+        ulAddr = BCHP_RDC_sync_0_arm + sizeof(uint32_t) * i;
+        ulReg = BCHP_FIELD_ENUM(RDC_sync_0_arm, arm, DISARMED);
+        BRDC_P_Write32(hRdc, ulAddr, ulReg);
+        BDBG_MSG(("RDC_sync_%u is acquired", i));
+        hRdc->abSyncUsed[i] = true;
+        *pulId = i;
+    } else {
+        *pulId = (uint32_t)(-1);
+        BDBG_ERR(("RDC used all %u out of %u synchronizers!", BRDC_P_MAX_SYNC, BRDC_P_MAX_SYNC));
+        BDBG_ASSERT(0);/* what can we do? */
+        rc = BERR_INVALID_PARAMETER;
+    }
+
+    BDBG_LEAVE(BRDC_P_AcquireSync);
+    return rc;
+#else
+    BSTD_UNUSED(hRdc);
+    BDBG_ASSERT(pulId);
+    *pulId = 0;
+    return BERR_SUCCESS;
+#endif
+}
+
+/***************************************************************************
+Summary:
+    Release sync to pool
+
+Description:
+
+Input:
+    hRdc - The instance pool to release sync to.
+    ulId  - sync id.
+
+Output:
+
+Returns:
+
+****************************************************************************/
+BERR_Code BRDC_P_ReleaseSync
+    ( BRDC_Handle                      hRdc,
+      uint32_t                         ulId )
+{
+#ifdef BCHP_RDC_sync_0_arm
+    BDBG_ENTER(BRDC_P_ReleaseSync);
+
+    BDBG_ASSERT(hRdc);
+    if(ulId >= BRDC_P_MAX_SYNC) {
+        return BERR_TRACE(BERR_INVALID_PARAMETER);
+    }
+    /* disarm the sync */
+    BRDC_P_ArmSync_isr(hRdc, ulId, false);
+    hRdc->abSyncUsed[ulId] = false;
+    BDBG_LEAVE(BRDC_P_ReleaseSync);
+#else
+    BSTD_UNUSED(hRdc);
+    BSTD_UNUSED(ulId);
+#endif
+    return BERR_SUCCESS;
+}
+
+/***************************************************************************
+Summary:
+    Arm/disarm the specific synchronizer
+
+Description:
+
+Input:
+    hRdc - The instance handle.
+    ulSyncId - sync id returned by BRDC_AcquireSync_isr.
+    bArm - To arm or disarm the synchronizer.
+
+Output:
+
+Returns:
+
+See Also:
+    BRDC_P_AcquireSync
+****************************************************************************/
+BERR_Code BRDC_P_ArmSync_isr
+    ( BRDC_Handle                      hRdc,
+      uint32_t                         ulSyncId,
+      bool                             bArm )
+{
+#ifdef BCHP_RDC_sync_0_arm
+    uint32_t ulReg;
+    uint32_t ulAddr;
+    BDBG_ENTER(BRDC_P_ArmSync_isr);
+
+    BDBG_ASSERT(hRdc);
+    if(ulSyncId >= BRDC_P_MAX_SYNC) {
+        return BERR_TRACE(BERR_INVALID_PARAMETER);
+    }
+
+    ulAddr = BCHP_RDC_sync_0_arm + sizeof(uint32_t) * ulSyncId;
+    ulReg = BCHP_FIELD_DATA(RDC_sync_0_arm, arm, bArm);
+    BRDC_P_Write32(hRdc, ulAddr, ulReg);
+    BDBG_MSG(("RDC_sync_%u is %s", ulSyncId, bArm? "armed" : "disarmed"));
+
+    BDBG_LEAVE(BRDC_P_ArmSync_isr);
+#else
+    BSTD_UNUSED(hRdc);
+    BSTD_UNUSED(ulSyncId);
+    BSTD_UNUSED(bArm);
+#endif
+    return BERR_SUCCESS;
 }
 
 void BRDC_P_DumpSlot_isr
@@ -436,43 +624,66 @@ void BRDC_P_DumpSlot_isr
     BSTD_UNUSED(hList);
 
     /* determine offset of registers for this slot */
-    ulRegOffset = 16 * (eSlotId - BRDC_SlotId_eSlot0);
+    ulRegOffset = (BCHP_RDC_desc_1_addr - BCHP_RDC_desc_0_addr) * (eSlotId - BRDC_SlotId_eSlot0);
 
     /* header */
-    BDBG_MSG(("-------------------------------\n"));
+    BDBG_MSG(("-------------------------------"));
 
     /* read and display address register */
     ulRegVal = BRDC_P_Read32(hRdc, BCHP_RDC_desc_0_addr + ulRegOffset);
-    BDBG_MSG(("RDC_desc_%d_addr\n"
-        "\taddr: 0x%08x\n",
-        eSlotId,
-        BCHP_GET_FIELD_DATA(ulRegVal, RDC_desc_0_addr, addr)));
+    BDBG_MSG(("RDC_desc_%d_addr", eSlotId));
+    BDBG_MSG(("    addr: 0x%08x", ulRegVal));
 
     /* read and display config register */
     ulRegVal = BRDC_P_Read32(hRdc, BCHP_RDC_desc_0_config + ulRegOffset);
-    BDBG_MSG(("RDC_desc_%d_config\n"
-        "\tcount:           %d\n"
-        "\ttrigger_select:  %d\n"
-        "\trepeat:          %d\n"
-        "\tenable:          %d\n"
-        "\tdone:            %d\n"
-        "\tbusy:            %d\n"
-        "\terror:           %d\n"
-        "\tdropped_trigger: %d\n"
-        "\tlock_rd:         %d\n",
-        eSlotId,
-        BCHP_GET_FIELD_DATA(ulRegVal, RDC_desc_0_config, count),
-        BCHP_GET_FIELD_DATA(ulRegVal, RDC_desc_0_config, trigger_select),
-        BCHP_GET_FIELD_DATA(ulRegVal, RDC_desc_0_config, repeat),
-        BCHP_GET_FIELD_DATA(ulRegVal, RDC_desc_0_config, enable),
-        BCHP_GET_FIELD_DATA(ulRegVal, RDC_desc_0_config, done),
-        BCHP_GET_FIELD_DATA(ulRegVal, RDC_desc_0_config, busy),
-        BCHP_GET_FIELD_DATA(ulRegVal, RDC_desc_0_config, error),
-        BCHP_GET_FIELD_DATA(ulRegVal, RDC_desc_0_config, dropped_trigger),
+    BDBG_MSG(("RDC_desc_%d_config", eSlotId));
+    BDBG_MSG(("    trigger_select:  %d",
+        BCHP_GET_FIELD_DATA(ulRegVal, RDC_desc_0_config, trigger_select)));
+    BDBG_MSG(("    repeat:          %d",
+        BCHP_GET_FIELD_DATA(ulRegVal, RDC_desc_0_config, repeat)));
+    BDBG_MSG(("    enable:          %d",
+        BCHP_GET_FIELD_DATA(ulRegVal, RDC_desc_0_config, enable)));
+#if BCHP_RDC_desc_0_config_high_priority_MASK
+    BDBG_MSG(("    hi_priority      %d",
+        BCHP_GET_FIELD_DATA(ulRegVal, RDC_desc_0_config, high_priority)));
+#endif
+#if BCHP_RDC_desc_0_config_segmented_MASK
+    BDBG_MSG(("    segemented:      %d",
+        BCHP_GET_FIELD_DATA(ulRegVal, RDC_desc_0_config, segmented)));
+#endif
+#if BCHP_RDC_desc_0_config_done_MASK
+    BDBG_MSG(("    count:           %d",
+        BCHP_GET_FIELD_DATA(ulRegVal, RDC_desc_0_config, count)));
+    BDBG_MSG(("    done:            %d",
+        BCHP_GET_FIELD_DATA(ulRegVal, RDC_desc_0_config, done)));
+    BDBG_MSG(("    busy:            %d",
+        BCHP_GET_FIELD_DATA(ulRegVal, RDC_desc_0_config, busy)));
+    BDBG_MSG(("    error:           %d",
+        BCHP_GET_FIELD_DATA(ulRegVal, RDC_desc_0_config, error)));
+    BDBG_MSG(("    dropped_trigger: %d",
+        BCHP_GET_FIELD_DATA(ulRegVal, RDC_desc_0_config, dropped_trigger)));
+    BDBG_MSG(("    lock_rd:         %d",
         BCHP_GET_FIELD_DATA(ulRegVal, RDC_desc_0_config, lock_rd)));
+#else
+    BDBG_MSG(("    sync_sel:         %d",
+        BCHP_GET_FIELD_DATA(ulRegVal, RDC_desc_0_config, sync_sel)));
+    BDBG_MSG(("    count:            %d", eSlotId,
+        BRDC_P_Read32(hRdc, BCHP_RDC_desc_0_count + ulRegOffset)));
+    BDBG_MSG(("    count_direct:     %d", eSlotId,
+        BRDC_P_Read32(hRdc, BCHP_RDC_desc_0_count_direct + ulRegOffset)));
+
+    ulRegVal = BRDC_P_Read32(hRdc, BCHP_RDC_desc_0_status + ulRegOffset);
+    BDBG_MSG(("BRDC_desc_%d_status", eSlotId));
+    BDBG_MSG(("    done:            %d",
+        BCHP_GET_FIELD_DATA(ulRegVal, RDC_desc_0_status, done)));
+    BDBG_MSG(("    busy:            %d",
+        BCHP_GET_FIELD_DATA(ulRegVal, RDC_desc_0_status, busy)));
+    BDBG_MSG(("    bank:            %d",
+        BCHP_GET_FIELD_DATA(ulRegVal, RDC_desc_0_status, bank)));
+#endif
 
     /* contents of RUL */
-    BDBG_MSG(("See RUL dump for RUL contents. \n"));
+    BDBG_MSG(("See RUL dump for RUL contents."));
     BSTD_UNUSED(ulRegVal);
 }
 

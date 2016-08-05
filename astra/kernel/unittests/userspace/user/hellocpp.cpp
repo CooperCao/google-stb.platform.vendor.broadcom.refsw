@@ -36,19 +36,27 @@
  * ANY LIMITED REMEDY.
  ***************************************************************************/
 
-extern "C" void uart_puts(const char *str) ;
+#include <stdlib.h>
+#include <stdio.h>
+#include <iostream>
 
-class TestClass {
+using namespace std;
+
+class HelloClass {
 public:
-    TestClass() {
+    HelloClass() {
         a = 1;
-        b = 'h';
+        b = 'H';
 
-        // uart_puts("hello from global object constructor\r\n");
+        printf( "Hello world! (from global object constructor, %c%d)", b, a);
+        cout << endl
+             << "Hello world! (to cout from global object constructor, "
+             << b << a
+             << ")"
+             << endl;
     }
 
-    ~TestClass() {
-
+    ~HelloClass() {
     }
 
 private:
@@ -56,4 +64,4 @@ private:
     char b;
 };
 
-TestClass globalTestClass;
+HelloClass g_hello;

@@ -68,6 +68,7 @@ typedef struct NEXUS_SimpleStcChannelDecoderStatus
     int stcIndex; /* server preferred stc index */
     NEXUS_SimpleStcChannelEncoderStatus encoder;
     bool hdDviInput;
+    bool mainWindow;
 } NEXUS_SimpleStcChannelDecoderStatus;
 
 void NEXUS_SimpleVideoDecoder_GetStcStatus_priv(NEXUS_SimpleVideoDecoderHandle handle, NEXUS_SimpleStcChannelDecoderStatus * pStatus);
@@ -85,8 +86,8 @@ void NEXUS_SimpleStcChannel_RemoveAstmAudio_priv(NEXUS_SimpleStcChannelHandle ha
 
 #if NEXUS_HAS_SYNC_CHANNEL
 NEXUS_Error NEXUS_SimpleStcChannel_SetSyncVideo_priv(NEXUS_SimpleStcChannelHandle handle, NEXUS_VideoInput videoInput);
-NEXUS_Error NEXUS_SimpleStcChannel_AddSyncAudio_priv(NEXUS_SimpleStcChannelHandle handle, NEXUS_AudioInput audioInput);
-void NEXUS_SimpleStcChannel_RemoveSyncAudio_priv(NEXUS_SimpleStcChannelHandle handle, NEXUS_AudioInput audioInput);
+NEXUS_Error NEXUS_SimpleStcChannel_AddSyncAudio_priv(NEXUS_SimpleStcChannelHandle handle, NEXUS_AudioInputHandle audioInput);
+void NEXUS_SimpleStcChannel_RemoveSyncAudio_priv(NEXUS_SimpleStcChannelHandle handle, NEXUS_AudioInputHandle audioInput);
 #endif
 
 /* simple_video_decoder_impl */

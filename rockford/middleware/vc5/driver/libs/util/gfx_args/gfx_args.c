@@ -94,6 +94,14 @@ static uint32_t parse_uint32(struct gfx_args *a, const char *s)
    return u;
 }
 
+static uint64_t parse_uint64(struct gfx_args *a, const char *s)
+{
+   uint64_t u = 0;
+   if (!gfx_try_strtou64(&u, s, 0))
+      gfx_args_fail(a, "Couldn't parse '%s' as a uint64!", s);
+   return u;
+}
+
 float gfx_args_pop_float(struct gfx_args *a)
 {
    return parse_float(a, gfx_args_pop(a));
@@ -102,6 +110,11 @@ float gfx_args_pop_float(struct gfx_args *a)
 uint32_t gfx_args_pop_uint32(struct gfx_args *a)
 {
    return parse_uint32(a, gfx_args_pop(a));
+}
+
+uint64_t gfx_args_pop_uint64(struct gfx_args *a)
+{
+   return parse_uint64(a, gfx_args_pop(a));
 }
 
 v3d_addr_t gfx_args_pop_addr(struct gfx_args *a)

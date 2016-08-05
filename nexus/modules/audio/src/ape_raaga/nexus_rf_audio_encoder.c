@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2013 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *  
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,17 +35,9 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF 
 *  ANY LIMITED REMEDY.
 * 
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * API Description:
 *   API name: RfAudioEncoder
 *    Specific APIs related to RF Audio Encoding
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 
@@ -62,7 +54,7 @@ typedef struct NEXUS_RfAudioEncoder
     NEXUS_OBJECT(NEXUS_RfAudioEncoder);
     BAPE_RfEncoderHandle encoder;
     NEXUS_AudioInputObject connector;
-    NEXUS_AudioInput input;
+    NEXUS_AudioInputHandle input;
     char name[11];   /* RF ENCODER */
 } NEXUS_RfAudioEncoder;
 
@@ -116,6 +108,7 @@ NEXUS_RfAudioEncoderHandle NEXUS_RfAudioEncoder_Open( /* attr{destructor=NEXUS_R
 
     BKNI_Snprintf(handle->name, sizeof(handle->name), "RF ENCODER");
     NEXUS_AUDIO_INPUT_INIT(&handle->connector, NEXUS_AudioInputType_eRfEncoder, handle);
+    NEXUS_OBJECT_REGISTER(NEXUS_AudioInput, &handle->connector, Open);
     handle->connector.pName = handle->name;
     handle->connector.format = NEXUS_AudioInputFormat_eCompressed;
     BAPE_RfEncoder_GetConnector(handle->encoder, &path);
@@ -153,7 +146,13 @@ static void NEXUS_RfAudioEncoder_P_Finalizer(
     BKNI_Free(handle);
 }
 
-NEXUS_OBJECT_CLASS_MAKE(NEXUS_RfAudioEncoder, NEXUS_RfAudioEncoder_Close);
+static void NEXUS_RfAudioEncoder_P_Release(NEXUS_RfAudioEncoderHandle handle)
+{
+    NEXUS_OBJECT_UNREGISTER(NEXUS_AudioInput, &handle->connector, Close);
+    return;
+}
+
+NEXUS_OBJECT_CLASS_MAKE_WITH_RELEASE(NEXUS_RfAudioEncoder, NEXUS_RfAudioEncoder_Close);
 
 void NEXUS_RfAudioEncoder_GetSettings(
     NEXUS_RfAudioEncoderHandle handle,
@@ -273,7 +272,7 @@ NEXUS_Error NEXUS_RfAudioEncoder_SetEncodingSettings(
     return BERR_SUCCESS;
 }
 
-NEXUS_AudioInput NEXUS_RfAudioEncoder_GetConnector( /* attr{shutdown=NEXUS_AudioInput_Shutdown} */
+NEXUS_AudioInputHandle NEXUS_RfAudioEncoder_GetConnector( /* attr{shutdown=NEXUS_AudioInput_Shutdown} */
     NEXUS_RfAudioEncoderHandle handle
     )
 {
@@ -283,7 +282,7 @@ NEXUS_AudioInput NEXUS_RfAudioEncoder_GetConnector( /* attr{shutdown=NEXUS_Audio
 
 NEXUS_Error NEXUS_RfAudioEncoder_AddInput(
     NEXUS_RfAudioEncoderHandle handle,
-    NEXUS_AudioInput input
+    NEXUS_AudioInputHandle input
     )
 {
     BERR_Code errCode;
@@ -311,7 +310,7 @@ NEXUS_Error NEXUS_RfAudioEncoder_AddInput(
 
 NEXUS_Error NEXUS_RfAudioEncoder_RemoveInput(
     NEXUS_RfAudioEncoderHandle handle,
-    NEXUS_AudioInput input
+    NEXUS_AudioInputHandle input
     )
 {
     BDBG_OBJECT_ASSERT(handle, NEXUS_RfAudioEncoder);

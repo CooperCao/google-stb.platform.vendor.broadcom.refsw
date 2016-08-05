@@ -113,4 +113,3 @@ BMRC_ALLOW_XPT_TO_ACCESS_KERNEL ?= y
 ##################
 NEXUS_SAGE_MAGNUM_MODULES :=  \
     $(MAGNUM)/syslib/sagelib/bsagelib.inc
-

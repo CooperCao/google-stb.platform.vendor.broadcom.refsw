@@ -51,7 +51,7 @@ const BDSP_VOM_Algo_Start_Addr BDSP_sAlgoStartAddr =
 		0x30011800,
 
 		/* BDSP_AF_P_AlgoId_eAc3Decode */
-		0x30047810,
+		0x30047814,
 
 		/* BDSP_AF_P_AlgoId_eAacDecode */
 		0x00000000,
@@ -60,7 +60,7 @@ const BDSP_VOM_Algo_Start_Addr BDSP_sAlgoStartAddr =
 		0x100c2000,
 
 		/* BDSP_AF_P_AlgoId_eDdpDecode */
-		0x30087828,
+		0x3008782c,
 
 		/* BDSP_AF_P_AlgoId_eDdLosslessDecode */
 		0x00000000,
@@ -84,7 +84,7 @@ const BDSP_VOM_Algo_Start_Addr BDSP_sAlgoStartAddr =
 		0x10101860,
 
 		/* BDSP_AF_P_AlgoId_eWmaProStdDecode */
-		0x3016b000,
+		0x3016b16c,
 
 		/* BDSP_AF_P_AlgoId_eMlpDecode */
 		0x10459000,
@@ -159,10 +159,10 @@ const BDSP_VOM_Algo_Start_Addr BDSP_sAlgoStartAddr =
 		0x306a9bb4,
 
 		/* BDSP_AF_P_AlgoId_eALSDecode */
-		0x306cbc18,
+		0x306cbc28,
 
 		/* BDSP_AF_P_AlgoId_eAC4Decode */
-		0x306d0800,
+		0x306d3648,
 
 		/* BDSP_AF_P_AlgoId_eEndOfAudioDecodeAlgos */
 		0x00000000,
@@ -405,7 +405,7 @@ const BDSP_VOM_Algo_Start_Addr BDSP_sAlgoStartAddr =
 		0x00000000,
 
 		/* BDSP_AF_P_AlgoId_ePassThru */
-		0x300f55b0,
+		0x300f5bfc,
 
 		/* BDSP_AF_P_AlgoId_eMlpPassThru */
 		0x30471000,
@@ -561,7 +561,7 @@ const BDSP_VOM_Algo_Start_Addr BDSP_sAlgoStartAddr =
 		0x304fe000,
 
 		/* BDSP_AF_P_AlgoId_eScm3 */
-		0x20002a30,
+		0x20002924,
 
 		/* BDSP_AF_P_AlgoId_eEndOfScmAlgos */
 		0x00000000,

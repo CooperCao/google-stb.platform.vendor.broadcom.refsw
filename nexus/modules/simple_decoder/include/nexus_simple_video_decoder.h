@@ -205,7 +205,7 @@ Request captured surfaces and their status structs
 NEXUS_Error NEXUS_SimpleVideoDecoder_GetCapturedSurfaces(
     NEXUS_SimpleVideoDecoderHandle handle,
     NEXUS_SurfaceHandle *pSurface, /* attr{nelem=numEntries;nelem_out=pNumReturned} array of surfaces */
-    NEXUS_SimpleVideoDecoderCaptureStatus *pStatus, /* attr{nelem=numEntries;nelem_out=pNumReturned;null_allowed=y} array of status structs corresponding to surfaces */
+    NEXUS_VideoDecoderFrameStatus *pStatus, /* attr{nelem=numEntries;nelem_out=pNumReturned;null_allowed=y} array of status structs corresponding to surfaces */
     unsigned numEntries,   /* applies to both pSurface and pStatus arrays */
     unsigned *pNumReturned /* applies to both pSurface and pStatus arrays */
     );
@@ -494,6 +494,8 @@ PQ settings that apply per window, not per display
 typedef struct NEXUS_SimpleVideoDecoderPictureQualitySettings
 {
     NEXUS_PictureCtrlCommonSettings common;
+    NEXUS_PictureCtrlAdvColorSettings advColor;
+    NEXUS_PictureCtrlContrastStretch constrastStretch;
     NEXUS_VideoWindowDnrSettings dnr;
     NEXUS_VideoWindowAnrSettings anr;
     NEXUS_VideoWindowMadSettings mad;

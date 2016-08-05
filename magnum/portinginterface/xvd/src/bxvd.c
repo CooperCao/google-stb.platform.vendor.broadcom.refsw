@@ -60,6 +60,12 @@
 #include "bxvd_decoder.h"
 #include "bbox_xvd.h"
 
+#if BXVD_P_ENABLE_DRAM_PREF_INFO
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#endif
+
 #ifdef BCHP_PWR_SUPPORT
 #include "bchp_pwr.h"
 #endif
@@ -292,6 +298,11 @@ static const char * const sChannelNameLUT[BXVD_MAX_INSTANCE_COUNT][BXVD_MAX_VIDE
    },
 #endif
 };
+#endif
+
+#if BXVD_P_ENABLE_DRAM_PREF_INFO
+/* Global performnce debug info */
+int giPerfMemc, giPerfMemcClient;
 #endif
 
 /***************************************************************************
@@ -1205,7 +1216,7 @@ BERR_Code BXVD_Resume(BXVD_Handle hXvd)
 
    if (hXvd->PowerStateSaved != BXVD_P_PowerState_eOn)
    {
-      BXVD_DBG_MSG(hXvd, ("Decoder:%d, Set saved_Power_State:%d\n", hXvd->uDecoderInstance, hXvd->PowerStateSaved));
+      BXVD_DBG_MSG(hXvd, ("Decoder:%d, Set saved_Power_State:%d", hXvd->uDecoderInstance, hXvd->PowerStateSaved));
 
       BXVD_P_SET_POWER_STATE(hXvd, hXvd->PowerStateSaved);
    }
@@ -1822,6 +1833,9 @@ BERR_Code BXVD_OpenChannel(BXVD_Handle                hXvd,
 
    BXDM_PictureProvider_GetDefaultSettings(&stPictureProviderSettings);
 
+   /* SWSTB-1380: XDM needs the heap handle when creating a debug fifo. */
+   stPictureProviderSettings.hHeap = pXvdCh->pXvd->hGeneralHeap;
+
    rc = BXDM_PictureProvider_Create(&pXvdCh->hPictureProvider, &stPictureProviderSettings);
 
    if (rc != BERR_SUCCESS)
@@ -1979,7 +1993,7 @@ BERR_Code BXVD_CloseChannel(BXVD_ChannelHandle hXvdCh)
    hXvd = (BXVD_Handle) hXvdCh->pXvd;
    BDBG_ASSERT(hXvd);
 
-   BXVD_DBG_MSG(hXvdCh, ("Closechannel Decoder: %d Ch: %d\n", hXvd->uDecoderInstance, hXvdCh->ulChannelNum));
+   BXVD_DBG_MSG(hXvdCh, ("Closechannel Decoder: %d Ch: %d", hXvd->uDecoderInstance, hXvdCh->ulChannelNum));
 
    if ( hXvdCh->sChSettings.eChannelMode != BXVD_ChannelMode_eStill )
    {
@@ -2524,6 +2538,89 @@ BERR_Code BXVD_StartDecode(BXVD_ChannelHandle        hXvdChannel,
    BXVD_DBG_MSG(pXvdCh, ("BXVD_StartDecode() - BXVD_DecodeSettings.bNRTModeEnable = %d",
                          pXvdCh->sDecodeSettings.bNRTModeEnable));
 
+#endif
+
+#if BXVD_P_ENABLE_DRAM_PREF_INFO
+   {
+      char *pPerfMemc, *pPerfMemcClient;
+
+      unsigned int   uiDDRStatCtrlReg;
+      unsigned int   uiDDRStatCtrlVal;
+      unsigned int   uiDDRStatCtrlEnableMask;
+      unsigned int   uiDDRStatTimerReg;
+      unsigned int   uiClientRead;
+      unsigned int   uiCas;
+      unsigned int   uiIntraPenality;
+      unsigned int   uiPostPenality;
+
+      if ( (pPerfMemcClient = getenv("bxvd_perf_memc_client")) != NULL )
+      {
+         sscanf(pPerfMemcClient, "%d", &giPerfMemcClient);
+
+         BKNI_Printf("bxvd_perf_memc_client %d\n",  giPerfMemcClient);
+
+         if ( (pPerfMemc = getenv("bxvd_perf_memc")) != NULL )
+         {
+            sscanf(pPerfMemc, "%d", &giPerfMemc);
+         }
+         else
+         {
+            giPerfMemc = 0;
+         }
+
+#if BXVD_P_MEMC_1_PRESENT
+         if ( giPerfMemc == 1 )
+         {
+            uiDDRStatCtrlReg = BCHP_MEMC_DDR_1_STAT_CONTROL;
+            uiDDRStatCtrlVal = giPerfMemcClient;
+            uiDDRStatCtrlEnableMask = BCHP_MEMC_DDR_1_STAT_CONTROL_STAT_ENABLE_MASK;
+            uiDDRStatTimerReg = BCHP_MEMC_DDR_1_STAT_TIMER;
+            uiClientRead = BCHP_MEMC_DDR_1_STAT_CLIENT_SERVICE_TRANS_READ;
+            uiCas = (BCHP_MEMC_DDR_1_STAT_CAS_CLIENT_0 + (giPerfMemcClient * 4));
+            uiIntraPenality = BCHP_MEMC_DDR_1_STAT_CLIENT_SERVICE_INTR_PENALTY;
+            uiPostPenality = BCHP_MEMC_DDR_1_STAT_CLIENT_SERVICE_POST_PENALTY;
+         }
+#endif
+#if BXVD_P_MEMC_2_PRESENT
+         else if ( giPerfMemc == 2)
+         {
+            uiDDRStatCtrlReg = BCHP_MEMC_DDR_2_STAT_CONTROL;
+            uiDDRStatCtrlVal = giPerfMemcClient;
+            uiDDRStatCtrlEnableMask = BCHP_MEMC_DDR_2_STAT_CONTROL_STAT_ENABLE_MASK;
+            uiDDRStatTimerReg = BCHP_MEMC_DDR_2_STAT_TIMER;
+            uiClientRead = BCHP_MEMC_DDR_2_STAT_CLIENT_SERVICE_TRANS_READ;
+            uiCas = (BCHP_MEMC_DDR_2_STAT_CAS_CLIENT_0 + (giPerfMemcClient * 4));
+            uiIntraPenality = BCHP_MEMC_DDR_2_STAT_CLIENT_SERVICE_INTR_PENALTY;
+            uiPostPenality = BCHP_MEMC_DDR_2_STAT_CLIENT_SERVICE_POST_PENALTY;
+         }
+         else
+#endif
+         {
+            giPerfMemc = 0;
+
+            uiDDRStatCtrlReg = BCHP_MEMC_DDR_0_STAT_CONTROL;
+            uiDDRStatCtrlVal = giPerfMemc;
+            uiDDRStatCtrlEnableMask = BCHP_MEMC_DDR_0_STAT_CONTROL_STAT_ENABLE_MASK;
+            uiDDRStatTimerReg = BCHP_MEMC_DDR_0_STAT_TIMER;
+            uiClientRead = BCHP_MEMC_DDR_0_STAT_CLIENT_SERVICE_TRANS_READ;
+            uiCas = (BCHP_MEMC_DDR_0_STAT_CAS_CLIENT_0 + (giPerfMemcClient * 4));
+            uiIntraPenality = BCHP_MEMC_DDR_0_STAT_CLIENT_SERVICE_INTR_PENALTY;
+            uiPostPenality = BCHP_MEMC_DDR_0_STAT_CLIENT_SERVICE_POST_PENALTY;
+         }
+
+         BKNI_Printf("bxvd_perf_memc %d\n", giPerfMemc);
+
+         rc = BXVD_P_HostCmdDramPerf(pXvd,
+                                     uiDDRStatCtrlReg,
+                                     uiDDRStatCtrlVal,
+                                     uiDDRStatCtrlEnableMask,
+                                     uiDDRStatTimerReg,
+                                     uiClientRead,
+                                     uiCas,
+                                     uiIntraPenality,
+                                     uiPostPenality);
+      }
+   }
 #endif
 
    /* Read CDB Base register to verify that the CDB Base is 256 byte aligned. */
@@ -4734,6 +4831,79 @@ static void BXVD_S_DecodeError_XDMCompatibility_isr(
    return;
 }
 
+void BXVD_SetPictureParameterInfo_isrsafe(BXVD_PictureParameterInfo *pInfo, const BAVC_MFD_Picture *pstMFDPicture, const BXDM_Picture *pstUnifiedPicture)
+{
+   BKNI_Memset(pInfo, 0, sizeof(*pInfo));
+   /*
+    * Not all elements in "*pstPPInfo" are set.
+    *
+    * Two of associated PR's from V1:  PR28082 and PR31593.
+    *
+    * Note: in V1, the "PictureParameterInfo" structure was updated in
+    * "BXVD_P_PreparePictureParametersDataStruct_isr()" and
+    * "BXVD_P_PrepareDataStructForVDC_isr()"
+    *
+    */
+   pInfo->eAspectRatio = pstMFDPicture->eAspectRatio;
+   pInfo->eColorPrimaries = pstMFDPicture->eColorPrimaries;
+   pInfo->eFrameRateCode = pstMFDPicture->eFrameRateCode;
+   pInfo->eMatrixCoefficients = pstMFDPicture->eMatrixCoefficients;
+   pInfo->eTransferCharacteristics = pstMFDPicture->eTransferCharacteristics;
+   pInfo->ePreferredTransferCharacteristics = pstMFDPicture->ePreferredTransferCharacteristics; /* SWSTB-1629 */
+   pInfo->uiSampleAspectRatioX = pstMFDPicture->uiSampleAspectRatioX;
+   pInfo->uiSampleAspectRatioY = pstMFDPicture->uiSampleAspectRatioY;
+   pInfo->ulSourceHorizontalSize = pstMFDPicture->ulSourceHorizontalSize;
+   pInfo->ulSourceVerticalSize = pstMFDPicture->ulSourceVerticalSize;
+   pInfo->ulDisplayHorizontalSize = pstMFDPicture->ulDisplayHorizontalSize;
+   pInfo->ulDisplayVerticalSize = pstMFDPicture->ulDisplayVerticalSize;
+   pInfo->i32_HorizontalPanScan = pstMFDPicture->i32_HorizontalPanScan;
+   pInfo->i32_VerticalPanScan = pstMFDPicture->i32_VerticalPanScan;
+
+   pInfo->bFrameProgressive = pstMFDPicture->bFrameProgressive;
+
+   pInfo->bStreamProgressive = ( BXDM_Picture_Sequence_eProgressive == pstUnifiedPicture->stPictureType.eSequence );
+
+   pInfo->uiProfile = pstUnifiedPicture->stProtocol.eProfile;
+   pInfo->uiLevel = pstUnifiedPicture->stProtocol.eLevel;
+
+   /* SW7550-177: copy the Afd info into the picture parameter struct. */
+   pInfo->bValidAfd = pstMFDPicture->bValidAfd;
+   pInfo->uiAfd = pstMFDPicture->ulAfd;
+
+   /* Copy HEVC HDR info */
+   pInfo->ulAvgContentLight = pstMFDPicture->ulAvgContentLight;
+   pInfo->ulMaxContentLight = pstMFDPicture->ulMaxContentLight;
+   pInfo->stDisplayPrimaries[0] = pstMFDPicture->stDisplayPrimaries[0];
+   pInfo->stDisplayPrimaries[1] = pstMFDPicture->stDisplayPrimaries[1];
+   pInfo->stDisplayPrimaries[2] = pstMFDPicture->stDisplayPrimaries[2];
+   pInfo->stWhitePoint = pstMFDPicture->stWhitePoint;
+   pInfo->ulMaxDispMasteringLuma = pstMFDPicture->ulMaxDispMasteringLuma;
+   pInfo->ulMinDispMasteringLuma = pstMFDPicture->ulMinDispMasteringLuma;
+
+   pInfo->uiMacroBlockCntInter = pstUnifiedPicture->stStats.stMacroBlockCount.uiInterCoded;
+   pInfo->uiMacroBlockCntIntra = pstUnifiedPicture->stStats.stMacroBlockCount.uiIntraCoded;
+   pInfo->uiMacroBlockCntTotal = pstUnifiedPicture->stStats.stMacroBlockCount.uiTotal;
+
+   pInfo->uiPictureCodingType = pstUnifiedPicture->stPictureType.eCoding;
+
+   pInfo->uiBitRate = pstUnifiedPicture->stStats.uiBitRate;
+   pInfo->uiLowDelayFlag = pstUnifiedPicture->stPictureType.bLowDelay;
+   pInfo->uiVideoFormat = pstUnifiedPicture->stDisplayInfo.eVideoFormat;
+
+   pInfo->uiFrameRateExtN = pstUnifiedPicture->stFrameRate.stExtension.uiNumerator;
+   pInfo->uiFrameRateExtD = pstUnifiedPicture->stFrameRate.stExtension.uiDenominator;
+
+   /* SW3556-836: dereference the fixed_frame_rate_flag */
+   pInfo->uiFixedFrameRateFlag = ( BXDM_Picture_FrameRateType_eFixed == pstUnifiedPicture->stFrameRate.eType );
+
+   /* SW7405-4378: return the unaltered width and height for use by the application. */
+   pInfo->uiCodedSourceWidth = pstUnifiedPicture->stBufferInfo.stSource.uiWidth;
+   pInfo->uiCodedSourceHeight = pstUnifiedPicture->stBufferInfo.stSource.uiHeight;
+
+   /* SW7445-1023: report the depth of the picture buffers */
+   pInfo->eBitDepth = pstMFDPicture->eBitDepth;
+}
+
 static void BXVD_S_PictureParameters_XDMCompatibility_isr(
          void *pPrivateContext,
          int32_t iPrivateParam,
@@ -4743,6 +4913,10 @@ static void BXVD_S_PictureParameters_XDMCompatibility_isr(
    BXVD_ChannelHandle hXvdCh = (BXVD_ChannelHandle) pPrivateContext;
    BXVD_Interrupt eInterrupt = (BXVD_Interrupt) iPrivateParam;
    struct BXVD_P_InterruptCallbackInfo *callback = &hXvdCh->stInterruptCallbackInfo[eInterrupt];
+
+   BDBG_ASSERT(pstPictureParameters);
+   BDBG_ASSERT(pstPictureParameters->pstUnifiedPicture);
+   BDBG_ASSERT(pstPictureParameters->pstMFDPicture);
 
    /* bProgressiveStream_7411 is sticky.  It is updated only when a
     * source change has been detected. A source change is a change in
@@ -4763,81 +4937,8 @@ static void BXVD_S_PictureParameters_XDMCompatibility_isr(
       hXvdCh->bProgressiveStream_7411 = ( BXDM_Picture_Sequence_eProgressive == pstPictureParameters->pstUnifiedPicture->stPictureType.eSequence );
    }
 
-   BKNI_Memset( &hXvdCh->stPictureParameterInfo, 0, sizeof( BXVD_PictureParameterInfo ) );
-
-   BDBG_ASSERT(pstPictureParameters);
-   BDBG_ASSERT(pstPictureParameters->pstUnifiedPicture);
-   BDBG_ASSERT(pstPictureParameters->pstMFDPicture);
-
-   /*
-    * Not all elements in "*pstPPInfo" are set.
-    *
-    * Two of associated PR's from V1:  PR28082 and PR31593.
-    *
-    * Note: in V1, the "PictureParameterInfo" structure was updated in
-    * "BXVD_P_PreparePictureParametersDataStruct_isr()" and
-    * "BXVD_P_PrepareDataStructForVDC_isr()"
-    *
-    */
-   hXvdCh->stPictureParameterInfo.eAspectRatio = pstPictureParameters->pstMFDPicture->eAspectRatio;
-   hXvdCh->stPictureParameterInfo.eColorPrimaries = pstPictureParameters->pstMFDPicture->eColorPrimaries;
-   hXvdCh->stPictureParameterInfo.eFrameRateCode = pstPictureParameters->pstMFDPicture->eFrameRateCode;
-   hXvdCh->stPictureParameterInfo.eMatrixCoefficients = pstPictureParameters->pstMFDPicture->eMatrixCoefficients;
-   hXvdCh->stPictureParameterInfo.eTransferCharacteristics = pstPictureParameters->pstMFDPicture->eTransferCharacteristics;
-   hXvdCh->stPictureParameterInfo.ePreferredTransferCharacteristics = pstPictureParameters->pstMFDPicture->ePreferredTransferCharacteristics; /* SWSTB-1629 */
-   hXvdCh->stPictureParameterInfo.uiSampleAspectRatioX = pstPictureParameters->pstMFDPicture->uiSampleAspectRatioX;
-   hXvdCh->stPictureParameterInfo.uiSampleAspectRatioY = pstPictureParameters->pstMFDPicture->uiSampleAspectRatioY;
-   hXvdCh->stPictureParameterInfo.ulSourceHorizontalSize = pstPictureParameters->pstMFDPicture->ulSourceHorizontalSize;
-   hXvdCh->stPictureParameterInfo.ulSourceVerticalSize = pstPictureParameters->pstMFDPicture->ulSourceVerticalSize;
-   hXvdCh->stPictureParameterInfo.ulDisplayHorizontalSize = pstPictureParameters->pstMFDPicture->ulDisplayHorizontalSize;
-   hXvdCh->stPictureParameterInfo.ulDisplayVerticalSize = pstPictureParameters->pstMFDPicture->ulDisplayVerticalSize;
-   hXvdCh->stPictureParameterInfo.i32_HorizontalPanScan = pstPictureParameters->pstMFDPicture->i32_HorizontalPanScan;
-   hXvdCh->stPictureParameterInfo.i32_VerticalPanScan = pstPictureParameters->pstMFDPicture->i32_VerticalPanScan;
-
-   hXvdCh->stPictureParameterInfo.bFrameProgressive = pstPictureParameters->pstMFDPicture->bFrameProgressive;
-
+   BXVD_SetPictureParameterInfo_isrsafe(&hXvdCh->stPictureParameterInfo, pstPictureParameters->pstMFDPicture, pstPictureParameters->pstUnifiedPicture);
    hXvdCh->stPictureParameterInfo.bStreamProgressive_7411 = hXvdCh->bProgressiveStream_7411;
-   hXvdCh->stPictureParameterInfo.bStreamProgressive = ( BXDM_Picture_Sequence_eProgressive == pstPictureParameters->pstUnifiedPicture->stPictureType.eSequence );
-
-   hXvdCh->stPictureParameterInfo.uiProfile = pstPictureParameters->pstUnifiedPicture->stProtocol.eProfile;
-   hXvdCh->stPictureParameterInfo.uiLevel = pstPictureParameters->pstUnifiedPicture->stProtocol.eLevel;
-
-   /* SW7550-177: copy the Afd info into the picture parameter struct. */
-   hXvdCh->stPictureParameterInfo.bValidAfd = pstPictureParameters->pstMFDPicture->bValidAfd;
-   hXvdCh->stPictureParameterInfo.uiAfd = pstPictureParameters->pstMFDPicture->ulAfd;
-
-   /* Copy HEVC HDR info */
-   hXvdCh->stPictureParameterInfo.ulAvgContentLight = pstPictureParameters->pstMFDPicture->ulAvgContentLight;
-   hXvdCh->stPictureParameterInfo.ulMaxContentLight = pstPictureParameters->pstMFDPicture->ulMaxContentLight;
-   hXvdCh->stPictureParameterInfo.stDisplayPrimaries[0] = pstPictureParameters->pstMFDPicture->stDisplayPrimaries[0];
-   hXvdCh->stPictureParameterInfo.stDisplayPrimaries[1] = pstPictureParameters->pstMFDPicture->stDisplayPrimaries[1];
-   hXvdCh->stPictureParameterInfo.stDisplayPrimaries[2] = pstPictureParameters->pstMFDPicture->stDisplayPrimaries[2];
-   hXvdCh->stPictureParameterInfo.stWhitePoint = pstPictureParameters->pstMFDPicture->stWhitePoint;
-   hXvdCh->stPictureParameterInfo.ulMaxDispMasteringLuma = pstPictureParameters->pstMFDPicture->ulMaxDispMasteringLuma;
-   hXvdCh->stPictureParameterInfo.ulMinDispMasteringLuma = pstPictureParameters->pstMFDPicture->ulMinDispMasteringLuma;
-
-   hXvdCh->stPictureParameterInfo.uiMacroBlockCntInter = pstPictureParameters->pstUnifiedPicture->stStats.stMacroBlockCount.uiInterCoded;
-   hXvdCh->stPictureParameterInfo.uiMacroBlockCntIntra = pstPictureParameters->pstUnifiedPicture->stStats.stMacroBlockCount.uiIntraCoded;
-   hXvdCh->stPictureParameterInfo.uiMacroBlockCntTotal = pstPictureParameters->pstUnifiedPicture->stStats.stMacroBlockCount.uiTotal;
-
-   hXvdCh->stPictureParameterInfo.uiPictureCodingType = pstPictureParameters->pstUnifiedPicture->stPictureType.eCoding;
-
-   hXvdCh->stPictureParameterInfo.uiBitRate = pstPictureParameters->pstUnifiedPicture->stStats.uiBitRate;
-   hXvdCh->stPictureParameterInfo.uiLowDelayFlag = pstPictureParameters->pstUnifiedPicture->stPictureType.bLowDelay;
-   hXvdCh->stPictureParameterInfo.uiVideoFormat = pstPictureParameters->pstUnifiedPicture->stDisplayInfo.eVideoFormat;
-
-   hXvdCh->stPictureParameterInfo.uiFrameRateExtN = pstPictureParameters->pstUnifiedPicture->stFrameRate.stExtension.uiNumerator;
-   hXvdCh->stPictureParameterInfo.uiFrameRateExtD = pstPictureParameters->pstUnifiedPicture->stFrameRate.stExtension.uiDenominator;
-
-   /* SW3556-836: dereference the fixed_frame_rate_flag */
-   hXvdCh->stPictureParameterInfo.uiFixedFrameRateFlag = ( BXDM_Picture_FrameRateType_eFixed == pstPictureParameters->pstUnifiedPicture->stFrameRate.eType );
-
-   /* SW7405-4378: return the unaltered width and height for use by the application. */
-   hXvdCh->stPictureParameterInfo.uiCodedSourceWidth = pstPictureParameters->pstUnifiedPicture->stBufferInfo.stSource.uiWidth;
-   hXvdCh->stPictureParameterInfo.uiCodedSourceHeight = pstPictureParameters->pstUnifiedPicture->stBufferInfo.stSource.uiHeight;
-
-   /* SW7445-1023: report the depth of the picture buffers */
-   hXvdCh->stPictureParameterInfo.eBitDepth = pstPictureParameters->pstMFDPicture->eBitDepth;
 
    /* Forward Picture Parameter info to the PictureParameter app callback */
    if ( NULL != callback->BXVD_P_pAppIntCallbackPtr )

@@ -320,9 +320,11 @@ static int astra_ioctl_call_smc(struct file *file, void *arg)
 static int astra_ioctl_client_open(struct file *file, void *arg)
 {
     struct astra_ioctl_client_open_data clientOpenData;
+    struct astra_client **pClients;
     struct astra_client *pClient;
     char *pName;
     int err = 0;
+    int i;
 
     err = copy_from_user(
         &clientOpenData,
@@ -350,11 +352,24 @@ static int astra_ioctl_client_open(struct file *file, void *arg)
         goto RETURN;
     }
 
+    /* add client to file */
+    pClients = (struct astra_client **)file->private_data;
+    for (i = 0; i < ASTRA_CLIENT_NUM_MAX; i++) {
+        if (!pClients[i]) {
+            pClients[i] = pClient;
+            break;
+        }
+    }
+
+    if (i == ASTRA_CLIENT_NUM_MAX) {
+        LOGE("Max number of clients reached for the process");
+        _astra_user_client_close(pClient);
+        clientOpenData.retVal = -EFAULT;
+        goto RETURN;
+    }
+
     clientOpenData.retVal = 0;
     clientOpenData.hClient = pClient;
-
-    /* save client handle in file */
-    file->private_data = (void *)pClient;
 
  RETURN:
     err = copy_to_user(
@@ -373,8 +388,10 @@ static int astra_ioctl_client_open(struct file *file, void *arg)
 static int astra_ioctl_client_close(struct file *file, void *arg)
 {
     struct astra_ioctl_client_close_data clientCloseData;
+    struct astra_client **pClients;
     struct astra_client *pClient;
     int err = 0;
+    int i;
 
     err = copy_from_user(
         &clientCloseData,
@@ -396,10 +413,16 @@ static int astra_ioctl_client_close(struct file *file, void *arg)
 
     _astra_user_client_close(pClient);
 
-    clientCloseData.retVal = 0;
+    /* clear client from file */
+    pClients = (struct astra_client **)file->private_data;
+    for (i = 0; i < ASTRA_CLIENT_NUM_MAX; i++) {
+        if (pClients[i] == pClient) {
+            pClients[i] = NULL;
+            break;
+        }
+    }
 
-    /* clear client handle in file */
-    file->private_data = NULL;
+    clientCloseData.retVal = 0;
 
  RETURN:
     err = copy_to_user(

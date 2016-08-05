@@ -300,9 +300,9 @@ function search(term) {
     // ascending, then width descending
     keys.sort(function(a, b){
             return a - b;
-        if (a < b || a > b)
-            return a - b;
-        return matches[b] - matches[a];
+        //if (a < b || a > b)
+        //    return a - b;
+        //return matches[b] - matches[a];
     });
     // Step through frames saving only the biggest bottom-up frames
     // thanks to the sort order. This relies on the tree property

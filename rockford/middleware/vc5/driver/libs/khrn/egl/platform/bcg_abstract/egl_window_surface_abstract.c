@@ -77,7 +77,8 @@ static bool dequeue_buffer(EGL_WINDOW_SURFACE_T *surf)
    if (fence == -1)
       return true;
 
-   egl_context_add_fence(NULL, &surf->base, fence);
+   uint64_t job_id = v3d_scheduler_submit_wait_fence(fence);
+   khrn_interlock_job_add(khrn_image_get_interlock(surf->active_image), job_id, true);
 
    return true;
 }
@@ -114,7 +115,7 @@ static egl_swap_result_t swap_buffers(EGL_SURFACE_T *surface, bool preserve)
 
    if (surf->active_image)
    {
-      v3d_scheduler_deps *out_deps = egl_surface_flush_rendering(surface);
+      const v3d_scheduler_deps *out_deps = egl_surface_flush_back_buffer_writer(surface);
       int fence = v3d_scheduler_create_fence(out_deps, V3D_SCHED_DEPS_COMPLETED, /*force_create=*/false);
 
       assert(platform->DisplaySurface);
@@ -184,11 +185,10 @@ static void delete_fn(EGL_SURFACE_T *surface)
 
             egl_context_gl_lock();
 
-            KHRN_RES_INTERLOCK_T *res_i;
-            res_i = khrn_image_get_res_interlock(surf->active_image);
+            KHRN_INTERLOCK_T *interlock = khrn_image_get_interlock(surf->active_image);
             /* we should have flushed by now (when the surface stopped being current) */
-            assert(khrn_interlock_get_actions(&res_i->interlock, NULL) == ACTION_NONE);
-            deps = khrn_interlock_get_sync(&res_i->interlock, true);
+            assert(khrn_interlock_get_actions(interlock, NULL) == ACTION_NONE);
+            deps = khrn_interlock_get_sync(interlock, true);
 
             egl_context_gl_unlock();
 

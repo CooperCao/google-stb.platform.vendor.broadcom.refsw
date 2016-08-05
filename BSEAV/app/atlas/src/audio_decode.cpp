@@ -373,6 +373,7 @@ CSimpleAudioDecode::CSimpleAudioDecode(
     _stereoInput(NULL),
     _bEncodeConnectedDts(false),
     _bEncodeConnectedAc3(false),
+    _bPrimer(true),
     _windowType(eWindowType_Max),
     _pModel(NULL)
 {
@@ -1232,8 +1233,8 @@ eRet CSimpleAudioDecode::start(
 
     if (NULL != pStc)
     {
-        settings.primer.pcm        = true;
-        settings.primer.compressed = true;
+        settings.primer.pcm        = isPrimerEnabled() && (pStc->getStcType() == eStcType_PvrPlayback);
+        settings.primer.compressed = settings.primer.pcm;
 
         nerror = NEXUS_SimpleAudioDecoder_SetStcChannel(_simpleDecoder, pStc->getSimpleStcChannel());
         CHECK_NEXUS_ERROR_GOTO("starting simple audio decoder failed!", ret, nerror, error);

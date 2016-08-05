@@ -78,6 +78,10 @@ ifeq ($(PLATFORM), __SoC__)
   PLATFDIR = arc601-soc
 else ifeq ($(PLATFORM), __ML507__)
   PLATFDIR = arc601-ml507
+else ifeq ($(PLATFORM), __i386__)
+  PLATFDIR = i386-utest
+else ifeq ($(PLATFORM), __ARM__)
+  PLATFDIR = arm-host
 else
   $(error Unknown platform $(PLATFORM))
 endif
@@ -86,7 +90,7 @@ endif
 ### Set up the set of Stack and Project components to build.
 ifndef COMPONENTS
   # Discover all components of the Stack.
-  COMPLIST := $(shell sed -r '/\#/ d; s/[ \t]*([A-Za-z0-9_]+).*/\1/' $(STACKDIR)/components.mk)
+  export COMPLIST := $(shell sed -r '/\#/ d; s/[ \t]*([A-Za-z0-9_]+).*/\1/' $(STACKDIR)/components.mk)
   # Expand all wildcards in Exclude and Include components custom lists.
   COMPEXCLEXP := $(filter $(COMPEXCL),$(COMPLIST))
   COMPINCLEXP := $(filter $(COMPINCL),$(COMPLIST))
@@ -152,7 +156,7 @@ $(COMPLIST): objdir
 ### Recipe for objects directory.
 o obj objdir:
 	$(SILENT)mkdir -p $(OBJDIR)
-
+	$(SILENT)mkdir -p $(OBJDIR)/server
 
 ### Recipe for prebuild.
 p pre prebuild:

@@ -13,7 +13,6 @@ FILE DESCRIPTION
 
 #include "../glxx/gl_public_api.h"
 #include "khrn_blob.h"
-#include "libs/core/gfx_buffer/gfx_buffer_translate_v3d.h"
 
 #include "libs/platform/v3d_imgconv.h"
 
@@ -27,8 +26,6 @@ typedef struct
    unsigned level;   /* which level in the blob is this image for;
                       (blob->desc[level] gives us the info about this image */
 
-   /* specifing elem makes sense only for array images, otheriwse start_elem =0
-    * and num_array_elems = 0; a cube is the same as an array with 6 elements */
    unsigned start_elem;      /* at which element in the blob starts this image */
    unsigned num_array_elems; /* how many elements (from start_elem) in the blob
                                 are for this image */
@@ -60,20 +57,6 @@ extern KHRN_IMAGE_T* khrn_image_create(KHRN_BLOB_T* blob,
 /* this image refers to one element and a slice in the blob; */
 extern KHRN_IMAGE_T* khrn_image_create_one_elem_slice(KHRN_BLOB_T* blob,
       unsigned elem, unsigned slice, unsigned level, GFX_LFMT_T api_fmt);
-
-static inline GFX_BUFFER_DESC_T const* khrn_image_get_desc(const KHRN_IMAGE_T *image)
-{
-   KHRN_BLOB_T const* blob = image->blob;
-   assert(image->level < blob->num_mip_levels);
-   return &blob->desc[image->level];
-}
-
-static inline GFX_BUFFER_DESC_PLANE_T const* khrn_image_get_plane_desc(const KHRN_IMAGE_T *image, unsigned plane_index)
-{
-   GFX_BUFFER_DESC_T const* desc = khrn_image_get_desc(image);
-   assert(plane_index < desc->num_planes);
-   return &desc->planes[plane_index];
-}
 
 extern GFX_LFMT_T khrn_image_get_lfmt(const KHRN_IMAGE_T *img,
       unsigned plane);
@@ -156,21 +139,27 @@ extern void khrn_image_get_dimensions(const KHRN_IMAGE_T *img, unsigned
       *width, unsigned *height, unsigned *depth, unsigned *num_elems);
 extern unsigned khrn_image_get_num_planes(const KHRN_IMAGE_T *img);
 
-extern KHRN_RES_INTERLOCK_T*
-khrn_image_get_res_interlock(const KHRN_IMAGE_T *img);
+static inline KHRN_RES_INTERLOCK_T *khrn_image_get_res_interlock(const KHRN_IMAGE_T *img)
+{
+   return img->blob->res_i;
+}
 
-extern  void khrn_image_translate_rcfg_color(const KHRN_IMAGE_T *img,
-   unsigned plane, unsigned frame_width, unsigned frame_height,
-   GFX_BUFFER_RCFG_COLOR_TRANSLATION_T *t);
+static inline KHRN_INTERLOCK_T *khrn_image_get_interlock(const KHRN_IMAGE_T *img)
+{
+   return &khrn_image_get_res_interlock(img)->interlock;
+}
 
-extern v3d_memory_format_t khrn_image_translate_memory_format(
-      const KHRN_IMAGE_T *img, unsigned plane);
-
-extern unsigned khrn_image_maybe_uif_height_in_ub(const KHRN_IMAGE_T *img,
-      unsigned plane);
-
-extern unsigned khrn_image_uif_height_in_ub(const KHRN_IMAGE_T *img,
-      unsigned plane);
+static inline bool khrn_image_invalidate(KHRN_IMAGE_T *img)
+{
+   // TODO If the blob contains other images, we can't invalidate the interlock...
+   if ((img->blob->num_array_elems == 1) && (img->blob->num_mip_levels == 1))
+   {
+      khrn_interlock_invalidate(khrn_image_get_interlock(img));
+      return true;
+   }
+   else
+      return false;
+}
 
 /* offset from base pointer to the start of memory for the spefified plane, in bytes;
  * if the image is an element in an array, then this offset refers to the start

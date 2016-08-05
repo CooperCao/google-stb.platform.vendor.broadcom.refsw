@@ -62,7 +62,7 @@ override SILENT ?= @
 ### Override the default Project platform (remove the comment from a single row).
 # override PLATFORM = __i386__
 # override PLATFORM = __ML507__
-
+override PLATFORM = __ARM__
 
 ### Override default tools for Project build: C compiler, assembler, linker, python.
 # override CC = another_mcc
@@ -109,7 +109,7 @@ override LIBS += ./rf4ce_registration/libsqlite3.a -lpthread -ldl
 
 # Exclude Security component and all ZigBee PRO and RF4CE components.
 COMPEXCL += %
-COMPINCL += sys hal mbx rrn prj common
+COMPINCL += sys hal mbx rrn prj common ict
 ifneq ($(BYPASS_RPC),y)
 COMPINCL += rpc
 endif
@@ -133,8 +133,10 @@ endif
 
 # Exclude units not necessary for MAC Sertification Tests.
 SRCEXCL += bbSys% zigbee_core_sim zigbee_rpc_client shell sqlite3 bbPcUsart bbHal% bbExtPowerFilterKey
-SRCINCL += bbSysEvent bbSysDbg bbSysFsm bbSysMemMan bbSysDbgMm bbSysPayload bbSysStackData bbSysTaskScheduler bbSysTimeoutTask bbHalSystemTimer bbHalTask
+SRCINCL += bbSysEvent bbSysDbg bbSysFsm bbSysMemMan bbSysDbgMm bbSysPayload bbSysStackData bbSysTaskScheduler bbSysTimeoutTask bbSysQueue bbHalSystemTimer bbHalTask
 
+# Make RF4CE_TEST enabled by default.
+RF4CE_TEST=y
 ifeq ($(RF4CE_TEST), y)
 override CDEFS = \
     RF4CE_TEST
@@ -145,8 +147,8 @@ override CDEFS += \
     BYPASS_RPC
 endif
 
-SRCEXCL += zigbee_file_server_cc
-SRCINCL += zigbee_file_server
+#SRCEXCL += zigbee_file_server_cc
+SRCINCL += zigbee_file
 
 ### Override the default set of additional compiler flags to be passed with '-D' key.
 override CDEFS += \
@@ -180,6 +182,7 @@ override CDEFS += \
     _ZHA_PROFILE_CIE_DEVICE_IMPLEMENTATION_ \
     _MAC_BAN_TABLE_SIZE_=1
 
+# FIXME
 ifeq ($(USE_RF4CE_PROFILE_ZRC2), y)
 override CDEFS += USE_RF4CE_PROFILE_ZRC2
 endif

@@ -34,7 +34,6 @@ for customers who have developed their own servers.
 
 #include "default_nexus.h"
 #include "display_nexus.h"
-#include "display_thread.h"
 #include "display_helpers.h"
 #include "display_surface.h"
 #include "fence.h"
@@ -42,6 +41,15 @@ for customers who have developed their own servers.
 #ifdef NXCLIENT_SUPPORT
 #include "nxclient.h"
 #endif
+
+#include "display_interface.h"
+#include "display_framework.h"
+#include "../common/fence_interface_nexus.h"
+#include "../common/surface_interface_nexus.h"
+#include "../common/display_interface_nexus.h"
+#include "display_nexus_priv.h"
+#include "platform_common.h"
+#include "fence_queue.h"
 
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
@@ -60,31 +68,17 @@ enum
    PIXMAP_INFO_MAGIC        = 0x15EEB1A5
 };
 
-/* NXPL_NativeWindow */
-typedef struct
+struct PlatformState
 {
-   /* Main thread data */
-   NXPL_NativeWindowInfoEXT   windowInfo;
-   unsigned int               numSurfaces;
+   struct SurfaceInterface surface_interface;
+   struct FenceInterface fence_interface;
+   struct DisplayInterface display_interface;
 
-   bool                       initialized;
-   int                        swapInterval;
+   NXPL_NativeWindow *native_window;
+   NXPL_Display display;
 
-#ifdef NXPL_PLATFORM_EXCLUSIVE
-   /* create and delete can overlap, although exclusive access to
-      the buffer is mandated.  This delete of one window can remove
-      the callback of another */
-   int                        bound;
-#else
-   uint32_t                   clientID;
-   /* NSC client handle */
-   NEXUS_SurfaceClientHandle  surfaceClient;
-#ifdef NXCLIENT_SUPPORT
-   NxClient_AllocResults      allocResults;
-#endif
-#endif /* NXPL_PLATFORM_EXCLUSIVE */
-
-} NXPL_NativeWindow;
+   struct DisplayFramework display_framework;
+};
 
 /* Called to determine current size of the window referenced by the opaque window handle.
  * This is needed by EGL in order to know the size of a native 'window'. */
@@ -93,7 +87,9 @@ static BEGL_Error DispWindowGetInfo(void *context,
                                     BEGL_WindowInfoFlags flags,
                                     BEGL_WindowInfo *info)
 {
-   NXPL_NativeWindow *nw = (NXPL_NativeWindow*)GetNativeWindow(nativeWindow);
+   UNUSED(context);
+   struct PlatformState *state = (struct PlatformState *) nativeWindow;
+   NXPL_NativeWindow *nw = state->native_window;
 
    if (nw != NULL)
    {
@@ -168,67 +164,58 @@ static BEGL_Error DispGetNextSurface(
    int *fence
 )
 {
-   NXPL_DisplayContext *ctx = (NXPL_DisplayContext*)context;
-   NXPL_NativeWindow *nw = (NXPL_NativeWindow*)GetNativeWindow(nativeWindow);
+   UNUSED(context);
 
-   if (nw == NULL || nativeWindow == NULL || ctx == NULL || actualFormat == NULL)
+   struct PlatformState *state = (struct PlatformState *) nativeWindow;
+
+   if (state == NULL || nativeSurface == NULL || actualFormat == NULL)
       return BEGL_Fail;
 
-   if (DequeueSurface(nativeWindow, nativeSurface, fence) != BEGL_Success)
+   *nativeSurface = DisplayFramework_GetNextSurface(
+         &state->display_framework, format, secure, fence);
+
+   if (!*nativeSurface)
    {
       *actualFormat = BEGL_BufferFormat_INVALID;
       return BEGL_Fail;
    }
-
-   NXPL_Surface *s = *nativeSurface;
-
-   /* if the new surface has different size, recreate */
-   if (nw->windowInfo.width != s->windowInfo.width ||
-       nw->windowInfo.height != s->windowInfo.height ||
-       format != s->format ||
-       secure != s->secure)
-   {
-      /* wait on the fence, as it could be still on the display */
-      WaitFence(ctx->schedIface, s->fence);
-
-      DestroySurface(s);
-      CreateSurface(s, format, nw->windowInfo.width, nw->windowInfo.height, secure, "SwapChain Surface");
-   }
-
-   /* if any of the presenation settings have changed, copy the windowInfo into the surface */
-   int windowTest = memcmp(&nw->windowInfo, &s->windowInfo, sizeof(NXPL_NativeWindowInfoEXT));
-   if (windowTest)
-      s->windowInfo = nw->windowInfo;
-
    return BEGL_Success;
 }
 
 static BEGL_Error DispDisplaySurface(void *context, void *nativeWindow, void *nativeSurface, int fence)
 {
-   NXPL_NativeWindow *nw = (NXPL_NativeWindow*)GetNativeWindow(nativeWindow);
-
-   if (nw != NULL)
-      return QueueSurface(nativeWindow, nativeSurface, fence, nw->swapInterval);
+   UNUSED(context);
+   struct PlatformState *state = (struct PlatformState *) nativeWindow;
+   if (state && nativeSurface)
+   {
+      DisplayFramework_DisplaySurface(&state->display_framework,
+            nativeSurface, fence, state->native_window->swapInterval);
+      return BEGL_Success;
+   }
    else
       return BEGL_Fail;
 }
 
 static BEGL_Error DispCancelSurface(void *context, void *nativeWindow, void *nativeSurface, int fence)
 {
-   if (nativeWindow != NULL)
-      return CancelSurface(nativeWindow, nativeSurface, fence);
-
-   return BEGL_Fail;
+   UNUSED(context);
+   struct PlatformState *state = (struct PlatformState *) nativeWindow;
+   if (state && nativeSurface)
+   {
+      DisplayFramework_CancelSurface(&state->display_framework, nativeSurface,
+            fence);
+      return BEGL_Success;
+   }
+   else
+      return BEGL_Fail;
 }
 
 static void DispSetSwapInterval(void *context, void *nativeWindow, int interval)
 {
-   NXPL_NativeWindow *nw = (NXPL_NativeWindow*)GetNativeWindow(nativeWindow);
-
-   if (interval < 0)
-      return;
-
-   nw->swapInterval = interval;
+   UNUSED(context);
+   struct PlatformState *state = (struct PlatformState *) nativeWindow;
+   if (interval >= 0)
+      state->native_window->swapInterval = interval;
 }
 
 static bool  DisplayPlatformSupported(void *context, uint32_t platform)
@@ -283,31 +270,71 @@ static void *DispWindowPlatformStateCreate(void *context, void *native)
 {
    NXPL_DisplayContext *ctx = (NXPL_DisplayContext *)context;
    NXPL_NativeWindow *nw = (NXPL_NativeWindow*)native;
-   void *res = NULL;
+   struct PlatformState *state = NULL;
 
    if (ctx && nw)
    {
-      /* Thread uses only opaque types, so only pass NXPL_NativeWindow as
-         a void*, so we can't be tempted to tinker inside the thread */
-
-      /* Surface format is only know when dequeue is called, so create with a
-         default type first */
+      state = calloc(1, sizeof(*state));
+      if (state)
+      {
 #ifdef NXPL_PLATFORM_EXCLUSIVE
-      res = CreateWorkerThread(nw, ctx->schedIface, nw->numSurfaces,
-         &nw->bound, &nw->windowInfo, BEGL_BufferFormat_eA8B8G8R8, ctx->display, ctx->displayType);
+         if (!InitializeDisplayExclusive(&state->display, ctx->displayType,
+               ctx->display, &nw->bound, &nw->windowInfo))
+            goto error_display;
 #else
-      res = CreateWorkerThread(nw, ctx->schedIface, nw->numSurfaces,
-         &nw->windowInfo, BEGL_BufferFormat_eA8B8G8R8, nw->clientID, nw->surfaceClient,
-         ctx->displayType);
+         if (!InitializeDisplayMulti(&state->display, ctx->displayType,
+               nw->numSurfaces, nw->clientID, nw->surfaceClient,
+               &nw->windowInfo))
+            goto error_display;
 #endif
-   }
 
-   return res;
+         FenceInteraface_InitNexus(&state->fence_interface, ctx->schedIface);
+         SurfaceInterface_InitNexus(&state->surface_interface);
+         DisplayInterface_InitNexus(&state->display_interface, &state->display,
+               &state->fence_interface, nw->numSurfaces);
+
+         state->native_window = nw;
+
+         if (!DisplayFramework_Start(&state->display_framework,
+               &state->display_interface,
+               &state->fence_interface,
+               &state->surface_interface,
+               state->native_window->windowInfo.width,
+               state->native_window->windowInfo.height,
+               state->native_window->numSurfaces))
+            goto error_framework;
+      }
+   }
+   return state;
+
+error_framework:
+   Interface_Destroy(&state->display_interface.base);
+   Interface_Destroy(&state->surface_interface.base);
+   Interface_Destroy(&state->fence_interface.base);
+error_display:
+   free(state);
+   return NULL;
 }
 
 static BEGL_Error DispWindowPlatformStateDestroy(void *context, void *windowState)
 {
-   return DestroyWorkerThread(windowState);
+   UNUSED(context);
+   struct PlatformState *state = (struct PlatformState *) windowState;
+
+   if (state)
+   {
+      DisplayFramework_Stop(&state->display_framework);
+      Interface_Destroy(&state->display_interface.base);
+      Interface_Destroy(&state->surface_interface.base);
+      Interface_Destroy(&state->fence_interface.base);
+
+#ifndef NDEBUG
+      /* catch some cases of use after free */
+      memset(state, 0, sizeof(*state));
+#endif
+      free(state);
+   }
+   return BEGL_Success;
 }
 
 BEGL_DisplayInterface *CreateDisplayInterface(

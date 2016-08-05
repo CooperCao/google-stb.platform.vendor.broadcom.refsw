@@ -53,6 +53,7 @@
 #define PROC_INTERRUPTS_FILE         "/proc/interrupts"
 #define TEMP_INTERRUPTS_FILE         "interrupts"
 #define PROC_STAT_FILE               "/proc/stat"
+#define MAX_LENGTH_GETPIDOF_CMD      128
 
 typedef struct
 {
@@ -158,6 +159,7 @@ int convert_to_string_with_commas(
     );
 unsigned long int getSecondsSinceEpoch( void );
 char *GetFileContents( const char *filename );
+unsigned int GetFileLength( const char *filename );
 char *GetTempDirectoryStr( void );
 int get_proc_stat_info( bmemperf_proc_stat_info *pProcStatInfo );
 int get_interrupt_counts( bmemperf_irq_data *irqData );
@@ -181,5 +183,14 @@ char        *bmemperf_get_ddrType( unsigned int memc_index, volatile unsigned in
 int          bmemperf_cas_to_cycle( unsigned int memc_index, volatile unsigned int *g_pMem );
 volatile unsigned int *bmemperf_openDriver_and_mmap( void );
 unsigned int convert_from_msec( unsigned int msec_value, unsigned int g_interval );
+unsigned int get_my_ip4_addr( void );
+unsigned long int  getPidOf ( const char * processName );
+const char        *executable_fullpath( const char * exe_name );
+const char        *get_executing_command( const char * exe_name );
+void               Bsysperf_Free( char *buffer );
+int                replace_space_with_nbsp( char *buffer, long int buffer_size );
+char              *Bsysperf_GetProcessCmdline( const char * process_name );
+char              *Bsysperf_ReplaceNewlineWithNull ( char *buffer );
+int                Bsysperf_RestoreNewline( char * posEol );
 
 #endif /* __BMEMPERF_LIB_H__ */

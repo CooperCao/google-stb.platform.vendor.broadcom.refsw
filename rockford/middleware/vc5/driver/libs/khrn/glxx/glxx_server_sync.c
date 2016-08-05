@@ -18,7 +18,7 @@ Implementation of GLES 3.0 sync objects and fences.
 
 GLsync GL_APIENTRY glFenceSync (GLenum condition, GLbitfield flags)
 {
-   GLXX_SERVER_STATE_T  *state = GL30_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T  *state = glxx_lock_server_state(OPENGL_ES_3X);
    GLsync id = 0;
    GLenum error = GL_NO_ERROR;
 
@@ -47,7 +47,7 @@ end:
    if (error != GL_NO_ERROR)
       glxx_server_state_set_error(state, error);
 
-   GL30_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
    return id;
 }
 
@@ -60,7 +60,7 @@ void GL_APIENTRY glDeleteSync (GLsync fsync_id)
    if (fsync_id == 0)
       return;
 
-   state = GL30_LOCK_SERVER_STATE();
+   state = glxx_lock_server_state(OPENGL_ES_3X);
    if (!state)
       return;
 
@@ -76,7 +76,7 @@ end:
    if (error != GL_NO_ERROR)
       glxx_server_state_set_error(state, error);
 
-   GL30_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GLboolean GL_APIENTRY glIsSync (GLsync fsync_id)
@@ -85,7 +85,7 @@ GLboolean GL_APIENTRY glIsSync (GLsync fsync_id)
    GLboolean result = GL_FALSE;
    GLXX_FENCESYNC_T *fsync;
 
-   state = GL30_LOCK_SERVER_STATE();
+   state = glxx_lock_server_state(OPENGL_ES_3X);
    if (!state)
       return GL_FALSE;
 
@@ -95,7 +95,7 @@ GLboolean GL_APIENTRY glIsSync (GLsync fsync_id)
 
    result = GL_TRUE;
 end:
-   GL30_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
    return result;
 }
 
@@ -107,7 +107,7 @@ void GL_APIENTRY glGetSynciv (GLsync fsync_id, GLenum pname, GLsizei bufSize,
    unsigned val_count;
    GLenum error = GL_NO_ERROR;
 
-   state = GL30_LOCK_SERVER_STATE();
+   state = glxx_lock_server_state(OPENGL_ES_3X);
    if (!state)
       return;
 
@@ -166,7 +166,7 @@ end:
    if (error != GL_NO_ERROR)
       glxx_server_state_set_error(state, error);
 
-   GL30_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 static int nanosec_to_trunc_ms(GLuint64 timeout)
@@ -198,7 +198,7 @@ GLenum GL_APIENTRY glClientWaitSync (GLsync fsync_id, GLbitfield flags,
    int timeout_ms;
    enum v3d_fence_status status;
 
-   state = GL30_LOCK_SERVER_STATE();
+   state = glxx_lock_server_state(OPENGL_ES_3X);
    if (!state)
       return result;
 
@@ -237,9 +237,9 @@ GLenum GL_APIENTRY glClientWaitSync (GLsync fsync_id, GLbitfield flags,
    khrn_mem_acquire(fsync);
    fsync_temp = fsync;
 
-   GL30_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
    status = v3d_platform_fence_wait_timeout(platform_fence, timeout_ms);
-   state = GL30_LOCK_SERVER_STATE();
+   state = glxx_lock_server_state(OPENGL_ES_3X);
 
    /* for the moment, close the fence; in the future, it might be useful to
     * keep the platform fence in glxx_fencesync and just close it when the last
@@ -265,7 +265,7 @@ end:
       glxx_server_state_set_error(state, error);
       result = GL_WAIT_FAILED;
    }
-   GL30_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
    return result;
 }
 
@@ -275,7 +275,7 @@ void GL_APIENTRY glWaitSync (GLsync fsync_id, GLbitfield flags, GLuint64 timeout
    GLXX_FENCESYNC_T *fsync;
    GLenum error = GL_NO_ERROR;
 
-   state = GL30_LOCK_SERVER_STATE();
+   state = glxx_lock_server_state(OPENGL_ES_3X);
    if (!state)
        return;
 
@@ -307,5 +307,5 @@ end:
    if (error != GL_NO_ERROR)
       glxx_server_state_set_error(state, error);
 
-   GL30_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }

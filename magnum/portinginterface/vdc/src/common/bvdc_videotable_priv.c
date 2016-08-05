@@ -467,6 +467,7 @@ const BVDC_P_CscAbCoeffs * const s_aaCMP_MB_Tbl[][7] =
     }
 };
 
+#if (BVDC_P_CMP_NON_LINEAR_CSC_VER == BVDC_P_NL_CSC_VER_2)
 #define BVDC_P_NL2L_709     BCHP_HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi_RECT1_SEL_NL2L_709
 #define BVDC_P_NL2L_1886    BCHP_HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi_RECT1_SEL_NL2L_1886
 #define BVDC_P_NL2L_PQ      BCHP_HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi_RECT1_SEL_NL2L_PQ
@@ -480,6 +481,21 @@ const BVDC_P_CscAbCoeffs * const s_aaCMP_MB_Tbl[][7] =
 #define BVDC_P_L2NL_BBC     BCHP_HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi_RECT1_SEL_L2NL_BBC
 #define BVDC_P_L2NL_RAM     BCHP_HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi_RECT1_SEL_L2NL_RAM
 #define BVDC_P_L2NL_BYPASS  BCHP_HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi_RECT1_SEL_L2NL_BYPASS
+#else /* TODO: add new HDR support */
+#define BVDC_P_NL2L_709     0
+#define BVDC_P_NL2L_1886    0
+#define BVDC_P_NL2L_PQ      0
+#define BVDC_P_NL2L_BBC     0
+#define BVDC_P_NL2L_RAM     0
+#define BVDC_P_NL2L_BYPASS  0
+
+#define BVDC_P_L2NL_709     0
+#define BVDC_P_L2NL_1886    0
+#define BVDC_P_L2NL_PQ      0
+#define BVDC_P_L2NL_BBC     0
+#define BVDC_P_L2NL_RAM     0
+#define BVDC_P_L2NL_BYPASS  0
+#endif
 
 uint8_t s_aCMP_CSC_NL2L_Tbl[] =
 {

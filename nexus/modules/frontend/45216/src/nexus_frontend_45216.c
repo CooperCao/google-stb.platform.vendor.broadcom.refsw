@@ -553,7 +553,8 @@ static NEXUS_Error NEXUS_FrontendDevice_P_Init45216_PostInitAP(NEXUS_45216Device
         e = BHAB_ReadRegister(pDevice->satDevice->habHandle, 0x06920790, &val);
         if (e) BERR_TRACE(e);
         val &= 0xFFFFFFFE;
-        BHAB_WriteRegister(pDevice->satDevice->habHandle, 0x06920790, &val);
+        e = BHAB_WriteRegister(pDevice->satDevice->habHandle, 0x06920790, &val);
+        if (e) BERR_TRACE(e);
     }
 
 #if NEXUS_HAS_MXT
@@ -606,18 +607,23 @@ static NEXUS_Error NEXUS_FrontendDevice_P_Init45216_PostInitAP(NEXUS_45216Device
             if (e) BERR_TRACE(e);
             val &= 0xFFFFFFFE;
             val |= 1;
-            BHAB_WriteRegister(pDevice->satDevice->habHandle, clockAddr, &val);
+            e = BHAB_WriteRegister(pDevice->satDevice->habHandle, clockAddr, &val);
+            if (e) BERR_TRACE(e);
         } else {
             e = BHAB_ReadRegister(pDevice->satDevice->habHandle, clockAddr, &val);
+            if (e) BERR_TRACE(e);
             if (!e && (val & 1)) {
                 val &= 0xFFFFFFFE;
-                BHAB_WriteRegister(pDevice->satDevice->habHandle, clockAddr, &val);
+                e  = BHAB_WriteRegister(pDevice->satDevice->habHandle, clockAddr, &val);
+                if (e) BERR_TRACE(e);
             }
             if (pSettings->mtsif[i].clockRate != 0) {
                 unsigned clockRate = pSettings->mtsif[i].clockRate;
                 unsigned divider;
 
                 e = BHAB_ReadRegister(pDevice->satDevice->habHandle, clockAddr, &val);
+                if (e) BERR_TRACE(e);
+
                 switch (clockRate) {
                 case 81000000: /* 81 MHz. (hardware default) */
                     divider = 32; break;
@@ -656,7 +662,8 @@ static NEXUS_Error NEXUS_FrontendDevice_P_Init45216_PostInitAP(NEXUS_45216Device
                 }
                 val &= ~0x000001fe;
                 val |= (divider << 1);
-                BHAB_WriteRegister(pDevice->satDevice->habHandle, clockAddr, &val);
+                e = BHAB_WriteRegister(pDevice->satDevice->habHandle, clockAddr, &val);
+                if (e) BERR_TRACE(e);
             }
 
             if (pSettings->mtsif[i].driveStrength != 0) {
@@ -667,6 +674,7 @@ static NEXUS_Error NEXUS_FrontendDevice_P_Init45216_PostInitAP(NEXUS_45216Device
                 driveAddr = i == 0 ? 0x06920460 : 0x06920464;
 
                 e = BHAB_ReadRegister(pDevice->satDevice->habHandle, driveAddr, &val);
+                if (e) BERR_TRACE(e);
 
                 switch (driveStrength) {
                 case 2:
@@ -691,17 +699,37 @@ static NEXUS_Error NEXUS_FrontendDevice_P_Init45216_PostInitAP(NEXUS_45216Device
                 }
                 val &= 0xFFFFFFF8;
                 val |= str;
-                BHAB_WriteRegister(pDevice->satDevice->habHandle, driveAddr, &val);
+                e = BHAB_WriteRegister(pDevice->satDevice->habHandle, driveAddr, &val);
+                if (e) BERR_TRACE(e);
+            }
+
+            {
+                /* enable half-stagger */
+                uint32_t staggerAddr;
+
+                staggerAddr = i == 0 ? 0x06b00200 : 0x06b00300;
+                val = 0x98;
+                e = BHAB_WriteRegister(pDevice->satDevice->habHandle, staggerAddr, &val);
+                if (e) BERR_TRACE(e);
+
+                staggerAddr = i == 0 ? 0x06b00204 : 0x06b00304;
+                val = 0x76543210 ;
+                e = BHAB_WriteRegister(pDevice->satDevice->habHandle, staggerAddr, &val);
+                if (e) BERR_TRACE(e);
+
             }
         }
     }
 
     if (!pSettings->mtsif[0].enabled && !pSettings->mtsif[1].enabled) {
+        BERR_Code e;
         uint32_t val;
-        BHAB_ReadRegister(pDevice->satDevice->habHandle, 0x06920790, &val);
+        e = BHAB_ReadRegister(pDevice->satDevice->habHandle, 0x06920790, &val);
+        if (e) BERR_TRACE(e);
         val &= 0xFFFFFFFE;
         val |= 1;
-        BHAB_WriteRegister(pDevice->satDevice->habHandle, 0x06920790, &val);
+        e = BHAB_WriteRegister(pDevice->satDevice->habHandle, 0x06920790, &val);
+        if (e) BERR_TRACE(e);
     }
 
     pDevice->pGenericDeviceHandle->openPending = false;
@@ -786,9 +814,8 @@ NEXUS_FrontendDeviceHandle NEXUS_FrontendDevice_Open45216(unsigned index, const 
 
         BDBG_MSG(("Opening new 45216 device"));
 
-        pFrontendDevice = BKNI_Malloc(sizeof(*pFrontendDevice));
+        pFrontendDevice = NEXUS_FrontendDevice_P_Create();
         if (NULL == pFrontendDevice) { BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY); goto err; }
-        BKNI_Memset(pFrontendDevice, 0, sizeof(*pFrontendDevice));
 
         pDevice = BKNI_Malloc(sizeof(*pDevice));
         if (NULL == pDevice) { BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY); goto err; }
@@ -865,9 +892,11 @@ static void NEXUS_Frontend_P_Uninit45216(NEXUS_45216Device *pDevice)
     pDevice->deviceOpenThread = NULL;
 
 #if NEXUS_HAS_MXT
-    if (pDevice->pGenericDeviceHandle->mtsifConfig.mxt) {
-        BMXT_Close(pDevice->pGenericDeviceHandle->mtsifConfig.mxt);
-        pDevice->pGenericDeviceHandle->mtsifConfig.mxt = NULL;
+    if (pDevice->pGenericDeviceHandle) {
+        if (pDevice->pGenericDeviceHandle->mtsifConfig.mxt) {
+            BMXT_Close(pDevice->pGenericDeviceHandle->mtsifConfig.mxt);
+            pDevice->pGenericDeviceHandle->mtsifConfig.mxt = NULL;
+        }
     }
 #endif
 

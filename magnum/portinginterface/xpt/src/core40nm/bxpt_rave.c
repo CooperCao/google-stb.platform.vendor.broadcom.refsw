@@ -1,42 +1,39 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *****************************************************************************/
 
 
@@ -1254,6 +1251,18 @@ BERR_Code AllocContext_Priv(
     if( RequestedType == BXPT_RaveCx_eIp )
         ThisCtx->IsMpegTs = true;
 
+    /* See SWSTB-2456. This solution is better than introducing another sequence dependency.
+    ** 13 is used since it's the default for one of the video formats.
+    */
+    Reg = BREG_Read32( ThisCtx->hReg, ThisCtx->BaseAddr + AV_MISC_CFG3_OFFSET );
+    Reg &= ~(
+        BCHP_MASK( XPT_RAVE_CX0_AV_MISC_CONFIG3, MAX_COMPARE_PATTERNS )
+    );
+    Reg |= (
+        BCHP_FIELD_DATA( XPT_RAVE_CX0_AV_MISC_CONFIG3, MAX_COMPARE_PATTERNS, 13 )
+    );
+    BREG_Write32( ThisCtx->hReg, ThisCtx->BaseAddr + AV_MISC_CFG3_OFFSET, Reg );
+
     *Context = ThisCtx;
 
     done:
@@ -1518,7 +1527,7 @@ BERR_Code BXPT_Rave_FreeContext(
         BMEM_ConvertAddressToCached( hMem, BufferAddr, &BufferAddr );
         if(Context->CdbBufferAddr != BufferAddr)
         {
-            BDBG_WRN(("Allocated cdb addr %x,actual cdb addr %x",Context->CdbBufferAddr,BufferAddr));
+            BDBG_WRN(("Allocated cdb addr %p,actual cdb addr %p", (void *) Context->CdbBufferAddr, (void *) BufferAddr));
         }
         if( !Context->externalCdbAlloc )
         {
@@ -1534,7 +1543,7 @@ BERR_Code BXPT_Rave_FreeContext(
             BMEM_ConvertAddressToCached( hMem, BufferAddr, &BufferAddr );
             if(Context->ItbBufferAddr != BufferAddr)
             {
-                BDBG_WRN(("Allocated itb addr %x,actual itb addr %x",Context->ItbBufferAddr,BufferAddr));
+                BDBG_WRN(("Allocated itb addr %p,actual itb addr %p", (void *) Context->ItbBufferAddr, (void *) BufferAddr));
             }
             if( !Context->externalItbAlloc )
             {
@@ -2399,7 +2408,7 @@ BERR_Code BXPT_Rave_SetTpitEcms(
 
         default:
         /* Bad table entry number. Complain. */
-        BDBG_ERR(( "WhichFilter %lu is not valid (valid values are 1, 2, and 3)!", WhichPair ));
+        BDBG_ERR(( "WhichFilter %u is not valid (valid values are 1, 2, and 3)!", WhichPair ));
         ExitCode = BERR_TRACE( BERR_INVALID_PARAMETER );
         break;
     }
@@ -2430,7 +2439,7 @@ BERR_Code BXPT_Rave_SetTpitFilter(
     if( WhichFilter++ >= BXPT_NUM_TPIT_PIDS )
     {
         /* Bad table entry number. Complain. */
-        BDBG_ERR(( "WhichFilter %lu is out of range!", WhichFilter ));
+        BDBG_ERR(( "WhichFilter %u is out of range!", WhichFilter ));
         ExitCode = BERR_TRACE( BERR_INVALID_PARAMETER );
     }
     else
@@ -2996,7 +3005,7 @@ BERR_Code BXPT_Rave_SetRecordConfig(
     Reg = BREG_Read32( Ctx->hReg, Ctx->BaseAddr + CDB_BASE_PTR_OFFSET );
     if(Cfg->UseCdbSize)
     {
-        BDBG_MSG(("check %p: UseCdbSize %#x, allocatedCdbBufferSize %#x", Ctx, Cfg->UseCdbSize, Ctx->allocatedCdbBufferSize));
+        BDBG_MSG(("check %p: UseCdbSize %#x, allocatedCdbBufferSize %#x", (void *) Ctx, Cfg->UseCdbSize, Ctx->allocatedCdbBufferSize));
         if(Cfg->UseCdbSize > Ctx->allocatedCdbBufferSize)
         {
             /* Invalid argument UseCdbSize */
@@ -5155,7 +5164,7 @@ BERR_Code ClearMem(
 #endif
 
     /* Clear data memory */
-    for( Offset = BCHP_XPT_RAVE_DMEMi_ARRAY_START; Offset < BCHP_XPT_RAVE_DMEMi_ARRAY_END; Offset++ )
+    for( Offset = BCHP_XPT_RAVE_DMEMi_ARRAY_START; Offset <= BCHP_XPT_RAVE_DMEMi_ARRAY_END; Offset++ )
         BREG_Write32( hRave->hReg, BCHP_XPT_RAVE_DMEMi_ARRAY_BASE + ( Offset * 4 ), 0 );
 
     return( ExitCode );
@@ -6949,7 +6958,7 @@ BERR_Code BXPT_Rave_ComputeThresholds(
         Thresholds->ItbUpper = Thresholds->ItbLower = 1;       /* Need a minimum of 1 for the band-hold hw to correctly function. */
     }
 
-    BDBG_MSG(( "BXPT_Rave_ComputeThresholds CX%u: CdbUpper 0x%08lX, CdbLower 0x%08lX, ItbUpper 0x%08lX, ItbLower 0x%08lX",
+    BDBG_MSG(( "BXPT_Rave_ComputeThresholds CX%u: CdbUpper 0x%08X, CdbLower 0x%08X, ItbUpper 0x%08X, ItbLower 0x%08X",
         hCtx->Index, Thresholds->CdbUpper, Thresholds->CdbLower, Thresholds->ItbUpper, Thresholds->ItbLower ));
 
     return ExitCode;
@@ -6990,7 +6999,7 @@ BERR_Code BXPT_Rave_SetThresholds(
     BDBG_ASSERT( hCtx );
     BDBG_ASSERT( Thresholds );
 
-    BDBG_MSG(( "BXPT_Rave_SetThresholds CX%u: CdbUpper 0x%08lX, CdbLower 0x%08lX, ItbUpper 0x%08lX, ItbLower 0x%08lX",
+    BDBG_MSG(( "BXPT_Rave_SetThresholds CX%u: CdbUpper 0x%08X, CdbLower 0x%08X, ItbUpper 0x%08X, ItbLower 0x%08X",
         hCtx->Index, Thresholds->CdbUpper, Thresholds->CdbLower, Thresholds->ItbUpper, Thresholds->ItbLower ));
 
     if( Thresholds->CdbUpper > 0xFFFF )
@@ -8317,7 +8326,7 @@ void BXPT_Rave_AdvanceSoftContext(
             if( DestCtx->SoftRave.InsertStopPts )
             {
                 DestCtx->SoftRave.InsertStopPts = false;
-                BDBG_MSG(("Inserting Stop PTS for context %p, PTS %u", DestCtx, DestCtx->SoftRave.splice_stop_PTS));
+                BDBG_MSG(("Inserting Stop PTS for context %p, PTS %u", (void *) DestCtx, DestCtx->SoftRave.splice_stop_PTS));
                 INSERT_START_STOP_PTS_ITB( 0, DestCtx->SoftRave.splice_stop_PTS );
             }
 
@@ -8327,7 +8336,7 @@ void BXPT_Rave_AdvanceSoftContext(
             if( DestCtx->SoftRave.InsertStartPts )
             {
                 DestCtx->SoftRave.InsertStartPts = false;
-                BDBG_MSG(("Inserting Start PTS for context %p, PTS %u", DestCtx, DestCtx->SoftRave.splice_start_PTS));
+                BDBG_MSG(("Inserting Start PTS for context %p, PTS %u", (void *) DestCtx, DestCtx->SoftRave.splice_start_PTS));
                 INSERT_START_STOP_PTS_ITB( 1, DestCtx->SoftRave.splice_start_PTS );
             }
 
@@ -8342,14 +8351,14 @@ void BXPT_Rave_AdvanceSoftContext(
                             && ( src_itb[1] < (DestCtx->SoftRave.splice_start_PTS_tolerance +DestCtx->SoftRave.splice_start_PTS)) )
                                 &&(DestCtx->SoftRave.splice_state == SoftRave_SpliceState_Discard))
                         {
-                        BDBG_MSG(("Inserting Base Address ITB for context %p, Base Address %p, ", DestCtx, DestCtx->SoftRave.last_base_address));
+                        BDBG_MSG(("Inserting Base Address ITB for context %p, Base Address %p, ", (void *) DestCtx, (void *) DestCtx->SoftRave.last_base_address));
                         INSERT_BASE_ENTRY_ITB(DestCtx->SoftRave.last_base_address);
                         INSERT_PCROFFSET_ITB(DestCtx->SoftRave.splice_last_pcr_offset);
                         /* Insert the start marker into the ITB only once. */
                         if( !DestCtx->SoftRave.StartMarkerInserted )
                         {
                             DestCtx->SoftRave.StartMarkerInserted = true;
-                            BDBG_MSG(("Inserting Start marker for context %p, PTS %u", DestCtx, DestCtx->SoftRave.splice_start_PTS));
+                            BDBG_MSG(("Inserting Start marker for context %p, PTS %u", (void *) DestCtx, DestCtx->SoftRave.splice_start_PTS));
                             INSERT_START_MARKER_ITB( 0 );
                         }
 
@@ -8374,7 +8383,7 @@ void BXPT_Rave_AdvanceSoftContext(
                         if( !DestCtx->SoftRave.StopMarkerInserted )
                         {
                             DestCtx->SoftRave.StopMarkerInserted = true;
-                            BDBG_MSG(("Inserting Termination ITB for context %p, PTS %u", DestCtx, DestCtx->SoftRave.splice_stop_PTS));
+                            BDBG_MSG(("Inserting Termination ITB for context %p, PTS %u", (void *) DestCtx, DestCtx->SoftRave.splice_stop_PTS));
                             INSERT_TERMINATION_ITB(src_itb[0] & 0xFF);
                         }
 
@@ -8466,16 +8475,16 @@ void BXPT_Rave_AdvanceSoftContext(
 
                         case brave_itb_splice_start_marker:
                             DestCtx->SoftRave.splice_state = SoftRave_SpliceState_Copy;
-                        BDBG_MSG(("Inserting Base Address ITB for context %p, Base Address %p, ", DestCtx, DestCtx->SoftRave.last_base_address));
+                        BDBG_MSG(("Inserting Base Address ITB for context %p, Base Address %p, ", (void *) DestCtx, (void *) DestCtx->SoftRave.last_base_address));
                         INSERT_BASE_ENTRY_ITB(DestCtx->SoftRave.last_base_address);
-                        BDBG_MSG(("Got brave_itb_splice_start_marker,  Inserting Start PTS ITB & Start Marker for context %p, PTS %u", DestCtx, src_itb[3]));
+                        BDBG_MSG(("Got brave_itb_splice_start_marker,  Inserting Start PTS ITB & Start Marker for context %p, PTS %u", (void *) DestCtx, src_itb[3]));
                         INSERT_START_STOP_PTS_ITB( 1, src_itb[3]);
                         INSERT_START_MARKER_ITB( 0 );
                             break;
 
                         case brave_itb_splice_stop_marker:
                             DestCtx->SoftRave.splice_state = SoftRave_SpliceState_Discard;
-                        BDBG_MSG(("Got brave_itb_splice_stop_marker,  Inserting Stop PTS ITB & Termination ITB for context %p, PTS %u", DestCtx, src_itb[3]));
+                        BDBG_MSG(("Got brave_itb_splice_stop_marker,  Inserting Stop PTS ITB & Termination ITB for context %p, PTS %u", (void *) DestCtx, src_itb[3]));
                         INSERT_START_STOP_PTS_ITB( 0, src_itb[3]);
                         INSERT_TERMINATION_ITB(src_itb[0] & 0xFF);
                             INSERT_PCROFFSET_ITB(0);
@@ -8485,12 +8494,12 @@ void BXPT_Rave_AdvanceSoftContext(
                             if (src_itb[3] != 0)
                             {
                                 DestCtx->SoftRave.splice_pcr_offset +=  src_itb[3];
-                            BDBG_MSG(("Got brave_itb_splice_pcr_offset_marker, Context %p, PCR offset %d", DestCtx, DestCtx->SoftRave.splice_pcr_offset));
+                            BDBG_MSG(("Got brave_itb_splice_pcr_offset_marker, Context %p, PCR offset %d", (void *) DestCtx, DestCtx->SoftRave.splice_pcr_offset));
                                 DestCtx->SoftRave.SpliceModifyPCROffsetFlag = true;
                             }else
                             {
                                 DestCtx->SoftRave.splice_pcr_offset =  src_itb[3];
-                            BDBG_MSG(("Got brave_itb_splice_pcr_offset_marker, Context %p, PCR offset %d", DestCtx, DestCtx->SoftRave.splice_pcr_offset));
+                            BDBG_MSG(("Got brave_itb_splice_pcr_offset_marker, Context %p, PCR offset %d", (void *) DestCtx, DestCtx->SoftRave.splice_pcr_offset));
                                 DestCtx->SoftRave.SpliceModifyPCROffsetFlag = false;
                             }
                             break;
@@ -8499,12 +8508,12 @@ void BXPT_Rave_AdvanceSoftContext(
                             if (src_itb[3] != 0)
                             {
                                 DestCtx->SoftRave.splice_pts_offset +=  src_itb[3];
-                            BDBG_MSG(("Got brave_itb_splice_pcr_offset_marker, Context %p, PCR offset %d", DestCtx, DestCtx->SoftRave.splice_pts_offset));
+                            BDBG_MSG(("Got brave_itb_splice_pcr_offset_marker, Context %p, PCR offset %d", (void *) DestCtx, DestCtx->SoftRave.splice_pts_offset));
                                 DestCtx->SoftRave.SpliceModifyPTSFlag = true;
                             }else
                             {
                                 DestCtx->SoftRave.splice_pts_offset =  src_itb[3];
-                            BDBG_MSG(("Got brave_itb_splice_pcr_offset_marker, Context %p, PCR offset %d", DestCtx, DestCtx->SoftRave.splice_pts_offset));
+                            BDBG_MSG(("Got brave_itb_splice_pcr_offset_marker, Context %p, PCR offset %d", (void *) DestCtx, DestCtx->SoftRave.splice_pts_offset));
                                 DestCtx->SoftRave.SpliceModifyPTSFlag = false;
                             }
                             break;

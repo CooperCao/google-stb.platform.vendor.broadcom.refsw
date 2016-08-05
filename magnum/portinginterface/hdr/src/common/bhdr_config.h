@@ -1,23 +1,40 @@
-/***************************************************************************
- *     Copyright (c) 2003-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ *  Except as expressly set forth in the Authorized License,
  *
- * Module Description:
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * Revision History:
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
- *
- ***************************************************************************/
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+ ******************************************************************************/
 
 #ifndef BHDR_CONFIG_H__
 #define BHDR_CONFIG_H__
@@ -30,6 +47,9 @@ extern "C" {
 #include "bchp.h"
 #include "bchp_common.h"
 #include "bchp_hdmi_rx_0.h"
+
+#include "bchp_dvp_hr.h"
+#include "bchp_dvp_hr_intr2.h"
 
 /*
 The Audio Clock Recovery Packet (ACRP) can be used to calculate the audio
@@ -230,82 +250,28 @@ therefore this option has not been adequately tested
 /******************************************************************/
 /******************************************************************/
 
-#if ((BCHP_CHIP == 3548) || (BCHP_CHIP == 3556))
-#define HDMI_RX_GEN 3548
-
-#elif (BCHP_CHIP == 7422)  || (BCHP_CHIP == 7425)  \
-   || (BCHP_CHIP == 7640)  || (BCHP_CHIP == 7429)  \
-   || (BCHP_CHIP == 7435)  || (BCHP_CHIP == 74295)
-#define HDMI_RX_GEN 7422
-
-#elif (BCHP_CHIP == 7445) || (BCHP_CHIP == 7145) \
-	|| (BCHP_CHIP == 7439) || (BCHP_CHIP == 74371)|| (BCHP_CHIP == 7251)
-#define HDMI_RX_GEN 7445
-
-#elif BCHP_HDCP2_RX_0_REG_START
-
-#define HDMI_RX_GEN 7445
-
-#else
-#error UNKNOWN_CHIP
+/***********************************/
+/* Dual Hotplug Interrupts Support */
+/***********************************/
+#ifdef  BCHP_DVP_HR_INTR2_CPU_STATUS_HP_CONNECTED_0_MASK
+#define BHDR_CONFIG_DUAL_HPD_SUPPORT 1
 #endif
 
+/***********************************/
+/* HDMI 2.0 Support */
+/***********************************/
 #ifdef BCHP_HDMI_RX_0_HDCP_RX_I2C_MISC_CFG_2_I2C_SCDC_ENABLE_MASK
 #define BHDR_HAS_HDMI_20_SUPPORT 1
+
+#ifdef BCHP_HDMI_RX_0_HDCP_RX_I2C_MISC_CFG_2_SCDC_OFFSET_INC_MODE_MASK
+#define BHDR_CONFIG_MANUAL_SCDC_CLEAR 1
 #endif
-
-/*********** Basic HDMI Rx Configuration ***********/
-#if HDMI_RX_GEN == 7422
-
-#define BHDR_FE_MAX_CHANNELS 1
-#define BHDR_HAS_MULTIPLE_PORTS 0
-#define BHDR_CONFIG_RESET_HDCP_ON_SYMBOL_LOCK	1
-#define BHDR_CONFIG_UPDATE_MAI_ON_VSYNC 1
-
-#define BHDR_CONFIG_REPEATER 1
-
-#if ((BCHP_CHIP == 7425) || (BCHP__CHIP == 7422) || (BCHP_CHIP == 7640)) \
-&& (BCHP_VER < BCHP_VER_B0)
-
-#define BHDR_FE_HP_LEGACY_SUPPORT 1
 
 #endif
 
-
-#if ((BCHP_CHIP == 7425)  && (BCHP_VER >= BCHP_VER_B0)) \
-  || (BCHP_CHIP == 7429)  || (BCHP_CHIP == 7435) \
-  || (BCHP_CHIP == 74295)
-#define BHDR_CONFIG_HW_PASSTHROUGH_SUPPORT 1
-#define BHDR_CONFIG_FE_MULTI_CLOCK_SUPPORT 1
-#endif
-
-
-#if (BCHP_CHIP == 7435) || (BCHP_CHIP == 74295) \
-|| ((BCHP_CHIP == 7429) && (BCHP_VER >= BCHP_VER_B0))
-#define BHDR_CONFIG_DUAL_HPD_SUPPORT 1
-#endif
-
-
-#define BHDR_CONFIG_HBR_SUPPORT 1
-
-#elif HDMI_RX_GEN == 7445
-
-#define BHDR_FE_MAX_CHANNELS 1
-#define BHDR_HAS_MULTIPLE_PORTS 0
-#define BHDR_CONFIG_RESET_HDCP_ON_SYMBOL_LOCK	1
-#define BHDR_CONFIG_UPDATE_MAI_ON_VSYNC 1
-
-#define BHDR_CONFIG_REPEATER 1
-
-#define BHDR_CONFIG_DUAL_HPD_SUPPORT 1
-
-#define BHDR_CONFIG_FE_MULTI_CLOCK_SUPPORT 1
-
-#if ((BCHP_CHIP == 7445) && (BCHP_VER < BCHP_VER_C0))
-#define BHDR_CONFIG_RDB_MAPPING_WORKAROUND 1
-#endif
-
-
+/***********************************/
+/* HDCP 2.2 Support */
+/***********************************/
 #ifdef BCHP_HDCP2_RX_HAE_INTR2_0_REG_START
 #define BHDR_CONFIG_HDCP2X_SUPPORT 1
 
@@ -314,11 +280,26 @@ therefore this option has not been adequately tested
 || ((BCHP_CHIP == 7364)  && (BCHP_VER <= BCHP_VER_A0))
 #define BHDR_CONFIG_DISABLE_KEY_RAM_SERIAL 1
 #endif
-
 #endif
 
-#else
-#error Unknown/Unsupported chip
+#ifdef BCHP_DVP_HR_FREQ_MEASURE_CONTROL
+#define BHDR_CONFIG_FE_MULTI_CLOCK_SUPPORT 1
+#endif
+
+#define BHDR_FE_MAX_CHANNELS 1
+#define BHDR_HAS_MULTIPLE_PORTS 0
+#define BHDR_CONFIG_RESET_HDCP_ON_SYMBOL_LOCK	1
+#define BHDR_CONFIG_UPDATE_MAI_ON_VSYNC 1
+
+
+/*********** Legacy HDMI Rx Configuration ***********/
+#if ((BCHP_CHIP == 7425) || (BCHP__CHIP == 7422) || (BCHP_CHIP == 7640)) \
+&& (BCHP_VER < BCHP_VER_B0)
+#define BHDR_FE_HP_LEGACY_SUPPORT 1
+#endif
+
+#if BCHP_DVP_HR_PTHRU_CFG
+#define BHDR_CONFIG_HW_PASSTHROUGH_SUPPORT 1
 #endif
 
 

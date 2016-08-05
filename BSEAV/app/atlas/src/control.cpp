@@ -1540,6 +1540,46 @@ void CControl::processNotification(CNotification & notification)
     }
     break;
 
+    case eNotify_ipClientTranscodeEnable:
+    {
+        bool *              transcodeEnabled;
+        transcodeEnabled    = (bool *)notification.getData();
+        _pModel->setIpClientTranscodeEnabled(*transcodeEnabled);
+		if(*transcodeEnabled)
+		{
+			BDBG_WRN(("Transcoding is enabled for the IP streaming for this client" ));
+	    }
+		else
+		{
+			BDBG_WRN(("Transcoding is disabled for the IP streaming for this client" ));
+		}
+    }
+    break;
+
+    case eNotify_ipClientTranscodeProfile:
+    {
+
+        int * transcodeProfile = (int *)notification.getData();
+        BDBG_WRN(("You entered %d", *transcodeProfile ));
+
+        if(*transcodeProfile == 1)
+		{
+			BDBG_WRN(("Transcode profile is set to 480p30 for the next IP streaming for this client" ));
+	    }
+		else if(*transcodeProfile == 2)
+		{
+			BDBG_WRN(("Transcode profile is set to 720p30 for the next IP streaming for this client" ));
+	    }
+        else
+		{
+			BDBG_WRN(("Invalid Transcode profile. Please enter 1 for 480p30 OR 2 for 720p30 profile" ));
+	    }
+
+        _pModel->setIpClientTranscodeProfile(*transcodeProfile);
+
+    }
+    break;
+
 #ifdef DCC_SUPPORT
     case eNotify_ClosedCaptionEnable:
     {

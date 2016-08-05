@@ -1091,6 +1091,19 @@ NEXUS_Error NEXUS_Platform_P_GetHostMemory(NEXUS_PlatformMemory *pMemory)
                 }
             }
         }
+        /* sort bmem regions since pMemory->osRegion expects sorted regions, use naive bubble sort */
+        for(i=0;i<info->bmem.count;i++) {
+            int j;
+            for(j=i+1;j<info->bmem.count;j++) {
+                if(info->bmem.range[i].addr > info->bmem.range[j].addr) {
+                    nexus_p_memory_range temp;
+                    BDBG_WRN(("swap bmem[%u]" BDBG_UINT64_FMT ":%u with bmem[%u]" BDBG_UINT64_FMT ":%u", i, BDBG_UINT64_ARG(info->bmem.range[i].addr), (unsigned)info->bmem.range[i].size, j, BDBG_UINT64_ARG(info->bmem.range[j].addr), (unsigned)info->bmem.range[j].size));
+                    temp = info->bmem.range[i];
+                    info->bmem.range[i] = info->bmem.range[j];
+                    info->bmem.range[j] = temp;
+                }
+            }
+        }
         rc = NEXUS_Platform_P_SetHostBmemMemoryFromInfo(info, pMemory->osRegion);
     }
     BKNI_Free(info);

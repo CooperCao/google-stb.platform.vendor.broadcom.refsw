@@ -128,7 +128,7 @@ int main(int argc, char **argv)
     NEXUS_DolbyVolume258Handle dv258;
     NEXUS_DolbyVolume258Settings dv258Settings;
     NEXUS_AudioCapabilities caps;
-    NEXUS_AudioInput outputConnector;
+    NEXUS_AudioInputHandle outputConnector;
 #if NEXUS_NUM_HDMI_OUTPUTS
     NEXUS_HdmiOutputStatus hdmiStatus;
     NEXUS_HdmiOutputSettings hdmiSettings;

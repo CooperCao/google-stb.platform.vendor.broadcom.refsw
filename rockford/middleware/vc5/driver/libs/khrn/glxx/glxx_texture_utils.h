@@ -49,6 +49,7 @@ void glxx_hw_fmts_from_api_fmt(
 extern bool glxx_tex_target_valid_in_es1(GLenum target);
 
 extern bool glxx_tex_target_is_multisample(GLenum target);
+extern bool glxx_tex_target_has_layers(GLenum target);
 
 extern void glxx_choose_copy_format_from_unsized_internalformat(GLenum
       internalformat, GFX_LFMT_T src_lfmt, GFX_LFMT_T

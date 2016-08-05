@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2014 Broadcom Corporation
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  *****************************************************************************/
 
@@ -106,12 +98,14 @@
 #endif
 
 
+/* These codes correspond to keys on the OneForAll Remote */
 #define EXIT_IR_CODE 0xD012
-#define S0_IR_CODE 0x600A
-#define S1_IR_CODE 0xF001
-#define S2_IR_CODE 0xE002
-#define S3_IR_CODE 0xD003
-#define S5_IR_CODE 0xB005
+#define S0_IR_CODE 0x600A /*master power*/
+#define S1_IR_CODE 0xF001 /*1*/
+#define S2_IR_CODE 0xE002 /*2*/
+#define S3_IR_CODE 0xD003 /*3*/
+#define S5_IR_CODE 0xB005 /*5*/
+#define SO_IR_CODE 0xE011 /*ok*/
 
 #define S0_UHF_CODE 0x00220373
 
@@ -286,6 +280,7 @@ int start_app(void);
 void stop_app(void);
 void ir_open(void);
 void ir_close(void);
+void ir_last_key(unsigned *code, unsigned *codeHigh);
 void uhf_open(void);
 void uhf_close(void);
 void keypad_open(void);

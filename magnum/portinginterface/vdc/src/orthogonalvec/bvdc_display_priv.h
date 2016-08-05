@@ -74,7 +74,9 @@ extern "C" {
 #include "bchp_hdmi_tx_phy.h"
 #include "bchp_dvi_dtg_0.h"
 #include "bchp_dvi_dvf_0.h"
+#ifdef BCHP_DVI_CSC_0_REG_START
 #include "bchp_dvi_csc_0.h"
+#endif
 #include "bchp_dvp_ht.h"
 
 #ifdef BCHP_DTRAM_0_REG_START
@@ -126,7 +128,7 @@ extern "C" {
 /****************************************************************
  *  Defines
  ****************************************************************/
-/* Original Orthgonal VEC starting from 7420 to 7425Ax */
+/* Original Orthgonal VEC to 7425Ax */
 #define BVDC_P_ORTHOGONAL_VEC_VER_0          (0)
 
 /* 7425 B0 - new vec trigger */
@@ -159,7 +161,7 @@ extern "C" {
  */
 #define BVDC_P_HDMI_RM_VER_3                 (3)
 
-/* 7550, 7420, 7125, 7468, 7408
+/* 7125
  *  DVI support: 65NM 27MHz
  */
 #define BVDC_P_HDMI_RM_VER_4                 (4)
@@ -178,9 +180,6 @@ extern "C" {
  *  DVI support: BCHP_RM_0_INTEGRATOR_LO/HI, NEW TRACKING RANGES.
  */
 #define BVDC_P_HDMI_RM_VER_7                 (7)
-
-#define BVDC_P_SUPPORT_DVI_65NM               \
-     (BVDC_P_SUPPORT_HDMI_RM_VER == BVDC_P_HDMI_RM_VER_4)
 
 #define BVDC_P_SUPPORT_DVI_40NM                   \
     (BVDC_P_SUPPORT_HDMI_RM_VER == BVDC_P_HDMI_RM_VER_5)
@@ -625,17 +624,17 @@ typedef union
         uint32_t                bChan1            : 1; /* setup/destroy analog chan 1 */
         uint32_t                bTiming           : 1; /* new output timing format */
         uint32_t                bAcp              : 1; /* Change in analog copy protection configuration */
-        uint32_t                b3DSetting        : 1; /* new 3D setting */
 
+        uint32_t                b3DSetting        : 1; /* new 3D setting */
         uint32_t                bDacSetting       : 1; /* new DAC settings */
         uint32_t                bTimeBase         : 1; /* new time base setting */
         uint32_t                bCallback         : 1; /* new callback mask settings */
+
         uint32_t                bCallbackFunc     : 1; /* new callback function */
         uint32_t                bWidthTrim        : 1; /* 704-sample vs. 720-sample */
-
         uint32_t                bInputCS          : 1; /* input color space */
         uint32_t                bSrcFrameRate     : 1; /* Source frame rate */
-        uint32_t                bDropFrame        : 1; /* rate change 59.94Hz vs 60.00Hz */
+
 #if (BVDC_P_SUPPORT_RFM_OUTPUT != 0)
         uint32_t                bRfm              : 1; /* new configuration */
 #endif
@@ -645,15 +644,16 @@ typedef union
 #if (BVDC_P_SUPPORT_ITU656_OUT != 0)
         uint32_t                b656Enable        : 1; /* enable/disable ITU656 output */
 #endif
+
         uint32_t                bMpaaComp         : 1; /* new component path MPAA settings  */
         uint32_t                bMpaaHdmi         : 1; /* new HDMI path MPAA settings */
         uint32_t                bTimeStamp        : 1; /* Take a time stamp for alignment */
-
         uint32_t                bAlignment        : 1; /* start/stop alignment */
-        uint32_t                bHdmiDroplines    : 1; /* new drop-line setting for HDMI */
+
         uint32_t                bHdmiXvYcc        : 1; /* new HDMI XvYcc setting */
         uint32_t                bHdmiSyncOnly     : 1; /* Turn on/off HDMI sync only feature */
         uint32_t                bHdmiSettings     : 1; /* HDMI setting changed */
+        uint32_t                bHdmiRmSettings   : 1; /* HDMI RM changed */
 
         uint32_t                bAspRatio         : 1; /* aspect ratio might changed */
 #if (BVDC_P_SUPPORT_STG != 0)
@@ -661,7 +661,9 @@ typedef union
 #endif
         uint32_t                bVfFilter         : 1; /* user VF filters */
         uint32_t                bOutputMute       : 1; /* output Mute */
+
         uint32_t                bMiscCtrl         : 1; /* Combined various dirty bits does not trigger together. */
+
     } stBits;
 
     uint32_t aulInts[BVDC_P_DIRTY_INT_ARRAY_SIZE];
@@ -692,12 +694,12 @@ typedef struct
     BVDC_P_CscCoeffs            stCscCoeffs;
 } BVDC_P_DisplayCscMatrix;
 
-#if (BVDC_P_SUPPORT_HDMI_RM_VER == BVDC_P_HDMI_RM_VER_4)
-#include "bvdc_hdmirm_tmds_enum_65nm.h"
-#elif (BVDC_P_SUPPORT_HDMI_RM_VER == BVDC_P_HDMI_RM_VER_5)
+#if (BVDC_P_SUPPORT_HDMI_RM_VER == BVDC_P_HDMI_RM_VER_5)
 #include "bvdc_hdmirm_tmds_enum_40nm.h"
 #elif ((BVDC_P_SUPPORT_HDMI_RM_VER == BVDC_P_HDMI_RM_VER_6) || (BVDC_P_SUPPORT_HDMI_RM_VER == BVDC_P_HDMI_RM_VER_7))
 #include "bvdc_hdmirm_tmds_enum_28nm.h"
+#else /* if (BVDC_P_SUPPORT_HDMI_RM_VER == ...) */
+#error Unknown/undefined HDMI Rate Manager hardware version
 #endif
 
 #if (BVDC_P_SUPPORT_DVI_40NM)
@@ -796,19 +798,9 @@ typedef struct
 {
     bool                        bWidthTrimmed;
     bool                        bFullRate;
+    bool                        bBypassDviCsc;
     BVDC_P_MatrixCoeffs         eCmpMatrixCoeffs;
 } BVDC_P_Display_SrcInfo;
-
-typedef struct
-{
-    struct
-    {
-        uint32_t                    bHdmiRmChanged : 1; /* HDMI RM changed */
-        uint32_t                    bHdmiColorComponent : 1; /* HDMI FC changed */
-    } stBits;
-
-    uint32_t aulInts[BVDC_P_DIRTY_INT_ARRAY_SIZE];
-} BVDC_P_Display_HdmiDirtyBits;
 
 typedef struct
 {
@@ -817,7 +809,6 @@ typedef struct
     BAVC_HDMI_PixelRepetition    eHdmiPixelRepetition; /* none, 1x, or 4x */
     BFMT_VideoFmt                eHDMIFormat;          /* 4kx2k upscale support */
     BFMT_VideoFmt                eMatchingFormat;
-    BVDC_P_Display_HdmiDirtyBits stDirty;              /* HDMI dirty bits */
 } BVDC_P_Display_HdmiSettings;
 
 /*
@@ -866,6 +857,11 @@ typedef struct
     /* VF filters */
     const uint32_t             *apVfFilter[BVDC_P_VEC_CH_NUM];
     uint32_t                    vfMisc;
+
+#ifdef BCHP_PWR_RESOURCE_VDC_DAC
+    uint32_t                    ulDacPwrAcquire;
+    uint32_t                    ulDacPwrRelease;
+#endif
 } BVDC_P_DisplayAnlgChan;
 
 typedef struct
@@ -1158,7 +1154,7 @@ typedef struct BVDC_P_DisplayContext
     /* Is this a bypass display? which means no VEC analog output. */
     bool                        bIsBypass;
 
-    bool                        bDviCscPassThrough;
+    bool                        bCmpBypassDviCsc;
     /* Internal VDC or App handed down. */
     BVDC_Heap_Handle            hHeap;
 
@@ -1356,7 +1352,6 @@ void BVDC_P_FreeDviChanResources_isr
 
 BERR_Code BVDC_P_AllocDacResources
     ( BVDC_P_Resource_Handle     hResource,
-      BVDC_Display_Handle        hDisplay,
       BVDC_P_DisplayAnlgChan    *pstChan,
       uint32_t                   ulDacId );
 
@@ -1490,7 +1485,7 @@ BERR_Code BVDC_P_Display_GetFieldPolarity_isr
       uint32_t                       **ppulRulCur,
       BAVC_Polarity                    eFieldPolarity );
 
-BERR_Code BVDC_P_GetVfFilterSumOfTapsBits
+BERR_Code BVDC_P_GetVfFilterSumOfTapsBits_isr
     ( const BVDC_P_DisplayInfo        *pDispInfo,
       BVDC_DisplayOutput               eDisplayOutput,
       uint32_t                        *pulSumOfTapsBits,

@@ -127,13 +127,12 @@ NEXUS_FrontendDeviceHandle NEXUS_Docsis_OpenDevice(
     BDBG_ASSERT(pOpenSettings);
     BSTD_UNUSED(index);
 
-    hFrontendDevice = BKNI_Malloc(sizeof(NEXUS_FrontendDevice));
-    if (!hFrontendDevice )
-    {
-        retCode = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
-        goto errorAlloc;
-    }
-    BKNI_Memset(hFrontendDevice, 0, sizeof(NEXUS_FrontendDevice));
+	hFrontendDevice = NEXUS_FrontendDevice_P_Create();
+	if (!hFrontendDevice)
+	{
+		retCode = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
+		goto errorAlloc;
+	}
 
     hDevice = BKNI_Malloc(sizeof(NEXUS_DocsisDevice));
     if (!hDevice )
@@ -254,6 +253,7 @@ NEXUS_FrontendDeviceHandle NEXUS_Docsis_OpenDevice(
         switch (chipRev) {
             case BMXT_ChipRev_eA0: mxtSettings.chipRev = BMXT_ChipRev_eA0; break;
             case BMXT_ChipRev_eA1: mxtSettings.chipRev = BMXT_ChipRev_eA1; break;
+            case BMXT_ChipRev_eA2: mxtSettings.chipRev = BMXT_ChipRev_eA2; break;
             case BMXT_ChipRev_eB0: mxtSettings.chipRev = BMXT_ChipRev_eB0; break;
             /* TODO: does this correctly return A0 for 7145? */
             default:
@@ -825,7 +825,7 @@ NEXUS_FrontendHandle NEXUS_Docsis_OpenChannel(
         }
     }
     hFrontend->getType = NEXUS_Docsis_P_GetType;
-    BDBG_MSG(("hDevice %#lx hChannel %#lx hFrontend %#lx",hDevice,hChannel,hFrontend));
+    BDBG_MSG(("hDevice %#lx hChannel %#lx hFrontend %#lx",(long unsigned int)hDevice,(long unsigned int)hChannel,(long unsigned int)hFrontend));
     hFrontend->pGenericDeviceHandle = hDevice->pGenericDeviceHandle;
     return hFrontend;
 

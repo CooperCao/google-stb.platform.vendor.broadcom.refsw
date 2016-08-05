@@ -84,7 +84,7 @@ void gl20_program_term(void *v, size_t size)
 {
    GL20_PROGRAM_T *program = v;
 
-   UNUSED(size);
+   vcos_unused(size);
 
    free_binding_array(program->bindings, program->num_bindings);
 
@@ -249,6 +249,7 @@ static unsigned default_block_locations(const GLenum gl_type) {
    case GL_INT_SAMPLER_2D_ARRAY:
    case GL_INT_SAMPLER_3D:
    case GL_INT_SAMPLER_CUBE:
+   case GL_INT_SAMPLER_CUBE_MAP_ARRAY:
    case GL_SAMPLER_1D_BRCM:
    case GL_SAMPLER_1D_ARRAY_BRCM:
    case GL_SAMPLER_2D:
@@ -260,6 +261,8 @@ static unsigned default_block_locations(const GLenum gl_type) {
    case GL_SAMPLER_3D:
    case GL_SAMPLER_CUBE:
    case GL_SAMPLER_CUBE_SHADOW:
+   case GL_SAMPLER_CUBE_MAP_ARRAY:
+   case GL_SAMPLER_CUBE_MAP_ARRAY_SHADOW:
    case GL_UNSIGNED_INT_SAMPLER_1D_BRCM:
    case GL_UNSIGNED_INT_SAMPLER_1D_ARRAY_BRCM:
    case GL_UNSIGNED_INT_SAMPLER_2D:
@@ -268,24 +271,28 @@ static unsigned default_block_locations(const GLenum gl_type) {
    case GL_UNSIGNED_INT_SAMPLER_2D_ARRAY:
    case GL_UNSIGNED_INT_SAMPLER_3D:
    case GL_UNSIGNED_INT_SAMPLER_CUBE:
+   case GL_UNSIGNED_INT_SAMPLER_CUBE_MAP_ARRAY:
    case GL_SAMPLER_EXTERNAL_OES:
    case GL_IMAGE_2D:
    case GL_IMAGE_3D:
    case GL_IMAGE_CUBE:
+   case GL_IMAGE_CUBE_MAP_ARRAY:
    case GL_IMAGE_2D_ARRAY:
    case GL_INT_IMAGE_2D:
    case GL_INT_IMAGE_3D:
    case GL_INT_IMAGE_CUBE:
+   case GL_INT_IMAGE_CUBE_MAP_ARRAY:
    case GL_INT_IMAGE_2D_ARRAY:
    case GL_UNSIGNED_INT_IMAGE_2D:
    case GL_UNSIGNED_INT_IMAGE_3D:
    case GL_UNSIGNED_INT_IMAGE_CUBE:
+   case GL_UNSIGNED_INT_IMAGE_CUBE_MAP_ARRAY:
    case GL_UNSIGNED_INT_IMAGE_2D_ARRAY:
       return 1;
    case GL_UNSIGNED_INT_ATOMIC_COUNTER:
       return 0;
    default:
-      UNREACHABLE();
+      unreachable();
       return 0;
    }
 }
@@ -376,32 +383,29 @@ static GLSL_PROGRAM_T *link_compute(GL20_PROGRAM_T *program) {
 
 static GLSL_PROGRAM_T *link_graphics(GL20_PROGRAM_T *program)
 {
-   if (!program->separable)
-   {
-      if (program->vertex == NULL) {
-         gl20_program_save_error(program, "Link Error: Vertex shader not attached");
-         return NULL;
-      }
-
-      if (program->fragment == NULL) {
-         gl20_program_save_error(program, "Link Error: Fragment shader not attached");
-         return NULL;
-      }
-   }
-   else
-   {
-      if (program->vertex == NULL && program->fragment == NULL) {
-         gl20_program_save_error(program, "Link Error: Separable program has no stages");
-         return NULL;
-      }
-   }
-
    assert(program->compute == NULL);
 
    if (program->vertex && program->vertex->binary == NULL) {
       gl20_program_save_error(program, "Link Error: Vertex shader not compiled");
       return NULL;
    }
+
+#if GLXX_HAS_TNG
+   if (program->tess_control && program->tess_control->binary == NULL) {
+      gl20_program_save_error(program, "Link Error: Tessellation control shader not compiled");
+      return NULL;
+   }
+
+   if (program->tess_evaluation && program->tess_evaluation->binary == NULL) {
+      gl20_program_save_error(program, "Link Error: Tessellation evaluation shader not compiled");
+      return NULL;
+   }
+
+   if (program->geometry && program->geometry->binary == NULL) {
+      gl20_program_save_error(program, "Link Error: Geometry shader not compiled");
+      return NULL;
+   }
+#endif
 
    if (program->fragment && program->fragment->binary == NULL) {
       gl20_program_save_error(program, "Link Error: Fragment shader not compiled");
@@ -434,18 +438,16 @@ static GLSL_PROGRAM_T *link_graphics(GL20_PROGRAM_T *program)
       stages[SHADER_VERTEX] = program->vertex->binary;
    if (program->fragment)
       stages[SHADER_FRAGMENT] = program->fragment->binary;
-#if GLXX_HAS_TESSELLATION
+#if GLXX_HAS_TNG
    if (program->tess_control)
       stages[SHADER_TESS_CONTROL] = program->tess_control->binary;
    if (program->tess_evaluation)
       stages[SHADER_TESS_EVALUATION] = program->tess_evaluation->binary;
-#endif
-#if GLXX_HAS_TNG
    if (program->geometry)
       stages[SHADER_GEOMETRY] = program->geometry->binary;
 #endif
 
-   ret = glsl_link_program(stages, &source);
+   ret = glsl_link_program(stages, &source, program->separable);
    if (!ret) {
       /* TODO: This communication by globals is unnecessary */
       gl20_program_save_error(program, glsl_compile_error_get());
@@ -486,7 +488,7 @@ int gl20_is_program(GL20_PROGRAM_T *program)
 
 bool gl20_validate_program(GLXX_SERVER_STATE_T *state, GL20_PROGRAM_COMMON_T *program)
 {
-   UNUSED(state);
+   vcos_unused(state);
 
    /*TODO */
    return program->link_status;
@@ -499,40 +501,25 @@ static void write_tf_specs(GLXX_PROGRAM_TFF_POST_LINK_T *tf_post,
                            const GLSL_PROGRAM_T *prog,
                            GLenum buffer_mode)
 {
-   // TODO: Are we supposed to be checking what this comment says here?
-   // A program will fail to link if:
-   //  - Any variable name specified in the varyings array is not
-   //    declared as an output in the vertex shader
-   //  - Any two entries in the varyings array specify the same
-   //    output variable;
-   //  - The total number of components to capture in any output
-   //    in varyings is greater than the constant
-   //    MAX_TRANSFORM_FEEDBACK_SEPARATE_COMPONENTS and the buffer
-   //    mode is SEPARATE_ATTRIBS
-   //  - The total number of components to capture is greater than
-   //    the constant MAX_TRANSFORM_FEEDBACK_INTERLEAVED_COMPONENTS
-   //    and the buffer mode is INTERLEAVED_ATTRIBS
-
    // In this code, we always assume point size is used, so 0 for gl_Position
    // and 7 for first user varying. gl_PointSize is copied into the user block.
    // During draw calls, 7 and above is decremented by 1 if point size is not used
    // (and 6 is not allowed)
 
-   unsigned int i;
    uint32_t offset = 7; // next tf varying index in VPM shaded vertex format
 
    tf_post->varying_count = prog->num_tf_captures;
    tf_post->buffer_mode   = buffer_mode;
    tf_post->spec_count    = 0;
    tf_post->addr_count    = 0;
-   for (i = 0; i < V3D_MAX_TF_SPECS; ++i)
+   for (unsigned i = 0; i < V3D_MAX_TF_SPECS; ++i)
    {
       tf_post->spec[i].buffer = 0;
       tf_post->spec[i].count = 0;
       tf_post->spec[i].first = 0;
    }
 
-   for (i = 0; i < prog->num_tf_captures; ++i)
+   for (unsigned i = 0; i < prog->num_tf_captures; ++i)
    {
       /* We don't need to check PointSize because the compiler copies that
        * into the standard varyings block.
@@ -555,33 +542,33 @@ static void write_tf_specs(GLXX_PROGRAM_TFF_POST_LINK_T *tf_post,
 
       tf_post->addr_count = buffer + 1;
 
+      /* XXX Hackily allow continuing where we left off ... */
+      int spec_i = tf_post->spec_count;
+      if (spec_i > 0 &&
+          tf_post->spec[spec_i-1].buffer == buffer &&
+          tf_post->spec[spec_i-1].first +
+          tf_post->spec[spec_i-1].count   == first )
       {
-         int spec_i = tf_post->spec_count;
+         first = tf_post->spec[spec_i-1].first;
+         count = tf_post->spec[spec_i-1].count + count;
+         tf_post->spec_count--;
+      }
 
-         /* XXX Hackily allow continuing where we left off ... */
-         if (spec_i > 0 &&
-             tf_post->spec[spec_i-1].buffer == buffer &&
-             tf_post->spec[spec_i-1].first +
-             tf_post->spec[spec_i-1].count   == first )
-         {
-            first = tf_post->spec[spec_i-1].first;
-            count = tf_post->spec[spec_i-1].count + count;
-            tf_post->spec_count--;
-         }
+      while (count > 0) {
+         int this_count = count > 16 ? 16 : count;
+         V3D_TF_SPEC_T *spec = &tf_post->spec[tf_post->spec_count];
 
-         while (count > 0) {
-            int this_count = count > 16 ? 16 : count;
-            V3D_TF_SPEC_T *spec = &tf_post->spec[tf_post->spec_count];
+         spec->buffer = buffer;
+         spec->first = first;
+         spec->count = this_count;
+#if V3D_HAS_NEW_TF
+         spec->stream = 0;
+#endif
 
-            spec->buffer = buffer;
-            spec->first = first;
-            spec->count = this_count;
+         tf_post->spec_count++;
 
-            tf_post->spec_count++;
-
-            count -= this_count;
-            first += this_count;
-         }
+         count -= this_count;
+         first += this_count;
       }
 
       assert(tf_post->spec_count < V3D_MAX_TF_SPECS);
@@ -590,7 +577,7 @@ static void write_tf_specs(GLXX_PROGRAM_TFF_POST_LINK_T *tf_post,
 
 GL_API void GL_APIENTRY glGetTransformFeedbackVarying(GLuint program, GLuint index, GLsizei bufSize, GLsizei* length, GLsizei* size, GLenum* type, GLchar* name)
 {
-   GLXX_SERVER_STATE_T  *state = GL30_LOCK_SERVER_STATE_UNCHANGED();
+   GLXX_SERVER_STATE_T  *state = glxx_lock_server_state_unchanged(OPENGL_ES_3X);
    if (!state)
       return;
 
@@ -600,7 +587,7 @@ GL_API void GL_APIENTRY glGetTransformFeedbackVarying(GLuint program, GLuint ind
    glxx_get_program_resourceiv(state, program, GL_TRANSFORM_FEEDBACK_VARYING, index, 1, &props[0], 1, NULL, size);
    glxx_get_program_resourceiv(state, program, GL_TRANSFORM_FEEDBACK_VARYING, index, 1, &props[1], 1, NULL, (int*)type);
 
-   GL30_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL20_PROGRAM_COMMON_T *gl20_program_common_get(const GLXX_SERVER_STATE_T *state)
@@ -643,13 +630,11 @@ static GL20_SHADER_T **get_shader(GL20_PROGRAM_T *program, GL20_SHADER_T *shader
       return &program->vertex;
    case GL_FRAGMENT_SHADER:
       return &program->fragment;
-#if GLXX_HAS_TESSELLATION
+#if GLXX_HAS_TNG
    case GL_TESS_CONTROL_SHADER:
       return &program->tess_control;
    case GL_TESS_EVALUATION_SHADER:
       return &program->tess_evaluation;
-#endif
-#if GLXX_HAS_TNG
    case GL_GEOMETRY_SHADER:
       return &program->geometry;
 #endif

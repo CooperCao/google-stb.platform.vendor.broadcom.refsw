@@ -43,7 +43,7 @@
 #define _BXVD_PLATFORM_REVN0_H_
 
 /* Rev N core with dual IL pipe uses 1.79 MB */
-#if ((BCHP_CHIP == 7445) || (BCHP_CHIP == 7250) || (BCHP_CHIP == 7268) || \
+#if ((BCHP_CHIP == 7445) || (BCHP_CHIP == 7250) || (BCHP_CHIP == 7260) || (BCHP_CHIP == 7268) || \
      (BCHP_CHIP == 7271) || (BCHP_CHIP == 7364) || (BCHP_CHIP == 7366) || \
      (BCHP_CHIP == 7439) || (BCHP_CHIP == 74371) || (BCHP_CHIP == 7586))
 #define BXVD_P_FW_IMAGE_SIZE              0x001CA000
@@ -155,21 +155,24 @@
 #define  BXVD_P_8N3_BUG 1
 #endif
 
-#if (BCHP_CHIP == 7586) || (BCHP_CHIP == 7268) || (BCHP_CHIP == 7271)
+#if (BCHP_CHIP == 7586) || (BCHP_CHIP == 7260) || (BCHP_CHIP == 7268) || (BCHP_CHIP == 7271)
 
-#if (BCHP_CHIP == 7268) || (BCHP_CHIP == 7271)
-#define  BXVD_P_HEVD_PFRI_DEBUG_PFRI_GROUPING_PRESENT 1
-#define  BXVD_P_STB_REG_BASE          BCHP_HEVD_OL_CPU_REGS_0_REG_START
-#else
+#if (BCHP_CHIP == 7586 )
 #define  BXVD_P_STB_REG_BASE          0
 #define  BXVD_P_8N3_BUG 1
+#else
+#define  BXVD_P_HEVD_PFRI_DEBUG_PFRI_GROUPING_PRESENT 1
+#define  BXVD_P_STB_REG_BASE          BCHP_HEVD_OL_CPU_REGS_0_REG_START
+#endif
+
+#if (BCHP_CHIP == 7260)
+#define  BXVD_P_HEVD_DUAL_PIPE_PRESENT 0
+#else
+#define  BXVD_P_HEVD_DUAL_PIPE_PRESENT 1
 #endif
 
 #define  BXVD_P_USE_HVD_INTRS 1
-#define  BXVD_P_HEVD_DUAL_PIPE_PRESENT 1
-
 #define  BXVD_MAX_INSTANCE_COUNT      1
-
 #define  BXVD_P_SET_CHICKEN_BIT_BEFORE_RESET 1
 #define  BXVD_P_DECODER_REVP         1
 #endif
@@ -223,6 +226,18 @@
 
 #include "bchp_common.h"
 #include "bchp_bvnf_intr2_0.h"
+
+#include "bchp_memc_ddr_0.h"
+
+#if (BCHP_CHIP == 7366) || (BCHP_CHIP == 7439) || (BCHP_CHIP == 7445)
+#include "bchp_memc_ddr_1.h"
+#define BXVD_P_MEMC_1_PRESENT 1
+#endif
+
+#if  (BCHP_CHIP == 7445)
+#include "bchp_memc_ddr_2.h"
+#define BXVD_P_MEMC_2_PRESENT 1
+#endif
 
 #if BXVD_P_USE_HVD_INTRS
 #include "bchp_hvd_intr2_0.h"
@@ -506,9 +521,16 @@
    eMemCfgMode = BXVD_P_MemCfgMode_eUNKNOWN;          \
 }
 
-#if (((BCHP_CHIP == 7439) || (BCHP_CHIP == 74371)) && (BCHP_VER > BCHP_VER_A0)) || \
-    ((BCHP_CHIP == 7445) && (BCHP_VER > BCHP_VER_D0)) || (BCHP_CHIP == 7268) || (BCHP_CHIP == 7271)
-/* HVD/AVD Rev R */
+#if ((BCHP_CHIP == 7260) ||  \
+     ((BCHP_CHIP == 7268) && (BCHP_VER > BCHP_VER_A0)) || \
+     ((BCHP_CHIP == 7271) && (BCHP_VER > BCHP_VER_A0)))
+/* HVD Rev S.*/
+#define BXVD_P_PLATFORM_SUPPORTED_PROTOCOLS  BXVD_P_REVS_DECODE_PROTOCOLS_MASK
+#define BXVD_P_VP9_CAPABLE 1
+
+#elif (((BCHP_CHIP == 7439) || (BCHP_CHIP == 74371)) && (BCHP_VER > BCHP_VER_A0)) || \
+    ((BCHP_CHIP == 7445) && (BCHP_VER > BCHP_VER_D0)) || (BCHP_CHIP == 7260) || (BCHP_CHIP == 7268) || (BCHP_CHIP == 7271)
+/* HVD Rev R */
 #define BXVD_P_PLATFORM_SUPPORTED_PROTOCOLS  BXVD_P_REVR_DECODE_PROTOCOLS_MASK
 #define BXVD_P_VP9_CAPABLE 1
 
@@ -534,8 +556,14 @@
       ((BCHP_CHIP == 7445) && (BCHP_VER == BCHP_VER_E0))
 #define BXVD_P_CORE_REVISION 'R'
 
-#elif (BCHP_CHIP == 7268) || (BCHP_CHIP == 7271)
+#elif (BCHP_CHIP == 7260) || (BCHP_CHIP == 7268) || (BCHP_CHIP == 7271)
 #define BXVD_P_CORE_REVISION 'S'
+#endif
+
+#if ((BCHP_CHIP == 7260) || \
+     ((BCHP_CHIP == 7268) && (BCHP_VER > BCHP_VER_A0)) || \
+     ((BCHP_CHIP == 7271) && (BCHP_VER > BCHP_VER_A0)))
+#define BXVD_P_NO_LEGACY_PROTOCOL_SUPPORT 1
 #endif
 
 /* HW is RV9 capable, but it could still be disabled by OTP */

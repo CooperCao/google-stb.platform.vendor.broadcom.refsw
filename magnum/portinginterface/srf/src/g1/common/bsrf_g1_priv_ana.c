@@ -60,32 +60,27 @@ BERR_Code BSRF_g1_Ana_P_PowerUp(BSRF_ChannelHandle h)
    BSRF_P_WriteRegister(h, BCHP_SRFE_ANA_WRITER15_MPLLAGC, 0x05407680); /* cvar_ctnl=84, MIX_div_set=1, Rv3_par=6, LF_Cv3_Par=13 */
    BSRF_P_WriteRegister(h, BCHP_SRFE_ANA_WRITER10_MPLL, 0x37880A00);    /* Cp_ctrl=0xE */
    BSRF_P_WriteRegister(h, BCHP_SRFE_ANA_WRITER11_MPLL, 0x3119C56E);    /*  LODIV_div_ratio_sel=16*/
-#if 1
+
    BSRF_P_OrRegister(h, BCHP_SRFE_ANA_WRITER05_DCO, 0x00000100);     /* enable dco sigma-delta */
    BSRF_P_WriteRegister(h, BCHP_SRFE_ANA_WRITER24_ADC, 0xD5C00DD0);  /* updated ADC registers */
    BSRF_P_WriteRegister(h, BCHP_SRFE_ANA_WRITER25_ADC, 0x010020A5);  /* updated ADC registers */
-#endif
 
    /* override defaults for mixpll */
    BSRF_P_WriteRegister(h, BCHP_SRFE_ANA_WRITER12_MPLL, 0x0C07FFFF);    /* ndiv_int=192, ndiv_fract=524287 */
-   BSRF_P_WriteRegister(h, BCHP_SRFE_ANA_WRITER13_MPLL, 0x08032218);    /* configure lock detection */
+   BSRF_P_WriteRegister(h, BCHP_SRFE_ANA_WRITER13_MPLL, 0x08032220);    /* configure lock detection */
    BSRF_P_WriteRegister(h, BCHP_SRFE_ANA_WRITER14_MPLL, 0xB4E83BA0);    /* Ibias_VCO_slope=16 */
-#if 1
-   BSRF_P_OrRegister(h, BCHP_SRFE_ANA_WRITER13_MPLL, 0x00000800);    /* enable continouos pll locking system */
-#endif
+   BSRF_P_OrRegister(h, BCHP_SRFE_ANA_WRITER13_MPLL, 0x00000800);       /* enable continouos pll locking system */
 
    /* override default freq for adc pll */
    BSRF_P_WriteRegister(h, BCHP_SRFE_ANA_WRITER16_APLL, 0x0AC448C0);    /* pdiv=1, ndiv_int=72, refclk_sel=1 */
    BSRF_P_WriteRegister(h, BCHP_SRFE_ANA_WRITER21_APLL, 0x20040000);    /* ch3_mdiv=32 for dco clk, ch2_mdiv=4 for agc clk */
    BSRF_P_WriteRegister(h, BCHP_SRFE_ANA_WRITER22_APLL, 0x00000020);    /* ch5_Mdiv=32 for ramp clk */
-#if 1
-   BSRF_P_WriteRegister(h, BCHP_SRFE_ANA_WRITER20_APLL, 0x000008E3); /* shut cal tone divider channel */
+   BSRF_P_WriteRegister(h, BCHP_SRFE_ANA_WRITER20_APLL, 0x000008E3);    /* shut cal tone divider channel */
 
-   BSRF_P_OrRegister(h, BCHP_SRFE_ANA_WRITER00_SYS, 0x00200000);     /* faster LDO startup */
-   BSRF_P_OrRegister(h, BCHP_SRFE_ANA_WRITER09_MPLL, 0x08000000);    /*faster LDO startup*/
-   BSRF_P_OrRegister(h, BCHP_SRFE_ANA_WRITER10_MPLL, 0x40000000);    /*faster LDO startup*/
-   BSRF_P_OrRegister(h, BCHP_SRFE_ANA_WRITER09_MPLL, 0x0E008001);    /*faster LDO startup*/
-#endif
+   BSRF_P_OrRegister(h, BCHP_SRFE_ANA_WRITER00_SYS, 0x00200000);     /* bypass filter for faster LDO startup */
+   BSRF_P_OrRegister(h, BCHP_SRFE_ANA_WRITER09_MPLL, 0x08000000);    /* turn off filter for faster LDO startup*/
+   BSRF_P_OrRegister(h, BCHP_SRFE_ANA_WRITER10_MPLL, 0x40000000);    /* turn off filter for faster LDO startup*/
+   BSRF_P_OrRegister(h, BCHP_SRFE_ANA_WRITER09_MPLL, 0x0E008001);    /* turn off filter for faster LDO startup*/
 
    /* analog power up sequence */
    BSRF_P_AndRegister(h, BCHP_SRFE_ANA_WRITER00_SYS, ~0x00000010);      /* disable rf test path */
@@ -111,34 +106,30 @@ BERR_Code BSRF_g1_Ana_P_PowerUp(BSRF_ChannelHandle h)
    BSRF_P_OrRegister(h, BCHP_SRFE_ANA_WRITER24_ADC, 0x0000000C);        /* reset adc i and q integrators */
    BSRF_P_OrRegister(h, BCHP_SRFE_ANA_WRITER25_ADC, 0x00600000);        /* reset adc i and q data */
 
-   /* wait 200us then release all resets */
+   /* wait 200us then release all non-mixpll resets */
    BKNI_Delay(200);
 
    /* release resets */
-   BSRF_P_OrRegister(h, BCHP_SRFE_ANA_WRITER03_DCO, 0x00000001);        /* release dco clock reset */
+   BSRF_P_AndRegister(h, BCHP_SRFE_ANA_WRITER15_MPLLAGC, ~0x00000040);  /* release mixer div reset */
+   BSRF_P_OrRegister(h, BCHP_SRFE_ANA_WRITER15_MPLLAGC, 0x08000000);    /* release lna ramp */
+   BSRF_P_OrRegister(h, BCHP_SRFE_ANA_WRITER03_DCO, 0x00000007);        /* set max clk div to remove 12MHz IF spur, release dco clock reset */
    BSRF_P_AndRegister(h, BCHP_SRFE_ANA_WRITER05_DCO, ~0x00000400);      /* release dco sigma-delta integrator reset */
    BSRF_P_OrRegister(h, BCHP_SRFE_ANA_WRITER05_DCO, 0x00000001);        /* release global dco digital reset */
    BSRF_P_OrRegister(h, BCHP_SRFE_ANA_WRITER06_AGC, 0x00010000);        /* release agc clock reset */
-   BSRF_P_AndRegister(h, BCHP_SRFE_ANA_WRITER15_MPLLAGC, ~0x00000040);  /* release mixer div reset */
-#if 1
-   BSRF_P_OrRegister(h, BCHP_SRFE_ANA_WRITER15_MPLLAGC, 0x00000024);    /*release only the needed MIXERPLL resets*/
-#endif
-   BSRF_P_OrRegister(h, BCHP_SRFE_ANA_WRITER15_MPLLAGC, 0x0800003C);    /* release lna ramp, mixpll reset */
+
    BSRF_P_OrRegister(h, BCHP_SRFE_ANA_WRITER19_APLL, 0x00000023);       /* release adc pll reset and power up */
    BSRF_P_AndRegister(h, BCHP_SRFE_ANA_WRITER24_ADC, ~0x0000000C);      /* release adc i and q integrator resets */
    BSRF_P_AndRegister(h, BCHP_SRFE_ANA_WRITER25_ADC, ~0x00600000);      /* release adc i and q data resets */
 
-   /* reset mixpll again */
-#if 1
-   BKNI_Delay(100);
-#endif
-   BSRF_P_AndRegister(h, BCHP_SRFE_ANA_WRITER15_MPLLAGC, ~0x0800003C);  /* reset mixpll */
-#if 1
-   BKNI_Delay(100);
-#else
-   BKNI_Sleep(1);
-#endif
-   BSRF_P_OrRegister(h, BCHP_SRFE_ANA_WRITER15_MPLLAGC, 0x0800003C);    /* release mixpll reset */
+   /* wait 600us then release mixpll resets */
+   BKNI_Delay(600);
+   BSRF_P_OrRegister(h, BCHP_SRFE_ANA_WRITER15_MPLLAGC, 0x0000003C);    /* release mixpll reset */
+
+   /* wait 10us after resets */
+   BKNI_Delay(10);
+   BSRF_P_AndRegister(h, BCHP_SRFE_ANA_WRITER09_MPLL, ~0x08048001);  /* re-enable filters */
+   BSRF_P_AndRegister(h, BCHP_SRFE_ANA_WRITER00_SYS, ~0x02200000);   /* re-enable filters */
+   BSRF_P_AndRegister(h, BCHP_SRFE_ANA_WRITER10_MPLL, ~0x40000000);  /* re-enable filter */
 
    /* mixer pll will lock in ~600us after resets are released and digital calibration can start */
    for (i = 0; i < 20; i++)
@@ -164,9 +155,8 @@ BERR_Code BSRF_g1_Ana_P_PowerUp(BSRF_ChannelHandle h)
    /* increase fga gain range */
    BSRF_P_AndRegister(h, BCHP_SRFE_ANA_WRITER07_RAMP, ~0x60000000);
 
-   /* initialize antenna sense */
-   BSRF_P_WriteRegister(h, BCHP_SRFE_ANA_ANT_CTRLR00, 0x00013C08);
-   BSRF_P_WriteRegister(h, BCHP_SRFE_ANA_ANT_CTRLR01, 0x900583F8);
+   /* power up antenna sense by default */
+   BSRF_g1_Ana_P_PowerUpAntennaSense(h);
 
    return retCode;
 }
@@ -179,12 +169,108 @@ BERR_Code BSRF_g1_Ana_P_PowerDown(BSRF_ChannelHandle h)
 {
    BERR_Code retCode = BERR_SUCCESS;
 
+   /* power down antenna sense */
+   BSRF_g1_Ana_P_PowerDownAntennaSense(h);
+
    /* analog power down */
    BSRF_P_AndRegister(h, BCHP_SRFE_ANA_WRITER15_MPLLAGC, ~0x000C0003);  /* power down mixer pll */
    BSRF_P_AndRegister(h, BCHP_SRFE_ANA_WRITER16_APLL, ~0x00000042);     /* power down ldo */
    BSRF_P_OrRegister(h, BCHP_SRFE_ANA_WRITER24_ADC, 0x00380000);        /* power down adc */
    BSRF_P_AndRegister(h, BCHP_SRFE_ANA_WRITER19_APLL, ~0x00000002);     /* power down adc pll */
    BSRF_P_AndRegister(h, BCHP_SRFE_ANA_WRITER00_SYS, ~0x011FBFEF);      /* power down analog blocks */
+
+   return retCode;
+}
+
+
+/******************************************************************************
+ BSRF_g1_Ana_P_PowerUpAntennaSense
+******************************************************************************/
+BERR_Code BSRF_g1_Ana_P_PowerUpAntennaSense(BSRF_ChannelHandle h)
+{
+   BSRF_g1_P_ChannelHandle *hChn = (BSRF_g1_P_ChannelHandle *)h->pImpl;
+   BERR_Code retCode = BERR_SUCCESS;
+
+   hChn->bAntennaSenseEnabled = true;
+
+   /* initialize antenna sense */
+   BSRF_P_WriteRegister(h, BCHP_SRFE_ANA_ANT_CTRLR00, 0x00013C98);
+   BSRF_P_WriteRegister(h, BCHP_SRFE_ANA_ANT_CTRLR01, 0x900583F8);
+
+   /* antenna power up */
+   BSRF_P_AndRegister(h, BCHP_SRFE_ANA_ANT_CTRLR00, ~0x10000000);
+   return retCode;
+}
+
+
+/******************************************************************************
+ BSRF_g1_Ana_P_PowerDownAsense
+******************************************************************************/
+BERR_Code BSRF_g1_Ana_P_PowerDownAntennaSense(BSRF_ChannelHandle h)
+{
+   BSRF_g1_P_ChannelHandle *hChn = (BSRF_g1_P_ChannelHandle *)h->pImpl;
+   BERR_Code retCode = BERR_SUCCESS;
+
+   hChn->bAntennaSenseEnabled = false;
+
+   /* antenna power down */
+   BSRF_P_OrRegister(h, BCHP_SRFE_ANA_ANT_CTRLR00, 0x10000000);
+   return retCode;
+}
+
+
+/******************************************************************************
+ BSRF_g1_Ana_P_CalibrateCaps
+******************************************************************************/
+BERR_Code BSRF_g1_Ana_P_CalibrateCaps(BSRF_ChannelHandle h)
+{
+   BSRF_g1_P_ChannelHandle *hChn = (BSRF_g1_P_ChannelHandle *)h->pImpl;
+   BERR_Code retCode = BERR_SUCCESS;
+   uint32_t val, Q_hi, Q_lo;
+   uint8_t i, cap[5];
+
+   /* count nominal = M * frc_n(ndx) / fclk */
+   uint32_t countNominal[5] = {199713379, 190954017, 187994561, 186991970, 179467839};  /* scaled 16.16 */
+
+   /* set timer to max count @ 96MHz */
+   BSRF_P_WriteRegister(h, BCHP_SRFE_ANA_RC_CAL_TMR, 0x0000FFFF);
+   BSRF_P_OrRegister(h, BCHP_SRFE_ANA_WRITER25_ADC, 0x00800000);  /* power up rc calibration */
+
+   for (i = 0; i < 5; i++)
+   {
+      /* select cap for calibration */
+      BSRF_P_ReadModifyWriteRegister(h, BCHP_SRFE_ANA_WRITER25_ADC, ~0x1F000000, (1 << i) << 24);
+      BSRF_P_AndRegister(h, BCHP_SRFE_ANA_RC_CAL_TMR, ~0x00010000);  /* clear osc count */
+      BSRF_P_OrRegister(h, BCHP_SRFE_ANA_RC_CAL_TMR, 0x00010000);    /* enable timer */
+
+      /* read rc oscillation count */
+      BKNI_Sleep(2);
+      BSRF_P_ReadRegister(h, BCHP_SRFE_ANA_RC_OSC_CNT, &val);
+
+      /* calculate capv(ndxc) = Clng(cnt_act(ndxc)/cnt_nom(ndxc) * (14+capv_nom(ndxc)) - 14) */
+      BMTH_HILO_64TO64_Div32(val, 0, countNominal[i], &Q_hi, &Q_lo); /* count scaled up 32.32 for division */
+      val = (Q_lo * 21) - 917504;   /* scaled 16.16 after divide */
+      val = (val + 32768) >> 16;     /* round */
+      cap[i] = val & 0xF;           /* 4-bit cap values */
+
+      //BKNI_Printf("cap%d=%02X\n", i, cap[i]);
+   }
+
+   /* program cap values */
+   val = (cap[0] << 28) | (cap[1] << 12) | (cap[2] << 8) | (cap[3] << 4) | cap[4];
+   BSRF_P_WriteRegister(h, BCHP_SRFE_ANA_WRITER23_ADC, val);
+
+   if (cap[4] > 7)
+      BSRF_P_ReadModifyWriteRegister(h, BCHP_SRFE_ANA_WRITER25_ADC, ~0x000000F0, cap[4] << 4);
+   else
+      BSRF_P_ReadModifyWriteRegister(h, BCHP_SRFE_ANA_WRITER25_ADC, ~0x000000F0, 0x7 << 4);
+
+   /* power down rc calibration */
+   BSRF_P_AndRegister(h, BCHP_SRFE_ANA_WRITER25_ADC, ~0x00800000);
+
+   /* delay state calibration */
+   BSRF_P_ReadRegister(h, BCHP_SRFE_ANA_DCTRL_STATE, &val);
+   BSRF_P_ReadModifyWriteRegister(h, BCHP_SRFE_ANA_WRITER25_ADC, ~0x0000000F, ((val & 0x3) << 2) | (val & 0x3));
 
    return retCode;
 }

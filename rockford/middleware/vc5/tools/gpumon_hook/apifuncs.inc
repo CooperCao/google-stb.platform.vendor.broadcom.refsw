@@ -33,6 +33,153 @@ DLLEXPORT EGLBoolean DLLEXPORTENTRY eglWaitGL(void){ return sAPIClassTable.map_e
 DLLEXPORT EGLBoolean DLLEXPORTENTRY eglWaitNative(EGLint engine){ return sAPIClassTable.map_eglWaitNative(engine); }
 #endif /* EGL_VERSION_1_0*/
 
+#if GL_VERSION_ES_CM_1_0
+DLLEXPORT void DLLEXPORTENTRY glAlphaFunc(GLenum func, GLfloat ref){ sAPIClassTable.map_glAlphaFunc(func, ref); }
+DLLEXPORT void DLLEXPORTENTRY glClearColor(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha){ sAPIClassTable.map_glClearColor(red, green, blue, alpha); }
+DLLEXPORT void DLLEXPORTENTRY glClearDepthf(GLfloat d){ sAPIClassTable.map_glClearDepthf(d); }
+DLLEXPORT void DLLEXPORTENTRY glClipPlanef(GLenum p, const GLfloat *eqn){ sAPIClassTable.map_glClipPlanef(p, eqn); }
+DLLEXPORT void DLLEXPORTENTRY glColor4f(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha){ sAPIClassTable.map_glColor4f(red, green, blue, alpha); }
+DLLEXPORT void DLLEXPORTENTRY glDepthRangef(GLfloat n, GLfloat f){ sAPIClassTable.map_glDepthRangef(n, f); }
+DLLEXPORT void DLLEXPORTENTRY glFogf(GLenum pname, GLfloat param){ sAPIClassTable.map_glFogf(pname, param); }
+DLLEXPORT void DLLEXPORTENTRY glFogfv(GLenum pname, const GLfloat *params){ sAPIClassTable.map_glFogfv(pname, params); }
+DLLEXPORT void DLLEXPORTENTRY glFrustumf(GLfloat l, GLfloat r, GLfloat b, GLfloat t, GLfloat n, GLfloat f){ sAPIClassTable.map_glFrustumf(l, r, b, t, n, f); }
+DLLEXPORT void DLLEXPORTENTRY glGetClipPlanef(GLenum plane, GLfloat *equation){ sAPIClassTable.map_glGetClipPlanef(plane, equation); }
+DLLEXPORT void DLLEXPORTENTRY glGetFloatv(GLenum pname, GLfloat *data){ sAPIClassTable.map_glGetFloatv(pname, data); }
+DLLEXPORT void DLLEXPORTENTRY glGetLightfv(GLenum light, GLenum pname, GLfloat *params){ sAPIClassTable.map_glGetLightfv(light, pname, params); }
+DLLEXPORT void DLLEXPORTENTRY glGetMaterialfv(GLenum face, GLenum pname, GLfloat *params){ sAPIClassTable.map_glGetMaterialfv(face, pname, params); }
+DLLEXPORT void DLLEXPORTENTRY glGetTexEnvfv(GLenum target, GLenum pname, GLfloat *params){ sAPIClassTable.map_glGetTexEnvfv(target, pname, params); }
+DLLEXPORT void DLLEXPORTENTRY glGetTexParameterfv(GLenum target, GLenum pname, GLfloat *params){ sAPIClassTable.map_glGetTexParameterfv(target, pname, params); }
+DLLEXPORT void DLLEXPORTENTRY glLightModelf(GLenum pname, GLfloat param){ sAPIClassTable.map_glLightModelf(pname, param); }
+DLLEXPORT void DLLEXPORTENTRY glLightModelfv(GLenum pname, const GLfloat *params){ sAPIClassTable.map_glLightModelfv(pname, params); }
+DLLEXPORT void DLLEXPORTENTRY glLightf(GLenum light, GLenum pname, GLfloat param){ sAPIClassTable.map_glLightf(light, pname, param); }
+DLLEXPORT void DLLEXPORTENTRY glLightfv(GLenum light, GLenum pname, const GLfloat *params){ sAPIClassTable.map_glLightfv(light, pname, params); }
+DLLEXPORT void DLLEXPORTENTRY glLineWidth(GLfloat width){ sAPIClassTable.map_glLineWidth(width); }
+DLLEXPORT void DLLEXPORTENTRY glLoadMatrixf(const GLfloat *m){ sAPIClassTable.map_glLoadMatrixf(m); }
+DLLEXPORT void DLLEXPORTENTRY glMaterialf(GLenum face, GLenum pname, GLfloat param){ sAPIClassTable.map_glMaterialf(face, pname, param); }
+DLLEXPORT void DLLEXPORTENTRY glMaterialfv(GLenum face, GLenum pname, const GLfloat *params){ sAPIClassTable.map_glMaterialfv(face, pname, params); }
+DLLEXPORT void DLLEXPORTENTRY glMultMatrixf(const GLfloat *m){ sAPIClassTable.map_glMultMatrixf(m); }
+DLLEXPORT void DLLEXPORTENTRY glMultiTexCoord4f(GLenum target, GLfloat s, GLfloat t, GLfloat r, GLfloat q){ sAPIClassTable.map_glMultiTexCoord4f(target, s, t, r, q); }
+DLLEXPORT void DLLEXPORTENTRY glNormal3f(GLfloat nx, GLfloat ny, GLfloat nz){ sAPIClassTable.map_glNormal3f(nx, ny, nz); }
+DLLEXPORT void DLLEXPORTENTRY glOrthof(GLfloat l, GLfloat r, GLfloat b, GLfloat t, GLfloat n, GLfloat f){ sAPIClassTable.map_glOrthof(l, r, b, t, n, f); }
+DLLEXPORT void DLLEXPORTENTRY glPointParameterf(GLenum pname, GLfloat param){ sAPIClassTable.map_glPointParameterf(pname, param); }
+DLLEXPORT void DLLEXPORTENTRY glPointParameterfv(GLenum pname, const GLfloat *params){ sAPIClassTable.map_glPointParameterfv(pname, params); }
+DLLEXPORT void DLLEXPORTENTRY glPointSize(GLfloat size){ sAPIClassTable.map_glPointSize(size); }
+DLLEXPORT void DLLEXPORTENTRY glPolygonOffset(GLfloat factor, GLfloat units){ sAPIClassTable.map_glPolygonOffset(factor, units); }
+DLLEXPORT void DLLEXPORTENTRY glRotatef(GLfloat angle, GLfloat x, GLfloat y, GLfloat z){ sAPIClassTable.map_glRotatef(angle, x, y, z); }
+DLLEXPORT void DLLEXPORTENTRY glScalef(GLfloat x, GLfloat y, GLfloat z){ sAPIClassTable.map_glScalef(x, y, z); }
+DLLEXPORT void DLLEXPORTENTRY glTexEnvf(GLenum target, GLenum pname, GLfloat param){ sAPIClassTable.map_glTexEnvf(target, pname, param); }
+DLLEXPORT void DLLEXPORTENTRY glTexEnvfv(GLenum target, GLenum pname, const GLfloat *params){ sAPIClassTable.map_glTexEnvfv(target, pname, params); }
+DLLEXPORT void DLLEXPORTENTRY glTexParameterf(GLenum target, GLenum pname, GLfloat param){ sAPIClassTable.map_glTexParameterf(target, pname, param); }
+DLLEXPORT void DLLEXPORTENTRY glTexParameterfv(GLenum target, GLenum pname, const GLfloat *params){ sAPIClassTable.map_glTexParameterfv(target, pname, params); }
+DLLEXPORT void DLLEXPORTENTRY glTranslatef(GLfloat x, GLfloat y, GLfloat z){ sAPIClassTable.map_glTranslatef(x, y, z); }
+DLLEXPORT void DLLEXPORTENTRY glActiveTexture(GLenum texture){ sAPIClassTable.map_glActiveTexture(texture); }
+DLLEXPORT void DLLEXPORTENTRY glAlphaFuncx(GLenum func, GLfixed ref){ sAPIClassTable.map_glAlphaFuncx(func, ref); }
+DLLEXPORT void DLLEXPORTENTRY glBindBuffer(GLenum target, GLuint buffer){ sAPIClassTable.map_glBindBuffer(target, buffer); }
+DLLEXPORT void DLLEXPORTENTRY glBindTexture(GLenum target, GLuint texture){ sAPIClassTable.map_glBindTexture(target, texture); }
+DLLEXPORT void DLLEXPORTENTRY glBlendFunc(GLenum sfactor, GLenum dfactor){ sAPIClassTable.map_glBlendFunc(sfactor, dfactor); }
+DLLEXPORT void DLLEXPORTENTRY glBufferData(GLenum target, GLsizeiptr size, const void *data, GLenum usage){ sAPIClassTable.map_glBufferData(target, size, data, usage); }
+DLLEXPORT void DLLEXPORTENTRY glBufferSubData(GLenum target, GLintptr offset, GLsizeiptr size, const void *data){ sAPIClassTable.map_glBufferSubData(target, offset, size, data); }
+DLLEXPORT void DLLEXPORTENTRY glClear(GLbitfield mask){ sAPIClassTable.map_glClear(mask); }
+DLLEXPORT void DLLEXPORTENTRY glClearColorx(GLfixed red, GLfixed green, GLfixed blue, GLfixed alpha){ sAPIClassTable.map_glClearColorx(red, green, blue, alpha); }
+DLLEXPORT void DLLEXPORTENTRY glClearDepthx(GLfixed depth){ sAPIClassTable.map_glClearDepthx(depth); }
+DLLEXPORT void DLLEXPORTENTRY glClearStencil(GLint s){ sAPIClassTable.map_glClearStencil(s); }
+DLLEXPORT void DLLEXPORTENTRY glClientActiveTexture(GLenum texture){ sAPIClassTable.map_glClientActiveTexture(texture); }
+DLLEXPORT void DLLEXPORTENTRY glClipPlanex(GLenum plane, const GLfixed *equation){ sAPIClassTable.map_glClipPlanex(plane, equation); }
+DLLEXPORT void DLLEXPORTENTRY glColor4ub(GLubyte red, GLubyte green, GLubyte blue, GLubyte alpha){ sAPIClassTable.map_glColor4ub(red, green, blue, alpha); }
+DLLEXPORT void DLLEXPORTENTRY glColor4x(GLfixed red, GLfixed green, GLfixed blue, GLfixed alpha){ sAPIClassTable.map_glColor4x(red, green, blue, alpha); }
+DLLEXPORT void DLLEXPORTENTRY glColorMask(GLboolean red, GLboolean green, GLboolean blue, GLboolean alpha){ sAPIClassTable.map_glColorMask(red, green, blue, alpha); }
+DLLEXPORT void DLLEXPORTENTRY glColorPointer(GLint size, GLenum type, GLsizei stride, const void *pointer){ sAPIClassTable.map_glColorPointer(size, type, stride, pointer); }
+DLLEXPORT void DLLEXPORTENTRY glCompressedTexImage2D(GLenum target, GLint level, GLenum internalformat, GLsizei width, GLsizei height, GLint border, GLsizei imageSize, const void *data){ sAPIClassTable.map_glCompressedTexImage2D(target, level, internalformat, width, height, border, imageSize, data); }
+DLLEXPORT void DLLEXPORTENTRY glCompressedTexSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLsizei imageSize, const void *data){ sAPIClassTable.map_glCompressedTexSubImage2D(target, level, xoffset, yoffset, width, height, format, imageSize, data); }
+DLLEXPORT void DLLEXPORTENTRY glCopyTexImage2D(GLenum target, GLint level, GLenum internalformat, GLint x, GLint y, GLsizei width, GLsizei height, GLint border){ sAPIClassTable.map_glCopyTexImage2D(target, level, internalformat, x, y, width, height, border); }
+DLLEXPORT void DLLEXPORTENTRY glCopyTexSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint x, GLint y, GLsizei width, GLsizei height){ sAPIClassTable.map_glCopyTexSubImage2D(target, level, xoffset, yoffset, x, y, width, height); }
+DLLEXPORT void DLLEXPORTENTRY glCullFace(GLenum mode){ sAPIClassTable.map_glCullFace(mode); }
+DLLEXPORT void DLLEXPORTENTRY glDeleteBuffers(GLsizei n, const GLuint *buffers){ sAPIClassTable.map_glDeleteBuffers(n, buffers); }
+DLLEXPORT void DLLEXPORTENTRY glDeleteTextures(GLsizei n, const GLuint *textures){ sAPIClassTable.map_glDeleteTextures(n, textures); }
+DLLEXPORT void DLLEXPORTENTRY glDepthFunc(GLenum func){ sAPIClassTable.map_glDepthFunc(func); }
+DLLEXPORT void DLLEXPORTENTRY glDepthMask(GLboolean flag){ sAPIClassTable.map_glDepthMask(flag); }
+DLLEXPORT void DLLEXPORTENTRY glDepthRangex(GLfixed n, GLfixed f){ sAPIClassTable.map_glDepthRangex(n, f); }
+DLLEXPORT void DLLEXPORTENTRY glDisable(GLenum cap){ sAPIClassTable.map_glDisable(cap); }
+DLLEXPORT void DLLEXPORTENTRY glDisableClientState(GLenum array){ sAPIClassTable.map_glDisableClientState(array); }
+DLLEXPORT void DLLEXPORTENTRY glDrawArrays(GLenum mode, GLint first, GLsizei count){ sAPIClassTable.map_glDrawArrays(mode, first, count); }
+DLLEXPORT void DLLEXPORTENTRY glDrawElements(GLenum mode, GLsizei count, GLenum type, const void *indices){ sAPIClassTable.map_glDrawElements(mode, count, type, indices); }
+DLLEXPORT void DLLEXPORTENTRY glEnable(GLenum cap){ sAPIClassTable.map_glEnable(cap); }
+DLLEXPORT void DLLEXPORTENTRY glEnableClientState(GLenum array){ sAPIClassTable.map_glEnableClientState(array); }
+DLLEXPORT void DLLEXPORTENTRY glFinish(void){ sAPIClassTable.map_glFinish(); }
+DLLEXPORT void DLLEXPORTENTRY glFlush(void){ sAPIClassTable.map_glFlush(); }
+DLLEXPORT void DLLEXPORTENTRY glFogx(GLenum pname, GLfixed param){ sAPIClassTable.map_glFogx(pname, param); }
+DLLEXPORT void DLLEXPORTENTRY glFogxv(GLenum pname, const GLfixed *param){ sAPIClassTable.map_glFogxv(pname, param); }
+DLLEXPORT void DLLEXPORTENTRY glFrontFace(GLenum mode){ sAPIClassTable.map_glFrontFace(mode); }
+DLLEXPORT void DLLEXPORTENTRY glFrustumx(GLfixed l, GLfixed r, GLfixed b, GLfixed t, GLfixed n, GLfixed f){ sAPIClassTable.map_glFrustumx(l, r, b, t, n, f); }
+DLLEXPORT void DLLEXPORTENTRY glGetBooleanv(GLenum pname, GLboolean *data){ sAPIClassTable.map_glGetBooleanv(pname, data); }
+DLLEXPORT void DLLEXPORTENTRY glGetBufferParameteriv(GLenum target, GLenum pname, GLint *params){ sAPIClassTable.map_glGetBufferParameteriv(target, pname, params); }
+DLLEXPORT void DLLEXPORTENTRY glGetClipPlanex(GLenum plane, GLfixed *equation){ sAPIClassTable.map_glGetClipPlanex(plane, equation); }
+DLLEXPORT void DLLEXPORTENTRY glGenBuffers(GLsizei n, GLuint *buffers){ sAPIClassTable.map_glGenBuffers(n, buffers); }
+DLLEXPORT void DLLEXPORTENTRY glGenTextures(GLsizei n, GLuint *textures){ sAPIClassTable.map_glGenTextures(n, textures); }
+DLLEXPORT GLenum DLLEXPORTENTRY glGetError(void){ return sAPIClassTable.map_glGetError(); }
+DLLEXPORT void DLLEXPORTENTRY glGetFixedv(GLenum pname, GLfixed *params){ sAPIClassTable.map_glGetFixedv(pname, params); }
+DLLEXPORT void DLLEXPORTENTRY glGetIntegerv(GLenum pname, GLint *data){ sAPIClassTable.map_glGetIntegerv(pname, data); }
+DLLEXPORT void DLLEXPORTENTRY glGetLightxv(GLenum light, GLenum pname, GLfixed *params){ sAPIClassTable.map_glGetLightxv(light, pname, params); }
+DLLEXPORT void DLLEXPORTENTRY glGetMaterialxv(GLenum face, GLenum pname, GLfixed *params){ sAPIClassTable.map_glGetMaterialxv(face, pname, params); }
+DLLEXPORT void DLLEXPORTENTRY glGetPointerv(GLenum pname, void **params){ sAPIClassTable.map_glGetPointerv(pname, params); }
+DLLEXPORT const GLubyte * DLLEXPORTENTRY glGetString(GLenum name){ return sAPIClassTable.map_glGetString(name); }
+DLLEXPORT void DLLEXPORTENTRY glGetTexEnviv(GLenum target, GLenum pname, GLint *params){ sAPIClassTable.map_glGetTexEnviv(target, pname, params); }
+DLLEXPORT void DLLEXPORTENTRY glGetTexEnvxv(GLenum target, GLenum pname, GLfixed *params){ sAPIClassTable.map_glGetTexEnvxv(target, pname, params); }
+DLLEXPORT void DLLEXPORTENTRY glGetTexParameteriv(GLenum target, GLenum pname, GLint *params){ sAPIClassTable.map_glGetTexParameteriv(target, pname, params); }
+DLLEXPORT void DLLEXPORTENTRY glGetTexParameterxv(GLenum target, GLenum pname, GLfixed *params){ sAPIClassTable.map_glGetTexParameterxv(target, pname, params); }
+DLLEXPORT void DLLEXPORTENTRY glHint(GLenum target, GLenum mode){ sAPIClassTable.map_glHint(target, mode); }
+DLLEXPORT GLboolean DLLEXPORTENTRY glIsBuffer(GLuint buffer){ return sAPIClassTable.map_glIsBuffer(buffer); }
+DLLEXPORT GLboolean DLLEXPORTENTRY glIsEnabled(GLenum cap){ return sAPIClassTable.map_glIsEnabled(cap); }
+DLLEXPORT GLboolean DLLEXPORTENTRY glIsTexture(GLuint texture){ return sAPIClassTable.map_glIsTexture(texture); }
+DLLEXPORT void DLLEXPORTENTRY glLightModelx(GLenum pname, GLfixed param){ sAPIClassTable.map_glLightModelx(pname, param); }
+DLLEXPORT void DLLEXPORTENTRY glLightModelxv(GLenum pname, const GLfixed *param){ sAPIClassTable.map_glLightModelxv(pname, param); }
+DLLEXPORT void DLLEXPORTENTRY glLightx(GLenum light, GLenum pname, GLfixed param){ sAPIClassTable.map_glLightx(light, pname, param); }
+DLLEXPORT void DLLEXPORTENTRY glLightxv(GLenum light, GLenum pname, const GLfixed *params){ sAPIClassTable.map_glLightxv(light, pname, params); }
+DLLEXPORT void DLLEXPORTENTRY glLineWidthx(GLfixed width){ sAPIClassTable.map_glLineWidthx(width); }
+DLLEXPORT void DLLEXPORTENTRY glLoadIdentity(void){ sAPIClassTable.map_glLoadIdentity(); }
+DLLEXPORT void DLLEXPORTENTRY glLoadMatrixx(const GLfixed *m){ sAPIClassTable.map_glLoadMatrixx(m); }
+DLLEXPORT void DLLEXPORTENTRY glLogicOp(GLenum opcode){ sAPIClassTable.map_glLogicOp(opcode); }
+DLLEXPORT void DLLEXPORTENTRY glMaterialx(GLenum face, GLenum pname, GLfixed param){ sAPIClassTable.map_glMaterialx(face, pname, param); }
+DLLEXPORT void DLLEXPORTENTRY glMaterialxv(GLenum face, GLenum pname, const GLfixed *param){ sAPIClassTable.map_glMaterialxv(face, pname, param); }
+DLLEXPORT void DLLEXPORTENTRY glMatrixMode(GLenum mode){ sAPIClassTable.map_glMatrixMode(mode); }
+DLLEXPORT void DLLEXPORTENTRY glMultMatrixx(const GLfixed *m){ sAPIClassTable.map_glMultMatrixx(m); }
+DLLEXPORT void DLLEXPORTENTRY glMultiTexCoord4x(GLenum texture, GLfixed s, GLfixed t, GLfixed r, GLfixed q){ sAPIClassTable.map_glMultiTexCoord4x(texture, s, t, r, q); }
+DLLEXPORT void DLLEXPORTENTRY glNormal3x(GLfixed nx, GLfixed ny, GLfixed nz){ sAPIClassTable.map_glNormal3x(nx, ny, nz); }
+DLLEXPORT void DLLEXPORTENTRY glNormalPointer(GLenum type, GLsizei stride, const void *pointer){ sAPIClassTable.map_glNormalPointer(type, stride, pointer); }
+DLLEXPORT void DLLEXPORTENTRY glOrthox(GLfixed l, GLfixed r, GLfixed b, GLfixed t, GLfixed n, GLfixed f){ sAPIClassTable.map_glOrthox(l, r, b, t, n, f); }
+DLLEXPORT void DLLEXPORTENTRY glPixelStorei(GLenum pname, GLint param){ sAPIClassTable.map_glPixelStorei(pname, param); }
+DLLEXPORT void DLLEXPORTENTRY glPointParameterx(GLenum pname, GLfixed param){ sAPIClassTable.map_glPointParameterx(pname, param); }
+DLLEXPORT void DLLEXPORTENTRY glPointParameterxv(GLenum pname, const GLfixed *params){ sAPIClassTable.map_glPointParameterxv(pname, params); }
+DLLEXPORT void DLLEXPORTENTRY glPointSizex(GLfixed size){ sAPIClassTable.map_glPointSizex(size); }
+DLLEXPORT void DLLEXPORTENTRY glPolygonOffsetx(GLfixed factor, GLfixed units){ sAPIClassTable.map_glPolygonOffsetx(factor, units); }
+DLLEXPORT void DLLEXPORTENTRY glPopMatrix(void){ sAPIClassTable.map_glPopMatrix(); }
+DLLEXPORT void DLLEXPORTENTRY glPushMatrix(void){ sAPIClassTable.map_glPushMatrix(); }
+DLLEXPORT void DLLEXPORTENTRY glReadPixels(GLint x, GLint y, GLsizei width, GLsizei height, GLenum format, GLenum type, void *pixels){ sAPIClassTable.map_glReadPixels(x, y, width, height, format, type, pixels); }
+DLLEXPORT void DLLEXPORTENTRY glRotatex(GLfixed angle, GLfixed x, GLfixed y, GLfixed z){ sAPIClassTable.map_glRotatex(angle, x, y, z); }
+DLLEXPORT void DLLEXPORTENTRY glSampleCoverage(GLfloat value, GLboolean invert){ sAPIClassTable.map_glSampleCoverage(value, invert); }
+DLLEXPORT void DLLEXPORTENTRY glSampleCoveragex(GLclampx value, GLboolean invert){ sAPIClassTable.map_glSampleCoveragex(value, invert); }
+DLLEXPORT void DLLEXPORTENTRY glScalex(GLfixed x, GLfixed y, GLfixed z){ sAPIClassTable.map_glScalex(x, y, z); }
+DLLEXPORT void DLLEXPORTENTRY glScissor(GLint x, GLint y, GLsizei width, GLsizei height){ sAPIClassTable.map_glScissor(x, y, width, height); }
+DLLEXPORT void DLLEXPORTENTRY glShadeModel(GLenum mode){ sAPIClassTable.map_glShadeModel(mode); }
+DLLEXPORT void DLLEXPORTENTRY glStencilFunc(GLenum func, GLint ref, GLuint mask){ sAPIClassTable.map_glStencilFunc(func, ref, mask); }
+DLLEXPORT void DLLEXPORTENTRY glStencilMask(GLuint mask){ sAPIClassTable.map_glStencilMask(mask); }
+DLLEXPORT void DLLEXPORTENTRY glStencilOp(GLenum fail, GLenum zfail, GLenum zpass){ sAPIClassTable.map_glStencilOp(fail, zfail, zpass); }
+DLLEXPORT void DLLEXPORTENTRY glTexCoordPointer(GLint size, GLenum type, GLsizei stride, const void *pointer){ sAPIClassTable.map_glTexCoordPointer(size, type, stride, pointer); }
+DLLEXPORT void DLLEXPORTENTRY glTexEnvi(GLenum target, GLenum pname, GLint param){ sAPIClassTable.map_glTexEnvi(target, pname, param); }
+DLLEXPORT void DLLEXPORTENTRY glTexEnvx(GLenum target, GLenum pname, GLfixed param){ sAPIClassTable.map_glTexEnvx(target, pname, param); }
+DLLEXPORT void DLLEXPORTENTRY glTexEnviv(GLenum target, GLenum pname, const GLint *params){ sAPIClassTable.map_glTexEnviv(target, pname, params); }
+DLLEXPORT void DLLEXPORTENTRY glTexEnvxv(GLenum target, GLenum pname, const GLfixed *params){ sAPIClassTable.map_glTexEnvxv(target, pname, params); }
+DLLEXPORT void DLLEXPORTENTRY glTexImage2D(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const void *pixels){ sAPIClassTable.map_glTexImage2D(target, level, internalformat, width, height, border, format, type, pixels); }
+DLLEXPORT void DLLEXPORTENTRY glTexParameteri(GLenum target, GLenum pname, GLint param){ sAPIClassTable.map_glTexParameteri(target, pname, param); }
+DLLEXPORT void DLLEXPORTENTRY glTexParameterx(GLenum target, GLenum pname, GLfixed param){ sAPIClassTable.map_glTexParameterx(target, pname, param); }
+DLLEXPORT void DLLEXPORTENTRY glTexParameteriv(GLenum target, GLenum pname, const GLint *params){ sAPIClassTable.map_glTexParameteriv(target, pname, params); }
+DLLEXPORT void DLLEXPORTENTRY glTexParameterxv(GLenum target, GLenum pname, const GLfixed *params){ sAPIClassTable.map_glTexParameterxv(target, pname, params); }
+DLLEXPORT void DLLEXPORTENTRY glTexSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLenum type, const void *pixels){ sAPIClassTable.map_glTexSubImage2D(target, level, xoffset, yoffset, width, height, format, type, pixels); }
+DLLEXPORT void DLLEXPORTENTRY glTranslatex(GLfixed x, GLfixed y, GLfixed z){ sAPIClassTable.map_glTranslatex(x, y, z); }
+DLLEXPORT void DLLEXPORTENTRY glVertexPointer(GLint size, GLenum type, GLsizei stride, const void *pointer){ sAPIClassTable.map_glVertexPointer(size, type, stride, pointer); }
+DLLEXPORT void DLLEXPORTENTRY glViewport(GLint x, GLint y, GLsizei width, GLsizei height){ sAPIClassTable.map_glViewport(x, y, width, height); }
+#endif /* GL_VERSION_ES_CM_1_0*/
+
 #if EGL_VERSION_1_1
 DLLEXPORT EGLBoolean DLLEXPORTENTRY eglBindTexImage(EGLDisplay dpy, EGLSurface surface, EGLint buffer){ return sAPIClassTable.map_eglBindTexImage(dpy, surface, buffer); }
 DLLEXPORT EGLBoolean DLLEXPORTENTRY eglReleaseTexImage(EGLDisplay dpy, EGLSurface surface, EGLint buffer){ return sAPIClassTable.map_eglReleaseTexImage(dpy, surface, buffer); }
@@ -69,70 +216,35 @@ DLLEXPORT EGLBoolean DLLEXPORTENTRY eglWaitSync(EGLDisplay dpy, EGLSync sync, EG
 #endif /* EGL_VERSION_1_5*/
 
 #if GL_ES_VERSION_2_0
-DLLEXPORT void DLLEXPORTENTRY glActiveTexture(GLenum texture){ sAPIClassTable.map_glActiveTexture(texture); }
 DLLEXPORT void DLLEXPORTENTRY glAttachShader(GLuint program, GLuint shader){ sAPIClassTable.map_glAttachShader(program, shader); }
 DLLEXPORT void DLLEXPORTENTRY glBindAttribLocation(GLuint program, GLuint index, const GLchar *name){ sAPIClassTable.map_glBindAttribLocation(program, index, name); }
-DLLEXPORT void DLLEXPORTENTRY glBindBuffer(GLenum target, GLuint buffer){ sAPIClassTable.map_glBindBuffer(target, buffer); }
 DLLEXPORT void DLLEXPORTENTRY glBindFramebuffer(GLenum target, GLuint framebuffer){ sAPIClassTable.map_glBindFramebuffer(target, framebuffer); }
 DLLEXPORT void DLLEXPORTENTRY glBindRenderbuffer(GLenum target, GLuint renderbuffer){ sAPIClassTable.map_glBindRenderbuffer(target, renderbuffer); }
-DLLEXPORT void DLLEXPORTENTRY glBindTexture(GLenum target, GLuint texture){ sAPIClassTable.map_glBindTexture(target, texture); }
 DLLEXPORT void DLLEXPORTENTRY glBlendColor(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha){ sAPIClassTable.map_glBlendColor(red, green, blue, alpha); }
 DLLEXPORT void DLLEXPORTENTRY glBlendEquation(GLenum mode){ sAPIClassTable.map_glBlendEquation(mode); }
 DLLEXPORT void DLLEXPORTENTRY glBlendEquationSeparate(GLenum modeRGB, GLenum modeAlpha){ sAPIClassTable.map_glBlendEquationSeparate(modeRGB, modeAlpha); }
-DLLEXPORT void DLLEXPORTENTRY glBlendFunc(GLenum sfactor, GLenum dfactor){ sAPIClassTable.map_glBlendFunc(sfactor, dfactor); }
 DLLEXPORT void DLLEXPORTENTRY glBlendFuncSeparate(GLenum sfactorRGB, GLenum dfactorRGB, GLenum sfactorAlpha, GLenum dfactorAlpha){ sAPIClassTable.map_glBlendFuncSeparate(sfactorRGB, dfactorRGB, sfactorAlpha, dfactorAlpha); }
-DLLEXPORT void DLLEXPORTENTRY glBufferData(GLenum target, GLsizeiptr size, const void *data, GLenum usage){ sAPIClassTable.map_glBufferData(target, size, data, usage); }
-DLLEXPORT void DLLEXPORTENTRY glBufferSubData(GLenum target, GLintptr offset, GLsizeiptr size, const void *data){ sAPIClassTable.map_glBufferSubData(target, offset, size, data); }
 DLLEXPORT GLenum DLLEXPORTENTRY glCheckFramebufferStatus(GLenum target){ return sAPIClassTable.map_glCheckFramebufferStatus(target); }
-DLLEXPORT void DLLEXPORTENTRY glClear(GLbitfield mask){ sAPIClassTable.map_glClear(mask); }
-DLLEXPORT void DLLEXPORTENTRY glClearColor(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha){ sAPIClassTable.map_glClearColor(red, green, blue, alpha); }
-DLLEXPORT void DLLEXPORTENTRY glClearDepthf(GLfloat d){ sAPIClassTable.map_glClearDepthf(d); }
-DLLEXPORT void DLLEXPORTENTRY glClearStencil(GLint s){ sAPIClassTable.map_glClearStencil(s); }
-DLLEXPORT void DLLEXPORTENTRY glColorMask(GLboolean red, GLboolean green, GLboolean blue, GLboolean alpha){ sAPIClassTable.map_glColorMask(red, green, blue, alpha); }
 DLLEXPORT void DLLEXPORTENTRY glCompileShader(GLuint shader){ sAPIClassTable.map_glCompileShader(shader); }
-DLLEXPORT void DLLEXPORTENTRY glCompressedTexImage2D(GLenum target, GLint level, GLenum internalformat, GLsizei width, GLsizei height, GLint border, GLsizei imageSize, const void *data){ sAPIClassTable.map_glCompressedTexImage2D(target, level, internalformat, width, height, border, imageSize, data); }
-DLLEXPORT void DLLEXPORTENTRY glCompressedTexSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLsizei imageSize, const void *data){ sAPIClassTable.map_glCompressedTexSubImage2D(target, level, xoffset, yoffset, width, height, format, imageSize, data); }
-DLLEXPORT void DLLEXPORTENTRY glCopyTexImage2D(GLenum target, GLint level, GLenum internalformat, GLint x, GLint y, GLsizei width, GLsizei height, GLint border){ sAPIClassTable.map_glCopyTexImage2D(target, level, internalformat, x, y, width, height, border); }
-DLLEXPORT void DLLEXPORTENTRY glCopyTexSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint x, GLint y, GLsizei width, GLsizei height){ sAPIClassTable.map_glCopyTexSubImage2D(target, level, xoffset, yoffset, x, y, width, height); }
 DLLEXPORT GLuint DLLEXPORTENTRY glCreateProgram(void){ return sAPIClassTable.map_glCreateProgram(); }
 DLLEXPORT GLuint DLLEXPORTENTRY glCreateShader(GLenum type){ return sAPIClassTable.map_glCreateShader(type); }
-DLLEXPORT void DLLEXPORTENTRY glCullFace(GLenum mode){ sAPIClassTable.map_glCullFace(mode); }
-DLLEXPORT void DLLEXPORTENTRY glDeleteBuffers(GLsizei n, const GLuint *buffers){ sAPIClassTable.map_glDeleteBuffers(n, buffers); }
 DLLEXPORT void DLLEXPORTENTRY glDeleteFramebuffers(GLsizei n, const GLuint *framebuffers){ sAPIClassTable.map_glDeleteFramebuffers(n, framebuffers); }
 DLLEXPORT void DLLEXPORTENTRY glDeleteProgram(GLuint program){ sAPIClassTable.map_glDeleteProgram(program); }
 DLLEXPORT void DLLEXPORTENTRY glDeleteRenderbuffers(GLsizei n, const GLuint *renderbuffers){ sAPIClassTable.map_glDeleteRenderbuffers(n, renderbuffers); }
 DLLEXPORT void DLLEXPORTENTRY glDeleteShader(GLuint shader){ sAPIClassTable.map_glDeleteShader(shader); }
-DLLEXPORT void DLLEXPORTENTRY glDeleteTextures(GLsizei n, const GLuint *textures){ sAPIClassTable.map_glDeleteTextures(n, textures); }
-DLLEXPORT void DLLEXPORTENTRY glDepthFunc(GLenum func){ sAPIClassTable.map_glDepthFunc(func); }
-DLLEXPORT void DLLEXPORTENTRY glDepthMask(GLboolean flag){ sAPIClassTable.map_glDepthMask(flag); }
-DLLEXPORT void DLLEXPORTENTRY glDepthRangef(GLfloat n, GLfloat f){ sAPIClassTable.map_glDepthRangef(n, f); }
 DLLEXPORT void DLLEXPORTENTRY glDetachShader(GLuint program, GLuint shader){ sAPIClassTable.map_glDetachShader(program, shader); }
-DLLEXPORT void DLLEXPORTENTRY glDisable(GLenum cap){ sAPIClassTable.map_glDisable(cap); }
 DLLEXPORT void DLLEXPORTENTRY glDisableVertexAttribArray(GLuint index){ sAPIClassTable.map_glDisableVertexAttribArray(index); }
-DLLEXPORT void DLLEXPORTENTRY glDrawArrays(GLenum mode, GLint first, GLsizei count){ sAPIClassTable.map_glDrawArrays(mode, first, count); }
-DLLEXPORT void DLLEXPORTENTRY glDrawElements(GLenum mode, GLsizei count, GLenum type, const void *indices){ sAPIClassTable.map_glDrawElements(mode, count, type, indices); }
-DLLEXPORT void DLLEXPORTENTRY glEnable(GLenum cap){ sAPIClassTable.map_glEnable(cap); }
 DLLEXPORT void DLLEXPORTENTRY glEnableVertexAttribArray(GLuint index){ sAPIClassTable.map_glEnableVertexAttribArray(index); }
-DLLEXPORT void DLLEXPORTENTRY glFinish(void){ sAPIClassTable.map_glFinish(); }
-DLLEXPORT void DLLEXPORTENTRY glFlush(void){ sAPIClassTable.map_glFlush(); }
 DLLEXPORT void DLLEXPORTENTRY glFramebufferRenderbuffer(GLenum target, GLenum attachment, GLenum renderbuffertarget, GLuint renderbuffer){ sAPIClassTable.map_glFramebufferRenderbuffer(target, attachment, renderbuffertarget, renderbuffer); }
 DLLEXPORT void DLLEXPORTENTRY glFramebufferTexture2D(GLenum target, GLenum attachment, GLenum textarget, GLuint texture, GLint level){ sAPIClassTable.map_glFramebufferTexture2D(target, attachment, textarget, texture, level); }
-DLLEXPORT void DLLEXPORTENTRY glFrontFace(GLenum mode){ sAPIClassTable.map_glFrontFace(mode); }
-DLLEXPORT void DLLEXPORTENTRY glGenBuffers(GLsizei n, GLuint *buffers){ sAPIClassTable.map_glGenBuffers(n, buffers); }
 DLLEXPORT void DLLEXPORTENTRY glGenerateMipmap(GLenum target){ sAPIClassTable.map_glGenerateMipmap(target); }
 DLLEXPORT void DLLEXPORTENTRY glGenFramebuffers(GLsizei n, GLuint *framebuffers){ sAPIClassTable.map_glGenFramebuffers(n, framebuffers); }
 DLLEXPORT void DLLEXPORTENTRY glGenRenderbuffers(GLsizei n, GLuint *renderbuffers){ sAPIClassTable.map_glGenRenderbuffers(n, renderbuffers); }
-DLLEXPORT void DLLEXPORTENTRY glGenTextures(GLsizei n, GLuint *textures){ sAPIClassTable.map_glGenTextures(n, textures); }
 DLLEXPORT void DLLEXPORTENTRY glGetActiveAttrib(GLuint program, GLuint index, GLsizei bufSize, GLsizei *length, GLint *size, GLenum *type, GLchar *name){ sAPIClassTable.map_glGetActiveAttrib(program, index, bufSize, length, size, type, name); }
 DLLEXPORT void DLLEXPORTENTRY glGetActiveUniform(GLuint program, GLuint index, GLsizei bufSize, GLsizei *length, GLint *size, GLenum *type, GLchar *name){ sAPIClassTable.map_glGetActiveUniform(program, index, bufSize, length, size, type, name); }
 DLLEXPORT void DLLEXPORTENTRY glGetAttachedShaders(GLuint program, GLsizei maxCount, GLsizei *count, GLuint *shaders){ sAPIClassTable.map_glGetAttachedShaders(program, maxCount, count, shaders); }
 DLLEXPORT GLint DLLEXPORTENTRY glGetAttribLocation(GLuint program, const GLchar *name){ return sAPIClassTable.map_glGetAttribLocation(program, name); }
-DLLEXPORT void DLLEXPORTENTRY glGetBooleanv(GLenum pname, GLboolean *data){ sAPIClassTable.map_glGetBooleanv(pname, data); }
-DLLEXPORT void DLLEXPORTENTRY glGetBufferParameteriv(GLenum target, GLenum pname, GLint *params){ sAPIClassTable.map_glGetBufferParameteriv(target, pname, params); }
-DLLEXPORT GLenum DLLEXPORTENTRY glGetError(void){ return sAPIClassTable.map_glGetError(); }
-DLLEXPORT void DLLEXPORTENTRY glGetFloatv(GLenum pname, GLfloat *data){ sAPIClassTable.map_glGetFloatv(pname, data); }
 DLLEXPORT void DLLEXPORTENTRY glGetFramebufferAttachmentParameteriv(GLenum target, GLenum attachment, GLenum pname, GLint *params){ sAPIClassTable.map_glGetFramebufferAttachmentParameteriv(target, attachment, pname, params); }
-DLLEXPORT void DLLEXPORTENTRY glGetIntegerv(GLenum pname, GLint *data){ sAPIClassTable.map_glGetIntegerv(pname, data); }
 DLLEXPORT void DLLEXPORTENTRY glGetProgramiv(GLuint program, GLenum pname, GLint *params){ sAPIClassTable.map_glGetProgramiv(program, pname, params); }
 DLLEXPORT void DLLEXPORTENTRY glGetProgramInfoLog(GLuint program, GLsizei bufSize, GLsizei *length, GLchar *infoLog){ sAPIClassTable.map_glGetProgramInfoLog(program, bufSize, length, infoLog); }
 DLLEXPORT void DLLEXPORTENTRY glGetRenderbufferParameteriv(GLenum target, GLenum pname, GLint *params){ sAPIClassTable.map_glGetRenderbufferParameteriv(target, pname, params); }
@@ -140,46 +252,24 @@ DLLEXPORT void DLLEXPORTENTRY glGetShaderiv(GLuint shader, GLenum pname, GLint *
 DLLEXPORT void DLLEXPORTENTRY glGetShaderInfoLog(GLuint shader, GLsizei bufSize, GLsizei *length, GLchar *infoLog){ sAPIClassTable.map_glGetShaderInfoLog(shader, bufSize, length, infoLog); }
 DLLEXPORT void DLLEXPORTENTRY glGetShaderPrecisionFormat(GLenum shadertype, GLenum precisiontype, GLint *range, GLint *precision){ sAPIClassTable.map_glGetShaderPrecisionFormat(shadertype, precisiontype, range, precision); }
 DLLEXPORT void DLLEXPORTENTRY glGetShaderSource(GLuint shader, GLsizei bufSize, GLsizei *length, GLchar *source){ sAPIClassTable.map_glGetShaderSource(shader, bufSize, length, source); }
-DLLEXPORT const GLubyte * DLLEXPORTENTRY glGetString(GLenum name){ return sAPIClassTable.map_glGetString(name); }
-DLLEXPORT void DLLEXPORTENTRY glGetTexParameterfv(GLenum target, GLenum pname, GLfloat *params){ sAPIClassTable.map_glGetTexParameterfv(target, pname, params); }
-DLLEXPORT void DLLEXPORTENTRY glGetTexParameteriv(GLenum target, GLenum pname, GLint *params){ sAPIClassTable.map_glGetTexParameteriv(target, pname, params); }
 DLLEXPORT void DLLEXPORTENTRY glGetUniformfv(GLuint program, GLint location, GLfloat *params){ sAPIClassTable.map_glGetUniformfv(program, location, params); }
 DLLEXPORT void DLLEXPORTENTRY glGetUniformiv(GLuint program, GLint location, GLint *params){ sAPIClassTable.map_glGetUniformiv(program, location, params); }
 DLLEXPORT GLint DLLEXPORTENTRY glGetUniformLocation(GLuint program, const GLchar *name){ return sAPIClassTable.map_glGetUniformLocation(program, name); }
 DLLEXPORT void DLLEXPORTENTRY glGetVertexAttribfv(GLuint index, GLenum pname, GLfloat *params){ sAPIClassTable.map_glGetVertexAttribfv(index, pname, params); }
 DLLEXPORT void DLLEXPORTENTRY glGetVertexAttribiv(GLuint index, GLenum pname, GLint *params){ sAPIClassTable.map_glGetVertexAttribiv(index, pname, params); }
 DLLEXPORT void DLLEXPORTENTRY glGetVertexAttribPointerv(GLuint index, GLenum pname, void **pointer){ sAPIClassTable.map_glGetVertexAttribPointerv(index, pname, pointer); }
-DLLEXPORT void DLLEXPORTENTRY glHint(GLenum target, GLenum mode){ sAPIClassTable.map_glHint(target, mode); }
-DLLEXPORT GLboolean DLLEXPORTENTRY glIsBuffer(GLuint buffer){ return sAPIClassTable.map_glIsBuffer(buffer); }
-DLLEXPORT GLboolean DLLEXPORTENTRY glIsEnabled(GLenum cap){ return sAPIClassTable.map_glIsEnabled(cap); }
 DLLEXPORT GLboolean DLLEXPORTENTRY glIsFramebuffer(GLuint framebuffer){ return sAPIClassTable.map_glIsFramebuffer(framebuffer); }
 DLLEXPORT GLboolean DLLEXPORTENTRY glIsProgram(GLuint program){ return sAPIClassTable.map_glIsProgram(program); }
 DLLEXPORT GLboolean DLLEXPORTENTRY glIsRenderbuffer(GLuint renderbuffer){ return sAPIClassTable.map_glIsRenderbuffer(renderbuffer); }
 DLLEXPORT GLboolean DLLEXPORTENTRY glIsShader(GLuint shader){ return sAPIClassTable.map_glIsShader(shader); }
-DLLEXPORT GLboolean DLLEXPORTENTRY glIsTexture(GLuint texture){ return sAPIClassTable.map_glIsTexture(texture); }
-DLLEXPORT void DLLEXPORTENTRY glLineWidth(GLfloat width){ sAPIClassTable.map_glLineWidth(width); }
 DLLEXPORT void DLLEXPORTENTRY glLinkProgram(GLuint program){ sAPIClassTable.map_glLinkProgram(program); }
-DLLEXPORT void DLLEXPORTENTRY glPixelStorei(GLenum pname, GLint param){ sAPIClassTable.map_glPixelStorei(pname, param); }
-DLLEXPORT void DLLEXPORTENTRY glPolygonOffset(GLfloat factor, GLfloat units){ sAPIClassTable.map_glPolygonOffset(factor, units); }
-DLLEXPORT void DLLEXPORTENTRY glReadPixels(GLint x, GLint y, GLsizei width, GLsizei height, GLenum format, GLenum type, void *pixels){ sAPIClassTable.map_glReadPixels(x, y, width, height, format, type, pixels); }
 DLLEXPORT void DLLEXPORTENTRY glReleaseShaderCompiler(void){ sAPIClassTable.map_glReleaseShaderCompiler(); }
 DLLEXPORT void DLLEXPORTENTRY glRenderbufferStorage(GLenum target, GLenum internalformat, GLsizei width, GLsizei height){ sAPIClassTable.map_glRenderbufferStorage(target, internalformat, width, height); }
-DLLEXPORT void DLLEXPORTENTRY glSampleCoverage(GLfloat value, GLboolean invert){ sAPIClassTable.map_glSampleCoverage(value, invert); }
-DLLEXPORT void DLLEXPORTENTRY glScissor(GLint x, GLint y, GLsizei width, GLsizei height){ sAPIClassTable.map_glScissor(x, y, width, height); }
 DLLEXPORT void DLLEXPORTENTRY glShaderBinary(GLsizei count, const GLuint *shaders, GLenum binaryformat, const void *binary, GLsizei length){ sAPIClassTable.map_glShaderBinary(count, shaders, binaryformat, binary, length); }
 DLLEXPORT void DLLEXPORTENTRY glShaderSource(GLuint shader, GLsizei count, const GLchar *const*string, const GLint *length){ sAPIClassTable.map_glShaderSource(shader, count, string, length); }
-DLLEXPORT void DLLEXPORTENTRY glStencilFunc(GLenum func, GLint ref, GLuint mask){ sAPIClassTable.map_glStencilFunc(func, ref, mask); }
 DLLEXPORT void DLLEXPORTENTRY glStencilFuncSeparate(GLenum face, GLenum func, GLint ref, GLuint mask){ sAPIClassTable.map_glStencilFuncSeparate(face, func, ref, mask); }
-DLLEXPORT void DLLEXPORTENTRY glStencilMask(GLuint mask){ sAPIClassTable.map_glStencilMask(mask); }
 DLLEXPORT void DLLEXPORTENTRY glStencilMaskSeparate(GLenum face, GLuint mask){ sAPIClassTable.map_glStencilMaskSeparate(face, mask); }
-DLLEXPORT void DLLEXPORTENTRY glStencilOp(GLenum fail, GLenum zfail, GLenum zpass){ sAPIClassTable.map_glStencilOp(fail, zfail, zpass); }
 DLLEXPORT void DLLEXPORTENTRY glStencilOpSeparate(GLenum face, GLenum sfail, GLenum dpfail, GLenum dppass){ sAPIClassTable.map_glStencilOpSeparate(face, sfail, dpfail, dppass); }
-DLLEXPORT void DLLEXPORTENTRY glTexImage2D(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const void *pixels){ sAPIClassTable.map_glTexImage2D(target, level, internalformat, width, height, border, format, type, pixels); }
-DLLEXPORT void DLLEXPORTENTRY glTexParameterf(GLenum target, GLenum pname, GLfloat param){ sAPIClassTable.map_glTexParameterf(target, pname, param); }
-DLLEXPORT void DLLEXPORTENTRY glTexParameterfv(GLenum target, GLenum pname, const GLfloat *params){ sAPIClassTable.map_glTexParameterfv(target, pname, params); }
-DLLEXPORT void DLLEXPORTENTRY glTexParameteri(GLenum target, GLenum pname, GLint param){ sAPIClassTable.map_glTexParameteri(target, pname, param); }
-DLLEXPORT void DLLEXPORTENTRY glTexParameteriv(GLenum target, GLenum pname, const GLint *params){ sAPIClassTable.map_glTexParameteriv(target, pname, params); }
-DLLEXPORT void DLLEXPORTENTRY glTexSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLenum type, const void *pixels){ sAPIClassTable.map_glTexSubImage2D(target, level, xoffset, yoffset, width, height, format, type, pixels); }
 DLLEXPORT void DLLEXPORTENTRY glUniform1f(GLint location, GLfloat v0){ sAPIClassTable.map_glUniform1f(location, v0); }
 DLLEXPORT void DLLEXPORTENTRY glUniform1fv(GLint location, GLsizei count, const GLfloat *value){ sAPIClassTable.map_glUniform1fv(location, count, value); }
 DLLEXPORT void DLLEXPORTENTRY glUniform1i(GLint location, GLint v0){ sAPIClassTable.map_glUniform1i(location, v0); }
@@ -210,7 +300,6 @@ DLLEXPORT void DLLEXPORTENTRY glVertexAttrib3fv(GLuint index, const GLfloat *v){
 DLLEXPORT void DLLEXPORTENTRY glVertexAttrib4f(GLuint index, GLfloat x, GLfloat y, GLfloat z, GLfloat w){ sAPIClassTable.map_glVertexAttrib4f(index, x, y, z, w); }
 DLLEXPORT void DLLEXPORTENTRY glVertexAttrib4fv(GLuint index, const GLfloat *v){ sAPIClassTable.map_glVertexAttrib4fv(index, v); }
 DLLEXPORT void DLLEXPORTENTRY glVertexAttribPointer(GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const void *pointer){ sAPIClassTable.map_glVertexAttribPointer(index, size, type, normalized, stride, pointer); }
-DLLEXPORT void DLLEXPORTENTRY glViewport(GLint x, GLint y, GLsizei width, GLsizei height){ sAPIClassTable.map_glViewport(x, y, width, height); }
 #endif /* GL_ES_VERSION_2_0*/
 
 #if GL_ES_VERSION_3_0
@@ -404,7 +493,6 @@ DLLEXPORT void DLLEXPORTENTRY glObjectLabel(GLenum identifier, GLuint name, GLsi
 DLLEXPORT void DLLEXPORTENTRY glGetObjectLabel(GLenum identifier, GLuint name, GLsizei bufSize, GLsizei *length, GLchar *label){ sAPIClassTable.map_glGetObjectLabel(identifier, name, bufSize, length, label); }
 DLLEXPORT void DLLEXPORTENTRY glObjectPtrLabel(const void *ptr, GLsizei length, const GLchar *label){ sAPIClassTable.map_glObjectPtrLabel(ptr, length, label); }
 DLLEXPORT void DLLEXPORTENTRY glGetObjectPtrLabel(const void *ptr, GLsizei bufSize, GLsizei *length, GLchar *label){ sAPIClassTable.map_glGetObjectPtrLabel(ptr, bufSize, length, label); }
-DLLEXPORT void DLLEXPORTENTRY glGetPointerv(GLenum pname, void **params){ sAPIClassTable.map_glGetPointerv(pname, params); }
 DLLEXPORT void DLLEXPORTENTRY glEnablei(GLenum target, GLuint index){ sAPIClassTable.map_glEnablei(target, index); }
 DLLEXPORT void DLLEXPORTENTRY glDisablei(GLenum target, GLuint index){ sAPIClassTable.map_glDisablei(target, index); }
 DLLEXPORT void DLLEXPORTENTRY glBlendEquationi(GLuint buf, GLenum mode){ sAPIClassTable.map_glBlendEquationi(buf, mode); }
@@ -438,103 +526,15 @@ DLLEXPORT void DLLEXPORTENTRY glTexBufferRange(GLenum target, GLenum internalfor
 DLLEXPORT void DLLEXPORTENTRY glTexStorage3DMultisample(GLenum target, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height, GLsizei depth, GLboolean fixedsamplelocations){ sAPIClassTable.map_glTexStorage3DMultisample(target, samples, internalformat, width, height, depth, fixedsamplelocations); }
 #endif /* GL_ES_VERSION_3_2*/
 
-#if GL_VERSION_ES_CM_1_0
-DLLEXPORT void DLLEXPORTENTRY glAlphaFunc(GLenum func, GLfloat ref){ sAPIClassTable.map_glAlphaFunc(func, ref); }
-DLLEXPORT void DLLEXPORTENTRY glClipPlanef(GLenum p, const GLfloat *eqn){ sAPIClassTable.map_glClipPlanef(p, eqn); }
-DLLEXPORT void DLLEXPORTENTRY glColor4f(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha){ sAPIClassTable.map_glColor4f(red, green, blue, alpha); }
-DLLEXPORT void DLLEXPORTENTRY glFogf(GLenum pname, GLfloat param){ sAPIClassTable.map_glFogf(pname, param); }
-DLLEXPORT void DLLEXPORTENTRY glFogfv(GLenum pname, const GLfloat *params){ sAPIClassTable.map_glFogfv(pname, params); }
-DLLEXPORT void DLLEXPORTENTRY glFrustumf(GLfloat l, GLfloat r, GLfloat b, GLfloat t, GLfloat n, GLfloat f){ sAPIClassTable.map_glFrustumf(l, r, b, t, n, f); }
-DLLEXPORT void DLLEXPORTENTRY glGetClipPlanef(GLenum plane, GLfloat *equation){ sAPIClassTable.map_glGetClipPlanef(plane, equation); }
-DLLEXPORT void DLLEXPORTENTRY glGetLightfv(GLenum light, GLenum pname, GLfloat *params){ sAPIClassTable.map_glGetLightfv(light, pname, params); }
-DLLEXPORT void DLLEXPORTENTRY glGetMaterialfv(GLenum face, GLenum pname, GLfloat *params){ sAPIClassTable.map_glGetMaterialfv(face, pname, params); }
-DLLEXPORT void DLLEXPORTENTRY glGetTexEnvfv(GLenum target, GLenum pname, GLfloat *params){ sAPIClassTable.map_glGetTexEnvfv(target, pname, params); }
-DLLEXPORT void DLLEXPORTENTRY glLightModelf(GLenum pname, GLfloat param){ sAPIClassTable.map_glLightModelf(pname, param); }
-DLLEXPORT void DLLEXPORTENTRY glLightModelfv(GLenum pname, const GLfloat *params){ sAPIClassTable.map_glLightModelfv(pname, params); }
-DLLEXPORT void DLLEXPORTENTRY glLightf(GLenum light, GLenum pname, GLfloat param){ sAPIClassTable.map_glLightf(light, pname, param); }
-DLLEXPORT void DLLEXPORTENTRY glLightfv(GLenum light, GLenum pname, const GLfloat *params){ sAPIClassTable.map_glLightfv(light, pname, params); }
-DLLEXPORT void DLLEXPORTENTRY glLoadMatrixf(const GLfloat *m){ sAPIClassTable.map_glLoadMatrixf(m); }
-DLLEXPORT void DLLEXPORTENTRY glMaterialf(GLenum face, GLenum pname, GLfloat param){ sAPIClassTable.map_glMaterialf(face, pname, param); }
-DLLEXPORT void DLLEXPORTENTRY glMaterialfv(GLenum face, GLenum pname, const GLfloat *params){ sAPIClassTable.map_glMaterialfv(face, pname, params); }
-DLLEXPORT void DLLEXPORTENTRY glMultMatrixf(const GLfloat *m){ sAPIClassTable.map_glMultMatrixf(m); }
-DLLEXPORT void DLLEXPORTENTRY glMultiTexCoord4f(GLenum target, GLfloat s, GLfloat t, GLfloat r, GLfloat q){ sAPIClassTable.map_glMultiTexCoord4f(target, s, t, r, q); }
-DLLEXPORT void DLLEXPORTENTRY glNormal3f(GLfloat nx, GLfloat ny, GLfloat nz){ sAPIClassTable.map_glNormal3f(nx, ny, nz); }
-DLLEXPORT void DLLEXPORTENTRY glOrthof(GLfloat l, GLfloat r, GLfloat b, GLfloat t, GLfloat n, GLfloat f){ sAPIClassTable.map_glOrthof(l, r, b, t, n, f); }
-DLLEXPORT void DLLEXPORTENTRY glPointParameterf(GLenum pname, GLfloat param){ sAPIClassTable.map_glPointParameterf(pname, param); }
-DLLEXPORT void DLLEXPORTENTRY glPointParameterfv(GLenum pname, const GLfloat *params){ sAPIClassTable.map_glPointParameterfv(pname, params); }
-DLLEXPORT void DLLEXPORTENTRY glPointSize(GLfloat size){ sAPIClassTable.map_glPointSize(size); }
-DLLEXPORT void DLLEXPORTENTRY glRotatef(GLfloat angle, GLfloat x, GLfloat y, GLfloat z){ sAPIClassTable.map_glRotatef(angle, x, y, z); }
-DLLEXPORT void DLLEXPORTENTRY glScalef(GLfloat x, GLfloat y, GLfloat z){ sAPIClassTable.map_glScalef(x, y, z); }
-DLLEXPORT void DLLEXPORTENTRY glTexEnvf(GLenum target, GLenum pname, GLfloat param){ sAPIClassTable.map_glTexEnvf(target, pname, param); }
-DLLEXPORT void DLLEXPORTENTRY glTexEnvfv(GLenum target, GLenum pname, const GLfloat *params){ sAPIClassTable.map_glTexEnvfv(target, pname, params); }
-DLLEXPORT void DLLEXPORTENTRY glTranslatef(GLfloat x, GLfloat y, GLfloat z){ sAPIClassTable.map_glTranslatef(x, y, z); }
-DLLEXPORT void DLLEXPORTENTRY glAlphaFuncx(GLenum func, GLfixed ref){ sAPIClassTable.map_glAlphaFuncx(func, ref); }
-DLLEXPORT void DLLEXPORTENTRY glClearColorx(GLfixed red, GLfixed green, GLfixed blue, GLfixed alpha){ sAPIClassTable.map_glClearColorx(red, green, blue, alpha); }
-DLLEXPORT void DLLEXPORTENTRY glClearDepthx(GLfixed depth){ sAPIClassTable.map_glClearDepthx(depth); }
-DLLEXPORT void DLLEXPORTENTRY glClientActiveTexture(GLenum texture){ sAPIClassTable.map_glClientActiveTexture(texture); }
-DLLEXPORT void DLLEXPORTENTRY glClipPlanex(GLenum plane, const GLfixed *equation){ sAPIClassTable.map_glClipPlanex(plane, equation); }
-DLLEXPORT void DLLEXPORTENTRY glColor4ub(GLubyte red, GLubyte green, GLubyte blue, GLubyte alpha){ sAPIClassTable.map_glColor4ub(red, green, blue, alpha); }
-DLLEXPORT void DLLEXPORTENTRY glColor4x(GLfixed red, GLfixed green, GLfixed blue, GLfixed alpha){ sAPIClassTable.map_glColor4x(red, green, blue, alpha); }
-DLLEXPORT void DLLEXPORTENTRY glColorPointer(GLint size, GLenum type, GLsizei stride, const void *pointer){ sAPIClassTable.map_glColorPointer(size, type, stride, pointer); }
-DLLEXPORT void DLLEXPORTENTRY glDepthRangex(GLfixed n, GLfixed f){ sAPIClassTable.map_glDepthRangex(n, f); }
-DLLEXPORT void DLLEXPORTENTRY glDisableClientState(GLenum array){ sAPIClassTable.map_glDisableClientState(array); }
-DLLEXPORT void DLLEXPORTENTRY glEnableClientState(GLenum array){ sAPIClassTable.map_glEnableClientState(array); }
-DLLEXPORT void DLLEXPORTENTRY glFogx(GLenum pname, GLfixed param){ sAPIClassTable.map_glFogx(pname, param); }
-DLLEXPORT void DLLEXPORTENTRY glFogxv(GLenum pname, const GLfixed *param){ sAPIClassTable.map_glFogxv(pname, param); }
-DLLEXPORT void DLLEXPORTENTRY glFrustumx(GLfixed l, GLfixed r, GLfixed b, GLfixed t, GLfixed n, GLfixed f){ sAPIClassTable.map_glFrustumx(l, r, b, t, n, f); }
-DLLEXPORT void DLLEXPORTENTRY glGetClipPlanex(GLenum plane, GLfixed *equation){ sAPIClassTable.map_glGetClipPlanex(plane, equation); }
-DLLEXPORT void DLLEXPORTENTRY glGetFixedv(GLenum pname, GLfixed *params){ sAPIClassTable.map_glGetFixedv(pname, params); }
-DLLEXPORT void DLLEXPORTENTRY glGetLightxv(GLenum light, GLenum pname, GLfixed *params){ sAPIClassTable.map_glGetLightxv(light, pname, params); }
-DLLEXPORT void DLLEXPORTENTRY glGetMaterialxv(GLenum face, GLenum pname, GLfixed *params){ sAPIClassTable.map_glGetMaterialxv(face, pname, params); }
-DLLEXPORT void DLLEXPORTENTRY glGetTexEnviv(GLenum target, GLenum pname, GLint *params){ sAPIClassTable.map_glGetTexEnviv(target, pname, params); }
-DLLEXPORT void DLLEXPORTENTRY glGetTexEnvxv(GLenum target, GLenum pname, GLfixed *params){ sAPIClassTable.map_glGetTexEnvxv(target, pname, params); }
-DLLEXPORT void DLLEXPORTENTRY glGetTexParameterxv(GLenum target, GLenum pname, GLfixed *params){ sAPIClassTable.map_glGetTexParameterxv(target, pname, params); }
-DLLEXPORT void DLLEXPORTENTRY glLightModelx(GLenum pname, GLfixed param){ sAPIClassTable.map_glLightModelx(pname, param); }
-DLLEXPORT void DLLEXPORTENTRY glLightModelxv(GLenum pname, const GLfixed *param){ sAPIClassTable.map_glLightModelxv(pname, param); }
-DLLEXPORT void DLLEXPORTENTRY glLightx(GLenum light, GLenum pname, GLfixed param){ sAPIClassTable.map_glLightx(light, pname, param); }
-DLLEXPORT void DLLEXPORTENTRY glLightxv(GLenum light, GLenum pname, const GLfixed *params){ sAPIClassTable.map_glLightxv(light, pname, params); }
-DLLEXPORT void DLLEXPORTENTRY glLineWidthx(GLfixed width){ sAPIClassTable.map_glLineWidthx(width); }
-DLLEXPORT void DLLEXPORTENTRY glLoadIdentity(void){ sAPIClassTable.map_glLoadIdentity(); }
-DLLEXPORT void DLLEXPORTENTRY glLoadMatrixx(const GLfixed *m){ sAPIClassTable.map_glLoadMatrixx(m); }
-DLLEXPORT void DLLEXPORTENTRY glLogicOp(GLenum opcode){ sAPIClassTable.map_glLogicOp(opcode); }
-DLLEXPORT void DLLEXPORTENTRY glMaterialx(GLenum face, GLenum pname, GLfixed param){ sAPIClassTable.map_glMaterialx(face, pname, param); }
-DLLEXPORT void DLLEXPORTENTRY glMaterialxv(GLenum face, GLenum pname, const GLfixed *param){ sAPIClassTable.map_glMaterialxv(face, pname, param); }
-DLLEXPORT void DLLEXPORTENTRY glMatrixMode(GLenum mode){ sAPIClassTable.map_glMatrixMode(mode); }
-DLLEXPORT void DLLEXPORTENTRY glMultMatrixx(const GLfixed *m){ sAPIClassTable.map_glMultMatrixx(m); }
-DLLEXPORT void DLLEXPORTENTRY glMultiTexCoord4x(GLenum texture, GLfixed s, GLfixed t, GLfixed r, GLfixed q){ sAPIClassTable.map_glMultiTexCoord4x(texture, s, t, r, q); }
-DLLEXPORT void DLLEXPORTENTRY glNormal3x(GLfixed nx, GLfixed ny, GLfixed nz){ sAPIClassTable.map_glNormal3x(nx, ny, nz); }
-DLLEXPORT void DLLEXPORTENTRY glNormalPointer(GLenum type, GLsizei stride, const void *pointer){ sAPIClassTable.map_glNormalPointer(type, stride, pointer); }
-DLLEXPORT void DLLEXPORTENTRY glOrthox(GLfixed l, GLfixed r, GLfixed b, GLfixed t, GLfixed n, GLfixed f){ sAPIClassTable.map_glOrthox(l, r, b, t, n, f); }
-DLLEXPORT void DLLEXPORTENTRY glPointParameterx(GLenum pname, GLfixed param){ sAPIClassTable.map_glPointParameterx(pname, param); }
-DLLEXPORT void DLLEXPORTENTRY glPointParameterxv(GLenum pname, const GLfixed *params){ sAPIClassTable.map_glPointParameterxv(pname, params); }
-DLLEXPORT void DLLEXPORTENTRY glPointSizex(GLfixed size){ sAPIClassTable.map_glPointSizex(size); }
-DLLEXPORT void DLLEXPORTENTRY glPolygonOffsetx(GLfixed factor, GLfixed units){ sAPIClassTable.map_glPolygonOffsetx(factor, units); }
-DLLEXPORT void DLLEXPORTENTRY glPopMatrix(void){ sAPIClassTable.map_glPopMatrix(); }
-DLLEXPORT void DLLEXPORTENTRY glPushMatrix(void){ sAPIClassTable.map_glPushMatrix(); }
-DLLEXPORT void DLLEXPORTENTRY glRotatex(GLfixed angle, GLfixed x, GLfixed y, GLfixed z){ sAPIClassTable.map_glRotatex(angle, x, y, z); }
-DLLEXPORT void DLLEXPORTENTRY glSampleCoveragex(GLclampx value, GLboolean invert){ sAPIClassTable.map_glSampleCoveragex(value, invert); }
-DLLEXPORT void DLLEXPORTENTRY glScalex(GLfixed x, GLfixed y, GLfixed z){ sAPIClassTable.map_glScalex(x, y, z); }
-DLLEXPORT void DLLEXPORTENTRY glShadeModel(GLenum mode){ sAPIClassTable.map_glShadeModel(mode); }
-DLLEXPORT void DLLEXPORTENTRY glTexCoordPointer(GLint size, GLenum type, GLsizei stride, const void *pointer){ sAPIClassTable.map_glTexCoordPointer(size, type, stride, pointer); }
-DLLEXPORT void DLLEXPORTENTRY glTexEnvi(GLenum target, GLenum pname, GLint param){ sAPIClassTable.map_glTexEnvi(target, pname, param); }
-DLLEXPORT void DLLEXPORTENTRY glTexEnvx(GLenum target, GLenum pname, GLfixed param){ sAPIClassTable.map_glTexEnvx(target, pname, param); }
-DLLEXPORT void DLLEXPORTENTRY glTexEnviv(GLenum target, GLenum pname, const GLint *params){ sAPIClassTable.map_glTexEnviv(target, pname, params); }
-DLLEXPORT void DLLEXPORTENTRY glTexEnvxv(GLenum target, GLenum pname, const GLfixed *params){ sAPIClassTable.map_glTexEnvxv(target, pname, params); }
-DLLEXPORT void DLLEXPORTENTRY glTexParameterx(GLenum target, GLenum pname, GLfixed param){ sAPIClassTable.map_glTexParameterx(target, pname, param); }
-DLLEXPORT void DLLEXPORTENTRY glTexParameterxv(GLenum target, GLenum pname, const GLfixed *params){ sAPIClassTable.map_glTexParameterxv(target, pname, params); }
-DLLEXPORT void DLLEXPORTENTRY glTranslatex(GLfixed x, GLfixed y, GLfixed z){ sAPIClassTable.map_glTranslatex(x, y, z); }
-DLLEXPORT void DLLEXPORTENTRY glVertexPointer(GLint size, GLenum type, GLsizei stride, const void *pointer){ sAPIClassTable.map_glVertexPointer(size, type, stride, pointer); }
-#endif /* GL_VERSION_ES_CM_1_0*/
-
 #if EGL_KHR_cl_event2
 DLLEXPORT EGLSyncKHR DLLEXPORTENTRY eglCreateSync64KHR(EGLDisplay dpy, EGLenum type, const EGLAttribKHR *attrib_list){ return sAPIClassTable.map_eglCreateSync64KHR(dpy, type, attrib_list); }
 #endif /* EGL_KHR_cl_event2*/
 
+#if EGL_KHR_client_get_all_proc_addresses
+#endif /* EGL_KHR_client_get_all_proc_addresses*/
+
 #if EGL_KHR_create_context
 #endif /* EGL_KHR_create_context*/
-
-#if EGL_KHR_create_context_no_error
-#endif /* EGL_KHR_create_context_no_error*/
 
 #if EGL_KHR_fence_sync
 DLLEXPORT EGLSyncKHR DLLEXPORTENTRY eglCreateSyncKHR(EGLDisplay dpy, EGLenum type, const EGLint *attrib_list){ return sAPIClassTable.map_eglCreateSyncKHR(dpy, type, attrib_list); }
@@ -565,9 +565,6 @@ DLLEXPORT EGLBoolean DLLEXPORTENTRY eglDestroyImageKHR(EGLDisplay dpy, EGLImageK
 
 #if EGL_KHR_image_base
 #endif /* EGL_KHR_image_base*/
-
-#if EGL_KHR_image_pixmap
-#endif /* EGL_KHR_image_pixmap*/
 
 #if EGL_KHR_platform_android
 #endif /* EGL_KHR_platform_android*/
@@ -607,8 +604,8 @@ DLLEXPORT void DLLEXPORTENTRY glEGLImageTargetRenderbufferStorageOES(GLenum targ
 #if GL_OES_EGL_image_external
 #endif /* GL_OES_EGL_image_external*/
 
-#if GL_OES_EGL_image_external_essl3
-#endif /* GL_OES_EGL_image_external_essl3*/
+#if GL_OES_EGL_sync
+#endif /* GL_OES_EGL_sync*/
 
 #if GL_OES_compressed_ETC1_RGB8_texture
 #endif /* GL_OES_compressed_ETC1_RGB8_texture*/
@@ -619,8 +616,16 @@ DLLEXPORT void DLLEXPORTENTRY glEGLImageTargetRenderbufferStorageOES(GLenum targ
 #if GL_OES_depth24
 #endif /* GL_OES_depth24*/
 
-#if GL_OES_depth32
-#endif /* GL_OES_depth32*/
+#if GL_OES_draw_buffers_indexed
+DLLEXPORT void DLLEXPORTENTRY glEnableiOES(GLenum target, GLuint index){ sAPIClassTable.map_glEnableiOES(target, index); }
+DLLEXPORT void DLLEXPORTENTRY glDisableiOES(GLenum target, GLuint index){ sAPIClassTable.map_glDisableiOES(target, index); }
+DLLEXPORT void DLLEXPORTENTRY glBlendEquationiOES(GLuint buf, GLenum mode){ sAPIClassTable.map_glBlendEquationiOES(buf, mode); }
+DLLEXPORT void DLLEXPORTENTRY glBlendEquationSeparateiOES(GLuint buf, GLenum modeRGB, GLenum modeAlpha){ sAPIClassTable.map_glBlendEquationSeparateiOES(buf, modeRGB, modeAlpha); }
+DLLEXPORT void DLLEXPORTENTRY glBlendFunciOES(GLuint buf, GLenum src, GLenum dst){ sAPIClassTable.map_glBlendFunciOES(buf, src, dst); }
+DLLEXPORT void DLLEXPORTENTRY glBlendFuncSeparateiOES(GLuint buf, GLenum srcRGB, GLenum dstRGB, GLenum srcAlpha, GLenum dstAlpha){ sAPIClassTable.map_glBlendFuncSeparateiOES(buf, srcRGB, dstRGB, srcAlpha, dstAlpha); }
+DLLEXPORT void DLLEXPORTENTRY glColorMaskiOES(GLuint index, GLboolean r, GLboolean g, GLboolean b, GLboolean a){ sAPIClassTable.map_glColorMaskiOES(index, r, g, b, a); }
+DLLEXPORT GLboolean DLLEXPORTENTRY glIsEnablediOES(GLenum target, GLuint index){ return sAPIClassTable.map_glIsEnablediOES(target, index); }
+#endif /* GL_OES_draw_buffers_indexed*/
 
 #if GL_OES_draw_texture
 DLLEXPORT void DLLEXPORTENTRY glDrawTexsOES(GLshort x, GLshort y, GLshort z, GLshort width, GLshort height){ sAPIClassTable.map_glDrawTexsOES(x, y, z, width, height); }
@@ -651,18 +656,21 @@ DLLEXPORT void DLLEXPORTENTRY glGetFramebufferAttachmentParameterivOES(GLenum ta
 DLLEXPORT void DLLEXPORTENTRY glGenerateMipmapOES(GLenum target){ sAPIClassTable.map_glGenerateMipmapOES(target); }
 #endif /* GL_OES_framebuffer_object*/
 
+#if GL_OES_geometry_point_size
+#endif /* GL_OES_geometry_point_size*/
+
+#if GL_OES_geometry_shader
+DLLEXPORT void DLLEXPORTENTRY glFramebufferTextureOES(GLenum target, GLenum attachment, GLuint texture, GLint level){ sAPIClassTable.map_glFramebufferTextureOES(target, attachment, texture, level); }
+#endif /* GL_OES_geometry_shader*/
+
+#if GL_OES_gpu_shader5
+#endif /* GL_OES_gpu_shader5*/
+
 #if GL_OES_mapbuffer
 DLLEXPORT void * DLLEXPORTENTRY glMapBufferOES(GLenum target, GLenum access){ return sAPIClassTable.map_glMapBufferOES(target, access); }
 DLLEXPORT GLboolean DLLEXPORTENTRY glUnmapBufferOES(GLenum target){ return sAPIClassTable.map_glUnmapBufferOES(target); }
 DLLEXPORT void DLLEXPORTENTRY glGetBufferPointervOES(GLenum target, GLenum pname, void **params){ sAPIClassTable.map_glGetBufferPointervOES(target, pname, params); }
 #endif /* GL_OES_mapbuffer*/
-
-#if GL_OES_matrix_palette
-DLLEXPORT void DLLEXPORTENTRY glCurrentPaletteMatrixOES(GLuint matrixpaletteindex){ sAPIClassTable.map_glCurrentPaletteMatrixOES(matrixpaletteindex); }
-DLLEXPORT void DLLEXPORTENTRY glLoadPaletteFromModelViewMatrixOES(void){ sAPIClassTable.map_glLoadPaletteFromModelViewMatrixOES(); }
-DLLEXPORT void DLLEXPORTENTRY glMatrixIndexPointerOES(GLint size, GLenum type, GLsizei stride, const void *pointer){ sAPIClassTable.map_glMatrixIndexPointerOES(size, type, stride, pointer); }
-DLLEXPORT void DLLEXPORTENTRY glWeightPointerOES(GLint size, GLenum type, GLsizei stride, const void *pointer){ sAPIClassTable.map_glWeightPointerOES(size, type, stride, pointer); }
-#endif /* GL_OES_matrix_palette*/
 
 #if GL_OES_packed_depth_stencil
 #endif /* GL_OES_packed_depth_stencil*/
@@ -678,20 +686,63 @@ DLLEXPORT GLbitfield DLLEXPORTENTRY glQueryMatrixxOES(GLfixed *mantissa, GLint *
 #if GL_OES_rgb8_rgba8
 #endif /* GL_OES_rgb8_rgba8*/
 
+#if GL_OES_sample_variables
+#endif /* GL_OES_sample_variables*/
+
+#if GL_OES_shader_image_atomic
+#endif /* GL_OES_shader_image_atomic*/
+
+#if GL_OES_shader_io_blocks
+#endif /* GL_OES_shader_io_blocks*/
+
+#if GL_OES_shader_multisample_interpolation
+#endif /* GL_OES_shader_multisample_interpolation*/
+
 #if GL_OES_standard_derivatives
 #endif /* GL_OES_standard_derivatives*/
 
 #if GL_OES_stencil8
 #endif /* GL_OES_stencil8*/
 
+#if GL_OES_stencil_wrap
+#endif /* GL_OES_stencil_wrap*/
+
 #if GL_OES_surfaceless_context
 #endif /* GL_OES_surfaceless_context*/
+
+#if GL_OES_tessellation_point_size
+#endif /* GL_OES_tessellation_point_size*/
+
+#if GL_OES_tessellation_shader
+DLLEXPORT void DLLEXPORTENTRY glPatchParameteriOES(GLenum pname, GLint value){ sAPIClassTable.map_glPatchParameteriOES(pname, value); }
+#endif /* GL_OES_tessellation_shader*/
+
+#if GL_OES_texture_border_clamp
+DLLEXPORT void DLLEXPORTENTRY glTexParameterIivOES(GLenum target, GLenum pname, const GLint *params){ sAPIClassTable.map_glTexParameterIivOES(target, pname, params); }
+DLLEXPORT void DLLEXPORTENTRY glTexParameterIuivOES(GLenum target, GLenum pname, const GLuint *params){ sAPIClassTable.map_glTexParameterIuivOES(target, pname, params); }
+DLLEXPORT void DLLEXPORTENTRY glGetTexParameterIivOES(GLenum target, GLenum pname, GLint *params){ sAPIClassTable.map_glGetTexParameterIivOES(target, pname, params); }
+DLLEXPORT void DLLEXPORTENTRY glGetTexParameterIuivOES(GLenum target, GLenum pname, GLuint *params){ sAPIClassTable.map_glGetTexParameterIuivOES(target, pname, params); }
+DLLEXPORT void DLLEXPORTENTRY glSamplerParameterIivOES(GLuint sampler, GLenum pname, const GLint *param){ sAPIClassTable.map_glSamplerParameterIivOES(sampler, pname, param); }
+DLLEXPORT void DLLEXPORTENTRY glSamplerParameterIuivOES(GLuint sampler, GLenum pname, const GLuint *param){ sAPIClassTable.map_glSamplerParameterIuivOES(sampler, pname, param); }
+DLLEXPORT void DLLEXPORTENTRY glGetSamplerParameterIivOES(GLuint sampler, GLenum pname, GLint *params){ sAPIClassTable.map_glGetSamplerParameterIivOES(sampler, pname, params); }
+DLLEXPORT void DLLEXPORTENTRY glGetSamplerParameterIuivOES(GLuint sampler, GLenum pname, GLuint *params){ sAPIClassTable.map_glGetSamplerParameterIuivOES(sampler, pname, params); }
+#endif /* GL_OES_texture_border_clamp*/
+
+#if GL_OES_texture_cube_map_array
+#endif /* GL_OES_texture_cube_map_array*/
+
+#if GL_OES_texture_mirrored_repeat
+#endif /* GL_OES_texture_mirrored_repeat*/
 
 #if GL_OES_texture_npot
 #endif /* GL_OES_texture_npot*/
 
 #if GL_OES_texture_stencil8
 #endif /* GL_OES_texture_stencil8*/
+
+#if GL_OES_texture_storage_multisample_2d_array
+DLLEXPORT void DLLEXPORTENTRY glTexStorage3DMultisampleOES(GLenum target, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height, GLsizei depth, GLboolean fixedsamplelocations){ sAPIClassTable.map_glTexStorage3DMultisampleOES(target, samples, internalformat, width, height, depth, fixedsamplelocations); }
+#endif /* GL_OES_texture_storage_multisample_2d_array*/
 
 #if GL_OES_vertex_array_object
 DLLEXPORT void DLLEXPORTENTRY glBindVertexArrayOES(GLuint array){ sAPIClassTable.map_glBindVertexArrayOES(array); }
@@ -760,19 +811,14 @@ DLLEXPORT EGLSurface DLLEXPORTENTRY eglCreatePlatformPixmapSurfaceEXT(EGLDisplay
 #if EGL_EXT_platform_x11
 #endif /* EGL_EXT_platform_x11*/
 
-#if GL_BRCM_base_instance
-DLLEXPORT void DLLEXPORTENTRY glDrawArraysInstancedBaseInstanceBRCM(GLenum mode, GLint first, GLsizei count, GLsizei instancecount, GLuint baseinstance){ sAPIClassTable.map_glDrawArraysInstancedBaseInstanceBRCM(mode, first, count, instancecount, baseinstance); }
-DLLEXPORT void DLLEXPORTENTRY glDrawElementsInstancedBaseInstanceBRCM(GLenum mode, GLsizei count, GLenum type, const void *indices, GLsizei instancecount, GLuint baseinstance){ sAPIClassTable.map_glDrawElementsInstancedBaseInstanceBRCM(mode, count, type, indices, instancecount, baseinstance); }
-DLLEXPORT void DLLEXPORTENTRY glDrawElementsInstancedBaseVertexBaseInstanceBRCM(GLenum mode, GLsizei count, GLenum type, const void *indices, GLsizei instancecount, GLint basevertex, GLuint baseinstance){ sAPIClassTable.map_glDrawElementsInstancedBaseVertexBaseInstanceBRCM(mode, count, type, indices, instancecount, basevertex, baseinstance); }
-#endif /* GL_BRCM_base_instance*/
+#if EGL_EXT_protected_content
+#endif /* EGL_EXT_protected_content*/
+
+#if EGL_EXT_protected_surface
+#endif /* EGL_EXT_protected_surface*/
 
 #if GL_BRCM_mirror_once_border
 #endif /* GL_BRCM_mirror_once_border*/
-
-#if GL_BRCM_multi_draw_indirect
-DLLEXPORT void DLLEXPORTENTRY glMultiDrawArraysIndirectBRCM(GLenum mode, const void *indirect, GLsizei drawcount, GLsizei stride){ sAPIClassTable.map_glMultiDrawArraysIndirectBRCM(mode, indirect, drawcount, stride); }
-DLLEXPORT void DLLEXPORTENTRY glMultiDrawElementsIndirectBRCM(GLenum mode, GLenum type, const void *indirect, GLsizei drawcount, GLsizei stride){ sAPIClassTable.map_glMultiDrawElementsIndirectBRCM(mode, type, indirect, drawcount, stride); }
-#endif /* GL_BRCM_multi_draw_indirect*/
 
 #if GL_BRCM_polygon_mode
 DLLEXPORT void DLLEXPORTENTRY glPolygonModeBRCM(GLenum mode){ sAPIClassTable.map_glPolygonModeBRCM(mode); }
@@ -792,6 +838,12 @@ DLLEXPORT void DLLEXPORTENTRY glTexImage1DBRCM(GLenum target, GLint level, GLint
 #if GL_BRCM_texture_norm16
 #endif /* GL_BRCM_texture_norm16*/
 
+#if GL_EXT_base_instance
+DLLEXPORT void DLLEXPORTENTRY glDrawArraysInstancedBaseInstanceEXT(GLenum mode, GLint first, GLsizei count, GLsizei instancecount, GLuint baseinstance){ sAPIClassTable.map_glDrawArraysInstancedBaseInstanceEXT(mode, first, count, instancecount, baseinstance); }
+DLLEXPORT void DLLEXPORTENTRY glDrawElementsInstancedBaseInstanceEXT(GLenum mode, GLsizei count, GLenum type, const void *indices, GLsizei instancecount, GLuint baseinstance){ sAPIClassTable.map_glDrawElementsInstancedBaseInstanceEXT(mode, count, type, indices, instancecount, baseinstance); }
+DLLEXPORT void DLLEXPORTENTRY glDrawElementsInstancedBaseVertexBaseInstanceEXT(GLenum mode, GLsizei count, GLenum type, const void *indices, GLsizei instancecount, GLint basevertex, GLuint baseinstance){ sAPIClassTable.map_glDrawElementsInstancedBaseVertexBaseInstanceEXT(mode, count, type, indices, instancecount, basevertex, baseinstance); }
+#endif /* GL_EXT_base_instance*/
+
 #if GL_EXT_color_buffer_float
 #endif /* GL_EXT_color_buffer_float*/
 
@@ -805,6 +857,17 @@ DLLEXPORT void DLLEXPORTENTRY glPopGroupMarkerEXT(void){ sAPIClassTable.map_glPo
 DLLEXPORT void DLLEXPORTENTRY glDiscardFramebufferEXT(GLenum target, GLsizei numAttachments, const GLenum *attachments){ sAPIClassTable.map_glDiscardFramebufferEXT(target, numAttachments, attachments); }
 #endif /* GL_EXT_discard_framebuffer*/
 
+#if GL_EXT_draw_buffers_indexed
+DLLEXPORT void DLLEXPORTENTRY glEnableiEXT(GLenum target, GLuint index){ sAPIClassTable.map_glEnableiEXT(target, index); }
+DLLEXPORT void DLLEXPORTENTRY glDisableiEXT(GLenum target, GLuint index){ sAPIClassTable.map_glDisableiEXT(target, index); }
+DLLEXPORT void DLLEXPORTENTRY glBlendEquationiEXT(GLuint buf, GLenum mode){ sAPIClassTable.map_glBlendEquationiEXT(buf, mode); }
+DLLEXPORT void DLLEXPORTENTRY glBlendEquationSeparateiEXT(GLuint buf, GLenum modeRGB, GLenum modeAlpha){ sAPIClassTable.map_glBlendEquationSeparateiEXT(buf, modeRGB, modeAlpha); }
+DLLEXPORT void DLLEXPORTENTRY glBlendFunciEXT(GLuint buf, GLenum src, GLenum dst){ sAPIClassTable.map_glBlendFunciEXT(buf, src, dst); }
+DLLEXPORT void DLLEXPORTENTRY glBlendFuncSeparateiEXT(GLuint buf, GLenum srcRGB, GLenum dstRGB, GLenum srcAlpha, GLenum dstAlpha){ sAPIClassTable.map_glBlendFuncSeparateiEXT(buf, srcRGB, dstRGB, srcAlpha, dstAlpha); }
+DLLEXPORT void DLLEXPORTENTRY glColorMaskiEXT(GLuint index, GLboolean r, GLboolean g, GLboolean b, GLboolean a){ sAPIClassTable.map_glColorMaskiEXT(index, r, g, b, a); }
+DLLEXPORT GLboolean DLLEXPORTENTRY glIsEnablediEXT(GLenum target, GLuint index){ return sAPIClassTable.map_glIsEnablediEXT(target, index); }
+#endif /* GL_EXT_draw_buffers_indexed*/
+
 #if GL_EXT_draw_elements_base_vertex
 DLLEXPORT void DLLEXPORTENTRY glDrawElementsBaseVertexEXT(GLenum mode, GLsizei count, GLenum type, const void *indices, GLint basevertex){ sAPIClassTable.map_glDrawElementsBaseVertexEXT(mode, count, type, indices, basevertex); }
 DLLEXPORT void DLLEXPORTENTRY glDrawRangeElementsBaseVertexEXT(GLenum mode, GLuint start, GLuint end, GLsizei count, GLenum type, const void *indices, GLint basevertex){ sAPIClassTable.map_glDrawRangeElementsBaseVertexEXT(mode, start, end, count, type, indices, basevertex); }
@@ -812,10 +875,32 @@ DLLEXPORT void DLLEXPORTENTRY glDrawElementsInstancedBaseVertexEXT(GLenum mode, 
 DLLEXPORT void DLLEXPORTENTRY glMultiDrawElementsBaseVertexEXT(GLenum mode, const GLsizei *count, GLenum type, const void *const*indices, GLsizei primcount, const GLint *basevertex){ sAPIClassTable.map_glMultiDrawElementsBaseVertexEXT(mode, count, type, indices, primcount, basevertex); }
 #endif /* GL_EXT_draw_elements_base_vertex*/
 
+#if GL_EXT_geometry_point_size
+#endif /* GL_EXT_geometry_point_size*/
+
+#if GL_EXT_geometry_shader
+DLLEXPORT void DLLEXPORTENTRY glFramebufferTextureEXT(GLenum target, GLenum attachment, GLuint texture, GLint level){ sAPIClassTable.map_glFramebufferTextureEXT(target, attachment, texture, level); }
+#endif /* GL_EXT_geometry_shader*/
+
+#if GL_EXT_gpu_shader5
+#endif /* GL_EXT_gpu_shader5*/
+
+#if GL_EXT_multi_draw_indirect
+DLLEXPORT void DLLEXPORTENTRY glMultiDrawArraysIndirectEXT(GLenum mode, const void *indirect, GLsizei drawcount, GLsizei stride){ sAPIClassTable.map_glMultiDrawArraysIndirectEXT(mode, indirect, drawcount, stride); }
+DLLEXPORT void DLLEXPORTENTRY glMultiDrawElementsIndirectEXT(GLenum mode, GLenum type, const void *indirect, GLsizei drawcount, GLsizei stride){ sAPIClassTable.map_glMultiDrawElementsIndirectEXT(mode, type, indirect, drawcount, stride); }
+#endif /* GL_EXT_multi_draw_indirect*/
+
 #if GL_EXT_multisampled_render_to_texture
 DLLEXPORT void DLLEXPORTENTRY glRenderbufferStorageMultisampleEXT(GLenum target, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height){ sAPIClassTable.map_glRenderbufferStorageMultisampleEXT(target, samples, internalformat, width, height); }
 DLLEXPORT void DLLEXPORTENTRY glFramebufferTexture2DMultisampleEXT(GLenum target, GLenum attachment, GLenum textarget, GLuint texture, GLint level, GLsizei samples){ sAPIClassTable.map_glFramebufferTexture2DMultisampleEXT(target, attachment, textarget, texture, level, samples); }
 #endif /* GL_EXT_multisampled_render_to_texture*/
+
+#if GL_EXT_primitive_bounding_box
+DLLEXPORT void DLLEXPORTENTRY glPrimitiveBoundingBoxEXT(GLfloat minX, GLfloat minY, GLfloat minZ, GLfloat minW, GLfloat maxX, GLfloat maxY, GLfloat maxZ, GLfloat maxW){ sAPIClassTable.map_glPrimitiveBoundingBoxEXT(minX, minY, minZ, minW, maxX, maxY, maxZ, maxW); }
+#endif /* GL_EXT_primitive_bounding_box*/
+
+#if GL_EXT_protected_textures
+#endif /* GL_EXT_protected_textures*/
 
 #if GL_EXT_robustness
 DLLEXPORT GLenum DLLEXPORTENTRY glGetGraphicsResetStatusEXT(void){ return sAPIClassTable.map_glGetGraphicsResetStatusEXT(); }
@@ -824,8 +909,35 @@ DLLEXPORT void DLLEXPORTENTRY glGetnUniformfvEXT(GLuint program, GLint location,
 DLLEXPORT void DLLEXPORTENTRY glGetnUniformivEXT(GLuint program, GLint location, GLsizei bufSize, GLint *params){ sAPIClassTable.map_glGetnUniformivEXT(program, location, bufSize, params); }
 #endif /* GL_EXT_robustness*/
 
+#if GL_EXT_shader_integer_mix
+#endif /* GL_EXT_shader_integer_mix*/
+
+#if GL_EXT_shader_io_blocks
+#endif /* GL_EXT_shader_io_blocks*/
+
 #if GL_EXT_shader_texture_lod
 #endif /* GL_EXT_shader_texture_lod*/
+
+#if GL_EXT_tessellation_point_size
+#endif /* GL_EXT_tessellation_point_size*/
+
+#if GL_EXT_tessellation_shader
+DLLEXPORT void DLLEXPORTENTRY glPatchParameteriEXT(GLenum pname, GLint value){ sAPIClassTable.map_glPatchParameteriEXT(pname, value); }
+#endif /* GL_EXT_tessellation_shader*/
+
+#if GL_EXT_texture_border_clamp
+DLLEXPORT void DLLEXPORTENTRY glTexParameterIivEXT(GLenum target, GLenum pname, const GLint *params){ sAPIClassTable.map_glTexParameterIivEXT(target, pname, params); }
+DLLEXPORT void DLLEXPORTENTRY glTexParameterIuivEXT(GLenum target, GLenum pname, const GLuint *params){ sAPIClassTable.map_glTexParameterIuivEXT(target, pname, params); }
+DLLEXPORT void DLLEXPORTENTRY glGetTexParameterIivEXT(GLenum target, GLenum pname, GLint *params){ sAPIClassTable.map_glGetTexParameterIivEXT(target, pname, params); }
+DLLEXPORT void DLLEXPORTENTRY glGetTexParameterIuivEXT(GLenum target, GLenum pname, GLuint *params){ sAPIClassTable.map_glGetTexParameterIuivEXT(target, pname, params); }
+DLLEXPORT void DLLEXPORTENTRY glSamplerParameterIivEXT(GLuint sampler, GLenum pname, const GLint *param){ sAPIClassTable.map_glSamplerParameterIivEXT(sampler, pname, param); }
+DLLEXPORT void DLLEXPORTENTRY glSamplerParameterIuivEXT(GLuint sampler, GLenum pname, const GLuint *param){ sAPIClassTable.map_glSamplerParameterIuivEXT(sampler, pname, param); }
+DLLEXPORT void DLLEXPORTENTRY glGetSamplerParameterIivEXT(GLuint sampler, GLenum pname, GLint *params){ sAPIClassTable.map_glGetSamplerParameterIivEXT(sampler, pname, params); }
+DLLEXPORT void DLLEXPORTENTRY glGetSamplerParameterIuivEXT(GLuint sampler, GLenum pname, GLuint *params){ sAPIClassTable.map_glGetSamplerParameterIuivEXT(sampler, pname, params); }
+#endif /* GL_EXT_texture_border_clamp*/
+
+#if GL_EXT_texture_cube_map_array
+#endif /* GL_EXT_texture_cube_map_array*/
 
 #if GL_EXT_texture_filter_anisotropic
 #endif /* GL_EXT_texture_filter_anisotropic*/

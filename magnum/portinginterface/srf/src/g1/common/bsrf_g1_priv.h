@@ -46,6 +46,7 @@
 
 #if (BCHP_CHIP==lonestar)
    #include "bsrf_lonestar_priv.h"
+   #define BSRF_SXM_OVERRIDE  /* sxm request to override default settings */
 #else
    #error "unsupported BCHP_CHIP"
 #endif
@@ -75,6 +76,8 @@ typedef struct BSRF_g1_P_ChannelHandle
 {
    BSRF_RfAgcSettings   rfagcSettings;       /* rfagc settings */
    bool                 bOmitRfagcLut[BSRF_RFAGC_LUT_COUNT];   /* rfagc lut omissions */
+   bool                 bEnableFastDecay;    /* enable fast decay mode */
+   bool                 bAntennaSenseEnabled;   /* antenna sense enabled */
    uint32_t             tunerFreq;           /* tuner freq */
    int32_t              notchFreq;           /* notch freq */
    uint8_t              modeAoc;             /* antenna over-current mode */
@@ -100,7 +103,7 @@ BERR_Code BSRF_g1_P_WriteRfAgc(BSRF_ChannelHandle h, uint32_t val);
 BERR_Code BSRF_g1_P_ReadRfAgc(BSRF_ChannelHandle h, uint32_t *pVal);
 BERR_Code BSRF_g1_P_WriteRfGain(BSRF_ChannelHandle h, uint8_t gain);
 BERR_Code BSRF_g1_P_ReadRfGain(BSRF_ChannelHandle h, uint8_t *pGain);
-BERR_Code BSRF_g1_P_GetInputPower(BSRF_ChannelHandle h, uint32_t *pPower);
+BERR_Code BSRF_g1_P_GetInputPower(BSRF_ChannelHandle h, int32_t *pPower);
 BERR_Code BSRF_g1_P_SetRfAgcSettings(BSRF_ChannelHandle h, BSRF_RfAgcSettings settings);
 BERR_Code BSRF_g1_P_GetRfAgcSettings(BSRF_ChannelHandle h, BSRF_RfAgcSettings *pSettings);
 BERR_Code BSRF_g1_P_EnableFastDecayMode(BSRF_ChannelHandle h, bool bEnable);
@@ -124,10 +127,15 @@ BERR_Code BSRF_g1_P_EnableTestDacTone(BSRF_Handle h, bool bToneOn, uint16_t tone
 BERR_Code BSRF_g1_P_RunDataCapture(BSRF_Handle h);
 BERR_Code BSRF_g1_P_DeleteAgcLutCodes(BSRF_Handle h, uint32_t *pIdx, uint32_t n);
 BERR_Code BSRF_g1_P_ConfigOutputClockPhase(BSRF_Handle h, uint8_t phase, bool bDisableOutput);
+BERR_Code BSRF_g1_P_SetIqEqCoeff(BSRF_ChannelHandle h, int16_t *iTaps, int16_t *qTaps);
+BERR_Code BSRF_g1_P_SetIqEqSettings(BSRF_ChannelHandle h, BSRF_IqEqSettings settings);
 
 /* bsrf_g1_priv_ana */
 BERR_Code BSRF_g1_Ana_P_PowerUp(BSRF_ChannelHandle h);
 BERR_Code BSRF_g1_Ana_P_PowerDown(BSRF_ChannelHandle h);
+BERR_Code BSRF_g1_Ana_P_PowerUpAntennaSense(BSRF_ChannelHandle h);
+BERR_Code BSRF_g1_Ana_P_PowerDownAntennaSense(BSRF_ChannelHandle h);
+BERR_Code BSRF_g1_Ana_P_CalibrateCaps(BSRF_ChannelHandle h);
 
 /* bsrf_g1_priv_rfagc */
 BERR_Code BSRF_g1_Rfagc_P_Init(BSRF_ChannelHandle h);
@@ -137,5 +145,7 @@ BERR_Code BSRF_g1_Rfagc_P_SetSettings(BSRF_ChannelHandle h, BSRF_RfAgcSettings s
 BERR_Code BSRF_g1_Tuner_P_Init(BSRF_ChannelHandle h);
 BERR_Code BSRF_g1_Tuner_P_SetFcw(BSRF_ChannelHandle h, int32_t freqHz);
 BERR_Code BSRF_g1_Tuner_P_SetNotchFcw(BSRF_ChannelHandle h, int32_t freqHz);
+BERR_Code BSRF_g1_Tuner_P_SetIqEqCoeff(BSRF_ChannelHandle h, int16_t *iTaps, int16_t *qTaps);
+BERR_Code BSRF_g1_Tuner_P_SetIqEqSettings(BSRF_ChannelHandle h, BSRF_IqEqSettings settings);
 
 #endif /* BSRF_G1_PRIV_H__ */

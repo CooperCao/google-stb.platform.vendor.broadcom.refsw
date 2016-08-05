@@ -378,6 +378,8 @@ int b_shared_gpio_open_pin(const b_shared_gpio_pin_desc * pin_desc, b_shared_gpi
         result = -EINVAL; BERR_TRACE(result); goto end;
     }
 
+    /* this code is used for platforms that support shared gpio */
+    /* coverity[dead_error_begin: FALSE] */
     B_SHARED_GPIO_SPIN_LOCK(flags);
     pin->bank = bank;
     pin->shift = pin_desc->shift;

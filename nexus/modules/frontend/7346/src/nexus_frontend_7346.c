@@ -102,12 +102,9 @@ NEXUS_FrontendHandle NEXUS_Frontend_Open7346( const NEXUS_7346FrontendSettings *
         NEXUS_I2cCallbacks i2cCallbacks;
         BKNI_EventHandle event;
 
-        pFrontendDevice = BKNI_Malloc(sizeof(*pFrontendDevice));
+        pFrontendDevice = NEXUS_FrontendDevice_P_Create();
         if (NULL == pFrontendDevice) {BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY); return NULL;}
         pFrontendDevice->familyId = 0x7346;
-
-        /* Memsetting the whole structure should cover initializing the child list. */
-        BKNI_Memset(pFrontendDevice, 0, sizeof(*pFrontendDevice));
 
         BDBG_MSG(("Opening new 7346 device"));
         pDevice = BKNI_Malloc(sizeof(NEXUS_7346Device));

@@ -82,12 +82,20 @@ BERR_Code BSRF_g1_Rfagc_P_Init(BSRF_ChannelHandle h)
    uint8_t i, j = 0;
    int8_t maxLimit = 15;
 
+#ifdef BSRF_SXM_OVERRIDE
+   BKNI_Printf("BSRF_g1_Rfagc_P_Init\n");
+#endif
+
    /* load rfagc lut */
    for (i = 0; i < BSRF_RFAGC_LUT_COUNT; i++)
    {
       /* load lut value if not omitted */
       if (hChn->bOmitRfagcLut[i] == false)
          BSRF_P_WriteRegister(h, BCHP_SRFE_RFAGC_LUT_DATAi_ARRAY_BASE+4*j++, rfagcLut[i]);
+   #ifdef BSRF_SXM_OVERRIDE
+      else
+         BKNI_Printf(" omit idx %d!\n", i);
+   #endif
    }
 
    /* enable rfagc */
@@ -239,6 +247,9 @@ BERR_Code BSRF_g1_Rfagc_P_SetSettings(BSRF_ChannelHandle h, BSRF_RfAgcSettings s
    /* set rfagc control */
    BSRF_P_WriteRegister(h, BCHP_SRFE_RFAGC_LOOP_AGC_CTRL1, 0xC05CD6CA);
    BSRF_P_WriteRegister(h, BCHP_SRFE_RFAGC_LOOP_AGC_CTRL2, 0x31000732);
+
+   if (hChn->bEnableFastDecay)
+      BSRF_P_OrRegister(h, BCHP_SRFE_RFAGC_LOOP_AGC_CTRL2, 0x80000000);
 
    /* set agc la beta */
    BSRF_P_ReadModifyWriteRegister(h, BCHP_SRFE_RFAGC_LOOP_AGC_CTRL1, ~0x07000000, (settings.powerMeasureBw & 0x7) << 24);

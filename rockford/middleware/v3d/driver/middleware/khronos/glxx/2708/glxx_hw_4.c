@@ -1388,52 +1388,30 @@ bool glxx_hw_draw_triangles(
       num_vpm_rows_c, num_vpm_rows_v, &attr_count);
    vcos_assert(attr_count >= 1 && attr_count <= 8);
 
-   if(!IS_GL_11(state)) {
-#ifdef XXX_OFFLINE
-      if (shader.use_offline)
-      {
-         /* Allocate space for shaded vertices */
-         //GLXX_FIXABLE_BUF_T buf;
-         vcd_setup.shaded_vertex_size = 28 + 4 * shader.num_varyings;
-         vcd_setup.shaded_vertex_count = (max_index + 15) & ~15;
-         //if (!glxx_fixable_alloc(&buf, &vcd_setup.shaded_vertices, vcd_setup.shaded_vertex_size * vcd_setup.shaded_vertex_count, 4, L_VERTEX_DATA))
-         //    goto fail;
-         //glxx_fixable_close(&buf);
-         if(!glxx_alloc_junk_mem(&vcd_setup.shaded_vertices,vcd_setup.shaded_vertex_size * vcd_setup.shaded_vertex_count,4))
-            goto fail;
-      }
-      else
-         vcd_setup.shaded_vertices = glxx_fixable_null();
-#endif // XXX_OFFLINE
-
+   if(!IS_GL_11(state))
       gl20_hw_iu_init(&iu);
-   }
 
    /* Install uniforms */
    cunif_count = mem_get_size(cunif_map)/8;
    vunif_count = mem_get_size(vunif_map)/8;
    funif_count = mem_get_size(funif_map)/8;
 
-#ifdef XXX_OFFLINE
-   if (!shader.use_offline)
-#endif
+   if(!install_uniforms(
+      &shader_record->cunif,
+      state,
+      program,
+      cunif_count,
+      cunif_map,
+      &iu,
+      num_vpm_rows_c,
+      attrib,/*TODO for GL 2.0 NULL is passed instead of attrib - does this matter? */
+      state->shader.common.egl_output,
+      fb.height,
+      secure))
    {
-      if(!install_uniforms(
-         &shader_record->cunif,
-         state,
-         program,
-         cunif_count,
-         cunif_map,
-         &iu,
-         num_vpm_rows_c,
-         attrib,/*TODO for GL 2.0 NULL is passed instead of attrib - does this matter? */
-         state->shader.common.egl_output,
-         fb.height,
-         secure))
-      {
-         goto fail;
-      }
+      goto fail;
    }
+
    if(!install_uniforms(
       &shader_record->vunif,
       state,
@@ -1445,11 +1423,11 @@ bool glxx_hw_draw_triangles(
       attrib,
       state->shader.common.egl_output,
       fb.height,
-      secure
-      ))
+      secure))
    {
       goto fail;
    }
+
    if(!install_uniforms(
       &shader_record->funif,
       state,
@@ -1461,8 +1439,7 @@ bool glxx_hw_draw_triangles(
       attrib,
       state->shader.common.egl_output,
       fb.height,
-      secure
-      ))
+      secure))
    {
       goto fail;
    }
@@ -1580,9 +1557,6 @@ bool glxx_hw_draw_triangles(
             /* get_shaders() put copies of the handles we need in shader_record->fshader etc. */
             glxx_big_mem_insert(&shader_record->fshader,shader_record->fshader,0);
             glxx_big_mem_insert(&shader_record->vshader,shader_record->vshader,0);
-#ifdef XXX_OFFLINE
-         if (shader_record->cshader!=MEM_INVALID_HANDLE)
-#endif
             glxx_big_mem_insert(&shader_record->cshader,shader_record->cshader,0);
 
             offset += step + indices_offset;
@@ -1901,25 +1875,11 @@ static bool install_uniform(uint32_t *ptr, uint32_t u0, uint32_t u1,
                for (i = 0; i < j; i++)
                   data_start += num_vpm_rows[i];
                data_start &= 0x3F;
-#ifdef XXX_OFFLINE
-               if(IS_GL_11(state) || vcd_setup->shaded_vertices.handle == MEM_INVALID_HANDLE)
-                  *ptr = 0x00001a00 | (num_vpm_rows[j] & 15) << 20;
-               else
-                  *ptr = 0x00001200 | (num_vpm_rows[j] & 15) << 20;   /* do vertical reads in user shader mode */
-#else
                *ptr = 0x00001a00 | ((num_vpm_rows[j] & 15) << 20) | data_start;
-#endif
             }
             break;
          case BACKEND_UNIFORM_VPM_WRITE_SETUP:
-#ifdef XXX_OFFLINE
-            if(IS_GL_11(state) || vcd_setup->shaded_vertices.handle == MEM_INVALID_HANDLE)
-               *ptr = 0x00001a00;
-            else
-               *ptr = 0x00001a10;
-#else
             *ptr = 0x00001a00;
-#endif
             break;
          case BACKEND_UNIFORM_STENCIL_FRONT:
             *ptr =
@@ -1952,190 +1912,6 @@ static bool install_uniform(uint32_t *ptr, uint32_t u0, uint32_t u1,
             vcos_assert(!IS_GL_11(state));
             *ptr = color_floats_to_rgba(state->blend_color[0], state->blend_color[1], state->blend_color[2], state->blend_color[3]);
             break;
-#ifdef XXX_OFFLINE
-         case BACKEND_UNIFORM_NEXT_USER_SHADER:
-            {
-               KHRN_FIXER_TYPE_T fixer_type = 0;
-               GLXX_FIXABLE_ADDR_T addr = glxx_hw_get_next_user_shader();
-
-               if(addr.handle == MEM_INVALID_HANDLE)
-                  goto fail;
-
-               vcos_assert(!IS_GL_11(state));
-
-               //glxx_add_addr(buf, &addr);
-
-               vcos_assert(addr.fixable_type == FIXABLE_TYPE_JUNK || addr.fixable_type == FIXABLE_TYPE_ALLOC);
-
-               if(addr.fixable_type == FIXABLE_TYPE_JUNK)
-                  fixer_type = 0;
-               else if (addr.fixable_type == FIXABLE_TYPE_ALLOC)
-                  fixer_type = (KHRN_FIXER_TYPE_T)(KHRN_FIXER_TYPE_NO_HISTORY|KHRN_FIXER_TYPE_REF);
-
-               if(!glxx_fixer_locked_add_handle(buf, addr.handle, fixer_type))
-                  goto fail;
-               word = addr.offset;
-            }
-            break;
-         case BACKEND_UNIFORM_NEXT_USER_UNIF:
-            {
-               KHRN_FIXER_TYPE_T fixer_type = 0;
-               GLXX_FIXABLE_ADDR_T addr = glxx_hw_get_next_user_unif();
-               vcos_assert(!IS_GL_11(state));
-               //glxx_add_valid_addr(buf, &addr);   /* Use "add_valid" to guard against null */
-
-               if (addr.fixable_type == FIXABLE_TYPE_NULL)
-               {
-                  word = 0;
-               }
-               else
-               {
-                  vcos_assert(addr.fixable_type == FIXABLE_TYPE_JUNK || addr.fixable_type == FIXABLE_TYPE_ALLOC);
-
-                  if(addr.fixable_type == FIXABLE_TYPE_JUNK)
-                     fixer_type = 0;
-                  else if (addr.fixable_type == FIXABLE_TYPE_ALLOC)
-                     fixer_type = (KHRN_FIXER_TYPE_T)(KHRN_FIXER_TYPE_NO_HISTORY|KHRN_FIXER_TYPE_REF);
-                  word = addr.offset;
-                  if(!glxx_fixer_locked_add_handle(buf, addr.handle, fixer_type))
-                     goto fail;
-               }
-            }
-            break;
-         case BACKEND_UNIFORM_VDR_SETUP0:
-            vcos_assert(!IS_GL_11(state));
-            vcos_assert(vcd_setup->attr_count == 1);
-            vcos_assert(vcd_setup->sizem1[0]+1 < 64);
-
-            word =
-               0 << 0 |                               /* x */
-               0 << 4 |                               /* y */
-               0 << 11 |                              /* horizontal */
-               1 << 12 |                              /* vpitch */
-               0 << 16 |                              /* nrows (0=16) */
-               ((vcd_setup->sizem1[0]+1)/4) << 20 | /* rowlen */
-               0 << 24 |                              /* mpitch */
-               0 << 28 |                              /* size is 32 bits, 0 offset */
-               1 << 31;                              /* id */
-            break;
-         case BACKEND_UNIFORM_VDR_SETUP1:
-            vcos_assert(!IS_GL_11(state));
-            vcos_assert(vcd_setup->attr_count == 1);
-            vcos_assert(vcd_setup->stride[0] < 8192);
-            word =
-               vcd_setup->stride[0] |    /* stride */
-               9 << 28;                 /* id */
-            break;
-         case BACKEND_UNIFORM_VDR_ADDR_START:
-            {
-               //GLXX_FIXABLE_ADDR_T addr = glxx_fixable_copy(&vcd_setup->base[0]);
-
-               GLXX_FIXABLE_ADDR_T addr = vcd_setup->base[0];
-
-               vcos_assert(!IS_GL_11(state));
-               vcos_assert(vcd_setup->attr_count == 1);
-
-               vcos_assert(addr.fixable_type == FIXABLE_TYPE_NULL || addr.fixable_type == FIXABLE_TYPE_ALLOC);
-
-               //glxx_add_addr(buf, &addr);
-               if (addr.fixable_type == FIXABLE_TYPE_NULL)
-               {
-                  word = 0;
-               }
-               else
-               {
-                  KHRN_FIXER_TYPE_T fixer_type;
-                  fixer_type = (KHRN_FIXER_TYPE_T)(KHRN_FIXER_TYPE_NO_HISTORY|KHRN_FIXER_TYPE_REF);
-
-                  word  = addr.offset;
-                  if(!glxx_fixer_locked_add_handle(buf, addr.handle, fixer_type))
-                     goto fail;
-               }
-            }
-            break;
-         case BACKEND_UNIFORM_VDR_ADDR_INCR:
-            vcos_assert(!IS_GL_11(state));
-            vcos_assert(vcd_setup->attr_count == 1);
-            word = 16 * vcd_setup->stride[0];
-            break;
-         case BACKEND_UNIFORM_VDR_ADDR_END:
-            {
-               //GLXX_FIXABLE_ADDR_T addr = glxx_fixable_copy(&vcd_setup->base[0]);
-               GLXX_FIXABLE_ADDR_T addr = vcd_setup->base[0];
-               vcos_assert(!IS_GL_11(state));
-               vcos_assert(vcd_setup->attr_count == 1);
-               vcos_assert(vcd_setup->shaded_vertex_count > 0);
-               vcos_assert(!(vcd_setup->shaded_vertex_count & 15));
-               //glxx_add_addr_plus(buf, &addr, (vcd_setup->shaded_vertex_count - 16) * vcd_setup->stride[0]);
-
-               vcos_assert(addr.fixable_type == FIXABLE_TYPE_NULL || addr.fixable_type == FIXABLE_TYPE_ALLOC);
-
-               if (addr.fixable_type == FIXABLE_TYPE_NULL)
-               {
-                  word = 0;
-               }
-               else
-               {
-                  KHRN_FIXER_TYPE_T fixer_type;
-                  fixer_type = (KHRN_FIXER_TYPE_T)(KHRN_FIXER_TYPE_NO_HISTORY|KHRN_FIXER_TYPE_REF);
-
-                  word  = addr.offset + (vcd_setup->shaded_vertex_count - 16) * vcd_setup->stride[0];
-                  if(!glxx_fixer_locked_add_handle(buf, addr.handle, fixer_type))
-                     goto fail;
-               }
-            }
-            break;
-         case BACKEND_UNIFORM_VDW_SETUP0:
-            vcos_assert(!IS_GL_11(state));
-            vcos_assert(vcd_setup->shaded_vertex_size < 512);
-            word =
-               0 << 0 |                                     /* size is 32 bits, 0 offset */
-               0 << 3 |                                     /* x */
-               16 << 7 |                                    /* y */
-               0 << 14 |                                    /* vertical */
-               (vcd_setup->shaded_vertex_size/4) << 16 |    /* size in bytes */
-               16 << 23 |                                   /* number of units */
-               2 << 30;                                    /* id */
-            break;
-         case BACKEND_UNIFORM_VDW_SETUP1:
-            vcos_assert(!IS_GL_11(state));
-            word =
-               0 |            /* distance from last byte to first byte of next block */
-               0 << 16 |      /* block mode */
-               3 << 30;      /* id */
-            break;
-         case BACKEND_UNIFORM_VDW_ADDR_START:
-            {
-               //GLXX_FIXABLE_ADDR_T addr = glxx_fixable_copy(&vcd_setup->shaded_vertices);
-               //vcos_assert(!IS_GL_11(state));
-               //glxx_add_addr(buf, &addr);
-               GLXX_FIXABLE_ADDR_T *addr = &vcd_setup->shaded_vertices;
-
-               vcos_assert(!IS_GL_11(state));
-
-               vcos_assert(addr->fixable_type == FIXABLE_TYPE_NULL || addr->fixable_type == FIXABLE_TYPE_ALLOC);
-
-               //glxx_add_addr(buf, &addr);
-               if (addr->fixable_type == FIXABLE_TYPE_NULL)
-               {
-                  word = 0;
-               }
-               else
-               {
-                  KHRN_FIXER_TYPE_T fixer_type;
-                  fixer_type = (KHRN_FIXER_TYPE_T)(KHRN_FIXER_TYPE_NO_HISTORY|KHRN_FIXER_TYPE_REF);
-
-                  word  = addr->offset;
-                  if(!glxx_fixer_locked_add_handle(buf, addr->handle, fixer_type))
-                     goto fail;
-               }
-            }
-            break;
-         case BACKEND_UNIFORM_VDW_ADDR_INCR:
-            vcos_assert(!IS_GL_11(state));
-            word = 16 * vcd_setup->shaded_vertex_size;
-            break;
-#endif //XXX_OFFLINE
          case BACKEND_UNIFORM_FBHEIGHT:
          {
             if (khrn_workarounds.FB_BOTTOM_UP || khrn_workarounds.FB_TOP_DOWN)
@@ -2219,7 +1995,6 @@ static bool install_uniforms(
    uint32_t *map;
    //gl 2.0 specific
    uint32_t max = 0;
-   uint32_t texture_swizzle = 0;
 
    ptr = glxx_big_mem_alloc_junk(4 * count, 4, &ptr_lbh);
 
@@ -2371,7 +2146,6 @@ static bool glxx_install_tex_param(GLXX_SERVER_STATE_T *state, uint32_t *locatio
    MEM_HANDLE_T tfHandle = MEM_INVALID_HANDLE;
    MEM_HANDLE_T tfHandle_RSO = MEM_INVALID_HANDLE;
    GLXX_TEXTURE_T *texture;
-   uint32_t texture_swizzle = 0;
    MEM_HANDLE_T handle = MEM_INVALID_HANDLE;
    bool is_cube;
    bool ok = false;
@@ -2557,9 +2331,7 @@ static bool glxx_install_tex_param(GLXX_SERVER_STATE_T *state, uint32_t *locatio
          vcos_assert(handle != MEM_INVALID_HANDLE);
          vcos_assert(mipmap_count >= 1 && mipmap_count <= LOG2_MAX_TEXTURE_SIZE + 1);
 
-         texture_swizzle = (texture_swizzle + 1) & 3;
-
-         offset += (mipmap_count - 1) | (type & 15) << 4 | is_cube << 9 | 0/*TODO: texture_swizzle*/ << 10;
+         offset += (mipmap_count - 1) | (type & 15) << 4 | is_cube << 9;
          if(!glxx_big_mem_insert(location, handle, offset))
             goto end;
 
@@ -2982,27 +2754,23 @@ bool glxx_hw_draw_tex(GLXX_SERVER_STATE_T *state, float Xs, float Ys, float Zw, 
    vunif_count = mem_get_size(vunif_map)/8;
    funif_count = mem_get_size(funif_map)/8;
 
-#ifdef XXX_OFFLINE
-   if (!shader.use_offline)
-#endif
+
+   if(!install_uniforms(
+      &shader_record->cunif,
+      state,
+      program,
+      cunif_count,
+      cunif_map,
+      &iu,
+      num_vpm_rows_c,
+      attrib,/*TODO for GL 2.0 NULL is passed instead of attrib - does this matter? */
+      state->shader.common.egl_output,
+      fb.height,
+      secure))
    {
-      if(!install_uniforms(
-         &shader_record->cunif,
-         state,
-         program,
-         cunif_count,
-         cunif_map,
-         &iu,
-         num_vpm_rows_c,
-         attrib,/*TODO for GL 2.0 NULL is passed instead of attrib - does this matter? */
-         state->shader.common.egl_output,
-         fb.height,
-         secure
-         ))
-      {
-         goto fail;
-      }
+      goto fail;
    }
+
    if(!install_uniforms(
       &shader_record->vunif,
       state,
@@ -3014,11 +2782,11 @@ bool glxx_hw_draw_tex(GLXX_SERVER_STATE_T *state, float Xs, float Ys, float Zw, 
       attrib,
       state->shader.common.egl_output,
       fb.height,
-      secure
-      ))
+      secure))
    {
       goto fail;
    }
+
    if(!install_uniforms(
       &shader_record->funif,
       state,
@@ -3030,8 +2798,7 @@ bool glxx_hw_draw_tex(GLXX_SERVER_STATE_T *state, float Xs, float Ys, float Zw, 
       attrib,
       state->shader.common.egl_output,
       fb.height,
-      secure
-      ))
+      secure))
    {
       goto fail;
    }

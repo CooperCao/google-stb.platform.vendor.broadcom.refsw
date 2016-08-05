@@ -25,7 +25,7 @@ typedef struct
 typedef struct khrn_res_interlock_gmem_args
 {
    size_t align;
-   uint32_t usage;
+   gmem_usage_flags_t usage;
    const char* desc;
 } khrn_res_interlock_gmem_args;
 

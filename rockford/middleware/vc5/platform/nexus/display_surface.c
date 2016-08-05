@@ -7,6 +7,13 @@ All rights reserved.
 #include "nexus_platform.h"
 #include "display_helpers.h"
 
+#define NXPL_INFO_MAGIC 0x4A694D5F
+
+bool isNXPL_Surface(NXPL_Surface *s)
+{
+   return s->magic == NXPL_INFO_MAGIC;
+}
+
 bool CreateSurface(NXPL_Surface *s,
    BEGL_BufferFormat format,
    uint32_t width, uint32_t height,
@@ -51,6 +58,7 @@ bool CreateSurface(NXPL_Surface *s,
          }
       }
 
+      s->magic = NXPL_INFO_MAGIC;
       s->fence  = -1;
       s->format = format;
       s->secure = secure;
@@ -63,7 +71,7 @@ bool CreateSurface(NXPL_Surface *s,
 
 void DestroySurface(NXPL_Surface *s)
 {
-   if (s)
+   if (s && s->surface)
    {
       NEXUS_SurfaceMemoryProperties memProperties;
       NEXUS_Surface_GetMemoryProperties(s->surface, &memProperties);

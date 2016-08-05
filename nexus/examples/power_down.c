@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2014 Broadcom Corporation
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  *****************************************************************************/
 #include "nexus_platform.h"
@@ -177,7 +169,7 @@ void create_display(void)
         if ( !hdmiStatus.videoFormatSupported[displaySettings.format] ) {
             displaySettings.format = hdmiStatus.preferredVideoFormat;
             NEXUS_Display_SetSettings(display0, &displaySettings);
-		}
+        }
     }
 #endif
 
@@ -455,15 +447,19 @@ void stop_app(void)
 struct standby_mode {
     NEXUS_PlatformStandbyMode mode;
     char *name;
-} standby_state[NEXUS_PlatformStandbyMode_eMax] = {{NEXUS_PlatformStandbyMode_eOn, "S0"},
-						   {NEXUS_PlatformStandbyMode_eActive, "S1"},
-						   {NEXUS_PlatformStandbyMode_ePassive, "S2"},
-						   {NEXUS_PlatformStandbyMode_eDeepSleep, "S3"}};
+} standby_state[] = {{NEXUS_PlatformStandbyMode_eOn, "S0"},
+                     {NEXUS_PlatformStandbyMode_eActive, "S1"},
+                     {NEXUS_PlatformStandbyMode_ePassive, "S2"},
+#if !NEXUS_HAS_SAGE
+                     {NEXUS_PlatformStandbyMode_eDeepSleep, "S3"}
+#endif
+                    };
 
 int main(void)
 {
     NEXUS_PlatformSettings platformSettings;
     NEXUS_PlatformStandbySettings nexusStandbySettings;
+    unsigned modes=sizeof(standby_state)/sizeof(standby_state[0]);
     NEXUS_Error rc;
 
     NEXUS_Platform_GetDefaultSettings(&platformSettings);
@@ -473,8 +469,14 @@ int main(void)
 
     start_app();
 
+#if NEXUS_HAS_SAGE
+    printf("\n\n********************************");
+    printf("\nDISABLE SAGE SUPPORT FOR S3 TEST\n");
+    printf("********************************\n\n");
+#endif
+
     while(1) {
-        int i=rand()%NEXUS_PlatformStandbyMode_eMax;
+        int i=rand()%modes;
 
         rc = BKNI_WaitForEvent(event, 5000);
 

@@ -409,7 +409,7 @@ The handle must be owned by the caller in order to change the sharing setting.
 This does not make sharing of settings safe. If two or more clients change settings, erratic behavior may result.
 **/
 NEXUS_Error NEXUS_Platform_SetSharedHandle(
-    NEXUS_PlatformAnyObject object, /* any Nexus handle */
+    NEXUS_AnyObject object, /* any Nexus handle */
     bool shared
     );
 
@@ -433,6 +433,10 @@ void NEXUS_Platform_GetHeapRuntimeSettings(
 NEXUS_Error NEXUS_Platform_SetHeapRuntimeSettings(
     NEXUS_HeapHandle heap,
     const NEXUS_HeapRuntimeSettings *pSettings
+    );
+
+void NEXUS_Platform_UninitInterrupts(
+    void
     );
 
 #ifdef __cplusplus

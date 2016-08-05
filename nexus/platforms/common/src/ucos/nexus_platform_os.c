@@ -204,6 +204,7 @@ NEXUS_Platform_P_UninitOS(void)
 
 NEXUS_Error NEXUS_Platform_P_InitOSMem()
 {
+    /* nothing required */
     return 0;
 }
 
@@ -338,7 +339,7 @@ NEXUS_Error NEXUS_Platform_P_GetHostMemory(NEXUS_PlatformMemory *pMemory)
             #else
                 pMemory->osRegion[2].length = 0x20000000; /* 512MB */
             #endif
-        #elif (BCHP_CHIP==7429) || (BCHP_CHIP==7408) || (BCHP_CHIP==74295)
+        #elif (BCHP_CHIP==7429) || (BCHP_CHIP==74295)
             pMemory->osRegion[1].base = DRAM_0_PHYS_ADDR_START;
             pMemory->osRegion[1].length = 0x30000000; /* 768MB */
         #endif
@@ -481,8 +482,7 @@ NEXUS_Platform_P_Isr(unsigned long data)
                     BDBG_MSG_IRQ(("BH enable[irq] %d", LINUX_IRQ(i+bit)));
                     if (!state->table[i+bit].special_handler)
                     {
-                        if ( state->table[i+bit].enabled ) {
-                            BDBG_ASSERT(!state->table[i+bit].taskletEnabled);
+                        if (state->table[i+bit].enabled && !state->table[i+bit].taskletEnabled) {
                             state->table[i+bit].taskletEnabled = true;
                             CPUINT1_Enable(LINUX_IRQ(i+bit));
                         }
@@ -493,6 +493,7 @@ NEXUS_Platform_P_Isr(unsigned long data)
     }
 
 
+done:
     return;
 }
 
@@ -886,18 +887,10 @@ void NEXUS_Platform_P_DisconnectInterrupt( unsigned irqNum)
     if (entry->requested) {
         entry->requested = false;
         entry->taskletEnabled = false;
-#if UCOS_VERSION==1
-        OS_EXIT_CRITICAL();
-#elif UCOS_VERSION==3
-        CPU_CRITICAL_EXIT();
-#else
-        #error unknown UCOS_VERSION
-#endif
         /* kernel can sleep in free_irq, so must release the spinlock first */
         CPUINT1_Disable(LINUX_IRQ(irqNum));
         CPUINT1_DisconnectIsr(LINUX_IRQ(irqNum));
     }
-    else {
 #if UCOS_VERSION==1
     OS_EXIT_CRITICAL();
 #elif UCOS_VERSION==3
@@ -905,7 +898,6 @@ void NEXUS_Platform_P_DisconnectInterrupt( unsigned irqNum)
 #else
     #error unknown UCOS_VERSION
 #endif
-    }
 }
 
 NEXUS_Error
@@ -1012,10 +1004,8 @@ NEXUS_Platform_P_Magnum_Init(void)
         if(rc!=BERR_SUCCESS) {return BERR_TRACE(rc);}
         rc = BDBG_Init();
         if(rc!=BERR_SUCCESS) {rc=BERR_TRACE(rc); BKNI_Uninit();return rc;}
-#if (BCHP_CHIP != 7408)
         rc = NEXUS_Base_Core_Init();
         if(rc!=BERR_SUCCESS) {rc=BERR_TRACE(rc); BDBG_Uninit();BKNI_Uninit();return rc;}
-#endif
         g_NEXUS_magnum_init = true;
     }
     return BERR_SUCCESS;
@@ -1032,86 +1022,6 @@ NEXUS_Platform_P_Magnum_Uninit(void)
     }
     return;
 }
-
-#if BCHP_CHIP == 7408
-/***************************************************************************
-Summary:
-Read reserved memory
-***************************************************************************/
-uint32_t NEXUS_Platform_P_ReadReserved(
-    uint32_t physicalAddress
-    )
-{
-    uint32_t value;
-    value = *((volatile uint32_t *)(0xa0000000 | physicalAddress));
-    return value;
-}
-
-/***************************************************************************
-Summary:
-Write reserved memory
-***************************************************************************/
-void NEXUS_Platform_P_WriteReserved(
-    uint32_t physicalAddress,
-    uint32_t value
-    )
-{
-    *((volatile uint32_t *)(0xa0000000 | physicalAddress)) = value;
-}
-
-/***************************************************************************
-Summary:
-Read core register
-***************************************************************************/
-uint32_t NEXUS_Platform_P_ReadCoreReg(
-    uint32_t offset
-    )
-{
-    uint32_t physicalAddress, value;
-    uint32_t cbr = CpuCbrGet();
-    physicalAddress = cbr & ~0x3ffff; /* mask off lower 18 bits */
-    physicalAddress |= offset;
-    value = *((volatile uint32_t *)(0xa0000000 | physicalAddress));
-    return value;
-}
-
-/***************************************************************************
-Summary:
-Write core register
-***************************************************************************/
-void NEXUS_Platform_P_WriteCoreReg(
-    uint32_t offset,
-    uint32_t value
-    )
-{
-    uint32_t physicalAddress;
-    uint32_t cbr = CpuCbrGet();
-    physicalAddress = CpuCbrGet() & ~0x3ffff; /* mask off lower 18 bits */
-    physicalAddress |= offset;
-    *((volatile uint32_t *)(0xa0000000 | physicalAddress)) = value;
-}
-
-/***************************************************************************
-Summary:
-Read CMT Control Register
-***************************************************************************/
-uint32_t NEXUS_Platform_P_ReadCmtControl(void)
-{
-    /*printf("NEXUS_Platform_P_ReadCmtControl stubbed\n");*/
-    return 0;
-}
-
-/***************************************************************************
-Summary:
-Write CMT Control Register
-***************************************************************************/
-void NEXUS_Platform_P_WriteCmtControl(
-    uint32_t value
-    )
-{
-    /*printf("NEXUS_Platform_P_WriteCmtControl stubbed\n");*/
-}
-#endif
 
 void NEXUS_Platform_P_StopCallbacks(void *interfaceHandle)
 {

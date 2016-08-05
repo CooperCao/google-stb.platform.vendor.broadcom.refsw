@@ -70,9 +70,13 @@ else
                 else
 		      ifeq ($(NEXUS_USE_7445_LCC),y)
 		      NEXUS_PLATFORM_DEFINES += NEXUS_USE_7445_LCC=1
-	              else
-                         NEXUS_USE_7445_SV :=y
-                         NEXUS_PLATFORM_DEFINES += NEXUS_USE_7445_SV=1
+                      else
+		          ifeq ($(NEXUS_USE_7445_EXT24),y)
+		              NEXUS_PLATFORM_DEFINES += NEXUS_USE_7445_EXT24=1
+	                  else
+                             NEXUS_USE_7445_SV :=y
+                             NEXUS_PLATFORM_DEFINES += NEXUS_USE_7445_SV=1
+                          endif
                       endif
 	        endif
              endif

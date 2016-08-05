@@ -137,8 +137,8 @@ namespace RamFS {
 
         uint8_t *offsetToPage(uint64_t offset);
 
-        TzMem::VirtAddr allocPage();
-        void freePage(TzMem::VirtAddr );
+        TzMem::VirtAddr rfsAllocPage();
+        void rfsFreePage(TzMem::VirtAddr );
 
         bool checkPermissions(int permsBit);
 

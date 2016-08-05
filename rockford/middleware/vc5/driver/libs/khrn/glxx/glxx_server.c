@@ -12,7 +12,6 @@ Implementation of common OpenGL ES 1.1 and 2.0 state machine functions.
 #include "gl_public_api.h"
 #include "../common/khrn_int_common.h"
 #include "../common/khrn_int_util.h"
-#include "../common/khrn_int_ids.h"
 
 #include "glxx_server.h"
 #include "glxx_server_internal.h"
@@ -111,6 +110,16 @@ static void queries_deinit(struct glxx_queries *queries)
       queries_of_type_deinit(queries->queries + i);
 }
 
+static void init_blend_cfg(glxx_blend_cfg *cfg)
+{
+   cfg->color_eqn  = V3D_BLEND_EQN_ADD;
+   cfg->alpha_eqn  = V3D_BLEND_EQN_ADD;
+   cfg->src_rgb    = V3D_BLEND_MUL_ONE;
+   cfg->src_alpha  = V3D_BLEND_MUL_ONE;
+   cfg->dst_rgb    = V3D_BLEND_MUL_ZERO;
+   cfg->dst_alpha  = V3D_BLEND_MUL_ZERO;
+}
+
 /*
    initialises common portions of the GLXX_SERVER_STATE_T state structure
    this function is called by the OpenGL ES version specific functions
@@ -192,9 +201,7 @@ bool glxx_server_state_init(GLXX_SERVER_STATE_T *state, GLXX_SHARED_T *shared)
    // ES 1.x only
    state->caps.multisample         = true;
 
-#if GL_OES_matrix_palette
    state->gl11.current_palette_matrix = 0;
-#endif
 
    state->front_face = GL_CCW;
 
@@ -202,6 +209,15 @@ bool glxx_server_state_init(GLXX_SERVER_STATE_T *state, GLXX_SHARED_T *shared)
    state->hints.fshader_derivative = GL_DONT_CARE;
 
    state->line_width = 1.0f;
+#if GLXX_HAS_TNG
+   state->num_patch_vertices = 3u;
+#endif
+
+   static const float pbb[8] = { -1, -1, -1, 1, 1, 1, 1, 1 };
+   for (int i=0; i<4; i++) {
+      state->primitive_bounding_box.min[i] = pbb[i];
+      state->primitive_bounding_box.max[i] = pbb[4+i];
+   }
 
    state->polygon_offset.factor = 0.0f;
    state->polygon_offset.units = 0.0f;
@@ -239,24 +255,21 @@ bool glxx_server_state_init(GLXX_SERVER_STATE_T *state, GLXX_SHARED_T *shared)
 
    state->statebits.backend = GLXX_SAMPLE_MS;
 
-   state->blend.color_eqn  = V3D_BLEND_EQN_ADD;
-   state->blend.alpha_eqn  = V3D_BLEND_EQN_ADD;
-   state->blend.src_rgb    = V3D_BLEND_MUL_ONE;
-   state->blend.src_alpha  = V3D_BLEND_MUL_ONE;
-   state->blend.dst_rgb    = V3D_BLEND_MUL_ZERO;
-   state->blend.dst_alpha  = V3D_BLEND_MUL_ZERO;
-
+#if V3D_HAS_PER_RT_BLEND
+   state->blend.rt_enables = 0;
+   for (unsigned i = 0; i != GLXX_MAX_RENDER_TARGETS; ++i)
+      init_blend_cfg(&state->blend.rt_cfgs[i]);
+#else
    state->blend.enable = false;
+   init_blend_cfg(&state->blend.cfg);
+#endif
 
    state->blend_color[0] = 0.0f;
    state->blend_color[1] = 0.0f;
    state->blend_color[2] = 0.0f;
    state->blend_color[3] = 0.0f;
 
-   state->color_write.r = true;
-   state->color_write.g = true;
-   state->color_write.b = true;
-   state->color_write.a = true;
+   state->color_write = gfx_mask(GLXX_MAX_RENDER_TARGETS * 4);
 
    state->viewport.x = 0;
    state->viewport.y = 0;
@@ -321,19 +334,20 @@ bool glxx_server_state_init(GLXX_SERVER_STATE_T *state, GLXX_SHARED_T *shared)
       goto end;
 
    // Generic attribute default values.
-   for (int i = 0; i < GLXX_CONFIG_MAX_VERTEX_ATTRIBS; i++) {
-      state->generic_attrib[i].value[0] = 0.0f;
-      state->generic_attrib[i].value[1] = 0.0f;
-      state->generic_attrib[i].value[2] = 0.0f;
-      state->generic_attrib[i].value[3] = 1.0f;
-      state->generic_attrib[i].type   = GL_FLOAT;
+   for (unsigned i = 0; i < GLXX_CONFIG_MAX_VERTEX_ATTRIBS; i++)
+   {
+      GLXX_GENERIC_ATTRIBUTE_T* ga = &state->generic_attrib[i];
+      ga->f[0] = 0.0f;
+      ga->f[1] = 0.0f;
+      ga->f[2] = 0.0f;
+      ga->f[3] = 1.0f;
+      ga->type = V3D_ATTR_TYPE_FLOAT;
+      ga->is_signed = false;
    }
 
    state->fill_mode = GL_FILL_BRCM;
 
-#if GL_BRCM_provoking_vertex
    state->provoking_vtx = GL_LAST_VERTEX_CONVENTION_BRCM;
-#endif
 
    state->fences.fence = khrn_fence_create();
    if (!state->fences.fence)
@@ -514,45 +528,40 @@ void glxx_server_state_destroy(GLXX_SERVER_STATE_T *state)
       glxx_image_unit_deinit(&state->image_unit[i]);
 }
 
-
-static void blend_func_separate(GLXX_SERVER_STATE_T *state,
-                                GLenum srcRGB, GLenum dstRGB,
-                                GLenum srcAlpha, GLenum dstAlpha)
+static void set_blend_func(GLXX_SERVER_STATE_T *state, glxx_blend_cfg *cfg,
+   v3d_blend_mul_t sc, v3d_blend_mul_t dc, v3d_blend_mul_t sa, v3d_blend_mul_t da)
 {
-   v3d_blend_mul_t sc = translate_blend_func(srcRGB);
-   v3d_blend_mul_t dc = translate_blend_func(dstRGB);
-   v3d_blend_mul_t sa = translate_blend_func(srcAlpha);
-   v3d_blend_mul_t da = translate_blend_func(dstAlpha);
+   if (cfg->src_rgb != sc)
+   {
+      cfg->src_rgb = sc;
+      state->dirty.blend_cfg = KHRN_RENDER_STATE_SET_ALL;
+   }
+   if (cfg->dst_rgb != dc)
+   {
+      cfg->dst_rgb = dc;
+      state->dirty.blend_cfg = KHRN_RENDER_STATE_SET_ALL;
+   }
+   if (cfg->src_alpha != sa)
+   {
+      cfg->src_alpha = sa;
+      state->dirty.blend_cfg = KHRN_RENDER_STATE_SET_ALL;
+   }
+   if (cfg->dst_alpha != da)
+   {
+      cfg->dst_alpha = da;
+      state->dirty.blend_cfg = KHRN_RENDER_STATE_SET_ALL;
+   }
+}
 
-   if ( (sc == V3D_BLEND_MUL_INVALID) ||
-        (dc == V3D_BLEND_MUL_INVALID) ||
-        (sa == V3D_BLEND_MUL_INVALID) ||
-        (da == V3D_BLEND_MUL_INVALID)   )
-   {
-      glxx_server_state_set_error(state, GL_INVALID_ENUM);
-      return;
-   }
-
-   if (state->blend.src_rgb != sc)
-   {
-      state->blend.src_rgb = sc;
-      state->dirty.blend_mode = KHRN_RENDER_STATE_SET_ALL;
-   }
-   if (state->blend.dst_rgb != dc)
-   {
-      state->blend.dst_rgb = dc;
-      state->dirty.blend_mode = KHRN_RENDER_STATE_SET_ALL;
-   }
-   if (state->blend.src_alpha != sa)
-   {
-      state->blend.src_alpha = sa;
-      state->dirty.blend_mode = KHRN_RENDER_STATE_SET_ALL;
-   }
-   if (state->blend.dst_alpha != da)
-   {
-      state->blend.dst_alpha = da;
-      state->dirty.blend_mode = KHRN_RENDER_STATE_SET_ALL;
-   }
+static void set_all_blend_funcs(GLXX_SERVER_STATE_T *state,
+   v3d_blend_mul_t sc, v3d_blend_mul_t dc, v3d_blend_mul_t sa, v3d_blend_mul_t da)
+{
+#if V3D_HAS_PER_RT_BLEND
+   for (unsigned i = 0; i != GLXX_MAX_RENDER_TARGETS; ++i)
+      set_blend_func(state, &state->blend.rt_cfgs[i], sc, dc, sa, da);
+#else
+   set_blend_func(state, &state->blend.cfg, sc, dc, sa, da);
+#endif
 }
 
 /* Check that 'func' is allowed for es11 */
@@ -584,7 +593,7 @@ static inline bool validate_func_es11(GLenum func, bool is_src)
 
 GL_API void GL_APIENTRY glBlendFunc(GLenum sfactor, GLenum dfactor)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
    if (!state) return;
 
    if (IS_GL_11(state))
@@ -597,27 +606,135 @@ GL_API void GL_APIENTRY glBlendFunc(GLenum sfactor, GLenum dfactor)
       }
    }
 
-   blend_func_separate(state, sfactor, dfactor, sfactor, dfactor);
+   v3d_blend_mul_t s = translate_blend_func(sfactor);
+   v3d_blend_mul_t d = translate_blend_func(dfactor);
+
+   if ((s == V3D_BLEND_MUL_INVALID) || (d == V3D_BLEND_MUL_INVALID))
+      glxx_server_state_set_error(state, GL_INVALID_ENUM);
+   else
+      set_all_blend_funcs(state, s, d, s, d);
 
 end:
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_API void GL_APIENTRY glBlendFuncSeparate(GLenum srcRGB, GLenum dstRGB, GLenum srcAlpha, GLenum dstAlpha) // S
 {
-   GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
    if(!state) return;
 
-   blend_func_separate(state, srcRGB, dstRGB, srcAlpha, dstAlpha);
+   v3d_blend_mul_t sc = translate_blend_func(srcRGB);
+   v3d_blend_mul_t dc = translate_blend_func(dstRGB);
+   v3d_blend_mul_t sa = translate_blend_func(srcAlpha);
+   v3d_blend_mul_t da = translate_blend_func(dstAlpha);
 
-   GL20_UNLOCK_SERVER_STATE();
+   if ((sc == V3D_BLEND_MUL_INVALID) || (dc == V3D_BLEND_MUL_INVALID) ||
+         (sa == V3D_BLEND_MUL_INVALID) || (da == V3D_BLEND_MUL_INVALID))
+      glxx_server_state_set_error(state, GL_INVALID_ENUM);
+   else
+      set_all_blend_funcs(state, sc, dc, sa, da);
+
+   glxx_unlock_server_state();
 }
+
+#if V3D_HAS_PER_RT_BLEND
+
+static void blend_func_i(GLuint buf, GLenum src, GLenum dst)
+{
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
+   if (!state)
+      return;
+
+   if (buf >= GLXX_MAX_RENDER_TARGETS)
+      glxx_server_state_set_error(state, GL_INVALID_VALUE);
+   else
+   {
+      v3d_blend_mul_t s = translate_blend_func(src);
+      v3d_blend_mul_t d = translate_blend_func(dst);
+
+      if ((s == V3D_BLEND_MUL_INVALID) || (d == V3D_BLEND_MUL_INVALID))
+         glxx_server_state_set_error(state, GL_INVALID_ENUM);
+      else
+         set_blend_func(state, &state->blend.rt_cfgs[buf], s, d, s, d);
+   }
+
+   glxx_unlock_server_state();
+}
+
+static void blend_func_separate_i(GLuint buf,
+   GLenum srcRGB, GLenum dstRGB, GLenum srcAlpha, GLenum dstAlpha)
+{
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
+   if (!state)
+      return;
+
+   if (buf >= GLXX_MAX_RENDER_TARGETS)
+      glxx_server_state_set_error(state, GL_INVALID_VALUE);
+   else
+   {
+      v3d_blend_mul_t sc = translate_blend_func(srcRGB);
+      v3d_blend_mul_t dc = translate_blend_func(dstRGB);
+      v3d_blend_mul_t sa = translate_blend_func(srcAlpha);
+      v3d_blend_mul_t da = translate_blend_func(dstAlpha);
+
+      if ((sc == V3D_BLEND_MUL_INVALID) || (dc == V3D_BLEND_MUL_INVALID) ||
+            (sa == V3D_BLEND_MUL_INVALID) || (da == V3D_BLEND_MUL_INVALID))
+         glxx_server_state_set_error(state, GL_INVALID_ENUM);
+      else
+         set_blend_func(state, &state->blend.rt_cfgs[buf], sc, dc, sa, da);
+   }
+
+   glxx_unlock_server_state();
+}
+
+GL_API void GL_APIENTRY glBlendFunciEXT(GLuint buf, GLenum src, GLenum dst)
+{
+   blend_func_i(buf, src, dst);
+}
+
+GL_API void GL_APIENTRY glBlendFuncSeparateiEXT(GLuint buf,
+   GLenum srcRGB, GLenum dstRGB, GLenum srcAlpha, GLenum dstAlpha)
+{
+   blend_func_separate_i(buf, srcRGB, dstRGB, srcAlpha, dstAlpha);
+}
+
+GL_API void GL_APIENTRY glBlendFunciOES(GLuint buf, GLenum src, GLenum dst)
+{
+   blend_func_i(buf, src, dst);
+}
+
+GL_API void GL_APIENTRY glBlendFuncSeparateiOES(GLuint buf,
+   GLenum srcRGB, GLenum dstRGB, GLenum srcAlpha, GLenum dstAlpha)
+{
+   blend_func_separate_i(buf, srcRGB, dstRGB, srcAlpha, dstAlpha);
+}
+
+#endif
+
+#if KHRN_GLES32_DRIVER
+
+GL_API void GL_APIENTRY glBlendFunci(GLuint buf, GLenum src, GLenum dst)
+{
+#if V3D_HAS_PER_RT_BLEND
+   blend_func_i(buf, src, dst);
+#endif
+}
+
+GL_API void GL_APIENTRY glBlendFuncSeparatei(GLuint buf,
+   GLenum srcRGB, GLenum dstRGB, GLenum srcAlpha, GLenum dstAlpha)
+{
+#if V3D_HAS_PER_RT_BLEND
+   blend_func_separate_i(buf, srcRGB, dstRGB, srcAlpha, dstAlpha);
+#endif
+}
+
+#endif
 
 GL_API void GL_APIENTRY glClear(GLbitfield mask)
 {
    PROFILE_FUNCTION_MT("GL");
 
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
    GLenum error = GL_NO_ERROR;
 
    if (!state) return;
@@ -640,17 +757,15 @@ GL_API void GL_APIENTRY glClear(GLbitfield mask)
    }
 
    GLXX_CLEAR_T clear;
-
-   clear.color_buffer_mask = 0xff;
+   clear.color_buffer_mask = (mask & GL_COLOR_BUFFER_BIT) ? gfx_mask(GLXX_MAX_RENDER_TARGETS) : 0;
+   clear.depth = !!(mask & GL_DEPTH_BUFFER_BIT);
+   clear.stencil = !!(mask & GL_STENCIL_BUFFER_BIT);
    clear.color_value[0] = gfx_float_to_bits(state->clear.color_value[0]);
    clear.color_value[1] = gfx_float_to_bits(state->clear.color_value[1]);
    clear.color_value[2] = gfx_float_to_bits(state->clear.color_value[2]);
    clear.color_value[3] = gfx_float_to_bits(state->clear.color_value[3]);
    clear.depth_value = state->clear.depth_value;
    clear.stencil_value = state->clear.stencil_value;
-   clear.color = (mask & GL_COLOR_BUFFER_BIT)   ? true : false;
-   clear.depth = (mask & GL_DEPTH_BUFFER_BIT)   ? true : false;
-   clear.stencil = (mask & GL_STENCIL_BUFFER_BIT) ? true : false;
 
    if (!glxx_hw_clear(state, &clear))
    {
@@ -661,7 +776,7 @@ end:
    if (error != GL_NO_ERROR)
       glxx_server_state_set_error(state, error);
 
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 static bool clear_buffer_drawbuffer_valid(GLenum buffer, int drawbuffer) {
@@ -677,7 +792,7 @@ static bool clear_buffer_drawbuffer_valid(GLenum buffer, int drawbuffer) {
       if (drawbuffer != 0) return false;
       break;
    default:
-      UNREACHABLE();
+      unreachable();
       return false;
    }
 
@@ -686,9 +801,9 @@ static bool clear_buffer_drawbuffer_valid(GLenum buffer, int drawbuffer) {
 
 GL_API void GL_APIENTRY glClearBufferfi(GLenum buffer, GLint drawbuffer, GLfloat depth, GLint stencil)
 {
-   GLXX_SERVER_STATE_T *state = GL30_LOCK_SERVER_STATE();
-   GLXX_CLEAR_T clear;
-   assert(state != NULL);
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
+   if (!state)
+      return;
 
    if (buffer != GL_DEPTH_STENCIL)
    {
@@ -706,25 +821,25 @@ GL_API void GL_APIENTRY glClearBufferfi(GLenum buffer, GLint drawbuffer, GLfloat
       glxx_server_state_set_error(state, GL_INVALID_FRAMEBUFFER_OPERATION);
       goto unlock_out;
    }
-   clear.depth_value    = depth;
-   clear.stencil_value  = stencil;
-   clear.color          = false;
+
+   GLXX_CLEAR_T clear;
+   clear.color_buffer_mask = 0;
    clear.depth          = true;
    clear.stencil        = true;;
+   clear.depth_value    = depth;
+   clear.stencil_value  = stencil;
 
    if (!glxx_hw_clear(state, &clear))
       glxx_server_state_set_error(state, GL_OUT_OF_MEMORY);
 
 unlock_out:
-   GL30_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_API void GL_APIENTRY glClearBufferfv(GLenum buffer, GLint drawbuffer, const GLfloat *value)
 {
-   GLXX_SERVER_STATE_T *state = GL30_LOCK_SERVER_STATE();
-   GLXX_CLEAR_T clear;
-
-   if (state == NULL)
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
+   if (!state)
       return;
 
    if (buffer != GL_COLOR && buffer != GL_DEPTH) {
@@ -737,30 +852,28 @@ GL_API void GL_APIENTRY glClearBufferfv(GLenum buffer, GLint drawbuffer, const G
       goto end;
    }
 
-   clear.color_buffer_mask = (1 << drawbuffer);
+   GLXX_CLEAR_T clear;
+   clear.color_buffer_mask = (buffer == GL_COLOR) ? (1u << drawbuffer) : 0;
+   clear.depth             = (buffer == GL_DEPTH);
+   clear.stencil           = false;
    clear.color_value[0]    = gfx_float_to_bits(value[0]);
    clear.color_value[1]    = gfx_float_to_bits(value[1]);
    clear.color_value[2]    = gfx_float_to_bits(value[2]);
    clear.color_value[3]    = gfx_float_to_bits(value[3]);
    clear.depth_value       = (buffer == GL_DEPTH ? value[0] : 0);
    clear.stencil_value     = 0;
-   clear.color             = (buffer == GL_COLOR);
-   clear.depth             = (buffer == GL_DEPTH);
-   clear.stencil           = false;
 
    if (!glxx_hw_clear(state, &clear))
       glxx_server_state_set_error(state, GL_OUT_OF_MEMORY);
 
 end:
-   GL30_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_API void GL_APIENTRY glClearBufferiv(GLenum buffer, GLint drawbuffer, const GLint *value)
 {
-   GLXX_SERVER_STATE_T *state = GL30_LOCK_SERVER_STATE();
-   GLXX_CLEAR_T clear;
-
-   if (state == NULL)
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
+   if (!state)
       return;
 
    if (buffer != GL_COLOR && buffer != GL_STENCIL) {
@@ -773,30 +886,28 @@ GL_API void GL_APIENTRY glClearBufferiv(GLenum buffer, GLint drawbuffer, const G
       goto end;
    }
 
-   clear.color_buffer_mask = (1 << drawbuffer);
+   GLXX_CLEAR_T clear;
+   clear.color_buffer_mask = (buffer == GL_COLOR) ? (1u << drawbuffer) : 0;
+   clear.depth             = false;
+   clear.stencil           = (buffer == GL_STENCIL);
    clear.color_value[0]    = value[0];
    clear.color_value[1]    = value[1];
    clear.color_value[2]    = value[2];
    clear.color_value[3]    = value[3];
    clear.depth_value       = 0.0f;
    clear.stencil_value     = value[0];
-   clear.color             = (buffer == GL_COLOR);
-   clear.depth             = false;
-   clear.stencil           = (buffer == GL_STENCIL);
 
    if (!glxx_hw_clear(state, &clear))
       glxx_server_state_set_error(state, GL_OUT_OF_MEMORY);
 
 end:
-   GL30_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_API void GL_APIENTRY glClearBufferuiv(GLenum buffer, GLint drawbuffer, const GLuint *value)
 {
-   GLXX_SERVER_STATE_T *state = GL30_LOCK_SERVER_STATE();
-   GLXX_CLEAR_T clear;
-
-   if (state == NULL)
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
+   if (!state)
       return;
 
    if (buffer != GL_COLOR) {
@@ -809,22 +920,22 @@ GL_API void GL_APIENTRY glClearBufferuiv(GLenum buffer, GLint drawbuffer, const 
       goto end;
    }
 
-   clear.color_buffer_mask = (1 << drawbuffer);
+   GLXX_CLEAR_T clear;
+   clear.color_buffer_mask = (1u << drawbuffer);
+   clear.depth             = false;
+   clear.stencil           = false;
    clear.color_value[0]    = value[0];
    clear.color_value[1]    = value[1];
    clear.color_value[2]    = value[2];
    clear.color_value[3]    = value[3];
    clear.depth_value       = 0.0f;
    clear.stencil_value     = 0;
-   clear.color             = true;
-   clear.depth             = false;
-   clear.stencil           = false;
 
    if (!glxx_hw_clear(state, &clear))
       glxx_server_state_set_error(state, GL_OUT_OF_MEMORY);
 
 end:
-   GL30_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 
@@ -867,7 +978,7 @@ static GLboolean is_func(GLenum func)
 
 GL_API void GL_APIENTRY glDepthFunc(GLenum func) // S
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
    if (!state)
       return;
 
@@ -879,7 +990,7 @@ GL_API void GL_APIENTRY glDepthFunc(GLenum func) // S
    else
       glxx_server_state_set_error(state, GL_INVALID_ENUM);
 
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 /*
@@ -893,14 +1004,14 @@ GL_API void GL_APIENTRY glDepthFunc(GLenum func) // S
 
 GL_API void GL_APIENTRY glDepthMask(GLboolean flag) // S
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
    if (!state)
       return;
 
    state->dirty.cfg = KHRN_RENDER_STATE_SET_ALL;
-   state->depth_mask = clean_boolean(flag);
+   state->depth_mask = !!flag;
 
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 /*
@@ -940,31 +1051,31 @@ GL_API void GL_APIENTRY glDepthMask(GLboolean flag) // S
 
 GL_API void GL_APIENTRY glDepthRangef(GLclampf zNear, GLclampf zFar)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
    if (!state)
       return;
 
-   state->viewport.vp_near = clampf(zNear, 0.0f, 1.0f);
-   state->viewport.vp_far = clampf(zFar, 0.0f, 1.0f);
+   state->viewport.vp_near = gfx_fclamp(zNear, 0.0f, 1.0f);
+   state->viewport.vp_far = gfx_fclamp(zFar, 0.0f, 1.0f);
    state->dirty.viewport = KHRN_RENDER_STATE_SET_ALL;
 
    glxx_update_viewport_internal(state);
 
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 GL_API void GL_APIENTRY glDepthRangex(GLclampx zNear, GLclampx zFar)
 {
-   GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_11);
    if (!state)
       return;
 
-   state->viewport.vp_near = clampf(fixed_to_float(zNear), 0.0f, 1.0f);
-   state->viewport.vp_far = clampf(fixed_to_float(zFar), 0.0f, 1.0f);
+   state->viewport.vp_near = gfx_fclamp(fixed_to_float(zNear), 0.0f, 1.0f);
+   state->viewport.vp_far = gfx_fclamp(fixed_to_float(zFar), 0.0f, 1.0f);
    state->dirty.viewport = KHRN_RENDER_STATE_SET_ALL;
 
    glxx_update_viewport_internal(state);
 
-   GL11_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 void glxx_update_color_material(GLXX_SERVER_STATE_T *state)
@@ -975,13 +1086,14 @@ void glxx_update_color_material(GLXX_SERVER_STATE_T *state)
 
       for (i = 0; i < 4; i++)
       {
-         state->gl11.material.ambient[i] = state->generic_attrib[GL11_IX_COLOR].value[i];
-         state->gl11.material.diffuse[i] = state->generic_attrib[GL11_IX_COLOR].value[i];
+         state->gl11.material.ambient[i] = state->generic_attrib[GL11_IX_COLOR].f[i];
+         state->gl11.material.diffuse[i] = state->generic_attrib[GL11_IX_COLOR].f[i];
       }
    }
 }
 
-static bool is_valid_cap(GLXX_SERVER_STATE_T *state, GLenum cap)
+/* This excludes caps which are set by glEnable/DisableClientState */
+static bool is_valid_server_cap(const GLXX_SERVER_STATE_T *state, GLenum cap)
 {
    switch (cap)
    {
@@ -1007,9 +1119,7 @@ static bool is_valid_cap(GLXX_SERVER_STATE_T *state, GLenum cap)
    case GL_LINE_SMOOTH:
    case GL_MULTISAMPLE:
    case GL_SAMPLE_ALPHA_TO_ONE:
-#if GL_OES_matrix_palette
    case GL_MATRIX_PALETTE_OES:
-#endif
    case GL_COLOR_LOGIC_OP:
       return IS_GL_11(state);
 
@@ -1030,8 +1140,31 @@ static bool is_valid_cap(GLXX_SERVER_STATE_T *state, GLenum cap)
    case GL_RASTERIZER_DISCARD:
       return !IS_GL_11(state);
    case GL_SAMPLE_MASK:
-      return KHRN_GLES31_DRIVER ? !IS_GL_11(state) : false;
+      return KHRN_GLES31_DRIVER && !IS_GL_11(state);
 
+   default:
+      return false;
+   }
+}
+
+static bool is_valid_cap(const GLXX_SERVER_STATE_T *state, GLenum cap)
+{
+   if (is_valid_server_cap(state, cap))
+      return true;
+
+   /* Caps set by glEnable/DisableClientState */
+   if (!IS_GL_11(state))
+      return false;
+   switch (cap)
+   {
+   case GL_COLOR_ARRAY:
+   case GL_NORMAL_ARRAY:
+   case GL_MATRIX_INDEX_ARRAY_OES:
+   case GL_POINT_SIZE_ARRAY_OES:
+   case GL_TEXTURE_COORD_ARRAY:
+   case GL_VERTEX_ARRAY:
+   case GL_WEIGHT_ARRAY_OES:
+      return true;
    default:
       return false;
    }
@@ -1039,14 +1172,14 @@ static bool is_valid_cap(GLXX_SERVER_STATE_T *state, GLenum cap)
 
 static void set_enabled(GLenum cap, bool enabled)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
 
    static_assrt(GL11_CONFIG_MAX_PLANES == 1);
    static_assrt(GL11_CONFIG_MAX_LIGHTS == 8);
 
    if (!state) return;
 
-   if (!is_valid_cap(state, cap)) {
+   if (!is_valid_server_cap(state, cap)) {
       glxx_server_state_set_error(state, GL_INVALID_ENUM);
       goto end;
    }
@@ -1142,8 +1275,13 @@ static void set_enabled(GLenum cap, bool enabled)
       state->caps.depth_test = enabled;
       break;
    case GL_BLEND:
+#if V3D_HAS_PER_RT_BLEND
+      state->blend.rt_enables = enabled ? gfx_mask(GLXX_MAX_RENDER_TARGETS) : 0;
+      state->dirty.blend_enables = KHRN_RENDER_STATE_SET_ALL;
+#else
       state->blend.enable = enabled;
       state->dirty.cfg = KHRN_RENDER_STATE_SET_ALL;
+#endif
       break;
    case GL_DITHER:
       state->caps.dither = enabled;
@@ -1153,11 +1291,9 @@ static void set_enabled(GLenum cap, bool enabled)
       /* TODO: We now need to remember to switch blending off everywhere */
       state->dirty.cfg = KHRN_RENDER_STATE_SET_ALL;
       break;
-#if GL_OES_matrix_palette
    case GL_MATRIX_PALETTE_OES:
       SET_MULTI(state->gl11.statebits.v_enable, GL11_MPAL_M, enabled);
       break;
-#endif
    case GL_PRIMITIVE_RESTART_FIXED_INDEX:
       state->caps.primitive_restart = enabled;
       break;
@@ -1175,12 +1311,12 @@ static void set_enabled(GLenum cap, bool enabled)
       state->khr_debug.debug_output_synchronous = enabled;
       break;
    default:
-      UNREACHABLE();
+      unreachable();
       break;
    }
 
 end:
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_API void GL_APIENTRY glDisable(GLenum cap)
@@ -1188,25 +1324,91 @@ GL_API void GL_APIENTRY glDisable(GLenum cap)
    set_enabled(cap, false);
 }
 
-/* glDrawElements: see glxx_draw.c */
-
 GL_API void GL_APIENTRY glEnable(GLenum cap)
 {
    set_enabled(cap, true);
 }
+
+#if V3D_HAS_PER_RT_BLEND
+
+static void set_enabled_i(GLenum target, GLuint index, bool enabled)
+{
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
+   if (!state)
+      return;
+
+   if (target != GL_BLEND)
+      glxx_server_state_set_error(state, GL_INVALID_ENUM);
+   else if (index >= GLXX_MAX_RENDER_TARGETS)
+      glxx_server_state_set_error(state, GL_INVALID_VALUE);
+   else
+   {
+      uint32_t bit = 1u << index;
+      uint32_t new_enables = enabled ?
+         (state->blend.rt_enables | bit) :
+         (state->blend.rt_enables & ~bit);
+      if (state->blend.rt_enables != new_enables)
+      {
+         state->blend.rt_enables = new_enables;
+         state->dirty.blend_enables = KHRN_RENDER_STATE_SET_ALL;
+      }
+   }
+
+   glxx_unlock_server_state();
+}
+
+GL_API void GL_APIENTRY glDisableiEXT(GLenum target, GLuint index)
+{
+   set_enabled_i(target, index, false);
+}
+
+GL_API void GL_APIENTRY glEnableiEXT(GLenum target, GLuint index)
+{
+   set_enabled_i(target, index, true);
+}
+
+GL_API void GL_APIENTRY glDisableiOES(GLenum target, GLuint index)
+{
+   set_enabled_i(target, index, false);
+}
+
+GL_API void GL_APIENTRY glEnableiOES(GLenum target, GLuint index)
+{
+   set_enabled_i(target, index, true);
+}
+
+#endif
+
+#if KHRN_GLES32_DRIVER
+
+GL_API void GL_APIENTRY glDisablei(GLenum target, GLuint index)
+{
+#if V3D_HAS_PER_RT_BLEND
+   set_enabled_i(target, index, false);
+#endif
+}
+
+GL_API void GL_APIENTRY glEnablei(GLenum target, GLuint index)
+{
+#if V3D_HAS_PER_RT_BLEND
+   set_enabled_i(target, index, true);
+#endif
+}
+
+#endif
 
 GL_API void GL_APIENTRY glFinish(void)
 {
    {
       PROFILE_FUNCTION_MT("GL");
 
-      GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+      GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
 
       if (!state) return;
 
       glxx_server_state_flush(state, true);
 
-      GLXX_UNLOCK_SERVER_STATE();
+      glxx_unlock_server_state();
    }
 
    profile_on_finish();
@@ -1216,12 +1418,12 @@ GL_API void GL_APIENTRY glFlush(void)
 {
    PROFILE_FUNCTION_MT("GL");
 
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
 
    if (!state) return;
 
    glxx_server_state_flush(state, false);
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 /*
@@ -1251,29 +1453,29 @@ GL_API void GL_APIENTRY glFlush(void)
 
 GL_API void GL_APIENTRY glClearColor(GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
    if (!state)
       return;
 
-   state->clear.color_value[0] = clampf(red, 0.0f, 1.0f);
-   state->clear.color_value[1] = clampf(green, 0.0f, 1.0f);
-   state->clear.color_value[2] = clampf(blue, 0.0f, 1.0f);
-   state->clear.color_value[3] = clampf(alpha, 0.0f, 1.0f);
+   state->clear.color_value[0] = gfx_fclamp(red, 0.0f, 1.0f);
+   state->clear.color_value[1] = gfx_fclamp(green, 0.0f, 1.0f);
+   state->clear.color_value[2] = gfx_fclamp(blue, 0.0f, 1.0f);
+   state->clear.color_value[3] = gfx_fclamp(alpha, 0.0f, 1.0f);
 
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 GL_API void GL_APIENTRY glClearColorx(GLclampx red, GLclampx green, GLclampx blue, GLclampx alpha)
 {
-   GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_11);
    if (!state)
       return;
 
-   state->clear.color_value[0] = clampf(fixed_to_float(red), 0.0f, 1.0f);
-   state->clear.color_value[1] = clampf(fixed_to_float(green), 0.0f, 1.0f);
-   state->clear.color_value[2] = clampf(fixed_to_float(blue), 0.0f, 1.0f);
-   state->clear.color_value[3] = clampf(fixed_to_float(alpha), 0.0f, 1.0f);
+   state->clear.color_value[0] = gfx_fclamp(fixed_to_float(red), 0.0f, 1.0f);
+   state->clear.color_value[1] = gfx_fclamp(fixed_to_float(green), 0.0f, 1.0f);
+   state->clear.color_value[2] = gfx_fclamp(fixed_to_float(blue), 0.0f, 1.0f);
+   state->clear.color_value[3] = gfx_fclamp(fixed_to_float(alpha), 0.0f, 1.0f);
 
-   GL11_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 /*
@@ -1308,23 +1510,23 @@ GL_API void GL_APIENTRY glClearColorx(GLclampx red, GLclampx green, GLclampx blu
 
 GL_API void GL_APIENTRY glClearDepthf(GLclampf depth)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
    if (!state)
       return;
 
-   state->clear.depth_value = clampf(depth, 0.0f, 1.0f);
+   state->clear.depth_value = gfx_fclamp(depth, 0.0f, 1.0f);
 
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 GL_API void GL_APIENTRY glClearDepthx(GLclampx depth)
 {
-   GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_11);
    if (!state)
       return;
 
-   state->clear.depth_value = clampf(fixed_to_float(depth), 0.0f, 1.0f);
+   state->clear.depth_value = gfx_fclamp(fixed_to_float(depth), 0.0f, 1.0f);
 
-   GL11_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 
@@ -1347,7 +1549,7 @@ static GLboolean is_front_face(GLenum mode)
 
 GL_API void GL_APIENTRY glFrontFace(GLenum mode) // S
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
    if (!state)
       return;
 
@@ -1358,12 +1560,12 @@ GL_API void GL_APIENTRY glFrontFace(GLenum mode) // S
    } else
       glxx_server_state_set_error(state, GL_INVALID_ENUM);
 
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_API void GL_APIENTRY glGenBuffers(GLsizei n, GLuint *buffers)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE_UNCHANGED();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state_unchanged(OPENGL_ES_ANY);
    int32_t i = 0;
    if (!state) return;
 
@@ -1389,7 +1591,7 @@ GL_API void GL_APIENTRY glGenBuffers(GLsizei n, GLuint *buffers)
       }
    }
 
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 
@@ -1402,7 +1604,7 @@ static GLboolean is_hint(GLenum mode)
 
 GL_API void GL_APIENTRY glHint(GLenum target, GLenum mode)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
    if (!state)
       return;
 
@@ -1448,109 +1650,72 @@ GL_API void GL_APIENTRY glHint(GLenum target, GLenum mode)
    else
       glxx_server_state_set_error(state, GL_INVALID_ENUM);
 
-   GLXX_UNLOCK_SERVER_STATE();
-}
-
-static inline GLboolean is_enabled(GLXX_SERVER_STATE_T *state, GLenum cap)
-{
-   GLboolean result;
-   verif(glxx_get_boolean(state, cap, &result));
-   return result;
+   glxx_unlock_server_state();
 }
 
 GL_API GLboolean GL_APIENTRY glIsEnabled(GLenum cap)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE_UNCHANGED();
-
-   GLboolean result = GL_FALSE;
-
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state_unchanged(OPENGL_ES_ANY);
    if (!state)
       return GL_FALSE;
 
-   switch (cap)
-   {
-   case GL_CULL_FACE:
-   case GL_POLYGON_OFFSET_FILL:
-   case GL_SAMPLE_ALPHA_TO_COVERAGE:
-   case GL_SAMPLE_COVERAGE:
-   case GL_SCISSOR_TEST:
-   case GL_STENCIL_TEST:
-   case GL_DEPTH_TEST:
-   case GL_BLEND:
-   case GL_DITHER:
-   case GL_DEBUG_OUTPUT_KHR:
-   case GL_DEBUG_OUTPUT_SYNCHRONOUS_KHR:
-      result = is_enabled(state, cap);
-      break;
-   case GL_VERTEX_ARRAY:
-   case GL_NORMAL_ARRAY:
-   case GL_COLOR_ARRAY:
-   case GL_TEXTURE_COORD_ARRAY:
-   case GL_POINT_SIZE_ARRAY_OES:
-#if GL_OES_matrix_palette
-   case GL_MATRIX_INDEX_ARRAY_OES:
-   case GL_WEIGHT_ARRAY_OES:
-#endif
-   case GL_NORMALIZE:
-   case GL_RESCALE_NORMAL:
-   case GL_CLIP_PLANE0:
-   case GL_FOG:
-   case GL_LIGHTING:
-   case GL_COLOR_MATERIAL:
-   case GL_LIGHT0:
-   case GL_LIGHT1:
-   case GL_LIGHT2:
-   case GL_LIGHT3:
-   case GL_LIGHT4:
-   case GL_LIGHT5:
-   case GL_LIGHT6:
-   case GL_LIGHT7:
-   case GL_POINT_SMOOTH:
-   case GL_POINT_SPRITE_OES:
-   case GL_LINE_SMOOTH:
-   case GL_MULTISAMPLE:
-   case GL_SAMPLE_ALPHA_TO_ONE:
-   case GL_TEXTURE_2D:
-   case GL_ALPHA_TEST:
-   case GL_COLOR_LOGIC_OP:
-   case GL_MATRIX_PALETTE_OES:
-      if (IS_GL_11(state))
-         result = is_enabled(state, cap);
-      else
-      {
-         glxx_server_state_set_error(state, GL_INVALID_ENUM);
-         result = GL_FALSE;
-      }
-      break;
-   case GL_PRIMITIVE_RESTART_FIXED_INDEX:
-   case GL_RASTERIZER_DISCARD:
-      if (!IS_GL_11(state))
-         result = is_enabled(state, cap);
-      else
-      {
-         glxx_server_state_set_error(state, GL_INVALID_ENUM);
-         result = GL_FALSE;
-      }
-      break;
-   case GL_SAMPLE_MASK:
-      if (KHRN_GLES31_DRIVER && !IS_GL_11(state))
-         result = is_enabled(state, cap);
-      else
-      {
-         glxx_server_state_set_error(state, GL_INVALID_ENUM);
-         result = GL_FALSE;
-      }
-      break;
-   default:
+   GLboolean result = GL_FALSE;
+   if (is_valid_cap(state, cap))
+      verif(glxx_get_booleans(state, cap, &result) == GL_NO_ERROR);
+   else
       glxx_server_state_set_error(state, GL_INVALID_ENUM);
-      break;
-   }
 
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 
    return result;
 }
 
+#if V3D_HAS_PER_RT_BLEND
+
+static GLboolean is_enabled_i(GLenum target, GLuint index)
+{
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state_unchanged(OPENGL_ES_ANY);
+   if (!state)
+      return GL_FALSE;
+
+   GLboolean result = GL_FALSE;
+   GLenum error;
+   if (target == GL_BLEND)
+      error = glxx_get_booleans_i(state, target, index, &result);
+   else
+      error = GL_INVALID_ENUM;
+   if (error != GL_NO_ERROR)
+      glxx_server_state_set_error(state, error);
+
+   glxx_unlock_server_state();
+
+   return result;
+}
+
+GL_API GLboolean GL_APIENTRY glIsEnablediEXT(GLenum target, GLuint index)
+{
+   return is_enabled_i(target, index);
+}
+
+GL_API GLboolean GL_APIENTRY glIsEnablediOES(GLenum target, GLuint index)
+{
+   return is_enabled_i(target, index);
+}
+
+#endif
+
+#if KHRN_GLES32_DRIVER
+
+GL_API GLboolean GL_APIENTRY glIsEnabledi(GLenum target, GLuint index)
+{
+#if V3D_HAS_PER_RT_BLEND
+   return is_enabled_i(target, index);
+#else
+   return GL_FALSE;
+#endif
+}
+
+#endif
 
 /*
    void glLineWidth (GLfloat width)
@@ -1585,7 +1750,7 @@ GL_API GLboolean GL_APIENTRY glIsEnabled(GLenum cap)
 
 GL_API void GL_APIENTRY glLineWidth(GLfloat width) // S
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
    if (!state)
       return;
 
@@ -1597,11 +1762,11 @@ GL_API void GL_APIENTRY glLineWidth(GLfloat width) // S
    else
       glxx_server_state_set_error(state, GL_INVALID_VALUE);
 
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 GL_API void GL_APIENTRY glLineWidthx(GLfixed width)
 {
-   GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_11);
    float w = fixed_to_float(width);
    if (!state)
       return;
@@ -1614,8 +1779,53 @@ GL_API void GL_APIENTRY glLineWidthx(GLfixed width)
    else
       glxx_server_state_set_error(state, GL_INVALID_VALUE);
 
-   GL11_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
+
+#if GLXX_HAS_TNG
+
+static void glxx_patch_parameter(GLenum pname, GLint value)
+{
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
+   if (!state)
+      return;
+
+   if (pname != GL_PATCH_VERTICES)
+   {
+      glxx_server_state_set_error(state, GL_INVALID_ENUM);
+   }
+   else if (value <= 0 || value > GL_MAX_PATCH_VERTICES)
+   {
+      glxx_server_state_set_error(state, GL_INVALID_VALUE);
+   }
+   else
+   {
+      state->num_patch_vertices = value;
+   }
+
+   glxx_unlock_server_state();
+}
+
+GL_API void GL_APIENTRY glPatchParameteriOES(GLenum pname, GLint value)
+{
+   glxx_patch_parameter(pname, value);
+}
+
+GL_API void GL_APIENTRY glPatchParameteriEXT(GLenum pname, GLint value)
+{
+   glxx_patch_parameter(pname, value);
+}
+
+#endif
+
+#if KHRN_GLES32_DRIVER
+
+GL_API void GL_APIENTRY glPatchParameteri(GLenum pname, GLint value)
+{
+   glxx_patch_parameter(pname, value);
+}
+
+#endif
 
 /*
    void glPolygonOffset (GLfloat factor, GLfloat units)
@@ -1649,7 +1859,7 @@ GL_API void GL_APIENTRY glLineWidthx(GLfixed width)
 
 GL_API void GL_APIENTRY glPolygonOffset(GLfloat factor, GLfloat units)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
    if (!state)
       return;
 
@@ -1657,11 +1867,11 @@ GL_API void GL_APIENTRY glPolygonOffset(GLfloat factor, GLfloat units)
    state->polygon_offset.factor = factor;
    state->polygon_offset.units = units;
 
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 GL_API void GL_APIENTRY glPolygonOffsetx(GLfixed factor, GLfixed units)
 {
-   GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_11);
    if (!state)
       return;
 
@@ -1669,77 +1879,40 @@ GL_API void GL_APIENTRY glPolygonOffsetx(GLfixed factor, GLfixed units)
    state->polygon_offset.factor = fixed_to_float(factor);
    state->polygon_offset.units = fixed_to_float(units);
 
-   GL11_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
-static bool readpixels_check_internals(GLXX_SERVER_STATE_T *state, GLint x,
-      GLint y, GLsizei width, GLsizei height, GLenum format, GLenum type,
-      const GLXX_BUFFER_T *pixel_buffer, const void *pixels,
-      GLenum *error)
+static GLenum readpixels_check_internals(const GLXX_FRAMEBUFFER_T *fb, int x,
+      int y, GLsizei width, GLsizei height, GLenum format, GLenum type,
+      GLsizei buf_size, const GLXX_BUFFER_T *pixel_buffer, const void *pixels)
 {
-   GLXX_FRAMEBUFFER_T *fb;
-
    if (format == GL_DEPTH_COMPONENT || format == GL_DEPTH_STENCIL)
-   {
-      *error = GL_INVALID_OPERATION;
-      return false;
-   }
+      return GL_INVALID_OPERATION;
 
-   fb = state->bound_read_framebuffer;
    if (!glxx_fb_is_complete(fb))
-   {
-      *error = GL_INVALID_FRAMEBUFFER_OPERATION;
-      return false;
-   }
+      return GL_INVALID_FRAMEBUFFER_OPERATION;
 
    if (fb->name != 0 && (glxx_fb_get_ms_mode(fb) != GLXX_NO_MS))
-   {
-      *error = GL_INVALID_OPERATION;
-      return false;
-   }
+      return GL_INVALID_OPERATION;
 
    if (width < 0 || height < 0 || (!pixel_buffer && !pixels))
-   {
-      *error = GL_INVALID_VALUE;
-      return false;
-   }
-
-   *error = GL_NO_ERROR;
-   return true;
-}
-
-static void read_pixels(GLint x, GLint y, GLsizei width, GLsizei height,
-   GLenum format, GLenum type, GLsizei buf_size, void *pixels)
-{
-   GLXX_SERVER_STATE_T *state;
-   GLXX_BUFFER_T *pixel_buffer;
-   KHRN_IMAGE_T *src = NULL;
-   bool ok;
-   GLenum dst_format, dst_type;
-   struct v3d_imgconv_ptr_tgt dst;
-   GFX_BUFFER_DESC_T dst_desc;
-   GFX_LFMT_T dst_lfmt, src_lfmt;
-   size_t buf_offset = 0;
-   void *dst_ptr;
-   unsigned src_width, src_height;
-   int dst_x, dst_y;
-   GLenum error = GL_NO_ERROR;
-   struct glxx_pixels_info dst_info;
-
-   state = GLXX_LOCK_SERVER_STATE();
-   if (!state)
-      return;
+      return GL_INVALID_VALUE;
 
    if (buf_size < 0)
-   {
-      error = GL_INVALID_OPERATION;
-      goto end;
-   }
+      return GL_INVALID_OPERATION;
 
-   pixel_buffer = state->bound_buffer[GLXX_BUFTGT_PIXEL_PACK].obj;
-   ok = readpixels_check_internals(state, x, y, width, height, format, type ,
-         pixel_buffer, pixels, &error);
-   if (!ok)
+   return GL_NO_ERROR;
+}
+
+static void read_pixels(GLXX_SERVER_STATE_T *state, int x, int y, GLsizei width, GLsizei height,
+   GLenum format, GLenum type, GLsizei buf_size, void *pixels)
+{
+   KHRN_IMAGE_T *src = NULL;     /* Used in error handler at 'end' */
+
+   GLXX_BUFFER_T *pixel_buffer = state->bound_buffer[GLXX_BUFTGT_PIXEL_PACK].obj;
+   GLenum error = readpixels_check_internals(state->bound_read_framebuffer, x, y, width, height,
+                                             format, type, buf_size, pixel_buffer, pixels);
+   if (error != GL_NO_ERROR)
       goto end;
 
    if (!glxx_fb_acquire_read_image(state->bound_read_framebuffer,
@@ -1755,7 +1928,9 @@ static void read_pixels(GLint x, GLint y, GLsizei width, GLsizei height,
       goto end;
    }
 
-   src_lfmt = khrn_image_get_lfmt(src, 0);
+   GFX_LFMT_T src_lfmt = khrn_image_get_lfmt(src, 0);
+   GFX_LFMT_T dst_lfmt;
+   GLenum dst_format, dst_type;
 
    /* ES3 spec: "Only two combinations of format and type are accepted in
       most cases [...]" */
@@ -1776,9 +1951,11 @@ static void read_pixels(GLint x, GLint y, GLsizei width, GLsizei height,
       (pixel_buffer == NULL && pixels == NULL))
       goto end;
 
+   struct glxx_pixels_info dst_info;
    glxx_get_pack_unpack_info(&state->pixel_store_state, true, width,
          height, format, type, &dst_info);
 
+   GFX_BUFFER_DESC_T dst_desc;
    dst_desc.width = width;
    dst_desc.height = height;
    dst_desc.depth = 1;
@@ -1788,6 +1965,8 @@ static void read_pixels(GLint x, GLint y, GLsizei width, GLsizei height,
    dst_desc.planes[0].pitch = dst_info.stride;
    dst_desc.planes[0].slice_pitch = 0;
 
+   size_t buf_offset = 0;
+   void *dst_ptr;
    if (pixel_buffer)
    {
       /* in this case, pixels are just an offset in the pixel buffer object */
@@ -1819,26 +1998,28 @@ static void read_pixels(GLint x, GLint y, GLsizei width, GLsizei height,
       dst_ptr = (uint8_t*)pixels + dst_info.offset;
    }
 
+   struct v3d_imgconv_ptr_tgt dst;
    v3d_imgconv_init_ptr_tgt(&dst, dst_ptr, &dst_desc, 0, 0, 0, 0, dst_info.slice_pitch);
 
    /* Values for pixels that lie outside the window connected to the current GL
       context are undefined. */
-   src_width = khrn_image_get_width(src);
-   src_height = khrn_image_get_height(src);
-   dst_x = dst_y = 0;
+   unsigned src_width = khrn_image_get_width(src);
+   unsigned src_height = khrn_image_get_height(src);
+   int dst_x = 0, dst_y = 0;
    glxx_clamp_rect(src_width, src_height, &x, &y, &width, &height, &dst_x, &dst_y);
 
    assert(dst_x >= 0);
    assert(dst_y >= 0);
 
+   bool ok = true;
    if (width > 0 && height > 0)
    {
       assert(khrn_image_get_num_elems(src) == 1 &&
-         khrn_image_get_depth(src) == 1);
+             khrn_image_get_depth(src) == 1);
 
       bool secure_context = egl_context_gl_secure(state->context);
-      ok = khrn_image_copy_to_ptr_tgt(src, x, y, (unsigned)dst_x,
-         (unsigned)dst_y, &dst, width, height, 1, 1, &state->fences, secure_context);
+      ok = khrn_image_copy_to_ptr_tgt(src, x, y, (unsigned)dst_x, (unsigned)dst_y,
+                           &dst, width, height, 1, 1, &state->fences, secure_context);
    }
 
    if (pixel_buffer)
@@ -1854,7 +2035,6 @@ end:
    KHRN_MEM_ASSIGN(src, NULL);
    if (error != GL_NO_ERROR)
       glxx_server_state_set_error(state, error);
-   GLXX_UNLOCK_SERVER_STATE();
 }
 
 GL_API void GL_APIENTRY glReadPixels(GLint x, GLint y, GLsizei width, GLsizei height,
@@ -1862,7 +2042,12 @@ GL_API void GL_APIENTRY glReadPixels(GLint x, GLint y, GLsizei width, GLsizei he
 {
    PROFILE_FUNCTION_MT("GL");
 
-   read_pixels(x, y, width, height, format, type, INT_MAX, pixels);
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
+   if (!state) return;
+
+   read_pixels(state, x, y, width, height, format, type, INT_MAX, pixels);
+
+   glxx_unlock_server_state();
 }
 
 GL_API void GL_APIENTRY glReadnPixelsEXT(GLint x, GLint y, GLsizei width, GLsizei height,
@@ -1870,35 +2055,58 @@ GL_API void GL_APIENTRY glReadnPixelsEXT(GLint x, GLint y, GLsizei width, GLsize
 {
    PROFILE_FUNCTION_MT("GL");
 
-   read_pixels(x, y, width, height, format, type, buf_size, pixels);
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
+   if (!state) return;
+
+   read_pixels(state, x, y, width, height, format, type, buf_size, pixels);
+
+   glxx_unlock_server_state();
 }
+
+#if KHRN_GLES32_DRIVER
+GL_APICALL void GL_APIENTRY glReadnPixels(GLint x, GLint y, GLsizei width, GLsizei height,
+                                          GLenum format, GLenum type, GLsizei bufSize, void *data)
+{
+   PROFILE_FUNCTION_MT("GL");
+
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
+   if (!state) return;
+
+   read_pixels(state, x, y, width, height, format, type, bufSize, data);
+
+   glxx_unlock_server_state();
+}
+#endif
 
 GL_API void GL_APIENTRY glSampleCoverage(GLclampf value, GLboolean invert)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
    if (!state) return;
 
    state->dirty.sample_coverage = KHRN_RENDER_STATE_SET_ALL;
    state->sample_coverage.invert = !!invert;
-   state->sample_coverage.value = clampf(value, 0.0f, 1.0f);
+   state->sample_coverage.value = gfx_fclamp(value, 0.0f, 1.0f);
 
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_API void GL_APIENTRY glSampleCoveragex(GLclampx value, GLboolean invert)
 {
-   GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_11);
    if (!state) return;
 
    state->dirty.sample_coverage = KHRN_RENDER_STATE_SET_ALL;
    state->sample_coverage.invert = !!invert;
-   state->sample_coverage.value = clampf(fixed_to_float(value), 0.0f, 1.0f);
+   state->sample_coverage.value = gfx_fclamp(fixed_to_float(value), 0.0f, 1.0f);
 
-   GL11_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
-GL_API void GL_APIENTRY glSampleMaski(GLuint maskNumber, GLbitfield mask) {
-   GLXX_SERVER_STATE_T *state = GL31_LOCK_SERVER_STATE();
+#if KHRN_GLES31_DRIVER
+
+GL_API void GL_APIENTRY glSampleMaski(GLuint maskNumber, GLbitfield mask)
+{
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
    if (!state) return;
 
    if(maskNumber >= GLXX_CONFIG_MAX_SAMPLE_WORDS) {
@@ -1909,12 +2117,14 @@ GL_API void GL_APIENTRY glSampleMaski(GLuint maskNumber, GLbitfield mask) {
    state->sample_mask.mask[maskNumber] = mask;
 
 end:
-   GL31_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
+
+#endif
 
 GL_API void GL_APIENTRY glScissor(GLint x, GLint y, GLsizei width, GLsizei height)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
    if (!state)
       return;
 
@@ -1929,7 +2139,7 @@ GL_API void GL_APIENTRY glScissor(GLint x, GLint y, GLsizei width, GLsizei heigh
    else
       glxx_server_state_set_error(state, GL_INVALID_VALUE);
 
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 static GLboolean is_face(GLenum face)
@@ -1941,7 +2151,7 @@ static GLboolean is_face(GLenum face)
 
 GL_API void GL_APIENTRY glStencilFunc(GLenum func, GLint ref, GLuint mask) // S
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
    if (!state)
       return;
 
@@ -1960,12 +2170,12 @@ GL_API void GL_APIENTRY glStencilFunc(GLenum func, GLint ref, GLuint mask) // S
    else
       glxx_server_state_set_error(state, GL_INVALID_ENUM);
 
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_API void GL_APIENTRY glStencilFuncSeparate(GLenum face, GLenum func, GLint ref, GLuint mask) // S
 {
-   GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
    if (!state)
       return;
 
@@ -1990,10 +2200,10 @@ GL_API void GL_APIENTRY glStencilFuncSeparate(GLenum face, GLenum func, GLint re
    else
       glxx_server_state_set_error(state, GL_INVALID_ENUM);
 
-   GL20_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
-static GLboolean is_op(GLXX_SERVER_STATE_T *state, GLenum op)
+static GLboolean is_op(GLenum op)
 {
    return op == GL_KEEP    ||
           op == GL_ZERO    ||
@@ -2001,15 +2211,13 @@ static GLboolean is_op(GLXX_SERVER_STATE_T *state, GLenum op)
           op == GL_INCR    ||
           op == GL_DECR    ||
           op == GL_INVERT  ||
-          (!IS_GL_11(state) && (
-             op == GL_INCR_WRAP ||
-             op == GL_DECR_WRAP
-          ));
+          op == GL_INCR_WRAP ||
+          op == GL_DECR_WRAP;
 }
 
 GL_API void GL_APIENTRY glStencilMask(GLuint mask) // S
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
    if (!state)
       return;
 
@@ -2017,12 +2225,12 @@ GL_API void GL_APIENTRY glStencilMask(GLuint mask) // S
    state->stencil_mask.back = mask;
    state->dirty.stencil = KHRN_RENDER_STATE_SET_ALL;
 
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_API void GL_APIENTRY glStencilMaskSeparate(GLenum face, GLuint mask) // S
 {
-   GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
    if (!state)
       return;
 
@@ -2043,16 +2251,16 @@ GL_API void GL_APIENTRY glStencilMaskSeparate(GLenum face, GLuint mask) // S
    else
       glxx_server_state_set_error(state, GL_INVALID_ENUM);
 
-   GL20_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_API void GL_APIENTRY glStencilOp(GLenum fail, GLenum zfail, GLenum zpass) // S
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
    if (!state)
       return;
 
-   if (is_op(state,fail) && is_op(state,zfail) && is_op(state,zpass))
+   if (is_op(fail) && is_op(zfail) && is_op(zpass))
    {
       state->stencil_op.front.fail = fail;
       state->stencil_op.front.zfail = zfail;
@@ -2067,16 +2275,16 @@ GL_API void GL_APIENTRY glStencilOp(GLenum fail, GLenum zfail, GLenum zpass) // 
    else
       glxx_server_state_set_error(state, GL_INVALID_ENUM);
 
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_API void GL_APIENTRY glStencilOpSeparate(GLenum face, GLenum fail, GLenum zfail, GLenum zpass) // S
 {
-   GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
    if (!state)
       return;
 
-   if (is_face(face) && is_op(state,fail) && is_op(state,zfail) && is_op(state,zpass))
+   if (is_face(face) && is_op(fail) && is_op(zfail) && is_op(zpass))
    {
       if (face == GL_FRONT || face == GL_FRONT_AND_BACK)
       {
@@ -2097,7 +2305,7 @@ GL_API void GL_APIENTRY glStencilOpSeparate(GLenum face, GLenum fail, GLenum zfa
    else
       glxx_server_state_set_error(state, GL_INVALID_ENUM);
 
-   GL20_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 static bool is_vertex_attrib_size(GLint size)
@@ -2162,6 +2370,28 @@ static bool attrib_index_valid(GLXX_SERVER_STATE_T *state, uint32_t indx)
    }
 }
 
+static v3d_attr_type_t translate_attrib_type(bool* is_signed, GLenum type)
+{
+   switch (type)
+   {
+   case GL_NONE:                          *is_signed = false;  return V3D_ATTR_TYPE_DISABLED; // GL 1.x can use this
+   case GL_BYTE:                          *is_signed = true;   return V3D_ATTR_TYPE_BYTE;
+   case GL_UNSIGNED_BYTE:                 *is_signed = false;  return V3D_ATTR_TYPE_BYTE;
+   case GL_SHORT:                         *is_signed = true;   return V3D_ATTR_TYPE_SHORT;
+   case GL_UNSIGNED_SHORT:                *is_signed = false;  return V3D_ATTR_TYPE_SHORT;
+   case GL_INT:                           *is_signed = true;   return V3D_ATTR_TYPE_INT;
+   case GL_UNSIGNED_INT:                  *is_signed = false;  return V3D_ATTR_TYPE_INT;
+   case GL_FLOAT:                         *is_signed = false;  return V3D_ATTR_TYPE_FLOAT;
+   case GL_HALF_FLOAT:                    *is_signed = false;  return V3D_ATTR_TYPE_HALF_FLOAT;
+   case GL_FIXED:                         *is_signed = false;  return V3D_ATTR_TYPE_FIXED;
+   case GL_HALF_FLOAT_OES:                *is_signed = false;  return V3D_ATTR_TYPE_HALF_FLOAT;
+   case GL_INT_2_10_10_10_REV:            *is_signed = true;   return V3D_ATTR_TYPE_INT2_10_10_10;
+   case GL_UNSIGNED_INT_2_10_10_10_REV:   *is_signed = false;  return V3D_ATTR_TYPE_INT2_10_10_10;
+   default:
+      unreachable();
+   }
+}
+
 static void vertex_attrib_pointer(GLXX_SERVER_STATE_T *state, GLuint index, GLint size,
    GLenum type, GLboolean normalized, GLsizei stride, GLintptr ptr, bool integer)
 {
@@ -2173,21 +2403,20 @@ static void vertex_attrib_pointer(GLXX_SERVER_STATE_T *state, GLuint index, GLin
       return;
    }
 
-   uint32_t total_size = glxx_get_type_size(type, size);
-
    GLXX_ATTRIB_CONFIG_T *attr = &state->vao.bound->attrib_config[index];
    GLXX_VBO_BINDING_T *vbo = &state->vao.bound->vbos[index];
 
-   attr->type = type;
+   attr->gl_type = type;
+   attr->v3d_type = translate_attrib_type(&attr->is_signed, type);
    attr->norm = normalized;
    attr->size = size;
    attr->vbo_index = index;
-   attr->total_size = total_size;
+   attr->total_size = v3d_attr_type_get_size_in_memory(attr->v3d_type, size);
    attr->is_int = integer;
    attr->relative_offset = 0;
 
    if (stride == 0)
-      vbo->stride = total_size;
+      vbo->stride = attr->total_size;
    else
       vbo->stride = stride;
 
@@ -2241,9 +2470,11 @@ void glintAttribPointer_GL11(GLXX_SERVER_STATE_T *state, GLuint index, GLint siz
    vertex_attrib_pointer(state, index, size, type, normalized, stride, ptr, false);
 }
 
+#if KHRN_GLES31_DRIVER
+
 static void vertex_attrib_format(GLuint attribindex, GLint size, GLenum type, GLboolean normalized, GLuint relativeoffset, bool integer)
 {
-   GLXX_SERVER_STATE_T *state = GL31_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
    if (!state)
       return;
 
@@ -2275,15 +2506,16 @@ static void vertex_attrib_format(GLuint attribindex, GLint size, GLenum type, GL
 
    GLXX_ATTRIB_CONFIG_T *attr = &state->vao.bound->attrib_config[attribindex];
 
-   attr->type = type;
+   attr->gl_type = type;
+   attr->v3d_type = translate_attrib_type(&attr->is_signed, type);
    attr->norm = normalized;
    attr->size = size;
-   attr->total_size = glxx_get_type_size(type, size);
+   attr->total_size = v3d_attr_type_get_size_in_memory(attr->v3d_type, size);
    attr->is_int = integer;
    attr->relative_offset = relativeoffset;
 
 end:
-   GL31_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_API void GL_APIENTRY glVertexAttribFormat(GLuint attribindex, GLint size, GLenum type, GLboolean normalized, GLuint relativeoffset)
@@ -2296,29 +2528,33 @@ GL_API void GL_APIENTRY glVertexAttribIFormat(GLuint attribindex, GLint size, GL
    vertex_attrib_format(attribindex, size, type, GL_FALSE, relativeoffset, true);
 }
 
+#endif
+
 GL_API void GL_APIENTRY glVertexAttribPointer(GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const void *ptr)
 {
-   GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
    if (!state)
       return;
 
    vertex_attrib_pointer_chk(state, index, size, type, normalized, stride, (GLintptr)ptr, false);
-   GL20_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_API void GL_APIENTRY glVertexAttribIPointer(GLuint index, GLint size, GLenum type, GLsizei stride, const GLvoid* ptr)
 {
-   GLXX_SERVER_STATE_T *state = GL20_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
    if (!state)
       return;
 
    vertex_attrib_pointer_chk(state, index, size, type, GL_FALSE, stride, (GLintptr)ptr, true);
-   GL20_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
+
+#if KHRN_GLES31_DRIVER
 
 GL_API void GL_APIENTRY glVertexAttribBinding (GLuint attribindex, GLuint bindingindex)
 {
-   GLXX_SERVER_STATE_T *state = GL31_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
    if (!state)
       return;
 
@@ -2339,12 +2575,12 @@ GL_API void GL_APIENTRY glVertexAttribBinding (GLuint attribindex, GLuint bindin
    state->vao.bound->attrib_config[attribindex].vbo_index = bindingindex;
 
 end:
-   GL31_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_API void GL_APIENTRY glVertexBindingDivisor(GLuint bindingindex, GLuint divisor)
 {
-   GLXX_SERVER_STATE_T *state = GL31_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
    if (!state)
       return;
 
@@ -2363,43 +2599,49 @@ GL_API void GL_APIENTRY glVertexBindingDivisor(GLuint bindingindex, GLuint divis
    state->vao.bound->vbos[bindingindex].divisor = divisor;
 
 end:
-   GL31_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
+
+#endif
 
 void glintAttrib(uint32_t api, uint32_t indx, float x, float y, float z, float w)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE_API(api);
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(api);
    if (!state)
       return;
 
-   if (attrib_index_valid(state, indx)) {
-      state->generic_attrib[indx].value[0] = x;
-      state->generic_attrib[indx].value[1] = y;
-      state->generic_attrib[indx].value[2] = z;
-      state->generic_attrib[indx].value[3] = w;
-
-      state->generic_attrib[indx].type = GL_FLOAT;
+   if (attrib_index_valid(state, indx))
+   {
+      GLXX_GENERIC_ATTRIBUTE_T* ga = &state->generic_attrib[indx];
+      ga->f[0] = x;
+      ga->f[1] = y;
+      ga->f[2] = z;
+      ga->f[3] = w;
+      ga->type = V3D_ATTR_TYPE_FLOAT;
+      ga->is_signed = false;
    }
 
-   GLXX_UNLOCK_SERVER_STATE_API(api);
+   glxx_unlock_server_state();
 }
 
-void glintAttribI(uint32_t api, uint32_t indx, uint32_t x, uint32_t y, uint32_t z, uint32_t w, GLenum internal_type)
+void glintAttribI(uint32_t api, uint32_t indx, uint32_t x, uint32_t y, uint32_t z, uint32_t w, bool is_signed)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE_API(api);
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(api);
    if (!state)
       return;
 
-   if (attrib_index_valid(state, indx)) {
-      state->generic_attrib[indx].value_int[0] = x;
-      state->generic_attrib[indx].value_int[1] = y;
-      state->generic_attrib[indx].value_int[2] = z;
-      state->generic_attrib[indx].value_int[3] = w;
-
-      state->generic_attrib[indx].type = internal_type;
+   if (attrib_index_valid(state, indx))
+   {
+      GLXX_GENERIC_ATTRIBUTE_T* ga = &state->generic_attrib[indx];
+      ga->u[0] = x;
+      ga->u[1] = y;
+      ga->u[2] = z;
+      ga->u[3] = w;
+      ga->type = V3D_ATTR_TYPE_INT;
+      ga->is_signed = is_signed;
    }
 
-   GLXX_UNLOCK_SERVER_STATE_API(api);
+   glxx_unlock_server_state();
 }
 
 void glintAttribEnable(GLXX_SERVER_STATE_T *state, uint32_t indx, bool enabled)
@@ -2412,7 +2654,7 @@ void glintAttribEnable(GLXX_SERVER_STATE_T *state, uint32_t indx, bool enabled)
 
 GL_API void GL_APIENTRY glPixelStorei(GLenum pname, GLint param)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
    if (!state)
       return;
 
@@ -2463,7 +2705,7 @@ GL_API void GL_APIENTRY glPixelStorei(GLenum pname, GLint param)
       }
    }
 
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 /*
@@ -2485,18 +2727,18 @@ value."
 
 void glintColor(float red, float green, float blue, float alpha)
 {
-   GLXX_SERVER_STATE_T *state = GL11_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_11);
    if (!state)
       return;
 
-   state->generic_attrib[GL11_IX_COLOR].value[0] = red;
-   state->generic_attrib[GL11_IX_COLOR].value[1] = green;
-   state->generic_attrib[GL11_IX_COLOR].value[2] = blue;
-   state->generic_attrib[GL11_IX_COLOR].value[3] = alpha;
+   state->generic_attrib[GL11_IX_COLOR].f[0] = red;
+   state->generic_attrib[GL11_IX_COLOR].f[1] = green;
+   state->generic_attrib[GL11_IX_COLOR].f[2] = blue;
+   state->generic_attrib[GL11_IX_COLOR].f[3] = alpha;
 
    glxx_update_color_material(state);
 
-   GL11_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 void *glintAttribGetPointer(GLXX_SERVER_STATE_T *state, uint32_t indx)
@@ -2508,29 +2750,74 @@ void *glintAttribGetPointer(GLXX_SERVER_STATE_T *state, uint32_t indx)
 /* Spec: s is masked to the number of bitplanes in the stencil buffer.  */
 GL_API void GL_APIENTRY glClearStencil(GLint s)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE_UNCHANGED();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state_unchanged(OPENGL_ES_ANY);
    if (!state)
       return;
 
    state->clear.stencil_value = s & ((1 << glxx_get_stencil_size(state)) - 1);
 
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
-GL_API void GL_APIENTRY glColorMask(GLboolean red, GLboolean green, GLboolean blue, GLboolean alpha)
+GL_API void GL_APIENTRY glColorMask(GLboolean r, GLboolean g, GLboolean b, GLboolean a)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
    if (!state)
       return;
 
-   state->color_write.r = !!red;
-   state->color_write.g = !!green;
-   state->color_write.b = !!blue;
-   state->color_write.a = !!alpha;
+   state->color_write = GLXX_SERVER_COLOR_WRITE_RED_BITS *
+      ((r ? 0x1 : 0) | (g ? 0x2 : 0) | (b ? 0x4 : 0) | (a ? 0x8 : 0));
    state->dirty.color_write = KHRN_RENDER_STATE_SET_ALL;
 
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
+
+#if V3D_HAS_PER_RT_BLEND
+
+static void color_mask_i(GLuint buf, GLboolean r, GLboolean g, GLboolean b, GLboolean a)
+{
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
+   if (!state)
+      return;
+
+   if (buf >= GLXX_MAX_RENDER_TARGETS)
+      glxx_server_state_set_error(state, GL_INVALID_VALUE);
+   else
+   {
+      uint32_t new_color_write = (state->color_write & ~(0xf << (buf * 4))) |
+         (((r ? 0x1 : 0) | (g ? 0x2 : 0) | (b ? 0x4 : 0) | (a ? 0x8 : 0)) << (buf * 4));
+      if (state->color_write != new_color_write)
+      {
+         state->color_write = new_color_write;
+         state->dirty.color_write = KHRN_RENDER_STATE_SET_ALL;
+      }
+   }
+
+   glxx_unlock_server_state();
+}
+
+GL_API void GL_APIENTRY glColorMaskiEXT(GLuint buf, GLboolean r, GLboolean g, GLboolean b, GLboolean a)
+{
+   color_mask_i(buf, r, g, b, a);
+}
+
+GL_API void GL_APIENTRY glColorMaskiOES(GLuint buf, GLboolean r, GLboolean g, GLboolean b, GLboolean a)
+{
+   color_mask_i(buf, r, g, b, a);
+}
+
+#endif
+
+#if KHRN_GLES32_DRIVER
+
+GL_API void GL_APIENTRY glColorMaski(GLuint buf, GLboolean r, GLboolean g, GLboolean b, GLboolean a)
+{
+#if V3D_HAS_PER_RT_BLEND
+   color_mask_i(buf, r, g, b, a);
+#endif
+}
+
+#endif
 
 static GLboolean is_cull_face(GLenum mode)
 {
@@ -2541,7 +2828,7 @@ static GLboolean is_cull_face(GLenum mode)
 
 GL_API void GL_APIENTRY glCullFace(GLenum mode)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
    if (!state)
       return;
 
@@ -2553,7 +2840,7 @@ GL_API void GL_APIENTRY glCullFace(GLenum mode)
    else
       glxx_server_state_set_error(state, GL_INVALID_ENUM);
 
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 
@@ -2573,7 +2860,7 @@ static void glxx_update_viewport_internal(GLXX_SERVER_STATE_T *state)
    state->viewport.internal_xscale = 128.0f * (float)state->viewport.width;
    state->viewport.internal_yscale = 128.0f * (float)state->viewport.height;
    state->viewport.internal_zscale = (state->viewport.vp_far - state->viewport.vp_near) / 2.0f;
-   state->viewport.internal_wscale = (state->viewport.vp_far + state->viewport.vp_near) / 2.0f;
+   state->viewport.internal_zoffset = (state->viewport.vp_far + state->viewport.vp_near) / 2.0f;
 }
 
 /*
@@ -2643,7 +2930,7 @@ void glxx_server_state_set_error_ex(GLXX_SERVER_STATE_T *state, GLenum error, co
 
 GL_API void GL_APIENTRY glViewport(GLint x, GLint y, GLsizei width, GLsizei height)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
    if (!state)
       return;
 
@@ -2656,27 +2943,30 @@ GL_API void GL_APIENTRY glViewport(GLint x, GLint y, GLsizei width, GLsizei heig
    state->dirty.viewport = KHRN_RENDER_STATE_SET_ALL;
    state->viewport.x = x;
    state->viewport.y = y;
-   state->viewport.width = clampi(width, 0, GLXX_CONFIG_MAX_FRAMEBUFFER_SIZE);
-   state->viewport.height = clampi(height, 0, GLXX_CONFIG_MAX_FRAMEBUFFER_SIZE);
+   state->viewport.width = gfx_sclamp(width, 0, GLXX_CONFIG_MAX_FRAMEBUFFER_SIZE);
+   state->viewport.height = gfx_sclamp(height, 0, GLXX_CONFIG_MAX_FRAMEBUFFER_SIZE);
 
    glxx_update_viewport_internal(state);
 
 end:
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 void glxx_server_invalidate_for_render_state(GLXX_SERVER_STATE_T *state, GLXX_HW_RENDER_STATE_T *rs)
 {
-   khrn_render_state_set_add(&state->dirty.blend_mode, rs);
    khrn_render_state_set_add(&state->dirty.blend_color, rs);
+#if V3D_HAS_PER_RT_BLEND
+   khrn_render_state_set_add(&state->dirty.blend_enables, rs);
+#endif
+   khrn_render_state_set_add(&state->dirty.blend_cfg, rs);
    khrn_render_state_set_add(&state->dirty.color_write, rs);
    khrn_render_state_set_add(&state->dirty.cfg, rs);
    khrn_render_state_set_add(&state->dirty.linewidth, rs);
    khrn_render_state_set_add(&state->dirty.polygon_offset, rs);
    khrn_render_state_set_add(&state->dirty.viewport, rs);
    khrn_render_state_set_add(&state->dirty.sample_coverage, rs);
-   khrn_render_state_set_add(&state->dirty.stencil, rs);
    khrn_render_state_set_add(&state->dirty.stuff, rs);
+   khrn_render_state_set_add(&state->dirty.stencil, rs);
 }
 
 bool glxx_server_state_add_fence_to_depend_on(GLXX_SERVER_STATE_T *state, const KHRN_FENCE_T *fence)
@@ -2713,3 +3003,34 @@ GL20_PROGRAM_T *glxx_server_get_active_program(GLXX_SERVER_STATE_T *state)
 
    return NULL;
 }
+
+static void primitive_bounding_box(float minX, float minY, float minZ, float minW,
+                                   float maxX, float maxY, float maxZ, float maxW)
+{
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
+   if (!state) return;
+
+   float min[4] = { minX, minY, minZ, minW };
+   float max[4] = { maxX, maxY, maxZ, maxW };
+   for (int i=0; i<4; i++) {
+      state->primitive_bounding_box.min[i] = min[i];
+      state->primitive_bounding_box.max[i] = max[i];
+   }
+
+   glxx_unlock_server_state();
+}
+
+#if KHRN_GLES32_DRIVER
+GL_API void GL_APIENTRY glPrimitiveBoundingBox(GLfloat minX, GLfloat minY, GLfloat minZ, GLfloat minW,
+                                               GLfloat maxX, GLfloat maxY, GLfloat maxZ, GLfloat maxW)
+{
+   primitive_bounding_box(minX, minY, minZ, minW, maxX, maxY, maxZ, maxW);
+}
+#endif
+#if KHRN_GLES31_DRIVER
+GL_API void GL_APIENTRY glPrimitiveBoundingBoxEXT(GLfloat minX, GLfloat minY, GLfloat minZ, GLfloat minW,
+                                                  GLfloat maxX, GLfloat maxY, GLfloat maxZ, GLfloat maxW)
+{
+   primitive_bounding_box(minX, minY, minZ, minW, maxX, maxY, maxZ, maxW);
+}
+#endif

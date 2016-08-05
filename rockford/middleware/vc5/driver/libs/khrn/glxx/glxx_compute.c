@@ -13,6 +13,8 @@
 #include "libs/core/v3d/v3d_vpm_alloc.h"
 #include "libs/util/profile/profile.h"
 
+#if KHRN_GLES31_DRIVER
+
 LOG_DEFAULT_CAT("glxx_compute")
 
 typedef uint16_t tlb_uint_t;
@@ -593,7 +595,7 @@ static v3d_addr_t build_shader_uniforms(
    }
 
    GL20_HW_INDEXED_UNIFORM_T iu = { .valid = false };
-   return glxx_hw_install_uniforms(&rs->base, state, link_data->f.uniform_map, &iu, &cu);
+   return glxx_hw_install_uniforms(&rs->base, state, link_data->fs.uniform_map, &iu, &cu);
 }
 
 static unsigned build_shader_record(
@@ -627,26 +629,35 @@ static unsigned build_shader_record(
    if (!num_instances)
       return 0;
 
-   if (!khrn_fmem_record_res_interlock(fmem, link_data->f.res_i, false, ACTION_RENDER))
+   if (!khrn_fmem_record_res_interlock(fmem, link_data->fs.res_i, false, ACTION_RENDER))
       return 0;
 
-   v3d_addr_t fs_addr = khrn_fmem_lock_and_sync(fmem, link_data->f.res_i->handle, 0, GMEM_SYNC_QPU_IU_READ);
+   v3d_addr_t fs_addr = khrn_fmem_lock_and_sync(fmem, link_data->fs.res_i->handle, 0, GMEM_SYNC_QPU_IU_READ);
    if (!fs_addr)
       return 0;
 
    V3D_SHADREC_GL_MAIN_T shader_record = { 0, };
    shader_record.no_ez = true;
    shader_record.scb_wait_on_first_thrsw = (link_data->flags & GLXX_SHADER_FLAGS_TLB_WAIT_FIRST_THRSW) != 0;
-   shader_record.num_varys = gfx_umax(link_data->num_varys, (unsigned)(khrn_get_v3d_version() < V3D_MAKE_VER(3,3,0,0))); // workaround GFXH-1276
+   shader_record.num_varys = link_data->num_varys;
+#if !V3D_VER_AT_LEAST(3,3,0,0)
+   shader_record.num_varys = gfx_umax(shader_record.num_varys, 1); // workaround GFXH-1276
+#endif
 #if V3D_HAS_TNG
    shader_record.vs_output_size = (V3D_OUT_SEG_ARGS_T){
       .sectors = v3d_vs_output_size(false, link_data->num_varys),
       .min_extra_req = 0,
       .pack = V3D_CL_VPM_PACK_X16 };
+   shader_record.cs_output_size = (V3D_OUT_SEG_ARGS_T){
+      .sectors = 1,
+      .min_extra_req = 0,
+      .pack = V3D_CL_VPM_PACK_X16 };
+   shader_record.cs_input_size.min_req = 1;
+   shader_record.vs_input_size.min_req = 1;
 #else
    shader_record.vs_output_size = v3d_vs_output_size(false, link_data->num_varys);
 #endif
-   shader_record.fs.threading = link_data->f.threading;
+   shader_record.fs.threading = link_data->fs.threading;
    shader_record.fs.propagate_nans = true;
    shader_record.fs.addr = fs_addr;
    shader_record.fs.unifs_addr = unifs_addr;
@@ -672,7 +683,11 @@ static glxx_compute_render_state* create_compute_render_state(GLXX_SERVER_STATE_
 
    // Initial state setup for all compute jobs.
    size_t const cl_size = 0
+#if V3D_HAS_NEW_TLB_CFG
+      + V3D_CL_TILE_RENDERING_MODE_CFG_SIZE*3
+#else
       + V3D_CL_TILE_RENDERING_MODE_CFG_SIZE*4
+#endif
       + V3D_CL_DISABLE_Z_ONLY_SIZE
       + V3D_CL_FLUSH_VCD_CACHE_SIZE
       + V3D_CL_VCM_CACHE_SIZE_SIZE
@@ -699,7 +714,11 @@ static glxx_compute_render_state* create_compute_render_state(GLXX_SERVER_STATE_
       cfg.u.common.frame_height = TLB_HEIGHT;
       cfg.u.common.max_bpp = TLB_UINT_BITS == 16 ? V3D_RT_BPP_64 : V3D_RT_BPP_32;
       cfg.u.common.ez_disable = true;
+#if V3D_HAS_NEW_TLB_CFG
+      cfg.u.common.internal_depth_type = V3D_DEPTH_TYPE_24;
+#else
       cfg.u.common.disable_rt_store_mask = 0xff;
+#endif
       v3d_cl_tile_rendering_mode_cfg_indirect(&cl, &cfg);
    }
 
@@ -708,15 +727,26 @@ static glxx_compute_render_state* create_compute_render_state(GLXX_SERVER_STATE_
       V3D_CL_TILE_RENDERING_MODE_CFG_T cfg;
       memset(&cfg, 0, sizeof(cfg));
       cfg.type = V3D_RCFG_TYPE_COLOR;
-      cfg.u.color.internal_bpp = TLB_UINT_BITS == 16 ? V3D_RT_BPP_64 : V3D_RT_BPP_32;
-      cfg.u.color.internal_type = TLB_UINT_BITS == 16 ? V3D_RT_TYPE_16UI : V3D_RT_TYPE_8UI;
+      v3d_rt_bpp_t internal_bpp = TLB_UINT_BITS == 16 ? V3D_RT_BPP_64 : V3D_RT_BPP_32;
+      v3d_rt_type_t internal_type = TLB_UINT_BITS == 16 ? V3D_RT_TYPE_16UI : V3D_RT_TYPE_8UI;
+#if V3D_HAS_NEW_TLB_CFG
+      for (unsigned i = 0; i != V3D_MAX_RENDER_TARGETS; ++i)
+      {
+         cfg.u.color.rts[0].internal_bpp = internal_bpp;
+         cfg.u.color.rts[0].internal_type = internal_type;
+      }
+#else
+      cfg.u.color.internal_bpp = internal_bpp;
+      cfg.u.color.internal_type = internal_type;
       cfg.u.color.decimate_mode = V3D_DECIMATE_SAMPLE0;
       cfg.u.color.output_format = TLB_UINT_BITS == 16 ? V3D_PIXEL_FORMAT_RGBA16UI : V3D_PIXEL_FORMAT_RGBA8UI;
       cfg.u.color.dither_mode = V3D_DITHER_OFF;
       cfg.u.color.memory_format = V3D_MEMORY_FORMAT_UIF_NO_XOR;
+#endif
       v3d_cl_tile_rendering_mode_cfg_indirect(&cl, &cfg);
    }
 
+#if !V3D_HAS_NEW_TLB_CFG
    // Rendering Configuration (Z/Stencil Config).
    {
       V3D_CL_TILE_RENDERING_MODE_CFG_T cfg;
@@ -730,6 +760,7 @@ static glxx_compute_render_state* create_compute_render_state(GLXX_SERVER_STATE_
       cfg.u.z_stencil.addr = 0;
       v3d_cl_tile_rendering_mode_cfg_indirect(&cl, &cfg);
    }
+#endif
 
    // Rendering Configuration (Z & Stencil Clear Values). Must be last.
    v3d_cl_tile_rendering_mode_cfg_zs_clear_values(&cl, 0, 0.0f);
@@ -744,11 +775,7 @@ static glxx_compute_render_state* create_compute_render_state(GLXX_SERVER_STATE_
    v3d_cl_line_width(&cl, 2.0f);
    v3d_cl_viewport_offset(&cl, 0, 0);
    v3d_cl_clipz(&cl, 0.0f, 1.0f);
-
-   static_assrt((V3D_CL_COLOR_WMASKS_NUM % 2) == 0);
-   v3d_cl_add_8(&cl, V3D_CL_COLOR_WMASKS);
-   memset(cl, 0xff, V3D_CL_COLOR_WMASKS_NUM/2);
-   cl += V3D_CL_COLOR_WMASKS_NUM/2;
+   v3d_cl_color_wmasks(&cl, -1);
 
    khrn_fmem_end_cle_exact(&rs->fmem, cl);
 
@@ -792,8 +819,14 @@ static bool dispatch_compute_volume(
    size_t const head_cl_size = 0
       + V3D_CL_CFG_BITS_SIZE
       + V3D_CL_CLIP_SIZE
+#if V3D_HAS_NEW_TLB_CFG
+      + V3D_CL_TILE_COORDS_SIZE
+      + V3D_CL_LOAD_SIZE
+      + V3D_CL_END_LOADS_SIZE
+#else
       + V3D_CL_LOAD_GENERAL_SIZE
       + V3D_CL_TILE_COORDS_SIZE
+#endif
       + V3D_CL_PRIM_LIST_FORMAT_SIZE;
    uint8_t* cl = khrn_fmem_begin_cle(&rs->fmem, head_cl_size);
    if (!cl)
@@ -809,15 +842,20 @@ static bool dispatch_compute_volume(
    };
    v3d_cl_cfg_bits_indirect(&cl, &cfg_bits);
 
-   V3D_CL_STORE_SUBSAMPLE_EX_T dummy_store = {
-      .disable_depth_clear = true,
-      .disable_stencil_clear = true,
-      .disable_color_clear = true,
-      .stencil_store = false,
-      .depth_store = false,
-      .disable_rt_store_mask = 0xff
-   };
-
+#if V3D_HAS_NEW_TLB_CFG
+   v3d_cl_tile_coords(&cl, 0, 0);
+   V3D_CL_LOAD_T load_lookup = {
+      .buffer = V3D_LDST_BUF_COLOR0,
+      .memory_format = V3D_MEMORY_FORMAT_UIF_NO_XOR,
+      .flipy = false,
+      .decimate = V3D_DECIMATE_ALL_SAMPLES,
+      .pixel_format = TLB_UINT_BITS == 16 ? V3D_PIXEL_FORMAT_RGBA16UI : V3D_PIXEL_FORMAT_RGBA8UI,
+      .stride = TLB_HEIGHT / (TLB_UINT_BITS == 16 ? 4 : 8), /* Height in UIF-blocks */
+      .height = 0, /* Not used when !flipy */
+      .addr = tlb_lookup_addr};
+   v3d_cl_load_indirect(&cl, &load_lookup);
+   v3d_cl_end_loads(&cl);
+#else
    V3D_CL_LOAD_GENERAL_T load_lookup = {
       .buffer = V3D_LDST_BUF_COLOR0,
       .raw_mode = true,
@@ -827,6 +865,7 @@ static bool dispatch_compute_volume(
    };
    v3d_cl_load_general_indirect(&cl, &load_lookup);
    v3d_cl_tile_coords(&cl, 0, 0);
+#endif
    v3d_cl_prim_list_format(&cl, 2, false, false);
 
    khrn_fmem_end_cle_exact(&rs->fmem, cl);
@@ -835,11 +874,30 @@ static bool dispatch_compute_volume(
       goto end;
 
    size_t const tail_cl_size = 0
+#if V3D_HAS_NEW_TLB_CFG
+      + V3D_CL_STORE_SIZE
+      + V3D_CL_END_TILE_SIZE
+#else
       + V3D_CL_STORE_SUBSAMPLE_EX_SIZE
+#endif
       + V3D_CL_NOP_SIZE;
    cl = khrn_fmem_begin_cle(&rs->fmem, tail_cl_size);
 
+#if V3D_HAS_NEW_TLB_CFG
+   V3D_CL_STORE_T dummy_store = {.buffer = V3D_LDST_BUF_NONE};
+   v3d_cl_store_indirect(&cl, &dummy_store);
+   v3d_cl_end_tile(&cl);
+#else
+   V3D_CL_STORE_SUBSAMPLE_EX_T dummy_store = {
+      .disable_depth_clear = true,
+      .disable_stencil_clear = true,
+      .disable_color_clear = true,
+      .stencil_store = false,
+      .depth_store = false,
+      .disable_rt_store_mask = 0xff
+   };
    v3d_cl_store_subsample_ex_indirect(&cl, &dummy_store);
+#endif
 
    // Track where we need to patch end render.
    static_assrt(V3D_CL_NOP_SIZE == V3D_CL_END_RENDER_SIZE);
@@ -886,12 +944,11 @@ static bool begin_dispatch(GLXX_LINK_RESULT_DATA_T** link_data, GLXX_SERVER_STAT
       || !khrn_fmem_record_fence_to_depend_on(&rs->fmem, state->fences.fence_to_depend_on) )
       goto end;
 
-   unsigned gfxh_1212 = v3d_scheduler_get_v3d_ver() < V3D_VER_GFXH1212_FIX;
    state->shaderkey_common.backend = 0
       | GLXX_PRIM_LINE
-      | (GLXX_FB_I32 | (gfxh_1212 ? GLXX_FB_ALPHA_16_WORKAROUND : 0)) << GLXX_FB_GADGET_S;
+      | (GLXX_FB_I32 | (V3D_HAS_GFXH1212_FIX ? 0 : GLXX_FB_ALPHA_16_WORKAROUND)) << GLXX_FB_GADGET_S;
 
-   if (!glxx_compute_image_like_uniforms(state, &rs->fmem))
+   if (!glxx_compute_image_like_uniforms(state, &rs->base))
       goto end;
 
    *link_data = glxx_get_shaders(state);
@@ -920,7 +977,7 @@ static bool dispatch_compute_recursive(
    // Compute config should remain valid even if we rebuild the link data
    compute_dispatch_config cfg = { 0, }; // Pointless initialisation to keep gcc happy.
    GLSL_PROGRAM_T* program = gl20_program_common_get(state)->linked_glsl_program;
-   if (!init_dispatch_config(&cfg, link_data->f.threading, program->wg_size, program->shared_block_size, vol->size))
+   if (!init_dispatch_config(&cfg, link_data->fs.threading, program->wg_size, program->shared_block_size, vol->size))
       return false;
 
    // Compute number of groups we can do with this config.
@@ -1000,47 +1057,6 @@ static bool dispatch_compute_recursive(
    return true;
 }
 
-void glxx_compute_shared_init(glxx_compute_shared* cs)
-{
-   memset(cs, 0, sizeof(*cs));
-}
-
-void glxx_compute_shared_term(glxx_compute_shared* cs)
-{
-   gmem_free(cs->shared_buf);
-}
-
-bool glxx_compute_render_state_flush(glxx_compute_render_state* rs)
-{
-   khrn_render_state_begin_flush((KHRN_RENDER_STATE_T*)rs);
-
-   khrn_fmem* fmem = &rs->fmem;
-   khrn_fmem_end_clist(fmem);
-
-   bool do_flush = rs->end_render != NULL;
-   if (do_flush)
-   {
-      // Patch end render over trailing nop.
-      uint8_t* cl_end = rs->end_render;
-      v3d_cl_end_render(&cl_end);
-
-      fmem->br_info.num_renders = 1;
-      fmem->br_info.render_begins[0] = khrn_fmem_hw_address(fmem, fmem->cle_first);
-      fmem->br_info.render_ends[0] = khrn_fmem_hw_address(fmem, cl_end);
-      khrn_fmem_flush(fmem);
-   }
-   else
-   {
-      khrn_fmem_discard(fmem);
-   }
-
-   assert(rs == rs->server_state->compute_render_state);
-   rs->server_state->compute_render_state = NULL;
-
-   khrn_render_state_delete((KHRN_RENDER_STATE_T*)rs);
-   return do_flush;
-}
-
 static void post_dispatch(glxx_compute_render_state* rs)
 {
    if (!rs)
@@ -1115,7 +1131,7 @@ GL_APICALL void GL_APIENTRY glDispatchCompute(GLuint num_groups_x, GLuint num_gr
 {
    PROFILE_FUNCTION_MT("GL");
 
-   GLXX_SERVER_STATE_T* state = GL31_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T* state = glxx_lock_server_state(OPENGL_ES_3X);
    if (!state)
       return;
 
@@ -1133,14 +1149,14 @@ GL_APICALL void GL_APIENTRY glDispatchCompute(GLuint num_groups_x, GLuint num_gr
    post_dispatch(state->compute_render_state);
 
 end:
-   GL31_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_APICALL void GL_APIENTRY glDispatchComputeIndirect(GLintptr indirect)
 {
    PROFILE_FUNCTION_MT("GL");
 
-   GLXX_SERVER_STATE_T* state = GL31_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T* state = glxx_lock_server_state(OPENGL_ES_3X);
    if (!state)
       return;
 
@@ -1180,5 +1196,48 @@ GL_APICALL void GL_APIENTRY glDispatchComputeIndirect(GLintptr indirect)
    post_dispatch(state->compute_render_state);
 
 end:
-   GL31_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
+}
+
+#endif
+
+void glxx_compute_shared_init(glxx_compute_shared* cs)
+{
+   memset(cs, 0, sizeof(*cs));
+}
+
+void glxx_compute_shared_term(glxx_compute_shared* cs)
+{
+   gmem_free(cs->shared_buf);
+}
+
+bool glxx_compute_render_state_flush(glxx_compute_render_state* rs)
+{
+   khrn_render_state_begin_flush((KHRN_RENDER_STATE_T*)rs);
+
+   khrn_fmem* fmem = &rs->fmem;
+   khrn_fmem_end_clist(fmem);
+
+   bool do_flush = rs->end_render != NULL;
+   if (do_flush)
+   {
+      // Patch end render over trailing nop.
+      uint8_t* cl_end = rs->end_render;
+      v3d_cl_end_render(&cl_end);
+
+      fmem->br_info.num_renders = 1;
+      fmem->br_info.render_begins[0] = khrn_fmem_hw_address(fmem, fmem->cle_first);
+      fmem->br_info.render_ends[0] = khrn_fmem_hw_address(fmem, cl_end);
+      khrn_fmem_flush(fmem);
+   }
+   else
+   {
+      khrn_fmem_discard(fmem);
+   }
+
+   assert(rs == rs->server_state->compute_render_state);
+   rs->server_state->compute_render_state = NULL;
+
+   khrn_render_state_delete((KHRN_RENDER_STATE_T*)rs);
+   return do_flush;
 }

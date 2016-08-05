@@ -230,7 +230,6 @@ BERR_Code BVBI_Encode_Create (
 
     /* Set current/next state to defaults */
     pVbi_Enc->curr.eVideoFormat             = BFMT_VideoFmt_eNTSC;
-    pVbi_Enc->curr.ePixRep                  = BAVC_HDMI_PixelRepetition_eNone;
     pVbi_Enc->curr.h656options.e656Format   = BVBI_656Fmt_SAA7113;
     pVbi_Enc->curr.h656options.sdid         = BVBI_P_p656_SetEEbits(0);
     pVbi_Enc->curr.ulActive_Standards       = 0x0;
@@ -737,23 +736,9 @@ BERR_Code BVBI_Encode_SetHdmiPixelRepetition(
     BAVC_HDMI_PixelRepetition ePixRep
 )
 {
-#ifdef BVBI_P_HAS_CROSSBAR_VEC
-
     BDBG_ENTER(BVBI_Encode_SetHdmiPixelRepetition);
     BSTD_UNUSED (encodeHandle);
     BSTD_UNUSED (ePixRep);
-#else
-    BVBI_P_Encode_Handle *pVbi_Enc = NULL;
-
-    BDBG_ENTER(BVBI_Encode_SetHdmiPixelRepetition);
-
-    /* check parameters */
-    pVbi_Enc = encodeHandle;
-    BDBG_OBJECT_ASSERT (pVbi_Enc, BVBI_ENC);
-
-    /* Remember format as requested */
-    pVbi_Enc->next.ePixRep = ePixRep;
-#endif
 
     BDBG_LEAVE(BVBI_Encode_SetHdmiPixelRepetition);
     return BERR_SUCCESS;
@@ -807,8 +792,8 @@ BERR_Code BVBI_Encode_GetHdmiPixelRepetition(
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
-    /* Return format as requested */
-    *pePixRep = pVbi_Enc->curr.ePixRep;
+    /* Return nonsense value */
+    *pePixRep = BAVC_HDMI_PixelRepetition_eNone;
 
     BDBG_LEAVE(BVBI_Encode_GetHdmiPixelRepetition);
     return BERR_SUCCESS;
@@ -1409,8 +1394,7 @@ static BERR_Code BVBI_P_Encode_ApplyChanges (
             hwCoreIndex[BVBI_P_EncCoreType_eCGMSAE],
             isActive,
             cnState->eVideoFormat,
-            pVbi_Enc->bArib480p,
-            cnState->ePixRep));
+            pVbi_Enc->bArib480p));
         if (eErr != BERR_SUCCESS)
         {
             if (firstErr == BERR_SUCCESS)
@@ -1432,7 +1416,6 @@ static BERR_Code BVBI_P_Encode_ApplyChanges (
             isActive,
             cnState->eVideoFormat,
             pVbi_Enc->bArib480p,
-            cnState->ePixRep,
             cnState->bCea805dStyle));
         if (eErr != BERR_SUCCESS)
         {
@@ -2213,20 +2196,11 @@ static bool BVBI_P_Encode_IsDirty (
             retval = retval || (nextState->scteType != currentState->scteType);
             retval = retval || (nextState->eCsc     != currentState->eCsc    );
         }
-        if (ulSelect_Standard == BVBI_P_SELECT_CGMSA)
-        {
-            retval =
-                retval ||
-                    (nextState->ePixRep != currentState->ePixRep);
-        }
         if (ulSelect_Standard == BVBI_P_SELECT_CGMSB)
         {
             retval =
                 retval ||
                     (nextState->bCea805dStyle != currentState->bCea805dStyle);
-            retval =
-                retval ||
-                    (nextState->ePixRep != currentState->ePixRep);
         }
         if (ulSelect_Standard == BVBI_P_SELECT_GS)
         {

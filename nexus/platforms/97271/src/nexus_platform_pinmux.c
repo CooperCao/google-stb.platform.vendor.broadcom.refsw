@@ -76,10 +76,11 @@ void NEXUS_Platform_P_EnableSageDebugPinmux(void)
 
         default:
         {
-            BDBG_WRN(("Pin mux for board type %d hasn't been verified, defaulting to SV configuration",platformStatus.boardId.major));
-            /* Intentional fall through to next case statement. */
+            /* IP and HB boards don't have anything other than UART 0 headers */
+            BDBG_MSG(("Unknown or no SAGE UART available on board type %d.",platformStatus.boardId.major));
+            break;
         }
-        case 0:  /* SV board */
+        case 1:  /* SV board */
         {
             /* BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_1
              * GPIO_05    : ALT_TP_IN_04
@@ -142,10 +143,47 @@ void NEXUS_Platform_P_EnableSageDebugPinmux(void)
 }
 #endif
 
+/* Set NEXUS_ENABLE_HVD_OL_OUTPUT to 1 to enable HVD OL UART output on SV board, board modification required */
+#define NEXUS_ENABLE_HVD_OL_OUTPUT 0
+
 NEXUS_Error NEXUS_Platform_P_InitPinmux(void)
 {
+#if NEXUS_ENABLE_HVD_OL_OUTPUT
+    /* set to 1 if HVD OL output is needed */
+    BREG_Handle hReg = g_pCoreHandles->reg;
+    uint32_t reg;
+#endif
+
 #if NEXUS_HAS_SAGE
     NEXUS_Platform_P_EnableSageDebugPinmux();
+#endif
+
+#if NEXUS_ENABLE_HVD_OL_OUTPUT
+    /* HVD OL output setup */
+    reg = BREG_Read32(hReg,BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_1);
+    reg &= ~(
+            BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_1, gpio_005) |
+            BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_1, gpio_006)
+            );
+    reg |=(
+           BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_1, gpio_005, 9) |
+           BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_1, gpio_006, 9)
+        );
+
+    BREG_Write32 (hReg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_1, reg);
+
+    reg = BREG_Read32(hReg, BCHP_SUN_TOP_CTRL_UART_ROUTER_SEL_0);
+
+    reg &= ~(BCHP_MASK(SUN_TOP_CTRL_UART_ROUTER_SEL_0, port_2_cpu_sel));
+
+    reg |= BCHP_FIELD_ENUM(SUN_TOP_CTRL_UART_ROUTER_SEL_0, port_2_cpu_sel, HVD0_OL);
+
+    BREG_Write32(hReg,BCHP_SUN_TOP_CTRL_UART_ROUTER_SEL_0,reg);
+
+    reg = BREG_Read32(hReg, BCHP_SUN_TOP_CTRL_TEST_PORT_CTRL);
+    reg &= ~(BCHP_MASK(SUN_TOP_CTRL_TEST_PORT_CTRL, encoded_tp_enable));
+    reg |= BCHP_FIELD_DATA(SUN_TOP_CTRL_TEST_PORT_CTRL,encoded_tp_enable, BCHP_SUN_TOP_CTRL_TEST_PORT_CTRL_encoded_tp_enable_SYS);
+    BREG_Write32(hReg, BCHP_SUN_TOP_CTRL_TEST_PORT_CTRL, reg);
 #endif
 
     return BERR_SUCCESS;

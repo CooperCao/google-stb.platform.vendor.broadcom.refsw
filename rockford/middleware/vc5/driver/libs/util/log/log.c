@@ -9,8 +9,10 @@ All rights reserved.
 #include "libs/util/gfx_util/gfx_util_term_col.h"
 #include "libs/util/gfx_util/gfx_util_wildcard.h"
 #include "vcos.h"
+#include "vcos_mutex.h"
 #include <ctype.h>
 #include <string.h>
+#include <time.h>
 #ifdef ANDROID
 #include <android/log.h>
 #endif
@@ -43,6 +45,7 @@ static struct
    size_t num_level_specs;
    struct log_level_spec level_specs[64];
    bool colorise;
+   bool timestamps;
 } log_state = {VCOS_ONCE_INIT};
 
 static char *strchr_or_end(char *s, char c)
@@ -134,12 +137,19 @@ static void parse_log_level(void)
    free(malloced);
 }
 
+static bool bool_env(const char *name)
+{
+   const char *e = getenv(name);
+   return e && ((*e == 't') || (*e == 'T') || (*e == 'y') || (*e == 'Y') || (*e == '1'));
+}
+
 static void init(void)
 {
    demand(vcos_mutex_create(&log_state.mutex, "log_state.mutex") == VCOS_SUCCESS);
    log_state.num_level_specs = 0;
    parse_log_level();
    log_state.colorise = gfx_term_col_ok(stderr);
+   log_state.timestamps = bool_env("LOG_TIMESTAMPS");
 }
 
 static log_level_t get_cat_level(const char *name)
@@ -211,10 +221,26 @@ void log_cat_msg_v_extern(struct log_cat *cat, log_level_t level, const char *fm
 #ifdef ANDROID
    __android_log_vprint(level_to_android_prio(level), cat->name, fmt, args);
 #else
+   demand(vcos_once(&log_state.once, init) == VCOS_SUCCESS); /* Ensure log_state.colorise/timestamps safe to read */
+
+   char timestamp[64];
+   if (log_state.timestamps)
+   {
+      time_t t = time(NULL);
+      struct tm tm;
+#ifdef __unix__
+      verif(localtime_r(&t, &tm));
+#else
+      verif(localtime_s(&tm, &t) == 0);
+#endif
+      verif(strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S ", &tm) > 0);
+   }
+   else
+      timestamp[0] = '\0';
+
    char buf[512];
    size_t offset = 0;
 
-   demand(vcos_once(&log_state.once, init) == VCOS_SUCCESS); /* Ensure log_state.colorise is safe to read */
    gfx_term_col_t col = get_level_col(level);
    if (log_state.colorise && (col != GFX_TERM_COL_INVALID))
       offset = gfx_term_col_sprint_set_fg(buf, sizeof(buf), offset, col);
@@ -227,7 +253,7 @@ void log_cat_msg_v_extern(struct log_cat *cat, log_level_t level, const char *fm
       char *nl = strchr(m, '\n');
       if (nl)
          *nl = '\0';
-      offset = VCOS_SAFE_SPRINTF(buf, offset, "[%s] %s\n", cat->name, m);
+      offset = VCOS_SAFE_SPRINTF(buf, offset, "%s[%s] %s\n", timestamp, cat->name, m);
       if (nl)
          m = nl + 1;
       else

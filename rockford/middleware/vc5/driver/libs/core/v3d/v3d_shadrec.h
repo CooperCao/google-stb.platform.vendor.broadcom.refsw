@@ -13,6 +13,22 @@ FILE DESCRIPTION
 
 #include "v3d_gen.h"
 
+static inline uint32_t v3d_attr_type_get_size_in_memory(v3d_attr_type_t type, unsigned num_elems)
+{
+   assert(num_elems <= 4u);
+   switch (type)
+   {
+   case V3D_ATTR_TYPE_HALF_FLOAT:      return num_elems * 2;
+   case V3D_ATTR_TYPE_FLOAT:           return num_elems * 4;
+   case V3D_ATTR_TYPE_FIXED:           return num_elems * 4;
+   case V3D_ATTR_TYPE_BYTE:            return num_elems * 1;
+   case V3D_ATTR_TYPE_SHORT:           return num_elems * 2;
+   case V3D_ATTR_TYPE_INT:             return num_elems * 4;
+   case V3D_ATTR_TYPE_INT2_10_10_10:   return 4;
+   default:                            unreachable();
+   }
+}
+
 static inline uint32_t v3d_attr_get_num_elems(const V3D_SHADREC_GL_ATTR_T *attr)
 {
    switch (attr->type)
@@ -22,27 +38,9 @@ static inline uint32_t v3d_attr_get_num_elems(const V3D_SHADREC_GL_ATTR_T *attr)
    }
 }
 
-static inline uint32_t v3d_attr_get_word_size_in_memory(const V3D_SHADREC_GL_ATTR_T *attr)
-{
-   switch (attr->type)
-   {
-   case V3D_ATTR_TYPE_HALF_FLOAT:      return 2;
-   case V3D_ATTR_TYPE_FLOAT:           return 4;
-   case V3D_ATTR_TYPE_FIXED:           return 4;
-   case V3D_ATTR_TYPE_BYTE:            return 1;
-   case V3D_ATTR_TYPE_SHORT:           return 2;
-   case V3D_ATTR_TYPE_INT:             return 4;
-   case V3D_ATTR_TYPE_INT2_10_10_10:   return 4;
-   default:                            unreachable(); return 0;
-   }
-}
-
 static inline uint32_t v3d_attr_get_size_in_memory(const V3D_SHADREC_GL_ATTR_T *attr)
 {
-   uint32_t size = v3d_attr_get_word_size_in_memory(attr);
-   if (attr->type != V3D_ATTR_TYPE_INT2_10_10_10)
-      size *= attr->size;
-   return size;
+   return v3d_attr_type_get_size_in_memory(attr->type, attr->size);
 }
 
 static inline v3d_threading_t v3d_translate_threading(uint32_t threadability)

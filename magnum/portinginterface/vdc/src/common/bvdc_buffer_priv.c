@@ -73,8 +73,10 @@ BDBG_OBJECT_ID(BVDC_BUF);
        = Bx:y    Window x writer skips 1 field/frame, y:pCurWriterBuf->ulBufferId
        = Cx:y    Window x reader repeat 1 field/frame, y:pCurReaderBuf->ulBufferId
        = Dx:y    Window x reader repeat for polarity, y:pCurReaderBuf->ulBufferId
-       = Ex:y    Window x new writer IRQ at position y
-       = Fx:y    Window x new reader IRQ at position y
+       = Ex:y    Window x reader repeat 1 field/frame, y:pCurReaderBuf->ulBufferId with possible inversion
+       = Fx:y    Window x writer overruns reader, y:pCurWriterBuf->ulBufferId
+       = Kx:y    Window x new writer IRQ at position y
+       = Lx:y    Window x new reader IRQ at position y
      + [...W.R]: Position of reader and writer pointers
      + z:        Number of active buffers
      + iiiiiiii: other info, i.e., number of captured fields, source polarity, vec polarity, etc
@@ -84,15 +86,15 @@ BDBG_OBJECT_ID(BVDC_BUF);
      + uuuuuuuu: Reference timestamp (microsecond)
      + bbbbb:    Event number index in the circular buffer
      + mx:
-       = Hx:     Reader latency on window x
-       = Ix:     Writer latency on window x
+       = Ox:     Reader latency on window x
+       = Px:     Writer latency on window x
      + yyyyyyyy: Time delta
      + zzzzz:    Number of captured fields so far
 
    * uuuuuuuu:bbbb:Jx:R=y W=z
      + uuuuuuuu: Reference timestamp (microsecond)
      + bbbbb:    Event number index in the circular buffer
-     + Jx:       Invalidate on window x
+     + Qx:       Invalidate on window x
      + R=y:      Set reader to position y
      + W=z       Set writer to position z
 
@@ -100,24 +102,40 @@ BDBG_OBJECT_ID(BVDC_BUF);
      + uuuuuuuu: Reference timestamp (microsecond)
      + bbbbb:    Event number index in the circular buffer
      + mx:
-       = Kx:     Reader of window x moved by writer due to misordered ISR (type 1)
-       = Lx:     Writer of window x moved by reader due to misordered ISR (type 1)
+       = Sx:     Reader of window x moved by writer due to misordered ISR (type 1)
+       = Tx:     Writer of window x moved by reader due to misordered ISR (type 1)
      + yyyyy:    Number of captured fields
 
    * uuuuuuuu:bbbb:mx:cnt=y
      + uuuuuuuu:  Reference timestamp (microsecond)
      + bbbbb:     Event number index in the circular buffer
      + mx:
-       = Mx:cnt=y Added buffer entry on window x to count=y
-       = Nx:cnt=y Removed buffer entry on window x to count=y
+       = Ux:cnt=y Added buffer entry on window x to count=y
+       = Vx:cnt=y Removed buffer entry on window x to count=y
 
-   * uuuuuuuu:bbbb:Qx:cccccccc:pppppppp
+   * uuuuuuuu:bbbb:Tx:cccccccc:pppppppp
      + uuuuuuuu:  Reference timestamp (microsecond)
      + bbbbb:     Event number index in the circular buffer
-     + Qx:        Timestamp update on window x
+     + Tx:        Timestamp update on window x
      + cccccccc:  VDC capture timestamp (microsecond)
      + pppppppp:  VDC playback timestamp (microsecond)
- */
+
+    * uuuuuuuu:bbbb:Yx:cccccccc:pppppppp:rrrrrrrr
+     + uuuuuuuu:  Reference timestamp (microsecond)
+     + bbbbb:     Event number index in the circular buffer
+     + Yx:        Timestamp update on window x
+     + cccccccc:  VDC playback timestamp (microsecond)
+     + pppppppp:  VDC writer ISR timestamp (microsecond)
+     + rrrrrrrr:  VDC reader ISR timestamp (microsecond)
+
+    * uuuuuuuu:bbbb:Zx:cccccccc:pppppppp:rrrrrrrr
+     + uuuuuuuu:  Reference timestamp (microsecond)
+     + bbbbb:     Event number index in the circular buffer
+     + Zx:        Timestamp update on window x
+     + cccccccc:  VDC capture timestamp (microsecond)
+     + pppppppp:  VDC reader ISR timestamp (microsecond)
+     + rrrrrrrr:  VDC writer ISR timestamp (microsecond)
+*/
 
 #define BVDC_P_BUF_LOG_ENTRIES         2048                             /* Number of log entries - must be of powers of 2 */
 #define BVDC_P_BUF_LOG_ENTRIES_MASK    (2048-1)                         /* Mask of the number of log entries */
@@ -190,6 +208,7 @@ typedef struct BVDC_P_BufLog {
         BVDC_P_BufLogTimeStamp    stTimeStamp;                 /* Latency event */
         BVDC_P_BufLogGeneric      stGeneric;                   /* Generic event */
     } BufLogData;
+    uint32_t    ulInterruptLatency;
 } BVDC_P_BufLog;
 
 static BVDC_P_BufLog          astBufLog[BVDC_P_BUF_LOG_ENTRIES];      /* The circular buffer */
@@ -222,108 +241,171 @@ void BVDC_P_Buffer_SetLogStateAndDumpTrigger
  * after the last skip/repeat event.
  * It tries to catch up with the stBufLog_IdxLastSkipRepeat index, that moves whenever another skip/repeat event occurs.
  */
-void BVDC_P_Buffer_DumpLog(void)
+void BVDC_P_Buffer_DumpLog
+    ( char            *pLog,
+      unsigned int     uiLenToRead,
+      unsigned int    *puiReadCount )
 {
-    int              iTmp;
-    char             szStringTmp[128];
     uint32_t         ulBufCtr = 0, ulOutputCtr = 0;
     BVDC_P_BufLog    *pstSrc = (BVDC_P_BufLog*)&(astBufLog[0]);
     BVDC_P_BufLogIdx stBufLog_IdxRLast, stBufLog_IdxR;
     uint16_t         usBufLogR;
+    uint32_t         ulStringOffset = 0;
 
     /* compute the starting point */
     stBufLog_IdxR = stBufLog_IdxLastSkipRepeat;
     BVDC_P_BUF_LOG_IDX_SUB(stBufLog_IdxR, BVDC_P_BUF_LOG_ENTRIES_PAD);
 
     /* header marker */
-    BDBG_ERR(("BRCM===%08x:%08x:%08x===>", stBufLog_IdxR.ulIdx, stBufLog_IdxLastSkipRepeat.ulIdx, stBufLog_IdxW.ulIdx));
+    ulStringOffset = BKNI_Snprintf(&pLog[0], uiLenToRead,
+                            "BRCM===%08x:%08x:%08x===>\n",
+                            stBufLog_IdxR.ulIdx, stBufLog_IdxLastSkipRepeat.ulIdx, stBufLog_IdxW.ulIdx);
+
     while(1)
     {
         usBufLogR = stBufLog_IdxR.stIdxPart.usIdxEvent;
-        iTmp = BKNI_Snprintf(&(szStringTmp[0]), 128,
-                       "%010u:%04u:%c",
-                       (pstSrc + usBufLogR)->ulTime,
-                       usBufLogR,
-                       (pstSrc + usBufLogR)->cLogType);
-
-        if ((pstSrc + usBufLogR)->cLogType <= ((eBufLogState == BVDC_BufLogState_eAutomaticReduced) ? 'D' : 'G'))
+        ulStringOffset += BKNI_Snprintf(&(pLog[ulStringOffset]), uiLenToRead,
+                                "%010u:%04u:%c",
+                                (pstSrc + usBufLogR)->ulTime,
+                                usBufLogR,
+                                (pstSrc + usBufLogR)->cLogType);
+        if ((pstSrc + usBufLogR)->cLogType <= ((eBufLogState == BVDC_BufLogState_eAutomaticReduced) ? 'F' : 'M'))
         {
-            iTmp += BKNI_Snprintf(&(szStringTmp[iTmp]), 128-iTmp,
-                            "%u:%u[",
-                            (pstSrc + usBufLogR)->BufLogData.stSkipRepeat.ulWindowId,
-                            (pstSrc + usBufLogR)->BufLogData.stSkipRepeat.ulBufferId);
+            ulStringOffset += BKNI_Snprintf(&(pLog[ulStringOffset]), uiLenToRead-ulStringOffset,
+                                    "%u:%u[",
+                                    (pstSrc + usBufLogR)->BufLogData.stSkipRepeat.ulWindowId,
+                                    (pstSrc + usBufLogR)->BufLogData.stSkipRepeat.ulBufferId);
+
             for(ulBufCtr=0; ulBufCtr<((pstSrc + usBufLogR)->BufLogData.stSkipRepeat.ulBufferNum); ulBufCtr++)
             {
-                iTmp += BKNI_Snprintf(&(szStringTmp[iTmp]), 128-iTmp,
-                                "%c",
-                                (pstSrc + usBufLogR)->BufLogData.stSkipRepeat.cRW[ulBufCtr]);
+                ulStringOffset += BKNI_Snprintf(&(pLog[ulStringOffset]), uiLenToRead-ulStringOffset,
+                                        "%c",
+                                        (pstSrc + usBufLogR)->BufLogData.stSkipRepeat.cRW[ulBufCtr]);
             }
-            iTmp += BKNI_Snprintf(&(szStringTmp[iTmp]), 128-iTmp,
-                            "]%u:%08x:%012u",
-                            (pstSrc + usBufLogR)->BufLogData.stSkipRepeat.ulBufferNum,
-                            (pstSrc + usBufLogR)->BufLogData.stSkipRepeat.ulInfo,
-                            (pstSrc + usBufLogR)->BufLogData.stSkipRepeat.ulBufferTS);
+
+            ulStringOffset += BKNI_Snprintf(&(pLog[ulStringOffset]), uiLenToRead-ulStringOffset,
+                                    "]%u:%08x:%012u",
+                                    (pstSrc + usBufLogR)->BufLogData.stSkipRepeat.ulBufferNum,
+                                    (pstSrc + usBufLogR)->BufLogData.stSkipRepeat.ulInfo,
+                                    (pstSrc + usBufLogR)->BufLogData.stSkipRepeat.ulBufferTS);
+
             if ((pstSrc + usBufLogR)->cLogType <= 'D')
             {
-                iTmp += BKNI_Snprintf(&(szStringTmp[iTmp]), 128-iTmp, "<===");  /* mark the skip/repeat event to ease reading of the logs */
+
+                ulStringOffset += BKNI_Snprintf(&(pLog[ulStringOffset]), uiLenToRead-ulStringOffset, "<=== repeat");  /* mark the skip/repeat event to ease reading of the logs */
             }
-            BDBG_ERR(("%s", szStringTmp));
+
+            if ((pstSrc + usBufLogR)->cLogType == 'E')
+            {
+
+                ulStringOffset += BKNI_Snprintf(&(pLog[ulStringOffset]), uiLenToRead-ulStringOffset, "<=== possible inversion");  /* mark the skip/repeat event to ease reading of the logs */
+            }
+
+            if ((pstSrc + usBufLogR)->cLogType == 'F')
+            {
+
+                ulStringOffset += BKNI_Snprintf(&(pLog[ulStringOffset]), uiLenToRead-ulStringOffset, "<=== W overran R");  /* mark the skip/repeat event to ease reading of the logs */
+            }
+
+            /* check for missed/delayed interrupts */
+            if ((usBufLogR != 0) && ((pstSrc + usBufLogR)->cLogType == 'K' || (pstSrc + usBufLogR)->cLogType == 'L'))
+            {
+                uint16_t usLogEntry = usBufLogR;
+                uint32_t ulWindowId = (pstSrc + usBufLogR)->BufLogData.stSkipRepeat.ulWindowId;
+                uint32_t ulInterruptLatency = 0;
+
+                /* find previous K or L entry of the same window */
+                if ((pstSrc + usBufLogR)->cLogType == 'K')
+                {
+                    do
+                    {
+                        usLogEntry--;
+                    } while ((usLogEntry != 0) && ((pstSrc + usLogEntry)->cLogType != 'K') &&
+                            (ulWindowId == (pstSrc + usLogEntry)->BufLogData.stSkipRepeat.ulWindowId));
+                }
+                else
+                {
+                    do
+                    {
+                        usLogEntry--;
+                    } while ((usLogEntry != 0) && ((pstSrc + usLogEntry)->cLogType != 'L') &&
+                            (ulWindowId == (pstSrc + usLogEntry)->BufLogData.stSkipRepeat.ulWindowId));
+                }
+
+                if (usLogEntry != 0)
+                {
+                    uint32_t ulCurrentIndexTime = (pstSrc + usBufLogR)->ulTime;
+
+                    /* Account for timer value wrap-around  */
+                    if ((pstSrc + usLogEntry)->ulTime > (pstSrc + usBufLogR)->ulTime)
+                    {
+                        ulCurrentIndexTime += BTMR_ReadTimerMax();
+                    }
+
+                    ulInterruptLatency = (ulCurrentIndexTime - (pstSrc + usLogEntry)->ulTime)/1000; /* ms */
+                }
+
+                /* pad 10% */
+                if (ulInterruptLatency > (110*(pstSrc + usBufLogR)->ulInterruptLatency)/100)
+                {
+                     ulStringOffset += BKNI_Snprintf(&(pLog[ulStringOffset]), uiLenToRead-ulStringOffset, "<=== missed interrupt");
+                }
+            }
+
+            ulStringOffset += BKNI_Snprintf(&(pLog[ulStringOffset]), uiLenToRead-ulStringOffset, "\n");
 
         }
         else if(eBufLogState != BVDC_BufLogState_eAutomaticReduced)
         {
-            if((pstSrc + usBufLogR)->cLogType == 'J')
+            if((pstSrc + usBufLogR)->cLogType == 'Q')
             {
-                BDBG_ERR(("%s%u:R=%u W=%u",
-                          szStringTmp,
-                          (pstSrc + usBufLogR)->BufLogData.stGeneric.ulU0,
-                          (pstSrc + usBufLogR)->BufLogData.stGeneric.ulU1,
-                          (pstSrc + usBufLogR)->BufLogData.stGeneric.ulU2));
-
+                ulStringOffset += BKNI_Snprintf(&(pLog[ulStringOffset]), uiLenToRead-ulStringOffset,
+                                "%u:R=%u W=%u",
+                                (pstSrc + usBufLogR)->BufLogData.stGeneric.ulU0,
+                                (pstSrc + usBufLogR)->BufLogData.stGeneric.ulU1,
+                                (pstSrc + usBufLogR)->BufLogData.stGeneric.ulU2);
             }
-            else if( ((pstSrc + usBufLogR)->cLogType == 'K') || ((pstSrc + usBufLogR)->cLogType == 'L') ||
-                     ((pstSrc + usBufLogR)->cLogType == 'U') || ((pstSrc + usBufLogR)->cLogType == 'V') ||
-                     ((pstSrc + usBufLogR)->cLogType == 'S') || ((pstSrc + usBufLogR)->cLogType == 'T'))
+            else if( ((pstSrc + usBufLogR)->cLogType == 'S') || ((pstSrc + usBufLogR)->cLogType == 'T') ||
+                     ((pstSrc + usBufLogR)->cLogType == 'Y') || ((pstSrc + usBufLogR)->cLogType == 'Z'))
             {
-                BDBG_ERR(("%s%u:%u:%012u:%012u",
-                          szStringTmp,
-                          (pstSrc + usBufLogR)->BufLogData.stGeneric.ulU0,
-                          (pstSrc + usBufLogR)->BufLogData.stGeneric.ulU1,
-                          (pstSrc + usBufLogR)->BufLogData.stGeneric.ulU2,
-                          (pstSrc + usBufLogR)->BufLogData.stGeneric.ulU3));
 
+                ulStringOffset += BKNI_Snprintf(&(pLog[ulStringOffset]), uiLenToRead-ulStringOffset,
+                                "%u:%u:%012u:%012u",
+                                (pstSrc + usBufLogR)->BufLogData.stGeneric.ulU0,
+                                (pstSrc + usBufLogR)->BufLogData.stGeneric.ulU1,
+                                (pstSrc + usBufLogR)->BufLogData.stGeneric.ulU2,
+                                (pstSrc + usBufLogR)->BufLogData.stGeneric.ulU3);
             }
-            else if( ((pstSrc + usBufLogR)->cLogType == 'M') || ((pstSrc + usBufLogR)->cLogType == 'N') )
+            else if( ((pstSrc + usBufLogR)->cLogType == 'U') || ((pstSrc + usBufLogR)->cLogType == 'V') )
             {
-                BDBG_ERR(("%s%u:cnt=%u",
-                          szStringTmp,
-                          (pstSrc + usBufLogR)->BufLogData.stGeneric.ulU0,
-                          (pstSrc + usBufLogR)->BufLogData.stGeneric.ulU1));
-
+                ulStringOffset += BKNI_Snprintf(&(pLog[ulStringOffset]), uiLenToRead-ulStringOffset,
+                                "%u:cnt=%u",
+                                (pstSrc + usBufLogR)->BufLogData.stGeneric.ulU0,
+                                (pstSrc + usBufLogR)->BufLogData.stGeneric.ulU1);
             }
-            else if( ((pstSrc + usBufLogR)->cLogType == 'Q') )
+            else if( ((pstSrc + usBufLogR)->cLogType == 'T') )
             {
-                BDBG_ERR(("%s%u:%012u:%012u",
-                          szStringTmp,
-                          (pstSrc + usBufLogR)->BufLogData.stGeneric.ulU0,
-                          (pstSrc + usBufLogR)->BufLogData.stGeneric.ulU1,
-                          (pstSrc + usBufLogR)->BufLogData.stGeneric.ulU2));
-
+                ulStringOffset += BKNI_Snprintf(&(pLog[ulStringOffset]), uiLenToRead-ulStringOffset,
+                                "%u:%012u:%012u",
+                                (pstSrc + usBufLogR)->BufLogData.stGeneric.ulU0,
+                                (pstSrc + usBufLogR)->BufLogData.stGeneric.ulU1,
+                                (pstSrc + usBufLogR)->BufLogData.stGeneric.ulU2);
             }
             else
             {
-                BDBG_ERR(("%s%u:%u:%u",
-                          szStringTmp,
-                          (pstSrc + usBufLogR)->BufLogData.stTimeStamp.ulWindowId,
-                          (pstSrc + usBufLogR)->BufLogData.stTimeStamp.ulTimeDiff,
-                          (pstSrc + usBufLogR)->BufLogData.stTimeStamp.ulNumCapField));
+                ulStringOffset += BKNI_Snprintf(&(pLog[ulStringOffset]), uiLenToRead-ulStringOffset,
+                                "%u:%u:%u",
+                                (pstSrc + usBufLogR)->BufLogData.stTimeStamp.ulWindowId,
+                                (pstSrc + usBufLogR)->BufLogData.stTimeStamp.ulTimeDiff,
+                                (pstSrc + usBufLogR)->BufLogData.stTimeStamp.ulNumCapField);
             }
+            ulStringOffset += BKNI_Snprintf(&(pLog[ulStringOffset]), uiLenToRead-ulStringOffset, "\n");
         }
 
         ulOutputCtr++;
         if(ulOutputCtr >= BVDC_P_BUF_LOG_MAX_OUTPUT)
         {
-            BDBG_ERR(("Reached output limit"));
+            BDBG_ERR(("Reached debug message output limit"));
             break;
         }
         else
@@ -346,7 +428,13 @@ void BVDC_P_Buffer_DumpLog(void)
             BVDC_P_BUF_LOG_IDX_INCREMENT(stBufLog_IdxR);
         }
     }
-    BDBG_ERR(("<===BRCM"));                                   /* footer marker */
+
+
+    BKNI_Snprintf(&(pLog[ulStringOffset]), uiLenToRead-ulStringOffset, "<===BRCM\n");
+
+    BDBG_ASSERT(ulStringOffset <= uiLenToRead);
+
+    *puiReadCount = ulStringOffset;
 }
 
 
@@ -355,6 +443,7 @@ static void BVDC_P_BufLogAddEvent_isr( int type,
                                        uint32_t v2,
                                        uint32_t v3,
                                        uint32_t v4,
+                                       uint32_t v5,
                                        const BVDC_P_Buffer_Handle hBuffer
                                      )
 {
@@ -380,7 +469,7 @@ static void BVDC_P_BufLogAddEvent_isr( int type,
     astBufLog[usBufLogW].cLogType = type;
     BTMR_ReadTimer_isr(hBuffer->hWindow->hCompositor->hVdc->hTimer, &(astBufLog[usBufLogW].ulTime));
 
-    if (type <= 'G')                                            /* skip / repeat */
+    if (type <= 'M')                                            /* skip / repeat */
     {
         BVDC_P_PictureNode *pPicture;
 
@@ -389,6 +478,7 @@ static void BVDC_P_BufLogAddEvent_isr( int type,
         astBufLog[usBufLogW].BufLogData.stSkipRepeat.ulBufferNum = hBuffer->ulActiveBufCnt;
         astBufLog[usBufLogW].BufLogData.stSkipRepeat.ulBufferTS = v4;
         astBufLog[usBufLogW].BufLogData.stSkipRepeat.ulInfo = v3;
+        astBufLog[usBufLogW].ulInterruptLatency = v5;
 
         pPicture = BLST_CQ_FIRST(hBuffer->pBufList);
 
@@ -422,10 +512,10 @@ static void BVDC_P_BufLogAddEvent_isr( int type,
            the last skip/repeat and last written entry exceeds 32 entries. The latter
            condition guaranties that no entries will be overwritten before being dumped
            to the console. */
-        if ((type <= 'D') || (ulDiff > BVDC_P_BUF_LOG_TRIGGER_DUMP))
+        if ((type <= 'F') || (ulDiff > BVDC_P_BUF_LOG_TRIGGER_DUMP))
             bSkipRepeatEvent = true;
     }
-    else if (type <= 'I')
+    else if (type <= 'P')
     {
         astBufLog[usBufLogW].BufLogData.stTimeStamp.ulWindowId = v1;
         astBufLog[usBufLogW].BufLogData.stTimeStamp.ulTimeDiff = v2;
@@ -982,9 +1072,10 @@ BERR_Code BVDC_P_Buffer_AddPictureNodes_isr
             hBuffer->pCurWriterBuf = pPicture;
 
 #if (BVDC_BUF_LOG == 1)
-        BVDC_P_BufLogAddEvent_isr('M',
+        BVDC_P_BufLogAddEvent_isr('U',
                             hBuffer->hWindow->eId,
                             hBuffer->ulActiveBufCnt,
+                            0,
                             0,
                             0,
                             hBuffer);
@@ -1119,9 +1210,10 @@ BERR_Code BVDC_P_Buffer_ReleasePictureNodes_isr
         hBuffer->iLastAddedBufIndex--;
         hBuffer->ulActiveBufCnt--;
 
-        BVDC_P_BufLogAddEvent_isr('N',
+        BVDC_P_BufLogAddEvent_isr('V',
                             hBuffer->hWindow->eId,
                             hBuffer->ulActiveBufCnt,
+                            0,
                             0,
                             0,
                             hBuffer);
@@ -1301,10 +1393,11 @@ BERR_Code BVDC_P_Buffer_Invalidate_isr
 #endif
 
 #if (BVDC_BUF_LOG == 1)
-    BVDC_P_BufLogAddEvent_isr('J',
+    BVDC_P_BufLogAddEvent_isr('Q',
                         hBuffer->hWindow->eId,
                         hBuffer->pCurReaderBuf->ulBufferId,
                         hBuffer->pCurWriterBuf->ulBufferId,
+                        0,
                         0,
                         hBuffer);
 
@@ -1608,10 +1701,11 @@ static void BVDC_P_Buffer_UpdateWriterTimestamps_isr
 #endif
 
 #if (BVDC_BUF_LOG == 1)
-    BVDC_P_BufLogAddEvent_isr('Q',
+    BVDC_P_BufLogAddEvent_isr('T',
                         hWindow->eId,
                         ulTimestamp,
                         0xAABB, /* Writer time stamp mark */
+                        0,
                         0,
                         hWindow->hBuffer);
 #endif
@@ -1692,10 +1786,11 @@ static void BVDC_P_Buffer_UpdateReaderTimestamps_isr
 #endif
 
 #if (BVDC_BUF_LOG == 1)
-    BVDC_P_BufLogAddEvent_isr('Q',
+    BVDC_P_BufLogAddEvent_isr('T',
                             hWindow->eId,
                             0xBBAA, /* Reader time stamp mark */
                             ulTimestamp,
+                            0,
                             0,
                             hWindow->hBuffer);
 #endif
@@ -1918,11 +2013,12 @@ BVDC_P_PictureNode* BVDC_P_Buffer_GetNextWriterNode_isr
 done:
 
 #if (BVDC_BUF_LOG == 1)
-    BVDC_P_BufLogAddEvent_isr('E',
+    BVDC_P_BufLogAddEvent_isr('K',
         hWindow->eId,
         hWindow->hBuffer->pCurWriterBuf->ulBufferId,
         hWindow->hBuffer->ulNumCapField << 24 | (eSrcPolarity << 16) | (hWindow->hBuffer->pCurWriterBuf->PicComRulInfo.eSrcOrigPolarity << 8) | hWindow->hBuffer->pCurWriterBuf->eDstPolarity,
         hWindow->hBuffer->ulCurrWriterTimestamp,
+        (100000/hWindow->hCompositor->stCurInfo.pFmtInfo->ulVertFreq),
         hWindow->hBuffer);
 #endif
 
@@ -1947,11 +2043,12 @@ static void BVDC_P_Buffer_UpdateTimestamps_isr
     BVDC_P_Buffer_UpdateWriterTimestamps_isr(hWindow, eSrcPolarity);
 
 #if (BVDC_BUF_LOG == 1)
-    BVDC_P_BufLogAddEvent_isr('Q',
+    BVDC_P_BufLogAddEvent_isr('T',
         hWindow->eId,
         hWindow->hBuffer->ulCurrWriterTimestamp,
         hWindow->hBuffer->ulCurrReaderTimestamp,
         hWindow->hBuffer->ulNumCapField,
+        0,
         hWindow->hBuffer);
 #endif
 
@@ -1977,11 +2074,12 @@ static void BVDC_P_Buffer_CheckWriterIsrOrder_isr
 
     /* reader is seemingly ahead of writer so maybe misordered */
 #if (BVDC_BUF_LOG == 1)
-                    BVDC_P_BufLogAddEvent_isr('U',
+                    BVDC_P_BufLogAddEvent_isr('Y',
                         hWindow->eId,
                         hWindow->stCurResource.hPlayback->ulTimestamp,
                         hWindow->hBuffer->ulCurrWriterTimestamp,
                         hWindow->hBuffer->ulCurrReaderTimestamp,
+                        0,
                         hWindow->hBuffer);
 #endif
 
@@ -2001,11 +2099,12 @@ static void BVDC_P_Buffer_CheckWriterIsrOrder_isr
                     BVDC_P_Buffer_MoveSyncSlipReaderNode_isr(hWindow, eDispPolarity);
                 hWindow->hBuffer->bReaderNodeMovedByWriter = true;
 #if (BVDC_BUF_LOG == 1)
-                    BVDC_P_BufLogAddEvent_isr('K',
+                    BVDC_P_BufLogAddEvent_isr('S',
                         hWindow->eId,
                         hWindow->hBuffer->ulNumCapField,
                         hWindow->hBuffer->ulCurrWriterTimestamp,
                         hWindow->hBuffer->ulCurrReaderTimestamp,
+                        0,
                         hWindow->hBuffer);
 #else
                     BDBG_MSG(("(A) Win[%d] W: %d writer ISR moved reader due to misordered ISR",
@@ -2155,9 +2254,10 @@ static void BVDC_P_Buffer_MoveSyncSlipWriterNode_isr
                 hWindow->hBuffer->pCurWriterBuf->ulBufferId,
                 hWindow->hBuffer->ulNumCapField << 24 | hWindow->hBuffer->ulSkipStat,
                 hWindow->hBuffer->ulCurrWriterTimestamp,
+                0,
                 hWindow->hBuffer);
 #else
-            BDBG_MSG(("Win[%d] W: \tSkip 2 fields, num of cap fields %d, total %d",
+            BDBG_MSG(("Win[%d] W:     Skip 2 fields, num of cap fields %d, total %d",
                 hWindow->eId, hWindow->hBuffer->ulNumCapField, hWindow->hBuffer->ulSkipStat));
 #endif
         }
@@ -2170,9 +2270,10 @@ static void BVDC_P_Buffer_MoveSyncSlipWriterNode_isr
                 hWindow->hBuffer->pCurWriterBuf->ulBufferId,
                 hWindow->hBuffer->ulNumCapField << 24 | hWindow->hBuffer->ulSkipStat,
                 hWindow->hBuffer->ulCurrWriterTimestamp,
+                0,
                 hWindow->hBuffer);
 #else
-            BDBG_MSG(("Win[%d] W: \tSkip 1 frame/field, num of cap frames/field %d, total %d",
+            BDBG_MSG(("Win[%d] W:     Skip 1 frame/field, num of cap frames/field %d, total %d",
                 hWindow->eId, hWindow->hBuffer->ulNumCapField, hWindow->hBuffer->ulSkipStat));
 #endif
         }
@@ -2181,6 +2282,19 @@ static void BVDC_P_Buffer_MoveSyncSlipWriterNode_isr
     {
         hWindow->hBuffer->pCurWriterBuf = pNextNode;
     }
+
+#if (BVDC_BUF_LOG == 1)
+    if (hWindow->hBuffer->pCurWriterBuf == hWindow->hBuffer->pCurReaderBuf)
+    {
+        BVDC_P_BufLogAddEvent_isr('F',
+                hWindow->eId,
+                hWindow->hBuffer->pCurWriterBuf->ulBufferId,
+                hWindow->hBuffer->ulNumCapField << 24 | hWindow->hBuffer->ulSkipStat,
+                hWindow->hBuffer->ulCurrWriterTimestamp,
+                0,
+                hWindow->hBuffer);
+    }
+#endif
 
     hWindow->hBuffer->pCurWriterBuf->stFlags.bMute = true;
 
@@ -2425,7 +2539,7 @@ BVDC_P_PictureNode* BVDC_P_Buffer_GetNextReaderNode_isr
             BDBG_MSG(("|| Pause reader to avoid tearing!"));
         }
 #ifdef  BVDC_DEBUG_FORCE_SYNC_LOCK
-        BDBG_MSG(("Win%d \tR(%d), W(%d), s(%d)->d(%d)->v(%d), TS [%d, %d] [%d, %d], ts_r=%d, srcFreq=%d, dispFreq=%d",
+        BDBG_MSG(("Win%d     R(%d), W(%d), s(%d)->d(%d)->v(%d), TS [%d, %d] [%d, %d], ts_r=%d, srcFreq=%d, dispFreq=%d",
             hWindow->eId, hWindow->hBuffer->pCurReaderBuf->ulBufferId, hWindow->hBuffer->pCurWriterBuf->ulBufferId,
             hWindow->hBuffer->pCurReaderBuf->eSrcPolarity, hWindow->hBuffer->pCurReaderBuf->eDstPolarity, eVecPolarity,
             hWindow->hCompositor->hDisplay->ulTsSampleCount, hWindow->hCompositor->hDisplay->ulTsSamplePeriod,
@@ -2465,11 +2579,12 @@ BVDC_P_PictureNode* BVDC_P_Buffer_GetNextReaderNode_isr
 done:
 
 #if (BVDC_BUF_LOG == 1)
-    BVDC_P_BufLogAddEvent_isr('F',
+    BVDC_P_BufLogAddEvent_isr('L',
         hWindow->eId,
         hWindow->hBuffer->pCurReaderBuf->ulBufferId,
         hWindow->hBuffer->ulNumCapField << 24 | (eVecPolarity << 16) | (hWindow->hBuffer->pCurReaderBuf->PicComRulInfo.eSrcOrigPolarity << 8) | hWindow->hBuffer->pCurReaderBuf->eDstPolarity,
         hWindow->hBuffer->ulCurrReaderTimestamp,
+        (100000/hWindow->hCompositor->stCurInfo.pFmtInfo->ulVertFreq),
         hWindow->hBuffer);
 #endif
 
@@ -2498,11 +2613,12 @@ static void BVDC_P_Buffer_CheckReaderIsrOrder_isr
     BVDC_P_Buffer_UpdateTimestamps_isr(hWindow, eSrcPolarity, eDispPolarity);
 
 #if (BVDC_BUF_LOG == 1)
-                    BVDC_P_BufLogAddEvent_isr('V',
+                    BVDC_P_BufLogAddEvent_isr('Z',
                         hWindow->eId,
                         hWindow->stCurResource.hCapture->ulTimestamp,
                         hWindow->hBuffer->ulCurrReaderTimestamp,
                         hWindow->hBuffer->ulCurrWriterTimestamp,
+                        0,
                         hWindow->hBuffer);
 #endif
 
@@ -2525,11 +2641,12 @@ static void BVDC_P_Buffer_CheckReaderIsrOrder_isr
                     hWindow->hBuffer->bWriterNodeMovedByReader = true;
 
 #if (BVDC_BUF_LOG == 1)
-                    BVDC_P_BufLogAddEvent_isr('L',
+                    BVDC_P_BufLogAddEvent_isr('T',
                         hWindow->eId,
                         hWindow->hBuffer->ulNumCapField,
                         hWindow->hBuffer->ulCurrReaderTimestamp,
                         hWindow->hBuffer->ulCurrWriterTimestamp,
+                        0,
                         hWindow->hBuffer);
 #else
                     BDBG_MSG(("(A) Win[%d] R: %d reader ISR moved writer due to ISR misorder", hWindow->eId, hWindow->hBuffer->ulNumCapField));
@@ -2639,14 +2756,29 @@ static void BVDC_P_Buffer_MoveSyncSlipReaderNode_isr
             hWindow->hBuffer->ulMtgDisplayRepeatCount++;
 
 #if (BVDC_BUF_LOG == 1)
-            BVDC_P_BufLogAddEvent_isr('C',
-                hWindow->eId,
-                hWindow->hBuffer->pCurReaderBuf->ulBufferId,
-                hWindow->hBuffer->ulNumCapField << 24 | hWindow->hBuffer->ulRepeatStat,
-                hWindow->hBuffer->ulCurrReaderTimestamp,
-                hWindow->hBuffer);
+            if (!hWindow->bFrameCapture && hWindow->stCurInfo.hSource->bSrcInterlaced &&
+                hWindow->hCompositor->stCurInfo.pFmtInfo->bInterlaced)
+            {
+                 BVDC_P_BufLogAddEvent_isr('E',
+                    hWindow->eId,
+                    hWindow->hBuffer->pCurReaderBuf->ulBufferId,
+                    hWindow->hBuffer->ulNumCapField << 24 | hWindow->hBuffer->ulRepeatStat,
+                    hWindow->hBuffer->ulCurrReaderTimestamp,
+                    0,
+                    hWindow->hBuffer);
+            }
+            else
+            {
+                BVDC_P_BufLogAddEvent_isr('C',
+                    hWindow->eId,
+                    hWindow->hBuffer->pCurReaderBuf->ulBufferId,
+                    hWindow->hBuffer->ulNumCapField << 24 | hWindow->hBuffer->ulRepeatStat,
+                    hWindow->hBuffer->ulCurrReaderTimestamp,
+                    0,
+                    hWindow->hBuffer);
+            }
 #else
-            BDBG_MSG(("Win[%d], B[%d] R: \t Repeat one field for r-w gap, total %d",
+            BDBG_MSG(("Win[%d], B[%d] R:      Repeat one field for r-w gap, total %d",
                 hWindow->hBuffer->hWindow->eId, hWindow->hBuffer->pCurReaderBuf->ulBufferId,
                 hWindow->hBuffer->ulRepeatStat));
 #endif
@@ -2682,9 +2814,10 @@ static void BVDC_P_Buffer_MoveSyncSlipReaderNode_isr
                     hWindow->hBuffer->pCurReaderBuf->ulBufferId,
                     hWindow->hBuffer->ulNumCapField << 24 | (eVecPolarity << 16) | (hWindow->hBuffer->pCurReaderBuf->PicComRulInfo.eSrcOrigPolarity << 8) | hWindow->hBuffer->pCurReaderBuf->eDstPolarity,
                     hWindow->hBuffer->ulCurrReaderTimestamp,
+                    0,
                     hWindow->hBuffer);
 #else
-                BDBG_MSG(("Win[%d] R: \t Repeat for polarity, src I, VEC %d. orig src p %d, cap %d, total %d",
+                BDBG_MSG(("Win[%d] R:      Repeat for polarity, src I, VEC %d. orig src p %d, cap %d, total %d",
                     hWindow->hBuffer->hWindow->eId, eVecPolarity, hWindow->hBuffer->pCurReaderBuf->PicComRulInfo.eSrcOrigPolarity,
                     hWindow->hBuffer->pCurReaderBuf->eDstPolarity, hWindow->hBuffer->ulRepeatStat));
 #endif

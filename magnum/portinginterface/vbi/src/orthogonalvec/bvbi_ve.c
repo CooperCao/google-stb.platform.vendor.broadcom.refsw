@@ -154,9 +154,6 @@ BERR_Code BVBI_Encode_GetInterruptName(
 #if   (BCHP_CHIP == 7422) || (BCHP_CHIP == 7425) || (BCHP_CHIP == 7435)
                 aEncodeInterruptName[0] = BCHP_INT_ID_ANCIL_VBI_0_0_INTR;
                 aEncodeInterruptName[1] = BCHP_INT_ID_ANCIL_VBI_1_0_INTR;
-#elif (BCHP_CHIP == 7420)
-                aEncodeInterruptName[0] = BCHP_INT_ID_ANCIL_VBI_0_INTR;
-                aEncodeInterruptName[1] = BCHP_INT_ID_ANCIL_VBI_1_INTR;
 #else
             /* Weird */
                 aEncodeInterruptName[0] = BCHP_INT_ID_ANCIL_VBI_0_0_INTR;

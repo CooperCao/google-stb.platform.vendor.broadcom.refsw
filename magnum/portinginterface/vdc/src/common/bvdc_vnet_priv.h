@@ -513,13 +513,8 @@ typedef enum
     BVDC_P_VnetB_eScaler_5  = BVDC_P_VNET_B(Scaler_5),
     BVDC_P_VnetB_eScaler_6  = BVDC_P_VNET_B(Scaler_6),
     BVDC_P_VnetB_eScaler_7  = BVDC_P_VNET_B(Scaler_7),
-#if (BCHP_CHIP != 7420)
     BVDC_P_VnetB_eMad32_0   = BVDC_P_VNET_B(MAD_0),
     BVDC_P_VnetB_eMad32_1   = BVDC_P_VNET_B(MAD_1),
-#else
-    BVDC_P_VnetB_eMad32_0   = BVDC_P_VNET_B(MCVP_0),
-    BVDC_P_VnetB_eMad32_1   = BVDC_P_VNET_B(MCVP_1),
-#endif
     BVDC_P_VnetB_eChannel_0 = BVDC_P_VNET_B(Free_Ch_0),
     BVDC_P_VnetB_eChannel_1 = BVDC_P_VNET_B(Free_Ch_1),
     BVDC_P_VnetB_eChannel_2 = BVDC_P_VNET_B(Free_Ch_2),

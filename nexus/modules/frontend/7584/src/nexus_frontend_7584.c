@@ -828,11 +828,8 @@ NEXUS_FrontendDeviceHandle NEXUS_FrontendDevice_Open3128(unsigned index, const N
         BCHP_Info info;
         BCHP_GetInfo(g_pCoreHandles->chp, &info);
 
-        pFrontendDevice = BKNI_Malloc(sizeof(*pFrontendDevice));
+        pFrontendDevice = NEXUS_FrontendDevice_P_Create();
         if (NULL == pFrontendDevice) {rc = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY); goto err_create;}
-
-        /* Memsetting the whole structure should cover initializing the child list. */
-        BKNI_Memset(pFrontendDevice, 0, sizeof(*pFrontendDevice));
 
         pDevice = BKNI_Malloc(sizeof(NEXUS_7584));
         if (NULL == pDevice) {rc = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY); goto err_create;}

@@ -30,7 +30,9 @@
 #include "tzioc_file.h"
 
 #define ASTRA_TIMEOUT_MSEC      5000
+#define ASTRA_GETID_ATTEMPTS    5
 
+#define ASTRA_CLIENT_NUM_MAX    16
 #define ASTRA_UAPP_NUM_MAX      16
 #define ASTRA_PEER_NUM_MAX      16
 #define ASTRA_FILE_NUM_MAX      16

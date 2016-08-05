@@ -15,6 +15,8 @@ FILE DESCRIPTION
 #include "egl_attrib_list.h"
 #include "libs/core/lfmt/lfmt.h"
 
+struct wl_display;
+
 struct egl_platform_fns
 {
    /*
@@ -43,6 +45,13 @@ struct egl_platform_fns
     * platform. Can be NULL.
     */
    const char  *(*get_display_extensions)(void);
+
+   /*
+    * Anything to add to result of eglGetProcAddress(procname) for this
+    * platform. Can be NULL.
+    */
+   __eglMustCastToProperFunctionPointerType (*get_proc_address)(
+         const char *procname);
 
    /* Return a default display. Can be NULL. */
    EGLDisplay  (*get_default_display)(void);
@@ -138,6 +147,8 @@ extern bool egl_platform_supported(EGLenum platform);
 extern bool egl_platform_color_format(GFX_LFMT_T lfmt, EGLint *platFormat);
 extern const char *egl_platform_get_client_extensions(void);
 extern const char *egl_platform_get_display_extensions(void);
+extern __eglMustCastToProperFunctionPointerType egl_platform_get_proc_address(
+      const char *procname);
 extern EGLDisplay egl_platform_get_default_display(void);
 extern bool egl_platform_set_default_display(EGLNativeDisplayType display);
 extern void egl_platform_terminate(void);

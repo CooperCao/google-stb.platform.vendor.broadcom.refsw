@@ -485,7 +485,7 @@ BERR_Code BAST_g1_P_DftDoneTimeout_isr(BSAT_ChannelHandle h)
    val = BSAT_g1_P_ReadRegister_isrsafe(h, BCHP_SDS_DFT_STATUS);
    if ((val & 0x06) == 0x06)
    {
-      BDBG_ERR(("BAST_g1_P_DftDoneTimeout(): missed irq, DFT_STATUS=0x%X", val));
+      BDBG_MSG(("BAST_g1_P_DftDoneTimeout(): missed irq, DFT_STATUS=0x%X", val));
       return hChn->passFunct(h);
    }
 

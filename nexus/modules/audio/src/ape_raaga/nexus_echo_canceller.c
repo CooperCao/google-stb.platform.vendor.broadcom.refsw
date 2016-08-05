@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2006-2013 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *  
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF 
  *  ANY LIMITED REMEDY.
  * 
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description: Audio Decoder Interface
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  ***************************************************************************/
 
@@ -58,7 +50,7 @@ typedef struct NEXUS_EchoCanceller
     BAPE_EchoCancellerHandle apeHandle;
     NEXUS_EchoCancellerSettings settings;
     NEXUS_AudioInputObject connector;
-    NEXUS_AudioInput localInput, remoteInput;
+    NEXUS_AudioInputHandle localInput, remoteInput;
     char name[15];   /* ECHO CANCELLER */
 } NEXUS_EchoCanceller;
 
@@ -111,6 +103,7 @@ NEXUS_EchoCancellerHandle NEXUS_EchoCanceller_Create(
 
     BKNI_Snprintf(handle->name, sizeof(handle->name), "ECHO CANCELLER");
     NEXUS_AUDIO_INPUT_INIT(&handle->connector, NEXUS_AudioInputType_eEchoCanceller, handle);
+    NEXUS_OBJECT_REGISTER(NEXUS_AudioInput, &handle->connector, Open);
     handle->connector.pName = handle->name;
     handle->connector.format = NEXUS_AudioInputFormat_ePcmMono;
     BAPE_EchoCanceller_GetConnector(handle->apeHandle, &connector);
@@ -145,7 +138,13 @@ static void NEXUS_EchoCanceller_P_Finalizer(
     BKNI_Free(handle);
 }
 
-NEXUS_OBJECT_CLASS_MAKE(NEXUS_EchoCanceller, NEXUS_EchoCanceller_Destroy);
+static void NEXUS_EchoCanceller_P_Release(NEXUS_EchoCancellerHandle handle)
+{
+    NEXUS_OBJECT_UNREGISTER(NEXUS_AudioInput, &handle->connector, Close);
+    return;
+}
+
+NEXUS_OBJECT_CLASS_MAKE_WITH_RELEASE(NEXUS_EchoCanceller, NEXUS_EchoCanceller_Destroy);
 
 void NEXUS_EchoCanceller_GetSettings(
     NEXUS_EchoCancellerHandle handle,
@@ -232,7 +231,7 @@ NEXUS_Error NEXUS_EchoCanceller_SetAlgorithmSettings(
     return BERR_SUCCESS;
 }
 
-NEXUS_AudioInput NEXUS_EchoCanceller_GetConnector(
+NEXUS_AudioInputHandle NEXUS_EchoCanceller_GetConnector(
     NEXUS_EchoCancellerHandle handle
     )
 {
@@ -242,7 +241,7 @@ NEXUS_AudioInput NEXUS_EchoCanceller_GetConnector(
 
 NEXUS_Error NEXUS_EchoCanceller_AddLocalInput(
     NEXUS_EchoCancellerHandle handle,
-    NEXUS_AudioInput input
+    NEXUS_AudioInputHandle input
     )
 {
     BERR_Code errCode;
@@ -278,7 +277,7 @@ Remove a local (near-end) input from this processing stage
 ***************************************************************************/
 NEXUS_Error NEXUS_EchoCanceller_RemoveLocalInput(
     NEXUS_EchoCancellerHandle handle,
-    NEXUS_AudioInput input
+    NEXUS_AudioInputHandle input
     )
 {
     BDBG_OBJECT_ASSERT(handle, NEXUS_EchoCanceller);
@@ -299,7 +298,7 @@ Add a remote (far-end) input to the echo canceller
 ***************************************************************************/
 NEXUS_Error NEXUS_EchoCanceller_AddRemoteInput(
     NEXUS_EchoCancellerHandle handle,
-    NEXUS_AudioInput input
+    NEXUS_AudioInputHandle input
     )
 {
     BERR_Code errCode;
@@ -335,7 +334,7 @@ Remove a remote (far-end) input from this processing stage
 ***************************************************************************/
 NEXUS_Error NEXUS_EchoCanceller_RemoveRemoteInput(
     NEXUS_EchoCancellerHandle handle,
-    NEXUS_AudioInput input
+    NEXUS_AudioInputHandle input
     )
 {
     BDBG_OBJECT_ASSERT(handle, NEXUS_EchoCanceller);
@@ -369,4 +368,3 @@ NEXUS_Error NEXUS_EchoCanceller_RemoveAllInputs(
     }
     return BERR_SUCCESS;
 }
-

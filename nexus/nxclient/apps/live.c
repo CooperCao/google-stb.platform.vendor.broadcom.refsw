@@ -912,6 +912,10 @@ int main(int argc, const char **argv)
                 b_pig_move(video_sc, &pig_inc);
                 rc = BKNI_WaitForEvent(g_constellation.displayedEvent, 5000);
                 BDBG_ASSERT(!rc);
+
+                if (timeout && b_get_time() - starttime >= timeout*1000) {
+                    break;
+                }
             }
         }
         else {

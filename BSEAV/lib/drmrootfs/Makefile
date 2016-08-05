@@ -1,5 +1,5 @@
 ###############################################################################################
-#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+#  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 #  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
 #  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
-#
 ###############################################################################################
 ############################################################################
 #
@@ -119,7 +118,7 @@ all: prep_folder ${F_PUBLIC_LIBS}
 
 clean: 
 	${RM} -fr ${F_INSTALLED_LIBS} ${DRMROOTFS_OBJ_ROOT}
-	
+
 ############################################################################
 #                             BUILD RULES
 #vvvv#####################vvvvvvvvvvvvvvvvvvvvvvv#####################vvvv##
@@ -128,15 +127,13 @@ prep_folder:
 	@ mkdir -p ${D_FOR_LIB_INSTALL}
 
 ${DRMROOTFS_OBJ_ROOT}/libdrmrootfs.so: ${END_OBJS}
-ifeq ($(B_REFSW_ARCH),arm-linux)
-
+ifeq ($(findstring $(B_REFSW_ARCH), arm-linux aarch64-linux), $(B_REFSW_ARCH))
 ifeq ($(B_REFSW_CROSS_COMPILE),arm-linux-androideabi-)
 	${CC} -shared -o $@  ${LDFLAGS}  $^ -Wl,-Bdynamic
 else # B_REFSW_CROSS_COMPILE is not arm-linux-androideabi-
 	${CC} -shared -o $@  ${LDFLAGS}  $^ -Wl,-dy,--no-wchar-size-warning
 endif # End B_REFSW_CROSS_COMPILE
-
-else # B_REFSW_ARCH is not arm-linux
+else # B_REFSW_ARCH is not arm-linux or aarch64-linux
 	${CC} -shared -o $@  ${LDFLAGS}  $^ -Wl,-dy
 endif # End B_REFSW_ARCH
 
@@ -159,4 +156,3 @@ ${D_FOR_LIB_INSTALL}/%.so : ${DRMROOTFS_OBJ_ROOT}/%.so
 -include *.d
 .PHONY: all install clean distclean prep_folder
 #^^^^#####################^^^^^^^^^^^^^^^^^^^^^^^#####################^^^^##
-

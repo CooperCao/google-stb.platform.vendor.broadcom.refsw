@@ -133,6 +133,7 @@ typedef struct BDSP_Stage
     BERR_Code (*setTsmSettings_isr)(void *pStageHandle, const BDSP_AudioTaskTsmSettings *pTsmSettings);
     BERR_Code (*getTsmStatus_isr)(void *pStageHandle, BDSP_AudioTaskTsmStatus *pTsmStatus);
     BERR_Code (*getDatasyncSettings)(void *pStageHandle, BDSP_AudioTaskDatasyncSettings *pSettings);
+	BERR_Code (*getDatasyncSettings_isr)(void *pStageHandle, BDSP_AudioTaskDatasyncSettings *pSettings);
     BERR_Code (*setDatasyncSettings)(void *pStageHandle, const BDSP_AudioTaskDatasyncSettings *pSettings);
     BERR_Code (*getDatasyncStatus_isr)(void *pStageHandle, BDSP_AudioTaskDatasyncStatus *pStatus);
 

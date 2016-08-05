@@ -191,7 +191,7 @@ Description:
 See Also:
     NEXUS_AudioInput_Shutdown
  ***************************************************************************/
-NEXUS_AudioInput NEXUS_Frontend_GetAnalogAudioConnector(
+NEXUS_AudioInputHandle NEXUS_Frontend_GetAnalogAudioConnector(
     NEXUS_FrontendHandle handle
     )
 {
@@ -377,4 +377,3 @@ void NEXUS_Frontend_SetAnalogAudioInterrupt_priv(
         NEXUS_Frontend_SetAnalogAudioInterrupt_priv(handle->pParentFrontend, interruptFunc_isr, pFuncParam);
     }
 }
-

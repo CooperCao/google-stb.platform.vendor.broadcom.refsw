@@ -519,6 +519,8 @@ static bool g_b32KHzAudio = false;
 static bool g_bSimulXcode = false;
 static int g_simulDecoderMaster = 0;
 static unsigned g_pcrInterval = 50;
+static bool g_bOnePtsPerSegment = false;
+static bool g_audioPesPacking = false;
 static const namevalue_t g_audioChannelFormatStrs[] = {
     {"none", NEXUS_AudioMultichannelFormat_eNone},
     {"stereo", NEXUS_AudioMultichannelFormat_eStereo},
@@ -1878,6 +1880,45 @@ static void mux_duration( TranscodeContext *pContext )
     secs = secs%60;
     printf("Mux[%u] duration: %02u:%02u:%02u.%03u\n", pContext->contextId,
         hrs, mins, secs, status.duration%1000);
+    printf("Mux[%u] avg. bitrate (kbps): v=%5u, a=%3u, s=%2u, u=%3u [efficiency=%3u%%] ("BDBG_UINT64_FMT" bytes)\n", pContext->contextId,
+       status.video.averageBitrate/1000,
+       status.audio.averageBitrate/1000,
+       status.systemdata.averageBitrate/1000,
+       status.userdata.averageBitrate/1000,
+       status.efficiency,
+       BDBG_UINT64_ARG(status.totalBytes));
+    {
+       unsigned i;
+
+       for ( i = 0; i < NEXUS_MAX_MUX_PIDS; i++ )
+       {
+          if ( pContext->muxConfig.video[i].encoder )
+          {
+             printf("Mux[%u]    video[%2d] timestamp: 0x%08x\n", pContext->contextId,i,
+                status.video.pid[i].currentTimestamp);
+          }
+       }
+       for ( i = 0; i < NEXUS_MAX_MUX_PIDS; i++ )
+          if ( pContext->muxConfig.audio[i].muxOutput )
+          {
+             printf("Mux[%u]    audio[%2d] timestamp: 0x%08x\n", pContext->contextId,i,
+                status.audio.pid[i].currentTimestamp);
+          }
+       {
+          {
+             printf("Mux[%u]  sysdata[%2d] timestamp: 0x%08x\n", pContext->contextId,0,
+                status.systemdata.pid[0].currentTimestamp);
+          }
+       }
+       for ( i = 0; i < NEXUS_MAX_MUX_PIDS; i++ )
+       {
+          if ( pContext->muxConfig.userdata[i].message )
+          {
+             printf("Mux[%u] userdata[%2d] timestamp: 0x%08x\n", pContext->contextId,i,
+                status.userdata.pid[i].currentTimestamp);
+          }
+       }
+    }
 }
 
 static void avsync_correlation_error( TranscodeContext *pContext )
@@ -1985,6 +2026,7 @@ static void printMenu(TranscodeContext *pContext)
     printf("36) Video encoder memory config on current xcode context\n");
     printf("37) Enable/disable stream mux ES channel\n");
     printf("38) Enable/disable entropy coding\n");
+    printf("39) Enable/disable video decoder mute\n");
     printf("50) random dynamic resolution test\n");
     printf("51) random dynamic bitrate test\n");
     printf("52) Stop stream mux to test encoder overflow recovery\n");
@@ -2623,6 +2665,15 @@ static void keyHandler( TranscodeContext  xcodeContext[] )
                 printf("Change entropy coding to:\n");
                 print_value_list(g_entropyCodingStrs);
                 pContext->encodeSettings.entropyCoding = getNameValue(key, g_entropyCodingStrs);
+                break;
+            case 39: /* source mute mode */
+                if(pContext->inputSettings.resource != BTST_RESOURCE_HDMI) {
+                    NEXUS_VideoDecoderSettings settings;
+                    NEXUS_VideoDecoder_GetSettings(pContext->videoDecoder,&settings);
+                    settings.mute ^= true;
+                    fprintf(stderr, "%s the video input\n", settings.mute? "mute":"unmute");
+                    NEXUS_VideoDecoder_SetSettings(pContext->videoDecoder,&settings);
+                }
                 break;
             case 50: /* random dynamic resolution change */
 #define BTST_MIN_XCODE_RESOLUTION_X 64
@@ -3380,7 +3431,7 @@ static void xcode_av_sync(
             pVideoEncoderStartConfig->bounds.inputFrameRate.min = NEXUS_VideoFrameRate_e23_976;
 
             /* to allow 15 ~ 60p dynamic frame rate coding TODO: allow user to config higher minimum frame rate for lower delay! */
-            pVideoEncoderStartConfig->bounds.outputFrameRate.min = NEXUS_VideoFrameRate_e14_985;
+            pVideoEncoderStartConfig->bounds.outputFrameRate.min = NEXUS_VideoFrameRate_e7_493;
             pVideoEncoderStartConfig->bounds.outputFrameRate.max = NEXUS_VideoFrameRate_e60;
 
             /* max encode size allows 1080p encode; TODO: allow user to choose lower max resolution for lower encode delay */
@@ -3600,6 +3651,7 @@ static void xcode_setup_mux_record( TranscodeContext  *pContext )
         muxConfig.audio[0].pid = BTST_MUX_AUDIO_PID;
         muxConfig.audio[0].muxOutput = pContext->audioMuxOutput;
         muxConfig.audio[0].playpump = pContext->playpumpTranscodeAudio;
+        muxConfig.audio[0].pesPacking = g_audioPesPacking;
     }
 
     muxConfig.pcr.pid = BTST_MUX_PCR_PID;
@@ -3607,6 +3659,7 @@ static void xcode_setup_mux_record( TranscodeContext  *pContext )
     muxConfig.pcr.interval = g_pcrInterval;
     muxConfig.muxDelay     = pContext->encodeDelay;
     muxConfig.supportTts   = (g_TtsOutputType != NEXUS_TransportTimestampType_eNone);
+    muxConfig.insertPtsOnlyOnFirstKeyFrameOfSegment = g_bOnePtsPerSegment;
 
     /******************************************
      * Set up xcoder record output
@@ -5967,8 +6020,10 @@ void print_usage(void) {
             printf("  -mcpb - Use MCPB playback channel for muxing\n");
             printf("  -logger N - Enable BDBG_Fifo logger with a poll frequency of N ms\n");
             printf("  -printStatus - Print status after transcode is stopped\n");
-            printf("  -pcrInterval - Set the PCR interval (0=disable PCR insertion)\n");
+            printf("  -pcrInterval N - Set the PCR interval (0=disable PCR insertion)\n");
             printf("  -interleaveMode N - Set the A/V interleave mode to N where N = [escr, pts]\n");
+            printf("  -audioPesPacking - Enable audio PES packing\n");
+            printf("  -onePtsPerSegment - Insert only one PTS per segment\n");
 }
 
 /* include media probe */
@@ -6424,6 +6479,14 @@ int main(int argc, char **argv)  {
                    pContext->interleaveMode = NEXUS_StreamMuxInterleaveMode_ePts;
                    fprintf(stderr, "Use PTS interleave\n");
                 }
+            }
+            if(!strcmp("-audioPesPacking",argv[i])) {
+               g_audioPesPacking = true;
+               fprintf(stderr, "Use Audio PES Packing\n");
+            }
+            if(!strcmp("-onePtsPerSegment",argv[i])) {
+               g_bOnePtsPerSegment = true;
+               fprintf(stderr, "One PTS per Segment\n");
             }
         }
         if(g_bSecondAudio) g_bNoDspMixer = false;

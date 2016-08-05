@@ -45,7 +45,7 @@ static void glxx_sampler_term(void *v, size_t size)
    free(so->debug_label);
    so->debug_label = NULL;
 
-   UNUSED(size);
+   vcos_unused(size);
 }
 
 static bool glxx_sampler_allocate(GLXX_SERVER_STATE_T *state, uint32_t id)
@@ -66,7 +66,7 @@ static bool glxx_sampler_allocate(GLXX_SERVER_STATE_T *state, uint32_t id)
 
 GL_API void GL_APIENTRY glGenSamplers (GLsizei count, GLuint* samplers)
 {
-   GLXX_SERVER_STATE_T *state = GL30_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
    if (!state) return;
 
    if (count < 0)
@@ -93,12 +93,12 @@ GL_API void GL_APIENTRY glGenSamplers (GLsizei count, GLuint* samplers)
    }
 
 out:
-   GL30_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_API void GL_APIENTRY glDeleteSamplers (GLsizei count, const GLuint* samplers)
 {
-   GLXX_SERVER_STATE_T *state = GL30_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
    if (!state)
       return;
 
@@ -109,9 +109,7 @@ GL_API void GL_APIENTRY glDeleteSamplers (GLsizei count, const GLuint* samplers)
    }
 
    {
-      int i;
-
-      for (i = 0; i < count; i++)
+      for (int i = 0; i < count; i++)
       {
          GLuint name = samplers[i];
 
@@ -120,10 +118,8 @@ GL_API void GL_APIENTRY glDeleteSamplers (GLsizei count, const GLuint* samplers)
             GLXX_TEXTURE_SAMPLER_STATE_T *so = glxx_shared_get_sampler(state->shared, name);
             if (so != NULL)
             {
-               int j;
-
                /* If the doomed SO is bound to any TU, unbind it. */
-               for (j = 0; j < GLXX_CONFIG_MAX_COMBINED_TEXTURE_IMAGE_UNITS; j++)
+               for (int j = 0; j < GLXX_CONFIG_MAX_COMBINED_TEXTURE_IMAGE_UNITS; j++)
                {
                   if (state->bound_sampler[j] == so)
                      KHRN_MEM_ASSIGN(state->bound_sampler[j], NULL);
@@ -136,12 +132,12 @@ GL_API void GL_APIENTRY glDeleteSamplers (GLsizei count, const GLuint* samplers)
    }
 
 out:
-   GL30_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_API GLboolean GL_APIENTRY glIsSampler (GLuint sampler)
 {
-   GLXX_SERVER_STATE_T *state = GL30_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
    GLboolean result = GL_FALSE;
    if (!state)
       return result;
@@ -149,13 +145,13 @@ GL_API GLboolean GL_APIENTRY glIsSampler (GLuint sampler)
    if (glxx_shared_get_sampler(state->shared, sampler) != NULL)
       result = GL_TRUE;
 
-   GL30_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
    return result;
 }
 
 GL_API void GL_APIENTRY glBindSampler (GLuint unit, GLuint sampler)
 {
-   GLXX_SERVER_STATE_T *state = GL30_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
    if (!state)
       return;
 
@@ -184,7 +180,7 @@ GL_API void GL_APIENTRY glBindSampler (GLuint unit, GLuint sampler)
    }
 
 out:
-   GL30_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 static bool glxx_sampler_getset_preamble(GLXX_SERVER_STATE_T *state, GLuint sampler, GLXX_TEXTURE_SAMPLER_STATE_T **so)
@@ -201,10 +197,15 @@ static bool glxx_sampler_getset_preamble(GLXX_SERVER_STATE_T *state, GLuint samp
 
 GL_API void GL_APIENTRY glSamplerParameteri (GLuint sampler, GLenum pname, GLint param)
 {
-   GLXX_SERVER_STATE_T *state = GL30_LOCK_SERVER_STATE();
-   GLXX_TEXTURE_SAMPLER_STATE_T *so;
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
    if (!state) return;
 
+   if (glxx_is_vector_texparam(pname)) {
+      glxx_server_state_set_error(state, GL_INVALID_ENUM);
+      goto end;
+   }
+
+   GLXX_TEXTURE_SAMPLER_STATE_T *so;
    if (glxx_sampler_getset_preamble(state, sampler, &so))
    {
       if (glxx_is_float_texparam(pname))
@@ -216,85 +217,115 @@ GL_API void GL_APIENTRY glSamplerParameteri (GLuint sampler, GLenum pname, GLint
          glxx_texparameter_sampler_internal(state, 0, so, pname, &param);
    }
 
-   GL30_UNLOCK_SERVER_STATE();
+end:
+   glxx_unlock_server_state();
 }
 
-GL_API void GL_APIENTRY glSamplerParameteriv (GLuint sampler, GLenum pname, const GLint* param)
+void glxx_sampler_parameter_iv_common(GLuint sampler, GLenum pname, const GLint *param)
 {
-   GLXX_SERVER_STATE_T *state = GL30_LOCK_SERVER_STATE();
-   GLXX_TEXTURE_SAMPLER_STATE_T *so;
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
    if (!state) return;
+
+   GLXX_TEXTURE_SAMPLER_STATE_T *so;
 
    if (glxx_sampler_getset_preamble(state, sampler, &so))
    {
       if (glxx_is_float_texparam(pname)) {
-         float fparam = (float)param[0];
-         glxx_texparameterf_sampler_internal(state, so, pname, &fparam);
+         GLfloat fparams = (GLfloat) param[0];
+         glxx_texparameterf_sampler_internal(state, so, pname, &fparams);
       }
       else
          glxx_texparameter_sampler_internal(state, 0, so, pname, param);
    }
 
-   GL30_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
+
+GL_API void GL_APIENTRY glSamplerParameteriv (GLuint sampler, GLenum pname, const GLint* param)
+{
+   glxx_sampler_parameter_iv_common(sampler, pname, param);
+}
+
+#if KHRN_GLES32_DRIVER
+GL_APICALL void GL_APIENTRY glSamplerParameterIiv(GLuint sampler, GLenum pname, const GLint *param)
+{
+   glxx_sampler_parameter_iv_common(sampler, pname, param);
+}
+
+GL_APICALL void GL_APIENTRY glSamplerParameterIuiv(GLuint sampler, GLenum pname, const GLuint *param)
+{
+   glxx_sampler_parameter_iv_common(sampler, pname, (GLint *) param);
+}
+#endif
 
 GL_API void GL_APIENTRY glSamplerParameterf (GLuint sampler, GLenum pname, GLfloat param)
 {
-   GLXX_SERVER_STATE_T *state = GL30_LOCK_SERVER_STATE();
-   GLXX_TEXTURE_SAMPLER_STATE_T *so;
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
    if (!state) return;
 
+   if (glxx_is_vector_texparam(pname)) {
+      glxx_server_state_set_error(state, GL_INVALID_ENUM);
+      goto end;
+   }
+
+   GLXX_TEXTURE_SAMPLER_STATE_T *so;
    if (glxx_sampler_getset_preamble(state, sampler, &so))
    {
       if (glxx_is_float_texparam(pname))
+      {
          glxx_texparameterf_sampler_internal(state, so, pname, &param);
+      }
       else
       {
-         int iparam = glxx_texparam_float_to_int(param);
+         int iparam = gfx_float_to_int32(param);
          glxx_texparameter_sampler_internal(state, 0, so, pname, &iparam);
       }
    }
 
-   GL30_UNLOCK_SERVER_STATE();
+end:
+   glxx_unlock_server_state();
 }
 
 GL_API void GL_APIENTRY glSamplerParameterfv (GLuint sampler, GLenum pname, const GLfloat* param)
 {
-   GLXX_SERVER_STATE_T *state = GL30_LOCK_SERVER_STATE();
-   GLXX_TEXTURE_SAMPLER_STATE_T *so;
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
    if (!state) return;
 
+   GLXX_TEXTURE_SAMPLER_STATE_T *so;
    if (glxx_sampler_getset_preamble(state, sampler, &so))
    {
       if (glxx_is_float_texparam(pname))
          glxx_texparameterf_sampler_internal(state, so, pname, param);
       else
       {
-         // TODO: No format conversion here (ref glTexParameterfv.) Why not?
-         GLint iparam = (GLint)param[0];
-         glxx_texparameter_sampler_internal(state, 0, so, pname, &iparam);
+         GLint iparams[4] = {gfx_float_to_int32(param[0]), 0, 0, 0};
+         if (pname == GL_TEXTURE_BORDER_COLOR)
+         {
+            for (unsigned int i = 0; i < 4; i++)
+               iparams[i] = gfx_float_to_bits(param[i]);
+         }
+         glxx_texparameter_sampler_internal(state, 0, so, pname, iparams);
       }
    }
 
-   GL30_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
-GL_API void GL_APIENTRY glGetSamplerParameteriv (GLuint sampler, GLenum pname, GLint* params)
+void glxx_get_sampler_parameter_iv_common(GLuint sampler, GLenum pname, GLint *params)
 {
-   GLXX_SERVER_STATE_T *state = GL30_LOCK_SERVER_STATE();
-   GLXX_TEXTURE_SAMPLER_STATE_T *so;
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
    if (!state) return;
 
+   GLXX_TEXTURE_SAMPLER_STATE_T *so;
    if (glxx_sampler_getset_preamble(state, sampler, &so))
    {
       if (glxx_is_float_texparam(pname)) {
          GLfloat temp;
-         uint32_t count;
-         count = glxx_get_texparameterf_sampler_internal(state, so, pname, &temp);
+         uint32_t count = glxx_get_texparameterf_sampler_internal(state, so, pname, &temp);
          if (count)
          {
             assert(count == 1);
-            params[0] = float_to_int(temp);
+            params[0] = gfx_float_to_int32(temp);
          }
       }
       else if (glxx_is_int_sampler_texparam(state, pname))
@@ -303,17 +334,34 @@ GL_API void GL_APIENTRY glGetSamplerParameteriv (GLuint sampler, GLenum pname, G
       }
       else
       {
-          glxx_server_state_set_error(state, GL_INVALID_ENUM);
+         glxx_server_state_set_error(state, GL_INVALID_ENUM);
       }
-
    }
 
-   GL30_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
+
+GL_API void GL_APIENTRY glGetSamplerParameteriv (GLuint sampler, GLenum pname, GLint* params)
+{
+   glxx_get_sampler_parameter_iv_common(sampler, pname, params);
+
+}
+
+#if KHRN_GLES32_DRIVER
+GL_APICALL void GL_APIENTRY glGetSamplerParameterIiv(GLuint sampler, GLenum pname, GLint *params)
+{
+   glxx_get_sampler_parameter_iv_common(sampler, pname, params);
+}
+
+GL_APICALL void GL_APIENTRY glGetSamplerParameterIuiv(GLuint sampler, GLenum pname, GLuint *params)
+{
+   glxx_get_sampler_parameter_iv_common(sampler, pname, (GLint *) params);
+}
+#endif
 
 GL_API void GL_APIENTRY glGetSamplerParameterfv (GLuint sampler, GLenum pname, GLfloat* params)
 {
-   GLXX_SERVER_STATE_T *state = GL30_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
    GLXX_TEXTURE_SAMPLER_STATE_T *so;
    if (!state) return;
 
@@ -325,15 +373,15 @@ GL_API void GL_APIENTRY glGetSamplerParameterfv (GLuint sampler, GLenum pname, G
       }
       else if(glxx_is_int_sampler_texparam(state, pname))
       {
-         GLint temp;
+         GLint temp[4];
          uint32_t count;
-         count = glxx_get_texparameter_sampler_internal(state, so, pname, &temp);
+         count = glxx_get_texparameter_sampler_internal(state, so, pname, temp);
 
-         if (count)
-         {
-            assert(count == 1);
-            params[0] = (GLfloat)temp;
-         }
+         for (unsigned int i = 0; i < count; i++)
+            if (pname == GL_TEXTURE_BORDER_COLOR)
+               params[i] = gfx_float_from_bits(temp[i]);
+            else
+               params[i] = (GLfloat)temp[i];
       }
       else
       {
@@ -341,5 +389,5 @@ GL_API void GL_APIENTRY glGetSamplerParameterfv (GLuint sampler, GLenum pname, G
       }
    }
 
-   GL30_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }

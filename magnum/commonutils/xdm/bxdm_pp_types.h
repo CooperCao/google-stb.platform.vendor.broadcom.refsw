@@ -60,6 +60,9 @@ typedef struct BXDM_PictureProvider_Settings
                                      * linked together in a single BXDM_Picture entry.
                                      * E.g. for MVC 3D, there are 2 video buffers per
                                      * BXDM_Picture entry */
+
+   BMMA_Heap_Handle hHeap;          /* SWSTB-1380: when using the debug fifo, need to pass in a
+                                     * heap handle when calling BXDM_PictureProvider_Create.  */
 } BXDM_PictureProvider_Settings;
 
 
@@ -627,6 +630,17 @@ typedef struct BXDM_PictureProvider_PCRModes
 
 }  BXDM_PictureProvider_PCRModes;
 
+
+/*
+ * SWSTB-1380: descriptor of the debug fifo.
+ */
+typedef struct BXDM_PictureProvider_DebugFifoInfo
+{
+   size_t uiElementSize;      /* Size of one element */
+   BMMA_Block_Handle hBlock;  /* Memory Block containing the XDM internal BDBG_Fifo */
+   unsigned uiOffset;         /* Offset from start of memory block where BDBG_Fifo begins */
+
+} BXDM_PictureProvider_DebugFifoInfo;
 
 #ifdef __cplusplus
 }

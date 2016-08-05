@@ -44,17 +44,19 @@
  * This module was generated magically with RDB from a source description
  * file. You must edit the source file for changes to be made to this file.
  *
+ * The launch point for all information concerning RDB is found at:
+ *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Tue Feb 23 15:26:07 2016
- *                 Full Compile MD5 Checksum  4b84f30a4b3665aac5b824a1ed76e56c
+ * Date:           Generated on               Thu Jun 23 18:55:22 2016
+ *                 Full Compile MD5 Checksum  726d365438fe88693b6f0a492958face
  *                     (minus title and desc)
- *                 MD5 Checksum               4894bba0ec078aee10b5b5954262d56e
+ *                 MD5 Checksum               942083b46396c70655d90e546c008796
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     804
+ *                 RDB.pm                     1048
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
  *                 Script Source              /home/pntruong/sbin/combo_header.pl
  *                 DVTSWVER                   n/a
@@ -75,6 +77,8 @@
 #define BCHP_DS_A_00_OI_CTL                      0x04321210 /* [CFG] OI Control */
 #define BCHP_DS_A_00_OI_OUT                      0x04321214 /* [RW] OI Output override Control */
 #define BCHP_DS_A_00_OI_MPEG_CNT                 0x04321218 /* [RO] OI MPEG Count */
+#define BCHP_DS_A_00_OI_FIFO_CTL2                0x0432121c /* [CFG] FIFO control 2 */
+#define BCHP_DS_A_00_OI_STATUS2                  0x04321220 /* [RO] OI status2 */
 #define BCHP_DS_A_00_OI_BERT_CTL                 0x04321224 /* [CFG] OI BERT Control Register */
 #define BCHP_DS_A_00_OI_BERT_IT                  0x04321228 /* [CFG] OI BERT integration period and threshold */
 #define BCHP_DS_A_00_OI_BERT_BIT_CNT_H           0x0432122c /* [RO] OI BERT bit Counter snapshot value, higher bits */
@@ -82,13 +86,39 @@
 #define BCHP_DS_A_00_OI_BERT_ERR_CNT_H           0x04321234 /* [RO] OI BERT error Counter snapshot value, higher bits */
 #define BCHP_DS_A_00_OI_BERT_ERR_CNT_L           0x04321238 /* [RO] OI BERT error Counter snapshot value, lower bits */
 #define BCHP_DS_A_00_OI_BERT_ST                  0x0432123c /* [RO] OI BERT status register */
+#define BCHP_DS_A_00_OI_MPEG_ERR_CNT             0x04321240 /* [RO] OI MPEG Error Count */
 
 /***************************************************************************
  *STATUS - OI status
  ***************************************************************************/
-/* DS_A_00_OI :: STATUS :: reserved0 [31:16] */
-#define BCHP_DS_A_00_OI_STATUS_reserved0_MASK                      0xffff0000
-#define BCHP_DS_A_00_OI_STATUS_reserved0_SHIFT                     16
+/* DS_A_00_OI :: STATUS :: reserved0 [31:23] */
+#define BCHP_DS_A_00_OI_STATUS_reserved0_MASK                      0xff800000
+#define BCHP_DS_A_00_OI_STATUS_reserved0_SHIFT                     23
+
+/* DS_A_00_OI :: STATUS :: LOCK_U_TO_L_STATUS [22:22] */
+#define BCHP_DS_A_00_OI_STATUS_LOCK_U_TO_L_STATUS_MASK             0x00400000
+#define BCHP_DS_A_00_OI_STATUS_LOCK_U_TO_L_STATUS_SHIFT            22
+#define BCHP_DS_A_00_OI_STATUS_LOCK_U_TO_L_STATUS_DEFAULT          0x00000000
+
+/* DS_A_00_OI :: STATUS :: LOCK_L_TO_U_STATUS [21:21] */
+#define BCHP_DS_A_00_OI_STATUS_LOCK_L_TO_U_STATUS_MASK             0x00200000
+#define BCHP_DS_A_00_OI_STATUS_LOCK_L_TO_U_STATUS_SHIFT            21
+#define BCHP_DS_A_00_OI_STATUS_LOCK_L_TO_U_STATUS_DEFAULT          0x00000000
+
+/* DS_A_00_OI :: STATUS :: LOCK_STATUS [20:20] */
+#define BCHP_DS_A_00_OI_STATUS_LOCK_STATUS_MASK                    0x00100000
+#define BCHP_DS_A_00_OI_STATUS_LOCK_STATUS_SHIFT                   20
+#define BCHP_DS_A_00_OI_STATUS_LOCK_STATUS_DEFAULT                 0x00000000
+
+/* DS_A_00_OI :: STATUS :: ECO_SPARE [19:17] */
+#define BCHP_DS_A_00_OI_STATUS_ECO_SPARE_MASK                      0x000e0000
+#define BCHP_DS_A_00_OI_STATUS_ECO_SPARE_SHIFT                     17
+#define BCHP_DS_A_00_OI_STATUS_ECO_SPARE_DEFAULT                   0x00000000
+
+/* DS_A_00_OI :: STATUS :: BURST_ERR_STATUS [16:16] */
+#define BCHP_DS_A_00_OI_STATUS_BURST_ERR_STATUS_MASK               0x00010000
+#define BCHP_DS_A_00_OI_STATUS_BURST_ERR_STATUS_SHIFT              16
+#define BCHP_DS_A_00_OI_STATUS_BURST_ERR_STATUS_DEFAULT            0x00000000
 
 /* DS_A_00_OI :: STATUS :: FEC_LS_STATUS [15:15] */
 #define BCHP_DS_A_00_OI_STATUS_FEC_LS_STATUS_MASK                  0x00008000
@@ -280,14 +310,15 @@
 #define BCHP_DS_A_00_OI_CTL_RESET_SHIFT                            30
 #define BCHP_DS_A_00_OI_CTL_RESET_DEFAULT                          0x00000000
 
-/* DS_A_00_OI :: CTL :: reserved0 [29:28] */
-#define BCHP_DS_A_00_OI_CTL_reserved0_MASK                         0x30000000
-#define BCHP_DS_A_00_OI_CTL_reserved0_SHIFT                        28
+/* DS_A_00_OI :: CTL :: ECO_SPARE_3 [29:28] */
+#define BCHP_DS_A_00_OI_CTL_ECO_SPARE_3_MASK                       0x30000000
+#define BCHP_DS_A_00_OI_CTL_ECO_SPARE_3_SHIFT                      28
+#define BCHP_DS_A_00_OI_CTL_ECO_SPARE_3_DEFAULT                    0x00000000
 
 /* DS_A_00_OI :: CTL :: NEW_FIFO_SEL [27:27] */
 #define BCHP_DS_A_00_OI_CTL_NEW_FIFO_SEL_MASK                      0x08000000
 #define BCHP_DS_A_00_OI_CTL_NEW_FIFO_SEL_SHIFT                     27
-#define BCHP_DS_A_00_OI_CTL_NEW_FIFO_SEL_DEFAULT                   0x00000001
+#define BCHP_DS_A_00_OI_CTL_NEW_FIFO_SEL_DEFAULT                   0x00000000
 
 /* DS_A_00_OI :: CTL :: TOP_RESET [26:26] */
 #define BCHP_DS_A_00_OI_CTL_TOP_RESET_MASK                         0x04000000
@@ -304,9 +335,10 @@
 #define BCHP_DS_A_00_OI_CTL_PN_EN_SHIFT                            24
 #define BCHP_DS_A_00_OI_CTL_PN_EN_DEFAULT                          0x00000000
 
-/* DS_A_00_OI :: CTL :: reserved1 [23:20] */
-#define BCHP_DS_A_00_OI_CTL_reserved1_MASK                         0x00f00000
-#define BCHP_DS_A_00_OI_CTL_reserved1_SHIFT                        20
+/* DS_A_00_OI :: CTL :: ECO_SPARE_2 [23:20] */
+#define BCHP_DS_A_00_OI_CTL_ECO_SPARE_2_MASK                       0x00f00000
+#define BCHP_DS_A_00_OI_CTL_ECO_SPARE_2_SHIFT                      20
+#define BCHP_DS_A_00_OI_CTL_ECO_SPARE_2_DEFAULT                    0x00000000
 
 /* DS_A_00_OI :: CTL :: DELH [19:19] */
 #define BCHP_DS_A_00_OI_CTL_DELH_MASK                              0x00080000
@@ -323,9 +355,10 @@
 #define BCHP_DS_A_00_OI_CTL_SYNC1_SHIFT                            17
 #define BCHP_DS_A_00_OI_CTL_SYNC1_DEFAULT                          0x00000000
 
-/* DS_A_00_OI :: CTL :: reserved2 [16:16] */
-#define BCHP_DS_A_00_OI_CTL_reserved2_MASK                         0x00010000
-#define BCHP_DS_A_00_OI_CTL_reserved2_SHIFT                        16
+/* DS_A_00_OI :: CTL :: ECO_SPARE_1 [16:16] */
+#define BCHP_DS_A_00_OI_CTL_ECO_SPARE_1_MASK                       0x00010000
+#define BCHP_DS_A_00_OI_CTL_ECO_SPARE_1_SHIFT                      16
+#define BCHP_DS_A_00_OI_CTL_ECO_SPARE_1_DEFAULT                    0x00000000
 
 /* DS_A_00_OI :: CTL :: IVD_DA_SUP [15:15] */
 #define BCHP_DS_A_00_OI_CTL_IVD_DA_SUP_MASK                        0x00008000
@@ -352,9 +385,10 @@
 #define BCHP_DS_A_00_OI_CTL_ERR_SY_SUP_SHIFT                       11
 #define BCHP_DS_A_00_OI_CTL_ERR_SY_SUP_DEFAULT                     0x00000000
 
-/* DS_A_00_OI :: CTL :: reserved3 [10:08] */
-#define BCHP_DS_A_00_OI_CTL_reserved3_MASK                         0x00000700
-#define BCHP_DS_A_00_OI_CTL_reserved3_SHIFT                        8
+/* DS_A_00_OI :: CTL :: ECO_SPARE_0 [10:08] */
+#define BCHP_DS_A_00_OI_CTL_ECO_SPARE_0_MASK                       0x00000700
+#define BCHP_DS_A_00_OI_CTL_ECO_SPARE_0_SHIFT                      8
+#define BCHP_DS_A_00_OI_CTL_ECO_SPARE_0_DEFAULT                    0x00000000
 
 /* DS_A_00_OI :: CTL :: INV_ERR [07:07] */
 #define BCHP_DS_A_00_OI_CTL_INV_ERR_MASK                           0x00000080
@@ -404,10 +438,15 @@
 #define BCHP_DS_A_00_OI_OUT_BERT_HEADER4_SHIFT                     31
 #define BCHP_DS_A_00_OI_OUT_BERT_HEADER4_DEFAULT                   0x00000000
 
-/* DS_A_00_OI :: OUT :: ECO_SPARE_1 [30:28] */
-#define BCHP_DS_A_00_OI_OUT_ECO_SPARE_1_MASK                       0x70000000
-#define BCHP_DS_A_00_OI_OUT_ECO_SPARE_1_SHIFT                      28
+/* DS_A_00_OI :: OUT :: ECO_SPARE_1 [30:30] */
+#define BCHP_DS_A_00_OI_OUT_ECO_SPARE_1_MASK                       0x40000000
+#define BCHP_DS_A_00_OI_OUT_ECO_SPARE_1_SHIFT                      30
 #define BCHP_DS_A_00_OI_OUT_ECO_SPARE_1_DEFAULT                    0x00000000
+
+/* DS_A_00_OI :: OUT :: MPEG_ERR_CNT_MODE [29:28] */
+#define BCHP_DS_A_00_OI_OUT_MPEG_ERR_CNT_MODE_MASK                 0x30000000
+#define BCHP_DS_A_00_OI_OUT_MPEG_ERR_CNT_MODE_SHIFT                28
+#define BCHP_DS_A_00_OI_OUT_MPEG_ERR_CNT_MODE_DEFAULT              0x00000000
 
 /* DS_A_00_OI :: OUT :: CTL_ERR [27:27] */
 #define BCHP_DS_A_00_OI_OUT_CTL_ERR_MASK                           0x08000000
@@ -434,10 +473,25 @@
 #define BCHP_DS_A_00_OI_OUT_CTL_DATA_SHIFT                         16
 #define BCHP_DS_A_00_OI_OUT_CTL_DATA_DEFAULT                       0x000000ff
 
-/* DS_A_00_OI :: OUT :: ECO_SPARE_0 [15:12] */
-#define BCHP_DS_A_00_OI_OUT_ECO_SPARE_0_MASK                       0x0000f000
-#define BCHP_DS_A_00_OI_OUT_ECO_SPARE_0_SHIFT                      12
+/* DS_A_00_OI :: OUT :: ECO_SPARE_0 [15:15] */
+#define BCHP_DS_A_00_OI_OUT_ECO_SPARE_0_MASK                       0x00008000
+#define BCHP_DS_A_00_OI_OUT_ECO_SPARE_0_SHIFT                      15
 #define BCHP_DS_A_00_OI_OUT_ECO_SPARE_0_DEFAULT                    0x00000000
+
+/* DS_A_00_OI :: OUT :: REVERT_JIRA_267 [14:14] */
+#define BCHP_DS_A_00_OI_OUT_REVERT_JIRA_267_MASK                   0x00004000
+#define BCHP_DS_A_00_OI_OUT_REVERT_JIRA_267_SHIFT                  14
+#define BCHP_DS_A_00_OI_OUT_REVERT_JIRA_267_DEFAULT                0x00000000
+
+/* DS_A_00_OI :: OUT :: FEC_RESYNC_SEL [13:13] */
+#define BCHP_DS_A_00_OI_OUT_FEC_RESYNC_SEL_MASK                    0x00002000
+#define BCHP_DS_A_00_OI_OUT_FEC_RESYNC_SEL_SHIFT                   13
+#define BCHP_DS_A_00_OI_OUT_FEC_RESYNC_SEL_DEFAULT                 0x00000000
+
+/* DS_A_00_OI :: OUT :: REVERT_JIRA_268 [12:12] */
+#define BCHP_DS_A_00_OI_OUT_REVERT_JIRA_268_MASK                   0x00001000
+#define BCHP_DS_A_00_OI_OUT_REVERT_JIRA_268_SHIFT                  12
+#define BCHP_DS_A_00_OI_OUT_REVERT_JIRA_268_DEFAULT                0x00000000
 
 /* DS_A_00_OI :: OUT :: ERR_STATE [11:11] */
 #define BCHP_DS_A_00_OI_OUT_ERR_STATE_MASK                         0x00000800
@@ -467,15 +521,95 @@
 /***************************************************************************
  *MPEG_CNT - OI MPEG Count
  ***************************************************************************/
-/* DS_A_00_OI :: MPEG_CNT :: mpeg_errcnt [31:16] */
-#define BCHP_DS_A_00_OI_MPEG_CNT_mpeg_errcnt_MASK                  0xffff0000
-#define BCHP_DS_A_00_OI_MPEG_CNT_mpeg_errcnt_SHIFT                 16
-#define BCHP_DS_A_00_OI_MPEG_CNT_mpeg_errcnt_DEFAULT               0x00000000
-
-/* DS_A_00_OI :: MPEG_CNT :: mpeg_cnt [15:00] */
-#define BCHP_DS_A_00_OI_MPEG_CNT_mpeg_cnt_MASK                     0x0000ffff
+/* DS_A_00_OI :: MPEG_CNT :: mpeg_cnt [31:00] */
+#define BCHP_DS_A_00_OI_MPEG_CNT_mpeg_cnt_MASK                     0xffffffff
 #define BCHP_DS_A_00_OI_MPEG_CNT_mpeg_cnt_SHIFT                    0
 #define BCHP_DS_A_00_OI_MPEG_CNT_mpeg_cnt_DEFAULT                  0x00000000
+
+/***************************************************************************
+ *FIFO_CTL2 - FIFO control 2
+ ***************************************************************************/
+/* DS_A_00_OI :: FIFO_CTL2 :: THR_MODE [31:31] */
+#define BCHP_DS_A_00_OI_FIFO_CTL2_THR_MODE_MASK                    0x80000000
+#define BCHP_DS_A_00_OI_FIFO_CTL2_THR_MODE_SHIFT                   31
+#define BCHP_DS_A_00_OI_FIFO_CTL2_THR_MODE_DEFAULT                 0x00000001
+
+/* DS_A_00_OI :: FIFO_CTL2 :: BURST_ERR_RESYNC_EN [30:30] */
+#define BCHP_DS_A_00_OI_FIFO_CTL2_BURST_ERR_RESYNC_EN_MASK         0x40000000
+#define BCHP_DS_A_00_OI_FIFO_CTL2_BURST_ERR_RESYNC_EN_SHIFT        30
+#define BCHP_DS_A_00_OI_FIFO_CTL2_BURST_ERR_RESYNC_EN_DEFAULT      0x00000001
+
+/* DS_A_00_OI :: FIFO_CTL2 :: BURST_ERR_STS_CLR [29:29] */
+#define BCHP_DS_A_00_OI_FIFO_CTL2_BURST_ERR_STS_CLR_MASK           0x20000000
+#define BCHP_DS_A_00_OI_FIFO_CTL2_BURST_ERR_STS_CLR_SHIFT          29
+#define BCHP_DS_A_00_OI_FIFO_CTL2_BURST_ERR_STS_CLR_DEFAULT        0x00000000
+
+/* DS_A_00_OI :: FIFO_CTL2 :: FORCE_FIFO_START [28:28] */
+#define BCHP_DS_A_00_OI_FIFO_CTL2_FORCE_FIFO_START_MASK            0x10000000
+#define BCHP_DS_A_00_OI_FIFO_CTL2_FORCE_FIFO_START_SHIFT           28
+#define BCHP_DS_A_00_OI_FIFO_CTL2_FORCE_FIFO_START_DEFAULT         0x00000000
+
+/* DS_A_00_OI :: FIFO_CTL2 :: USE_RDB_LAT [27:27] */
+#define BCHP_DS_A_00_OI_FIFO_CTL2_USE_RDB_LAT_MASK                 0x08000000
+#define BCHP_DS_A_00_OI_FIFO_CTL2_USE_RDB_LAT_SHIFT                27
+#define BCHP_DS_A_00_OI_FIFO_CTL2_USE_RDB_LAT_DEFAULT              0x00000000
+
+/* DS_A_00_OI :: FIFO_CTL2 :: SYNC_DET [26:26] */
+#define BCHP_DS_A_00_OI_FIFO_CTL2_SYNC_DET_MASK                    0x04000000
+#define BCHP_DS_A_00_OI_FIFO_CTL2_SYNC_DET_SHIFT                   26
+#define BCHP_DS_A_00_OI_FIFO_CTL2_SYNC_DET_DEFAULT                 0x00000000
+
+/* DS_A_00_OI :: FIFO_CTL2 :: ECO_SPARE_0 [25:24] */
+#define BCHP_DS_A_00_OI_FIFO_CTL2_ECO_SPARE_0_MASK                 0x03000000
+#define BCHP_DS_A_00_OI_FIFO_CTL2_ECO_SPARE_0_SHIFT                24
+#define BCHP_DS_A_00_OI_FIFO_CTL2_ECO_SPARE_0_DEFAULT              0x00000000
+
+/* DS_A_00_OI :: FIFO_CTL2 :: BURST_CNT_MIN [23:20] */
+#define BCHP_DS_A_00_OI_FIFO_CTL2_BURST_CNT_MIN_MASK               0x00f00000
+#define BCHP_DS_A_00_OI_FIFO_CTL2_BURST_CNT_MIN_SHIFT              20
+#define BCHP_DS_A_00_OI_FIFO_CTL2_BURST_CNT_MIN_DEFAULT            0x00000001
+
+/* DS_A_00_OI :: FIFO_CTL2 :: BURST_CNT_MAX [19:16] */
+#define BCHP_DS_A_00_OI_FIFO_CTL2_BURST_CNT_MAX_MASK               0x000f0000
+#define BCHP_DS_A_00_OI_FIFO_CTL2_BURST_CNT_MAX_SHIFT              16
+#define BCHP_DS_A_00_OI_FIFO_CTL2_BURST_CNT_MAX_DEFAULT            0x00000002
+
+/* DS_A_00_OI :: FIFO_CTL2 :: RD_START_CLK [15:08] */
+#define BCHP_DS_A_00_OI_FIFO_CTL2_RD_START_CLK_MASK                0x0000ff00
+#define BCHP_DS_A_00_OI_FIFO_CTL2_RD_START_CLK_SHIFT               8
+#define BCHP_DS_A_00_OI_FIFO_CTL2_RD_START_CLK_DEFAULT             0x00000000
+
+/* DS_A_00_OI :: FIFO_CTL2 :: RD_START_TS [07:00] */
+#define BCHP_DS_A_00_OI_FIFO_CTL2_RD_START_TS_MASK                 0x000000ff
+#define BCHP_DS_A_00_OI_FIFO_CTL2_RD_START_TS_SHIFT                0
+#define BCHP_DS_A_00_OI_FIFO_CTL2_RD_START_TS_DEFAULT              0x00000043
+
+/***************************************************************************
+ *STATUS2 - OI status2
+ ***************************************************************************/
+/* DS_A_00_OI :: STATUS2 :: RSTU_LATENCY [31:23] */
+#define BCHP_DS_A_00_OI_STATUS2_RSTU_LATENCY_MASK                  0xff800000
+#define BCHP_DS_A_00_OI_STATUS2_RSTU_LATENCY_SHIFT                 23
+#define BCHP_DS_A_00_OI_STATUS2_RSTU_LATENCY_DEFAULT               0x00000000
+
+/* DS_A_00_OI :: STATUS2 :: RD_CNT_CLK_MSB [22:21] */
+#define BCHP_DS_A_00_OI_STATUS2_RD_CNT_CLK_MSB_MASK                0x00600000
+#define BCHP_DS_A_00_OI_STATUS2_RD_CNT_CLK_MSB_SHIFT               21
+#define BCHP_DS_A_00_OI_STATUS2_RD_CNT_CLK_MSB_DEFAULT             0x00000000
+
+/* DS_A_00_OI :: STATUS2 :: reserved0 [20:16] */
+#define BCHP_DS_A_00_OI_STATUS2_reserved0_MASK                     0x001f0000
+#define BCHP_DS_A_00_OI_STATUS2_reserved0_SHIFT                    16
+
+/* DS_A_00_OI :: STATUS2 :: FIFO_MAX [15:08] */
+#define BCHP_DS_A_00_OI_STATUS2_FIFO_MAX_MASK                      0x0000ff00
+#define BCHP_DS_A_00_OI_STATUS2_FIFO_MAX_SHIFT                     8
+#define BCHP_DS_A_00_OI_STATUS2_FIFO_MAX_DEFAULT                   0x00000000
+
+/* DS_A_00_OI :: STATUS2 :: FIFO_MIN [07:00] */
+#define BCHP_DS_A_00_OI_STATUS2_FIFO_MIN_MASK                      0x000000ff
+#define BCHP_DS_A_00_OI_STATUS2_FIFO_MIN_SHIFT                     0
+#define BCHP_DS_A_00_OI_STATUS2_FIFO_MIN_DEFAULT                   0x000000ff
 
 /***************************************************************************
  *BERT_CTL - OI BERT Control Register
@@ -605,6 +739,14 @@
 /* DS_A_00_OI :: BERT_ST :: reserved1 [24:00] */
 #define BCHP_DS_A_00_OI_BERT_ST_reserved1_MASK                     0x01ffffff
 #define BCHP_DS_A_00_OI_BERT_ST_reserved1_SHIFT                    0
+
+/***************************************************************************
+ *MPEG_ERR_CNT - OI MPEG Error Count
+ ***************************************************************************/
+/* DS_A_00_OI :: MPEG_ERR_CNT :: mpeg_errcnt [31:00] */
+#define BCHP_DS_A_00_OI_MPEG_ERR_CNT_mpeg_errcnt_MASK              0xffffffff
+#define BCHP_DS_A_00_OI_MPEG_ERR_CNT_mpeg_errcnt_SHIFT             0
+#define BCHP_DS_A_00_OI_MPEG_ERR_CNT_mpeg_errcnt_DEFAULT           0x00000000
 
 #endif /* #ifndef BCHP_DS_A_00_OI_H__ */
 

@@ -214,13 +214,6 @@ ifeq ($(B_REFSW_OS),linuxkernel)
         $(NEXUS_PLATFORM_COMMON_DIR)/src/support/libgcc/moddi3.c \
         $(NEXUS_PLATFORM_COMMON_DIR)/src/$(B_REFSW_OS)/nexus_driver_arm.c
     endif
-    ifeq ($(findstring aarch64, ${B_REFSW_ARCH}),aarch64)
-    NEXUS_PLATFORM_SOURCES += \
-        $(NEXUS_PLATFORM_COMMON_DIR)/src/support/libgcc/qdivrem.c \
-        $(NEXUS_PLATFORM_COMMON_DIR)/src/support/libgcc/divdi3.c \
-        $(NEXUS_PLATFORM_COMMON_DIR)/src/support/libgcc/moddi3.c \
-        $(NEXUS_PLATFORM_COMMON_DIR)/src/$(B_REFSW_OS)/nexus_driver_arm64.c
-    endif
 
     # Remove warnings for 3rd-party FP code
     NEXUS_PLATFORM_EXTRA_CFLAGS += -w

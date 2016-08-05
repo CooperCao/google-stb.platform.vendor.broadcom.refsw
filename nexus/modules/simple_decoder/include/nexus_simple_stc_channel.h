@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2010-2013 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,6 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  **************************************************************************/
 #ifndef NEXUS_SIMPLE_STC_CHANNEL_H__
 #define NEXUS_SIMPLE_STC_CHANNEL_H__
@@ -93,10 +83,14 @@ Sync channel behavioral modes
 **/
 typedef enum NEXUS_SimpleStcChannelSyncMode
 {
-    NEXUS_SimpleStcChannelSyncMode_eOff, /* Do not perform basic or precision delay equalization. TSM is still performed. Fastest time to a/v presentation, but will not meet several industry a/v sync specs. */
-    NEXUS_SimpleStcChannelSyncMode_eDefaultAdjustmentConcealment, /* Perform basic and possibly precision delay equalization.  Keeps decoders muted to avoid showing adjustment artifacts. Mute time depends on stream muxing and can be up to 10 seconds. */
-    NEXUS_SimpleStcChannelSyncMode_eNoAdjustmentConcealment, /* Perform basic and possibly precision delay equalization.  Does not attempt to conceal adjustment artifacts.  Faster time to a/v presentation, but adjustment artifacts will likely be observable. */
-    NEXUS_SimpleStcChannelSyncMode_eAudioAdjustmentConcealment, /* Perform basic and possibly precision delay equalization. Attempts to conceal audio adjustment artifacts via sample-level adjustments over a long period of time.  Fast time to audio presentation, but A/V sync may not be on target for up to 10 seconds.  */
+    NEXUS_SimpleStcChannelSyncMode_eOff, /* Do not perform basic or precision delay equalization. TSM is still performed. Fastest time to a/v presentation, but
+        will not meet several industry a/v sync specs. */
+    NEXUS_SimpleStcChannelSyncMode_eDefaultAdjustmentConcealment, /* Perform basic and possibly precision delay equalization.  Keeps decoders muted to avoid
+        showing adjustment artifacts. Mute time depends on stream muxing and can be up to 10 seconds. */
+    NEXUS_SimpleStcChannelSyncMode_eNoAdjustmentConcealment, /* Perform basic and possibly precision delay equalization.  Does not attempt to conceal adjustment
+        artifacts.  Faster time to a/v presentation, but adjustment artifacts will likely be observable. */
+    NEXUS_SimpleStcChannelSyncMode_eAudioAdjustmentConcealment, /* Perform basic and possibly precision delay equalization. Attempts to conceal audio adjustment
+        artifacts via sample-level adjustments over a long period of time.  Fast time to audio presentation, but A/V sync may not be on target for up to 10 seconds.  */
     NEXUS_SimpleStcChannelSyncMode_eMax
 } NEXUS_SimpleStcChannelSyncMode;
 
@@ -117,6 +111,8 @@ typedef struct NEXUS_SimpleStcChannelSettings
     bool astm; /* If true, astm is enabled for this decode session. Defaults to false. */
     NEXUS_SimpleStcChannelSyncMode sync; /* Controls path delay equalization (sync_channel) behavior. Defaults to eDefaultAdjustmentConcealment. */
     NEXUS_StcChannelUnderflowHandling underflowHandling; /* select how underflows are handled in NRT mode */
+    NEXUS_Timebase timebase; /* Optional user-owned and configured timebase. Must be opened with NEXUS_Timebase_Open(NEXUS_ANY_ID).
+                                Internal StcChannel will be set to autoConfigTimebase = false. */
 } NEXUS_SimpleStcChannelSettings;
 
 void NEXUS_SimpleStcChannel_GetDefaultSettings(

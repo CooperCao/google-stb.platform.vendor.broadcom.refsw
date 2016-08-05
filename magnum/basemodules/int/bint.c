@@ -651,6 +651,7 @@ static void BINT_P_ExecuteCallback_isr(BINT_Handle intHandle, BINT_P_Callback *c
         BINT_P_Stats_ComputeStats_isr( cbHandle, ulStart, ulEnd );
     }
 #else
+    BSTD_UNUSED (intHandle);
     (*cbHandle->func)( cbHandle->pParm1, cbHandle->parm2 );
 #endif /* BINT_STATS_ENABLE */
     cbHandle->count++;
@@ -1511,6 +1512,12 @@ struct BINT_P_DumpInfoState {
 static void BINT_P_DumpInfo_L2RegList(BINT_Handle intHandle, const struct BINT_P_L2RegisterList *L2RegList, unsigned L1Shift, struct BINT_P_DumpInfoState *state)
 {
     BINT_P_L2Register *L2Reg;
+
+#if BDBG_DEBUG_BUILD
+#else
+    BSTD_UNUSED (intHandle);
+    BSTD_UNUSED (L1Shift);
+#endif
 
     for(L2Reg = BLST_S_FIRST(L2RegList); L2Reg ; L2Reg = BLST_S_NEXT(L2Reg, link)) {
         BINT_P_L2Int *L2Handle;

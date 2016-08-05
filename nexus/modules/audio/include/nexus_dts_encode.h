@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2011 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *  
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,18 +35,10 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF 
 *  ANY LIMITED REMEDY.
 * 
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * API Description:
 *   API name: DtsEncode
 *    Specific APIs related to DTS Audio Encoding
 *
-* Revision History:
-*
-* $brcm_Log: $
-* 
 ***************************************************************************/
 
 #ifndef NEXUS_DTS_ENCODE_H__
@@ -134,7 +126,7 @@ NEXUS_Error NEXUS_DtsEncode_SetSettings(
 Summary:
     Get the audio connector for an DTS Encode stage
 ***************************************************************************/
-NEXUS_AudioInput NEXUS_DtsEncode_GetConnector(
+NEXUS_AudioInputHandle NEXUS_DtsEncode_GetConnector(
     NEXUS_DtsEncodeHandle handle
     );
 
@@ -144,7 +136,7 @@ Add an input to this processing stage
 ***************************************************************************/
 NEXUS_Error NEXUS_DtsEncode_AddInput(
     NEXUS_DtsEncodeHandle handle,
-    NEXUS_AudioInput input
+    NEXUS_AudioInputHandle input
     );
 
 /***************************************************************************
@@ -153,7 +145,7 @@ Remove an input from this processing stage
 ***************************************************************************/
 NEXUS_Error NEXUS_DtsEncode_RemoveInput(
     NEXUS_DtsEncodeHandle handle,
-    NEXUS_AudioInput input
+    NEXUS_AudioInputHandle input
     );
 
 /***************************************************************************
@@ -169,4 +161,3 @@ NEXUS_Error NEXUS_DtsEncode_RemoveAllInputs(
 #endif
 
 #endif /* #ifndef NEXUS_DTS_ENCODE_H__ */
-

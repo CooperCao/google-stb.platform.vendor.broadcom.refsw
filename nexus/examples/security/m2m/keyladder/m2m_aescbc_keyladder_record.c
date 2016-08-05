@@ -41,57 +41,59 @@
  /* Example m2m AES-CBC  encryption  record with keyladder   */
  /* This example makes a pair with  playback using "m2m_aescbc_keyladder_playback.c " */
 
-#if NEXUS_HAS_SECURITY  && (NEXUS_SECURITY_ZEUS_VERSION_MAJOR >= 1) && NEXUS_HAS_VIDEO_DECODER
-
-#include "nexus_platform.h"
-#include "nexus_pid_channel.h"
-#include "nexus_parser_band.h"
-#include "nexus_recpump.h"
-#if NEXUS_HAS_RECORD
-#include "nexus_record.h"
-#endif
-
-#if NEXUS_HAS_PLAYBACK
-#include "nexus_playback.h"
-#include "nexus_file.h"
-#endif
-#include "nexus_dma.h"
-#include "nexus_security.h"
-#include "nexus_keyladder.h"
+#if NEXUS_HAS_SECURITY && NEXUS_HAS_PLAYBACK && NEXUS_HAS_RECORD && (NEXUS_SECURITY_ZEUS_VERSION_MAJOR >= 4) && NEXUS_HAS_VIDEO_DECODER
 
 #include <stdio.h>
-#include "bstd.h"
-#include "bkni.h"
-#include "bkni_multi.h"
-#include <assert.h>
+#include <stdlib.h>
+#include <string.h>
 
-/* A clear stream, or stream with a clear program to be played and recorded to an encrpted stream. */
-#define PLAY_FILE     "/mnt/nfs/video/576i50_2min.ts"
+#include "nexus_security_examples_setups.h"
 
-/* Any location that can be accessed by the STB
- * to record the encrypted stream with a clear program in the above stream. */
-#define RECORDED_FILE "/mnt/nfs/video/recorded_stream_aescbc.mpg"
+/* Input stream file for playback -> record with encryption. */
+#define CLEAR_STREAM_FILE               "videos/576i50_2min.ts";
 
-/* The video pid value and parameters that match a clear pid in PLAY_FILE. */
-#define TRANSPORT_TYPE NEXUS_TransportType_eTs
-#define VIDEO_CODEC NEXUS_VideoCodec_eMpeg2
-#define AUDIO_CODEC NEXUS_AudioCodec_eMpeg
+/* Output stream from record. */
+#define ENCRYPTED_STREAM_FILE           "videos/recorded_m2m_aescbc_keyladder.mpg"
 
-/* The audio pid of the clear program to be recorded and encrypted in PLAY_FILE. */
-#define AUDIO_PID (2317 )
-/* The video pid of the clear program to be recorded and encrypted in PLAY_FILE. */
-#define VIDEO_PID (2316 )
+static int      SecurityExampleSetupM2mKeyladder ( NEXUS_ExampleSecuritySettings * settings,
+                                                   NEXUS_SecurityOperation operation );
 
-static BERR_Code playpump_setup ( NEXUS_VideoDecoderHandle * videoDecoder,
-                                  NEXUS_AudioDecoderHandle * audioDecoder,
-                                  NEXUS_PidChannelHandle * pVideoPidChannel,
-                                  NEXUS_StcChannelHandle * pStcChannel,
-                                  NEXUS_PlaybackHandle * pPlayback, NEXUS_PlaypumpHandle * pPlaypump );
+int main ( void )
+{
+    NEXUS_ExampleSecuritySettings settings;
 
-static int      keySlotSetup ( NEXUS_KeySlotHandle* keyHandle, NEXUS_SecurityOperation operation, NEXUS_SecurityVirtualKeyladderID vklId );
+    /* Nexus platform initilisation. */
+    SecurityExampleInitPlatform ( &settings );
 
-static int Security_AllocateVkl ( NEXUS_SecurityCustomerSubMode custSubMode, NEXUS_SecurityVirtualKeyladderID * vkl,
-                                  NEXUS_VirtualKeyLadderHandle * vklHandle )
+    settings.playfname = CLEAR_STREAM_FILE;
+    SecurityExampleSetupPlayback ( &settings );
+
+    SecurityExampleSetupDecoders ( &settings );
+
+    SecurityExampleSetupPlaybackPidChannels ( &settings );
+
+    settings.recfname = ENCRYPTED_STREAM_FILE;
+    SecurityExampleSetupRecord4Encrpytion ( &settings );
+
+    /* Config M2M encryption. */
+    SecurityExampleSetupM2mKeyladder ( &settings, NEXUS_SecurityOperation_eEncrypt );
+
+    SecurityExampleStartRecord ( &settings );
+    SecurityExampleStartPlayback ( &settings );
+
+    /* Wait for the two seconds */
+    sleep ( 2 );
+    printf ( "Record has been created with file %s. Use playback to inspect on HDMI.\n", ENCRYPTED_STREAM_FILE );
+
+    /* Shutdown the modules and nexus platform. */
+    SecurityExampleShutdown ( &settings );
+
+    return 0;
+}
+
+static int SecurityExampleAllocateVkl ( NEXUS_SecurityCustomerSubMode custSubMode,
+                                        NEXUS_SecurityVirtualKeyladderID * vkl,
+                                        NEXUS_VirtualKeyLadderHandle * vklHandle )
 {
     NEXUS_SecurityVKLSettings vklSettings;
     NEXUS_VirtualKeyLadderInfo vklInfo;
@@ -115,226 +117,21 @@ static int Security_AllocateVkl ( NEXUS_SecurityCustomerSubMode custSubMode, NEX
     NEXUS_Security_GetVKLInfo ( *vklHandle, &vklInfo );
     printf ( "\nVKL Handle %p is allocated for VKL#%d\n", ( void * ) *vklHandle, vklInfo.vkl & 0x7F );
 
-    /* For Zeus 4.2 or later
-     * if ((vklInfo.vkl & 0x7F ) >= NEXUS_SecurityVirtualKeyLadderID_eMax)
-     * {
-     * printf ( "\nAllocate VKL failed with invalid VKL Id.\n" );
-     * return 1;
-     * }
-     */
-
     *vkl = vklInfo.vkl;
 
     return 0;
 }
 
-int main ( void )
+static int SecurityExampleSetupM2mKeyladder ( NEXUS_ExampleSecuritySettings * settings,
+                                              NEXUS_SecurityOperation operation )
 {
-#if (NEXUS_HAS_RECORD  && NEXUS_HAS_PLAYBACK)
-    NEXUS_PlatformSettings platformSettings;
-    NEXUS_FileRecordHandle recordfile;
-    NEXUS_FilePlayHandle playfile;
-    NEXUS_RecpumpOpenSettings recpumpOpenSettings;
-    NEXUS_RecpumpHandle recpump;
-    NEXUS_RecordSettings recordCfg;
-    NEXUS_RecordHandle record;
-
-    NEXUS_VideoDecoderHandle videoDecoder;
-    NEXUS_AudioDecoderHandle audioDecoder;
-
-    NEXUS_StcChannelHandle stcChannel;
     NEXUS_KeySlotHandle keyHandle;
-    NEXUS_SecurityVirtualKeyladderID vklId;
-    NEXUS_VirtualKeyLadderHandle vklHandle;
-
-    NEXUS_PlaypumpHandle playpump;
-
-    NEXUS_PlaybackHandle playback;
-    NEXUS_PidChannelHandle videoPidChannel;
-
-    NEXUS_RecordPidChannelSettings pidSettings;
-
-    const char     *recfname = RECORDED_FILE;
-    const char     *playfname = PLAY_FILE;
-
-    /* No front and AV output are used in the test. */
-    NEXUS_Platform_GetDefaultSettings ( &platformSettings );
-    platformSettings.openFrontend = false;
-    platformSettings.openOutputs = false;
-    platformSettings.openCec = false;
-    NEXUS_Platform_Init ( &platformSettings );
-
-    playfile = NEXUS_FilePlay_OpenPosix ( playfname, NULL );
-    if ( !playfile )
-    {
-        fprintf ( stderr, "can't open file:%s\n", playfname );
-        return -1;
-    }
-
-    /* set up the source */
-    playpump_setup ( &videoDecoder, &audioDecoder, &videoPidChannel, &stcChannel, &playback, &playpump );
-
-    if ( !videoPidChannel )
-    {
-        printf ( "\nError: null video pid channel.\n" );
-        return -1;
-    }
-
-	/* Request for an VKL to use */
-	if ( Security_AllocateVkl ( NEXUS_SecurityCustomerSubMode_eGeneric_CP_128_4, &vklId, &vklHandle ) )
-	{
-		printf ( "\nAllocate VKL failed.\n" );
-		return 1;
-	}
-
-    /* Setup the security */
-    /* Allocate AV keyslots */
-    /* configure the key slot and set up the key ladder for decryption */
-    if ( keySlotSetup ( &keyHandle, NEXUS_SecurityOperation_eEncrypt, vklId ) )
-    {
-        printf ( "\nKeyslot setup for decryption failed \n" );
-        return 1;
-    }
-
-    /* Setup the record */
-    NEXUS_Recpump_GetDefaultOpenSettings ( &recpumpOpenSettings );
-
-    /* set threshold to 30%. with band hold enabled, it is a bandhold threshold. */
-    recpumpOpenSettings.data.dataReadyThreshold = recpumpOpenSettings.data.bufferSize * 3 / 10;
-    recpumpOpenSettings.index.dataReadyThreshold = recpumpOpenSettings.index.bufferSize * 3 / 10;
-    recpump = NEXUS_Recpump_Open ( NEXUS_ANY_ID, &recpumpOpenSettings );
-
-    record = NEXUS_Record_Create (  );
-    NEXUS_Record_GetSettings ( record, &recordCfg );
-    recordCfg.recpump = recpump;
-
-    /* enable bandhold. required for record from playback. */
-    recordCfg.recpumpSettings.bandHold = NEXUS_RecpumpFlowControl_eEnable;
-    NEXUS_Record_SetSettings ( record, &recordCfg );
-
-    recordfile = NEXUS_FileRecord_OpenPosix ( recfname, NULL );
-    if ( !recordfile )
-    {
-        fprintf ( stderr, "can't open file:%s \n", recfname );
-        return -1;
-    }
-
-    NEXUS_Record_GetDefaultPidChannelSettings ( &pidSettings );
-    pidSettings.recpumpSettings.pidType = NEXUS_PidType_eVideo;
-    pidSettings.recpumpSettings.pidTypeSettings.video.index = true;
-    pidSettings.recpumpSettings.pidTypeSettings.video.codec = NEXUS_VideoCodec_eMpeg2;
-    NEXUS_Record_AddPidChannel ( record, videoPidChannel, &pidSettings );
-
-    NEXUS_Record_Start ( record, recordfile );
-
-    /* Start playback */
-    NEXUS_Playback_Start ( playback, playfile, NULL );
-
-    /* Wait for the two seconds for the record of the short stream completes. */
-    sleep ( 2 );
-
-    printf
-        ( "Record has been created with files %s. Use m2m_aescbc_keyladder_playback to inspect the encrypted stream on HDMI.\n",
-          RECORDED_FILE );
-
-    /* Tear down the devices chain */
-    NEXUS_Record_Stop ( record );
-    NEXUS_Record_RemoveAllPidChannels ( record );
-
-    NEXUS_FileRecord_Close ( recordfile );
-    NEXUS_Record_Destroy ( record );
-    NEXUS_Recpump_Close ( recpump );
-
-    NEXUS_Playback_Stop ( playback );
-    NEXUS_Playback_ClosePidChannel ( playback, videoPidChannel );
-    NEXUS_FilePlay_Close ( playfile );
-    NEXUS_Playback_Destroy ( playback );
-    NEXUS_Playpump_Close ( playpump );
-
-    NEXUS_VideoDecoder_Close ( videoDecoder );
-    NEXUS_AudioDecoder_Close ( audioDecoder );
-    NEXUS_StcChannel_Close ( stcChannel );
-
-    NEXUS_Security_FreeKeySlot ( keyHandle );
-    NEXUS_Security_FreeVKL ( vklHandle );
-
-    NEXUS_Platform_Uninit (  );
-
-#else
-    printf ( "This application is not supported on this platform!\n" );
-#endif
-    return 0;
-}
-
-static BERR_Code playpump_setup ( NEXUS_VideoDecoderHandle * videoDecoder,
-                                  NEXUS_AudioDecoderHandle * audioDecoder,
-                                  NEXUS_PidChannelHandle * pVideoPidChannel,
-                                  NEXUS_StcChannelHandle * pStcChannel,
-                                  NEXUS_PlaybackHandle * pPlayback, NEXUS_PlaypumpHandle * pPlaypump )
-{
-    NEXUS_PidChannelHandle videoPidChannel, audioPidChannel;
-
-    NEXUS_StcChannelSettings stcSettings;
-    NEXUS_StcChannelHandle stcChannel;
-
-    NEXUS_PlaypumpHandle playpump;
-    NEXUS_PlaybackHandle playback;
-    NEXUS_PlaybackSettings playbackSettings;
-    NEXUS_PlaybackPidChannelSettings playbackPidSettings;
-
-    /* set up the source */
-    playpump = NEXUS_Playpump_Open ( NEXUS_ANY_ID, NULL );
-    assert ( playpump );
-    playback = NEXUS_Playback_Create (  );
-    assert ( playback );
-
-    NEXUS_StcChannel_GetDefaultSettings ( 0, &stcSettings );
-    stcSettings.timebase = NEXUS_Timebase_e0;
-    stcSettings.mode = NEXUS_StcChannelMode_eAuto;
-    stcChannel = NEXUS_StcChannel_Open ( 0, &stcSettings );
-    *pStcChannel = stcChannel;
-
-    NEXUS_Playback_GetSettings ( playback, &playbackSettings );
-    playbackSettings.playpump = playpump;
-    playbackSettings.playpumpSettings.transportType = TRANSPORT_TYPE;
-
-    playbackSettings.stcChannel = stcChannel;
-    NEXUS_Playback_SetSettings ( playback, &playbackSettings );
-
-    *videoDecoder = NEXUS_VideoDecoder_Open ( 0, NULL );        /* take default capabilities */
-
-    /* Open the audio and video pid channels */
-    NEXUS_Playback_GetDefaultPidChannelSettings ( &playbackPidSettings );
-    playbackPidSettings.pidSettings.pidType = NEXUS_PidType_eVideo;
-    playbackPidSettings.pidTypeSettings.video.codec = VIDEO_CODEC;
-    playbackPidSettings.pidTypeSettings.video.index = true;
-    playbackPidSettings.pidTypeSettings.video.decoder = *videoDecoder;
-
-    /* configure the video pid for indexing */
-    videoPidChannel = NEXUS_Playback_OpenPidChannel ( playback, VIDEO_PID, &playbackPidSettings );
-
-    *audioDecoder = NEXUS_AudioDecoder_Open ( 0, NULL );
-
-    NEXUS_Playback_GetDefaultPidChannelSettings ( &playbackPidSettings );
-    playbackPidSettings.pidSettings.pidType = NEXUS_PidType_eAudio;
-    playbackPidSettings.pidTypeSettings.audio.primary = *audioDecoder;
-    audioPidChannel = NEXUS_Playback_OpenPidChannel ( playback, AUDIO_PID, &playbackPidSettings );
-
-    *pVideoPidChannel = videoPidChannel;
-
-    *pPlayback = playback;
-    *pPlaypump = playpump;
-    return 0;
-}
-
-static int      keySlotSetup ( NEXUS_KeySlotHandle* pKeyHandle, NEXUS_SecurityOperation operation, NEXUS_SecurityVirtualKeyladderID vklId )
-{
-	NEXUS_KeySlotHandle keyHandle;
     NEXUS_SecurityInvalidateKeySettings invSettings;
-	NEXUS_SecurityAlgorithmSettings NexusConfig;
+    NEXUS_SecurityAlgorithmSettings NexusConfig;
     NEXUS_SecurityEncryptedSessionKey encryptedSessionkey;
     NEXUS_SecurityEncryptedControlWord encrytedCW;
     NEXUS_SecurityKeySlotSettings keySettings;
+    NEXUS_SecurityVirtualKeyladderID vklId;
 
     unsigned char   ucProcInForKey3[16] = {
         0x0f, 0x09, 0xa2, 0x06, 0x19, 0x88, 0xb6, 0x89,
@@ -350,23 +147,28 @@ static int      keySlotSetup ( NEXUS_KeySlotHandle* pKeyHandle, NEXUS_SecurityOp
     uint8_t         ivkeys[16] =
         { 0xad, 0xd6, 0x9e, 0xa3, 0x89, 0xc8, 0x17, 0x72, 0x1e, 0xd4, 0x0e, 0xab, 0x3d, 0xbc, 0x7a, 0xf2 };
 
+    /* Request for an VKL to use */
+    if ( SecurityExampleAllocateVkl ( NEXUS_SecurityCustomerSubMode_eGeneric_CP_128_4, &vklId, &settings->vklHandle ) )
+    {
+        printf ( "\nAllocate VKL failed.\n" );
+        return 1;
+    }
+
     NEXUS_Security_GetDefaultKeySlotSettings ( &keySettings );
     keySettings.keySlotEngine = NEXUS_SecurityEngine_eM2m;
     keySettings.keySlotType = NEXUS_SecurityKeySlotType_eType2;
-    keyHandle = NEXUS_Security_AllocateKeySlot ( &keySettings );
-    if ( !keyHandle )
+    settings->videoKeyHandle = NEXUS_Security_AllocateKeySlot ( &keySettings );
+    if ( !settings->videoKeyHandle )
     {
         printf ( "\nAllocate enc keyslot failed \n" );
         return 1;
     }
 
-    *pKeyHandle = keyHandle;
-
     /* Invalidate all the keys. */
     NEXUS_Security_GetDefaultInvalidateKeySettings ( &invSettings );
     invSettings.invalidateAllEntries = true;
     invSettings.invalidateKeyType = NEXUS_SecurityInvalidateKeyFlag_eDestKeyOnly;
-    NEXUS_Security_InvalidateKey ( keyHandle, &invSettings );
+    NEXUS_Security_InvalidateKey ( settings->videoKeyHandle, &invSettings );
 
     /* configure the key slot */
     NEXUS_Security_GetDefaultAlgorithmSettings ( &NexusConfig );
@@ -380,10 +182,10 @@ static int      keySlotSetup ( NEXUS_KeySlotHandle* pKeyHandle, NEXUS_SecurityOp
     NexusConfig.otpId = NEXUS_SecurityOtpId_eOtpVal;
     NexusConfig.key2Select = NEXUS_SecurityKey2Select_eReserved1;
     NexusConfig.operation = operation;
-    NexusConfig.keyDestEntryType = NEXUS_SecurityKeyType_eOdd;
+    NexusConfig.keyDestEntryType = NEXUS_SecurityKeyType_eClear;
     NexusConfig.dest = NEXUS_SecurityAlgorithmConfigDestination_eMem2Mem;
 
-    if ( NEXUS_Security_ConfigAlgorithm ( keyHandle, &NexusConfig ) != 0 )
+    if ( NEXUS_Security_ConfigAlgorithm ( settings->videoKeyHandle, &NexusConfig ) != 0 )
     {
         printf ( "\nConfigAlg clear keyslot failed \n" );
         return 1;
@@ -406,7 +208,7 @@ static int      keySlotSetup ( NEXUS_KeySlotHandle* pKeyHandle, NEXUS_SecurityOp
     encryptedSessionkey.bRouteKey = false;
     encryptedSessionkey.operation = NEXUS_SecurityOperation_eDecrypt;
     encryptedSessionkey.operationKey2 = NEXUS_SecurityOperation_eEncrypt;
-    encryptedSessionkey.keyEntryType = NEXUS_SecurityKeyType_eOdd;
+    encryptedSessionkey.keyEntryType = NEXUS_SecurityKeyType_eClear;
 
     encryptedSessionkey.custSubMode = NEXUS_SecurityCustomerSubMode_eGeneric_CP_128_4;
     encryptedSessionkey.virtualKeyLadderID = vklId;
@@ -415,7 +217,7 @@ static int      keySlotSetup ( NEXUS_KeySlotHandle* pKeyHandle, NEXUS_SecurityOp
 
     BKNI_Memcpy ( encryptedSessionkey.keyData, ucProcInForKey3, sizeof ( ucProcInForKey3 ) );
 
-    if ( NEXUS_Security_GenerateSessionKey ( keyHandle, &encryptedSessionkey ) != 0 )
+    if ( NEXUS_Security_GenerateSessionKey ( settings->videoKeyHandle, &encryptedSessionkey ) != 0 )
     {
         printf ( "\nLoading session key failed \n" );
         return 1;
@@ -426,7 +228,7 @@ static int      keySlotSetup ( NEXUS_KeySlotHandle* pKeyHandle, NEXUS_SecurityOp
 
     encrytedCW.keyladderType = NEXUS_SecurityKeyladderType_e3Des;
     encrytedCW.keySize = sizeof ( ucProcInForKey4 );
-    encrytedCW.keyEntryType = NEXUS_SecurityKeyType_eOdd;
+    encrytedCW.keyEntryType = NEXUS_SecurityKeyType_eClear;
 
     encrytedCW.custSubMode = NEXUS_SecurityCustomerSubMode_eGeneric_CP_128_4;
     encrytedCW.virtualKeyLadderID = vklId;
@@ -441,22 +243,26 @@ static int      keySlotSetup ( NEXUS_KeySlotHandle* pKeyHandle, NEXUS_SecurityOp
     encrytedCW.bASKMMode = false;
     encrytedCW.dest = NEXUS_SecurityAlgorithmConfigDestination_eMem2Mem;
 
-    if ( NEXUS_Security_GenerateControlWord ( keyHandle, &encrytedCW ) )
+    if ( NEXUS_Security_GenerateControlWord ( settings->videoKeyHandle, &encrytedCW ) )
     {
         printf ( "\nGenerate Control Word failed for Key Slot Handle 0x%p\n", keyHandle );
         return 1;
     }
 
+    /* Load IV. */
     NEXUS_Security_GetDefaultClearKey ( &key );
     key.keySize = 16;
-    key.keyEntryType = NEXUS_SecurityKeyType_eOdd;
+    key.keyEntryType = NEXUS_SecurityKeyType_eClear;
     key.keyIVType = NEXUS_SecurityKeyIVType_eIV;
     key.dest = NEXUS_SecurityAlgorithmConfigDestination_eMem2Mem;
     BKNI_Memcpy ( key.keyData, ivkeys, key.keySize );
-    NEXUS_Security_LoadClearKey ( keyHandle, &key );
+    NEXUS_Security_LoadClearKey ( settings->videoKeyHandle, &key );
+
+    /* Add video PID channel to keyslot */
+    BDBG_ASSERT ( settings->videoPidChannel );
+    NEXUS_KeySlot_AddPidChannel ( settings->videoKeyHandle, settings->videoPidChannel );
 
     return ( 0 );
-
 }
 
 #else /* NEXUS_HAS_SECURITY && ... */

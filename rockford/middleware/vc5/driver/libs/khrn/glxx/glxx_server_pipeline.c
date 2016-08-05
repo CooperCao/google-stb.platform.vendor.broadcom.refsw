@@ -49,11 +49,15 @@ static void stage_assign(GLXX_SERVER_STATE_T *state, PIPELINE_STAGE *stage, GL20
    program_assign(state, &stage->program, program);
 }
 
+#if KHRN_GLES31_DRIVER
+
 static void init_pipeline_stages(PIPELINE_STAGE *stage)
 {
    for (int i = 0; i < STAGE_COUNT; ++i)
       stage[i].program = NULL;
 }
+
+#endif
 
 static void free_pipeline_stages(GLXX_SERVER_STATE_T *state, PIPELINE_STAGE *stage)
 {
@@ -127,6 +131,8 @@ GL20_PROGRAM_T *glxx_pipeline_get_active_program(const GLXX_SERVER_STATE_T *stat
 
    return glxx_shared_get_pobject(state->shared, state->pipelines.bound->active_program);
 }
+
+#if KHRN_GLES31_DRIVER
 
 /* Is the pipeline in the map? */
 static GLboolean is_pipeline(GLXX_SERVER_STATE_T *state, GLuint pipeline)
@@ -212,7 +218,7 @@ static void pipeline_object_destroy(GLXX_SERVER_STATE_T *state, GLXX_PIPELINE_T 
 
 GL_APICALL void GL_APIENTRY glGenProgramPipelines(GLsizei n, GLuint *names)
 {
-   GLXX_SERVER_STATE_T *state = GL31_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
 
    uint32_t   start_name;
    GLenum     error = GL_NO_ERROR;
@@ -264,14 +270,14 @@ end:
       glxx_server_state_set_error(state, error);
    }
 
-   GL31_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_APICALL void GL_APIENTRY glUseProgramStages(GLuint pipeline, GLbitfield stages, GLuint program)
 {
    GLenum               error  = GL_NO_ERROR;
    GLXX_PIPELINE_T     *object = NULL;
-   GLXX_SERVER_STATE_T *state  = GL31_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state  = glxx_lock_server_state(OPENGL_ES_3X);
 
    if (state == NULL)
       return;
@@ -295,8 +301,8 @@ GL_APICALL void GL_APIENTRY glUseProgramStages(GLuint pipeline, GLbitfield stage
          GL_VERTEX_SHADER_BIT
       |  GL_FRAGMENT_SHADER_BIT
       |  GL_COMPUTE_SHADER_BIT
-      |  (GLXX_HAS_TESSELLATION ? GL_TESS_CONTROL_SHADER_BIT : 0u)
-      |  (GLXX_HAS_TESSELLATION ? GL_TESS_EVALUATION_SHADER_BIT : 0u)
+      |  (GLXX_HAS_TNG ? GL_TESS_CONTROL_SHADER_BIT : 0u)
+      |  (GLXX_HAS_TNG ? GL_TESS_EVALUATION_SHADER_BIT : 0u)
       |  (GLXX_HAS_TNG ? GL_GEOMETRY_SHADER_BIT : 0u);
    if (stages != GL_ALL_SHADER_BITS && (stages & ~valid_stages) != 0)
    {
@@ -323,11 +329,9 @@ GL_APICALL void GL_APIENTRY glUseProgramStages(GLuint pipeline, GLbitfield stage
       IR_PROGRAM_T *p = program_object->common.linked_glsl_program->ir;
       uint32_t p_stages = 0;
       if (p->stage[SHADER_VERTEX].ir)           p_stages |= GL_VERTEX_SHADER_BIT;
-#if GLXX_HAS_TESSELLATION
+#if GLXX_HAS_TNG
       if (p->stage[SHADER_TESS_CONTROL].ir)     p_stages |= GL_TESS_CONTROL_SHADER_BIT;
       if (p->stage[SHADER_TESS_EVALUATION].ir)  p_stages |= GL_TESS_EVALUATION_SHADER_BIT;
-#endif
-#if GLXX_HAS_TNG
       if (p->stage[SHADER_GEOMETRY].ir)         p_stages |= GL_GEOMETRY_SHADER_BIT;
 #endif
       if (p->stage[SHADER_FRAGMENT].ir)         p_stages |= (GL_FRAGMENT_SHADER_BIT | GL_COMPUTE_SHADER_BIT);
@@ -341,13 +345,11 @@ GL_APICALL void GL_APIENTRY glUseProgramStages(GLuint pipeline, GLbitfield stage
    if (stages & GL_VERTEX_SHADER_BIT)
       stage_assign(state, &object->stage[GRAPHICS_STAGE_VERTEX], program_object);
 
-#if GLXX_HAS_TESSELLATION
+#if GLXX_HAS_TNG
    if (stages & GL_TESS_CONTROL_SHADER_BIT)
       stage_assign(state, &object->stage[GRAPHICS_STAGE_TESS_CONTROL], program_object);
    if (stages & GL_TESS_EVALUATION_SHADER_BIT)
       stage_assign(state, &object->stage[GRAPHICS_STAGE_TESS_EVALUATION], program_object);
-#endif
-#if GLXX_HAS_TNG
    if (stages & GL_GEOMETRY_SHADER_BIT)
       stage_assign(state, &object->stage[GRAPHICS_STAGE_GEOMETRY], program_object);
 #endif
@@ -362,7 +364,7 @@ end:
    if (error != GL_NO_ERROR)
       glxx_server_state_set_error(state, error);
 
-   GL31_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 
@@ -370,7 +372,7 @@ GL_APICALL void GL_APIENTRY glActiveShaderProgram(GLuint pipeline, GLuint progra
 {
    GLenum               error           = GL_NO_ERROR;
    GLXX_PIPELINE_T     *pipeline_object = NULL;
-   GLXX_SERVER_STATE_T *state           = GL31_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state           = glxx_lock_server_state(OPENGL_ES_3X);
 
    if (state == NULL)
       return;
@@ -402,14 +404,14 @@ end:
    if (error != GL_NO_ERROR)
       glxx_server_state_set_error(state, error);
 
-   GL31_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_APICALL void GL_APIENTRY glBindProgramPipeline(GLuint pipeline)
 {
    GLenum               error  = GL_NO_ERROR;
    GLXX_PIPELINE_T      *po    = NULL;
-   GLXX_SERVER_STATE_T  *state = GL31_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T  *state = glxx_lock_server_state(OPENGL_ES_3X);
 
    if (state == NULL)
       return;
@@ -428,13 +430,13 @@ end:
    if (error != GL_NO_ERROR)
       glxx_server_state_set_error(state, error);
 
-   GL31_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_APICALL void GL_APIENTRY glDeleteProgramPipelines(GLsizei n, const GLuint *pipelines)
 {
    GLenum                error   = GL_NO_ERROR;
-   GLXX_SERVER_STATE_T  *state   = GL31_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T  *state   = glxx_lock_server_state(OPENGL_ES_3X);
 
    if (state == NULL)
       return;
@@ -474,13 +476,13 @@ end:
    if (error != GL_NO_ERROR)
       glxx_server_state_set_error(state, error);
 
-   GL31_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_APICALL GLboolean GL_APIENTRY glIsProgramPipeline(GLuint pipeline)
 {
    GLboolean            isPipeline = GL_FALSE;
-   GLXX_SERVER_STATE_T *state      = GL31_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state      = glxx_lock_server_state(OPENGL_ES_3X);
 
    if (state == NULL)
       return false;
@@ -488,7 +490,7 @@ GL_APICALL GLboolean GL_APIENTRY glIsProgramPipeline(GLuint pipeline)
    if (pipeline != 0)
       isPipeline = is_pipeline(state, pipeline);
 
-   GL31_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 
    return isPipeline;
 }
@@ -496,7 +498,7 @@ GL_APICALL GLboolean GL_APIENTRY glIsProgramPipeline(GLuint pipeline)
 GL_APICALL void GL_APIENTRY glGetProgramPipelineiv(GLuint pipeline, GLenum pname, GLint *params)
 {
    GLenum               error  = GL_NO_ERROR;
-   GLXX_SERVER_STATE_T *state  = GL31_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state  = glxx_lock_server_state(OPENGL_ES_3X);
 
    if (state == NULL)
       return;
@@ -533,8 +535,7 @@ GL_APICALL void GL_APIENTRY glGetProgramPipelineiv(GLuint pipeline, GLenum pname
      break;
 
    case GL_COMPUTE_SHADER:
-      if (object->stage[COMPUTE_STAGE_COMPUTE].program != NULL)
-         *params = object->stage[COMPUTE_STAGE_COMPUTE].program->name;
+      *params = object->stage[COMPUTE_STAGE_COMPUTE].program != NULL ? object->stage[COMPUTE_STAGE_COMPUTE].program->name : 0;
       break;
 
    default:
@@ -546,8 +547,10 @@ end:
    if (error != GL_NO_ERROR)
       glxx_server_state_set_error(state, error);
 
-   GL31_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
+
+#endif
 
 static GLSL_INOUT_T *find_var_index(GLSL_INOUT_T *iface, unsigned count, int index) {
    for (unsigned i=0; i<count; i++) {
@@ -670,7 +673,7 @@ void adjust_fragment_maps(IR_PROGRAM_T *ir, GLSL_PROGRAM_T *glsl_vprog, GLSL_PRO
       return;
 
    unsigned outIndex = 0;
-   unsigned outIndexMap[GFX_MAX(SLANG_MAX_NUM_ATTRIBUTES, GLXX_CONFIG_MAX_VARYING_SCALARS)];
+   unsigned outIndexMap[GFX_MAX(GLXX_CONFIG_MAX_VERTEX_ATTRIBS*4, GLXX_CONFIG_MAX_VARYING_SCALARS)];
 
    for (unsigned i = 0; i < glsl_vprog->num_outputs; ++i) {
       GLSL_INOUT_T *out = &glsl_vprog->outputs[i];
@@ -785,8 +788,8 @@ static void calculate_ordinals(int *ordinal_map, GLSL_INOUT_T *inouts, unsigned 
 }
 
 static bool validate_in_out_interface(GLSL_INOUT_T *outs, unsigned num_outs, GLSL_INOUT_T *ins, unsigned num_ins) {
-   int   in_ordinal[GFX_MAX(SLANG_MAX_NUM_ATTRIBUTES, GLXX_CONFIG_MAX_VARYING_SCALARS)];
-   int   out_ordinal[GFX_MAX(SLANG_MAX_NUM_ATTRIBUTES, GLXX_CONFIG_MAX_VARYING_SCALARS)];
+   int  in_ordinal[GFX_MAX(GLXX_CONFIG_MAX_VERTEX_ATTRIBS*4, GLXX_CONFIG_MAX_VARYING_SCALARS)];
+   int out_ordinal[GFX_MAX(GLXX_CONFIG_MAX_VERTEX_ATTRIBS*4, GLXX_CONFIG_MAX_VARYING_SCALARS)];
 
    calculate_ordinals(in_ordinal, ins, num_ins);
    calculate_ordinals(out_ordinal, outs, num_outs);
@@ -933,11 +936,13 @@ bool glxx_pipeline_create_compute_common(GLXX_PIPELINE_T *p) {
    return true;
 }
 
+#if KHRN_GLES31_DRIVER
+
 GL_APICALL void GL_APIENTRY glValidateProgramPipeline(GLuint pipeline)
 {
    /* Check its a real pipeline and then validate the shader combinations */
    GLenum               error  = GL_NO_ERROR;
-   GLXX_SERVER_STATE_T *state  = GL31_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state  = glxx_lock_server_state(OPENGL_ES_3X);
    GLXX_PIPELINE_T     *object = NULL;
 
    if (state == NULL)
@@ -958,7 +963,7 @@ end:
    if (error != GL_NO_ERROR)
       glxx_server_state_set_error(state, error);
 
-   GL31_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 /*
@@ -986,7 +991,7 @@ static size_t strzncpy(char *dst, const char *src, size_t len)
 GL_APICALL void GL_APIENTRY glGetProgramPipelineInfoLog(GLuint pipeline, GLsizei bufSize, GLsizei *length, GLchar *infoLog)
 {
    GLenum               error  = GL_NO_ERROR;
-   GLXX_SERVER_STATE_T *state  = GL31_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state  = glxx_lock_server_state(OPENGL_ES_3X);
    GLXX_PIPELINE_T     *object = NULL;
 
    if (state == NULL)
@@ -1012,11 +1017,13 @@ GL_APICALL void GL_APIENTRY glGetProgramPipelineInfoLog(GLuint pipeline, GLsizei
    }
 
    if (length)
-      *length = MAX(0, (GLsizei)chars);
+      *length = gfx_smax(0, (GLsizei)chars);
 
 end:
    if (error != GL_NO_ERROR)
       glxx_server_state_set_error(state, error);
 
-   GL31_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
+
+#endif

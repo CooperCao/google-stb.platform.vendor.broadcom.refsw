@@ -14,7 +14,6 @@ FILE DESCRIPTION
 #include "khrn_options.h"
 #include "libs/util/gfx_util/gfx_util.h"
 #include "libs/core/gfx_buffer/gfx_buffer_slow_conv.h"
-#include "libs/core/lfmt/lfmt_translate_v3d.h"
 #include "libs/core/v3d/v3d_tfu.h"
 #include "libs/platform/gmem.h"
 #include "khrn_fence.h"
@@ -138,7 +137,8 @@ bool khrn_image_match_fmt_and_dim(const KHRN_IMAGE_T *img1,
 
    if (desc1->width != desc2->width ||
        desc1->height != desc2->height ||
-       khrn_image_get_depth(img1) != khrn_image_get_depth(img2))
+       khrn_image_get_depth(img1) != khrn_image_get_depth(img2) ||
+       khrn_image_get_num_elems(img1) != khrn_image_get_num_elems(img2))
       return false;
 
    return true;
@@ -159,8 +159,8 @@ bool khrn_image_is_miplevel(const KHRN_IMAGE_T *img1,
 
    if( desc1->width != gfx_umax(desc2->width >> mip_level, 1) ||
        desc1->height != gfx_umax(desc2->height >> mip_level, 1) ||
-       khrn_image_get_depth(img1) !=
-       gfx_umax(khrn_image_get_depth(img2) >> mip_level, 1))
+       khrn_image_get_depth(img1) != gfx_umax(khrn_image_get_depth(img2) >> mip_level, 1) ||
+       khrn_image_get_num_elems(img1) != khrn_image_get_num_elems(img2))
       return false;
 
    return true;
@@ -213,7 +213,7 @@ static void begin_imgconv(struct v3d_imgconv_gmem_tgt *tgt,
    }
 
    desc = &img->blob->desc[img->level];
-   v3d_imgconv_init_gmem_tgt(tgt, img->blob->res_i->handle, &deps, desc, x, y,
+   v3d_imgconv_init_gmem_tgt(tgt, img->blob->res_i->handle, 0, &deps, desc, x, y,
       img->start_slice + z, img->start_elem + start_elem,
       img->blob->array_pitch);
 }
@@ -221,9 +221,6 @@ static void begin_imgconv(struct v3d_imgconv_gmem_tgt *tgt,
 static void end_imgconv(const KHRN_IMAGE_T *img, bool success,
       KHRN_FENCE_T *fence, bool write, uint64_t job_id)
 {
-   KHRN_RES_INTERLOCK_T *res_i;
-   res_i = khrn_image_get_res_interlock(img);
-
    v3d_scheduler_deps deps;
    deps.n = 0;
 
@@ -235,10 +232,11 @@ static void end_imgconv(const KHRN_IMAGE_T *img, bool success,
          khrn_fence_job_add(fence, job_id);
    }
 
+   KHRN_INTERLOCK_T *interlock = khrn_image_get_interlock(img);
    if (write)
-      khrn_interlock_end_submit_writer_jobs(&res_i->interlock, success, &deps);
+      khrn_interlock_end_submit_writer_jobs(interlock, success, &deps);
    else
-      khrn_interlock_end_submit_reader_jobs(&res_i->interlock, success, &deps);
+      khrn_interlock_end_submit_reader_jobs(interlock, success, &deps);
 }
 
 bool khrn_image_copy_from_ptr_tgt(KHRN_IMAGE_T *dst,
@@ -466,8 +464,7 @@ bool khrn_image_generate_mipmaps_tfu(KHRN_IMAGE_T* src_image,
    }
 
    V3D_TFU_COMMAND_T tfu_cmd;
-   if (!v3d_build_tfu_cmd(&tfu_cmd, src_desc, dst_desc, num_dst_levels,
-            skip_dst_level_0, 0, 0, khrn_get_v3d_version()))
+   if (!v3d_build_tfu_cmd(&tfu_cmd, src_desc, dst_desc, num_dst_levels, skip_dst_level_0, 0, 0))
       return false;;
 
    // Create a struct to hold sync/lock lists.
@@ -627,45 +624,6 @@ void khrn_image_get_fmts(const KHRN_IMAGE_T *img,
    khrn_image_get_lfmts(img, fmts, num_planes);
    for (unsigned i = 0; i != *num_planes; ++i)
       fmts[i] = gfx_lfmt_fmt(fmts[i]);
-}
-
-KHRN_RES_INTERLOCK_T* khrn_image_get_res_interlock(const KHRN_IMAGE_T *img)
-{
-   return img->blob->res_i;
-}
-
-void khrn_image_translate_rcfg_color(const KHRN_IMAGE_T *img,
-   unsigned plane, unsigned frame_width, unsigned frame_height,
-   GFX_BUFFER_RCFG_COLOR_TRANSLATION_T *t)
-{
-   const GFX_BUFFER_DESC_T *desc = &img->blob->desc[img->level];
-   assert(img->num_slices == 1);
-
-   gfx_buffer_translate_rcfg_color(t, desc, plane, img->start_slice,frame_width, frame_height);
-   if (khrn_options.use_rgba5551_am &&
-       (t->pixel_format == V3D_PIXEL_FORMAT_A1_BGR5))
-      t->pixel_format = V3D_PIXEL_FORMAT_A1_BGR5_AM;
-}
-
-v3d_memory_format_t khrn_image_translate_memory_format(const KHRN_IMAGE_T *img,
-      unsigned plane)
-{
-   const GFX_BUFFER_DESC_T *desc = &img->blob->desc[img->level];
-   return gfx_buffer_translate_memory_format(desc, plane, img->start_slice);
-}
-
-unsigned khrn_image_maybe_uif_height_in_ub(const KHRN_IMAGE_T *img,
-      unsigned plane)
-{
-   const GFX_BUFFER_DESC_T *desc = &img->blob->desc[img->level];
-   return gfx_buffer_maybe_uif_height_in_ub(desc, plane);
-}
-
-unsigned khrn_image_uif_height_in_ub(const KHRN_IMAGE_T *img,
-      unsigned plane)
-{
-   const GFX_BUFFER_DESC_T *desc = &img->blob->desc[img->level];
-   return gfx_buffer_uif_height_in_ub(desc, plane);
 }
 
 unsigned khrn_image_get_offset(const KHRN_IMAGE_T *img,

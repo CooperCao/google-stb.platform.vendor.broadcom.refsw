@@ -20,7 +20,7 @@ LOCAL_PATH := $(V3D_DRIVER_TOP)
 LOCAL_C_INCLUDES := \
 	$(ROCKFORD_TOP)/middleware/vc5/driver/ \
 	$(ROCKFORD_TOP)/middleware/vc5/driver/interface/khronos/include/ \
-	$(ROCKFORD_TOP)/middleware/vc5/driver/libs/core/vcos/pthreads/ \
+	$(ROCKFORD_TOP)/middleware/vc5/driver/libs/core/vcos/posix/ \
 	$(ROCKFORD_TOP)/middleware/vc5/driver/libs/core/vcos/generic/ \
 	$(ROCKFORD_TOP)/middleware/vc5/driver/libs/core/vcos/include/ \
 	$(ROCKFORD_TOP)/middleware/vc5/driver/libs/core/vcos/ \
@@ -66,6 +66,12 @@ else
 LOCAL_CFLAGS_arm += ${V3D_ANDROID_DEFINES_1ST_ARCH}
 LOCAL_LDFLAGS_arm := ${V3D_ANDROID_LD_1ST_ARCH}
 endif
+
+# Bind references to global functions to the definitions within the khronos
+# library. This in particular means eglGetProcAddress will always return the
+# khronos library function pointers, even if a GL wrapper library is in
+# LD_PRELOAD.
+LOCAL_LDFLAGS += -Wl,-Bsymbolic-functions
 
 PROFILING = 0
 # Set FULL_DEBUG to build without the optimizer
@@ -129,250 +135,10 @@ LOCAL_CFLAGS += \
 	-Wno-sign-compare \
 	-Wno-clobbered
 
+include $(V3D_DRIVER_TOP)/driver/common.mk
+
 LOCAL_SRC_FILES := \
-	driver/libs/khrn/common/khrn_int_hash.c \
-	driver/libs/khrn/common/khrn_options.c \
-	driver/libs/khrn/glxx/glxx_client_skin.c \
-	driver/libs/util/dglenum/dglenum.c \
-	driver/libs/util/log/log.c \
-	driver/libs/khrn/common/khrn_fmem.c \
-	driver/libs/khrn/common/khrn_fmem_pool.c \
-	driver/libs/khrn/common/khrn_fmem_debug_info.c \
-	driver/libs/khrn/common/khrn_counters.c \
-	driver/libs/khrn/common/khrn_event_monitor.c \
-	driver/libs/khrn/common/khrn_render_state.c \
-	driver/libs/khrn/common/khrn_blob.c \
-	driver/libs/khrn/common/khrn_image.c \
-	driver/libs/khrn/common/khrn_image_plane.c \
-	driver/libs/khrn/common/khrn_interlock.c \
-	driver/libs/khrn/common/khrn_map.c \
-	driver/libs/khrn/common/khrn_res_interlock.c \
-	driver/libs/khrn/common/khrn_mem.c \
-	driver/libs/khrn/common/khrn_process.c \
-	driver/libs/khrn/common/khrn_process_debug.c \
-	driver/libs/khrn/common/khrn_tformat.c \
-	driver/libs/khrn/common/khrn_uintptr_vector.c \
-	driver/libs/khrn/common/khrn_synclist.c \
-	driver/libs/khrn/common/khrn_fence.c \
-	driver/libs/khrn/common/khrn_timeline.c \
-	driver/libs/khrn/common/khrn_record.c \
-	driver/libs/khrn/egl/egl_attrib_list.c \
-	driver/libs/khrn/egl/egl_config.c \
-	driver/libs/khrn/egl/egl_context_base.c \
-	driver/libs/khrn/egl/egl_context.c \
-	driver/libs/khrn/egl/egl_context_gl.c \
-	driver/libs/khrn/egl/egl_display.c \
-	driver/libs/khrn/egl/egl_map.c \
-	driver/libs/khrn/egl/egl_pbuffer_surface.c \
-	driver/libs/khrn/egl/egl_process.c \
-	driver/libs/khrn/egl/egl_surface_base.c \
-	driver/libs/khrn/egl/egl_surface.c \
-	driver/libs/khrn/egl/egl_thread.c \
-	driver/libs/khrn/egl/egl_image.c \
-	driver/libs/khrn/egl/egl_image_texture.c \
-	driver/libs/khrn/egl/egl_image_renderbuffer.c \
-	driver/libs/khrn/egl/egl_image_framebuffer.c \
-	driver/libs/khrn/egl/egl_sync.c \
-	driver/libs/khrn/egl/egl_synckhr.c \
-	driver/libs/khrn/egl/egl_proc_address.c \
-	driver/libs/khrn/egl/egl_platform.c \
-	driver/libs/khrn/ext/egl_brcm_perf_counters.c \
-	driver/libs/khrn/ext/egl_brcm_event_monitor.c \
-	driver/libs/khrn/ext/gl_brcm_base_instance.c \
-	driver/libs/khrn/ext/gl_brcm_multi_draw_indirect.c \
-	driver/libs/khrn/ext/gl_brcm_texture_1d.c \
-	driver/libs/khrn/ext/gl_brcm_polygon_mode.c \
-	driver/libs/khrn/ext/gl_brcm_provoking_vertex.c \
-	driver/libs/khrn/ext/gl_ext_draw_elements_base_vertex.c \
-	driver/libs/khrn/ext/gl_ext_robustness.c \
-	driver/libs/khrn/ext/gl_oes_draw_texture.c \
-	driver/libs/khrn/ext/gl_oes_map_buffer.c \
-	driver/libs/khrn/ext/gl_oes_matrix_palette.c \
-	driver/libs/khrn/ext/gl_oes_query_matrix.c \
-	driver/libs/khrn/ext/gl_khr_debug.c \
-	driver/libs/khrn/ext/gl_khr_debug_msgs.c \
-	driver/libs/khrn/gl11/gl11_client.c \
-	driver/libs/khrn/gl11/gl11_shader.c \
-	driver/libs/khrn/gl11/gl11_vshader.c \
-	driver/libs/khrn/gl11/gl11_fshader.c \
-	driver/libs/khrn/gl11/gl11_shadercache.c \
-	driver/libs/khrn/gl11/gl11_matrix.c \
-	driver/libs/khrn/gl11/gl11_server.c \
-	driver/libs/khrn/gl11/gl11_draw.c \
-	driver/libs/khrn/gl11/gl_oes_framebuffer_object.c \
-	driver/libs/khrn/gl20/gl20_program.c \
-	driver/libs/khrn/gl20/gl20_server.c \
-	driver/libs/khrn/gl20/gl20_shader.c \
-	driver/libs/khrn/glsl/glsl_unique_index_queue.c \
-	driver/libs/khrn/glsl/glsl_uniform_layout.c \
-	driver/libs/khrn/glsl/glsl_symbols.c \
-	driver/libs/khrn/glsl/glsl_symbol_table.c \
-	driver/libs/khrn/glsl/glsl_stringbuilder.c \
-	driver/libs/khrn/glsl/glsl_stackmem.c \
-	driver/libs/khrn/glsl/glsl_source.c \
-	driver/libs/khrn/glsl/glsl_shader_interfaces.c \
-	driver/libs/khrn/glsl/glsl_scoped_map.c \
-	driver/libs/khrn/glsl/glsl_safemem.c \
-	driver/libs/khrn/glsl/glsl_program.c \
-	driver/libs/khrn/glsl/glsl_precision.c \
-	driver/libs/khrn/glsl/glsl_map.c \
-	driver/libs/khrn/glsl/glsl_layout.c \
-	driver/libs/khrn/glsl/glsl_layout.auto.c \
-	driver/libs/khrn/glsl/glsl_ir_shader.c \
-	driver/libs/khrn/glsl/glsl_ir_program.c \
-	driver/libs/khrn/glsl/glsl_intrinsic_lookup.auto.c \
-	driver/libs/khrn/glsl/glsl_intrinsic_ir_builder.c \
-	driver/libs/khrn/glsl/glsl_intrinsic.c \
-	driver/libs/khrn/glsl/glsl_intern.c \
-	driver/libs/khrn/glsl/glsl_globals.c \
-	driver/libs/khrn/glsl/glsl_file_utils.c \
-	driver/libs/khrn/glsl/glsl_fastmem.c \
-	driver/libs/khrn/glsl/glsl_extensions.c \
-	driver/libs/khrn/glsl/glsl_errors.c \
-	driver/libs/khrn/glsl/glsl_dataflow_visitor.c \
-	driver/libs/khrn/glsl/glsl_dataflow_simplify.c \
-	driver/libs/khrn/glsl/glsl_dataflow_print.c \
-	driver/libs/khrn/glsl/glsl_dataflow_builder.c \
-	driver/libs/khrn/glsl/glsl_dataflow_cse.c \
-	driver/libs/khrn/glsl/glsl_dataflow.c \
-	driver/libs/khrn/glsl/glsl_dataflow_image.c \
-	driver/libs/khrn/glsl/glsl_linker.c \
-	driver/libs/khrn/glsl/glsl_compiler.c \
-	driver/libs/khrn/glsl/glsl_check.c \
-	driver/libs/khrn/glsl/glsl_builders.c \
-	driver/libs/khrn/glsl/glsl_binary_shader.c \
-	driver/libs/khrn/glsl/glsl_binary_program.c \
-	driver/libs/khrn/glsl/glsl_backflow_visitor.c \
-	driver/libs/khrn/glsl/glsl_backflow_print.c \
-	driver/libs/khrn/glsl/glsl_backflow.c \
-	driver/libs/khrn/glsl/glsl_backflow_combine.c \
-	driver/libs/khrn/glsl/glsl_backend.c \
-	driver/libs/khrn/glsl/glsl_ast_visitor.c \
-	driver/libs/khrn/glsl/glsl_ast_print.c \
-	driver/libs/khrn/glsl/glsl_ast.c \
-	driver/libs/khrn/glsl/glsl_arenamem.c \
-	driver/libs/khrn/glsl/glsl_alloc_tracker.c \
-	driver/libs/khrn/glsl/glsl_stdlib.auto.c \
-	driver/libs/khrn/glsl/glsl_primitive_types.auto.c \
-	driver/libs/khrn/glsl/glsl_basic_block.c \
-	driver/libs/khrn/glsl/glsl_basic_block_builder.c \
-	driver/libs/khrn/glsl/glsl_basic_block_flatten.c \
-	driver/libs/khrn/glsl/glsl_basic_block_print.c \
-	driver/libs/khrn/glsl/glsl_nast.c \
-	driver/libs/khrn/glsl/glsl_nast_builder.c \
-	driver/libs/khrn/glsl/glsl_nast_print.c \
-	driver/libs/khrn/glsl/glsl_dominators.c \
-	driver/libs/khrn/glsl/glsl_scheduler.c \
-	driver/libs/khrn/glsl/glsl_quals.c \
-	driver/libs/khrn/glsl/glsl_parser.c \
-	driver/libs/khrn/glsl/glsl_lexer.c \
-	driver/libs/khrn/glsl/glsl_numbers.c \
-	driver/libs/khrn/glsl/glsl_version.c \
-	driver/libs/khrn/glsl/prepro/glsl_prepro_directive.c \
-	driver/libs/khrn/glsl/prepro/glsl_prepro_eval.c \
-	driver/libs/khrn/glsl/prepro/glsl_prepro_expand.c \
-	driver/libs/khrn/glsl/prepro/glsl_prepro_token.c \
-	driver/libs/khrn/glsl/prepro/glsl_prepro_macro.c \
-	driver/libs/khrn/glxx/gl32_stubs.c \
-	driver/libs/khrn/glxx/glxx_ez.c \
-	driver/libs/khrn/glxx/glxx_hw.c \
-	driver/libs/khrn/glxx/glxx_inner.c \
-	driver/libs/khrn/glxx/glxx_shader_ops.c \
-	driver/libs/khrn/glxx/glxx_shader.c \
-	driver/libs/khrn/glxx/glxx_hw_tile_list.c \
-	driver/libs/khrn/glxx/glxx_hw_clear.c \
-	driver/libs/khrn/glxx/glxx_hw_render_state.c \
-	driver/libs/khrn/glxx/glxx_buffer.c \
-	driver/libs/khrn/glxx/glxx_ds_to_color.c \
-	driver/libs/khrn/glxx/glxx_draw.c \
-	driver/libs/khrn/glxx/glxx_extensions.c \
-	driver/libs/khrn/glxx/glxx_framebuffer.c \
-	driver/libs/khrn/glxx/glxx_renderbuffer.c \
-	driver/libs/khrn/glxx/glxx_server.c \
-	driver/libs/khrn/glxx/glxx_server_barrier.c \
-	driver/libs/khrn/glxx/glxx_server_debug.c \
-	driver/libs/khrn/glxx/glxx_textures.c \
-	driver/libs/khrn/glxx/glxx_server_texture.c \
-	driver/libs/khrn/glxx/glxx_server_buffer.c \
-	driver/libs/khrn/glxx/glxx_query.c \
-	driver/libs/khrn/glxx/glxx_server_query.c \
-	driver/libs/khrn/glxx/glxx_server_get.c \
-	driver/libs/khrn/glxx/glxx_server_framebuffer.c \
-	driver/libs/khrn/glxx/glxx_server_transform_feedback.c \
-	driver/libs/khrn/glxx/glxx_server_vao.c \
-	driver/libs/khrn/glxx/glxx_server_sampler.c \
-	driver/libs/khrn/glxx/glxx_server_pipeline.c \
-	driver/libs/khrn/glxx/glxx_server_sync.c \
-	driver/libs/khrn/glxx/glxx_server_program_interface.c \
-	driver/libs/khrn/glxx/glxx_shader_cache.c \
-	driver/libs/khrn/glxx/glxx_shared.c \
-	driver/libs/khrn/glxx/glxx_compressed_paletted_texture.c \
-	driver/libs/khrn/glxx/glxx_texture.c \
-	driver/libs/khrn/glxx/glxx_texture_utils.c \
-	driver/libs/khrn/glxx/glxx_fencesync.c \
-	driver/libs/khrn/glxx/glxx_tmu_blit.c \
-	driver/libs/khrn/glxx/glxx_tlb_blit.c \
-	driver/libs/khrn/glxx/glxx_utils.c \
-	driver/libs/khrn/glxx/glxx_compute.c \
-	driver/libs/khrn/glxx/glxx_texlevel_param.c \
-	driver/libs/khrn/glxx/glxx_image_unit.c \
-	driver/libs/util/desc_map/desc_map.c \
-	driver/libs/util/gfx_util/gfx_util_morton.c \
-	driver/libs/util/gfx_util/gfx_util_hrsize.c \
-	driver/libs/util/gfx_util/gfx_util_file.c \
-	driver/libs/util/gfx_util/gfx_util.c \
-	driver/libs/util/gfx_util/gfx_util_term_col.c \
-	driver/libs/util/gfx_util/gfx_util_wildcard.c \
-	driver/libs/util/gfx_options/gfx_options.c \
-	driver/libs/core/lfmt/lfmt_translate_v3d.c \
-	driver/libs/core/lfmt/lfmt_fmt_detail.c \
-	driver/libs/core/lfmt/lfmt.c \
-	driver/libs/core/lfmt/lfmt_block.c \
-	driver/libs/core/lfmt/lfmt_desc.c \
-	driver/libs/core/lfmt/lfmt_desc_maps.c \
-	driver/libs/core/lfmt_translate_gl/lfmt_translate_gl.c \
-	driver/libs/core/gfx_buffer/gfx_buffer_v3d_tfu_srgb_conversions.c \
-	driver/libs/core/gfx_buffer/gfx_buffer_uif_config.c \
-	driver/libs/core/gfx_buffer/gfx_buffer_translate_v3d.c \
-	driver/libs/core/gfx_buffer/gfx_buffer_compare.c \
-	driver/libs/core/gfx_buffer/gfx_buffer_bc.c \
-	driver/libs/core/gfx_buffer/gfx_buffer.c \
-	driver/libs/core/gfx_buffer/gfx_buffer_bstc.c \
-	driver/libs/core/gfx_buffer/gfx_buffer_desc_gen.c \
-	driver/libs/core/gfx_buffer/gfx_buffer_slow_conv_compr.c \
-	driver/libs/core/gfx_buffer/gfx_buffer_slow_conv_xform.c \
-	driver/libs/core/gfx_buffer/gfx_buffer_slow_conv.c \
-	driver/libs/util/gfx_args/gfx_args.c \
-	driver/libs/core/v3d/v3d_cl.c \
-	driver/libs/core/v3d/v3d_gen.c \
-	driver/libs/core/v3d/v3d_ident.c \
-	driver/libs/core/v3d/v3d_printer.c \
-	driver/libs/core/v3d/v3d_cl_compr.c \
-	driver/libs/core/v3d/v3d_tfu.c \
-	driver/libs/core/v3d/v3d_tmu.c \
-	driver/libs/platform/v3d_imgconv.c \
-	driver/libs/platform/v3d_imgconv_c.c \
-	driver/libs/platform/v3d_imgconv_neon.c \
-	driver/libs/platform/v3d_imgconv_extra_neon.c \
-	driver/libs/platform/v3d_imgconv_gfx_blit.c \
-	driver/libs/platform/v3d_scheduler.c \
-	driver/libs/platform/v3d_imgconv_tfu.c \
-	driver/libs/platform/v3d_imgconv_tlb.c \
-	driver/libs/platform/v3d_parallel.c \
-	driver/libs/platform/bcg_abstract/gmem_abstract.c \
-	driver/libs/platform/bcg_abstract/gmem_talloc.c \
-	driver/libs/platform/bcg_abstract/sched_abstract.c \
-	driver/libs/khrn/egl/platform/bcg_abstract/egl_platform_abstract.c \
-	driver/libs/khrn/egl/platform/bcg_abstract/egl_window_surface_abstract.c \
-	driver/libs/khrn/egl/platform/bcg_abstract/egl_surface_common_abstract.c \
-	driver/libs/khrn/egl/platform/bcg_abstract/egl_pixmap_surface_abstract.c \
-	driver/libs/khrn/egl/platform/bcg_abstract/egl_image_native_buffer_abstract.c \
-	driver/libs/core/vcos/pthreads/vcos_pthreads.c \
-	driver/libs/core/vcos/generic/vcos_generic_safe_string.c \
-	driver/libs/core/vcos/generic/vcos_init.c \
-	driver/libs/core/vcos/generic/vcos_properties.c \
-	driver/libs/sim/qpu_float/qpu_float.c \
-	driver/libs/sim/sfu/sfu.c \
+	$(addprefix driver/, $(COMMON_SRC_FILES)) \
 	platform/android/default_android.c \
 	platform/android/display_android.c \
 	platform/android/memory_android.c \
@@ -381,23 +147,12 @@ LOCAL_SRC_FILES := \
 	platform/common/sched_nexus.c \
 	platform/android/android_platform_library_loader.c
 
-GENERATED_SRC_FILES := \
-	driver/libs/khrn/glsl/glsl_intrinsic_lookup.auto.c \
-	driver/libs/khrn/glsl/glsl_layout.auto.c \
-	driver/libs/khrn/glsl/glsl_lexer.c \
-	driver/libs/khrn/glsl/glsl_numbers.c \
-	driver/libs/khrn/glsl/glsl_parser.c \
-	driver/libs/khrn/glsl/glsl_primitive_types.auto.c \
-	driver/libs/khrn/glsl/glsl_version.c \
-	driver/libs/khrn/glsl/glsl_stdlib.auto.c
-
 # definition order matters here for intermediate (generated) modules.
 LOCAL_MODULE_TAGS := optional
 LOCAL_MODULE := libGLES_nexus
 LOCAL_MODULE_CLASS := SHARED_LIBRARIES
 intermediates := $(call local-generated-sources-dir)
-LOCAL_SRC_FILES := $(filter-out $(GENERATED_SRC_FILES), $(LOCAL_SRC_FILES))
-GENERATED_SRC_FILES := $(addprefix $(intermediates)/, $(GENERATED_SRC_FILES))
+GENERATED_SRC_FILES := $(addprefix $(intermediates)/driver/libs/khrn/glsl/, $(COMMON_GENERATED_SRC_FILES))
 LOCAL_GENERATED_SOURCES := $(GENERATED_SRC_FILES)
 GENERATED_SRC_DIR := $(ANDROID_TOP)/$(intermediates)
 LOCAL_C_INCLUDES += \
@@ -412,12 +167,13 @@ glsl_primitive_types_deps := \
 
 define glsl_primitive_types_gen
 @mkdir -p $(GENERATED_SRC_DIR)/driver/libs/khrn/glsl
-$(hide) pushd $(GENERATED_SRC_DIR)/driver/libs/khrn/glsl/ && \
-	python $(V3D_DRIVER_TOP)/driver/libs/khrn/glsl/scripts/build_primitive_types.py -I . -O . \
+$(hide) \
+	python $(V3D_DRIVER_TOP)/driver/libs/khrn/glsl/scripts/build_primitive_types.py \
+		-I $(V3D_DRIVER_TOP)/driver/libs/khrn/glsl \
+		-O $(GENERATED_SRC_DIR)/driver/libs/khrn/glsl \
 		$(V3D_DRIVER_TOP)/driver/libs/khrn/glsl/scripts/scalar_types.table \
 		$(V3D_DRIVER_TOP)/driver/libs/khrn/glsl/scripts/sampler_types.table \
-		$(V3D_DRIVER_TOP)/driver/libs/khrn/glsl/scripts/image_types.table && \
-	popd
+		$(V3D_DRIVER_TOP)/driver/libs/khrn/glsl/scripts/image_types.table;
 endef
 
 define generated_src_dir_exists
@@ -442,9 +198,10 @@ $(intermediates)/driver/libs/khrn/glsl/glsl_layout.auto.c : $(LOCAL_PATH)/driver
 
 define textures_auto_gen
 @mkdir -p $(GENERATED_SRC_DIR)/driver/libs/khrn/glsl
-$(hide)	pushd $(GENERATED_SRC_DIR)/driver/libs/khrn/glsl/ && \
-	python $(V3D_DRIVER_TOP)/driver/libs/khrn/glsl/scripts/build_texture_functions.py && \
-	popd
+$(hide) \
+	python \
+	$(V3D_DRIVER_TOP)/driver/libs/khrn/glsl/scripts/build_texture_functions.py \
+	-O $(GENERATED_SRC_DIR)/driver/libs/khrn/glsl;
 endef
 
 $(intermediates)/driver/libs/khrn/glsl/textures.auto.glsl \
@@ -459,6 +216,7 @@ STDLIB_SOURCES := \
 	stdlib/exponential.glsl \
 	stdlib/extensions.glsl \
 	stdlib/geometry.glsl \
+	stdlib/geom_shade.glsl \
 	stdlib/hyperbolic.glsl \
 	stdlib/image.glsl \
 	stdlib/integer.glsl \
@@ -492,9 +250,9 @@ STDLIB_SOURCES := $(addprefix $(V3D_DRIVER_TOP)/driver/libs/khrn/glsl/, $(STDLIB
 
 # sources for stdlib from generated tree (no prefix since already in the right location).
 STDLIB_SOURCES_EXTRA := \
-	textures.auto.glsl \
-	textures.auto.props \
-	glsl_primitive_types.auto.table
+	$(GENERATED_SRC_DIR)/driver/libs/khrn/glsl/textures.auto.glsl \
+	$(GENERATED_SRC_DIR)/driver/libs/khrn/glsl/textures.auto.props \
+	$(GENERATED_SRC_DIR)/driver/libs/khrn/glsl/glsl_primitive_types.auto.table
 
 # full set of sources for stdlib.
 STDLIB_SOURCES += $(STDLIB_SOURCES_EXTRA)
@@ -505,9 +263,11 @@ glsl_stdlib_deps := \
 
 define glsl_stdlib_auto_gen
 @mkdir -p $(GENERATED_SRC_DIR)/driver/libs/khrn/glsl
-$(hide) pushd $(GENERATED_SRC_DIR)/driver/libs/khrn/glsl/ && \
-	python $(V3D_DRIVER_TOP)/driver/libs/khrn/glsl/scripts/build_stdlib.py -O . -I . $(STDLIB_SOURCES) && \
-	popd
+$(hide) python \
+	$(V3D_DRIVER_TOP)/driver/libs/khrn/glsl/scripts/build_stdlib.py \
+	-I $(V3D_DRIVER_TOP)/driver/libs/khrn/glsl \
+	-O $(GENERATED_SRC_DIR)/driver/libs/khrn/glsl \
+	$(STDLIB_SOURCES);
 
 endef
 

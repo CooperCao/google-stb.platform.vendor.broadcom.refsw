@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2011-2013 Broadcom Corporation
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  **************************************************************************/
 #include "nxclient.h"
@@ -58,6 +50,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "nxapps_cmdline.h"
+#include "namevalue.h"
 
 BDBG_MODULE(blit_client);
 
@@ -85,6 +78,20 @@ static unsigned b_get_time(void)
     struct timeval tv;
     gettimeofday(&tv, NULL);
     return tv.tv_sec*1000 + tv.tv_usec/1000;
+}
+
+static unsigned check_standby(void)
+{
+    NxClient_StandbyStatus standbyStatus;
+    NEXUS_Error rc;
+
+    rc = NxClient_GetStandbyStatus(&standbyStatus);
+    BDBG_ASSERT(!rc);
+    if(standbyStatus.transition == NxClient_StandbyTransition_eAckNeeded) {
+        printf("'blit_client' acknowledges standby state: %s\n", lookup_name(g_platformStandbyModeStrs, standbyStatus.settings.mode));
+        NxClient_AcknowledgeStandby(true);
+    }
+    return (standbyStatus.settings.mode != NEXUS_PlatformStandbyMode_eOn);
 }
 
 int main(int argc, const char **argv)
@@ -142,7 +149,6 @@ int main(int argc, const char **argv)
 
     /* connect to server and nexus */
     NxClient_GetDefaultJoinSettings(&joinSettings);
-    joinSettings.ignoreStandbyRequest = true;
     snprintf(joinSettings.name, NXCLIENT_MAX_NAME, "%s", argv[0]);
     rc = NxClient_Join(&joinSettings);
     if (rc) return -1;
@@ -268,6 +274,8 @@ int main(int argc, const char **argv)
         static const BM2MC_PACKET_Blend copyAlpha = {BM2MC_PACKET_BlendFactor_eSourceAlpha, BM2MC_PACKET_BlendFactor_eOne, false,
             BM2MC_PACKET_BlendFactor_eZero, BM2MC_PACKET_BlendFactor_eZero, false, BM2MC_PACKET_BlendFactor_eZero};
 
+        if(check_standby()) continue;
+
         NEXUS_Surface_InitPlane(surface, &surfacePlane);
 
         rc = NEXUS_Graphics2D_GetPacketBuffer(gfx, &buffer, &size, 2048);
@@ -326,6 +334,7 @@ int main(int argc, const char **argv)
         BDBG_ASSERT(!rc);
 #else
         unsigned j;
+        if(check_standby()) continue;
         for (j=0;j<50;j++) {
             blitSettings.source.surface = surface;
             blitSettings.source.rect.width = SIDEBAR_WIDTH;

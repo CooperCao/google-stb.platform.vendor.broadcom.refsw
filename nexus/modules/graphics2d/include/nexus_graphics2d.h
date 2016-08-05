@@ -546,7 +546,8 @@ typedef struct NEXUS_Graphics2DBlitSettings
     bool alphaPremultiplySourceEnabled; /* If true, then each color component in the source surface will be modulated with the
                                            source's alpha component right before scaling. */
 
-    bool chromaFilter;    /* Filter chroma values when upscampling from source/destination 4:2:2/4:2:0 to internal 4:4:4 and when downscampling from internal 4:4:4 to output 4:2:2/4:2:0.  Default is true. */
+    bool chromaFilter;    /* Filter chroma values when upscampling from source/destination 4:2:2/4:2:0 to internal 4:4:4 and when downscampling from
+                             internal 4:4:4 to output 4:2:2/4:2:0.  Default is true. */
 } NEXUS_Graphics2DBlitSettings;
 
 /*****************************************************************************
@@ -769,8 +770,10 @@ NEXUS_Graphics2D_Checkpoint never blocks.
 
 Return values if pLegacyCallback is NULL:
     NEXUS_SUCCESS - there are no outstanding blit and fill operations in the hardware.
-    NEXUS_GRAPHICS2D_QUEUED - there are some outstanding blit and/or fill operations in the hardware queue. when these blits are completed NEXUS_Graphics2DSettings.checkpointCallback is fired.
-    NEXUS_GRAPHICS2D_BUSY - there are some outstanding blit and/or fill operations in the hardware queue. This can only occur if NEXUS_Graphics2DSettings.pollingCheckpoint is true.
+    NEXUS_GRAPHICS2D_QUEUED - there are some outstanding blit and/or fill operations in the hardware queue. when these blits are completed
+        NEXUS_Graphics2DSettings.checkpointCallback is fired.
+    NEXUS_GRAPHICS2D_BUSY - there are some outstanding blit and/or fill operations in the hardware queue. This can only occur if
+        NEXUS_Graphics2DSettings.pollingCheckpoint is true.
 
 Return values if pLegacyCallback is not NULL (not recommended):
     NEXUS_SUCCESS - the pLegacyCallback has been scheduled. wait on that callback to learn when all blits prior to NEXUS_Graphics2D_Checkpoint have completed.
@@ -857,7 +860,8 @@ typedef struct NEXUS_Graphics2DDestripeBlitSettings
     NEXUS_Graphics2DFilterCoeffs horizontalFilter;
     NEXUS_Graphics2DFilterCoeffs verticalFilter;
 
-    bool chromaFilter;    /* Filter chroma values when upscampling from source 4:2:2/4:2:0 to internal 4:4:4 and when downscampling from internal 4:4:4 to output 4:2:2/4:2:0.  Default is true. */
+    bool chromaFilter;    /* Filter chroma values when upscampling from source 4:2:2/4:2:0 to internal 4:4:4 and when
+                             downscampling from internal 4:4:4 to output 4:2:2/4:2:0.  Default is true. */
 } NEXUS_Graphics2DDestripeBlitSettings;
 
 /**

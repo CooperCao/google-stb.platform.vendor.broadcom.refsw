@@ -1,7 +1,7 @@
 /******************************************************************************
-*    (c)2011-2013 Broadcom Corporation
+* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *
-* This program is the proprietary software of Broadcom Corporation and/or its licensors,
+* This program is the proprietary software of Broadcom and/or its licensors,
 * and may only be used, duplicated, modified or distributed pursuant to the terms and
 * conditions of a separate, written license agreement executed between you and Broadcom
 * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
 * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 * ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * Module Description:
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 *****************************************************************************/
 #include "bstd.h"
@@ -987,11 +979,7 @@ BERR_Code BSAT_g1_P_QpskAcquire1_isr(BSAT_ChannelHandle h)
    BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_EQ_VLCTL, 0x00040704);
    BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_CL_PLTD, 0x28000000);
    BSAT_g1_P_ReadModifyWriteRegister_isrsafe(h, BCHP_SDS_CL_CLCTL2, ~0x000000EF, 0x000000A1);  /* CLMISC=0xA1 but retain bit 4 */
-#ifdef BSAT_STJ_TEST
-   BSAT_g1_P_ReadModifyWriteRegister_isrsafe(h, BCHP_SDS_CL_CLCTL1, ~0x0CFFFF00, 0x00401000);  /* CLPDCTL=0x10, CLQCFD=0x40 */
-#else
    BSAT_g1_P_ReadModifyWriteRegister_isrsafe(h, BCHP_SDS_CL_CLCTL1, ~0x0CFFFF00, 0x0C481000);  /* CLPDCTL=0x10, CLQCFD=0x40 */
-#endif
 
    BSAT_g1_P_QpskSetOqpsk_isr(h);
 

@@ -8,21 +8,41 @@ All rights reserved.
 
 VCOS_EXTERN_C_BEGIN
 
-#define GFX_BUFFER_USAGE_V3D_TEXTURE         (1u << 0)
-#define GFX_BUFFER_USAGE_V3D_CUBEMAP         (1u << 1) /* Must also specify V3D_TEXTURE */
-#define GFX_BUFFER_USAGE_V3D_RENDER_TARGET   (1u << 2)
-#define GFX_BUFFER_USAGE_V3D_DEPTH_STENCIL   (1u << 3)
-#define GFX_BUFFER_USAGE_V3D_TLB_RAW         (1u << 4) /* Must also specify V3D_RENDER_TARGET/V3D_DEPTH_STENCIL */
-#define GFX_BUFFER_USAGE_YFLIP_IF_POSSIBLE   (1u << 5)
-
-#define GFX_BUFFER_USAGE_ALL                 ((1u << 6) - 1)
+typedef enum
+{
+   GFX_BUFFER_USAGE_NONE               = 0,
+   GFX_BUFFER_USAGE_V3D_TEXTURE        = (1u << 0),
+   GFX_BUFFER_USAGE_V3D_CUBEMAP        = (1u << 1), /* Must also specify V3D_TEXTURE */
+   GFX_BUFFER_USAGE_V3D_RENDER_TARGET  = (1u << 2),
+   GFX_BUFFER_USAGE_V3D_DEPTH_STENCIL  = (1u << 3),
+   GFX_BUFFER_USAGE_YFLIP_IF_POSSIBLE  = (1u << 4),
+#if !V3D_HAS_NEW_TLB_CFG
+   GFX_BUFFER_USAGE_V3D_TLB_RAW        = (1u << 5) /* Must also specify V3D_RENDER_TARGET/V3D_DEPTH_STENCIL */
+#endif
+} gfx_buffer_usage_t;
 
 #define GFX_BUFFER_USAGE_V3D_TLB (        \
    GFX_BUFFER_USAGE_V3D_RENDER_TARGET |   \
    GFX_BUFFER_USAGE_V3D_DEPTH_STENCIL)
 
-/* A combination of the flags above */
-typedef uint32_t gfx_buffer_usage_t;
+#if V3D_HAS_NEW_TLB_CFG
+#define GFX_BUFFER_USAGE_ALL (            \
+   GFX_BUFFER_USAGE_V3D_TEXTURE |         \
+   GFX_BUFFER_USAGE_V3D_CUBEMAP |         \
+   GFX_BUFFER_USAGE_V3D_RENDER_TARGET |   \
+   GFX_BUFFER_USAGE_V3D_DEPTH_STENCIL |   \
+   GFX_BUFFER_USAGE_YFLIP_IF_POSSIBLE     \
+   )
+#else
+#define GFX_BUFFER_USAGE_ALL (            \
+   GFX_BUFFER_USAGE_V3D_TEXTURE |         \
+   GFX_BUFFER_USAGE_V3D_CUBEMAP |         \
+   GFX_BUFFER_USAGE_V3D_RENDER_TARGET |   \
+   GFX_BUFFER_USAGE_V3D_DEPTH_STENCIL |   \
+   GFX_BUFFER_USAGE_V3D_TLB_RAW |         \
+   GFX_BUFFER_USAGE_YFLIP_IF_POSSIBLE     \
+   )
+#endif
 
 extern size_t gfx_buffer_sprint_usage(char *buf, size_t buf_size, size_t offset,
    gfx_buffer_usage_t usage);
@@ -53,6 +73,7 @@ extern void gfx_buffer_desc_gen(
 
 struct gfx_buffer_uif_cfg
 {
+   bool xor_dis;
    bool force;
    /* Only valid if force set: */
    bool ub_xor; /* UIF XOR mode? */
@@ -72,8 +93,7 @@ struct gfx_buffer_ml_cfg
 static inline void gfx_buffer_default_ml_cfg(
    struct gfx_buffer_ml_cfg *ml_cfg)
 {
-   ml_cfg->uif.force = false;
-   ml_cfg->force_slice_pitch = false;
+   memset(ml_cfg, 0, sizeof(*ml_cfg));
 }
 
 extern void gfx_buffer_desc_gen_with_ml0_cfg(
@@ -83,7 +103,9 @@ extern void gfx_buffer_desc_gen_with_ml0_cfg(
    uint32_t width, uint32_t height, uint32_t depth,
    uint32_t num_mip_levels,
    uint32_t num_planes, const GFX_LFMT_T *plane_lfmts,
-   const struct gfx_buffer_ml_cfg *ml0_cfg); /* NULL allowed; means no special config for level 0 */
+   /* NULL allowed; means no special config for level 0.
+    * ml0_cfg->uif.xor_dis applies to *all* mip levels. */
+   const struct gfx_buffer_ml_cfg *ml0_cfg);
 
 extern void gfx_buffer_get_tmu_uif_cfg(
    struct gfx_buffer_uif_cfg *uif_cfg,

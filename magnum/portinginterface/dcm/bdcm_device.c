@@ -1,23 +1,45 @@
-/***************************************************************************
- *     Copyright (c) 2013-2014, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
  *
- * Module Description:
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
  *
- * Revision History:
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
- * 
- ***************************************************************************/
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************/
+
+
 
 #include "bdcm_device.h"
 
@@ -29,7 +51,7 @@ BDCM_DeviceHandle BDCM_OpenDevice(BDCM_DeviceSettings *pSettings)
     BDCM_DeviceHandle hDevice = NULL;
     BRPC_Handle hRpc=NULL;
     BRPC_OpenSocketImplSettings socketSettings;
-    BDBG_ASSERT(pSettings); 
+    BDBG_ASSERT(pSettings);
     BDBG_ENTER(BDCM_OpenDevice);
     /* Alloc memory from the system heap */
     hDevice = (BDCM_DeviceHandle) BKNI_Malloc(sizeof(BDCM_Device) );
@@ -43,7 +65,7 @@ BDCM_DeviceHandle BDCM_OpenDevice(BDCM_DeviceSettings *pSettings)
     BRPC_GetDefaultOpenSocketImplSettings(&socketSettings);
     socketSettings.timeout = pSettings->rpcTimeout;
     retCode = BRPC_Open_SocketImpl(&hDevice->hRpc, &socketSettings);
-    if ( retCode != BERR_SUCCESS) 
+    if ( retCode != BERR_SUCCESS)
     {
         BDBG_ERR(("%s: BRPC_Open_SocketImpl failed",__FUNCTION__));
         goto error_socket_open;
@@ -79,7 +101,7 @@ BERR_Code BDCM_InitDevice(BDCM_DeviceHandle hDevice)
     BDBG_ASSERT(hDevice->hRpc);
     Param.devId = BRPC_DevId_DOCSIS;
     rpcInitRetryCount = 0;
-    while (1) 
+    while (1)
     {
         #if BDBG_DEBUG_BUILD
         if (rpcInitRetryCount%20==0)
@@ -92,7 +114,7 @@ BERR_Code BDCM_InitDevice(BDCM_DeviceHandle hDevice)
                                 (const uint32_t *)&Param,
                                 sizeof(Param)/4,
                                 NULL, 0, &retVal);
-         if (retCode == BERR_SUCCESS && retVal == BERR_SUCCESS) 
+         if (retCode == BERR_SUCCESS && retVal == BERR_SUCCESS)
          {
              break;
          }
@@ -199,7 +221,7 @@ BERR_Code BDCM_SetDeviceHostChannelsStatus(
     CHK_RETCODE(retCode, retVal);
     hDevice->hostChannelsStatus = lockStatus;
 done:
-    BDBG_MSG(("%s host channel status %x",hDevice->hostChannelsStatus));
+    BDBG_MSG(("%s host channel status %x", __FUNCTION__, hDevice->hostChannelsStatus));
     BDBG_LEAVE(BDCM_SetDeviceHostChannelsStatus);
     return retCode;
 }
@@ -214,7 +236,7 @@ BERR_Code BDCM_GetDeviceHostChannelsStatus(
     BDBG_ASSERT(pLockStatus);
     BDBG_ENTER(BDCM_GetDeviceHostChannelsStatus);
     *pLockStatus = hDevice->hostChannelsStatus;
-    BDBG_MSG(("%s host channel status %x",hDevice->hostChannelsStatus));
+    BDBG_MSG(("%s host channel status %x", __FUNCTION__, hDevice->hostChannelsStatus));
     BDBG_LEAVE(BDCM_GetDeviceHostChannelsStatus);
     return retCode;
 }
@@ -228,7 +250,7 @@ BERR_Code BDCM_ConfigureDeviceLna(BDCM_DeviceHandle hDevice)
     BDBG_ENTER(BDCM_ConfigureDeviceLna);
     BDBG_ASSERT(hDevice);
     Param.devId = BRPC_DevId_DOCSIS;
-    CHK_RETCODE(retCode,BRPC_CallProc(hDevice->hRpc, 
+    CHK_RETCODE(retCode,BRPC_CallProc(hDevice->hRpc,
                                       BRPC_ProcId_ECM_DoLnaReConfig,
                                       (const uint32_t *)&Param,
                                       sizeInLong(Param),
@@ -253,7 +275,7 @@ BERR_Code BDCM_GetDeviceTemperature(
                                        BRPC_ProcId_ECM_ReadDieTemperature,
                                        NULL, 0, (uint32_t *)&outParam,
                                        sizeInLong(outParam), &retVal));
- 
+
     CHK_RETCODE(retCode,retVal) ;
     pTemperature->temperature  = outParam.TempInDot00DegC;
 done:
@@ -275,7 +297,7 @@ BERR_Code BDCM_SetDevicePowerMode(
         BDBG_WRN(("%s: DOCSIS already in power Mode %u",__FUNCTION__,powerMode));
     	return retCode;
     }
-    
+
     Param.devId = BRPC_DevId_DOCSIS;
 
     CHK_RETCODE(retCode, BRPC_CallProc(hDevice->hRpc,
@@ -283,7 +305,7 @@ BERR_Code BDCM_SetDevicePowerMode(
                                        (const uint32_t *)&Param,
                                        sizeInLong(Param),
                                        NULL, 0, &retVal));
-    
+
 
     CHK_RETCODE(retCode,retVal);
     hDevice->powerMode = powerMode;
@@ -307,8 +329,8 @@ BERR_Code BDCM_GetDevicePowerMode(
 
 
 BERR_Code BDCM_GetDeviceDataChannelStatus(
-    BDCM_DeviceHandle hDevice, 
-    BDCM_Version version, 
+    BDCM_DeviceHandle hDevice,
+    BDCM_Version version,
     unsigned dataChannelNum,
     BDCM_DataStatus *pStatus
     )
@@ -320,7 +342,7 @@ BERR_Code BDCM_GetDeviceDataChannelStatus(
     BDBG_ASSERT(hDevice);
     BDBG_ASSERT(pStatus);
     Param.devId = ((version.minVer <= 0x9) ? BRPC_DevId_DOCSIS_DS0 : BRPC_DevId_ECM_DS0) + dataChannelNum;
-    CHK_RETCODE(retCode,BRPC_CallProc(hDevice->hRpc, 
+    CHK_RETCODE(retCode,BRPC_CallProc(hDevice->hRpc,
                                       BRPC_ProcId_ECM_GetStatus,
                                       (const uint32_t *)&Param,
                                       sizeInLong(Param),
@@ -344,7 +366,7 @@ BERR_Code BDCM_EnableCableCardOutOfBandPins(
     Param.devId = BRPC_DevId_DOCSIS;
     Param.powerMode = enabled? ENABLE_POD_OUTPINS:DISABLE_POD_OUTPINS;
 
-    CHK_RETCODE(retCode,BRPC_CallProc(hDevice->hRpc, 
+    CHK_RETCODE(retCode,BRPC_CallProc(hDevice->hRpc,
                                       BRPC_ProcId_POD_CardApplyPower,
                                       (const uint32_t *)&Param,
                                       sizeInLong(Param),
@@ -366,25 +388,25 @@ BERR_Code BDCM_GetLnaDeviceAgcValue(
     BERR_Code retVal;
     BDBG_ASSERT(hDevice);
     Param.devId = (version.minVer <= 0x9) ? BRPC_DevId_DOCSIS_TNR0 : BRPC_DevId_ECM_TNR0;
-    CHK_RETCODE(retCode,BRPC_CallProc(hDevice->hRpc, 
+    CHK_RETCODE(retCode,BRPC_CallProc(hDevice->hRpc,
                                       BRPC_ProcId_TNR_GetAgcVal,
                                       (const uint32_t *)&Param,
                                       sizeInLong(Param),
-                                      (uint32_t *)&outParam, 
+                                      (uint32_t *)&outParam,
                                       sizeInLong(outParam),&retVal));
     CHK_RETCODE(retCode,retVal);
     *agcVal = outParam.AgcVal;
     /********************************************************************************************************
-    The format of 32 bit agcGain passed by 3383 
+    The format of 32 bit agcGain passed by 3383
 
     B3-B2: 16 bit chipid. Ex: 0x3412
-    B1: b7b6=Output1Tilt, b5b4=Output2Tilt, b3=0, b2=SuperBoost, b1= Boost, b0=Tilt {0=OFF, 1=ON} 
+    B1: b7b6=Output1Tilt, b5b4=Output2Tilt, b3=0, b2=SuperBoost, b1= Boost, b0=Tilt {0=OFF, 1=ON}
     B0:  Lna gain value from 0-0x1F (RDB indicates a 6 bit value but a valid gain value is only 5 bits)
     +---------------+----------------+-----------------+--------------+
     |            LnaChipId           |  T1/T2/0/S/B/T  |      AGC     |
     +---------------+----------------+-----------------+--------------+
             B3             B2                B1               B0
-    
+
 
     Example:  Host receives LNA reading such of 0x3412561f
     Break it down:
@@ -399,9 +421,9 @@ BERR_Code BDCM_GetLnaDeviceAgcValue(
     BDBG_MSG((" %s AGC is 0x%x LNA Chip ID %#lx "
               "tilt enabled %s boost enabled %s "
               "superBoostEnabled %s output1 tilt gain %d "
-              "output2 tilt gain %d", 
-              __FUNCTION__, outParam.AgcVal >> 16, (0x1f & outParam.AgcVal),
-              (outParam.AgcVal & 0x00000100)?"true":"false", (outParam.AgcVal & 0x00000200)?"true":"false", 
+              "output2 tilt gain %d",
+              __FUNCTION__, outParam.AgcVal >> 16, (long unsigned int)(0x1f & outParam.AgcVal),
+              (outParam.AgcVal & 0x00000100)?"true":"false", (outParam.AgcVal & 0x00000200)?"true":"false",
               (outParam.AgcVal & 0x00000400)?"true":"false",((outParam.AgcVal >> 14) & 0x3),
               ((outParam.AgcVal >> 12) & 0x3)));
 done:

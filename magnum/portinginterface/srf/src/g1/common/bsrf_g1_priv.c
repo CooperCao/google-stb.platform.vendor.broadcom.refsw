@@ -152,6 +152,19 @@ BERR_Code BSRF_g1_P_OpenChannel(
    BSRF_ChannelHandle chnHandle;
    BSRF_g1_P_ChannelHandle *chG1;
 
+#ifdef BSRF_SXM_OVERRIDE
+   uint8_t i;
+
+   /* sxm request */
+   #define BSRF_SXM_NUM_AGC_CODES_DELETE 19
+   uint32_t idxLutOmit[BSRF_SXM_NUM_AGC_CODES_DELETE] =
+   {
+      34, 36, 46, 48, 54, 56, 58, 60,
+      62, 64, 66, 68, 70, 72, 74, 76,
+      77, 78, 79
+   };
+#endif
+
    BDBG_ASSERT(h);
    BDBG_ASSERT(pChannelHandle);
    BDBG_ENTER(BSRF_g1_P_OpenChannel);
@@ -200,9 +213,36 @@ BERR_Code BSRF_g1_P_OpenChannel(
    BKNI_Memset((void*)(chG1->bOmitRfagcLut), 0, BSRF_RFAGC_LUT_COUNT * sizeof(bool));
    chG1->numRfagcLutOmitted = 0;
 
-   chG1->modeAoc = 0;
-   chG1->modeAd = 0;
+   chG1->bEnableFastDecay = false;
+   chG1->bAntennaSenseEnabled = false;
+   chG1->modeAoc = 2;
+   chG1->modeAd = 1;
    chG1->fastDecayGainThr = 0;
+
+#ifdef BSRF_SXM_OVERRIDE
+   /* sxm request */
+   for (i = 0; i < BSRF_SXM_NUM_AGC_CODES_DELETE; i++)
+      chG1->bOmitRfagcLut[idxLutOmit[i]] = true;
+
+   chG1->numRfagcLutOmitted = BSRF_SXM_NUM_AGC_CODES_DELETE;
+   chG1->fastDecayGainThr = -32;
+   chG1->bEnableFastDecay = true;
+
+   chG1->rfagcSettings.attackSettings.timeNs = 45000;
+   chG1->rfagcSettings.attackSettings.threshold = -1203241;    /* -15.5dBFS scaled 2^16 */
+   chG1->rfagcSettings.attackSettings.step = -2048;            /* -1dB scaled 2^11 */
+   chG1->rfagcSettings.decaySettings.timeNs = 45000;
+   chG1->rfagcSettings.decaySettings.threshold = -1203241;     /* -15.5dBFS scaled 2^16 */
+   chG1->rfagcSettings.decaySettings.step = 2048;              /* 1dB scaled 2^11 */
+   chG1->rfagcSettings.fastDecaySettings.timeNs = 45000;
+   chG1->rfagcSettings.fastDecaySettings.threshold = -1203241; /* -15.5dBFS scaled 2^16 */
+   chG1->rfagcSettings.fastDecaySettings.step = 2048;          /* 1dB scaled 2^11 */
+   chG1->rfagcSettings.clipWindowSettings.timeNs = 2000;
+   chG1->rfagcSettings.clipWindowSettings.threshold = 20;      /* percentage of clip window 0 to 100 */
+   chG1->rfagcSettings.clipWindowSettings.step = -30720;       /* -15dB scaled 2^11 */
+   chG1->rfagcSettings.powerMeasureBw = 5;
+   chG1->rfagcSettings.agcSlewRate = 0xB9;
+#endif
 
    h->pChannels[chanNum] = chnHandle;
 
@@ -305,6 +345,9 @@ BERR_Code BSRF_g1_P_PowerUp(BSRF_ChannelHandle h)
 
    /* power up analog */
    BSRF_g1_Ana_P_PowerUp(h);
+#ifndef BSRF_SXM_OVERRIDE
+   BSRF_g1_Ana_P_CalibrateCaps(h);
+#endif
 
    /* enable clocks */
    BSRF_P_OrRegister(h, BCHP_SRFE_RFAGC_LOOP_CLK_CTRL, 0x00000001);
@@ -495,18 +538,49 @@ BERR_Code BSRF_g1_P_ReadRfGain(BSRF_ChannelHandle h, uint8_t *pGain)
 /******************************************************************************
  BSRF_g1_P_GetInputPower
 ******************************************************************************/
-BERR_Code BSRF_g1_P_GetInputPower(BSRF_ChannelHandle h, uint32_t *pPower)
+#define BSRF_AGC_GAIN_MAX 60
+#define BSRF_AGC_GAIN_THR 42
+BERR_Code BSRF_g1_P_GetInputPower(BSRF_ChannelHandle h, int32_t *pPower)
 {
+   uint32_t val, laAgcInt, lalog;
+   uint8_t agcGain;
+
+   #define BSRF_POWER_B  -1658061 /* -25.3 scaled up 2^16 */
+   #define BSRF_POWER_M  -57672   /* -0.88 scaled up 2^16 */
+   #define BSRF_POWER_B1 996475   /* 15.205 scaled up 2^16 */
+   #define BSRF_POWER_FF -941752  /* -14.37 scaled up 2^16 */  /* mean of 10*log10(la/2^31) */
+
    BDBG_ASSERT(h);
    BDBG_ENTER(BSRF_g1_P_GetInputPower);
 
    if (!h->bEnabled)
       return BSRF_ERR_POWERED_DOWN;
 
-   /* TBD */
+   /* read agc gain */
+   BSRF_P_ReadRegister(h, BCHP_SRFE_RFAGC_LOOP_AGC_STATUS, &val);
+   agcGain = val & 0x7F;
+
+   /* read leaky integrator */
+   BSRF_P_ReadRegister(h, BCHP_SRFE_RFAGC_LOOP_REG_AGC_LA_INT_WDATA, &laAgcInt);
+
+   /* lalog = 10*log(la/2^31) */
+   lalog = (BMTH_2560log10(laAgcInt) << 8) - 6115774;  /* scaled up 2^16 */
+	if (agcGain >= BSRF_AGC_GAIN_MAX)
+   {
+		*pPower = lalog + BSRF_POWER_B;
+   }
+	else
+   {
+      *pPower = BSRF_POWER_M * agcGain + BSRF_POWER_B1 + lalog - BSRF_POWER_FF;
+
+      /* adjustment */
+      if (agcGain > BSRF_AGC_GAIN_THR)
+         *pPower -= (1 << 16);
+	}
+   *pPower /= 256;   /* scale down to 2^8 */
 
    BDBG_LEAVE(BSRF_g1_P_GetInputPower);
-   return BERR_NOT_SUPPORTED;
+   return BERR_SUCCESS;
 }
 
 
@@ -556,11 +630,15 @@ BERR_Code BSRF_g1_P_GetRfAgcSettings(BSRF_ChannelHandle h, BSRF_RfAgcSettings *p
 ******************************************************************************/
 BERR_Code BSRF_g1_P_EnableFastDecayMode(BSRF_ChannelHandle h, bool bEnable)
 {
+   BSRF_g1_P_ChannelHandle *hChn = (BSRF_g1_P_ChannelHandle *)h->pImpl;
+
    BDBG_ASSERT(h);
    BDBG_ENTER(BSRF_g1_P_EnableFastDecayMode);
 
    if (!h->bEnabled)
       return BSRF_ERR_POWERED_DOWN;
+
+   hChn->bEnableFastDecay = bEnable;
 
    if (bEnable)
       BSRF_P_OrRegister(h, BCHP_SRFE_RFAGC_LOOP_AGC_CTRL2, 0x80000000);
@@ -629,9 +707,11 @@ BERR_Code BSRF_g1_P_SetAntennaOverThreshold(BSRF_ChannelHandle h, uint8_t mode)
 
    if (!h->bEnabled)
       return BSRF_ERR_POWERED_DOWN;
+   if (!hChn->bAntennaSenseEnabled)
+      return BSRF_ERR_POWERED_DOWN;
 
-   hChn->modeAoc = mode;
-   BSRF_P_ReadModifyWriteRegister(h, BCHP_SRFE_ANA_ANT_CTRLR00, ~0x000000C0, (mode & 0x3) << 6);
+   hChn->modeAoc = mode & 0x3;
+   BSRF_P_ReadModifyWriteRegister(h, BCHP_SRFE_ANA_ANT_CTRLR00, ~0x000000C0, hChn->modeAoc << 6);
 
    BDBG_LEAVE(BSRF_g1_P_SetAntennaOverThreshold);
    return BERR_SUCCESS;
@@ -670,9 +750,11 @@ BERR_Code BSRF_g1_P_SetAntennaDetectThreshold(BSRF_ChannelHandle h, uint8_t mode
 
    if (!h->bEnabled)
       return BSRF_ERR_POWERED_DOWN;
+   if (!hChn->bAntennaSenseEnabled)
+      return BSRF_ERR_POWERED_DOWN;
 
-   hChn->modeAd = mode;
-   BSRF_P_ReadModifyWriteRegister(h, BCHP_SRFE_ANA_ANT_CTRLR00, ~0x00000030, (mode & 0x3) << 4);
+   hChn->modeAd = mode & 0x3;
+   BSRF_P_ReadModifyWriteRegister(h, BCHP_SRFE_ANA_ANT_CTRLR00, ~0x00000030, hChn->modeAd << 4);
 
    BDBG_LEAVE(BSRF_g1_P_SetAntennaDetectThreshold);
    return BERR_SUCCESS;
@@ -711,6 +793,8 @@ BERR_Code BSRF_g1_P_GetAntennaStatus(BSRF_ChannelHandle h, BSRF_AntennaStatus *p
    BDBG_ENTER(BSRF_g1_P_GetAntennaStatus);
 
    if (!h->bEnabled)
+      return BSRF_ERR_POWERED_DOWN;
+   if (!hChn->bAntennaSenseEnabled)
       return BSRF_ERR_POWERED_DOWN;
 
    /* retrieve antenna status */
@@ -1137,5 +1221,40 @@ BERR_Code BSRF_g1_P_ConfigOutputClockPhase(BSRF_Handle h, uint8_t phase, bool bD
       BSRF_P_AndRegister(hChn, BCHP_SRFE_FE_OI_CTRL, ~0x00000080);
 
    BDBG_LEAVE(BSRF_g1_P_ConfigOutputClockPhase);
+   return BERR_SUCCESS;
+}
+
+
+/******************************************************************************
+ BSRF_g1_P_SetIqEqCoeff
+******************************************************************************/
+BERR_Code BSRF_g1_P_SetIqEqCoeff(BSRF_ChannelHandle h, int16_t *iTaps, int16_t *qTaps)
+{
+   BDBG_ASSERT(h);
+   BDBG_ENTER(BSRF_g1_P_SetIqEqCoeff);
+
+   if (!h->bEnabled)
+      return BSRF_ERR_POWERED_DOWN;
+
+   /* program IQ imbalance equalization taps */
+   BSRF_g1_Tuner_P_SetIqEqCoeff(h, iTaps, qTaps);
+
+   BDBG_LEAVE(BSRF_g1_P_SetIqEqCoeff);
+   return BERR_SUCCESS;
+}
+
+
+/******************************************************************************
+ BSRF_g1_P_SetRfAgcSettings
+******************************************************************************/
+BERR_Code BSRF_g1_P_SetIqEqSettings(BSRF_ChannelHandle h, BSRF_IqEqSettings settings)
+{
+   BDBG_ASSERT(h);
+   BDBG_ENTER(BSRF_g1_P_SetIqEqSettings);
+
+   /* program IQ imbalance equalization settings */
+   BSRF_g1_Tuner_P_SetIqEqSettings(h, settings);
+
+   BDBG_LEAVE(BSRF_g1_P_SetIqEqSettings);
    return BERR_SUCCESS;
 }

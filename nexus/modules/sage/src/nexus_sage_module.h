@@ -223,6 +223,9 @@ NEXUS_Error Nexus_SageModule_P_Img_Create(const char *id, void **ppContext, BIMG
 void Nexus_SageModule_P_Img_Destroy(void *pContext);
 NEXUS_Error NEXUS_SageModule_P_Load(NEXUS_SageImageHolder *holder, BIMG_Interface *img_interface, void *img_context);
 void NEXUS_Sage_P_PrintSvp(void);
+extern const struct NEXUS_SageSvpHwBlock {
+    const char *achName;
+} g_NEXUS_SvpHwBlockTbl[];
 
 #ifdef __cplusplus
 }

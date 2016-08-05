@@ -164,6 +164,7 @@ static void BVDC_P_Cab_BuildRul_isr
  *  BVDC_P_Lab_BuildRul_isr
  *  Builds LAB block
  **************************************************************************/
+#ifndef BVDC_P_SUPPORT_NO_LAB
 static void BVDC_P_Lab_BuildRul_isr
     ( const BVDC_Window_Handle     hWindow,
       BVDC_P_Pep_Handle            hPep,
@@ -234,7 +235,7 @@ static void BVDC_P_Lab_BuildRul_isr
     BDBG_LEAVE(BVDC_P_Lab_BuildRul_isr);
     return;
 }
-
+#endif
 #endif /* (BVDC_P_SUPPORT_PEP) */
 
 
@@ -627,6 +628,7 @@ static void BVDC_P_Pep_BuildVsyncRul_isr
     }
     else
     {
+#ifndef BVDC_P_SUPPORT_NO_LAB
         uint32_t id = 0;
 
         if(pCurInfo->bContrastStretch || hPep->bLoadLabTable)
@@ -699,7 +701,7 @@ static void BVDC_P_Pep_BuildVsyncRul_isr
             BKNI_Memcpy((void*)pList->pulCurrent, (void*)&hPep->aulLabTable[0], BVDC_P_LAB_TABLE_SIZE * sizeof(uint32_t));
             pList->pulCurrent += BVDC_P_LAB_TABLE_SIZE;
         }
-
+#endif
         hPep->bProcessCab = true;
     }
 
@@ -762,7 +764,9 @@ void BVDC_P_Pep_BuildRul_isr
 
     if(pCurDirty->stBits.bLabAdjust || bInitial || hWindow->stCurResource.hPep->bLabCtrlPending)
     {
+#ifndef BVDC_P_SUPPORT_NO_LAB
         BVDC_P_Lab_BuildRul_isr(hWindow, hWindow->stCurResource.hPep, pList);
+#endif
         pCurDirty->stBits.bLabAdjust = BVDC_P_CLEAN;
     }
 
@@ -824,27 +828,6 @@ void BVDC_P_Pep_SetInfo_isr
 
         hPep->bHardStart = true;
     }
-}
-
-/*************************************************************************
- *  {secret}
- *  BVDC_P_Pep_GetLumaStatus
- *  Get Luma status from PEP block
- **************************************************************************/
-void BVDC_P_Pep_GetLumaStatus
-    ( const BVDC_Window_Handle     hWindow,
-      BVDC_LumaStatus             *pLumaStatus )
-{
-    BDBG_ENTER(BVDC_P_Pep_GetLumaStatus);
-    BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
-    BDBG_OBJECT_ASSERT(hWindow->stCurResource.hPep, BVDC_PEP);
-
-    BKNI_EnterCriticalSection();
-    *pLumaStatus = hWindow->stCurResource.hPep->stHistoData;
-    BKNI_LeaveCriticalSection();
-
-    BDBG_LEAVE(BVDC_P_Pep_GetLumaStatus);
-    return;
 }
 
 

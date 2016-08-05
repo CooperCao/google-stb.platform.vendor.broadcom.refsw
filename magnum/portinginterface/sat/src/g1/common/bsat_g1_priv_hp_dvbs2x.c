@@ -52,6 +52,11 @@
 
 BDBG_MODULE(bsat_g1_priv_hp);
 
+#if BCHP_CHIP==45308
+#include "fe.h"
+#endif
+
+
 #define BSAT_DEBUG_HP(x) /* x */
 
 #define BSAT_HP_TIMEOUT 4000000 /* time in baud clocks to wait for rcvr lock */
@@ -210,7 +215,7 @@ BERR_Code BSAT_g1_P_HpConfig_isr(BSAT_ChannelHandle h)
    uint32_t P_hi, P_lo, Q_hi;
    uint16_t turbo_frame_length = 0;
    uint8_t tfec_symbol_length, n_check, m_peak, plscode, modcod, s2_type, mask, n_check_limit, dafe_average;
-   uint8_t peak_verify_n_check, peak_verify_m_peak, rcvr_verify_n_check, rcvr_verify_m_peak, rcvr_lock_n_check, rcvr_lock_m_peak, s2_modcod_msb;
+   uint8_t peak_verify_n_check, peak_verify_m_peak, rcvr_verify_n_check, rcvr_verify_m_peak, rcvr_lock_n_check, rcvr_lock_m_peak;
    bool bDvbs2Pilot = false, bDvbs2Mode = false, bDvbs2Scan = false;
 
    if (hChn->dvbs2ScanState & BSAT_DVBS2_SCAN_STATE_ENABLED)
@@ -252,31 +257,38 @@ BERR_Code BSAT_g1_P_HpConfig_isr(BSAT_ChannelHandle h)
       frof3_sw = 0;
 
    /* calculate HPOVERRIDE */
-   hpoverride = BCHP_SDS_HP_0_HPOVERRIDE_VLCRSTOV_MASK;
-   hpoverride |= BCHP_SDS_HP_0_HPOVERRIDE_VLCFRZOV_MASK;
-   hpoverride |= BCHP_SDS_HP_0_HPOVERRIDE_VLCENOV_MASK;
+   hpoverride = BCHP_FIELD_DATA(SDS_HP_0_HPOVERRIDE, VLCRSTOV, 1);
+   BCHP_SET_FIELD_DATA(hpoverride, SDS_HP_0_HPOVERRIDE, VLCFRZOV, 1);
+   BCHP_SET_FIELD_DATA(hpoverride, SDS_HP_0_HPOVERRIDE, VLCENOV, 1);
+   BCHP_SET_FIELD_DATA(hpoverride, SDS_HP_0_HPOVERRIDE, EQFRZQOV, 1);
+   BCHP_SET_FIELD_DATA(hpoverride, SDS_HP_0_HPOVERRIDE, EQFRZIOV, 1);
+   BCHP_SET_FIELD_DATA(hpoverride, SDS_HP_0_HPOVERRIDE, EQFRZOV, 1);
+   BCHP_SET_FIELD_DATA(hpoverride, SDS_HP_0_HPOVERRIDE, EQRSTOV, 1);
+   BCHP_SET_FIELD_DATA(hpoverride, SDS_HP_0_HPOVERRIDE, EQMODEOV, 1);
+
    if (BSAT_MODE_IS_TURBO(hChn->acqSettings.mode))
    {
-      hpoverride |= BCHP_SDS_HP_0_HPOVERRIDE_CLFBINTRSTOV_MASK;
-      hpoverride |= BCHP_SDS_HP_0_HPOVERRIDE_CLFBRSTOV_MASK;
-      hpoverride |= BCHP_SDS_HP_0_HPOVERRIDE_CLFBFRZOV_MASK;
-      hpoverride |= BCHP_SDS_HP_0_HPOVERRIDE_CLFBENOV_MASK;
+      BCHP_SET_FIELD_DATA(hpoverride, SDS_HP_0_HPOVERRIDE, SNOREOV, 1);
+      BCHP_SET_FIELD_DATA(hpoverride, SDS_HP_0_HPOVERRIDE, CLFBINTRSTOV, 1);
+      BCHP_SET_FIELD_DATA(hpoverride, SDS_HP_0_HPOVERRIDE, CLFBRSTOV, 1);
+      BCHP_SET_FIELD_DATA(hpoverride, SDS_HP_0_HPOVERRIDE, CLFBFRZOV, 1);
+      BCHP_SET_FIELD_DATA(hpoverride, SDS_HP_0_HPOVERRIDE, CLFBENOV, 1);
    }
    else
    {
-      hpoverride |= BCHP_SDS_HP_0_HPOVERRIDE_CLFINTRSTOV_MASK;
-      hpoverride |= BCHP_SDS_HP_0_HPOVERRIDE_CLFRSTOV_MASK;
-      hpoverride |= BCHP_SDS_HP_0_HPOVERRIDE_CLFFRZOV_MASK;
-      hpoverride |= BCHP_SDS_HP_0_HPOVERRIDE_CLFENOV_MASK;
+      BCHP_SET_FIELD_DATA(hpoverride, SDS_HP_0_HPOVERRIDE, CLFINTRSTOV, 1);
+      BCHP_SET_FIELD_DATA(hpoverride, SDS_HP_0_HPOVERRIDE, CLFRSTOV, 1);
+      BCHP_SET_FIELD_DATA(hpoverride, SDS_HP_0_HPOVERRIDE, CLFFRZOV, 1);
+      BCHP_SET_FIELD_DATA(hpoverride, SDS_HP_0_HPOVERRIDE, CLFENOV, 1);
    }
 
    /* calculate HPCONFIG */
-   hpconfig = BCHP_SDS_HP_0_HPCONFIG_frof2_accum_MASK;
+   hpconfig = BCHP_FIELD_DATA(SDS_HP_0_HPCONFIG, frof2_accum, 1);
    s2_type = 0;
    if (bDvbs2Mode)
    {
-      hpconfig |= BCHP_SDS_HP_0_HPCONFIG_dvbs2_mode_MASK;
-      hpconfig |= (90 << BCHP_SDS_HP_0_HPCONFIG_TRNLEN_SHIFT); /* trnlen=90 */
+      BCHP_SET_FIELD_DATA(hpconfig, SDS_HP_0_HPCONFIG, dvbs2_mode, 1);
+      BCHP_SET_FIELD_DATA(hpconfig, SDS_HP_0_HPCONFIG, TRNLEN, 90);
 
       mask = BSAT_DVBS2_SCAN_STATE_ENABLED | BSAT_DVBS2_SCAN_STATE_FOUND | BSAT_DVBS2_SCAN_STATE_PILOT;
       if ((!bDvbs2Scan && (hChn->acqSettings.options & BSAT_ACQ_PILOT)) || ((hChn->dvbs2ScanState & mask) == mask))
@@ -291,12 +303,14 @@ BERR_Code BSAT_g1_P_HpConfig_isr(BSAT_ChannelHandle h)
       }
       else if (BSAT_MODE_IS_DVBS2X(hChn->acqSettings.mode))
       {
-         hpconfig |= (1<<BCHP_SDS_HP_0_HPCONFIG_modcod_msb_for_dvbs2x_SHIFT); /* modcod_msb_for_dvbs2x=1 */
+         BCHP_SET_FIELD_DATA(hpconfig, SDS_HP_0_HPCONFIG, modcod_msb_for_dvbs2x, 1);
          BSAT_g1_P_GetDvbs2Plscode_isrsafe(hChn->acqSettings.mode, &plscode);
          modcod = (plscode >> 2) & 0x1F;
+#if 0
          s2_modcod_msb = (plscode >> 7) & 1;
          if (s2_modcod_msb)
             hpconfig |= BCHP_SDS_HP_0_HPCONFIG_modcod_msb_for_dvbs2x_MASK;
+#endif
          s2_type |= (plscode & 0x02);
       }
       else
@@ -309,26 +323,29 @@ BERR_Code BSAT_g1_P_HpConfig_isr(BSAT_ChannelHandle h)
       if ((hChn->acqSettings.mode == BSAT_Mode_eDvbs2_ACM) || bDvbs2Scan)
       {
          /* modcod scan or ACM */
-         hpconfig |= BCHP_SDS_HP_0_HPCONFIG_dcorr_modcod_search_MASK;
-         hpconfig |= (3 << BCHP_SDS_HP_0_HPCONFIG_hdr_mode_SHIFT); /* hdr_mode=3 */
-         hpconfig |= BCHP_SDS_HP_0_HPCONFIG_acm_mode_MASK;
+         BCHP_SET_FIELD_DATA(hpconfig, SDS_HP_0_HPCONFIG, dcorr_modcod_search, 1);
+         BCHP_SET_FIELD_DATA(hpconfig, SDS_HP_0_HPCONFIG, hdr_mode, 3);
+         BCHP_SET_FIELD_DATA(hpconfig, SDS_HP_0_HPCONFIG, acm_mode, 1);
       }
       else
       {
-         hpconfig |= BCHP_SDS_HP_0_HPCONFIG_use_sw_modcod_type_MASK;
-         hpconfig |= (1 << BCHP_SDS_HP_0_HPCONFIG_hdr_mode_SHIFT); /* hdr_mode=1 */
+         BCHP_SET_FIELD_DATA(hpconfig, SDS_HP_0_HPCONFIG, use_sw_modcod_type, 1);
+         BCHP_SET_FIELD_DATA(hpconfig, SDS_HP_0_HPCONFIG, hdr_mode, 1);
       }
 
 #ifdef BCHP_SDS_EQ_0_ACM_FIFO
       if ((hChn->acqSettings.mode == BSAT_Mode_eDvbs2_ACM) || bDvbs2Pilot)
       {
          val = BSAT_g1_P_ReadRegister_isrsafe(h, BCHP_SDS_EQ_ACM_FIFO);
-         val &= ~BCHP_SDS_EQ_0_ACM_FIFO_acm_fifo_byp_MASK; /* acm_fifo_byp=0 */
-         val &= ~BCHP_SDS_EQ_0_ACM_FIFO_buf_delay_MASK;
+         BCHP_SET_FIELD_DATA(val, SDS_EQ_0_ACM_FIFO, acm_fifo_byp, 0);
          if (hChn->acqSettings.mode == BSAT_Mode_eDvbs2_ACM)
-            val |= 0x122;
+         {
+            BCHP_SET_FIELD_DATA(val, SDS_EQ_0_ACM_FIFO, buf_delay, 0x122);
+         }
          else
-            val |= 0xC;
+         {
+            BCHP_SET_FIELD_DATA(val, SDS_EQ_0_ACM_FIFO, buf_delay, 0xC);
+         }
          BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_EQ_ACM_FIFO, val);
       }
 #endif
@@ -336,22 +353,23 @@ BERR_Code BSAT_g1_P_HpConfig_isr(BSAT_ChannelHandle h)
    else
    {
       /* turbo mode */
-      hpconfig |= BCHP_SDS_HP_0_HPCONFIG_one_of_n_pn_mode_MASK;
-      hpconfig |= 0x80;    /* use_sw_modcod_type=1 */
+      BCHP_SET_FIELD_DATA(hpconfig, SDS_HP_0_HPCONFIG, one_of_n_pn_mode, 1);
+      BCHP_SET_FIELD_DATA(hpconfig, SDS_HP_0_HPCONFIG, use_sw_modcod_type, 1);
+
       if (BSAT_MODE_IS_TURBO_QPSK(hChn->actualMode))
       {
-         hpconfig |= (128 << BCHP_SDS_HP_0_HPCONFIG_TRNLEN_SHIFT); /* trnlen=128 */
-         hpconfig |= BCHP_SDS_HP_0_HPCONFIG_turbo_qpsk_mode_MASK; //0x800; /* turbo_qpsk_mode=1 */
+         BCHP_SET_FIELD_DATA(hpconfig, SDS_HP_0_HPCONFIG, TRNLEN, 128);
+         BCHP_SET_FIELD_DATA(hpconfig, SDS_HP_0_HPCONFIG, turbo_qpsk_mode, 1);
          modcod = 29;
       }
       else
       {
-         hpconfig |= (64 << BCHP_SDS_HP_0_HPCONFIG_TRNLEN_SHIFT); /* trnlen=64 */
+         BCHP_SET_FIELD_DATA(hpconfig, SDS_HP_0_HPCONFIG, TRNLEN, 64);
          modcod = 30;
       }
    }
-   hpconfig |= (modcod << BCHP_SDS_HP_0_HPCONFIG_modcod_SHIFT);
-   hpconfig |= (s2_type << BCHP_SDS_HP_0_HPCONFIG_type_SHIFT);
+   BCHP_SET_FIELD_DATA(hpconfig, SDS_HP_0_HPCONFIG, modcod, modcod);
+   BCHP_SET_FIELD_DATA(hpconfig, SDS_HP_0_HPCONFIG, type, s2_type);
 
    /* calculate HP_DAFE */
    hp_dafe = 1 << BCHP_SDS_HP_0_HP_DAFE_dafe_n_frof2_SHIFT;
@@ -461,7 +479,7 @@ BERR_Code BSAT_g1_P_HpConfig_isr(BSAT_ChannelHandle h)
    /* set DAFE loop BW */
    val = 0;
    if (hChn->configParam[BSAT_g1_CONFIG_ACQ_DAFE_CTL])
-      val = hChn->configParam[BSAT_g1_CONFIG_ACQ_DAFE_CTL] & BSAT_g1_CONFIG_DAFE_CTL_CLDAFECTL;
+      val = hChn->configParam[BSAT_g1_CONFIG_ACQ_DAFE_CTL];
    else if (hDev->sdsRevId < 0x74)
    {
       /* BCM45308-A0 and earlier */
@@ -478,7 +496,43 @@ BERR_Code BSAT_g1_P_HpConfig_isr(BSAT_ChannelHandle h)
       /* BCM45308-B0 and later */
       /* pilot: dafe_int_scale=5(2^-12), dafe_lin_scale=4(2^-6) */
       /* non-pilot: dafe_int_scale=3(2^-16), dafe_lin_scale=1(2^-12), dafe_leak=0x50 */
-      val = 0x04505032;
+      val = 0x00005000;
+      if (hChn->acqSettings.symbolRate >= 30000000)
+      {
+         val |= (4 << BCHP_SDS_CL_0_CLDAFECTL_dafe_lin_scale1_SHIFT);
+         val |= (5 << BCHP_SDS_CL_0_CLDAFECTL_dafe_int_scale1_SHIFT);
+         val |= (3 << BCHP_SDS_CL_0_CLDAFECTL_dafe_lin_scale0_SHIFT);
+         val |= (3 << BCHP_SDS_CL_0_CLDAFECTL_dafe_int_scale0_SHIFT);
+      }
+      else if (hChn->acqSettings.symbolRate >= 20000000)
+      {
+         val |= (5 << BCHP_SDS_CL_0_CLDAFECTL_dafe_lin_scale1_SHIFT);
+         val |= (7 << BCHP_SDS_CL_0_CLDAFECTL_dafe_int_scale1_SHIFT);
+         val |= (4 << BCHP_SDS_CL_0_CLDAFECTL_dafe_lin_scale0_SHIFT);
+         val |= (5 << BCHP_SDS_CL_0_CLDAFECTL_dafe_int_scale0_SHIFT);
+      }
+      else if (hChn->acqSettings.symbolRate >= 10000000)
+      {
+         val |= (5 << BCHP_SDS_CL_0_CLDAFECTL_dafe_lin_scale1_SHIFT);
+         val |= (8 << BCHP_SDS_CL_0_CLDAFECTL_dafe_int_scale1_SHIFT);
+         val |= (4 << BCHP_SDS_CL_0_CLDAFECTL_dafe_lin_scale0_SHIFT);
+         val |= (6 << BCHP_SDS_CL_0_CLDAFECTL_dafe_int_scale0_SHIFT);
+      }
+      else if (hChn->acqSettings.symbolRate >= 5000000)
+      {
+         val |= (5 << BCHP_SDS_CL_0_CLDAFECTL_dafe_lin_scale1_SHIFT);
+         val |= (9 << BCHP_SDS_CL_0_CLDAFECTL_dafe_int_scale1_SHIFT);
+         val |= (4 << BCHP_SDS_CL_0_CLDAFECTL_dafe_lin_scale0_SHIFT);
+         val |= (7 << BCHP_SDS_CL_0_CLDAFECTL_dafe_int_scale0_SHIFT);
+      }
+      else
+      {
+         /* under 5 Mbaud */
+         val |= (6 << BCHP_SDS_CL_0_CLDAFECTL_dafe_lin_scale1_SHIFT);
+         val |= (10 << BCHP_SDS_CL_0_CLDAFECTL_dafe_int_scale1_SHIFT);
+         val |= (5 << BCHP_SDS_CL_0_CLDAFECTL_dafe_lin_scale0_SHIFT);
+         val |= (8 << BCHP_SDS_CL_0_CLDAFECTL_dafe_int_scale0_SHIFT);
+      }
    }
    if (val)
       BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_CL_CLDAFECTL, val);
@@ -547,6 +601,19 @@ void BSAT_g1_P_HpStateMatch_isr(void *p, int int_id)
             if (i >= BSAT_DVBS2X_NUM_MODCODS)
                goto invalid_modcod;
             hChn->actualMode = i + BSAT_Mode_eDvbs2x_Qpsk_13_45;
+
+#if BCHP_CHIP==45308
+            if (otp_disable_feature & OTP_DISABLE_FEATURE_DVBS2X)
+            {
+               if (BSAT_MODE_IS_DVBS2X(hChn->actualMode))
+               {
+                  /* JIRA SWSATFE-756 */
+                  hChn->reacqCause = BSAT_ReacqCause_eDvbs2xNotSupported;
+                  BSAT_g1_P_Reacquire_isr(h);
+                  return;
+               }
+            }
+#endif
          }
          else
          {

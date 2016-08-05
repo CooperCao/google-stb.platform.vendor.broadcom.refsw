@@ -334,6 +334,9 @@ int nexus_generic_driver_validate_mmap(unsigned module, void *context_, uint64_t
     unsigned i;
     bool hasDynamicHeap = false;
 
+    /* don't allow mmap without join */
+    if (!client) return NEXUS_NOT_AVAILABLE;
+
     BSTD_UNUSED(module); /* unused. added for api consistency. */
     BDBG_MSG(("nexus_generic_driver_validate_mmap %#x, %d\n", offset, size));
 

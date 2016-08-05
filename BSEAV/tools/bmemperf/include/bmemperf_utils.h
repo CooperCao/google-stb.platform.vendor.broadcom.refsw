@@ -53,7 +53,9 @@
           Fixed trans_read multiplication overflow.
     0.10  Added contextSwitches to response
 */
+#ifndef PRINTF
 #define PRINTF                         noprintf
+#endif
 #define FPRINTF                        nofprintf
 #define BMEMPERF_MAX_SUPPORTED_CLIENTS 10
 #define BACKGROUND_WHITE               "style='background-color:white;color:black;' "
@@ -70,6 +72,7 @@
 #define MAX_LINE_LENGTH                512
 #define TEMP_FILE_FULL_PATH_LEN        64
 #define BMEMPERF_SATA_USB_MAX          12 /* maximum number of devices like sda1, sda2, sda3, sda4, sdb1, sdc1 */
+#define TRUE_OR_FALSE(value)           ((value)?"True":"False")
 
 #ifdef B_ANDROID_BUILD
 #define BIN_DIR "/system/bin"
@@ -96,21 +99,27 @@ typedef struct
 /* command */
 typedef enum
 {
-    BMEMPERF_CMD_GET_OVERALL_STATS = 101, /* over all stats for all the memcs and memory bw consumers, sorted list */
-    BMEMPERF_CMD_GET_CLIENT_STATS,        /* detailed stats for individual clients */
-    BMEMPERF_CMD_SET_CLIENT_BOVAL_RRFLAG,
-    BMEMPERF_CMD_RESET_ARB_ERRORS,
-    BMEMPERF_CMD_START_PERF_DEEP,
-    BMEMPERF_CMD_START_PERF_CACHE,
-    BMEMPERF_CMD_START_SATA_USB,
-    BMEMPERF_CMD_STOP_SATA_USB,
-    BMEMPERF_CMD_START_LINUX_TOP,
-    BMEMPERF_CMD_STOP_LINUX_TOP,
-    BMEMPERF_CMD_QUIT,
-    BMEMPERF_CMD_GET_CPU_IRQ_INFO,
-    BMEMPERF_CMD_START_PERF_FLAME,
-    BMEMPERF_CMD_STATUS_PERF_FLAME,
-    BMEMPERF_CMD_STOP_PERF_FLAME,
+    BMEMPERF_CMD_GET_OVERALL_STATS = 0x001, /* over all stats for all the memcs and memory bw consumers, sorted list */
+    BMEMPERF_CMD_GET_CLIENT_STATS = 0x002,        /* detailed stats for individual clients */
+    BMEMPERF_CMD_SET_CLIENT_BOVAL_RRFLAG = 0x004,
+    BMEMPERF_CMD_RESET_ARB_ERRORS = 0x008,
+    BMEMPERF_CMD_START_PERF_DEEP = 0x010,
+    BMEMPERF_CMD_START_PERF_CACHE = 0x020,
+    BMEMPERF_CMD_START_SATA_USB = 0x040,
+    BMEMPERF_CMD_STOP_SATA_USB = 0x080,
+    BMEMPERF_CMD_START_LINUX_TOP = 0x100,
+    BMEMPERF_CMD_STOP_LINUX_TOP = 0x200,
+    BMEMPERF_CMD_QUIT = 0x400,
+    BMEMPERF_CMD_GET_CPU_IRQ_INFO = 0x800,
+    BMEMPERF_CMD_START_PERF_FLAME = 0x1000,
+    BMEMPERF_CMD_STATUS_PERF_FLAME = 0x2000,
+    BMEMPERF_CMD_STOP_PERF_FLAME = 0x4000,
+    BMEMPERF_CMD_WIFI_SCAN_START = 0x8000,
+    BMEMPERF_CMD_WIFI_SCAN_GET_RESULTS = 0x10000,
+    BMEMPERF_CMD_WIFI_AMPDU_START = 0x20000,
+    BMEMPERF_CMD_WIFI_AMPDU_GET_RESULTS = 0x40000,
+    BMEMPERF_CMD_IPERF_START = 0x80000,
+    BMEMPERF_CMD_IPERF_STOP = 0x100000,
     BMEMPERF_CMD_MAX
 } bmemperf_cmd;
 
@@ -202,6 +211,9 @@ typedef struct
     bool isActive[BMEMPERF_MAX_NUM_CPUS];
 } bmemperf_cpu_status;
 
+#define wl_bss_info_t_max_num 8
+#define wl_bss_info_t_size    132
+
 typedef struct bmemperf_overall_stats
 {
     bmemperf_system_stats systemStats[BMEMPERF_NUM_MEMC];
@@ -214,6 +226,8 @@ typedef struct bmemperf_overall_stats
     unsigned long int    contextSwitches;
     unsigned long int    fileSize;
     unsigned long int    pidCount;
+    unsigned long int    ulWifiScanApCount;
+    unsigned char        bssInfo[wl_bss_info_t_size*wl_bss_info_t_max_num]; /* CAD replace with real wl_bss_info_t structure */
 } bmemperf_overall_stats;
 
 typedef struct bmemperf_per_client_stats
@@ -236,7 +250,7 @@ typedef struct bmemperf_client_stats
 
 typedef struct bmemperf_response
 {
-    char                     padding[100]; /* used to make size of struct an even multiple of 256 */
+    char                     padding[106]; /* used to make size of struct an even multiple of 256 */
     bmemperf_cmd             cmd;
     int                      boxmode;
     bmemperf_boxmode_sources source;

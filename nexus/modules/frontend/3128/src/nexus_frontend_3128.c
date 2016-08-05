@@ -1295,11 +1295,8 @@ NEXUS_FrontendDeviceHandle NEXUS_FrontendDevice_Open3128(unsigned index, const N
         chipId = NEXUS_Frontend_P_get3128ChipId(pSettings, chipFamilyId);
         revId = NEXUS_Frontend_P_Get3128Rev(pSettings);
 
-        pFrontendDevice = BKNI_Malloc(sizeof(*pFrontendDevice));
+        pFrontendDevice = NEXUS_FrontendDevice_P_Create();
         if (NULL == pFrontendDevice) {rc = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY); goto done;}
-
-        /* Memsetting the whole structure should cover initializing the child list. */
-        BKNI_Memset(pFrontendDevice, 0, sizeof(*pFrontendDevice));
 
         pDevice = BKNI_Malloc(sizeof(NEXUS_3128));
         if (NULL == pDevice) {rc = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY); goto done;}
@@ -2625,7 +2622,7 @@ static NEXUS_Error NEXUS_Frontend_P_3128_GetQamAsyncStatus(void *handle, NEXUS_F
 
     if(totalBlock > unCorrectedBlock){
         unCorrectedBlock = (uint64_t)unCorrectedBlock * 11224 / 1000;
-        if(pStatus->settings.annex == NEXUS_FrontendQamAnnex_eA)
+        if(pStatus->settings.annex == NEXUS_FrontendQamAnnex_eA || pStatus->settings.annex == NEXUS_FrontendQamAnnex_eC)
             pStatus->postRsBer = ((uint64_t)unCorrectedBlock * 2097152 * 1024 )/((uint64_t)totalBlock*8*187);
         else if(pStatus->settings.annex == NEXUS_FrontendQamAnnex_eB)
             pStatus->postRsBer = ((uint64_t)unCorrectedBlock * 2097152 * 1024)/((uint64_t)totalBlock*7*122);
@@ -2635,7 +2632,7 @@ static NEXUS_Error NEXUS_Frontend_P_3128_GetQamAsyncStatus(void *handle, NEXUS_F
     if(pStatus->viterbiUncorrectedBits > prevStatus->viterbiUncorrectedBits)
         uncorrectedBits = pStatus->viterbiUncorrectedBits - prevStatus->viterbiUncorrectedBits;
 
-    if(pStatus->settings.annex == NEXUS_FrontendQamAnnex_eA){
+    if(pStatus->settings.annex == NEXUS_FrontendQamAnnex_eA || pStatus->settings.annex == NEXUS_FrontendQamAnnex_eC){
         pStatus->viterbiTotalBits = (uint32_t)(((uint64_t)pStatus->fecCorrected + (uint64_t)pStatus->fecUncorrected + (uint64_t)pStatus->fecClean) * 204 * 8);
     }
     else if(pStatus->settings.annex == NEXUS_FrontendQamAnnex_eB){

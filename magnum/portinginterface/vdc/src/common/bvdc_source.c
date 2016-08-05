@@ -665,41 +665,6 @@ BERR_Code BVDC_Source_OverrideAspectRatio
 }
 #endif
 
-#if !B_REFSW_MINIMAL
-/***************************************************************************
- *
- */
-BERR_Code BVDC_Source_OverrideAspectRatio_isr
-    ( BVDC_Source_Handle               hSource,
-      BFMT_AspectRatio                 eAspectRatio )
-{
-    BDBG_ENTER(BVDC_Source_OverrideAspectRatio_isr);
-    BDBG_OBJECT_ASSERT(hSource, BVDC_SRC);
-
-    if(eAspectRatio > BFMT_AspectRatio_e15_9)
-    {
-        return BERR_TRACE(BERR_INVALID_PARAMETER);
-    }
-
-    if((hSource->stCurInfo.eAspectRatio != eAspectRatio) ||
-       ((hSource->stIsrInfo.stDirty.stBits.bAspectRatio) &&
-        (hSource->stIsrInfo.eAspectRatio != eAspectRatio)))
-    {
-        BVDC_P_Source_IsrInfo *pIsrInfo = &hSource->stIsrInfo;
-        BVDC_P_Source_DirtyBits *pIsrDirty = &pIsrInfo->stDirty;
-
-        /* set isr value */
-        pIsrInfo->eAspectRatio  = eAspectRatio;
-
-        /* Dirty bit set */
-        pIsrDirty->stBits.bAspectRatio = BVDC_P_DIRTY;
-    }
-
-    BDBG_LEAVE(BVDC_Source_OverrideAspectRatio_isr);
-    return BERR_SUCCESS;
-}
-#endif
-
 /***************************************************************************
  *
  */
@@ -718,99 +683,6 @@ BERR_Code BVDC_Source_GetAspectRatio
     BDBG_LEAVE(BVDC_Source_GetAspectRatio);
     return BERR_SUCCESS;
 }
-
-
-#if !B_REFSW_MINIMAL
-/***************************************************************************
- *
- */
-BERR_Code BVDC_Source_SetAspectRatioCanvasClip
-    ( BVDC_Source_Handle               hSource,
-      uint32_t                         ulLeft,
-      uint32_t                         ulRight,
-      uint32_t                         ulTop,
-      uint32_t                         ulBottom )
-{
-    BVDC_P_Source_Info *pNewInfo;
-
-    BDBG_ENTER(BVDC_Source_SetAspectRatioCanvasClip);
-    BDBG_OBJECT_ASSERT(hSource, BVDC_SRC);
-
-    pNewInfo = &hSource->stNewInfo;
-
-    if(!BVDC_P_SRC_IS_VIDEO(hSource->eId))
-    {
-        return BERR_TRACE(BERR_INVALID_PARAMETER);
-    }
-
-
-    /* set new value */
-    pNewInfo->stAspRatRectClip.ulLeft   = ulLeft;
-    pNewInfo->stAspRatRectClip.ulRight  = ulRight;
-    pNewInfo->stAspRatRectClip.ulTop    = ulTop;
-    pNewInfo->stAspRatRectClip.ulBottom = ulBottom;
-    pNewInfo->stAspRatRectClip.lLeftDelta_R = 0;
-
-    if((hSource->stCurInfo.stAspRatRectClip.ulLeft   != ulLeft)   ||
-       (hSource->stCurInfo.stAspRatRectClip.ulRight  != ulRight)  ||
-       (hSource->stCurInfo.stAspRatRectClip.ulTop    != ulTop)    ||
-       (hSource->stCurInfo.stAspRatRectClip.ulBottom != ulBottom) ||
-       (hSource->stNewInfo.bErrorLastSetting))
-    {
-        /* Dirty bit set */
-        pNewInfo->stDirty.stBits.bAspectRatioClip = BVDC_P_DIRTY;
-    }
-
-    BDBG_LEAVE(BVDC_Source_SetAspectRatioCanvasClip);
-    return BERR_SUCCESS;
-}
-#endif
-
-#if !B_REFSW_MINIMAL
-/***************************************************************************
- *
- */
-BERR_Code BVDC_Source_SetAspectRatioCanvasClip_isr
-    ( BVDC_Source_Handle               hSource,
-      uint32_t                         ulLeft,
-      uint32_t                         ulRight,
-      uint32_t                         ulTop,
-      uint32_t                         ulBottom )
-{
-    BVDC_P_Source_IsrInfo *pIsrInfo;
-
-    BDBG_ENTER(BVDC_Source_SetAspectRatioCanvasClip_isr);
-    BDBG_OBJECT_ASSERT(hSource, BVDC_SRC);
-
-    if(!BVDC_P_SRC_IS_VIDEO(hSource->eId))
-    {
-        return BERR_TRACE(BERR_INVALID_PARAMETER);
-    }
-
-    pIsrInfo = &hSource->stIsrInfo;
-
-    /* set isr value */
-    pIsrInfo->stAspRatRectClip.ulLeft   = ulLeft;
-    pIsrInfo->stAspRatRectClip.ulRight  = ulRight;
-    pIsrInfo->stAspRatRectClip.ulTop    = ulTop;
-    pIsrInfo->stAspRatRectClip.ulBottom = ulBottom;
-    pIsrInfo->stAspRatRectClip.lLeftDelta_R = 0;
-
-    if((hSource->stCurInfo.stAspRatRectClip.ulLeft   != ulLeft)   ||
-       (hSource->stCurInfo.stAspRatRectClip.ulRight  != ulRight)  ||
-       (hSource->stCurInfo.stAspRatRectClip.ulTop    != ulTop)    ||
-       (hSource->stCurInfo.stAspRatRectClip.ulBottom != ulBottom) ||
-       (hSource->stNewInfo.bErrorLastSetting))
-    {
-        /* Dirty bit set */
-        pIsrInfo->stDirty.stBits.bAspectRatioClip = BVDC_P_DIRTY;
-    }
-
-    BDBG_LEAVE(BVDC_Source_SetAspectRatioCanvasClip_isr);
-    return BERR_SUCCESS;
-}
-#endif
-
 
 /***************************************************************************
  *
@@ -2318,6 +2190,8 @@ static void BVDC_P_Source_PrintPicture_isr
             BDBG_ERR(("pPic->eFrameRateCode                       : %d", pPic->eFrameRateCode));
             BDBG_ERR(("pPic->ePxlFmt                              : %s", BPXL_ConvertFmtToStr(pPic->ePxlFmt)));
             BDBG_ERR(("pPic->eMatrixCoefficients                  : %d", pPic->eMatrixCoefficients));
+            BDBG_ERR(("pPic->ePreferredTransferCharacteristics    : %d", pPic->ePreferredTransferCharacteristics));
+            BDBG_ERR(("pPic->eTransferCharacteristics             : %d", pPic->eTransferCharacteristics));
             BDBG_ERR(("pPic->bStreamProgressive                   : %d", pPic->bStreamProgressive));
             BDBG_ERR(("pPic->bFrameProgressive                    : %d", pPic->bFrameProgressive));
             BDBG_ERR(("pPic->hLuminanceFrameBufferBlock           : %p", (void *)pPic->hLuminanceFrameBufferBlock));
@@ -2776,7 +2650,7 @@ void BVDC_P_Source_ValidateMpegData_isr
  *      hSource->eMfdVertRateCode is used in next vsync to configure MTG,
  *      and in callback to upper layer for BXVD_SetMonitorRefreshRate
  */
-static void BVDC_P_Source_UpdateMfdVertRateCode
+static void BVDC_P_Source_UpdateMfdVertRateCode_isr
     ( BVDC_Source_Handle         hSource,
       BAVC_MVD_Field            *pXvdPic )
 {
@@ -2788,8 +2662,7 @@ static void BVDC_P_Source_UpdateMfdVertRateCode
 
     BDBG_OBJECT_ASSERT(hSource, BVDC_SRC);
 
-    ulCurVertFreq =
-        BVDC_P_Source_RefreshRate_FromFrameRateCode_isrsafe(hSource->eMfdVertRateCode);
+    ulCurVertFreq = hSource->ulVertFreq;
 
     if (hSource->hSyncLockCompositor)
     {
@@ -2857,6 +2730,7 @@ static void BVDC_P_Source_UpdateMfdVertRateCode
         hSource->eMfdVertRateCode = hSource->eDefMfdVertRateCode;
     }
 
+    hSource->ulVertFreq = BVDC_P_Source_RefreshRate_FromFrameRateCode_isrsafe(hSource->eMfdVertRateCode);
 }
 
 /***************************************************************************
@@ -2916,7 +2790,7 @@ void BVDC_Source_MpegDataReady_isr
 
     /* Update source user info before using pCurInfo */
     BVDC_P_Source_UpdateSrcState_isr(hSource);
-    BVDC_P_Source_UpdateMfdVertRateCode(hSource, pXvdPic);
+    BVDC_P_Source_UpdateMfdVertRateCode_isr(hSource, pXvdPic);
 
     if(hSource->stCurInfo.bMosaicMode)
     {
@@ -3009,8 +2883,7 @@ void BVDC_Source_MpegDataReady_isr
         for(i = 0; i < hSource->ulMosaicCount; i++)
         {
             hSource->ulPixelCount += ((hSource->stNewPic[i].ulSourceHorizontalSize *
-                hSource->stNewPic[i].ulSourceVerticalSize) / BFMT_FREQ_FACTOR) *
-                BVDC_P_Source_RefreshRate_FromFrameRateCode_isrsafe(hSource->eMfdVertRateCode);
+                hSource->stNewPic[i].ulSourceVerticalSize) / BFMT_FREQ_FACTOR) * hSource->ulVertFreq;
 
             if(i > 0)
             {
@@ -3023,8 +2896,7 @@ void BVDC_Source_MpegDataReady_isr
     else
     {
         hSource->ulPixelCount = ((pNewPic->ulSourceHorizontalSize *
-            pNewPic->ulSourceVerticalSize) / BFMT_FREQ_FACTOR) *
-            BVDC_P_Source_RefreshRate_FromFrameRateCode_isrsafe(hSource->eMfdVertRateCode);
+             pNewPic->ulSourceVerticalSize) / BFMT_FREQ_FACTOR) * hSource->ulVertFreq;
     }
 
     hSource->ulMosaicFirstUnmuteRectIndex = 0;
@@ -3150,24 +3022,24 @@ void BVDC_Source_MpegDataReady_isr
         /* PsF: the source vertical freq is the frame rate (for frame capture) */
         if(hSource->bPsfScanout)
         {
-            uint32_t ulVertFreq;
+            uint32_t ulPsfVertFreq;
 
             switch(pNewPic->eFrameRateCode)
             {
             case BAVC_FrameRateCode_e23_976:
-                ulVertFreq = 2397;
+                ulPsfVertFreq = 2397;
                 break;
             case BAVC_FrameRateCode_e24:
-                ulVertFreq = 24 * BFMT_FREQ_FACTOR;
+                ulPsfVertFreq = 24 * BFMT_FREQ_FACTOR;
                 break;
             case BAVC_FrameRateCode_e25:
-                ulVertFreq = 25 * BFMT_FREQ_FACTOR;
+                ulPsfVertFreq = 25 * BFMT_FREQ_FACTOR;
                 break;
             case BAVC_FrameRateCode_e29_97:
-                ulVertFreq = 2997;
+                ulPsfVertFreq = 2997;
                 break;
             case BAVC_FrameRateCode_e30:
-                ulVertFreq = 30 * BFMT_FREQ_FACTOR;
+                ulPsfVertFreq = 30 * BFMT_FREQ_FACTOR;
                 break;
             default:
                 /* "Forced PSF" allows all type of mpeg/gfx src (format and frequency),
@@ -3178,12 +3050,12 @@ void BVDC_Source_MpegDataReady_isr
                 BDBG_MSG(("eFrameRateCode       = %d", pNewPic->eFrameRateCode));
                 BDBG_MSG(("Ignore stream frame rate. Use PsF %d Hz",
                     BVDC_P_PSF_VERT_FREQ/BFMT_FREQ_FACTOR));
-                ulVertFreq = BVDC_P_PSF_VERT_FREQ;
+                ulPsfVertFreq = BVDC_P_PSF_VERT_FREQ;
             }
 
-            if(hSource->ulVertFreq != ulVertFreq)
+            if(hSource->ulVertFreq != ulPsfVertFreq)
             {
-                hSource->ulVertFreq = ulVertFreq;
+                hSource->ulVertFreq = ulPsfVertFreq;
                 hSource->bRasterChanged = true;
             }
         }
@@ -3469,12 +3341,12 @@ void BVDC_Source_MpegDataReady_isr
 
         if (hSource->stCurInfo.stCallbackSettings.stMask.bFrameRate &&
             ((pCbData->eFrameRateCode != hSource->eMfdVertRateCode) ||
-             (pCbData->bMtgSrc        != (hSource->bMtgSrc && !hSource->stCurInfo.bMosaicMode))))
+             (pCbData->bMtgSrc != (hSource->bMtgSrc && !hSource->stCurInfo.bMosaicMode))))
         {
             pCbMask->bFrameRate  = BVDC_P_DIRTY;
             pCbData->eFrameRateCode = hSource->eMfdVertRateCode;
-            pCbData->ulVertRefreshRate =
-                BVDC_P_Source_RefreshRate_FromFrameRateCode_isrsafe(hSource->eMfdVertRateCode);
+            pCbData->ulVertRefreshRate = hSource->ulVertFreq;
+            BDBG_ASSERT(hSource->ulVertFreq == BVDC_P_Source_RefreshRate_FromFrameRateCode_isrsafe(hSource->eMfdVertRateCode));
             pCbData->bMtgSrc = (hSource->bMtgSrc && !hSource->stCurInfo.bMosaicMode);
         }
 

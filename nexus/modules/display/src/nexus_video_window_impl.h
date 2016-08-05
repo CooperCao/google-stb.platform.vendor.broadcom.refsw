@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2013 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2007-2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,17 +35,7 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
- ***************************************************************************/
+ **************************************************************************/
 /* this file shall be included only from nexus_display_module.h */
 #ifndef NEXUS_VIDEO_WINDOW_IMPL_H__
 #define NEXUS_VIDEO_WINDOW_IMPL_H__
@@ -79,6 +69,10 @@ struct NEXUS_VideoWindow {
     BKNI_EventHandle lb_event; /* for pcinput auto position lb return data */
     BKNI_EventHandle syncLockEvent; /* for propagating sync-locked display info to decoder */
     NEXUS_EventCallbackHandle syncLockCallback;
+#if BVDC_BUF_LOG && NEXUS_BASE_OS_linuxuser
+    BKNI_EventHandle bufLogEvent; /* for capturing buffer debug log to file */
+    NEXUS_EventCallbackHandle bufLogCallback;
+#endif
     bool bypassVideoProcessing;
 
     NEXUS_SurfaceHandle captureBuffer; /* current surface returned by NEXUS_VideoWindow_CaptureVideoBuffer */

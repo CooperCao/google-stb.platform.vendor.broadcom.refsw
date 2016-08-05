@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -71,7 +71,6 @@ public:
     virtual void                 mosaicUninitialize(void);
     virtual CSimpleVideoDecode * videoDecodeCreate(eWindowType windowType);
     virtual CSimpleAudioDecode * audioDecodeCreate(eWindowType windowType);
-    virtual CStillDecode *       videoDecodeStillInitialize(void)   { return(NULL); }
     virtual void                 videoDecodeStillUninitialize(void) { return; }
     virtual COutputHdmi *        outputHdmiInitialize(CDisplay * pDisplay);
     virtual COutputComponent *   outputComponentInitialize(CDisplay * pDisplay);

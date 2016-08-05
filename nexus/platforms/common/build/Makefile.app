@@ -166,4 +166,4 @@ $(NEXUS_HEADER) $(NEXUS_CPP_HEADER): copy_headers
 	    echo "#include \"nexus_platform_features.h\"" >>$(NEXUS_HEADER); \
 	    LC_ALL=C ls *.h|grep -v "nexus_config\.h"|grep -v "nexus\.h"|grep -v "bstd\.h"|awk '{print "#include \"" $$1 "\""}' >>$(NEXUS_HEADER); \
 	    echo "#endif" >>$(NEXUS_HEADER)
-	${Q_}$(CPP) -P $(NEXUS_HEADER) $(NEXUS_CFLAGS) -Wundef -Werror >$(NEXUS_CPP_HEADER)
+	${Q_}$(CPP) -P $(NEXUS_HEADER) $(NEXUS_CFLAGS) $(NEXUS_API_CPP_CFLAGS) >$(NEXUS_CPP_HEADER)

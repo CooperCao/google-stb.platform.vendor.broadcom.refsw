@@ -45,10 +45,13 @@
 #define LOGV BDBG_MSG
 
 #include "pr_decryptor.h"
+#ifdef MSDRM_PRDY30
+#include "pr30_decryptor.h"
+#endif
 #ifdef ENABLE_WIDEVINE
 #include "wv_decryptor.h"
 #endif
-BDBG_MODULE(decryptor);
+BDBG_MODULE(decryptor_factory);
 
 using namespace dif_streamer;
 
@@ -59,16 +62,23 @@ IDecryptor* DecryptorFactory::CreateDecryptor(DrmType type)
       case drm_type_ePlayready:
         decryptor = new PlayreadyDecryptor();
         break;
+      case drm_type_ePlayready30:
+#ifdef MSDRM_PRDY30
+        decryptor = new Playready30Decryptor();
+#else
+        LOGE(("%s: Playready 3.0 not supported with this build", __FUNCTION__));
+#endif
+        break;
 #ifdef ENABLE_WIDEVINE
       case drm_type_eWidevine:
         decryptor = new WidevineDecryptor();
         break;
 #endif
       case drm_type_eClear:
-        LOGW(("%s: clear content"));
+        LOGW(("%s: clear content", __FUNCTION__));
         break;
       default:
-        LOGE(("%s: unknown DRM type"));
+        LOGE(("%s: unknown DRM type", __FUNCTION__));
     }
     return decryptor;
 }
@@ -77,7 +87,7 @@ void DecryptorFactory::DestroyDecryptor(IDecryptor* decryptor)
 {
     LOGD(("%s: decryptor=%p", __FUNCTION__, decryptor));
     if (decryptor == NULL) {
-        LOGE(("%s: decryptor is NULL"));
+        LOGE(("%s: decryptor is NULL", __FUNCTION__));
         return;
     }
     delete decryptor;

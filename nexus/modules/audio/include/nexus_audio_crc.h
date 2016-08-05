@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2013 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *  
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,18 +35,10 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF 
 *  ANY LIMITED REMEDY.
 * 
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * API Description:
 *   API name: AudioCrc
 *    CRC capture for Audio data
 *
-* Revision History:
-*
-* $brcm_Log: $
-* 
 ***************************************************************************/
 
 #ifndef NEXUS_AUDIO_CRC_H__
@@ -129,7 +121,7 @@ typedef struct NEXUS_AudioCrcInputSettings
 {
     NEXUS_AudioCrcSourceType sourceType;
     NEXUS_AudioOutputHandle output;         /* Must be set for all sourceTypes */
-    NEXUS_AudioInput input;                 /* Only Set if sourceType == NEXUS_AudioCrcSourceType_ePlaybackBuffer */
+    NEXUS_AudioInputHandle input;                 /* Only Set if sourceType == NEXUS_AudioCrcSourceType_ePlaybackBuffer */
 } NEXUS_AudioCrcInputSettings;
 
 /***************************************************************************
@@ -245,5 +237,3 @@ NEXUS_Error NEXUS_AudioCrc_GetCrcData(
 #endif
 
 #endif /* #ifndef NEXUS_AUDIO_CRC_H__ */
-
-

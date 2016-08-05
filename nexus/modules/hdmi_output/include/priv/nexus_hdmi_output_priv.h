@@ -216,6 +216,8 @@ BHDCPlib_State NEXUS_HdmiOutput_P_GetCurrentHdcplibState(
 	NEXUS_HdmiOutputHandle hdmiOutput);
 #endif
 
+void NEXUS_HdmiOutput_GetDefaultOpenSettings_isrsafe( NEXUS_HdmiOutputOpenSettings *pSettings );
+
 NEXUS_OBJECT_CLASS_DECLARE(NEXUS_HdmiOutput);
 
 #ifdef __cplusplus

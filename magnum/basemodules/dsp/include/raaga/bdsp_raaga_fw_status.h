@@ -4299,6 +4299,7 @@ typedef struct BDSP_Raaga_VideoX264EncoderInfo
     uint32_t                        ui32RelinquishCounter;
     uint32_t                        uiEncodedPTS;
     uint32_t                        ui32StcValue;
+    uint32_t                        ui32FrameRateConvError;
     uint32_t                        ui32StatusValid;
 }BDSP_Raaga_VideoX264EncoderInfo;
 typedef struct BDSP_Raaga_VideoXVP8EncoderInfo
@@ -4357,6 +4358,7 @@ typedef union BDSP_Raaga_Audio_StreamInfo
     BDSP_Raaga_Audio_ALSDecStreamInfo    sALSDecStreamInfo;
     BDSP_Raaga_Audio_FadeCtrlPPStatusInfo sFadeCtrlProcessInfo;
     BDSP_Raaga_VideoH264EncoderInfo      sH264EncoderInfo;
+    BDSP_Raaga_VideoX264EncoderInfo      sX264EncoderInfo;
     BDSP_Raaga_Audio_PassthruStreamInfo         sPassthruStreamInfo;
     /* Other decoders info */
 } BDSP_Raaga_Audio_StreamInfo;

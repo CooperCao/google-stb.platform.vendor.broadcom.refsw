@@ -125,6 +125,11 @@ typedef struct
    BKNI_EventHandle           hRunCallback;
    NEXUS_ThreadHandle         hTaskHandle;
    volatile bool              runCallbackExit;
+   uint64_t                   pagetablePhysAddr;
+   uint32_t                   mmuMaxVirtAddr;
+   int64_t                    unsecureBinTranslation;
+   int64_t                    secureBinTranslation;
+   uint64_t                   platformToken;
 
    void  (*pfnUpdateOldestNFID)(uint64_t);
    sem_t throttle;
@@ -144,6 +149,10 @@ static void *SchedOpen(void *context)
    NEXUS_Graphicsv3dCreateSettings  settings;
 
    NEXUS_Graphicsv3d_GetDefaultCreateSettings(&settings);
+
+   settings.iUnsecureBinTranslation = ctx->unsecureBinTranslation;
+   settings.iSecureBinTranslation   = ctx->secureBinTranslation;
+   settings.uiPlatformToken         = ctx->platformToken;
 
    settings.sUsermode.context  = ctx;
    settings.sUsermode.param    = 0;
@@ -202,6 +211,8 @@ static void CopyJobBase(NEXUS_Graphicsv3dJobBase *to, const struct bcm_sched_job
    to->pCompletionData = from->completion_data;
    to->uiSyncFlags = from->sync_list.flags;
    to->bSecure = from->secure;
+   to->uiPagetablePhysAddr = 0;
+   to->uiMmuMaxVirtAddr = 0;
 }
 
 static void CopyTFUJob(NEXUS_Graphicsv3dJobTFU *to, const struct bcm_tfu_job *from)
@@ -214,6 +225,7 @@ static void CopyTFUJob(NEXUS_Graphicsv3dJobTFU *to, const struct bcm_tfu_job *fr
    to->sInput.uiChromaStride     = from->input.chroma_stride;
    to->sInput.uiAddress          = from->input.address;
    to->sInput.uiChromaAddress    = from->input.chroma_address;
+   to->sInput.uiUPlaneAddress    = from->input.uplane_address;
    to->sInput.uiFlags            = from->input.flags;
 
    to->sOutput.uiMipmapCount     = from->output.mipmap_count;
@@ -235,7 +247,7 @@ static void CopyTFUJob(NEXUS_Graphicsv3dJobTFU *to, const struct bcm_tfu_job *fr
    to->sCustomCoefs.uiBB         = from->custom_coefs.a_bb;
 }
 
-static unsigned QueueJobBatch(void *session, const struct bcm_sched_job *jobs, unsigned num_jobs)
+static unsigned QueueJobBatch(SchedContext *context, void *session, const struct bcm_sched_job *jobs, unsigned num_jobs)
 {
    NEXUS_Error err = NEXUS_SUCCESS;
 
@@ -257,6 +269,8 @@ static unsigned QueueJobBatch(void *session, const struct bcm_sched_job *jobs, u
       NEXUS_Graphicsv3dJobBin      nexusBin;
 
       CopyJobBase(&nexusBin.sBase, jobs);
+      nexusBin.sBase.uiPagetablePhysAddr = context->pagetablePhysAddr;
+      nexusBin.sBase.uiMmuMaxVirtAddr = context->mmuMaxVirtAddr;
 
       nexusBin.uiNumSubJobs = jobs->driver.bin.n;
       memcpy(&nexusBin.uiStart, &jobs->driver.bin.start, sizeof(nexusBin.uiStart));
@@ -273,6 +287,8 @@ static unsigned QueueJobBatch(void *session, const struct bcm_sched_job *jobs, u
       NEXUS_Graphicsv3dJobRender   nexusRender;
 
       CopyJobBase(&nexusRender.sBase, jobs);
+      nexusRender.sBase.uiPagetablePhysAddr = context->pagetablePhysAddr;
+      nexusRender.sBase.uiMmuMaxVirtAddr = context->mmuMaxVirtAddr;
 
       nexusRender.uiNumSubJobs = jobs->driver.render.n;
       memcpy(&nexusRender.uiStart, &jobs->driver.render.start, sizeof(nexusRender.uiStart));
@@ -318,6 +334,8 @@ static unsigned QueueJobBatch(void *session, const struct bcm_sched_job *jobs, u
       for (unsigned i = 0; i != batchSize; ++i)
       {
          CopyJobBase(&nexusTFU[i].sBase, &jobs[i]);
+         nexusTFU[i].sBase.uiPagetablePhysAddr = context->pagetablePhysAddr;
+         nexusTFU[i].sBase.uiMmuMaxVirtAddr = context->mmuMaxVirtAddr;
          CopyTFUJob(&nexusTFU[i], &jobs[i].driver.tfu);
       }
 
@@ -367,9 +385,11 @@ static unsigned QueueJobBatch(void *session, const struct bcm_sched_job *jobs, u
 
 static BEGL_SchedStatus QueueJobs(void *context, void *session, const struct bcm_sched_job *jobs, unsigned num_jobs)
 {
+   SchedContext *ctx = (SchedContext *)context;
+
    while (num_jobs > 0)
    {
-      unsigned done = QueueJobBatch(session, jobs, num_jobs);
+      unsigned done = QueueJobBatch(ctx, session, jobs, num_jobs);
       if (!done)
          return BEGL_SchedFail;
       jobs += done;
@@ -389,6 +409,8 @@ static BEGL_SchedStatus QueueBinRender(void *context, void *session, const struc
 
    /* Copy bin job */
    CopyJobBase(&nexusBin.sBase, bin);
+   nexusBin.sBase.uiPagetablePhysAddr = ctx->pagetablePhysAddr;
+   nexusBin.sBase.uiMmuMaxVirtAddr = ctx->mmuMaxVirtAddr;
 
    nexusBin.uiNumSubJobs = bin->driver.bin.n;
    memcpy(nexusBin.uiStart, bin->driver.bin.start, sizeof(nexusBin.uiStart));
@@ -400,6 +422,8 @@ static BEGL_SchedStatus QueueBinRender(void *context, void *session, const struc
 
    /* Copy render job */
    CopyJobBase(&nexusRender.sBase, render);
+   nexusRender.sBase.uiPagetablePhysAddr = ctx->pagetablePhysAddr;
+   nexusRender.sBase.uiMmuMaxVirtAddr = ctx->mmuMaxVirtAddr;
 
    nexusRender.uiNumSubJobs = render->driver.render.n;
    memcpy(nexusRender.uiStart, render->driver.render.start, sizeof(nexusRender.uiStart));
@@ -579,8 +603,10 @@ static void WaitFence(void *context, int fence)
 
    BKNI_WaitForEvent(ev, BKNI_INFINITE);
 
-   NEXUS_Graphicsv3d_UnregisterFenceWait(ctx->session, fence);
+   NEXUS_Graphicsv3d_UnregisterFenceWait(ctx->session, fence,
+         (NEXUS_Graphicsv3dFenceEventHandle)ev, NULL);
 
+   /* The callback has fired, it's safe to destroy the event */
    BKNI_DestroyEvent(ev);
 }
 
@@ -590,6 +616,7 @@ static BEGL_FenceStatus WaitFenceTimeout(void *context, int fence, uint32_t time
    SchedContext        *ctx = (SchedContext *)context;
    BERR_Code            err;
    BEGL_FenceStatus     ret;
+   bool signalled;
 
    BKNI_CreateEvent(&ev);
 
@@ -597,7 +624,19 @@ static BEGL_FenceStatus WaitFenceTimeout(void *context, int fence, uint32_t time
 
    err = BKNI_WaitForEvent(ev, timeoutms);
 
-   NEXUS_Graphicsv3d_UnregisterFenceWait(ctx->session, fence);
+   NEXUS_Graphicsv3d_UnregisterFenceWait(ctx->session, fence,
+         (NEXUS_Graphicsv3dFenceEventHandle)ev, &signalled);
+
+   /* Handle a corner case: Nexus callback is about to happen AFTER unregister.
+    * We know that because the fence was signalled but the event wasn't.
+    * This means the callback is going to fire any moment now so we must not
+    * destroy the event just yet.
+    */
+   if (signalled && err == BERR_TIMEOUT)
+   {
+      BKNI_WaitForEvent(ev, BKNI_INFINITE); /* this wait will be very short */
+      err = BERR_SUCCESS;
+   }
 
    BKNI_DestroyEvent(ev);
 
@@ -611,6 +650,13 @@ static void MakeFence(void *context, int *fence)
    SchedContext        *ctx = (SchedContext *)context;
 
    NEXUS_Graphicsv3d_FenceMake(ctx->session, fence);
+}
+
+static BEGL_SchedStatus KeepFence(void *context, int fence)
+{
+   SchedContext *ctx = (SchedContext *)context;
+   return NEXUS_Graphicsv3d_FenceKeep(ctx->session, fence) == NEXUS_SUCCESS ?
+         BEGL_SchedSuccess : BEGL_SchedFail;
 }
 
 static void SignalFence(void *context, int fence)
@@ -804,6 +850,17 @@ static uint32_t GetEventData(void *context, void *session, uint32_t event_buffer
    return bytesCopied;
 }
 
+static void SetMMUContext(void *context, uint64_t physAddr, uint32_t maxVirtAddr, int64_t unsecureBinTrans, int64_t secureBinTrans, uint64_t platformToken)
+{
+   SchedContext   *ctx = (SchedContext *)context;
+
+   ctx->pagetablePhysAddr = physAddr;
+   ctx->mmuMaxVirtAddr = maxVirtAddr;
+   ctx->unsecureBinTranslation = unsecureBinTrans;
+   ctx->secureBinTranslation = secureBinTrans;
+   ctx->platformToken = platformToken;
+}
+
 BEGL_SchedInterface *CreateSchedInterface(BEGL_MemoryInterface *memIface)
 {
    SchedContext        *ctx   = NULL;
@@ -837,6 +894,7 @@ BEGL_SchedInterface *CreateSchedInterface(BEGL_MemoryInterface *memIface)
    iface->CloseFence       = CloseFence;
 
    iface->MakeFence        = MakeFence;
+   iface->KeepFence        = KeepFence;
    iface->SignalFence      = SignalFence;
 
    iface->GetInfo          = GetInfo;
@@ -857,6 +915,9 @@ BEGL_SchedInterface *CreateSchedInterface(BEGL_MemoryInterface *memIface)
    iface->GetEventDataFieldInfo     = GetEventDataFieldInfo;
    iface->SetEventCollection        = SetEventCollection;
    iface->GetEventData              = GetEventData;
+
+   // MMU configuration
+   iface->SetMMUContext             = SetMMUContext;
 
    return iface;
 

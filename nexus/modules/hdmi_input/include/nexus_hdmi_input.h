@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2013 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  **************************************************************************/
 #ifndef NEXUS_HDMI_INPUT_H__
@@ -263,12 +255,12 @@ This connector is passed to a Mixer or AudioOutput to route audio to an output.
 
 Description:
 Returns:
-NEXUS_AudioInput - abstract connector
+NEXUS_AudioInputHandle - abstract connector
 
 See Also:
 NEXUS_Mixer_AddInput
 **/
-NEXUS_AudioInput NEXUS_HdmiInput_GetAudioConnector( /* attr{shutdown=NEXUS_AudioInput_Shutdown} */
+NEXUS_AudioInputHandle NEXUS_HdmiInput_GetAudioConnector( /* attr{shutdown=NEXUS_AudioInput_Shutdown} */
     NEXUS_HdmiInputHandle handle
     );
 
@@ -337,4 +329,3 @@ void NEXUS_HdmiInput_ToggleHotPlug(
 #endif
 
 #endif
-

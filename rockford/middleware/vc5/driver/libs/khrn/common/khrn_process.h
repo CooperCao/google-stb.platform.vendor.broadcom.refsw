@@ -25,13 +25,15 @@ struct glxx_texture_sampler_state;
 extern const struct glxx_tex_sampler_state *khrn_get_image_unit_default_sampler(void);
 
 extern gmem_handle_t khrn_get_gfxh_1320_buffer(void);
-extern char *khrn_get_extensions(void);
+extern const char *khrn_get_gl11_exts_str(void);
+extern const char *khrn_get_gl3x_exts_str(void);
+extern unsigned khrn_get_num_gl3x_exts(void);
+extern const char *khrn_get_gl3x_ext(unsigned i);
 extern gfx_lfmt_translate_gl_ext_t khrn_get_lfmt_translate_exts(void);
 #if !V3D_HAS_NEW_TMU_CFG
 extern const V3D_MISCCFG_T *khrn_get_hw_misccfg(void);
 #endif
 
-static inline int khrn_get_v3d_version(void);
 static inline uint32_t khrn_get_num_qpus_per_core(void);
 static inline uint32_t khrn_get_num_render_subjobs(void);
 static inline uint32_t khrn_get_num_bin_subjobs(void);

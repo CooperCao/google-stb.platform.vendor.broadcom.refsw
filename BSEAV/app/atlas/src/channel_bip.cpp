@@ -233,6 +233,7 @@ BIP_Status CChannelBip::mediaStateMachine(BMediaPlayerAction playerAction)
     eRet             ret       = eRet_Ok;
     BIP_Status       bipStatus = BIP_SUCCESS;
     BIP_PlayerStatus playerStatus;
+    CModel * pModel = getModel();
 
     if (_pPlayer == NULL)
     {
@@ -248,6 +249,20 @@ BIP_Status CChannelBip::mediaStateMachine(BMediaPlayerAction playerAction)
     if (getState() != BMediaPlayerState_eDisconnected)
     {
         bipStatus = BIP_Player_GetStatus(_pPlayer, &playerStatus);
+    }
+    if (pModel->getIpClientTranscodeEnabled())
+    {
+        BIP_String_StrcpyChar(_pUrl, MString(_url + ".xcode"));
+
+        if (pModel->getIpClientTranscodeProfile() == 1)
+        {
+            BIP_String_StrcpyChar(_pUrl, MString(_url + ".xcode"+ ".480p"));
+        }
+        else if (pModel->getIpClientTranscodeProfile() == 2)
+        {
+            BIP_String_StrcpyChar(_pUrl, MString(_url + ".xcode"+ ".720p"));
+        }
+       pModel->setIpClientTranscodeEnabled(false);
     }
 
     switch (getState())

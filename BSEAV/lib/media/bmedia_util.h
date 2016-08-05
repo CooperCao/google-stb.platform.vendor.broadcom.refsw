@@ -421,7 +421,7 @@ size_t bmedia_copy_waveformatex(const bmedia_waveformatex *wf, void *buf, size_t
 size_t bmedia_write_waveformatex(void *buf, const bmedia_waveformatex_header *wf); /* writes waveformatex into the flat buffer, it _does_not_ write opaque data */
 void bmedia_init_waveformatex(bmedia_waveformatex_header *wf);
 bool bmedia_read_waveformatextensible(const bmedia_waveformatex *wf, bmedia_waveformatextensible *wfe);
-
+void bmedia_waveformatex_from_header(bmedia_waveformatex *wf, bmedia_waveformatex_header *header);
 
 bool bmedia_waveformatex_is_pcm(const bmedia_waveformatex *wf);
 bool bmedia_waveformatex_is_ac3(const bmedia_waveformatex *wf);

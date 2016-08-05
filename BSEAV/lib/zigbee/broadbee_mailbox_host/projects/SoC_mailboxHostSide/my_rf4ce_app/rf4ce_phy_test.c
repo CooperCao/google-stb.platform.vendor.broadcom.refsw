@@ -49,15 +49,10 @@
 //#include "bbMailTestEngine.h"
 #include "bbSysPayload.h"
 #include "zigbee_rf4ce_registration.h"
+#include "zigbee_dbg.h"
 #define SYS_DBG_LOG_BUFFER_SIZE     256
 
 #  define HAL_DbgLogStr(message)                                TEST_DbgLogStr(message)
-
-void TEST_DbgLogStr(const char *const message)
-{
-    printf(message);
-    fflush(stdout);
-}
 
 void sysDbgHalt(const uint32_t errorUid /* , const char *const fileName, const uint32_t fileLine ) */
 # if defined(_DEBUG_FILELINE_)
@@ -136,14 +131,6 @@ void sysDbgLogStr(const char *const format, ...)
     HAL_DbgLogStr(message);
 }
 #endif
-
-uint32_t TEST_DbgAssert(uint32_t errorUid, const char *fileName, uint16_t line)
-{
-    char message[200];
-    snprintf(message, sizeof(message), "Not expected Assert(%#010x) has been called. \"%s\", L%d", errorUid, fileName, line);
-    printf(message);
-    return 0;
-}
 
 /*************************************************************************************//**
   \brief Logs error and proceeds with program execution.
@@ -711,6 +698,7 @@ static void phy_Test_Set_Channel()
         statusphy_Test_Set_Channel = 1;
     }
     req.callback = phy_Test_Set_Channel_Callback;
+    req.params.channel = 17;
 
     Phy_Test_Set_Channel_Req(&req);
     while(!statusphy_Test_Set_Channel);
@@ -768,7 +756,7 @@ static void phy_Test_Transmit_Start()
         statusphy_Test_Transmit_Start = 1;
     }
     req.params.intervalMs = 0x1;
-    req.params.packetCount = 0x02;
+    req.params.packetCount = 0x05;
     req.params.payloadLength = 125;
     for(int i = 0; i < sizeof(req.params.payload); i++)
         req.params.payload[i] = i & 0xff;
@@ -805,6 +793,7 @@ static void phy_Test_Receive_Start()
     uint8_t statusphy_Test_Receive_Start = 0;
 
     Phy_Test_Receive_Start_ReqDescr_t req = {0};
+    req.params.shortAddressTo = 0xdb80;
     void phy_Test_Receive_Start_Callback(Phy_Test_Receive_Start_ReqDescr_t *request, Phy_Test_Receive_StartStop_ConfParams_t *conf)
     {
         printf("status : %02x\n",  conf->status);
@@ -908,10 +897,10 @@ static void phy_Test_Get_Stats()
     Phy_Test_Get_Stats_ReqDescr_t req = {0};
     void phy_Test_Get_Stats_Callback(Phy_Test_Get_Stats_ReqDescr_t *request, Phy_Test_Get_Stats_ConfParams_t *conf)
     {
-        printf("%08x\n",  conf->packetsReceived);
-        printf("%08x\n",  conf->packetsOverflow);
-        printf("%08x\n",  conf->packetsSentOK);
-        printf("%08x\n",  conf->packetsSentError);
+        printf("RX v:%08x\n",  conf->packetsReceived);
+        printf("RX x: %08x\n",  conf->packetsOverflow);
+        printf("TX v: %08x\n",  conf->packetsSentOK);
+        printf("TX x: %08x\n",  conf->packetsSentError);
 
         statusPhy_Test_Get_Stats = 1;
     }
@@ -1260,7 +1249,7 @@ int main(int argc, char *argv[])
     Zigbee_Open(&zcb, "127.0.0.1");
 
     printf("\nPress any key to perform phy test\n");
-
+#if 0
     printf("rf4ce_Test_Get_Caps_Ex\n");
     getchar();
     rf4ce_Test_Get_Caps_Ex();
@@ -1287,7 +1276,7 @@ int main(int argc, char *argv[])
 
     printf("rf4ce_Set_TX_Power_Key_Exchange\n");
     getchar();
-    rf4ce_Set_TX_Power_Key_Exchange(10);
+    //rf4ce_Set_TX_Power_Key_Exchange(10);
     printf("rf4ce_Test_Subscribe_Event\n");
     getchar();
     rf4ce_Test_Subscribe_Event();
@@ -1298,7 +1287,7 @@ int main(int argc, char *argv[])
     cap.version = RF4CE_ZRC_INPUT_CAP_V0;
     cap.capabilitySize = sizeof(RF4CEZRCInputCapsV0);
     zrc1_Test_Get_Extended_Cap(&cap);
-
+#endif
     printf("Phy test\n");
     getchar();
     phy_Test_Get_Caps();
@@ -1306,11 +1295,22 @@ int main(int argc, char *argv[])
     phy_Test_Continuous_Wave_Start();
     phy_Test_Continuous_Wave_Stop();
     phy_Test_Transmit_Start();
+    getchar();
     phy_Test_Transmit_Stop();
+    getchar();
+    printf("Receive start\n");
     phy_Test_Receive_Start();
+    getchar();
+    printf("Receive stop\n");
     phy_Test_Receive_Stop();
+    getchar();
+    printf("phy_Test_Echo_Start ... \n");
     phy_Test_Echo_Start();
+    getchar();
+    printf("phy_Test_Echo_Stop ... \n");
     phy_Test_Echo_Stop();
+    getchar();
+    printf("phy_Test_Echo_Stop ... \n");
     phy_Test_Energy_Detect_Scan();
     phy_Test_Get_Stats();
     phy_Test_Reset_Stats();

@@ -193,6 +193,7 @@ NULL means that it does not exist.
 See Also:
 NEXUS_SetEnv
 */
+#define NEXUS_GetEnv NEXUS_GetEnv_isrsafe
 const char *NEXUS_GetEnv( /* attr{local=true} */
     const char *name
     );

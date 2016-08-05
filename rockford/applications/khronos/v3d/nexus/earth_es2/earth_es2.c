@@ -70,6 +70,7 @@ typedef struct
    int   bpp;
    unsigned clientId;
    bool  secure;
+   bool     conformant;
 } AppConfig;
 
 const unsigned int WIDTH             = 720;
@@ -1148,7 +1149,7 @@ static void BppToChannels(int bpp, int *r, int *g, int *b, int *a)
    }
 }
 
-bool InitEGL(NativeWindowType egl_win)
+bool InitEGL(NativeWindowType egl_win, const AppConfig *config)
 {
    EGLDisplay egl_display      = 0;
    EGLSurface egl_surface      = 0;
@@ -1172,7 +1173,7 @@ bool InitEGL(NativeWindowType egl_win)
    int   want_blue  = 0;
    int   want_alpha = 0;
 
-   BppToChannels(config.bpp, &want_red, &want_green, &want_blue, &want_alpha);
+   BppToChannels(config->bpp, &want_red, &want_green, &want_blue, &want_alpha);
 
    /*
       Step 1 - Get the EGL display.
@@ -1225,7 +1226,7 @@ bool InitEGL(NativeWindowType egl_win)
       attr[i++] = EGL_SURFACE_TYPE;    attr[i++] = EGL_WINDOW_BIT;
       attr[i++] = EGL_RENDERABLE_TYPE; attr[i++] = EGL_OPENGL_ES2_BIT;
 
-      if (config.useMultisample)
+      if (config->useMultisample)
       {
          attr[i++] = EGL_SAMPLE_BUFFERS; attr[i++] = 1;
          attr[i++] = EGL_SAMPLES;        attr[i++] = 4;
@@ -1254,18 +1255,39 @@ bool InitEGL(NativeWindowType egl_win)
       */
 
       /* Check that config is an exact match */
-      EGLint red_size, green_size, blue_size, alpha_size, depth_size;
+      EGLint red_size, green_size, blue_size, alpha_size, depth_size, conformant;
 
       eglGetConfigAttrib(egl_display, egl_config[config_select], EGL_RED_SIZE,   &red_size);
       eglGetConfigAttrib(egl_display, egl_config[config_select], EGL_GREEN_SIZE, &green_size);
       eglGetConfigAttrib(egl_display, egl_config[config_select], EGL_BLUE_SIZE,  &blue_size);
       eglGetConfigAttrib(egl_display, egl_config[config_select], EGL_ALPHA_SIZE, &alpha_size);
       eglGetConfigAttrib(egl_display, egl_config[config_select], EGL_DEPTH_SIZE, &depth_size);
+      eglGetConfigAttrib(egl_display, egl_config[config_select], EGL_CONFORMANT, &conformant);
 
-      if ((red_size == want_red) && (green_size == want_green) && (blue_size == want_blue) && (alpha_size == want_alpha))
+      if ((red_size == want_red) &&
+          (green_size == want_green) &&
+          (blue_size == want_blue) &&
+          (alpha_size == want_alpha) &&
+          (!!conformant == config->conformant))
       {
-         printf("Selected config: R=%d G=%d B=%d A=%d Depth=%d\n", red_size, green_size, blue_size, alpha_size, depth_size);
+         printf("Selected config: R=%d G=%d B=%d A=%d Depth=%d Conformant = %s\n", red_size, green_size, blue_size, alpha_size, depth_size,
+                  conformant ? "true" : "false");
          break;
+      }
+   }
+
+   if (config_select == configs)
+   {
+      /* non conformant configs may not exactly match, so just take whatever */
+      for (config_select = 0; config_select < configs; config_select++)
+      {
+         EGLint conformant;
+         eglGetConfigAttrib(egl_display, egl_config[config_select], EGL_CONFORMANT, &conformant);
+         if (!!conformant == config->conformant)
+         {
+            printf("Selected config: Conformant = %s\n", conformant ? "true" : "false");
+            break;
+         }
       }
    }
 
@@ -1286,7 +1308,7 @@ bool InitEGL(NativeWindowType egl_win)
       int         i = 0;
 
 #ifdef EGL_PROTECTED_CONTENT_EXT
-      if (config.secure)
+      if (config->secure)
       {
          attr[i++] = EGL_PROTECTED_CONTENT_EXT; attr[i++] = EGL_TRUE;
       }
@@ -1319,7 +1341,7 @@ bool InitEGL(NativeWindowType egl_win)
       int         i = 0;
 
 #ifdef EGL_PROTECTED_CONTENT_EXT
-      if (config.secure)
+      if (config->secure)
       {
          attr[i++] = EGL_PROTECTED_CONTENT_EXT; attr[i++] = EGL_TRUE;
       }
@@ -1352,11 +1374,11 @@ bool InitEGL(NativeWindowType egl_win)
    return true;
 }
 
-bool InitDisplay(float *aspect)
+bool InitDisplay(float *aspect, const AppConfig *config)
 {
    NXPL_NativeWindowInfoEXT   win_info;
 
-   eInitResult res = InitPlatformAndDefaultDisplay(&nexus_display, aspect, config.vpW, config.vpH, config.secure);
+   eInitResult res = InitPlatformAndDefaultDisplay(&nexus_display, aspect, config->vpW, config->vpH, config->secure);
    if (res != eInitSuccess)
       return false;
 
@@ -1365,69 +1387,72 @@ bool InitDisplay(float *aspect)
 
    NXPL_GetDefaultNativeWindowInfoEXT(&win_info);
 
-   win_info.x = config.x; 
-   win_info.y = config.y;
-   win_info.width = config.vpW;
-   win_info.height = config.vpH;
-   win_info.stretch = config.stretchToFit;
-   win_info.clientID = config.clientId;
+   win_info.x = config->x;
+   win_info.y = config->y;
+   win_info.width = config->vpW;
+   win_info.height = config->vpH;
+   win_info.stretch = config->stretchToFit;
+   win_info.clientID = config->clientId;
 
    native_window = NXPL_CreateNativeWindowEXT(&win_info);
 
    /* Initialise EGL now we have a 'window' */
-   if (!InitEGL(native_window))
+   if (!InitEGL(native_window, config))
       return false;
 
    return true;
 }
 
-bool processArgs(int argc, const char *argv[])
+bool processArgs(int argc, const char *argv[], AppConfig *config)
 {
    int   a;
 
-   config.useMultisample    = false;
-   config.usePreservingSwap = false;
-   config.stretchToFit      = false;
-   config.x                 = 0;
-   config.y                 = 0;
-   config.vpW               = WIDTH;
-   config.vpH               = HEIGHT;
-   config.bpp               = BPP;
-   config.clientId          = 0;
-   config.secure            = false;
+   config->useMultisample    = false;
+   config->usePreservingSwap = false;
+   config->stretchToFit      = false;
+   config->x                 = 0;
+   config->y                 = 0;
+   config->vpW               = WIDTH;
+   config->vpH               = HEIGHT;
+   config->bpp               = BPP;
+   config->clientId          = 0;
+   config->secure            = false;
+   config->conformant        = true;
 
    for (a = 1; a < argc; ++a)
    {
       const char  *arg = argv[a];
 
       if (strcmp(arg, "+m") == 0)
-         config.useMultisample = true;
+         config->useMultisample = true;
       else if (strcmp(arg, "+p") == 0)
-         config.usePreservingSwap = true;
+         config->usePreservingSwap = true;
       else if (strcmp(arg, "+s") == 0)
-         config.stretchToFit = true;
+         config->stretchToFit = true;
       else if (strncmp(arg, "d=", 2) == 0)
       {
-         if (sscanf(arg, "d=%dx%d", &config.vpW, &config.vpH) != 2)
+         if (sscanf(arg, "d=%dx%d", &config->vpW, &config->vpH) != 2)
             return false;
       }
       else if (strncmp(arg, "o=", 2) == 0)
       {
-         if (sscanf(arg, "o=%dx%d", &config.x, &config.y) != 2)
+         if (sscanf(arg, "o=%dx%d", &config->x, &config->y) != 2)
             return false;
       }
       else if (strncmp(arg, "bpp=", 4) == 0)
       {
-         if (sscanf(arg, "bpp=%d", (int *)&config.bpp) != 1)
+         if (sscanf(arg, "bpp=%d", (int *)&config->bpp) != 1)
             return false;
       }
       else if (strncmp(arg, "client=", 7) == 0)
       {
-         if (sscanf(arg, "client=%u", &config.clientId) != 1)
+         if (sscanf(arg, "client=%u", &config->clientId) != 1)
             return false;
       }
       else if (strcmp(arg, "+secure") == 0)
-         config.secure = true;
+         config->secure = true;
+      else if (strcmp(arg, "-c") == 0)
+         config->conformant = false;
       else
       {
          return false;
@@ -1447,15 +1472,21 @@ int CLIENT_MAIN(int argc, const char** argv)
    EGLDisplay   eglDisplay;
    unsigned int frame = 1;
 
-   if (!processArgs(argc, argv))
+   if (!processArgs(argc, argv, &config))
    {
       const char  *progname = argc > 0 ? argv[0] : "";
       fprintf(stderr, "Usage: %s [+m] [+p] [+s] [d=WxH] [o=XxY] [bpp=16/24/32] [+secure]\n", progname);
       return 0;
    }
 
+#ifndef EGL_PROTECTED_CONTENT_EXT
+   if (config.secure)
+      printf("+secure selected, but headers not available in this driver version. defaulting off\n");
+   config.secure = false;
+#endif
+
    /* Setup the display and EGL */
-   if (InitDisplay(&panelAspect))
+   if (InitDisplay(&panelAspect, &config))
    {
       /* Setup the local state for this demo */
       InitGLState();

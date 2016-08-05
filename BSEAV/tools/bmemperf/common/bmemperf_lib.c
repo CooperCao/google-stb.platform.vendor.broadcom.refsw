@@ -55,11 +55,14 @@
 #include <sys/stat.h>
 #include <errno.h>
 #include <termios.h>
+#if 0
 #include <signal.h>
+#endif
 #include <stdint.h>
 #include <assert.h>
 #include <sys/mman.h>
 #include <pthread.h>
+#include <dirent.h>
 
 #include "bmemperf.h"
 #include "bmemperf_cgi.h"
@@ -429,7 +432,7 @@ int convert_to_string_with_commas(
         }
         /*printf("%s", newString );*/
 
-        free( newString );
+        Bsysperf_Free( newString );
     }
 
     return( 0 );
@@ -523,6 +526,21 @@ char *GetFileContents(
     return( contents );
 }                                                          /* GetFileContents */
 
+unsigned int GetFileLength(
+    const char *filename
+    )
+{
+    struct stat statbuf;
+
+    if (lstat( filename, &statbuf ) == -1)
+    {
+        /*printf( "%s: Could not stat (%s)\n", __FUNCTION__, filename );*/
+        return( 0 );
+    }
+
+    return( statbuf.st_size );
+}                                                          /* GetFileLength */
+
 /**
  *  Function: This function will return to the user the known temporary path name. In Linux system, this
  *  file will be /tmp/. In Android systems, it will be dictated by the environment variable B_ANDROID_TEMP.
@@ -589,10 +607,8 @@ char *GetTempDirectoryStr(
         PRINTF( "~%s: using default temp directory of (%s)\n~", __FUNCTION__, tempDirectory );
     }
 
-    if (contents)
-    {
-        free( contents );
-    }
+    Bsysperf_Free( contents );
+
     PRINTF( "~%s: returning (%s)\n~", __FUNCTION__, tempDirectory );
     return( tempDirectory );
 }                                                          /* GetTempDirectoryStrg */
@@ -810,7 +826,7 @@ int get_interrupt_counts(
         lineNum++;
     } while (posstart != NULL);
 
-    if (contents) {free( contents ); }
+    Bsysperf_Free( contents );
 
     /* add up all of the cpu's interrupts into one big total */
     for (cpu = 0; cpu < numCpusActive; cpu++)
@@ -1120,7 +1136,7 @@ char *bmemperf_get_boa_error_log(
             }
         }
 
-        free( contents );
+        Bsysperf_Free( contents );
     }
 
     return( contentsTail );
@@ -1278,8 +1294,8 @@ int bmemperfOpenDriver( void )
     if (contents)
     {
         /* use the contents to override the device driver name */
-        strcpy( device_name, contents );
-        free( contents );
+        strncpy( device_name, contents, sizeof(device_name) -1 );
+        Bsysperf_Free( contents );
 
         /* if the last character is a new-line character */
         if (strlen(device_name) && device_name[strlen(device_name)-1] == '\n' )
@@ -1290,7 +1306,7 @@ int bmemperfOpenDriver( void )
     }
     else
     {
-        strcpy( device_name, "/dev/mem" );
+        strncpy( device_name, "/dev/mem", sizeof(device_name) -1 );
     }
 
     fd = open( device_name, O_RDWR|O_SYNC );  /*O_SYNC for uncached address */
@@ -1563,4 +1579,242 @@ unsigned int convert_from_msec (
     temp = ulltemp;
 
     return ( temp );
+}
+
+/**
+ *  Function: This function will use the output from the ifconfig utility to determine what our IP4 address is.
+ **/
+unsigned int get_my_ip4_addr( void )
+{
+    char  line[200];
+    FILE *cmd = NULL;
+    struct in_addr sin_temp_addr;
+
+    memset( &sin_temp_addr, 0, sizeof( sin_temp_addr ) );
+
+    sprintf( line, "/sbin/ifconfig | /bin/egrep 'Link encap|inet addr' | /bin/awk '{if ( $1 == \"inet\"  && substr($2,6,3) != \"127\" ) { printf substr($2,6) \" \";} }'" );
+    cmd = popen( line, "r" );
+
+    memset( line, 0, sizeof( line ));
+    fgets( line, sizeof(line), cmd );
+
+    pclose( cmd );
+
+    if ( strlen(line) > 1 )
+    {
+        int len = strlen(line);
+        if ( line[len-1] == '\n') line[len-1] = 0;
+    }
+
+    inet_aton( line, &sin_temp_addr);
+    /*printf("~DEBUG~%s:%u: %s (0x%lx)~", __FILE__, __LINE__, line, (unsigned long int) sin_temp_addr.s_addr );*/
+
+    return( sin_temp_addr.s_addr );
+}
+
+unsigned long int getPidOf ( const char * processName )
+{
+    char                line[MAX_LENGTH_GETPIDOF_CMD];
+    unsigned long int   pid = 0;
+    FILE               *cmd = NULL;
+
+    sprintf(line, "ps -eaf | grep \"%s\" | grep -v grep | awk '{print $2;}'", processName );
+    cmd = popen( line, "r" );
+
+    memset(line, 0, sizeof(line) );
+    fgets( line, MAX_LENGTH_GETPIDOF_CMD, cmd );
+    pid = strtoul( line, NULL, 10 );
+
+    pclose( cmd );
+    return( pid );
+}
+
+const char * executable_fullpath( const char * exe_name )
+{
+    static char   line[MAX_LENGTH_GETPIDOF_CMD];
+    FILE         *cmd = NULL;
+
+    sprintf(line, "which %s", exe_name );
+    cmd = popen( line, "r" );
+
+    memset(line, 0, sizeof(line) );
+    fgets( line, MAX_LENGTH_GETPIDOF_CMD, cmd );
+    pclose( cmd );
+
+    return( line );
+}
+
+/**
+ *  Function: This function will free a buffer allocated with malloc(). It will check for NULL before attempting
+ *  the free.
+ **/
+void Bsysperf_Free(
+    char *buffer
+    )
+{
+    if (buffer)
+    {
+        free( buffer );
+    }
+
+    return;
+}
+
+const char * get_executing_command( const char * exe_name )
+{
+    static char   line[MAX_LENGTH_GETPIDOF_CMD];
+    FILE         *cmd = NULL;
+
+    sprintf(line, "ps -eaf | grep \"%s\" | grep -v grep", exe_name );
+    cmd = popen( line, "r" );
+
+    memset(line, 0, sizeof(line) );
+    fgets( line, MAX_LENGTH_GETPIDOF_CMD, cmd );
+    pclose( cmd );
+
+    return( line );
+}
+
+int replace_space_with_nbsp( char *buffer, long int buffer_size )
+{
+    char             *token = NULL;
+    int               count = 0;
+    char             *new_buffer = NULL;
+
+    if (buffer == NULL || strlen(buffer) == 0 || buffer_size == 0 )
+    {
+        return ( 0 );
+    }
+
+    new_buffer = (char*) malloc(buffer_size);
+    if (new_buffer == NULL)
+    {
+        printf("%s:%u: could not malloc() %d bytes \n", __FUNCTION__, __LINE__, (int) buffer_size );
+        return ( 0 );
+    }
+
+    memset(new_buffer, 0, buffer_size);
+    token = strtok( buffer, " " );
+    count = 0;
+    while (token)
+    {
+        /* if we have already copied something into the output buffer, add the delimiter */
+        if (count > 0)
+        {
+            strncat( new_buffer, "&nbsp;", buffer_size - strlen(new_buffer) -1 );
+        }
+        strncat( new_buffer, token, buffer_size - strlen(new_buffer) -1 );
+        /*printf( "token is (%s) ... copied to (%s) \n", token, new_buffer );*/
+        token = strtok( NULL, " " );
+        count++;
+    }
+
+    memset(buffer, 0, buffer_size);
+    strncpy(buffer, new_buffer, buffer_size );
+
+    Bsysperf_Free(new_buffer);
+
+    return ( 0 );
+}
+
+#define PROCESS_CMDLINE_RETURN_BUFFER_LEN 512
+/**
+ *  Function: This function will scan through the current list of active processes looking for the one that
+ *  matches the specified search string. More than one match could occur. A buffer of matching command line
+ *  matches will be returned to the user. The caller is responsible for freeing the return buffer. For example:
+ *  a serch for "server" could return these two lines:
+ *       root    14564 ./boa_server -c ./
+ *       root    16385 ./bsysperf_server
+ **/
+char *Bsysperf_GetProcessCmdline( const char * process_name )
+{
+    int            i             = 0;
+    long int       num_bytes     = 0;
+    DIR           *dir           = NULL;
+    struct dirent *entry         = NULL;
+    FILE          *fp            = NULL;
+    char          *return_buffer = NULL;
+    char           cmdline_contents[512];
+    char           cmdline_filename[128];
+
+    dir = opendir("/proc");
+    while ((entry = readdir(dir)) != NULL)
+    {
+        /* only interested in names that start with a number and are at least 4 characters long */
+        if ( strlen(entry->d_name) > 3 && '1' <= entry->d_name[0] && entry->d_name[0] <= '9' )
+        {
+            memset(cmdline_contents, 0, sizeof(cmdline_contents) );
+
+            /* create a full-path name to the cmdline file */
+            strncpy(cmdline_filename, "/proc/", sizeof(cmdline_filename) -1 );
+            strncat(cmdline_filename, entry->d_name, sizeof(cmdline_filename) - strlen(cmdline_filename) -1 );
+            strncat(cmdline_filename, "/cmdline", sizeof(cmdline_filename) - strlen(cmdline_filename) -1 );
+
+            fp = fopen( cmdline_filename, "r");
+            if ( fp )
+            {
+                num_bytes = fread(cmdline_contents, 1, sizeof(cmdline_contents), fp );
+                if ( num_bytes )
+                {
+                    /*printf("~DEBUG~cmdline_filename (%s) ... bytes (%ld) ~", cmdline_filename, num_bytes );*/
+
+                    /* the cmdline file is a series of lines with no spaces; add the spaces back in */
+                    for(i=0; i<num_bytes; i++ )
+                    {
+                        if ( cmdline_contents[i] == '\0' ) cmdline_contents[i] = ' ';
+                    }
+                    if ( strstr(cmdline_contents, process_name ) )
+                    {
+                        /* if the space for the return buffer has not been allocated yet, do it now */
+                        if (return_buffer == NULL)
+                        {
+                            return_buffer = (char*) malloc( PROCESS_CMDLINE_RETURN_BUFFER_LEN );
+                            if ( return_buffer == NULL )
+                            {
+                                return ( return_buffer );
+                            }
+                            memset(return_buffer, 0, PROCESS_CMDLINE_RETURN_BUFFER_LEN );
+                        }
+                        /*printf("%s: %ld: (%s) \n", cmdline_filename, num_bytes, cmdline_contents );*/
+
+                        if ( strlen(return_buffer) )
+                        {
+                            strncat( return_buffer, "\n", PROCESS_CMDLINE_RETURN_BUFFER_LEN - strlen(return_buffer) -1 );
+                        }
+                        strncat( return_buffer, "root    ",       PROCESS_CMDLINE_RETURN_BUFFER_LEN - strlen(return_buffer) -1 );
+                        strncat( return_buffer, entry->d_name,    PROCESS_CMDLINE_RETURN_BUFFER_LEN - strlen(return_buffer) -1 );
+                        strncat( return_buffer, "   ",            PROCESS_CMDLINE_RETURN_BUFFER_LEN - strlen(return_buffer) -1 );
+                        strncat( return_buffer, cmdline_contents, PROCESS_CMDLINE_RETURN_BUFFER_LEN - strlen(return_buffer) -1 );
+                        /*printf("~DEBUG~return_buffer (%s)~", return_buffer );*/
+                    }
+                }
+                fclose(fp);
+            }
+        }
+    }
+    closedir(dir);
+    return ( return_buffer );
+}
+
+char * Bsysperf_ReplaceNewlineWithNull ( char *buffer )
+{
+    char * posEol = NULL;
+
+    posEol = strchr( buffer, '\n' );
+    if (posEol)
+    {
+        posEol[0] = '\0';  /* null-terminate the line */
+    }
+
+    return ( posEol );
+}
+
+int Bsysperf_RestoreNewline( char * posEol )
+{
+    if ( posEol )
+    {
+        posEol[0] = '\n';  /* restore the newline character */
+    }
+
+    return ( 0 );
 }

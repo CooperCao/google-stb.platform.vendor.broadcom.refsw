@@ -92,10 +92,10 @@ MAGNUM_MODULES += BXPT
 BXPT_DEFINES += UNIFIED_ITB_SUPPORT
 BCHP_VER_LC = $(shell echo $(BCHP_VER) | tr A-Z a-z)
 
-ifeq ($(findstring $(BCHP_CHIP), 7366 7145 74371 7439 7445 7364 7250 7271 7268), $(BCHP_CHIP))
+ifeq ($(findstring $(BCHP_CHIP), 7366 7145 74371 7439 7445 7364 7250 7271 7268 7260), $(BCHP_CHIP))
         BXPT_DEFINES += BXPT_IS_CORE28NM
 
-        ifeq ($(findstring $(BCHP_CHIP), 7364 7250 7271 7268), $(BCHP_CHIP))
+        ifeq ($(findstring $(BCHP_CHIP), 7364 7250 7271 7268 7260), $(BCHP_CHIP))
             RAVE_IMAGE_DIR = cat5b
         else # all others
             RAVE_IMAGE_DIR = cat5a

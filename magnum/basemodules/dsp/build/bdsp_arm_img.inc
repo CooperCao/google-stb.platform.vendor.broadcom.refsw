@@ -59,7 +59,8 @@ BDSP_ARM_IMG_SOURCES += $(MAGNUM)/basemodules/dsp/src/arm/firmware/v7/bdsp_arm_i
 # Based on algo defines, include proper firmware files.
 # Add firmware files here
 BDSP_ARM_IMG_SOURCES += \
-	$(MAGNUM)/basemodules/dsp/src/arm/firmware/v7/barm_sys_code.c
+	$(MAGNUM)/basemodules/dsp/src/arm/firmware/v7/barm_sys_code.c \
+	$(MAGNUM)/basemodules/dsp/src/arm/firmware/v7/barm_hbc_code.c
 
 
 #

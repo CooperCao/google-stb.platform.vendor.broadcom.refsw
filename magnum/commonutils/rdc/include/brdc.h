@@ -2079,9 +2079,12 @@ Returns:
 See Also:
     BRDC_Open
 ****************************************************************************/
-BERR_Code BRDC_Slot_Create
+BERR_Code BRDC_Slots_Create
     ( BRDC_Handle                      hRdc,     /* [in] The RDC handle. */
-      BRDC_Slot_Handle                *phSlot ); /* [out] The returned slot. */
+      BRDC_Slot_Handle                *phSlot,   /* [out] The array of slot handles. */
+      uint32_t                         ulNum );  /* [in] number of slots to be created */
+
+#define BRDC_Slot_Create( hRdc, phSlot ) BRDC_Slots_Create(hRdc, phSlot, 1)
 
 /***************************************************************************
 Summary:
@@ -2098,8 +2101,11 @@ Returns:
 See Also:
     BRDC_Slot_Create
 ****************************************************************************/
-BERR_Code BRDC_Slot_Destroy
-    ( BRDC_Slot_Handle                 hSlot ); /* [in] The list to destroy.*/
+BERR_Code BRDC_Slots_Destroy
+    ( BRDC_Slot_Handle                *phSlot,   /* [in] The array of slots to destroy. */
+      uint32_t                         ulNum );  /* [in] number of slots */
+
+#define BRDC_Slot_Destroy( hSlot ) BRDC_Slots_Destroy(&hSlot, 1)
 
 /***************************************************************************
 Summary:
@@ -2199,7 +2205,7 @@ See Also:
 BERR_Code BRDC_Slots_SetList_isr
     ( BRDC_Slot_Handle                *phSlot,  /* [in] The slots array to hold the list */
       BRDC_List_Handle                 hList,   /* [in] List to store. */
-      size_t                           ulNum);  /* [in] number of slots in the array */
+      uint32_t                         ulNum);  /* [in] number of slots in the array */
 
 #define BRDC_Slots_SetCachedList_isr(ahSlot, hList, num) \
     BRDC_Slots_SetList_isr(ahSlot, hList, num)

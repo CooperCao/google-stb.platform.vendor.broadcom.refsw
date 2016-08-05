@@ -410,28 +410,9 @@ void nexus_surfaceclient_p_verify_surface(NEXUS_SurfaceClientHandle client, cons
 #define NEXUS_SURFACECLIENT_P_ASSIGN_SURFACE(client, clientSurface, appSurface) (clientSurface)->surface = appSurface
 #endif
 
-NEXUS_Error NEXUS_SurfaceClient_SetSurface( NEXUS_SurfaceClientHandle client, NEXUS_SurfaceHandle surface )
+NEXUS_Error NEXUS_SurfaceClient_P_CopySetSurface( NEXUS_SurfaceClientHandle client, NEXUS_SurfaceHandle surface )
 {
     NEXUS_SurfaceCreateSettings createSettings;
-    unsigned flags = NEXUS_P_SURFACECLIENT_UPDATE_SOURCE;
-
-    BDBG_OBJECT_ASSERT(client, NEXUS_SurfaceClient);
-    BDBG_ASSERT(surface);
-
-    BDBG_MSG_TRACE(("SetSurface:%p %u %p", (void *)client, client->client_id, (void *)surface));
-    if (client->type == NEXUS_SurfaceClient_eVideoWindow) {
-        return BERR_TRACE(NEXUS_NOT_SUPPORTED);
-    }
-    if(client->state.client_type != client_type_set && client->state.client_type != client_type_idle) {
-        return BERR_TRACE(NEXUS_NOT_SUPPORTED);
-    }
-     /* if the previous blit is not complete (if client->set.serverSurface is being read by M2MC HW), we need to fail this call.
-    app must wait for recycle event. */
-    if (client->set.dirty) {
-        BDBG_ERR(("app must wait for recycled callback to avoid tearing. NEXUS_SurfaceClient_SetSurface rejected."));
-        return BERR_TRACE(NEXUS_NOT_AVAILABLE);
-    }
-
     NEXUS_Surface_GetCreateSettings(surface, &createSettings);
     client->state.clientRegion.width = createSettings.width;
     client->state.clientRegion.height = createSettings.height;
@@ -453,8 +434,36 @@ NEXUS_Error NEXUS_SurfaceClient_SetSurface( NEXUS_SurfaceClientHandle client, NE
             return BERR_TRACE(NEXUS_OUT_OF_DEVICE_MEMORY);
         }
         client->state.client_type = client_type_set;
-        flags |= NEXUS_P_SURFACECLIENT_UPDATE_VISIBLE;
     }
+    return NEXUS_SUCCESS;
+}
+
+NEXUS_Error NEXUS_SurfaceClient_SetSurface( NEXUS_SurfaceClientHandle client, NEXUS_SurfaceHandle surface )
+{
+    NEXUS_Error rc;
+    unsigned flags = NEXUS_P_SURFACECLIENT_UPDATE_SOURCE;
+
+    BDBG_OBJECT_ASSERT(client, NEXUS_SurfaceClient);
+    BDBG_ASSERT(surface);
+
+    BDBG_MSG_TRACE(("SetSurface:%p %u %p", (void *)client, client->client_id, (void *)surface));
+    if (client->type == NEXUS_SurfaceClient_eVideoWindow) {
+        return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+    }
+    if(client->state.client_type != client_type_set && client->state.client_type != client_type_idle) {
+        return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+    }
+     /* if the previous blit is not complete (if client->set.serverSurface is being read by M2MC HW), we need to fail this call.
+    app must wait for recycle event. */
+    if (client->set.dirty) {
+        BDBG_ERR(("app must wait for recycled callback to avoid tearing. NEXUS_SurfaceClient_SetSurface rejected."));
+        return BERR_TRACE(NEXUS_NOT_AVAILABLE);
+    }
+
+    rc = NEXUS_SurfaceClient_P_CopySetSurface(client, surface);
+    if (rc) return BERR_TRACE(rc);
+    flags |= NEXUS_P_SURFACECLIENT_UPDATE_VISIBLE;
+
     BDBG_ASSERT(client->state.client_type == client_type_set);
     if(client->set.surface.surface!=surface) {
         if(client->set.surface.surface) {

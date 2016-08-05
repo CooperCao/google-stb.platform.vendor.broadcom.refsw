@@ -450,7 +450,11 @@ sub generate_nodes {
         $combine = 0;
 
         if(!skip_node($clk_tree, $src)) {
-            my $reg = $clk_tree->{$src}{_reg}.$clk_tree->{$src}{_pda};
+            my $reg = $clk_tree->{$src}{_reg};
+
+            if($clk_tree->{$src}{_pda} ne "") {
+                $reg = $clk_tree->{$src}{_reg}."_".$clk_tree->{$src}{_pda};
+            }
 
             if($clk_tree->{$src}{_div}) {
 
@@ -683,6 +687,8 @@ sub generate_user_defined_nodes {
 
             $nodes->{"BINT_OPEN"}{_list}{"VDC"}++;
             $nodes->{"MAGNUM_CONTROLLED"}{_list}{"VDC"}++;
+        } elsif($node =~ /^MX.*V3D/) {
+            $nodes->{"GRAPHICS3D_PLL_CH"}{_list}{$node}++;
         } else {
             if($node !~ /^HW/ && $node !~ /^SECURE_ACCESS$/ && $node !~ /^DV_/ && $node !~ /^MX_/) {
                 $nodes->{"MAGNUM_CONTROLLED"}{_list}{$node}++;
@@ -782,7 +788,9 @@ sub generate_bchp_impl_string {
     #Strip away PDA tag from register. This was done to seperate
     #write and read when both the bits are in the same register.
     #TODO : Find a better way to  seperate the wirte and read
-    $register =~ s/$hw_desc->{$hw_node}{$reg}{_pda}//;
+    if ($hw_desc->{$hw_node}{$reg}{_pda} ne "") {
+        $register =~ s/_$hw_desc->{$hw_node}{$reg}{_pda}//;
+    }
 
     if($pdar) {
         push @lines, "    {\n";
@@ -884,7 +892,8 @@ sub generate_bchp_impl_string {
         push @lines, "    BREG_Write32(handle->regHandle, BCHP_".$register.", reg);\n";
     }
     if($hw_desc->{$hw_node}{$reg}{_delay} > 0) {
-        push @lines, "    BKNI_Delay(".$hw_desc->{$hw_node}{$reg}{_delay}.");\n";
+        push @lines, "    if(activate)\n";
+        push @lines, "        BKNI_Delay(".$hw_desc->{$hw_node}{$reg}{_delay}.");\n";
     }
 
     return @lines;
@@ -967,7 +976,8 @@ sub generate_bchp_impl_c_file {
                 } else {
                     print "PDAR not found : $hw_node\n";
                 }
-
+                $pdaw_done=0;
+                $pdar_done=0;
             }
         }
         printf $fh "}\n";
@@ -1143,7 +1153,7 @@ sub generate_dependency_string
     my @lines;
 
     foreach (@$nodes) {
-        push @lines, "static const ${prefix1}* $prefix2${_}[] = {\n";
+        push @lines, "static const ${prefix1}* const $prefix2${_}[] = {\n";
         foreach my $dep (@{$graph->{$_}{_order}}) {
             push @lines, "    ${prefix1}_${dep},\n";
         }
@@ -1364,7 +1374,7 @@ sub generate_bchp_resources_c_file {
     push @resources, @MX_all;
     push @resources, @DV_all;
     print $fh "/* List of resources */\n";
-    @lines = generate_array_string("BCHP_PWR_P_Resource*", "BCHP_PWR_P_ResourceList",
+    @lines = generate_array_string("BCHP_PWR_P_Resource* const", "BCHP_PWR_P_ResourceList",
         "BCHP_PWR_P_NUM_ALLNODES", "BCHP_PWR_P_Resource_", \@resources);
     print $fh @lines;
 
@@ -1389,7 +1399,7 @@ sub generate_bchp_resources_c_file {
     }
 
     print $fh "/* List of coded dependencies */\n";
-    @lines = generate_array_string("BCHP_PWR_P_Resource**", "BCHP_PWR_P_DependList",
+    @lines = generate_array_string("BCHP_PWR_P_Resource* const * const", "BCHP_PWR_P_DependList",
         "BCHP_PWR_P_NUM_ALLNODES", "BCHP_PWR_P_Depend_", \@resources);
     print $fh @lines;
 

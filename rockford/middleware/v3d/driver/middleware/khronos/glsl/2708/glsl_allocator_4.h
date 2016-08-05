@@ -121,7 +121,6 @@ extern void glsl_backend_verify_vertex_shader(uint32_t seed, Dataflow *dataflow,
 #define GLSL_BACKEND_TYPE_FRAGMENT (1<<1)
 #define GLSL_BACKEND_TYPE_VERTEX (1<<2)
 #define GLSL_BACKEND_TYPE_COORD (1<<3)
-#define GLSL_BACKEND_TYPE_OFFLINE_VERTEX (1<<4)
 
 #ifdef WIN32
 __declspec(dllimport) void __stdcall OutputDebugStringA(const char * lpOutputString);

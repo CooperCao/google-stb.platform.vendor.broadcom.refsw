@@ -253,16 +253,7 @@ void TzMem::freeInitRamFS() {
     }
 }
 
-int TzMem::numKernelImgPages() {
-    unsigned long tzImageStart = (unsigned long)&_start;
-    tzImageStart = (unsigned long) virtToPhys ((void *)tzImageStart);
-    unsigned long tzImageEnd = (unsigned long)&_end;
-    tzImageEnd = (unsigned long) virtToPhys((void *)tzImageEnd);
-
-    return (tzImageEnd - tzImageStart) / PAGE_SIZE_4K_BYTES;
-}
-
-TzMem::PhysAddr TzMem::allocPage(int pid) {
+TzMem::PhysAddr TzMem::_allocPage(int pid) {
 
     SpinLocker locker(&lock);
 
@@ -283,7 +274,7 @@ TzMem::PhysAddr TzMem::allocPage(int pid) {
     return page;
 }
 
-void TzMem::freePage(PhysAddr page) {
+int TzMem::_freePage(PhysAddr page) {
 
     SpinLocker locker(&lock);
 
@@ -292,7 +283,7 @@ void TzMem::freePage(PhysAddr page) {
         err_msg("%s: Attempted free of un-allocated page %p, mapIdx = 0x%x\n",
                 __PRETTY_FUNCTION__, page, (unsigned int)mapIdx);
         kernelHalt("Mismatched page free");
-        return;
+        return KERNEL_PID;
     }
 
     uint32_t pfIdx = allocPageMap[mapIdx];
@@ -312,9 +303,11 @@ void TzMem::freePage(PhysAddr page) {
         freePageMap[movedMapIdx] = PAGE_NOT_FREE;
     }
 
+    int pid = pageFrames[freePagesStart].owner;
     pageFrames[freePagesStart].owner = KERNEL_PID;
     allocPageMap[mapIdx] = PAGE_NOT_ALLOCATED;
     freePageMap[mapIdx] = freePagesStart;
+    return pid;
 }
 
 TzMem::PhysAddr TzMem::allocContiguousPages(int numPages, int pid) {

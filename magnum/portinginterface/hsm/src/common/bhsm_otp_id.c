@@ -48,6 +48,7 @@
 
 BDBG_MODULE(BHSM);
 
+BDBG_OBJECT_ID_DECLARE( BHSM_P_Handle );
 
 BERR_Code    BHSM_ReadOTPId(
         BHSM_Handle            hHsm,
@@ -61,9 +62,7 @@ BERR_Code    BHSM_ReadOTPId(
 
     BDBG_ENTER( pReadOtpId );
 
-    if( ( hHsm == NULL ) || ( hHsm->ulMagicNumber != BHSM_P_HANDLE_MAGIC_NUMBER ) ) {
-        return BERR_TRACE( BHSM_STATUS_FAILED );
-    }
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
 
     if( pReadOtpId == NULL ) {
         return BERR_TRACE(  BHSM_STATUS_INPUT_PARM_ERR );

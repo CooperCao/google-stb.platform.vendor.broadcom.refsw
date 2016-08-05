@@ -99,6 +99,8 @@ typedef struct _RF4CE_MSO_ProfileData_t
     NVM_WriteFileIndDescr_t writeNVM;
     uint8_t flagsNVM;
 # endif /* RF4CE_NWK_NVM_ENABLED */
+    SYS_DataPointer_t actionCommandFrame;
+    uint32_t actionCommandWaitTimeout;
     uint32_t validationWaitTimeout;
     uint32_t validationInitialWatchdogTimeout;
     uint32_t validationBlackoutTimeout;
@@ -206,6 +208,13 @@ void RF4CE_MSO_BindAutoCheckValidationHandler(RF4CE_MSO_ProfileData_t *_mso_);
 void RF4CE_MSO_UserControlTimeoutHandler(RF4CE_MSO_ProfileData_t *_mso_);
 
 #else /* RF4CE_CONTROLLER */
+
+/************************************************************************************//**
+ \brief Processes the MSO aplActionRepeatWaitTime timeout task.
+
+ \param[in] _mso_ - pointer to the RF4CE_MSO_ProfileData_t structure.
+ ****************************************************************************************/
+void RF4CE_MSO_ControlCommandWaitTimeoutHandler(RF4CE_MSO_ProfileData_t * _mso_);
 
 /************************************************************************************//**
  \brief Wait before send reply handler. Target only.

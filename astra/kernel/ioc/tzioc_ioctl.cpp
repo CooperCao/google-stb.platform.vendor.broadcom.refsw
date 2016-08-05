@@ -168,13 +168,26 @@ int TzIoc::TzIocIoctl::clientGetId(void *arg)
     }
 
     char *pName = clientGetIdData.name;
+    uint32_t pid = clientGetIdData.pid;
 
     if (pName[0] == '\0') {
         printf("Invalid args in TZIOC ioctl client get id cmd\n");
         return -EINVAL;
     }
 
-    pClient = TzIocClient::clientFindByName(pName);
+    if (pid == 0) {
+        pClient = TzIocClient::clientFindByName(pName);
+    }
+    else {
+        const TzTask *pTask = TzTask::taskFromId(pid);
+        if (pTask == NULL) {
+            LOGE("Failed to find task id %d", (int)pid);
+            clientGetIdData.retVal = -ENOENT;
+            goto EXIT;
+        }
+
+        pClient = TzIocClient::clientFindByNameAndTask(pName, pTask);
+    }
 
     if (pClient == NULL) {
         LOGE("Failed to find client");

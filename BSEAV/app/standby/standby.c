@@ -167,19 +167,6 @@ int set_pmlib_state(const pmlib_state_t *state)
     return 0;
 }
 
-void transportWakeupCallback(void *pParam, int iParam)
-{
-    BSTD_UNUSED(pParam);
-    BSTD_UNUSED(iParam);
-    printf("Xpt Wakeup Event \n");
-
-    /* g_DeviceState.power_mode = ePowerModeS0; */
-    /* if(g_StandbyNexusHandles.event) */
-    /*  BKNI_SetEvent(g_StandbyNexusHandles.event); */
-    if(g_StandbyNexusHandles.s1Event)
-        BKNI_SetEvent(g_StandbyNexusHandles.s1Event);
-}
-
 void prepareForStandby(void)
 {
     unsigned id;
@@ -283,8 +270,6 @@ int activeStandbyMode(void)
         BKNI_Memcpy(xptWakeupSettings.filter[0].packet, Filter, sizeof(Filter));
         xptWakeupSettings.inputBand = g_StandbyNexusHandles.wakeupInputBand;
         xptWakeupSettings.packetLength = sizeof(Filter)/sizeof(Filter[0]);
-        xptWakeupSettings.wakeupCallback.callback = transportWakeupCallback;
-        xptWakeupSettings.wakeupCallback.context = NULL;
         xptWakeupSettings.enabled = true;
         rc = NEXUS_TransportWakeup_SetSettings(&xptWakeupSettings);
         BDBG_ASSERT(!rc);
@@ -375,8 +360,6 @@ int passiveStandbyMode(void)
         BKNI_Memcpy(xptWakeupSettings.filter[0].packet, Filter, sizeof(Filter));
         xptWakeupSettings.inputBand = g_StandbyNexusHandles.wakeupInputBand;
         xptWakeupSettings.packetLength = sizeof(Filter)/sizeof(Filter[0]);
-        xptWakeupSettings.wakeupCallback.callback = NULL;
-        xptWakeupSettings.wakeupCallback.context = NULL;
         xptWakeupSettings.enabled = true;
         rc = NEXUS_TransportWakeup_SetSettings(&xptWakeupSettings);
         BDBG_ASSERT(!rc);
@@ -486,6 +469,11 @@ int deepStandbyMode(void)
     NEXUS_PlatformStandbyStatus nexusStandbyStatus;
     unsigned timeout = g_DeviceState.timer_wake?g_cmd_options.timeout:0;
 
+#if BCHP_CHIP == 7271 || BCHP_CHIP == 7268
+    printf("\nS3 is not supported on this platform\n");
+    return;
+#endif
+
     printf("\n\nEntering S3 Mode\n\n");
 
 
@@ -530,6 +518,12 @@ int deepStandbyMode(void)
             nexusStandbyStatus.wakeupStatus.gpio,
             nexusStandbyStatus.wakeupStatus.keypad,
             nexusStandbyStatus.wakeupStatus.timeout);
+
+    if(nexusStandbyStatus.wakeupStatus.ir) {
+        unsigned code, codeHigh;
+        ir_last_key(&code, &codeHigh);
+        printf("Wake-up key was: %x %x\n", code, codeHigh);
+    }
 
     if(g_cmd_options._auto) {
         wait_for_all_devices();

@@ -82,7 +82,7 @@ extern bool glxx_query_disable(GLXX_HW_RENDER_STATE_T *rs,
       enum glxx_query_type type);
 unsigned glxx_query_get_result(GLXX_QUERY_T *query);
 
-extern void glxx_queries_update(KHRN_QUERY_BLOCK_T *query_list,
+extern void glxx_occlusion_queries_update(KHRN_OCCLUSION_QUERY_BLOCK_T *query_list,
       bool valid_results);
 
 #endif

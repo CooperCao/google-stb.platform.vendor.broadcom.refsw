@@ -252,14 +252,14 @@ NONDIG   [_a-zA-Z]
 "packed"                      return handle_keyword(PACKED,               yylval, KW_FLAGS(RESERVED, NONE,     NONE,     NONE));
 "partition"                   return handle_keyword(PARTITION,            yylval, KW_FLAGS(NONE,     RESERVED, RESERVED, RESERVED));
 "patch"                       return handle_keyword_w_ext(PATCH,                yylval, KW_FLAGS(NONE,     RESERVED, RESERVED, KEYWORD), GLSL_EXT_TESSELLATION);
-"precise"                     return handle_keyword(PRECISE,              yylval, KW_FLAGS(NONE,     NONE,     RESERVED, KEYWORD));
+"precise"                     return handle_keyword_w_ext(PRECISE,              yylval, KW_FLAGS(NONE,     NONE,     RESERVED, KEYWORD), GLSL_EXT_GPU_SHADER5);
 "precision"                   return handle_keyword(PRECISION,            yylval, KW_FLAGS(KEYWORD,  KEYWORD,  KEYWORD,  KEYWORD));
 "public"                      return handle_keyword(PUBLIC,               yylval, KW_FLAGS(RESERVED, RESERVED, RESERVED, RESERVED));
 "readonly"                    return handle_keyword(READONLY,             yylval, KW_FLAGS(NONE,     RESERVED, KEYWORD,  KEYWORD));
 "resource"                    return handle_keyword(RESOURCE,             yylval, KW_FLAGS(NONE,     RESERVED, RESERVED, RESERVED));
 "restrict"                    return handle_keyword(RESTRICT,             yylval, KW_FLAGS(NONE,     RESERVED, KEYWORD,  KEYWORD));
 "return"                      return handle_keyword(RETURN,               yylval, KW_FLAGS(KEYWORD,  KEYWORD,  KEYWORD,  KEYWORD));
-"sample"                      return handle_keyword(SAMPLE,               yylval, KW_FLAGS(NONE,     RESERVED, RESERVED, KEYWORD));
+"sample"                      return handle_keyword_w_ext(SAMPLE,               yylval, KW_FLAGS(NONE,     RESERVED, RESERVED, KEYWORD), GLSL_EXT_MS_INTERPOLATION);
 "sampler1D"                   return handle_keyword_w_ext(SAMPLER1D,            yylval, KW_FLAGS(RESERVED, RESERVED, RESERVED, RESERVED), GLSL_EXT_BRCM_TEXTURE_1D);
 "sampler1DArray"              return handle_keyword_w_ext(SAMPLER1DARRAY,       yylval, KW_FLAGS(NONE,     RESERVED, RESERVED, RESERVED), GLSL_EXT_BRCM_TEXTURE_1D);
 "sampler1DArrayShadow"        return handle_keyword(SAMPLER1DARRAYSHADOW, yylval, KW_FLAGS(NONE,     RESERVED, RESERVED, RESERVED));
@@ -427,15 +427,11 @@ NONDIG   [_a-zA-Z]
            return IDENTIFIER;
         }
 
-   /*
-      C++ comment
-   */
+   /* C++ comment */
 
 "//".*   return WHITESPACE;
 
-   /*
-      C comment
-   */
+   /* C comment */
 
 "/*"     BEGIN(comment);
 
@@ -453,12 +449,12 @@ NONDIG   [_a-zA-Z]
 %%
 
 static struct ShaderSource {
-   int         Count;
-   const char *const *Values;
-   const char *CurrentPosition;
-   int         Index;
+   int         count;
+   const char *const *values;
+   const char *cur_pos;
+   int         index;
 } s_ShaderSource;
-static YY_BUFFER_STATE s_CurrentBufferState;
+
 static const char *s_keywordToString[KEYWORDS_END - KEYWORDS_BEGIN];
 
 // When the lexer starts, set it to read the header.
@@ -468,15 +464,10 @@ void glsl_init_lexer(int sourcec, const char * const *sourcev)
    g_LineNumber =  LINE_NUMBER_UNDEFINED;
    g_FileNumber = -1;
 
-   s_ShaderSource.Count = sourcec;
-   s_ShaderSource.Values = sourcev;
-
-   s_ShaderSource.Index           =  0;
-   s_ShaderSource.CurrentPosition = "";
-
-   // Create buffer to use with YY_INPUT
-   s_CurrentBufferState = pp_create_buffer(NULL, YY_BUF_SIZE - 2);
-   pp_switch_to_buffer(s_CurrentBufferState);
+   s_ShaderSource.count   = sourcec;
+   s_ShaderSource.values  = sourcev;
+   s_ShaderSource.index   =  0;
+   s_ShaderSource.cur_pos = "";
 
    for(int i = 0; i < KEYWORDS_END - KEYWORDS_BEGIN; i++)
       s_keywordToString[i] = NULL;
@@ -513,13 +504,13 @@ const char *glsl_keyword_to_string(TokenType token)
 }
 
 // If we have reached the end of current source buffer, move to the next one. This may reset the line number.
-static void pp_ensure_source()
+static void ensure_source(struct ShaderSource *s)
 {
-   while(*s_ShaderSource.CurrentPosition == '\0') {
+   while(*s->cur_pos == '\0') {
       g_LineNumber = 1;
 
-      if(s_ShaderSource.Index < s_ShaderSource.Count) {
-         s_ShaderSource.CurrentPosition = s_ShaderSource.Values[s_ShaderSource.Index++];
+      if(s->index < s->count) {
+         s->cur_pos = s->values[s->index++];
          g_FileNumber++;
       } else
          return;
@@ -527,13 +518,13 @@ static void pp_ensure_source()
 }
 
 // Helper method to skip given character from the source.
-static int pp_consume(char c)
+static int consume(struct ShaderSource *s, char c)
 {
    // ensure that we have data to read, this may reset the line number
-   pp_ensure_source();
-   if (*s_ShaderSource.CurrentPosition == c) {
+   ensure_source(s);
+   if (*s->cur_pos == c) {
       // skip the consumed character
-      s_ShaderSource.CurrentPosition++;
+      s->cur_pos++;
       return 1;
    }
    return 0;
@@ -543,6 +534,7 @@ static int pp_consume(char c)
 static int yyinput(char *buf, int buf_size)
 {
    int num = 0;
+   struct ShaderSource *s = &s_ShaderSource;
 
    // Check whether there is unprocessed new-line buffered in flex.
    // Flex requires at least one lookahead character before it commits to token's action
@@ -559,19 +551,19 @@ static int yyinput(char *buf, int buf_size)
    // all previous (complete) tokens at this point (new-lines in particular).
    // GLSL ES 1.0.17: The line continuation character (\) is not part of the language.
    // GLSL ES 3.00.4: Backslash ('\'), used to indicate line continuation when immediately preceding a new-line.
-   while (pp_consume('\\')) {
+   while (consume(s, '\\')) {
       if (g_ShaderVersion < GLSL_SHADER_VERSION(3, 0, 1)) {
          // Line continuations are not supported before 3.0
          // #version should have been processed by now
          buf[num++] = '\\';
          break;
-      } else if (pp_consume('\n')) {
+      } else if (consume(s, '\n')) {
          g_LineNumber++;
-         if (pp_consume('\r') && g_LineNumber == 1)
+         if (consume(s, '\r') && g_LineNumber == 1)
             g_LineNumber++; // do again if line number was just reset
-      } else if (pp_consume('\r')) {
+      } else if (consume(s, '\r')) {
          g_LineNumber++;
-         if (pp_consume('\n') && g_LineNumber == 1)
+         if (consume(s, '\n') && g_LineNumber == 1)
             g_LineNumber++; // do again if line number was just reset
       } else {
          // the backslash did not start line continuation so pass it to the lexer
@@ -580,19 +572,19 @@ static int yyinput(char *buf, int buf_size)
       }
    }
 
-   pp_ensure_source();
+   ensure_source(s);
 
    // Copy chunk of data to flex's buffer until we see something that needs to handled in this method
    // (end of current source buffer or line continuation).
    // Flex will process this buffer and call yyinput again once it is done with it.
-   while (*s_ShaderSource.CurrentPosition != '\0' && *s_ShaderSource.CurrentPosition != '\\' && num < buf_size) {
+   while (*s->cur_pos != '\0' && *s->cur_pos != '\\' && num < buf_size) {
       // Turn any \r, \n or pair into \n.
       // GLSL ES 1.0 & 3.0: [Lines] are terminated by carriage-return or line-feed. If both are used together, it will count as only a single line termination.
-      char c = *(s_ShaderSource.CurrentPosition++);
+      char c = *(s->cur_pos++);
       if (c == '\n' || c == '\r') {
-         char c2 = *s_ShaderSource.CurrentPosition;
+         char c2 = *s->cur_pos;
          if ((c == '\n' && c2 == '\r') || (c == '\r' && c2 == '\n'))
-            s_ShaderSource.CurrentPosition++; // skip the other one
+            s->cur_pos++; // skip the other one
 
          buf[num++] = '\n';
       } else {

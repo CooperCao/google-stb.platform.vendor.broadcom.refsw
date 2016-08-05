@@ -270,7 +270,7 @@ GL_APICALL void GL_APIENTRY glDebugMessageControlKHR(GLenum source, GLenum type,
                                                      GLenum severity, GLsizei count,
                                                      const GLuint *ids, GLboolean enabled)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
    if (state == NULL)
       return;
 
@@ -321,14 +321,14 @@ GL_APICALL void GL_APIENTRY glDebugMessageControlKHR(GLenum source, GLenum type,
    }
 
 end:
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_APICALL void GL_APIENTRY glDebugMessageInsertKHR(GLenum source, GLenum type, GLuint id,
                                                     GLenum severity, GLsizei length,
                                                     const GLchar *buf)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
    if (state == NULL)
       return;
 
@@ -362,20 +362,20 @@ GL_APICALL void GL_APIENTRY glDebugMessageInsertKHR(GLenum source, GLenum type, 
    debug_message_internal(&state->khr_debug, source, type, severity, id, buf, length);
 
 end:
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_APICALL void GL_APIENTRY glDebugMessageCallbackKHR(GLDEBUGPROCKHR callback,
                                                       const void *userParam)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
    if (state == NULL)
       return;
 
    state->khr_debug.callback   = callback;
    state->khr_debug.user_param = userParam;
 
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_APICALL GLuint GL_APIENTRY glGetDebugMessageLogKHR(GLuint count, GLsizei bufSize,
@@ -383,7 +383,7 @@ GL_APICALL GLuint GL_APIENTRY glGetDebugMessageLogKHR(GLuint count, GLsizei bufS
                                                       GLuint *ids, GLenum *severities,
                                                       GLsizei *lengths, GLchar *messageLog)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
    GLuint               cnt = 0;
 
    if (state == NULL)
@@ -446,14 +446,14 @@ GL_APICALL GLuint GL_APIENTRY glGetDebugMessageLogKHR(GLuint count, GLsizei bufS
    }
 
 end:
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
    return cnt;
 }
 
 GL_APICALL void GL_APIENTRY glPushDebugGroupKHR(GLenum source, GLuint id, GLsizei length,
                                                 const GLchar *message)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
    if (state == NULL)
       return;
 
@@ -531,19 +531,19 @@ GL_APICALL void GL_APIENTRY glPushDebugGroupKHR(GLenum source, GLuint id, GLsize
    glxx_debug_message(state, data->source, GL_DEBUG_TYPE_PUSH_GROUP_KHR,
                       GL_DEBUG_SEVERITY_NOTIFICATION_KHR, data->id, data->message);
 
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
    return;
 
 end:
    if (data != NULL)
       destroy_stack_entry(data);
 
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_APICALL void GL_APIENTRY glPopDebugGroupKHR(void)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
    if (state == NULL)
       return;
 
@@ -574,7 +574,7 @@ GL_APICALL void GL_APIENTRY glPopDebugGroupKHR(void)
    destroy_stack_entry(data);
 
 end:
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 // No strndup on Windows
@@ -600,7 +600,7 @@ static void copy_label(char **dst, const char *src, GLsizei length)
 
 GL_API void GL_APIENTRY glObjectLabelKHR(GLenum identifier, GLuint name, GLsizei length, const GLchar *label)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
 
    if (!state)
       return;
@@ -748,7 +748,7 @@ invalid_value:
    glxx_server_state_set_error(state, GL_INVALID_VALUE);
 
 end:
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 static void copy_sanitised_outputs(GLsizei bufSize, GLsizei *length, GLchar *label, GLchar *inLab)
@@ -784,7 +784,7 @@ static void copy_sanitised_outputs(GLsizei bufSize, GLsizei *length, GLchar *lab
 GL_APICALL void GL_APIENTRY glGetObjectLabelKHR(GLenum identifier, GLuint name, GLsizei bufSize,
                                                 GLsizei *length, GLchar *label)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE_UNCHANGED();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state_unchanged(OPENGL_ES_ANY);
    GLchar              *lab = NULL;
 
    if (!state)
@@ -916,13 +916,13 @@ invalid_value:
    glxx_server_state_set_error(state, GL_INVALID_VALUE);
 
 end:
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_APICALL void GL_APIENTRY glObjectPtrLabelKHR(const void *ptr, GLsizei length,
                                                 const GLchar *label)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
 
    if (!state)
       return;
@@ -947,13 +947,13 @@ GL_APICALL void GL_APIENTRY glObjectPtrLabelKHR(const void *ptr, GLsizei length,
       glxx_server_state_set_error(state, GL_INVALID_VALUE);
 
 end:
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_APICALL void GL_APIENTRY glGetObjectPtrLabelKHR(const void *ptr, GLsizei bufSize,
                                                    GLsizei *length, GLchar *label)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE_UNCHANGED();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state_unchanged(OPENGL_ES_ANY);
    GLchar              *lab = NULL;
 
    if (!state)
@@ -974,12 +974,12 @@ invalid_value:
    glxx_server_state_set_error(state, GL_INVALID_VALUE);
 
 end:
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_APICALL void GL_APIENTRY glGetPointervKHR(GLenum pname, void **params)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE_UNCHANGED();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state_unchanged(OPENGL_ES_ANY);
 
    if (state == NULL)
       return;
@@ -997,7 +997,7 @@ GL_APICALL void GL_APIENTRY glGetPointervKHR(GLenum pname, void **params)
       break;
    }
 
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 bool glxx_init_khr_debug_state(GLXX_KHR_DEBUG_STATE_T *state)

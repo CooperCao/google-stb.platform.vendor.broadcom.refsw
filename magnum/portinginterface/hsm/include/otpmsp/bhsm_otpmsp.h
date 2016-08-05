@@ -527,6 +527,101 @@ BERR_Code      BHSM_ReadMSP32 (
 
 #endif /* #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,1) */
 
+/**************************************************************************************************
+Summary:
+
+Description:
+
+See Also:
+**************************************************************************************************/
+typedef struct BHSM_AntiRollOverCounter
+{
+
+#if HSM_IS_ASKM_28NM_ZEUS_4_1
+   BPI_Otp_RolloverCounterPartition_e partition;   /* Select the OTP partition  */
+   BPI_Otp_RolloverCounterFlag_e flags;            /* Identifies host of customer specific partition. */
+#else
+   unsigned unused;
+#endif
+}BHSM_AntiRollOverCounter_t;
+
+
+
+/**************************************************************************************************
+Summary:
+
+Description:
+
+See Also:
+**************************************************************************************************/
+typedef struct BHSM_AntiRollOverCounterValue
+{
+   uint32_t count;                                 /* the counter value.  */
+
+}BHSM_AntiRollOverCounterValue_t;
+
+
+/*****************************************************************************
+Summary:
+
+This function read the count on a RolloverCounter. Only available on Zeus 4.1+
+
+Description:
+
+
+Calling Context:
+This function can be called anytime after HSM is initialized.
+
+
+Performance and Timing:
+This is a synchronous/blocking function that will not return until it is done or has failed.
+
+Input:
+hHsm      - BHSM_Handle, Host Secure module handle.
+pCounter       - Identifies that counter to read
+
+Output:
+pCounterValue  - The returned Counter value
+
+
+See Also:
+BHSM_AntiIncrementRollOverCounter
+*****************************************************************************/
+BERR_Code BHSM_ReadAntiRollOverCounter(
+      BHSM_Handle                      hHsm,
+      BHSM_AntiRollOverCounter_t      *pCounter,      /* IN */
+      BHSM_AntiRollOverCounterValue_t *pCounterValue  /* OUT */
+);
+
+/*****************************************************************************
+Summary:
+
+This function increments the Rollover Counter. Only available on Zeus 4.1+
+
+Description:
+
+Calling Context:
+
+This function can be called anytime after HSM is initialized.
+
+
+Performance and Timing:
+This is a synchronous/blocking function that will not return until it is done or has failed.
+
+Input:
+hHsm      - BHSM_Handle, Host Secure module handle.
+pCounter       - Identifies the counter to increment
+
+Output:
+-
+
+See Also:
+BHSM_AntiReadRollOverCounter
+*****************************************************************************/
+BERR_Code BHSM_IncrementAntiRollOverCounter(
+      BHSM_Handle                  hHsm,
+      BHSM_AntiRollOverCounter_t  *pCounter        /* IN */
+);
 
 #ifdef __cplusplus
 }

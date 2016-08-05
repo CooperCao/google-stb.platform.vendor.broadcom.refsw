@@ -62,7 +62,7 @@ static inline uint32_t lookup_tex_mode(GLenum mode, bool has_rgb, bool has_alpha
       case GL_ADD: return tex_modes[i+12];
       case GL_COMBINE:
       default:
-         UNREACHABLE();
+         unreachable();
          return 0;
    }
 }
@@ -109,7 +109,7 @@ static inline GLenum untranslate_combine(uint32_t combine)
       case GL11_COMB_SUB: return GL_SUBTRACT;
       case GL11_COMB_DOT: return GL_DOT3_RGB;
       case GL11_COMB_DOTA: return GL_DOT3_RGBA;
-      default: UNREACHABLE(); return 0u;
+      default: unreachable(); return 0u;
    }
 }
 
@@ -133,7 +133,7 @@ static inline GLenum untranslate_tex_source(uint32_t source)
       case GL11_SRC_K: return GL_CONSTANT;
       case GL11_SRC_F: return GL_PRIMARY_COLOR;
       case GL11_SRC_P: return GL_PREVIOUS;
-      default: UNREACHABLE(); return 0;
+      default: unreachable(); return 0;
    }
 }
 
@@ -167,7 +167,7 @@ static inline GLenum untranslate_tex_operand(uint32_t operand)
       case GL11_OP_CX: return GL_ONE_MINUS_SRC_COLOR;
       case GL11_OP_A: return GL_SRC_ALPHA;
       case GL11_OP_AX: return GL_ONE_MINUS_SRC_ALPHA;
-      default: UNREACHABLE(); return 0;
+      default: unreachable(); return 0;
    }
 }
 
@@ -226,7 +226,7 @@ static inline GLenum untranslate_fog_mode(uint32_t mode)
       case GL11_FOG_EXP2: return GL_EXP2;
       case GL11_FOG_LINEAR: return GL_LINEAR;
       default:
-         UNREACHABLE(); return 0;
+         unreachable(); return 0;
    }
 }
 
@@ -277,7 +277,7 @@ static inline GLenum untranslate_logic_op(uint64_t op)
       case GL11_LOGIC_NAND:            return GL_NAND;
       case GL11_LOGIC_SET:             return GL_SET;
       default:
-         UNREACHABLE(); return 0;
+         unreachable(); return 0;
    }
 }
 
@@ -305,7 +305,7 @@ static inline GLenum untranslate_blend_equation(v3d_blend_eqn_t mode)
    case V3D_BLEND_EQN_MIN:    return GL_MIN;
    case V3D_BLEND_EQN_MAX:    return GL_MAX;
    default:
-      UNREACHABLE();          return 0;
+      unreachable();          return 0;
    }
 }
 
@@ -352,7 +352,7 @@ static inline GLenum untranslate_blend_func(v3d_blend_mul_t func)
    case V3D_BLEND_MUL_CONST_ALPHA:     return GL_CONSTANT_ALPHA;
    case V3D_BLEND_MUL_OM_CONST_ALPHA:  return GL_ONE_MINUS_CONSTANT_ALPHA;
    default:
-      UNREACHABLE(); return 0;
+      unreachable(); return 0;
    }
 }
 
@@ -369,7 +369,7 @@ static inline v3d_compare_func_t translate_stencil_func(GLenum func)
    case GL_GEQUAL:      return V3D_COMPARE_FUNC_GEQUAL;
    case GL_ALWAYS:      return V3D_COMPARE_FUNC_ALWAYS;
    default:
-      UNREACHABLE();    return V3D_COMPARE_FUNC_INVALID;
+      unreachable();    return V3D_COMPARE_FUNC_INVALID;
    }
 }
 
@@ -386,7 +386,7 @@ static inline v3d_stencil_op_t translate_stencil_op(GLenum op)
    case GL_INCR_WRAP:   return V3D_STENCIL_OP_INCWRAP;
    case GL_DECR_WRAP:   return V3D_STENCIL_OP_DECWRAP;
    default:
-      UNREACHABLE();    return V3D_STENCIL_OP_INVALID;
+      unreachable();    return V3D_STENCIL_OP_INVALID;
    }
 }
 

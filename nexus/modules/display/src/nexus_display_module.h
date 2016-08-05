@@ -415,6 +415,12 @@ void nexus_videoadj_p_dnr_dealloc(BAVC_SourceId id);
 
 bool NEXUS_Display_P_HasOutput_isr(NEXUS_DisplayHandle display, NEXUS_VideoOutputType type);
 
+#if BVDC_BUF_LOG && NEXUS_BASE_OS_linuxuser
+void NEXUS_Display_P_BufLogCapture(void);
+int nexus_display_p_init_buflogcapture(void);
+void nexus_display_p_uninit_buflogcapture(void);
+#endif
+
 #ifdef __cplusplus
 }
 #endif

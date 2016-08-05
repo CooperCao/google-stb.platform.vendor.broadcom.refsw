@@ -1,3 +1,7 @@
+#############################################################################
+#    Broadcom Proprietary and Confidential. (c)2014 Broadcom.  All rights reserved.
+#############################################################################
+
 SOURCES := \
 	pg.cpp	\
 	pg_panel.cpp \
@@ -14,6 +18,6 @@ SOURCES := \
 	pg_gui_display.cpp \
 	../common/bcm_backdrop.cpp \
 	../common/bcm_guilloche.cpp \
-	../common/bcm_help_menu.cpp 
+	../common/bcm_help_menu.cpp
 
 TARGET := pg

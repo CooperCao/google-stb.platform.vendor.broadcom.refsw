@@ -32,9 +32,6 @@ typedef struct
     * See eglSwapbuffers. If preserve, then the new back buffer should be
     * initialized with the contents of the previous back buffer. May be NULL
     * in which case "EGL_SWAP_NOT_SWAPPED" is presumed.
-    *
-    * If buffers are actually swapped, then the context is reattached and the
-    * new buffers are invalidated.
     */
    egl_swap_result_t (*swap_buffers)(EGL_SURFACE_T *surface, bool preserve);
 

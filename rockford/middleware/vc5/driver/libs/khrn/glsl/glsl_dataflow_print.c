@@ -13,6 +13,8 @@ FILE DESCRIPTION
 #include "glsl_map.h"
 #include "glsl_fastmem.h"
 
+#include "libs/util/gfx_util/gfx_util.h"
+
 #include <stdlib.h>
 
 static const char *df_type_string(DataflowType type) {
@@ -54,7 +56,7 @@ void glsl_print_dataflow(FILE *f, Dataflow *dataflow)
             case DF_BOOL:         fprintf(f, " %s", dataflow->u.constant.value ? "true" : "false");     break;
             case DF_INT:          fprintf(f, " %i", (int)dataflow->u.constant.value);                   break;
             case DF_UINT:         fprintf(f, " %u", dataflow->u.constant.value);                        break;
-            case DF_FLOAT:        fprintf(f, " %g", float_from_bits(dataflow->u.constant.value));       break;
+            case DF_FLOAT:        fprintf(f, " %g", gfx_float_from_bits(dataflow->u.constant.value));   break;
             default:              break;
          }
          break;

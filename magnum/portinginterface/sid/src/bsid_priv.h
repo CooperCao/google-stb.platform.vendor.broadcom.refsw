@@ -183,6 +183,7 @@ typedef struct BSID_DataMap {
 
 /********************************************************************************/
 typedef struct BSID_P_Context {
+    BDBG_OBJECT(BSID_P_Context)
     uint32_t            ui32_SidInstance;     /* instance number. */
     BCHP_Handle         hChp;                 /* handle to chip module. */
     BREG_Handle         hReg;                 /* handle to register module. */
@@ -277,6 +278,7 @@ typedef struct BSID_P_MetadataEntry
 
 /********************************************************************************/
 typedef struct BSID_P_Channel {
+    BDBG_OBJECT(BSID_P_Channel)
     /* generic */
     BSID_Handle          hSid;
     BSID_DecodeMode      eDecodeMode;
@@ -330,7 +332,6 @@ void  BSID_P_ResetFwHwDefault(BSID_Handle hSid);
 BERR_Code BSID_P_CreateChannelMemory(BSID_ChannelHandle hSidCh);
 BERR_Code BSID_P_ResetChannelMemory(BSID_ChannelHandle hSidCh);
 void BSID_P_DestroyChannelMemory(BSID_ChannelHandle hSidCh);
-void BSID_P_DestroyChannel(BSID_ChannelHandle hSidCh);
 BERR_Code BSID_P_MotionDecode(BSID_ChannelHandle hSidCh, const BSID_DecodeMotion *ps_MotionSettings);
 BERR_Code BSID_P_SuspendChannels(BSID_Handle hSid);
 BERR_Code BSID_P_ResumeChannel(BSID_ChannelHandle hSidCh);

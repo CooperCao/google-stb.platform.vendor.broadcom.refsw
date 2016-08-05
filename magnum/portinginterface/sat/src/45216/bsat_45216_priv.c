@@ -1837,8 +1837,8 @@ BERR_Code BSAT_45216_P_EnableChannelInterrupt(
    uint32_t mask         /* [in] specifies which channel interrupt(s) to enable/disable */
 )
 {
+   BERR_Code retCode = BERR_SUCCESS;
    BSAT_45216_P_Handle *pImpl = (BSAT_45216_P_Handle *)(h->pDevice->pImpl);
-   BERR_Code retCode;
    uint32_t irq_mask, shift, clearReg, maskClearReg, maskSetReg;
 
    if (h->channel == 10)

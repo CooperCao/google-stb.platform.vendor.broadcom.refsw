@@ -76,6 +76,7 @@ typedef struct
    unsigned clientId;
    unsigned zOrder;
    bool     secure;
+   bool     conformant;
 } AppConfig;
 
 const unsigned int WIDTH             = 720;
@@ -497,18 +498,39 @@ bool InitEGL(NativeWindowType egl_win, const AppConfig *config)
       */
 
       /* Check that config is an exact match */
-      EGLint red_size, green_size, blue_size, alpha_size, depth_size;
+      EGLint red_size, green_size, blue_size, alpha_size, depth_size, conformant;
 
       eglGetConfigAttrib(egl_display, egl_config[config_select], EGL_RED_SIZE,   &red_size);
       eglGetConfigAttrib(egl_display, egl_config[config_select], EGL_GREEN_SIZE, &green_size);
       eglGetConfigAttrib(egl_display, egl_config[config_select], EGL_BLUE_SIZE,  &blue_size);
       eglGetConfigAttrib(egl_display, egl_config[config_select], EGL_ALPHA_SIZE, &alpha_size);
       eglGetConfigAttrib(egl_display, egl_config[config_select], EGL_DEPTH_SIZE, &depth_size);
+      eglGetConfigAttrib(egl_display, egl_config[config_select], EGL_CONFORMANT, &conformant);
 
-      if ((red_size == want_red) && (green_size == want_green) && (blue_size == want_blue) && (alpha_size == want_alpha))
+      if ((red_size == want_red) &&
+          (green_size == want_green) &&
+          (blue_size == want_blue) &&
+          (alpha_size == want_alpha) &&
+          (!!conformant == config->conformant))
       {
-         printf("Selected config: R=%d G=%d B=%d A=%d Depth=%d\n", red_size, green_size, blue_size, alpha_size, depth_size);
+         printf("Selected config: R=%d G=%d B=%d A=%d Depth=%d Conformant = %s\n", red_size, green_size, blue_size, alpha_size, depth_size,
+                  conformant ? "true" : "false");
          break;
+      }
+   }
+
+   if (config_select == configs)
+   {
+      /* non conformant configs may not exactly match, so just take whatever */
+      for (config_select = 0; config_select < configs; config_select++)
+      {
+         EGLint conformant;
+         eglGetConfigAttrib(egl_display, egl_config[config_select], EGL_CONFORMANT, &conformant);
+         if (!!conformant == config->conformant)
+         {
+            printf("Selected config: Conformant = %s\n", conformant ? "true" : "false");
+            break;
+         }
       }
    }
 
@@ -657,6 +679,7 @@ bool processArgs(int argc, const char *argv[], AppConfig *config)
    config->zOrder            = 0;
    config->swapInterval      = 1;
    config->secure            = false;
+   config->conformant        = true;
 
    for (a = 1; a < argc; ++a)
    {
@@ -707,6 +730,8 @@ bool processArgs(int argc, const char *argv[], AppConfig *config)
       }
       else if (strcmp(arg, "+secure") == 0)
          config->secure = true;
+      else if (strcmp(arg, "-c") == 0)
+         config->conformant = false;
       else
       {
          return false;
@@ -724,7 +749,7 @@ int CLIENT_MAIN(int argc, const char** argv)
    if (!processArgs(argc, argv, &config))
    {
       const char  *progname = argc > 0 ? argv[0] : "";
-      fprintf(stderr, "Usage: %s [+m] [+p] [+s] [+fps] [d=WxH] [o=XxY] [bpp=16/24/32] [f=frames] [swap=N] [z=zorder] [+secure]\n", progname);
+      fprintf(stderr, "Usage: %s [+m] [+p] [+s] [+fps] [d=WxH] [o=XxY] [bpp=16/24/32] [f=frames] [swap=N] [z=zorder] [+secure] [-c]\n", progname);
       return 0;
    }
 
@@ -747,7 +772,7 @@ int CLIENT_MAIN(int argc, const char** argv)
          printf("%d frames", config.frames);
 
       printf(": press CTRL+C to terminate early\n");
-   
+
       while (config.frames == 0 || frame <= config.frames)
       {
          Display();

@@ -49,6 +49,7 @@
 //#include "bbMailTestEngine.h"
 #include "bbSysPayload.h"
 #include "zigbee_rf4ce_registration.h"
+#include "zigbee_dbg.h"
 # pragma GCC optimize "short-enums"     /* Implement short enums. */
 typedef enum _TEST_enum_t
 {
@@ -60,12 +61,6 @@ SYS_DbgAssertStatic(sizeof(TEST_enum_t) == 1)
 #define SYS_DBG_LOG_BUFFER_SIZE     256
 
 #  define HAL_DbgLogStr(message)                                TEST_DbgLogStr(message)
-
-void TEST_DbgLogStr(const char *const message)
-{
-    printf(message);
-    fflush(stdout);
-}
 
 void sysDbgHalt(const uint32_t errorUid /* , const char *const fileName, const uint32_t fileLine ) */
 # if defined(_DEBUG_FILELINE_)
@@ -144,14 +139,6 @@ void sysDbgLogStr(const char *const format, ...)
     HAL_DbgLogStr(message);
 }
 #endif
-
-uint32_t TEST_DbgAssert(uint32_t errorUid, const char *fileName, uint16_t line)
-{
-    char message[200];
-    snprintf(message, sizeof(message), "Not expected Assert(%#010x) has been called. \"%s\", L%d", errorUid, fileName, line);
-    printf(message);
-    return 0;
-}
 
 /*************************************************************************************//**
   \brief Logs error and proceeds with program execution.
@@ -306,6 +293,7 @@ static void rf4ce_Test_ZRC2_EnableBinding_Callback(RF4CE_ZRC2_BindingReqDescr_t 
         printf("No any remote contoller has been bound. status = %d\r\n", statusConf);
 }
 
+#if 0
 static void rf4ce_Test_ZRC2_EnableBinding()
 {
     printf("Starting ZRC2 Enable Binding\r\n");
@@ -317,7 +305,7 @@ static void rf4ce_Test_ZRC2_EnableBinding()
     while(!statusEnableBinding);
     printf("Enable Binding successfully\r\n");
 }
-
+#endif
 
 static void rf4ce_Test_Get_WakeUpActionCode()
 {
@@ -541,10 +529,8 @@ int main(int argc, char *argv[])
     //rf4ce_Test_Get_WakeUpActionCode();
     //rf4ce_Test_Start_NWK();
 
-#ifndef BYPASS_RPC
     rf4ce_Test_Set_WakeUpActionCode();
     rf4ce_Test_Get_WakeUpActionCode();
-#endif
     rf4ce_Test_Start_NWK();
     printf(bindingInstruction);
     rf4ce_Test_ZRC1_TargetBinding();

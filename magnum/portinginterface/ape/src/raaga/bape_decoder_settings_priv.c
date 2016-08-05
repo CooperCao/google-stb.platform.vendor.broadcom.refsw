@@ -1,42 +1,39 @@
 /******************************************************************************
  * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *****************************************************************************/
 
 
@@ -198,6 +195,7 @@ static void BAPE_Decoder_P_GetDefaultAc3Settings(BAPE_DecoderHandle handle)
 
 static void BAPE_Decoder_P_GetDefaultAc4Settings(BAPE_DecoderHandle handle)
 {
+    unsigned i;
     BDSP_Algorithm bdspAlgo = BDSP_Algorithm_eAC4Decode;
 
     if ( !BAPE_DSP_P_AlgorithmSupported(handle->deviceHandle, bdspAlgo) )
@@ -214,6 +212,19 @@ static void BAPE_Decoder_P_GetDefaultAc4Settings(BAPE_DecoderHandle handle)
     handle->ac4Settings.codecSettings.ac4.programBalance = handle->userConfig.ac4.sUserOutputCfg[0].i32MainAssocMixPref;
     handle->ac4Settings.codecSettings.ac4.presentationId = handle->userConfig.ac4.ui32PresentationNumber;
     handle->ac4Settings.codecSettings.ac4.dialogEnhancerAmount = handle->userConfig.ac4.sUserOutputCfg[0].i32DialogEnhGainInput;
+
+    /* personalization settings */
+    handle->ac4Settings.codecSettings.ac4.selectionMode = (handle->userConfig.ac4.ui32PreferAssociateTypeOverLanguage == 1)?BAPE_Ac4PresentationSelectionMode_eAssociateType:BAPE_Ac4PresentationSelectionMode_eLanguageCode;
+    handle->ac4Settings.codecSettings.ac4.preferredAssociateType = (BAPE_Ac4AssociateType)handle->userConfig.ac4.ui32PreferredAssociateType;
+    handle->ac4Settings.codecSettings.ac4.enableAssociateMixing = (handle->userConfig.ac4.ui32EnableADMixing == 1)?true:false;
+    for ( i = 0; i < BAPE_AC4_LANGUAGE_NAME_LENGTH; i++ )
+    {
+        handle->ac4Settings.codecSettings.ac4.languagePreference[0].selection[i] = (char)((handle->userConfig.ac4.ui32PreferredLanguage1[i/sizeof(uint32_t)] >> (8*(4-(i%4)))) & 0xff);
+    }
+    for ( i = 0; i < BAPE_AC4_LANGUAGE_NAME_LENGTH; i++ )
+    {
+        handle->ac4Settings.codecSettings.ac4.languagePreference[1].selection[i] = (char)((handle->userConfig.ac4.ui32PreferredLanguage2[i/sizeof(uint32_t)] >> (8*(4-(i%4)))) & 0xff);
+    }
 }
 
 #if BDSP_MS12_SUPPORT
@@ -280,7 +291,8 @@ static void BAPE_Decoder_P_GetDefaultLegacyAacSettings(BAPE_DecoderHandle handle
     handle->aacSettings.codecSettings.aac.drcScaleLow = 100;
     BDBG_ASSERT(handle->userConfig.aac.ui32DrcGainControlCompress == 0x40000000);
     BDBG_ASSERT(handle->userConfig.aac.ui32DrcGainControlBoost == 0x40000000);
-    handle->aacSettings.codecSettings.aac.drcReferenceLevel = handle->userConfig.aac.ui32DrcTargetLevel;
+    handle->aacSettings.codecSettings.aac.drcReferenceLevel = handle->userConfig.aac.i32OutputVolLevel*-4;
+    handle->aacSettings.codecSettings.aac.drcDefaultLevel = handle->userConfig.aac.i32InputVolLevel*-4;
     handle->aacSettings.codecSettings.aac.downmixMode = (handle->userConfig.aac.i32DownmixType==0)?BAPE_AacStereoMode_eMatrix:BAPE_AacStereoMode_eArib;
     handle->aacSettings.codecSettings.aac.enableDownmixCoefficients = handle->userConfig.aac.sUserOutputCfg[0].i32ExtDnmixEnabled?true:false;
     for ( i = 0; i < 6; i++ )
@@ -305,6 +317,32 @@ static void BAPE_Decoder_P_GetDefaultAacSettings(BAPE_DecoderHandle handle)
 #else
     BAPE_Decoder_P_GetDefaultLegacyAacSettings(handle);
 #endif
+}
+
+static void BAPE_Decoder_P_GetDefaultMpegSettings(BAPE_DecoderHandle handle)
+{
+    if ( !BAPE_DSP_P_AlgorithmSupported(handle->deviceHandle, BDSP_Algorithm_eMpegAudioDecode) )
+    {
+        return;
+    }
+
+    BERR_TRACE(BDSP_Raaga_GetDefaultAlgorithmSettings(BDSP_Algorithm_eMpegAudioDecode, &handle->userConfig.mpeg, sizeof(handle->userConfig.mpeg)));
+    handle->mpegSettings.codec = BAVC_AudioCompressionStd_eMpegL2;
+    handle->mp3Settings.codec = BAVC_AudioCompressionStd_eMpegL3;
+    if ( handle->deviceHandle->settings.loudnessMode == BAPE_LoudnessEquivalenceMode_eAtscA85 )
+    {
+        handle->mpegSettings.codecSettings.mpeg.inputReferenceLevel = -24;
+    }
+    else if ( handle->deviceHandle->settings.loudnessMode == BAPE_LoudnessEquivalenceMode_eEbuR128 )
+    {
+        handle->mpegSettings.codecSettings.mpeg.inputReferenceLevel = -23;
+    }
+    else
+    {
+        handle->mpegSettings.codecSettings.mpeg.inputReferenceLevel = handle->userConfig.mpeg.i32InputVolLevel;
+    }
+    BKNI_Memcpy(&handle->mp3Settings.codecSettings, &handle->mpegSettings.codecSettings, sizeof(handle->mpegSettings.codecSettings.mpeg));
+
 }
 
 static void BAPE_Decoder_P_GetDefaultWmaProSettings(
@@ -481,6 +519,7 @@ void BAPE_Decoder_P_GetDefaultCodecSettings(BAPE_DecoderHandle handle)
     BAPE_Decoder_P_GetDefaultAc3Settings(handle);
     BAPE_Decoder_P_GetDefaultAc4Settings(handle);
     BAPE_Decoder_P_GetDefaultAacSettings(handle);
+    BAPE_Decoder_P_GetDefaultMpegSettings(handle);
     BAPE_Decoder_P_GetDefaultWmaProSettings(handle);
     BAPE_Decoder_P_GetDefaultDtsSettings(handle);
     BAPE_Decoder_P_GetDefaultDtsExpressSettings(handle);
@@ -989,6 +1028,29 @@ static BERR_Code BAPE_Decoder_P_ApplyAc4Settings(BAPE_DecoderHandle handle, BAPE
 
     BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4, ui32MainAssocDec, handle->ac4Settings.codecSettings.ac4.programSelection);
     BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4, ui32PresentationNumber, handle->ac4Settings.codecSettings.ac4.presentationId);
+
+    /* personalization settings */
+    BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4, ui32PreferAssociateTypeOverLanguage, (handle->ac4Settings.codecSettings.ac4.selectionMode==BAPE_Ac4PresentationSelectionMode_eLanguageCode)?0:1);
+    BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4, ui32PreferredAssociateType, (uint32_t)handle->ac4Settings.codecSettings.ac4.preferredAssociateType);
+    BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4, ui32EnableADMixing, handle->ac4Settings.codecSettings.ac4.enableAssociateMixing?1:0);
+    {
+        unsigned i;
+        uint32_t preferredLanguage1[AC4_DEC_ABBREV_PRESENTATION_LANGUAGE_LENGTH] = {0};
+        uint32_t preferredLanguage2[AC4_DEC_ABBREV_PRESENTATION_LANGUAGE_LENGTH] = {0};
+        for ( i = 0; i < BAPE_AC4_LANGUAGE_NAME_LENGTH; i++ )
+        {
+            preferredLanguage1[i/sizeof(uint32_t)] = preferredLanguage1[i/sizeof(uint32_t)] | (handle->ac4Settings.codecSettings.ac4.languagePreference[0].selection[i] << (8*(4-(i%4))) );
+        }
+        for ( i = 0; i < BAPE_AC4_LANGUAGE_NAME_LENGTH; i++ )
+        {
+            preferredLanguage2[i/sizeof(uint32_t)] = preferredLanguage2[i/sizeof(uint32_t)] | (handle->ac4Settings.codecSettings.ac4.languagePreference[1].selection[i] << (8*(4-(i%4))) );
+        }
+
+        BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4, ui32PreferredLanguage1[0], preferredLanguage1[0]);
+        BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4, ui32PreferredLanguage1[1], preferredLanguage1[1]);
+        BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4, ui32PreferredLanguage2[0], preferredLanguage2[0]);
+        BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4, ui32PreferredLanguage2[1], preferredLanguage2[1]);
+    }
     errCode = BDSP_Stage_SetSettings(handle->hPrimaryStage, &handle->userConfig.ac4, sizeof(handle->userConfig.ac4));
     if ( errCode )
     {
@@ -1070,27 +1132,49 @@ static BERR_Code BAPE_Decoder_P_ApplyMs12AacSettings(
         BAPE_DSP_P_SET_VARIABLE(handle->userConfig.aac, ui32DefDialnormLevel, pSettings->drcDefaultLevel);
         BAPE_DSP_P_SET_VARIABLE(handle->userConfig.aac, ui32RefDialnormLevel, pSettings->drcReferenceLevel);
         BAPE_DSP_P_SET_VARIABLE(handle->userConfig.aac, ui32LoudnessEquivalenceMode, 0); /* None */
-        if ( pSettings->drcMode == BAPE_DolbyPulseDrcMode_eRf )
+
+        if ( pSettings->ignoreEmbeddedPrl)
         {
-            BAPE_DSP_P_SET_VARIABLE(handle->userConfig.aac, ui32DrcType, 4);
-            if (pSettings->drcReferenceLevel == 4*23)
-            {
-                BAPE_DSP_P_SET_VARIABLE(handle->userConfig.aac, ui32DefDialnormLevel, 23*4);
-                BAPE_DSP_P_SET_VARIABLE(handle->userConfig.aac, ui32RefDialnormLevel, 31*4);
-                BAPE_DSP_P_SET_VARIABLE(handle->userConfig.aac, ui32DrcType, 0);
-                BAPE_DSP_P_SET_VARIABLE(handle->userConfig.aac, ui32LoudnessEquivalenceMode, 3);
-            }
-            else if (pSettings->drcReferenceLevel == 4*24)
-            {
-                BAPE_DSP_P_SET_VARIABLE(handle->userConfig.aac, ui32DefDialnormLevel, 24*4);
-                BAPE_DSP_P_SET_VARIABLE(handle->userConfig.aac, ui32RefDialnormLevel, 31*4);
-                BAPE_DSP_P_SET_VARIABLE(handle->userConfig.aac, ui32DrcType, 0);
-                BAPE_DSP_P_SET_VARIABLE(handle->userConfig.aac, ui32LoudnessEquivalenceMode, 4);
-            }
+            BAPE_DSP_P_SET_VARIABLE(handle->userConfig.aac, ui32DrcType, 3);
+            BAPE_DSP_P_SET_VARIABLE(handle->userConfig.aac, ui32RefDialnormLevel, 0);
         }
         else
         {
-            BAPE_DSP_P_SET_VARIABLE(handle->userConfig.aac, ui32DrcType, 0);
+            if (pSettings->drcMode == BAPE_DolbyPulseDrcMode_eOff)
+            {
+                if (pSettings->drcReferenceLevel > 127)
+                {
+                    BDBG_ERR(("drcReferenceLevel (%u) is greater than 127, defaulting to -31dB",
+                              pSettings->drcReferenceLevel));
+                    BAPE_DSP_P_SET_VARIABLE(handle->userConfig.aac, ui32DrcType, 0);
+                }
+                else
+                {
+                    BAPE_DSP_P_SET_VARIABLE(handle->userConfig.aac, ui32DrcType, 3);
+                }
+            }
+            else if ( pSettings->drcMode == BAPE_DolbyPulseDrcMode_eRf )
+            {
+                BAPE_DSP_P_SET_VARIABLE(handle->userConfig.aac, ui32DrcType, 4);
+                if (pSettings->drcReferenceLevel == 4*23)
+                {
+                    BAPE_DSP_P_SET_VARIABLE(handle->userConfig.aac, ui32DefDialnormLevel, 23*4);
+                    BAPE_DSP_P_SET_VARIABLE(handle->userConfig.aac, ui32RefDialnormLevel, 31*4);
+                    BAPE_DSP_P_SET_VARIABLE(handle->userConfig.aac, ui32DrcType, 0);
+                    BAPE_DSP_P_SET_VARIABLE(handle->userConfig.aac, ui32LoudnessEquivalenceMode, 3);
+                }
+                else if (pSettings->drcReferenceLevel == 4*24)
+                {
+                    BAPE_DSP_P_SET_VARIABLE(handle->userConfig.aac, ui32DefDialnormLevel, 24*4);
+                    BAPE_DSP_P_SET_VARIABLE(handle->userConfig.aac, ui32RefDialnormLevel, 31*4);
+                    BAPE_DSP_P_SET_VARIABLE(handle->userConfig.aac, ui32DrcType, 0);
+                    BAPE_DSP_P_SET_VARIABLE(handle->userConfig.aac, ui32LoudnessEquivalenceMode, 4);
+                }
+            }
+            else
+            {
+                BAPE_DSP_P_SET_VARIABLE(handle->userConfig.aac, ui32DrcType, 0);
+            }
         }
         break;
     }
@@ -1417,7 +1501,7 @@ static BERR_Code BAPE_Decoder_P_ApplyLegacyAacSettings(
     handle->userConfig.aac.ui32SbrUserFlag = pSettings->enableSbrDecoding ? 1 : 0;
     handle->userConfig.aac.ui32DrcGainControlCompress = BAPE_P_FloatToQ230(pSettings->drcScaleHi);
     handle->userConfig.aac.ui32DrcGainControlBoost = BAPE_P_FloatToQ230(pSettings->drcScaleLow);
-    /* handle->userConfig.aac.ui32DrcTargetLevel = pSettings->drcTargetLevel; */
+    handle->userConfig.aac.ui32DrcTargetLevel = pSettings->ignoreEmbeddedPrl ? 0 : 127;
     handle->userConfig.aac.i32DownmixType = (pSettings->downmixMode == BAPE_AacStereoMode_eMatrix)?0:1;
     handle->userConfig.aac.ui32DownmixCoefScaleIndex = pSettings->downmixCoefScaleIndex;
 
@@ -1509,7 +1593,7 @@ static BERR_Code BAPE_Decoder_P_ApplyLegacyAacSettings(
         {
             handle->userConfig.aac.i32OutputVolLevel = -23;   /* There is no multichannel output so configure for -23dB */
         }
-        if (pSettings->drcReferenceLevel == 4*24)
+        if (pSettings->drcReferenceLevel == 4*23)
         {
             handle->userConfig.aac.ui32LoudnessEquivalenceMode = 3; /* config stereo for EBU -23 on output ports */
         }
@@ -1521,12 +1605,21 @@ static BERR_Code BAPE_Decoder_P_ApplyLegacyAacSettings(
     default:
         BDBG_MSG(("Loudness Equivalence Disabled for AAC-HE"));
         handle->userConfig.aac.ui32LoudnessEquivalenceMode = 0; /* None */
-        if (pSettings->drcMode == BAPE_DolbyPulseDrcMode_eLine)
+        if (pSettings->drcMode == BAPE_DolbyPulseDrcMode_eOff && !pSettings->ignoreEmbeddedPrl)
         {
-            handle->userConfig.aac.i32InputVolLevel = -31;
-            handle->userConfig.aac.i32OutputVolLevel = -31;   /* Config for -20dB */
+            if (pSettings->drcReferenceLevel > 127)
+            {
+                BDBG_ERR(("drcReferenceLevel (%u) is greater than 127, defaulting to -31dB", pSettings->drcReferenceLevel));
+                handle->userConfig.aac.i32InputVolLevel = -31;
+                handle->userConfig.aac.i32OutputVolLevel = -31;   /* Config for -31dB */
+            }
+            else
+            {
+                handle->userConfig.aac.i32InputVolLevel = pSettings->drcReferenceLevel/-4;
+                handle->userConfig.aac.i32OutputVolLevel = pSettings->drcReferenceLevel/-4;
+            }
         }
-        else
+        else if (pSettings->drcMode == BAPE_DolbyPulseDrcMode_eRf)
         {
             if (pSettings->drcReferenceLevel == 4*23)
             {
@@ -1545,6 +1638,11 @@ static BERR_Code BAPE_Decoder_P_ApplyLegacyAacSettings(
                 handle->userConfig.aac.i32InputVolLevel = -20;
                 handle->userConfig.aac.i32OutputVolLevel = -20;   /* Config for -20dB */
             }
+        }
+        else
+        {
+            handle->userConfig.aac.i32InputVolLevel = -31;
+            handle->userConfig.aac.i32OutputVolLevel = -31;   /* Config for -31dB */
         }
         break;
     }
@@ -1580,7 +1678,9 @@ static BERR_Code BAPE_Decoder_P_ApplyAacSettings(
     return BERR_SUCCESS;
 }
 
-static BERR_Code BAPE_Decoder_P_ApplyMpegSettings(BAPE_DecoderHandle handle)
+static BERR_Code BAPE_Decoder_P_ApplyMpegSettings(
+    BAPE_DecoderHandle handle,
+    const BAPE_MpegSettings *pSettings)
 {
     BAPE_ChannelMode channelMode;
     BERR_Code errCode;
@@ -1616,7 +1716,7 @@ static BERR_Code BAPE_Decoder_P_ApplyMpegSettings(BAPE_DecoderHandle handle)
     {
     case BAPE_LoudnessEquivalenceMode_eAtscA85:
         BDBG_MSG(("ATSC A/85 Loudness Equivalence Enabled for MPEG"));
-        handle->userConfig.mpeg.i32InputVolLevel = -24;
+        handle->userConfig.mpeg.i32InputVolLevel = pSettings->inputReferenceLevel;
         if ( handle->ddre )
         {
             handle->userConfig.mpeg.i32OutputVolLevel = -31;
@@ -1628,7 +1728,7 @@ static BERR_Code BAPE_Decoder_P_ApplyMpegSettings(BAPE_DecoderHandle handle)
         break;
     case BAPE_LoudnessEquivalenceMode_eEbuR128:
         BDBG_MSG(("EBU-R128 Loudness Equivalence Enabled for MPEG"));
-        handle->userConfig.mpeg.i32InputVolLevel = -23;
+        handle->userConfig.mpeg.i32InputVolLevel = pSettings->inputReferenceLevel;
         if ( handle->ddre )
         {
             handle->userConfig.mpeg.i32OutputVolLevel = -31;
@@ -2593,8 +2693,9 @@ BERR_Code BAPE_Decoder_P_ApplyCodecSettings(BAPE_DecoderHandle handle)
                 return BAPE_Decoder_P_ApplyAacSettings(handle, &handle->aacPlusSettings.codecSettings.aacPlus);
             case BAVC_AudioCompressionStd_eMpegL1:
             case BAVC_AudioCompressionStd_eMpegL2:
+                return BAPE_Decoder_P_ApplyMpegSettings(handle, &handle->mpegSettings.codecSettings.mpeg);
             case BAVC_AudioCompressionStd_eMpegL3:
-                return BAPE_Decoder_P_ApplyMpegSettings(handle);
+                return BAPE_Decoder_P_ApplyMpegSettings(handle, &handle->mpegSettings.codecSettings.mp3);
             case BAVC_AudioCompressionStd_eWmaStd:
             case BAVC_AudioCompressionStd_eWmaStdTs:
                 return BAPE_Decoder_P_ApplyWmaStdSettings(handle);

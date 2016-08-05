@@ -776,6 +776,7 @@ typedef enum BCMD_KeySlotStatusQuery_OutCmd_e
 {
     BCMD_KeySlotStatusQuery_OutCmd_eStatus = (5 << 2) + 3,
     BCMD_KeySlotStatusQuery_OutCmd_eSlotNumberSlotType0 = (6 << 2) + 3,
+    BCMD_KeySlotStatusQuery_OutCmd_eMulti2SystemKeyConfig = (6 << 2) + 2,
     BCMD_KeySlotStatusQuery_OutCmd_eSlotNumberSlotType1 = (7 << 2) + 3,
     BCMD_KeySlotStatusQuery_OutCmd_eSlotNumberSlotType2 = (8 << 2) + 3,
     BCMD_KeySlotStatusQuery_OutCmd_eSlotNumberSlotType3 = (9 << 2) + 3,

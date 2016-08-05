@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -61,12 +61,13 @@ CConfigNx::~CConfigNx()
 eRet CConfigNx::initResources()
 {
     NxClient_AllocSettings allocSettings;
-    uint16_t               i            = 0;
-    NEXUS_Error            nerror       = NEXUS_SUCCESS;
-    int                    nStreamers   = GET_INT(&_cfg, RESOURCE_NUM_STREAMERS);
-    int                    nOutputsHdmi = GET_INT(&_cfg, RESOURCE_NUM_OUTPUTS_HDMI);
-    int                    nOutputsRfm  = GET_INT(&_cfg, RESOURCE_NUM_OUTPUTS_RFM);
-    int                    maxMosaics   = 0;
+    uint16_t               i              = 0;
+    NEXUS_Error            nerror         = NEXUS_SUCCESS;
+    int                    nStreamers     = GET_INT(&_cfg, RESOURCE_NUM_STREAMERS);
+    int                    nOutputsHdmi   = GET_INT(&_cfg, RESOURCE_NUM_OUTPUTS_HDMI);
+    int                    nOutputsRfm    = GET_INT(&_cfg, RESOURCE_NUM_OUTPUTS_RFM);
+    int                    nStillDecoders = GET_INT(&_cfg, RESOURCE_NUM_STILL_DECODERS);
+    int                    maxMosaics     = 0;
 
 #ifdef NETAPP_SUPPORT
     int nRemotesBluetooth = GET_INT(&_cfg, RESOURCE_NUM_REMOTES_BLUETOOTH);
@@ -75,6 +76,7 @@ eRet CConfigNx::initResources()
     CPlatform * pPlatformConfig = _cfg.getPlatformConfig();
     eRet        ret             = eRet_Ok;
 
+    if (0 > nStillDecoders) { nStillDecoders = NEXUS_NUM_STILL_DECODES; }
     if (0 > nOutputsHdmi) { nOutputsHdmi = NEXUS_NUM_HDMI_OUTPUTS; }
 #if NEXUS_HAS_RFM
     if (0 > nOutputsRfm) { nOutputsRfm = NEXUS_NUM_RFM_OUTPUTS; }
@@ -174,6 +176,8 @@ eRet CConfigNx::initResources()
             _pResources->add(eBoardResource_simpleDecodeAudio, 1, "simpleAudioDecode", &_cfg, 0, _allocResultsPip.simpleAudioDecoder.id);
         }
     }
+
+    _pResources->add(eBoardResource_decodeStill, nStillDecoders, "decodeStill", &_cfg);
 
 #if NEXUS_HAS_FRONTEND
     /* query nexus for frontend capabilities and add to tuner lists */

@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -298,7 +298,8 @@ typedef struct NEXUS_OpusEncodeSettings
     unsigned                bitRate;            /* Bit rate of the encoded file Supports 6kbps to 510kbps Default is 48kbps. */
     unsigned                frameSize;          /* Size of the frame in samples. Supports 120,240,480,960,1920,2880. Default is 960. */
     NEXUS_OpusEncodeMode    encodeMode;         /* Mode of the encoder (Silk Only, Hybrid, CELT Only). Default is Hybrid. */
-    NEXUS_OpusBitRateType   bitRateType;        /* Type of bit rate to encode with (Constant Bit Rate, Variable Bit Rate, Constrained Variable Bit Rate). Default: 1 VBR Supports 0-CBR,1-VBR,2-CVBR. Default is VBR. */
+    NEXUS_OpusBitRateType   bitRateType;        /* Type of bit rate to encode with (Constant Bit Rate, Variable Bit Rate, Constrained Variable Bit Rate).
+                                                   Default: 1 VBR Supports 0-CBR,1-VBR,2-CVBR. Default is VBR. */
     unsigned                complexity;         /* Computational Complexity for the encoder. Supports 1 - 10. Default is 10. */
 } NEXUS_OpusEncodeSettings;
 
@@ -364,7 +365,7 @@ This is used for a direct connection to SPDIF, as follows:
     NEXUS_AudioOutput_AddInput(NEXUS_SpdifOutput_GetConnector(spdif), NEXUS_AudioEncoder_GetConnector(audioEncoder));
 
 ***************************************************************************/
-NEXUS_AudioInput NEXUS_AudioEncoder_GetConnector( 
+NEXUS_AudioInputHandle NEXUS_AudioEncoder_GetConnector(
     NEXUS_AudioEncoderHandle handle
     );
 
@@ -380,7 +381,7 @@ This is used to connect to the audio decoder as follows:
 ***************************************************************************/
 NEXUS_Error NEXUS_AudioEncoder_AddInput(
     NEXUS_AudioEncoderHandle handle,
-    NEXUS_AudioInput input
+    NEXUS_AudioInputHandle input
     );
 
 /***************************************************************************
@@ -389,7 +390,7 @@ Remove an input from this processing stage
 ***************************************************************************/
 NEXUS_Error NEXUS_AudioEncoder_RemoveInput(
     NEXUS_AudioEncoderHandle handle,
-    NEXUS_AudioInput input
+    NEXUS_AudioInputHandle input
     );
 
 /***************************************************************************

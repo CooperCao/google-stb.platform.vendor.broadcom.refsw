@@ -431,6 +431,7 @@ BERR_Code BHDM_SetAVIInfoFramePacket(
 	BKNI_Memcpy(&(hHDMI->DeviceSettings.stAviInfoFrame), &newAviInfoFrame,
 		sizeof(BAVC_HDMI_AviInfoFrame)) ;
 
+#if BDBG_DEBUG_BUILD
 	BDBG_MSG(("Tx%d: (Y1Y0)     ColorSpace (%d): %s", hHDMI->eCoreId,
 		newAviInfoFrame.ePixelEncoding,
 		BAVC_HDMI_AviInfoFrame_ColorspaceToStr_isrsafe(newAviInfoFrame.ePixelEncoding)));
@@ -451,7 +452,7 @@ BERR_Code BHDM_SetAVIInfoFramePacket(
 		BDBG_MSG(("Tx%d: Extended Colorimetry Info Invalid", hHDMI->eCoreId)) ;
 	}
 #endif
-
+#endif
 /*
 		Y0, Y1
 			RGB or YCBCR indicator. See EIA/CEA-861B table 8 for details.

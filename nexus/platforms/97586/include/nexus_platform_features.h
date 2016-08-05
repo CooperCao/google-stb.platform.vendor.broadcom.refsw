@@ -117,7 +117,6 @@ upon the chip usage. See below */
 #define NEXUS_MEMC0_PICTURE_BUFFER_HEAP 4 /* XVD/VDC buffers for 2 decode/encode*/
 #define NEXUS_SAGE_SECURE_HEAP          5 /* SAGE HEAP - 32 MB */
 
-#define NEXUS_PLATFORM_P_GET_FRAMEBUFFER_HEAP_INDEX 1
 
 #define NEXUS_AVS_MONITOR               0
 

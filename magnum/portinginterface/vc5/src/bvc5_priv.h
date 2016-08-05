@@ -149,6 +149,12 @@ typedef struct BVC5_P_Handle
    bool                       bLockupReported;
 
    bool                       bToggling;         /* Set when security toggle code is invoked                   */
+
+   /* MMU Bin Memory support */
+   int64_t                    iUnsecureBinTranslation;
+   int64_t                    iSecureBinTranslation;
+   BMMA_Block_Handle          hMmuSafePage;
+   BMMA_DeviceOffset          uiMmuSafePageOffset;
 } BVC5_P_Handle;
 
 BVC5_BinPoolHandle BVC5_P_GetBinPool(
@@ -161,6 +167,12 @@ BMEM_Heap_Handle BVC5_P_GetHeap(
 
 BMMA_Heap_Handle BVC5_P_GetMMAHeap(
    BVC5_Handle hVC5
+);
+
+uint32_t BVC5_P_TranslateBinAddress(
+   BVC5_Handle hVC5,
+   uint32_t    uiAddr,
+   bool        bSecure
 );
 
 #endif /* BVC5_PRIV_H__ */

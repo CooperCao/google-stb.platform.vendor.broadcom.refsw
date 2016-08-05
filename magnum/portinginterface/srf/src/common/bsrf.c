@@ -222,7 +222,7 @@ BERR_Code BSRF_ReadRfGain(BSRF_ChannelHandle h, uint8_t *pGain)
 /******************************************************************************
  BSRF_GetInputPower
 ******************************************************************************/
-BERR_Code BSRF_GetInputPower(BSRF_ChannelHandle h, uint32_t *pPower)
+BERR_Code BSRF_GetInputPower(BSRF_ChannelHandle h, int32_t *pPower)
 {
    BDBG_ASSERT(h);
    BDBG_ENTER(BSRF_GetInputPower);
@@ -337,6 +337,28 @@ BERR_Code BSRF_GetAntennaStatus(BSRF_ChannelHandle h, BSRF_AntennaStatus *pStatu
    BDBG_ASSERT(h);
    BDBG_ENTER(BSRF_GetAntennaStatus);
    return (h->pDevice->settings.api.GetAntennaStatus(h, pStatus));
+}
+
+
+/******************************************************************************
+ BSRF_PowerUpAntennaSense
+******************************************************************************/
+BERR_Code BSRF_PowerUpAntennaSense(BSRF_ChannelHandle h)
+{
+   BDBG_ASSERT(h);
+   BDBG_ENTER(BSRF_PowerUpAntennaSense);
+   return (h->pDevice->settings.api.PowerUpAntennaSense(h));
+}
+
+
+/******************************************************************************
+ BSRF_PowerDownAntennaSense
+******************************************************************************/
+BERR_Code BSRF_PowerDownAntennaSense(BSRF_ChannelHandle h)
+{
+   BDBG_ASSERT(h);
+   BDBG_ENTER(BSRF_PowerDownAntennaSense);
+   return (h->pDevice->settings.api.PowerDownAntennaSense(h));
 }
 
 
@@ -480,6 +502,28 @@ BERR_Code BSRF_ConfigOutputClockPhase(BSRF_Handle h, uint8_t phase, bool bDisabl
    BDBG_ASSERT(h);
    BDBG_ENTER(BSRF_ConfigOutputClockPhase);
    return (h->settings.api.ConfigOutputClockPhase(h, phase, bDisableOutput));
+}
+
+
+/******************************************************************************
+ BSRF_SetIqEqCoeff
+******************************************************************************/
+BERR_Code BSRF_SetIqEqCoeff(BSRF_ChannelHandle h, int16_t *iTaps, int16_t *qTaps)
+{
+   BDBG_ASSERT(h);
+   BDBG_ENTER(BSRF_SetIqEqTaps);
+   return (h->pDevice->settings.api.SetIqEqCoeff(h, iTaps, qTaps));
+}
+
+
+/******************************************************************************
+ BSRF_SetIqEqSettings
+******************************************************************************/
+BERR_Code BSRF_SetIqEqSettings(BSRF_ChannelHandle h, BSRF_IqEqSettings settings)
+{
+   BDBG_ASSERT(h);
+   BDBG_ENTER(BSRF_SetIqEqSettings);
+   return (h->pDevice->settings.api.SetIqEqSettings(h, settings));
 }
 
 #endif

@@ -78,7 +78,11 @@ BDBG_OBJECT_ID_DECLARE(BVDC_HST);
 
 #if (BVDC_P_SUPPORT_PEP)
 #define BVDC_P_CAB_TABLE_SIZE   (BCHP_PEP_CMP_0_V0_CAB_LUT_DATA_i_ARRAY_END + 1)
+#ifdef BCHP_PEP_CMP_0_V0_LAB_LUT_DATA_i_ARRAY_END
 #define BVDC_P_LAB_TABLE_SIZE   (BCHP_PEP_CMP_0_V0_LAB_LUT_DATA_i_ARRAY_END + 1)
+#else
+ #define BVDC_P_LAB_TABLE_SIZE   1  /* hush warnings */
+#endif
 #else
 #define BVDC_P_CAB_TABLE_SIZE   1  /* hush warnings */
 #define BVDC_P_LAB_TABLE_SIZE   1  /* hush warnings */
@@ -87,8 +91,10 @@ BDBG_OBJECT_ID_DECLARE(BVDC_HST);
 #if (BVDC_P_SUPPORT_HIST)
 #if (BVDC_P_SUPPORT_HIST_VER >= BVDC_P_SUPPORT_HIST_VER_2)
 #define BVDC_P_HISTO_TABLE_SIZE (BCHP_HIST_RD_BINi_ARRAY_END + 1)
-#else
+#elif BCHP_PEP_CMP_0_V0_HISTO_DATA_COUNT_i_ARRAY_END
 #define BVDC_P_HISTO_TABLE_SIZE (BCHP_PEP_CMP_0_V0_HISTO_DATA_COUNT_i_ARRAY_END + 1)
+#else
+#define BVDC_P_HISTO_TABLE_SIZE 1  /* hush warnings */
 #endif
 #else
 #define BVDC_P_HISTO_TABLE_SIZE 1  /* hush warnings */
@@ -288,10 +294,6 @@ void BVDC_P_Sharpness_Calculate_Gain_Value_isr
       const int16_t                sCenterGain,
       const int16_t                sMaxGain,
       uint32_t                    *ulSharpnessGain );
-
-void BVDC_P_Pep_GetLumaStatus
-    ( const BVDC_Window_Handle     hWindow,
-      BVDC_LumaStatus             *pLumaStatus );
 
 void BVDC_P_Pep_GetRadialTable
     ( uint32_t                     ulColorId,

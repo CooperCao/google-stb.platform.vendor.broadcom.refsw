@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2013 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2007-2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,16 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  **************************************************************************/
 #ifndef NEXUS_PID_CHANNEL_H__
@@ -83,10 +73,10 @@ typedef struct NEXUS_PidChannel *NEXUS_PidChannelHandle;
 Summary:
 Special values for NEXUS_PidChannelSettings.pidChannelIndex
 **/
-#define NEXUS_PID_CHANNEL_OPEN_ANY (-1)
-#define NEXUS_PID_CHANNEL_OPEN_MESSAGE_CAPABLE (-2)
-#define NEXUS_PID_CHANNEL_OPEN_NOT_MESSAGE_CAPABLE (-3)
-#define NEXUS_PID_CHANNEL_OPEN_INJECTION (-4)
+#define NEXUS_PID_CHANNEL_OPEN_ANY ((unsigned)-1)
+#define NEXUS_PID_CHANNEL_OPEN_MESSAGE_CAPABLE ((unsigned)-2)
+#define NEXUS_PID_CHANNEL_OPEN_NOT_MESSAGE_CAPABLE ((unsigned)-3)
+#define NEXUS_PID_CHANNEL_OPEN_INJECTION ((unsigned)-4)
 
 /**
 Summary:
@@ -120,7 +110,7 @@ Settings for a PID channel passed into NEXUS_PidChannel_Open.
 typedef struct NEXUS_PidChannelSettings
 {
     bool requireMessageBuffer; /* deprecated. use NEXUS_PidChannelSettings.pidChannelIndex = NEXUS_PID_CHANNEL_OPEN_MESSAGE_CAPABLE instead. */
-    int pidChannelIndex;       /* Set the pid channel allocation scheme. This can be one of the special NEXUS_PID_CHANNEL_OPEN values, or an unsigned pidChannelIndex value.
+    unsigned pidChannelIndex;  /* Set the pid channel allocation scheme. This can be one of the special NEXUS_PID_CHANNEL_OPEN values, or an unsigned pidChannelIndex value.
                                   NEXUS_PID_CHANNEL_OPEN_ANY (default) will select any hardware PID channel index.
                                   NEXUS_PID_CHANNEL_OPEN_MESSAGE_CAPABLE will select a hardware PID channel index which is capable of message filtering.
                                     Only the lower 128 pid channels are capable of message filtering.
@@ -413,6 +403,36 @@ and that there's no duplicate pid on the parser band.
 NEXUS_Error NEXUS_PidChannel_ChangePid(
     NEXUS_PidChannelHandle pidChannel,
     unsigned pid
+    );
+
+typedef enum NEXUS_ItbEventType
+{
+    NEXUS_ItbEventType_ePts,
+    NEXUS_ItbEventType_eBtp,
+    NEXUS_ItbEventType_eMax
+} NEXUS_ItbEventType;
+
+typedef struct NEXUS_ItbEvent
+{
+    NEXUS_ItbEventType type;
+    union {
+        uint32_t pts;
+        struct {
+            unsigned tag;
+        } btp;
+    } data;
+} NEXUS_ItbEvent;
+
+/*
+Audio or video decoder must be started to return events. If no decoder started, function will fail.
+If flush is called on decoder, this function will only return new data after the flush.
+Returns error if overflow detected, but it is not guaranteed to catch all overflows.
+*/
+NEXUS_Error NEXUS_PidChannel_ReadItbEvents(
+    NEXUS_PidChannelHandle pidChannel,
+    NEXUS_ItbEvent *pEvents, /* attr{nelem=numEvents;nelem_out=pNumReturned} */
+    unsigned numEvents,
+    unsigned *pNumReturned
     );
 
 #ifdef __cplusplus

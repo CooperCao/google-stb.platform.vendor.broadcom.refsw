@@ -142,20 +142,6 @@ NEXUS_Error NEXUS_Security_ProgramMSP(
         programMspIO.aucMspData[i]     = pProgMspIO->mspData[i];
     }
 
-    /* take care of signed command */
-    #if ( (BCHP_CHIP == 7420 ) && (BCHP_VER >= BCHP_VER_A1)) || \
-        ( BCHP_CHIP == 7340 ) || \
-        ( BCHP_CHIP == 7342 ) || \
-        ( BCHP_CHIP == 7125 ) || \
-        ( BCHP_CHIP == 7468 )
-    programMspIO.VirtualKeyLadderID = (BCMD_VKLID_e)pProgMspIO->vkl;
-    programMspIO.keyLayer           = (BCMD_KeyRamBuf_e)pProgMspIO->keyLayer;
-    for (i = 0; i < NEXUS_MSP_SIGNATURE_DATA_LEN; i++)
-    {
-        programMspIO.aucSignature[i] = pProgMspIO->signature[i];
-    }
-    #endif
-
     rc = BHSM_ProgramMSP(hHsm, &programMspIO);
     if( rc != BERR_SUCCESS )
     {
@@ -204,15 +190,8 @@ NEXUS_Error      NEXUS_Security_ReadMSP(
    #else
     BKNI_Memcpy((void *)pReadMspIO->mspDataBuf, (void *)readMspParm.aucMspData, BHSM_MSP_OUTPUT_DATA_LEN);
     pReadMspIO->mspDataSize = BHSM_MSP_OUTPUT_DATA_LEN;
-
-    #if ( ( BCHP_CHIP == 7420 ) && ( BCHP_VER >= BCHP_VER_A1 ) ) || \
-        ( BCHP_CHIP == 7340 ) || \
-        ( BCHP_CHIP == 7342 ) || \
-        ( BCHP_CHIP == 7125 ) || \
-        ( BCHP_CHIP == 7468 )
-    BKNI_Memcpy( (void *)pReadMspIO->lockMspDataBuf, (void *)readMspParm.aucLockMspData, BHSM_MSP_OUTPUT_DATA_LEN );
-    #endif
    #endif
+
     return NEXUS_SUCCESS;
 }
 

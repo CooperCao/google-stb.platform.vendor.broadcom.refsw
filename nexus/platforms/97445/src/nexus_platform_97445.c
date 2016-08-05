@@ -87,6 +87,8 @@ void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings,
     case 14:
     case 15:
     case 16:
+    case 17:
+    case 18:
     case 1000:
     default:
         pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].size =  208*1024*1024; /*decoder FW+general,xpt playback,audio other general purpose */
@@ -129,6 +131,7 @@ void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings,
             pSettings->heap[NEXUS_MEMC2_GRAPHICS_HEAP].heapType |= NEXUS_HEAP_TYPE_GRAPHICS;
             break;
     case 14:
+    case 18:
             pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].size = 200*1024*1024; /*gfd 0/4/5/6 on memc 0 */
             pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].heapType |= NEXUS_HEAP_TYPE_GRAPHICS;
             break;
@@ -210,6 +213,12 @@ NEXUS_Error NEXUS_Platform_P_InitBoard(void)
     case 16:
             BDBG_WRN(("*** 97445 BoxMode 16:Display:UHD/SD, Video:UHD Main/HD PIP,Transcode:Dual 1080i60->1080p30(Max)***"));
         break;
+    case 17:
+            BDBG_WRN(("*** 97445 BoxMode 17:Display:None, Video:UHD Main/no PIP Headless,Transcode:Quad up to 1080p30/720p60/1080i60(Max)***"));
+        break;
+    case 18:
+            BDBG_WRN(("*** 97445 BoxMode 18:Display:HD Output, Video:HD Main/no PIP,Transcode:Triple (One up to 1080p60 (Max) and Dual up to 1080p30(Max))***"));
+        break;
     case 1000:
             BDBG_WRN(("*** 97445 TEMP BoxMode 1000:Display:UHD/SD, Video:UHD Main/no PIP,Transcode:Quad up to 1080p30(Max)***"));
         break;
@@ -258,6 +267,9 @@ NEXUS_Error NEXUS_Platform_P_InitBoard(void)
 #endif
 #if NEXUS_USE_7445_AUTO
     BDBG_WRN(("***Initializing 7445 AUTO Board ...***"));
+#endif
+#if NEXUS_USE_7445_EXT24
+    BDBG_WRN(("***Initializing 7445 EXT24 Board ...***"));
 #endif
 
 

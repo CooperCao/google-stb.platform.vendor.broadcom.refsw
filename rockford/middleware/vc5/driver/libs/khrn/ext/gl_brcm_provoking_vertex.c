@@ -7,11 +7,9 @@ All rights reserved.
 #include "../common/khrn_int_common.h"
 #include "../glxx/glxx_server.h"
 
-#if GL_BRCM_provoking_vertex
-
 GL_APICALL void GL_APIENTRY glProvokingVertexBRCM(GLenum mode)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
    if (!state)
       return;
 
@@ -27,7 +25,5 @@ GL_APICALL void GL_APIENTRY glProvokingVertexBRCM(GLenum mode)
       state->dirty.cfg = KHRN_RENDER_STATE_SET_ALL;
    }
 
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
-
-#endif

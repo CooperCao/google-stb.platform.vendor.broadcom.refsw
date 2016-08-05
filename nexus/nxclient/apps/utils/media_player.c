@@ -967,7 +967,7 @@ int media_player_ac4_status( media_player_t player, int action )
                     BDBG_ERR(("Presentation %lu id: %lu", (unsigned long)i, (unsigned long)presentStatus.status.ac4.id));
                     BDBG_ERR(("  Presentation %lu name: %s", (unsigned long)i, presentStatus.status.ac4.name));
                     BDBG_ERR(("  Presentation %lu language: %s", (unsigned long)i, presentStatus.status.ac4.language));
-                    BDBG_ERR(("  Presentation %lu type: %lu", (unsigned long)i, (unsigned long)presentStatus.status.ac4.type));
+                    BDBG_ERR(("  Presentation %lu associateType: %lu", (unsigned long)i, (unsigned long)presentStatus.status.ac4.associateType));
                 }
             }
             BDBG_ERR(("Dialog Enhancer Max %lu", (unsigned long)audStatus.codecStatus.ac4.dialogEnhanceMax));

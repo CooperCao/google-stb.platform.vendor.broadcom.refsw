@@ -94,7 +94,7 @@ static khrn_fence_state deps_state_to_fence_state(v3d_sched_deps_state deps_stat
          fence_state = KHRN_FENCE_STATE_FINALISED;
          break;
       default:
-         UNREACHABLE();
+         unreachable();
          break;
    }
    return fence_state;

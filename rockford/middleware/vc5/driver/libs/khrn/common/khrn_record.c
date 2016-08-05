@@ -21,7 +21,6 @@ Drivers use this interface to trigger autoclif recording
 #include "khrn_options.h"
 #include "khrn_memaccess.h"
 #include "khrn_record.h"
-#include "khrn_control_list.h"
 #include "libs/tools/autoclif/autoclif.h"
 
 LOG_DEFAULT_CAT("khrn_record")

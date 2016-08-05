@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -35,6 +35,7 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *****************************************************************************/
+
 #include "nxserverlib.h"
 #include "namevalue.h"
 #include <stdio.h>
@@ -42,6 +43,13 @@
 #include <stdlib.h>
 
 BDBG_MODULE(nxserver_cmdline);
+
+static const namevalue_t g_pixelFormatStrs[] = {
+    {"ARGB32", NEXUS_PixelFormat_eA8_R8_G8_B8},
+    {"Compressed", NEXUS_PixelFormat_eCompressed_A8_R8_G8_B8},
+    {"ARGB16", NEXUS_PixelFormat_eA4_R4_G4_B4},
+    {NULL, 0}
+};
 
 static void print_usage(void)
 {
@@ -51,11 +59,17 @@ static void print_usage(void)
     printf(
     "settings:\n"
     "  --help|-h      \tprint this help screen\n"
+    "  -cfg FILE      \tload nxserver command line parameters from FILE\n"
+    );
+    printf(
     "  -mode {protected|untrusted} \tforce clients into specified mode\n"
     "  -password FILE \tPassword file. See nexus/nxclient/apps/resources/password.txt for template.\n"
     "  -grab off      \tdon't allow clients to grab resources from other clients\n"
+    );
+    printf(
     "  -sd off        \tdisable Standard Definition display (default is enabled)\n"
     "  -sd_graphics X,Y,W,H \tset manual graphics position for SD display\n"
+    "  -sd_timebase   \tDedicate timebase1 for SD display\n"
     );
     print_list_option("display_format",g_videoFormatStrs);
     printf(
@@ -72,14 +86,17 @@ static void print_usage(void)
     );
     printf(
 #if NEXUS_HAS_IR_INPUT
-    "  -ir {silver|black|a|b|rcmm|none} \tIR remote mode (default is silver)\n"
+    "  -ir {silver|black|a|b|rcmm|gisat|none} \tIR remote mode, comma-separated list of two supported, default is \"silver,none\"\n"
 #endif
     "  -evdev off     \tdisable evdev input\n"
     "  -keypad on     \tenable keypad input\n"
-    "  -transcode off \tdon't enable transcode\n"
+    "  -transcode {on|off|sd} \toff = no transcode, sd = steal SD display when starting DSP transcode\n"
     "  -fbsize W,H    \tframebuffer allocated for this size (default is 1280,720)\n"
     "  -allowCompositionBypass \tallow SurfaceCompositor bypass if single push client\n"
+    );
+    printf(
     "  -outputs off   \tstart with hdmi, component, and composite video outputs off\n"
+    "  -component off \tneeded for composite on chips with limited analog resources\n"
     );
     printf(
     "  -session{0|1} {sd,hd,encode,none} \tConfigure session for HD, SD or encode output. Use none for headless.\n"
@@ -93,6 +110,7 @@ static void print_usage(void)
     "  -audio_description \tenable audio description\n"
     "  -persistent_sad \tenable support for persistent simple audio decoders\n"
     "  -loudness [atsc|ebu]\tenable ATSC A/85 or EBU-R128 loudness equivalence.\n"
+    "  -spdif4xCompressed \tenable support for spdif to output DDP compressed\n"
     );
     print_list_option("colorSpace",g_colorSpaceStrs);
     printf(
@@ -117,14 +135,20 @@ static void print_usage(void)
     "  -hdcp2x_keys BINFILE \tspecify location of Hdcp2.x bin file\n"
     "  -hdcp1x_keys BINFILE \tspecify location of Hdcp1.x bin file\n"
     "  -hdcp {m|o}    \talways run [m]andatory or [o]ptional HDCP for system test\n"
+    );
+    printf(
     "  -hdcp_version {auto|follow|hdcp1x} - if hdcp is optional or mandatory, then\n"
     "          \tauto   - (default) Always authenticate using the highest version supported by HDMI receiver\n"
     "          \tfollow - If HDMI receiver is a Repeater, the HDCP_version depends on the Repeater downstream topology\n"
     "          \t         If Repeater downstream topology contains one or more HDCP 1.x device, then authenticate with Repeater using the HDCP 1.x.\n"
+    );
+    printf(
     "          \t         If Repeater downstream topology contains only HDCP 2.2 devices, then authenticate with Repeater using HDCP 2.2\n"
     "          \t         If HDMI Receiver is not a Repeater, then default to 'auto' selection\n"
     "          \thdcp1x - Always authenticate using HDCP 1.x mode (regardless of HDMI Receiver capabilities)\n"
     "          \thdcp22 - Always authenticate using HDCP 2.2 mode (regardless of HDMI Receiver capabilities)\n"
+    );
+    printf(
     "  -spd VENDOR,DESCRIPTION \tSPD vendorName and description to transmit in HDMI SpdInfoFrame.\n"
     );
 #endif
@@ -157,6 +181,7 @@ static void print_usage(void)
     "  -enablePassthroughAudioPlayback\n"
     "  -dropPrivilege USERID,GROUPID\n"
     );
+    print_list_option("pixelFormat",g_pixelFormatStrs);
 }
 
 static int parse_session_settings(struct nxserver_session_settings *session_settings, const char *str)
@@ -227,7 +252,7 @@ static int nxserverlib_apply_memconfig_str(NEXUS_PlatformSettings *pPlatformSett
 {
     unsigned i;
     for (i=0;i<memconfig_str_total;i++) {
-        unsigned index, numMosaics, maxWidth, maxHeight, lowerSize, upperSize;
+        unsigned index, numMosaics, maxWidth, maxHeight;
         char svpstr[32];
         if (0) {
         }
@@ -332,35 +357,24 @@ static int nxserverlib_apply_memconfig_str(NEXUS_PlatformSettings *pPlatformSett
 }
 
 #if NEXUS_HAS_TRANSPORT
-static int nxserverlib_apply_transport_settings(NEXUS_PlatformSettings *pPlatformSettings,
-    unsigned numParserBands, unsigned numPlaybacks, unsigned maxDataRate, bool remux)
+static int nxserverlib_apply_transport_settings(NEXUS_PlatformSettings *pPlatformSettings, unsigned maxDataRate, bool remux)
 {
     NEXUS_TransportModuleSettings *pSettings = &pPlatformSettings->transportModuleSettings;
     unsigned i, j;
     for (i=0;i<NEXUS_MAX_PARSER_BANDS;i++) {
         pSettings->clientEnabled.parserBand[i].mpodRs = false;
         for (j=0;j<NEXUS_MAX_REMUX;j++) {
-            pSettings->clientEnabled.parserBand[i].remux[j] = remux && i < numParserBands;
+            pSettings->clientEnabled.parserBand[i].remux[j] = remux;
         }
-        if (i>=numParserBands) {
-            pSettings->clientEnabled.parserBand[i].rave = false;
-            pSettings->clientEnabled.parserBand[i].message = false;
-            pSettings->maxDataRate.parserBand[i] = 0;
-        }
-        else if (maxDataRate > pSettings->maxDataRate.parserBand[i]) {
+        if (maxDataRate > pSettings->maxDataRate.parserBand[i]) {
             pSettings->maxDataRate.parserBand[i] = maxDataRate;
         }
     }
     for (i=0;i<NEXUS_MAX_PLAYPUMPS;i++) {
         for (j=0;j<NEXUS_MAX_REMUX;j++) {
-            pSettings->clientEnabled.playback[i].remux[j] = remux && i < numPlaybacks;
+            pSettings->clientEnabled.playback[i].remux[j] = remux;
         }
-        if (i>=numPlaybacks) {
-            pSettings->clientEnabled.playback[i].rave = false;
-            pSettings->clientEnabled.playback[i].message = false;
-            pSettings->maxDataRate.playback[i] = 0;
-        }
-        else if (maxDataRate > pSettings->maxDataRate.playback[i]) {
+        if (maxDataRate > pSettings->maxDataRate.playback[i]) {
             pSettings->maxDataRate.playback[i] = maxDataRate;
         }
     }
@@ -509,7 +523,7 @@ static int nxserverlib_apply_heap_str(NEXUS_PlatformSettings *pPlatformSettings,
         }
         else if (!strcmp(name,"securegfx")) {
             int index = -1;
-            unsigned memcIndex;
+            unsigned memcIndex=0;
             /* For now, assume we use the highest defined secure graphics heap */
 #if defined NEXUS_MEMC2_SECURE_GRAPHICS_HEAP
             index = NEXUS_MEMC2_SECURE_GRAPHICS_HEAP;
@@ -538,20 +552,93 @@ static int nxserverlib_apply_heap_str(NEXUS_PlatformSettings *pPlatformSettings,
     return 0;
 }
 
-int nxserver_parse_cmdline(int argc, char **argv, struct nxserver_settings *settings, struct nxserver_cmdline_settings *cmdline_settings)
+static NEXUS_IrInputMode nxserver_ir_input_mode(const char *str)
+{
+    if (!strcmp("a", str) || !strcmp("black", str)) {
+        return NEXUS_IrInputMode_eRemoteA;
+    }
+    else if (!strcmp("b", str)) {
+        return NEXUS_IrInputMode_eRemoteB;
+    }
+    else if (!strcmp("rcmm", str)) {
+        return NEXUS_IrInputMode_eCirRcmmRcu;
+    }
+    else if (!strcmp("gisat", str)) {
+        return NEXUS_IrInputMode_eCirGISat;
+    }
+    else if (!strcmp("none", str)) {
+        return NEXUS_IrInputMode_eMax;
+    }
+    else { /* silver */
+        return NEXUS_IrInputMode_eCirNec;
+    }
+}
+
+struct nx_argv {
+#define MAX_ARGC 256
+    char *lines[MAX_ARGC];
+    int num_lines;
+    char *argv[MAX_ARGC];
+    int argc;
+};
+
+static char *nx_delimit_word(char *str, char **next)
+{
+#define WHITESPACE " \t\n\r"
+    str += strspn(str, WHITESPACE);
+    if (!*str || *str == '#') return NULL; /* end of line or line comment */
+    *next = strpbrk(str, WHITESPACE);
+    if (*next) {
+        str[*next-str] = 0; /* null terminate in-place */
+        (*next)++;
+    }
+    return str;
+}
+
+static int nx_load_cfg(const char *filename, struct nx_argv *nx_argv)
+{
+    FILE *file;
+    file = fopen(filename, "r");
+    if (!file) return -1;
+    memset(nx_argv, 0, sizeof(*nx_argv));
+    nx_argv->argv[nx_argv->argc++] = "nxserver";
+    while (!feof(file) && nx_argv->num_lines < MAX_ARGC && nx_argv->argc < MAX_ARGC) {
+        char *s;
+        nx_argv->lines[nx_argv->num_lines] = malloc(256);
+        if (!nx_argv->lines[nx_argv->num_lines]) break;
+        s = fgets(nx_argv->lines[nx_argv->num_lines++], 256, file);
+        while (s && nx_argv->argc < MAX_ARGC) {
+            char *word = nx_delimit_word(s, &s);
+            if (!word) break;
+            nx_argv->argv[nx_argv->argc++] = word;
+        }
+    }
+    return 0;
+}
+
+static void nx_unload_cfg(struct nx_argv *nx_argv)
+{
+    int i;
+    for (i=1;i<nx_argv->num_lines;i++) free(nx_argv->lines[i]);
+}
+
+static int nxserver_parse_cmdline_aux(int argc, char **argv, struct nxserver_settings *settings, struct nxserver_cmdline_settings *cmdline_settings)
 {
     int curarg = 1;
     bool session0_set = false;
-
-    memset(cmdline_settings, 0, sizeof(*cmdline_settings));
-    cmdline_settings->frontend = true;
-    cmdline_settings->loudnessMode = NEXUS_AudioLoudnessEquivalenceMode_eNone;
-    settings->session[0].dolbyMs = nxserverlib_dolby_ms_type_none;
-
     while (curarg < argc) {
         if (!strcmp(argv[curarg], "--help") || !strcmp(argv[curarg], "-h")) {
             print_usage();
             return -1;
+        }
+        else if (!strcmp(argv[curarg], "-cfg") && curarg+1<argc) {
+            /* call nxserver_parse_cmdline_aux recursively, then keep going */
+            struct nx_argv nx_argv;
+            int rc = nx_load_cfg(argv[++curarg], &nx_argv);
+            if (rc) return rc;
+            rc = nxserver_parse_cmdline_aux(nx_argv.argc, nx_argv.argv, settings, cmdline_settings);
+            nx_unload_cfg(&nx_argv); /* must unload if load succeeded */
+            if (rc) return rc;
         }
 #if NEXUS_HAS_HDMI_OUTPUT
         else if (!strcmp(argv[curarg], "-ignore_edid")) {
@@ -579,7 +666,17 @@ int nxserver_parse_cmdline(int argc, char **argv, struct nxserver_settings *sett
         else if (!strcmp(argv[curarg], "-transcode") && curarg+1<argc) {
             curarg++;
             if (!strcmp(argv[curarg], "off")) {
-                settings->transcode = false;
+                settings->transcode = nxserver_transcode_off;
+            }
+            else if (!strcmp(argv[curarg], "on")) {
+                settings->transcode = nxserver_transcode_on;
+            }
+            else if (!strcmp(argv[curarg], "sd")) {
+                settings->transcode = nxserver_transcode_sd;
+            }
+            else {
+                print_usage();
+                return -1;
             }
         }
         else if (!strcmp(argv[curarg], "-cursor") && curarg+1<argc) {
@@ -635,22 +732,23 @@ int nxserver_parse_cmdline(int argc, char **argv, struct nxserver_settings *sett
         }
 #if NEXUS_HAS_IR_INPUT
         else if (!strcmp(argv[curarg], "-ir") && curarg+1 < argc) {
+            const char *comma;
             ++curarg;
-            if (!strcmp("a", argv[curarg]) || !strcmp("black", argv[curarg])) {
-                settings->session[0].ir_input_mode = NEXUS_IrInputMode_eRemoteA;
+            comma = strchr(argv[curarg], ',');
+            if (comma) {
+                char buf[32];
+                unsigned len = comma - argv[curarg];
+                strncpy(buf, argv[curarg], len);
+                buf[len] = 0;
+                settings->session[0].ir_input.mode[0] = nxserver_ir_input_mode(buf);
+                settings->session[0].ir_input.mode[1] = nxserver_ir_input_mode(++comma);
             }
-            else if (!strcmp("b", argv[curarg])) {
-                settings->session[0].ir_input_mode = NEXUS_IrInputMode_eRemoteB;
+            else {
+                settings->session[0].ir_input.mode[0] = nxserver_ir_input_mode(argv[curarg]);
             }
-            else if (!strcmp("rcmm", argv[curarg])) {
-                settings->session[0].ir_input_mode = NEXUS_IrInputMode_eCirRcmmRcu;
-            }
-            else if (!strcmp("none", argv[curarg])) {
-                settings->session[0].ir_input_mode = NEXUS_IrInputMode_eMax;
-            }
-            else { /* silver */
-                settings->session[0].ir_input_mode = NEXUS_IrInputMode_eCirNec;
-            }
+        }
+        else if (!strcmp(argv[curarg], "-ir_standby_filter") && curarg+1 < argc) {
+            settings->session[0].ir_input.standby_filter = strtoul(argv[++curarg], NULL, 0);
         }
 #endif
         else if (!strcmp(argv[curarg], "-evdev") && curarg+1 < argc) {
@@ -677,6 +775,12 @@ int nxserver_parse_cmdline(int argc, char **argv, struct nxserver_settings *sett
                 settings->display.hdmiPreferences.enabled = false;
                 settings->display.componentPreferences.enabled = false;
                 settings->display.compositePreferences.enabled = false;
+            }
+        }
+        else if (!strcmp(argv[curarg], "-component") && curarg+1 < argc) {
+            ++curarg;
+            if (!strcmp("off", argv[curarg])) {
+                settings->display.componentPreferences.enabled = false;
             }
         }
         else if (!strcmp(argv[curarg], "-sd") && curarg+1<argc) {
@@ -710,6 +814,9 @@ int nxserver_parse_cmdline(int argc, char **argv, struct nxserver_settings *sett
                 print_usage();
                 return -1;
             }
+        }
+        else if (!strcmp(argv[curarg], "-sd_timebase")) {
+            settings->display_init.sd.dedicatedTimebase = true;
         }
         else if (!strcmp(argv[curarg], "-session0") && curarg+1 < argc) {
             curarg++;
@@ -828,6 +935,9 @@ int nxserver_parse_cmdline(int argc, char **argv, struct nxserver_settings *sett
         else if (!strcmp(argv[curarg], "-persistent_sad")) {
             settings->session[0].persistentDecoderSupport = true;
         }
+        else if (!strcmp(argv[curarg], "-spdif4xCompressed")) {
+            settings->session[0].allowSpdif4xCompressed = true;
+        }
         else if (!strcmp(argv[curarg], "-maxDataRate") && argc>curarg+1) {
             /* Exceeding bandwidth on playback XC buffer may cause other playbacks to starve and underflow.
             Exceeding bandwidth on live parser band RS/XC buffers may cause data to be dropped. */
@@ -918,6 +1028,8 @@ int nxserver_parse_cmdline(int argc, char **argv, struct nxserver_settings *sett
                 print_usage();
                 return -1;
             }
+        } else if(!strcmp(argv[curarg], "-pixelFormat") && curarg+1<argc) {
+            settings->pixelFormat = lookup(g_pixelFormatStrs, argv[++curarg]);
         }
         else {
             fprintf(stderr,"invalid argument %s\n", argv[curarg]);
@@ -926,6 +1038,34 @@ int nxserver_parse_cmdline(int argc, char **argv, struct nxserver_settings *sett
         }
         curarg++;
     }
+    return 0;
+}
+
+int nxserver_parse_cmdline(int argc, char **argv, struct nxserver_settings *settings, struct nxserver_cmdline_settings *cmdline_settings)
+{
+    int rc;
+    memset(cmdline_settings, 0, sizeof(*cmdline_settings));
+    cmdline_settings->frontend = true;
+    cmdline_settings->loudnessMode = NEXUS_AudioLoudnessEquivalenceMode_eNone;
+    settings->session[0].dolbyMs = nxserverlib_dolby_ms_type_none;
+
+    rc = nxserver_parse_cmdline_aux(argc, argv, settings, cmdline_settings);
+    if (rc) return rc;
+
+#if NEXUS_HAS_IR_INPUT
+    if (!settings->session[0].ir_input.standby_filter) {
+        switch (settings->session[0].ir_input.mode[0]) {
+        case NEXUS_IrInputMode_eCirNec:
+            settings->session[0].ir_input.standby_filter = 0xf50aff00;
+            break;
+        case NEXUS_IrInputMode_eRemoteA:
+            settings->session[0].ir_input.standby_filter = 0x600A;
+            break;
+        default: break;
+        }
+    }
+#endif
+
     return 0;
 }
 
@@ -943,11 +1083,7 @@ int nxserver_modify_platform_settings(struct nxserver_settings *settings, const 
     }
 
 #if NEXUS_HAS_TRANSPORT
-    /*
-    numParserBands = no more than 8
-    numPlaybacks = 1 for each regular or mosaic decode, 3 per transcode, hard to estimate
-    */
-    nxserverlib_apply_transport_settings(pPlatformSettings, (NEXUS_NUM_PARSER_BANDS>8)?8:NEXUS_NUM_PARSER_BANDS, NEXUS_NUM_PLAYPUMPS, cmdline_settings->maxDataRate, cmdline_settings->remux);
+    nxserverlib_apply_transport_settings(pPlatformSettings, cmdline_settings->maxDataRate, cmdline_settings->remux);
 #endif
 #if NEXUS_HAS_AUDIO
     /* Audio Sanity Checks */
@@ -973,7 +1109,7 @@ int nxserver_modify_platform_settings(struct nxserver_settings *settings, const 
         pPlatformSettings->openFrontend = false;
     }
 #if NEXUS_HAS_AUDIO && NEXUS_AUDIO_MODULE_FAMILY == NEXUS_AUDIO_MODULE_FAMILY_APE_RAAGA
-    if (settings->transcode) {
+    if (settings->transcode != nxserver_transcode_off) {
         /* needed for quad transcode */
         pPlatformSettings->audioModuleSettings.numCompressedBuffers *= 3;
     }
@@ -991,6 +1127,7 @@ int nxserver_modify_platform_settings(struct nxserver_settings *settings, const 
     {
         pPlatformSettings->audioModuleSettings.numPcmBuffers += 1;
     }
+    pPlatformSettings->audioModuleSettings.allowSpdif4xCompressed = settings->session[0].allowSpdif4xCompressed;
     pPlatformSettings->audioModuleSettings.loudnessMode = cmdline_settings->loudnessMode;
 #endif
 #if NEXUS_HAS_VIDEO_DECODER

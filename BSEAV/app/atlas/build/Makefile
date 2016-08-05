@@ -955,9 +955,9 @@ ifeq ($(NETAPP_SUPPORT),y)
 include $(BSEAV)/connectivity/netapp.inc
 NETAPP_DIR = $(BSEAV)/../trellis/connectivity/netapp/build
 NETAPP_OUTPUT_DIR = ${B_REFSW_OBJ_ROOT}/BSEAV/bin
-INTERNAL_SERVER		:= git-irv-02.irv.broadcom.com
+INTERNAL_SERVER		?= git-irv-02.irv.broadcom.com
 FETCH_NETAPP_CMD 	:= repo init -u ssh://$(USER)@${INTERNAL_SERVER}:29418/AppLibs; repo sync
-SERVER_ALIVE        := $(shell nslookup -timeout=1 ${INTERNAL_SERVER} | grep Address && echo "1s" || echo "")
+SERVER_ALIVE        ?= $(shell nslookup -timeout=1 ${INTERNAL_SERVER} | grep Address && echo "1s" || echo "")
 
 ifneq ($(findstring clean,$(MAKECMDGOALS)), clean)
      include ${NETAPP_OUTPUT_DIR}/include/netapp.inc
@@ -996,6 +996,7 @@ C_ONLY_FLAGS := -std=c99 -std=c89 -Wstrict-prototypes
 ifeq ($(RF4CE_SUPPORT), y)
 C_ONLY_FLAGS += -pedantic
 CXXFLAGS += -DRF4CE_NO_SHORT_ENUM
+CXXFLAGS += -Wno-pragmas -Wno-enum-compare
 #-fpack-struct=4 -fshort-enums
 endif
 
@@ -1127,7 +1128,7 @@ dsgcclib: untar_estb
 	@$(RM) -f ${B_REFSW_OBJ_ROOT}/BSEAV/cable/docsis/estb/StbHostApps/DsgCC/StbApp_DsgCC/linux/bcm/dsgcclib.a
 	export CROSSDEV_ROOT=$(TOOLCHAIN_DIR);\
 	cd $(DSG_DIR)/StbHostApps/DsgCC/build; \
-	bash build dsgcc pvnet applib $(CC_FLAG) $(CDL_CMDS);\
+	env MAKE="${MAKE}" bash build dsgcc pvnet applib $(CC_FLAG) $(CDL_CMDS);\
 	cd $(BSEAV)/app/atlas/build
 clean-dsgcclib: untar_estb
 	@$(RM) -f ${B_REFSW_OBJ_ROOT}/BSEAV/cable/docsis/estb/StbHostApps/DsgCC/StbApp_DsgCC/linux/bcm/dsgcclib.a
@@ -1284,11 +1285,11 @@ endif
 ifeq ($(NETAPP_SUPPORT),y)
 # This builds and cleans the netapp libs
 ${NETAPP_OUTPUT_DIR}/include/netapp.inc :
+ifneq (${SERVER_ALIVE},)
 ifeq ($(wildcard ${NETAPP_DIR}),)
 	@echo "Fetching NetApp-API: [$(FETCH_NETAPP_CMD) Version:$(B_NETAPP_NAME)]"
 	@-cd $(BSEAV)/..; $(FETCH_NETAPP_CMD)
 endif
-ifneq (${SERVER_ALIVE},)
 	@-cd $(BSEAV)/../trellis; git fetch origin; git checkout $(B_NETAPP_NAME); git pull origin $(B_NETAPP_NAME)
 endif
 	@if [ ! -d ${NETAPP_DIR} ] ; then \
@@ -1496,6 +1497,12 @@ ifeq ($(NEXUS_USE_3390_VMS),y)
 	@$(CP) -r $(BSEAV)/cable/bin/93390/* $(STAGING_DIR)
 endif
 
+ifeq ($(NEXUS_USE_7252S_GW), y)
+	@echo  [...... Installing cable files for 97252S_GW ......]
+	$(CP) ../channelmap/cable.channels.xml $(STAGING_DIR)/channels.xml
+	@$(CP) -r $(BSEAV)/cable/bin/97252sgw/* $(STAGING_DIR)
+endif
+
 ifeq ($(ESTB_SNMP_SUPPORT),y)
 install-snmp-files:
 	@$(CP) -fr $(DSG_DIR)/StbHostApps/EstbSnmpAgent/build/estbsnmpagent $(STAGING_DIR)
@@ -1558,7 +1565,9 @@ install-config-files:
 	$(Q_)cd ../; \
 		$(CP) -r images/bcmlogo.png images scripts $(STAGING_DIR)
 	$(Q_)$(CP) -r ../scripts/atlas.cfg $(STAGING_DIR)/atlas.cfg
-	$(Q_)if [ -f ../channelmap/$(NEXUS_PLATFORM).channels.xml ] ; then  \
+	$(Q_)if [ "$(NEXUS_USE_7252S_GW)" == "y" ]; then \
+		$(CP) ../channelmap/cable.channels.xml $(STAGING_DIR)/channels.xml; \
+	elif [ -f ../channelmap/$(NEXUS_PLATFORM).channels.xml ] ; then  \
 		$(CP) ../channelmap/$(NEXUS_PLATFORM).channels.xml $(STAGING_DIR)/channels.xml; \
 	else  \
 		if [ "$(CABLE_SUPPORT)" != "y" ]; then \
@@ -1577,13 +1586,17 @@ bin-install-config-files:
 	$(Q_)cd ../; \
 		$(CP) -r images/bcmlogo.png images scripts $(ATLAS_BIN_DIR)
 	$(Q_)$(CP) -r ../scripts/atlas.cfg $(ATLAS_BIN_DIR)/atlas.cfg
-	$(Q_)if [ -f ../channelmap/$(NEXUS_PLATFORM).channels.xml ] ; then  \
+	$(Q_)if [ "$(NEXUS_USE_7252S_GW)" == "y" ]; then \
+		$(CP) ../channelmap/cable.channels.xml $(STAGING_DIR)/channels.xml; \
+	elif [ -f ../channelmap/$(NEXUS_PLATFORM).channels.xml ] ; then  \
 		$(CP) ../channelmap/$(NEXUS_PLATFORM).channels.xml $(ATLAS_BIN_DIR)/channels.xml; \
 	else  \
+		if [ "$(CABLE_SUPPORT)" != "y" ]; then \
 		$(CP) ../channelmap/channels.xml $(ATLAS_BIN_DIR)/channels.xml; \
+		fi; \
 	fi;
 	$(Q_)if [ -f ../channelmap/udpUrl.xml ] ; then  \
-                $(CP) ../channelmap/udpUrl.xml $(ATLAS_BIN_DIR)/udpUrl.xml; \
+		$(CP) ../channelmap/udpUrl.xml $(ATLAS_BIN_DIR)/udpUrl.xml; \
 	fi;
 	@cd $(ATLAS_BIN_DIR); chmod 664 atlas.cfg
 	@echo [Install... fonts]

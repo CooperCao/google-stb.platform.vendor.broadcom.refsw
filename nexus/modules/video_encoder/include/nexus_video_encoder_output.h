@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2010-2014 Broadcom Corporation
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  **************************************************************************/
 #ifndef NEXUS_VIDEO_ENCODER_OUTPUT_H__
@@ -181,9 +173,12 @@ typedef struct NEXUS_VideoEncoderStatus
 
     unsigned errorCount; /* Total number of errors that has occurred */
     unsigned picturesReceived; /* Number of pictures received at the input to the encoder */
-    unsigned picturesDroppedFRC;  /* Number of pictures that the encoder has configured to drop in order to follow the requested frame rate (Frame Rate Conversion) */
-    unsigned picturesDroppedHRD; /* Number of pictures that the encoder has dropped because of a drop request from the Rate Control. The Rate Control may decide to drop picture in order to maintain the HRD buffer model. */
-    unsigned picturesDroppedErrors; /* Number of pictures that the encoder has configured to drop because encoder did not finish the processing of the previous pictures on time and buffers are full. */
+    unsigned picturesDroppedFRC;  /* Number of pictures that the encoder has configured to drop in order to follow the requested
+                             frame rate (Frame Rate Conversion) */
+    unsigned picturesDroppedHRD; /* Number of pictures that the encoder has dropped because of a drop request from the Rate Control.
+                             The Rate Control may decide to drop picture in order to maintain the HRD buffer model. */
+    unsigned picturesDroppedErrors; /* Number of pictures that the encoder has configured to drop because encoder did not finish the
+                             processing of the previous pictures on time and buffers are full. */
     unsigned picturesEncoded; /* Number of pictures output by the encoder */
     uint32_t pictureIdLastEncoded; /* Picture ID of the current picture being encoded. This is set as soon as the CME block decides to work on a picture. */
     unsigned picturesPerSecond; /* Averages pictures per second output by the encoder */

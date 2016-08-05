@@ -37,29 +37,16 @@
  ***************************************************************************/
 
 
-#include <hwtimer.h>
 #include <stdint.h>
-#include <waitqueue.h>
 
 #include "arm/arm.h"
-#include "arm/gic.h"
 #include "fs/ramfs.h"
 #include "config.h"
 
-#include "lib_printf.h"
-#include "libfdt.h"
-#include "parse_utils.h"
-
 #include "kernel.h"
-#include "tzmemory.h"
-#include "pgtable.h"
-#include "objalloc.h"
-#include "interrupt.h"
 #include "tztask.h"
 #include "scheduler.h"
-#include "svcutils.h"
-#include "console.h"
-#include "clock.h"
+
 #include "system.h"
 
 #define assert(cond) if (!(cond)) { err_msg("%s:%d - Assertion failed", __PRETTY_FUNCTION__, __LINE__); while (true) {} }

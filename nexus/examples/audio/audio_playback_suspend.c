@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -140,6 +140,7 @@ bool suspended = false;
 FILE *pFile = NULL;
 BKNI_EventHandle event;
 bool done = false;
+NEXUS_AudioPlaybackStartSettings playbackSettings;
 
 int main(int argc, char **argv)
 {
@@ -209,6 +210,47 @@ int main(int argc, char **argv)
 
 #endif
 
+    NEXUS_AudioPlayback_GetDefaultStartSettings(&playbackSettings);
+    if ( argc > 2 )
+    {
+        playbackSettings.sampleRate = atoi(argv[2]);
+    }
+    else
+    {
+        playbackSettings.sampleRate = 48000;
+    }
+    if ( argc > 3 )
+    {
+        playbackSettings.bitsPerSample = atoi(argv[3]);
+    }
+    else
+    {
+        playbackSettings.bitsPerSample = 16;
+    }
+    if ( argc > 4 )
+    {
+        playbackSettings.stereo = atoi(argv[4]);
+    }
+    else
+    {
+        playbackSettings.stereo = true;
+    }
+    if ( argc > 5 )
+    {
+        if (!strcmp(argv[5], "BE") || !strcmp(argv[5], "be"))
+        {
+            playbackSettings.endian = NEXUS_EndianMode_eBig;
+        }
+        else if (!strcmp(argv[5], "LE") || !strcmp(argv[5], "le"))
+        {
+            playbackSettings.endian = NEXUS_EndianMode_eLittle;
+        }
+        else
+        {
+            fprintf(stderr, "Invalid parameter set for endian.\n");
+        }
+    }
+
     /* Start threads for decoder and capture */
     pthread_create(&playbackThread, NULL, playback_thread, playback);
 
@@ -257,7 +299,6 @@ int main(int argc, char **argv)
 static void *playback_thread(void *pParam)
 {
     NEXUS_AudioPlaybackHandle playback = pParam;
-    NEXUS_AudioPlaybackStartSettings playbackSettings;
     NEXUS_Error errCode;
     int16_t *pBuffer;
     NEXUS_PlatformConfiguration config;
@@ -272,11 +313,7 @@ static void *playback_thread(void *pParam)
     NEXUS_Platform_GetConfiguration(&config);
 
     /* Setup main playback */
-    NEXUS_AudioPlayback_GetDefaultStartSettings(&playbackSettings);
-    playbackSettings.sampleRate = 48000;
-    playbackSettings.bitsPerSample = 16;
     playbackSettings.signedData = true;
-    playbackSettings.stereo = true;
     playbackSettings.dataCallback.callback = data_callback;
     dataCBParams.event = event;
     dataCBParams.playback = playback;
@@ -336,6 +373,7 @@ static void *playback_thread(void *pParam)
                 {
                     /* Reached data.  Stop looking. */
                     fseek(pFile, 4, SEEK_CUR);
+                    playbackSettings.endian = NEXUS_EndianMode_eLittle;
                     break;
                 }
                 else
@@ -428,19 +466,10 @@ static void *playback_thread(void *pParam)
         }
         else
         {
-            /* If we are suspended then we won't be any events to wait for */
-            if (!suspended)
-            {
-                /* Wait for data callback */
-                errCode = BKNI_WaitForEvent(event, 1000);
-                if ( errCode )
-                {
-                    printf("error waiting for event\n");
-                }
-            }
-
+            /* Wait for data callback */
+            BKNI_WaitForEvent(event, 1000);
         }
-    } while ( (BERR_SUCCESS == errCode || suspended) && bytesPlayed < bytesToPlay && !done);
+    } while ( (BERR_SUCCESS == errCode) && bytesPlayed < bytesToPlay && !done);
 
     BDBG_WRN(("Stopping Playback"));
     NEXUS_AudioPlayback_Stop(playback);

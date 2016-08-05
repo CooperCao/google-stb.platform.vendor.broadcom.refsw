@@ -69,15 +69,16 @@
 #include "console.h"
 #include "clock.h"
 #include "futex.h"
-#include "crypto/csprng.h"
+#include "tzioc.h"
+#include "tracelog.h"
 
 #include "system.h"
 
-static uint8_t tzDevTree[MAX_DT_SIZE_BYTES];
-static IDirectory *rootDir;
-
 extern "C" unsigned long _initramfs_start;
 extern "C" unsigned long _initramfs_end;
+
+static uint8_t tzDevTree[MAX_DT_SIZE_BYTES];
+static IDirectory *rootDir;
 
 void System::init(const void *devTree) {
 
@@ -112,11 +113,13 @@ void System::init(const void *devTree) {
     RamFS::init();
     SysCalls::init();
     SmcCalls::init();
-    Console::init(!Platform::hasUart());
     TzClock::init();
     Futex::init();
     MsgQueue::init();
     CryptoPRNG::init();
+    TzIoc::init(tzDevTree);
+    TraceLog::init();
+    Console::init(!Platform::hasUart());
 
     int size = (int)&_initramfs_end - (int)&_initramfs_start;
     printf("File system start %p end %p. size %d\n", &_initramfs_start, &_initramfs_end, size);
@@ -131,12 +134,11 @@ void System::init(const void *devTree) {
     printf("File system loaded. Freed up %d kbytes\n", size/1024);
 
     /* Unmap the bootstrap part of the kernel */
-    PageTable *kernPageTable = PageTable::kernelPageTable();
-    kernPageTable->unmapBootstrap(devTree);
+    PageTable::kernelPageTable()->unmapBootstrap(devTree);
 
     // Create /dev/random and /dev/urandom
     IDirectory *devDir = RamFS::Directory::create(System::UID, System::GID, rootDir,
-                                MAKE_PERMS(PERMS_READ_WRITE_EXECUTE, PERMS_READ_ONLY_EXECUTE, PERMS_READ_ONLY_EXECUTE));
+        MAKE_PERMS(PERMS_READ_WRITE_EXECUTE, PERMS_READ_ONLY_EXECUTE, PERMS_READ_ONLY_EXECUTE));
     if (devDir == nullptr) {
         err_msg("Could not create devfs\n");
         System::halt();
@@ -159,10 +161,14 @@ void System::init(const void *devTree) {
     Platform::setUart();
 }
 
-IDirectory *System::root() {
-    return rootDir;
+void System::initSecondaryCpu() {
+    Interrupt::init();
+    GIC::secondaryCpuInit();
+    TzTimers::secondaryCpuInit();
+    Scheduler::initSecondaryCpu();
+    TzTask::initSecondaryCpu();
 }
 
-void System::initSecondaryCpu() {
-
+IDirectory *System::root() {
+    return rootDir;
 }

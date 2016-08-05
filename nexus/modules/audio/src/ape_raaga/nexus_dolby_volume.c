@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2013 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *  
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,17 +35,9 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF 
 *  ANY LIMITED REMEDY.
 * 
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * API Description:
 *   API name: DolbyVolume
 *    Specific APIs related to Dolby Volume Audio Processing
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 
@@ -101,7 +93,7 @@ NEXUS_Error NEXUS_DolbyVolume_SetSettings(
     return BERR_TRACE(BERR_NOT_SUPPORTED);
 }
 
-NEXUS_AudioInput NEXUS_DolbyVolume_GetConnector(
+NEXUS_AudioInputHandle NEXUS_DolbyVolume_GetConnector(
     NEXUS_DolbyVolumeHandle handle
     )
 {
@@ -111,7 +103,7 @@ NEXUS_AudioInput NEXUS_DolbyVolume_GetConnector(
 
 NEXUS_Error NEXUS_DolbyVolume_AddInput(
     NEXUS_DolbyVolumeHandle handle,
-    NEXUS_AudioInput input
+    NEXUS_AudioInputHandle input
     )
 {
     BSTD_UNUSED(handle);
@@ -121,7 +113,7 @@ NEXUS_Error NEXUS_DolbyVolume_AddInput(
 
 NEXUS_Error NEXUS_DolbyVolume_RemoveInput(
     NEXUS_DolbyVolumeHandle handle,
-    NEXUS_AudioInput input
+    NEXUS_AudioInputHandle input
     )
 {
     BSTD_UNUSED(handle);
@@ -152,7 +144,7 @@ typedef struct NEXUS_DolbyVolume258
     NEXUS_OBJECT(NEXUS_DolbyVolume258);
     NEXUS_AudioInputObject connector;
     NEXUS_DolbyVolume258Settings settings;
-    NEXUS_AudioInput input;
+    NEXUS_AudioInputHandle input;
     BAPE_DolbyVolumeHandle apeHandle;
     char name[13];   /* DOLBY VOLUME */
 } NEXUS_DolbyVolume258;
@@ -212,6 +204,7 @@ NEXUS_DolbyVolume258Handle NEXUS_DolbyVolume258_Open(
 
     BKNI_Snprintf(handle->name, sizeof(handle->name), "DOLBY VOLUME");
     NEXUS_AUDIO_INPUT_INIT(&handle->connector, NEXUS_AudioInputType_eDolbyVolume258, handle);
+    NEXUS_OBJECT_REGISTER(NEXUS_AudioInput, &handle->connector, Open);
     handle->connector.pName = handle->name;
     handle->connector.format = NEXUS_AudioInputFormat_eNone;    /* Inherit from parent */
     BAPE_DolbyVolume_GetConnector(handle->apeHandle, &connector);
@@ -247,7 +240,13 @@ static void NEXUS_DolbyVolume258_P_Finalizer(
     BKNI_Free(handle);
 }
 
-NEXUS_OBJECT_CLASS_MAKE(NEXUS_DolbyVolume258, NEXUS_DolbyVolume258_Close);
+static void NEXUS_DolbyVolume258_P_Release(NEXUS_DolbyVolume258Handle handle)
+{
+    NEXUS_OBJECT_UNREGISTER(NEXUS_AudioInput, &handle->connector, Close);
+    return;
+}
+
+NEXUS_OBJECT_CLASS_MAKE_WITH_RELEASE(NEXUS_DolbyVolume258, NEXUS_DolbyVolume258_Close);
 
 void NEXUS_DolbyVolume258_GetSettings(
     NEXUS_DolbyVolume258Handle handle,
@@ -294,7 +293,7 @@ NEXUS_Error NEXUS_DolbyVolume258_SetSettings(
     return BERR_SUCCESS;
 }
 
-NEXUS_AudioInput NEXUS_DolbyVolume258_GetConnector(
+NEXUS_AudioInputHandle NEXUS_DolbyVolume258_GetConnector(
     NEXUS_DolbyVolume258Handle handle
     )
 {
@@ -304,7 +303,7 @@ NEXUS_AudioInput NEXUS_DolbyVolume258_GetConnector(
 
 NEXUS_Error NEXUS_DolbyVolume258_AddInput(
     NEXUS_DolbyVolume258Handle handle,
-    NEXUS_AudioInput input
+    NEXUS_AudioInputHandle input
     )
 {
     NEXUS_Error errCode;
@@ -333,7 +332,7 @@ NEXUS_Error NEXUS_DolbyVolume258_AddInput(
 
 NEXUS_Error NEXUS_DolbyVolume258_RemoveInput(
     NEXUS_DolbyVolume258Handle handle,
-    NEXUS_AudioInput input
+    NEXUS_AudioInputHandle input
     )
 {
     NEXUS_Error errCode;
@@ -369,4 +368,3 @@ NEXUS_Error NEXUS_DolbyVolume258_RemoveAllInputs(
     }
     return BERR_SUCCESS;
 }
-

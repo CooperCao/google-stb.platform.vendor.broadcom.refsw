@@ -10,15 +10,16 @@ Implementation of OpenGL ES 2.0 / Open GL ES 1.1 OES_framebuffer_object renderbu
 =============================================================================*/
 
 #include "../common/khrn_int_common.h"
-#include "gl_public_api.h"
-#include "glxx_int_config.h"
-#include "libs/util/dglenum/dglenum.h"
 #include "../egl/egl_display.h"
 #include "../egl/egl_image.h"
+#include "gl_public_api.h"
+#include "glxx_int_config.h"
 #include "glxx_server.h"
 #include "glxx_server_internal.h"
 #include "glxx_renderbuffer.h"
 #include "glxx_framebuffer.h"
+#include "libs/util/dglenum/dglenum.h"
+#include "libs/core/lfmt/lfmt_translate_v3d.h"
 #include "libs/core/lfmt_translate_gl/lfmt_translate_gl.h"
 
 /*
@@ -57,7 +58,7 @@ static void renderbuffer_term(void *v, size_t size)
 {
    GLXX_RENDERBUFFER_T *renderbuffer = (GLXX_RENDERBUFFER_T *)v;
 
-   UNUSED(size);
+   vcos_unused(size);
 
    KHRN_MEM_ASSIGN(renderbuffer->image, NULL);
    egl_image_refdec(renderbuffer->source);
@@ -79,10 +80,10 @@ bool glxx_renderbuffer_storage(GLXX_RENDERBUFFER_T *renderbuffer,
    unsigned       width_samples;
    unsigned       height_samples;
 
-   api_fmt = gfx_api_fmt_from_sized_internalformat(
-      khrn_get_lfmt_translate_exts(), internalformat);
+   api_fmt = gfx_api_fmt_from_sized_internalformat(internalformat);
    glxx_hw_fmts_from_api_fmt(&num_planes, lfmts, api_fmt);
    glxx_lfmt_add_dim(lfmts, num_planes, 2);
+#if !V3D_HAS_NEW_TLB_CFG
    if (ms_mode != GLXX_NO_MS)
    {
       // Multisample color images must be stored using the TLB raw format.
@@ -92,6 +93,7 @@ bool glxx_renderbuffer_storage(GLXX_RENDERBUFFER_T *renderbuffer,
          lfmts[0] = gfx_lfmt_translate_internal_raw_mode(lfmts[0]);
       }
    }
+#endif
 
    unsigned scale = glxx_ms_mode_get_scale(ms_mode);
    width_samples = scale * width_pixels;
@@ -141,8 +143,10 @@ bool glxx_renderbuffer_storage(GLXX_RENDERBUFFER_T *renderbuffer,
           * if not color then is one of the others */
          flags |= GFX_BUFFER_USAGE_V3D_DEPTH_STENCIL;
       }
+#if !V3D_HAS_NEW_TLB_CFG
       if (ms_mode != GLXX_NO_MS)
          flags |= GFX_BUFFER_USAGE_V3D_TLB_RAW;
+#endif
 
       KHRN_BLOB_T *blob = khrn_blob_create(width_samples, height_samples, 1,
             1, 1, lfmts, num_planes, flags, secure);

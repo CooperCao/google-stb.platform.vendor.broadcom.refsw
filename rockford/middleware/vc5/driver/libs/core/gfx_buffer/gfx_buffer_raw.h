@@ -56,7 +56,7 @@ static inline void gfx_buffer_raw_malloc(GFX_BUFFER_RAW_T *br)
 /* initialise fields of GFX_BUFFER_RAW_T accordingly, but don't allocate any
  * storage (no _destroy required) and set br->p to NULL */
 static inline void gfx_buffer_raw_create_no_storage(GFX_BUFFER_RAW_T *br,
-   uint32_t w, uint32_t h, uint32_t d, GFX_LFMT_T lfmt, bool mipmaps, uint32_t usage)
+   uint32_t w, uint32_t h, uint32_t d, GFX_LFMT_T lfmt, bool mipmaps, gfx_buffer_usage_t usage)
 {
    if (mipmaps) {
       br->num_mip_levels = gfx_msb(gfx_umax3(w,h,d)) + 1;
@@ -76,7 +76,7 @@ static inline void gfx_buffer_raw_create_no_storage(GFX_BUFFER_RAW_T *br,
 
 // Caller must _destroy
 static inline void gfx_buffer_raw_create(GFX_BUFFER_RAW_T *br,
-   uint32_t w, uint32_t h, uint32_t d, GFX_LFMT_T lfmt, bool mipmaps, uint32_t usage)
+   uint32_t w, uint32_t h, uint32_t d, GFX_LFMT_T lfmt, bool mipmaps, gfx_buffer_usage_t usage)
 {
    gfx_buffer_raw_create_no_storage(br, w, h, d, lfmt, mipmaps, usage);
 
@@ -84,7 +84,7 @@ static inline void gfx_buffer_raw_create(GFX_BUFFER_RAW_T *br,
 }
 
 static inline void gfx_buffer_raw_create_dims_from_desc_no_storage(GFX_BUFFER_RAW_T *br,
-   const GFX_BUFFER_DESC_T *desc, GFX_LFMT_T lfmt, bool mipmaps, uint32_t usage)
+   const GFX_BUFFER_DESC_T *desc, GFX_LFMT_T lfmt, bool mipmaps, gfx_buffer_usage_t usage)
 {
    gfx_buffer_raw_create_no_storage(br, desc->width, desc->height, desc->depth,
       lfmt, mipmaps, usage);
@@ -92,7 +92,7 @@ static inline void gfx_buffer_raw_create_dims_from_desc_no_storage(GFX_BUFFER_RA
 
 // Caller must _destroy
 static inline void gfx_buffer_raw_create_dims_from_desc(GFX_BUFFER_RAW_T *br,
-   const GFX_BUFFER_DESC_T *desc, GFX_LFMT_T lfmt, bool mipmaps, uint32_t usage)
+   const GFX_BUFFER_DESC_T *desc, GFX_LFMT_T lfmt, bool mipmaps, gfx_buffer_usage_t usage)
 {
    gfx_buffer_raw_create(br, desc->width, desc->height, desc->depth,
       lfmt, mipmaps, usage);

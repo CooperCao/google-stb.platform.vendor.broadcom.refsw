@@ -12,12 +12,9 @@ FILE DESCRIPTION
 #define GLSL_CONST_OPERATORS_H
 
 #include "glsl_const_types.h"
-#include "../common/khrn_int_util.h"
+
 #include "libs/sim/sfu/sfu.h"
 #include "libs/sim/qpu_float/qpu_float.h"
-
-#define _USE_MATH_DEFINES
-#include <math.h>
 
 //
 // Operators on base types.
@@ -30,7 +27,7 @@ static inline const_value op_i_negate(const_value operand)
 
 static inline const_value op_f_negate(const_value operand)
 {
-   return operand ^ (1 << (sizeof(const_value) * 8 - 1));
+   return operand ^ (1u << (sizeof(const_value) * 8 - 1));
 }
 
 static inline const_value op_logical_not(const_value operand)
@@ -385,24 +382,25 @@ static inline const_value op_clz(const_value ui) {
 }
 
 static inline const_value op_sin(const_value operand) {
-   unsigned x = op_f_mul(operand, float_to_bits((float)M_1_PI));
-   unsigned y = op_round(x);
+   const_value one_on_pi = 0x3ea2f983;
+   const_value x = op_f_mul(operand, one_on_pi);
+   const_value y = op_round(x);
    x = op_f_sub(x, y);
-   unsigned sfu_res = sfu_sin(x, true);
-   unsigned i = op_floattoint_nearest(y);
-   unsigned il31 = (i << 31);
+   const_value sfu_res = sfu_sin(x, true);
+   const_value i = op_floattoint_nearest(y);
+   const_value il31 = (i << 31);
    return sfu_res ^ il31;
 }
 
 static inline const_value op_cos(const_value operand) {
-   unsigned sin_angle = op_f_add(operand, float_to_bits((float)M_PI_2));
+   const_value sin_angle = op_f_add(operand, 0x3fc90fdb /* pi/2 */);
    return op_sin(sin_angle);
 }
 
 static inline const_value op_tan(const_value operand) {
-   unsigned sin = op_sin(operand);
-   unsigned cos = op_cos(operand);
-   unsigned one_on_cos = op_recip(cos);
+   const_value sin = op_sin(operand);
+   const_value cos = op_cos(operand);
+   const_value one_on_cos = op_recip(cos);
    return op_f_mul(sin, one_on_cos);
 }
 

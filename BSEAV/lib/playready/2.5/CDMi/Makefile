@@ -1,5 +1,5 @@
 ############################################################
-#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+#  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 #  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
 #  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
-#
 ############################################################
 
 include ../../../../api/build/tools.mak
@@ -61,7 +60,7 @@ NEXUS_APP_INCLUDE_PATHS += $(foreach module, $(MAGNUM_MODULES), $($(module)_INCL
 NEXUS_APP_DEFINES += $(foreach module, $(MAGNUM_MODULES), $($(module)_DEFINES))
 
 # Set ARCH and lib installation path based on arch
-ifeq ($(filter ${B_REFSW_ARCH}, arm-linux ), ${B_REFSW_ARCH})
+ifeq ($(filter ${B_REFSW_ARCH}, arm-linux aarch64-linux), ${B_REFSW_ARCH})
 ARCH_DIR_PRDY_CDMI=arm
 else
 # Distinguish between 65nm-askm and 40nm MIPS products
@@ -109,12 +108,16 @@ CXXFLAGS += -DDRM_INLINING_SUPPORTED=1 -DDRM_BUILD_PROFILE=900 -DTARGET_LITTLE_E
 ifeq ($(SAGE_SUPPORT), y)
 	include $(BSEAV_TOP)/lib/security/common_drm/common_drm.inc
 	LDFLAGS += ${COMMON_DRM_LDFLAGS}
-    CXXFLAGS += ${COMMON_DRM_CFLAGS}
+        CXXFLAGS += ${COMMON_DRM_CFLAGS}
 	CXXFLAGS += -I$(BSEAV_TOP)/../magnum/syslib/sagelib/include
-
-	LDFLAGS +=  -L${BSEAV_TOP}/lib/playready/2.5/bin/${ARCH_DIR_PRDY_CDMI}/lib -lplayreadypk_host
 	LDFLAGS += -L${NEXUS_BIN_DIR} -lcmndrm_tl
+ifeq ($(filter ${B_REFSW_ARCH}, aarch64-linux), ${B_REFSW_ARCH})
+	LDFLAGS +=  -L${BSEAV_TOP}/lib/playready/2.5/bin/${ARCH_DIR_PRDY_CDMI}/lib -lplayreadypk64_host
+	PLAYREADY_LIB_PATH = ${CP} -pv ${BSEAV_TOP}/lib/playready/2.5/bin/${ARCH_DIR_PRDY_CDMI}/lib/libplayreadypk64_host.so  ${NEXUS_BIN_DIR}
+else
+	LDFLAGS +=  -L${BSEAV_TOP}/lib/playready/2.5/bin/${ARCH_DIR_PRDY_CDMI}/lib -lplayreadypk_host
 	PLAYREADY_LIB_PATH = ${CP} -pv ${BSEAV_TOP}/lib/playready/2.5/bin/${ARCH_DIR_PRDY_CDMI}/lib/libplayreadypk_host.so  ${NEXUS_BIN_DIR}
+endif
 else
 	LDFLAGS +=  -L${BSEAV_TOP}/lib/playready/2.5/bin/${ARCH_DIR_PRDY_CDMI}/lib -lplayreadypk
 	PLAYREADY_LIB_PATH = ${CP} -pv ${BSEAV_TOP}/lib/playready/2.5/bin/${ARCH_DIR_PRDY_CDMI}/lib/libplayreadypk.so  ${NEXUS_BIN_DIR}

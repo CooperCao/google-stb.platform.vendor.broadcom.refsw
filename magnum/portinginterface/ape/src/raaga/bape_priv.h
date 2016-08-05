@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -1040,6 +1040,11 @@ void BAPE_InputPort_P_BurstPreambleToCodec_isr(
 /***************************************************************************
 Summary:
 ***************************************************************************/
+unsigned BAPE_InputPort_P_GetNumConsumersAttached(BAPE_InputPort inputPort);
+
+/***************************************************************************
+Summary:
+***************************************************************************/
 bool BAPE_InputPort_P_HasConsumersAttached(BAPE_InputPort inputPort);
 
 /***************************************************************************
@@ -1309,6 +1314,18 @@ Summary:
 Update NCO sample rate
 ***************************************************************************/
 BERR_Code BAPE_P_UpdateNco_isr(BAPE_Handle handle, BAPE_Nco nco);
+
+typedef struct BAPE_NcoConfiguration {
+    unsigned baseFs;
+    long frequency;
+    BAVC_Timebase timebase;
+} BAPE_NcoConfiguration;
+
+/***************************************************************************
+Summary:
+Get the NCO configuration
+***************************************************************************/
+BERR_Code BAPE_P_GetNcoConfiguration(BAPE_Handle handle, BAPE_Nco nco, BAPE_NcoConfiguration * pConfig);
 
 /***************************************************************************
 Summary:
@@ -1597,6 +1614,8 @@ typedef struct BAPE_Decoder
     /* Codec-specific settings */
     /* TODO: Codec settings should be stored in the individual structures and not the full union to save space. */
     BAPE_DecoderCodecSettings ac3Settings, ac3PlusSettings;
+    BAPE_DecoderCodecSettings mpegSettings;
+    BAPE_DecoderCodecSettings mp3Settings;
     BAPE_DecoderCodecSettings ac4Settings;
     BAPE_DecoderCodecSettings aacSettings, aacPlusSettings;
     BAPE_DecoderCodecSettings wmaProSettings;
@@ -1764,6 +1783,8 @@ typedef struct BAPE_Playback
     unsigned bufferDepth;   /* Required for pre-start buffer fills (used in looparound mode) */
     BAPE_PlaybackInterruptHandlers interrupts;
     bool running;
+    bool suspended;
+    bool suspending;
     char name[12]; /* Playback %d */
 } BAPE_Playback;
 
@@ -1986,8 +2007,10 @@ typedef struct BAPE_MuxOutput
         BMMA_DeviceOffset offset;
 
         /* RDB */
+        #if BAPE_DSP_SUPPORT
         BDSP_QueueHandle queue;
         BDSP_AF_P_sDRAM_CIRCULAR_BUFFER buffer;
+        #endif
         BAPE_BufferInterface bufferInterface;
     } cdb, itb;
     BAPE_OutputDescriptorInfo descriptorInfo;
@@ -2054,6 +2077,9 @@ void BAPE_P_PopulateSupportedBAVCAlgos(
 #include "bape_dsp_utils_priv.h"
 #else
 #define BAPE_P_GetCodecName(x) "Unknown"
+#define BAPE_P_GetDolbyMSVersion(void) BAPE_DolbyMSVersion_eNone
+#define BAPE_P_GetDolbyMS12Config(void) BAPE_DolbyMs12Config_eNone
+#define BAPE_DolbyDigitalReencode_P_GetDeviceIndex(x) 0
 #endif
 #include "bape_path_priv.h"
 #include "bape_fmm_priv.h"

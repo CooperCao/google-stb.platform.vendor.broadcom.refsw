@@ -90,7 +90,7 @@ typedef struct BMUXlib_Output_CompletedCallbackInfo
 
 typedef struct BMUXlib_Output_CreateSettings
 {
-      uint32_t uiSignature;
+      uint32_t uiSignature;         /* [DO NOT MODIFY] Populated by BMUXlib_Output_GetDefaultCreateSettings() */
 
       size_t uiCount;
       BMUXlib_StorageObjectInterface stStorage;

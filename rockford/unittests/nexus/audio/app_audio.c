@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2014 Broadcom Corporation
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,8 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  *****************************************************************************/
 /* Nexus example app: play and decode MP3 file to audio dacs */
 #include "nexus_platform.h"
@@ -184,31 +176,7 @@ APP_AUDIO_ALGO_MAP ALGO_MAP_TABLE[NEXUS_AudioCodec_eMax] = {
 NEXUS_AudioCodec b_audiocodec2nexus(baudio_format settop_value);
 NEXUS_TransportType b_mpegtype2nexus(bstream_mpeg_type settop_value);
 
-volatile unsigned int loop_idx = 1;
-static unsigned int string_to_enum(const char *str)
-{
-	unsigned int i = 0;
-	while((i<NEXUS_AudioCodec_eMax)&&(strcmp(str,ALGO_MAP_TABLE[i].str)!= 0))
-	{
-		i++;
-	}
-	return ALGO_MAP_TABLE[i].val;
-}
-
-static void eof(void *context, int param)
-{
-	printf ("\n###ITERATION # %d Complete\n\n", loop_idx);
-	loop_idx++;
-    BSTD_UNUSED(param);
-    BKNI_SetEvent((BKNI_EventHandle)context);
-}
-
-static void sec_eof(void *context, int param)
-{
-	printf ("\n###Secondary stream has wrapped around\n\n");
-    BSTD_UNUSED(param);
-    BKNI_SetEvent((BKNI_EventHandle)context);
-}
+volatile int loop_idx = 1;
 
 typedef struct sMs10_ddp_codec_options
 {
@@ -377,6 +345,38 @@ NEXUS_PlatformConfiguration g_platformConfig;
 NEXUS_AudioEqualizerHandle g_audioEqualizer;
 #endif
 NEXUS_StcChannelHandle g_primaryStcChannel;
+
+static unsigned int string_to_enum(const char *str)
+{
+	unsigned int i = 0;
+	while((i<NEXUS_AudioCodec_eMax)&&(strcmp(str,ALGO_MAP_TABLE[i].str)!= 0))
+	{
+		i++;
+	}
+	return ALGO_MAP_TABLE[i].val;
+}
+
+static void eof(void *context, int param)
+{
+	printf ("\n###ITERATION # %d Complete\n\n", loop_idx);
+	loop_idx++;
+	if(loop_idx == g_input_options.loop_count)
+	{
+	    NEXUS_PlaybackSettings playbackSettings;
+	    NEXUS_Playback_GetSettings(g_input_options.ChannelOpts[eChannelTypePrimary].playback, &playbackSettings);
+		playbackSettings.endOfStreamAction = NEXUS_PlaybackLoopMode_ePlay;
+	    NEXUS_Playback_SetSettings(g_input_options.ChannelOpts[eChannelTypePrimary].playback, &playbackSettings);
+	}
+    BSTD_UNUSED(param);
+    BKNI_SetEvent((BKNI_EventHandle)context);
+}
+
+static void sec_eof(void *context, int param)
+{
+	printf ("\n###Secondary stream has wrapped around\n\n");
+    BSTD_UNUSED(param);
+    BKNI_SetEvent((BKNI_EventHandle)context);
+}
 
 static int decOrhex_atoi(const char *str)
 {
@@ -744,8 +744,9 @@ int parse_input_options (char **argv)
 	else if ( !strcmp(argv[0], "-loop") )
 	{
 		retval = 1;
-		g_input_options.endOfStreamAction = NEXUS_PlaybackLoopMode_eLoop;
 		g_input_options.loop_count = decOrhex_atoi(argv[1]);
+		if(g_input_options.loop_count > 1)
+			g_input_options.endOfStreamAction = NEXUS_PlaybackLoopMode_eLoop;
 	}
 	else if ( !strcmp(argv[0], "-format") )
 	{
@@ -4170,7 +4171,7 @@ int parse_DV258_options (char **argv)
 		retval = 1;
 		DV258Settings.inputReferenceLevel= decOrhex_atoi(argv[1]);
 		
-		if ((DV258Settings.inputReferenceLevel < 0) || (DV258Settings.inputReferenceLevel > 2080))
+		if (DV258Settings.inputReferenceLevel > 2080)
 		{
 			printf("ERROR: illegal value for DV258 input ref level - (Ranges 0 to 2080) - %d\n", DV258Settings.inputReferenceLevel);
 			retval = -1;
@@ -4183,7 +4184,7 @@ int parse_DV258_options (char **argv)
 		retval = 1;
 		DV258Settings.outputReferenceLevel= decOrhex_atoi(argv[1]);
 		
-		if ((DV258Settings.outputReferenceLevel < 0) || (DV258Settings.outputReferenceLevel > 2080))
+		if (DV258Settings.outputReferenceLevel > 2080)
 		{
 			printf("ERROR: illegal value for DV258 op ref level- (Ranges 0 to 2080) - %d\n", DV258Settings.outputReferenceLevel);
 			retval = -1;
@@ -4261,7 +4262,7 @@ int parse_DV258_options (char **argv)
 		retval = 1;
 		DV258Settings.volumeLevelerAmount= decOrhex_atoi(argv[1]);
 		
-		if ((DV258Settings.volumeLevelerAmount < 0) || (DV258Settings.volumeLevelerAmount > 10))
+		if (DV258Settings.volumeLevelerAmount > 10)
 		{
 			printf("ERROR: illegal value for DV258 analog volume level - (Ranges 0 to 10) - %d\n", DV258Settings.volumeLevelerAmount);
 			retval = -1;
@@ -5900,7 +5901,7 @@ int main(int argc, char **argv)
 	NEXUS_AudioEqualizerSettings eqSettings;
 #endif
 #if NEXUS_NUM_HDMI_OUTPUTS > 0
-	NEXUS_AudioInput			hdmiInput;
+    NEXUS_AudioInputHandle      hdmiInput;
 	NEXUS_HdmiOutputStatus 		hdmiStatus;
 	NEXUS_AudioDecoderHandle 	hdmiDecoder;
 	NEXUS_AudioDecoderConnectorType hdmiDecoderConnectorType = NEXUS_AudioDecoderConnectorType_eStereo;
@@ -7025,14 +7026,23 @@ int main(int argc, char **argv)
 	num_chars = 0;
 	printf ("\napp_audio> ");
 	input_string[0] = '\0';
-	while ((int)loop_idx <= (int)g_input_options.loop_count)
+	while (loop_idx <= g_input_options.loop_count)
 	{
 		/* Poll keyboard inputs here*/
 		/* fcntl(STDIN_FILENO, F_SETFL, flags|O_NONBLOCK);
 		retval = read(STDIN_FILENO, &one_char, 1); */
 
 		/*SW7425-5703*/
+		if(g_input_options.loop_count>1)
+		{
+			printf("Interactive mode disabled because -loop option is enabled \n");
+			while(loop_idx<=g_input_options.loop_count);
+			break;
+		}
+		else
+		{
 		one_char = getchar();
+		}
 		retval = 0;
 		if(retval != -1)
 		{

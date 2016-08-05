@@ -99,6 +99,7 @@ typedef struct NEXUS_SimpleEncoderStartSettingsOutputVideo
     unsigned pid;
     bool index; /* NAV index */
     bool raiIndex; /* Index the random access indicator */
+    NEXUS_KeySlotHandle keyslot;
 } NEXUS_SimpleEncoderStartSettingsOutputVideo;
 
 typedef struct NEXUS_SimpleEncoderStartSettingsOutput
@@ -110,6 +111,7 @@ typedef struct NEXUS_SimpleEncoderStartSettingsOutput
         unsigned pid;
         unsigned sampleRate;    /* Output sample rate in Hz.  If 0 (default) the output sample rate will
                                        be based on the current default sample rate  */
+        NEXUS_KeySlotHandle keyslot;
     } audio;
     struct {
         NEXUS_TransportType type;   /* If ES, App must call NEXUS_SimpleEncoder_GetVideoBuffer/GetAudioBuffer to retrieve frames */
@@ -131,6 +133,7 @@ typedef struct NEXUS_SimpleEncoderStartSettings
     } input;
     struct {
         NEXUS_DisplayHandle display; /* client-opened display */
+        unsigned nonRealTimeRate; /* Rate in units of NEXUS_NORMAL_PLAY_SPEED for non realtime muxing */
     } transcode;
 
     NEXUS_RecpumpHandle recpump; /* Recpump where encoded stream and index will be captured.
@@ -273,9 +276,12 @@ typedef struct NEXUS_SimpleEncoderVideoStatus
 
     unsigned errorCount; /* Total number of errors that has occurred */
     unsigned picturesReceived; /* Number of pictures received at the input to the encoder */
-    unsigned picturesDroppedFRC;  /* Number of pictures that the encoder has configured to drop in order to follow the requested frame rate (Frame Rate Conversion) */
-    unsigned picturesDroppedHRD; /* Number of pictures that the encoder has dropped because of a drop request from the Rate Control. The Rate Control may decide to drop picture in order to maintain the HRD buffer model. */
-    unsigned picturesDroppedErrors; /* Number of pictures that the encoder has configured to drop because encoder did not finish the processing of the previous pictures on time and buffers are full. */
+    unsigned picturesDroppedFRC;  /* Number of pictures that the encoder has configured to drop in order to follow the requested
+                             frame rate (Frame Rate Conversion) */
+    unsigned picturesDroppedHRD; /* Number of pictures that the encoder has dropped because of a drop request from the Rate Control.
+                             The Rate Control may decide to drop picture in order to maintain the HRD buffer model. */
+    unsigned picturesDroppedErrors; /* Number of pictures that the encoder has configured to drop because encoder did not finish the
+                             processing of the previous pictures on time and buffers are full. */
     unsigned picturesEncoded; /* Number of pictures output by the encoder */
     uint32_t pictureIdLastEncoded; /* Picture ID of the current picture being encoded. This is set as soon as the CME block decides to work on a picture. */
     unsigned picturesPerSecond; /* Averages pictures per second output by the encoder */

@@ -282,8 +282,8 @@ static const BVCE_VideoFormatEntry BVCE_VideoFormatLUT[] =
    { 0,
       { BAVC_ScanType_eProgressive, BAVC_ScanType_eProgressive, /* Instance[0] */\
          {
-            { 0, 0, { BAVC_FrameRateCode_e30, BAVC_FrameRateCode_e14_985, BAVC_FrameRateCode_e30 }, }, /* Bounds[eInterlaced] */
-            { 0, 0, { BAVC_FrameRateCode_e30, BAVC_FrameRateCode_e14_985, BAVC_FrameRateCode_e60 }, }, /* Bounds[eProgressive] */
+            { 0, 0, { BAVC_FrameRateCode_e30, BAVC_FrameRateCode_e7_493, BAVC_FrameRateCode_e30 }, }, /* Bounds[eInterlaced] */
+            { 0, 0, { BAVC_FrameRateCode_e30, BAVC_FrameRateCode_e7_493, BAVC_FrameRateCode_e60 }, }, /* Bounds[eProgressive] */
          }
       }
    },
@@ -291,8 +291,8 @@ static const BVCE_VideoFormatEntry BVCE_VideoFormatLUT[] =
       {
          BAVC_ScanType_eProgressive, BAVC_ScanType_eProgressive, /* Instance[0] */
          {
-            { 720, 576, { BAVC_FrameRateCode_e25, BAVC_FrameRateCode_e14_985, BAVC_FrameRateCode_e25, }, }, /* Bounds[eInterlaced] */
-            { 1280, 720, { BAVC_FrameRateCode_e25, BAVC_FrameRateCode_e14_985, BAVC_FrameRateCode_e50, }, }, /* Bounds[eProgressive] */
+            { 720, 576, { BAVC_FrameRateCode_e25, BAVC_FrameRateCode_e7_493, BAVC_FrameRateCode_e25, }, }, /* Bounds[eInterlaced] */
+            { 1280, 720, { BAVC_FrameRateCode_e25, BAVC_FrameRateCode_e7_493, BAVC_FrameRateCode_e50, }, }, /* Bounds[eProgressive] */
          }
       },
    },
@@ -300,8 +300,8 @@ static const BVCE_VideoFormatEntry BVCE_VideoFormatLUT[] =
       {
          BAVC_ScanType_eProgressive, BAVC_ScanType_eProgressive, /* Instance[0] */
          {
-            { 720, 576, { BAVC_FrameRateCode_e30, BAVC_FrameRateCode_e14_985, BAVC_FrameRateCode_e30, }, }, /* Bounds[eInterlaced] */
-            { 1280, 720, { BAVC_FrameRateCode_e30, BAVC_FrameRateCode_e14_985, BAVC_FrameRateCode_e60, }, }, /* Bounds[eProgressive] */
+            { 720, 576, { BAVC_FrameRateCode_e30, BAVC_FrameRateCode_e7_493, BAVC_FrameRateCode_e30, }, }, /* Bounds[eInterlaced] */
+            { 1280, 720, { BAVC_FrameRateCode_e30, BAVC_FrameRateCode_e7_493, BAVC_FrameRateCode_e60, }, }, /* Bounds[eProgressive] */
          }
       },
    },
@@ -309,8 +309,8 @@ static const BVCE_VideoFormatEntry BVCE_VideoFormatLUT[] =
       {
          BAVC_ScanType_eProgressive, BAVC_ScanType_eProgressive, /* Instance[0] */
          {
-            { 720, 576, { BAVC_FrameRateCode_e30, BAVC_FrameRateCode_e14_985, BAVC_FrameRateCode_e30, }, }, /* Bounds[eInterlaced] */
-            { 1280, 720, { BAVC_FrameRateCode_e60, BAVC_FrameRateCode_e14_985, BAVC_FrameRateCode_e60, }, },  /* Bounds[eProgressive] */
+            { 720, 576, { BAVC_FrameRateCode_e30, BAVC_FrameRateCode_e7_493, BAVC_FrameRateCode_e30, }, }, /* Bounds[eInterlaced] */
+            { 1280, 720, { BAVC_FrameRateCode_e60, BAVC_FrameRateCode_e7_493, BAVC_FrameRateCode_e60, }, },  /* Bounds[eProgressive] */
          }
       },
    },
@@ -318,8 +318,8 @@ static const BVCE_VideoFormatEntry BVCE_VideoFormatLUT[] =
       {
          BAVC_ScanType_eProgressive, BAVC_ScanType_eInterlaced, /* Instance[0] */
          {
-            { 1920, 1088, { BAVC_FrameRateCode_e25, BAVC_FrameRateCode_e14_985, BAVC_FrameRateCode_e50, }, }, /* Bounds[eInterlaced] */
-            { 1920, 1088, { BAVC_FrameRateCode_e25, BAVC_FrameRateCode_e14_985, BAVC_FrameRateCode_e50, }, }, /* Bounds[eProgressive] */
+            { 1920, 1088, { BAVC_FrameRateCode_e25, BAVC_FrameRateCode_e7_493, BAVC_FrameRateCode_e50, }, }, /* Bounds[eInterlaced] */
+            { 1920, 1088, { BAVC_FrameRateCode_e25, BAVC_FrameRateCode_e7_493, BAVC_FrameRateCode_e50, }, }, /* Bounds[eProgressive] */
          }
       },
    },
@@ -327,8 +327,8 @@ static const BVCE_VideoFormatEntry BVCE_VideoFormatLUT[] =
       {
          BAVC_ScanType_eProgressive, BAVC_ScanType_eInterlaced, /* Instance[0] */
          {
-            { 1920, 1088, { BAVC_FrameRateCode_e30, BAVC_FrameRateCode_e14_985, BAVC_FrameRateCode_e30, }, }, /* Bounds[eInterlaced] */
-            { 1920, 1088, { BAVC_FrameRateCode_e30, BAVC_FrameRateCode_e14_985, BAVC_FrameRateCode_e60, }, }, /* Bounds[eProgressive] */
+            { 1920, 1088, { BAVC_FrameRateCode_e30, BAVC_FrameRateCode_e7_493, BAVC_FrameRateCode_e30, }, }, /* Bounds[eInterlaced] */
+            { 1920, 1088, { BAVC_FrameRateCode_e30, BAVC_FrameRateCode_e7_493, BAVC_FrameRateCode_e60, }, }, /* Bounds[eProgressive] */
          }
       },
    },
@@ -336,8 +336,8 @@ static const BVCE_VideoFormatEntry BVCE_VideoFormatLUT[] =
       {
          BAVC_ScanType_eProgressive, BAVC_ScanType_eInterlaced, /* Instance[0] */
          {
-            { 1920, 1088, { BAVC_FrameRateCode_e30, BAVC_FrameRateCode_e14_985, BAVC_FrameRateCode_e30, }, }, /* Bounds[eInterlaced] */
-            { 1920, 1088, { BAVC_FrameRateCode_e60, BAVC_FrameRateCode_e14_985, BAVC_FrameRateCode_e60, }, }, /* Bounds[eProgressive] */
+            { 1920, 1088, { BAVC_FrameRateCode_e30, BAVC_FrameRateCode_e7_493, BAVC_FrameRateCode_e30, }, }, /* Bounds[eInterlaced] */
+            { 1920, 1088, { BAVC_FrameRateCode_e60, BAVC_FrameRateCode_e7_493, BAVC_FrameRateCode_e60, }, }, /* Bounds[eProgressive] */
          }
       },
    },

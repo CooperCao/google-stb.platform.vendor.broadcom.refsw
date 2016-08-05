@@ -117,7 +117,7 @@ void glsl_expr_accept(Expr* expr, void* data, ExprPreVisitor eprev, ExprPostVisi
             break;
 
          case EXPR_FLAVOUR_COUNT:
-            UNREACHABLE();
+            unreachable();
             break;
       }
 
@@ -225,7 +225,7 @@ void glsl_statement_accept(Statement* statement, void* data, StatementPreVisitor
             break;
 
          default:
-            UNREACHABLE();
+            unreachable();
             return;
       }
 

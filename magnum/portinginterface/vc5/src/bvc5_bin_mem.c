@@ -97,7 +97,7 @@ void BVC5_P_BinMemArrayDestroy(
 BVC5_BinBlockHandle BVC5_P_BinMemArrayAdd(
    BVC5_P_BinMemArray  *psArray,
    uint32_t             uiMinBlockSizeBytes,
-   uint32_t            *uiPhysOffset
+   uint32_t            *puiPhysOffset
 )
 {
    BVC5_BinBlockHandle  pBlock = NULL;
@@ -119,7 +119,7 @@ BVC5_BinBlockHandle BVC5_P_BinMemArrayAdd(
       psArray->uiTotalBinBlocks  = uiNewSize;
    }
 
-   pBlock = BVC5_P_BinPoolAllocAtLeast(psArray->hBinPool, uiMinBlockSizeBytes, uiPhysOffset);
+   pBlock = BVC5_P_BinPoolAllocAtLeast(psArray->hBinPool, uiMinBlockSizeBytes, puiPhysOffset);
 
    if (pBlock != NULL)
    {

@@ -53,7 +53,7 @@
 
 BDBG_MODULE ( BHSM );
 
-
+BDBG_OBJECT_ID_DECLARE( BHSM_P_Handle );
 
 void BHSM_MemcpySwap (
     unsigned char *pDest,
@@ -180,7 +180,9 @@ BERR_Code      BHSM_PKEPollingCmd(
     BDBG_ENTER ( BHSM_PKEPollingCmd );
     BDBG_ASSERT ( hHsm );
 
-    if(( hHsm == NULL ) || ( hHsm->ulMagicNumber != BHSM_P_HANDLE_MAGIC_NUMBER ) || ( pRsaPoll == NULL ) )
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
+
+    if( pRsaPoll == NULL )
     {
         return  BERR_TRACE( BHSM_STATUS_INPUT_PARM_ERR );
     }

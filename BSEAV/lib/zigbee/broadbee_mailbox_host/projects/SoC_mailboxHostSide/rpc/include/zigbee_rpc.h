@@ -172,6 +172,7 @@ typedef enum zigbeeRpcCode {
     RPC_C2S_ZBPRO_ZDO_MgmtLqiReq,
     RPC_C2S_ZBPRO_ZDO_MgmtBindReq,
     RPC_C2S_ZBPRO_ZDO_MgmtNwkUpdateUnsolInd,
+    RPC_C2S_ZBPRO_ZDO_DeviceAnnceInd,
     /* ZCL */
     RPC_C2S_ZBPRO_TC_NwkKeyUpdateReq,
     RPC_C2S_ZBPRO_ZCL_SetPowerSourceReq,

@@ -100,6 +100,8 @@ typedef enum eNotification
     eNotify_SwapPip,             /* command  - swap pip/main windows */
     eNotify_ClosedCaptionEnable, /* command  - enable/disable closed caption */
     eNotify_ClosedCaptionMode,   /* command  - set 608/708 closed caption mode */
+    eNotify_ipClientTranscodeEnable,     /* command  - enable/disable transcoding in BIP streaming for a given client */
+    eNotify_ipClientTranscodeProfile,     /* command  - set the IP transcode profile in BIP streaming for a given client */
 #ifdef NETAPP_SUPPORT
     eNotify_NetworkWifiScanStart,  /* command  - start wifi network scan */
     eNotify_NetworkWifiScanStop,   /* command  - stop wifi network scan */

@@ -9,6 +9,8 @@ vertex:
   in highp    int   gl_VertexID;
   in highp    int   gl_InstanceID;
 
+  in highp int __brcm_base_instance;
+
 
 tess-c:
   in highp int gl_PatchVerticesIn;
@@ -16,8 +18,10 @@ tess-c:
   in highp int gl_InvocationID;
   patch out highp float gl_TessLevelOuter[4];
   patch out highp float gl_TessLevelInner[2];
-# Leave spaces before the semicolons to work around a problem in the stdlib parser
-  void barrier() ;
+  patch out highp vec4  gl_BoundingBox[2];
+  patch out highp vec4  gl_BoundingBoxEXT[2];
+
+  void barrier();
 
 
 tess-e:
@@ -26,6 +30,17 @@ tess-e:
   in highp vec3 gl_TessCoord;
   patch in highp float gl_TessLevelOuter[4];
   patch in highp float gl_TessLevelInner[2];
+
+
+geometry:
+  void EmitVertex();
+  void EndPrimitive();
+
+  in highp int gl_PrimitiveIDIn;
+  in highp int gl_InvocationID;
+
+  out highp int gl_PrimitiveID;
+  out highp int gl_Layer;
 
 
 fragment:
@@ -45,15 +60,25 @@ fragment:
   vec2 fwidth(vec2 p);
   vec3 fwidth(vec3 p);
   vec4 fwidth(vec4 p);
+
   out mediump vec4  gl_FragColor;
   out mediump vec4  gl_FragData[gl_MaxDrawBuffers];
-  out highp   float gl_FragDepth;
   in  mediump vec4  gl_FragCoord;
   in  highp   vec4  gl_FragCoord;
   in          bool  gl_FrontFacing;
+  out highp   float gl_FragDepth;
   in  mediump vec2  gl_PointCoord;
   in          bool  gl_HelperInvocation;
+  in  highp   int   gl_PrimitiveID;
   in  mediump float __brcm_LineCoord;
+
+  in  highp   int  gl_Layer;
+  in  lowp    int  gl_SampleID;
+  in  mediump vec2 gl_SamplePosition;
+  in  highp   int  gl_SampleMaskIn[1];
+  out highp   int  gl_SampleMask[1];
+
+  uniform lowp int gl_NumSamples;
 
 
 compute:
@@ -62,7 +87,7 @@ compute:
   in    uvec3 gl_LocalInvocationID;
   in    uvec3 gl_GlobalInvocationID;
   in    uint  gl_LocalInvocationIndex;
-# Leave spaces before the semicolons to work around a problem in the stdlib parser
-  void barrier() ;
-  void memoryBarrierShared() ;
-  void groupMemoryBarrier() ;
+
+  void barrier();
+  void memoryBarrierShared();
+  void groupMemoryBarrier();

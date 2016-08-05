@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2014 Broadcom Corporation
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
 ******************************************************************************/
 /* Nexus example app: single live a/v decode from an input band */
@@ -71,21 +63,57 @@
 #include "bstd.h"
 #include "bkni.h"
 #include <stdlib.h>
+#include <assert.h>
+#include <pthread.h>
+
+
+#if NEXUS_HAS_PLAYBACK
+#define ENABLE_PLAYBACK     0
+#if ENABLE_PLAYBACK
+#include "nexus_playback.h"
+#include "nexus_file.h"
+#endif
+#endif
 
 /* the following define the input and its characteristics -- these will vary by input */
+#if ENABLE_PLAYBACK
+static const char *fname = "/mnt/streams/streamer/bugs_toys2_jurassic_q64_cd.mpg";
+#endif
 #define TRANSPORT_TYPE NEXUS_TransportType_eTs
 #define VIDEO_CODEC NEXUS_VideoCodec_eMpeg2
 #define AUDIO_CODEC NEXUS_AudioCodec_eAc3
 #define VIDEO_PID 0x11
 #define AUDIO_PID 0x14
 
+bool quit = false;
+
+static void *status_thread(void *pParam);
+
+typedef struct decoderHandles
+{
+    NEXUS_VideoDecoderHandle vdecode;
+    NEXUS_AudioDecoderHandle audioDecoder;
+    NEXUS_StcChannelHandle stcChannel;
+} decoderHandles;
+
+
+
 int main(void)
 {
     NEXUS_PlatformSettings platformSettings;
     NEXUS_PlatformConfiguration platformConfig;
+#if ENABLE_PLAYBACK
+    NEXUS_FilePlayHandle file;
+    NEXUS_PlaypumpHandle playpump;
+    NEXUS_PlaybackHandle playback;
+    NEXUS_PlaybackSettings playbackSettings;
+    NEXUS_PlaybackPidChannelSettings playbackPidSettings;
+#else
     NEXUS_InputBand inputBand;
     NEXUS_ParserBand parserBand;
     NEXUS_ParserBandSettings parserBandSettings;
+#endif
+
     NEXUS_StcChannelHandle stcChannel;
     NEXUS_StcChannelSettings stcSettings;
     NEXUS_PidChannelHandle videoPidChannel, audioPidChannel;
@@ -102,6 +130,8 @@ int main(void)
     NEXUS_HdmiOutputStatus hdmiStatus;
     NEXUS_Error rc;
 #endif
+    pthread_t statusThread;
+    decoderHandles decHandles;
 
     /* Bring up all modules for a platform in a default configuration for this platform */
     NEXUS_Platform_GetDefaultSettings(&platformSettings);
@@ -109,6 +139,35 @@ int main(void)
     NEXUS_Platform_Init(&platformSettings);
     NEXUS_Platform_GetConfiguration(&platformConfig);
 
+
+    /* Bring up audio decoders and outputs */
+    NEXUS_AudioDecoder_GetDefaultOpenSettings(&audioOpenSettings);
+    audioDecoder = NEXUS_AudioDecoder_Open(0, &audioOpenSettings);
+    surround = NEXUS_3dSurround_Open(NULL);
+
+
+    /* Bring up video display and outputs */
+    NEXUS_Display_GetDefaultSettings(&displaySettings);
+    display = NEXUS_Display_Open(0, &displaySettings);
+    window = NEXUS_VideoWindow_Open(display, 0);
+
+    /* Bring up decoder and connect to display */
+    vdecode = NEXUS_VideoDecoder_Open(0, NULL); /* take default capabilities */
+    NEXUS_VideoWindow_AddInput(window, NEXUS_VideoDecoder_GetConnector(vdecode));
+
+
+#if ENABLE_PLAYBACK
+    playpump = NEXUS_Playpump_Open(0, NULL);
+    assert(playpump);
+    playback = NEXUS_Playback_Create();
+    assert(playback);
+
+    file = NEXUS_FilePlay_OpenPosix(fname, NULL);
+    if (!file) {
+        fprintf(stderr, "can't open file:%s\n", fname);
+        return -1;
+    }
+#else
     /* Get the streamer input band from Platform. Platform has already configured the FPGA with a default streamer routing */
     NEXUS_Platform_GetStreamerInputBand(0, &inputBand);
 
@@ -119,17 +178,46 @@ int main(void)
     parserBandSettings.sourceTypeSettings.inputBand = inputBand;
     parserBandSettings.transportType = TRANSPORT_TYPE;
     NEXUS_ParserBand_SetSettings(parserBand, &parserBandSettings);
+#endif
 
+    /* By default, StcChannel will configure NEXUS_Timebase with the info it has */
+    NEXUS_StcChannel_GetDefaultSettings(0, &stcSettings);
+#if ENABLE_PLAYBACK
+    /* configure stc channel */
+    stcSettings.timebase = NEXUS_Timebase_e0;
+    stcSettings.mode = NEXUS_StcChannelMode_eAuto;
+    stcChannel = NEXUS_StcChannel_Open(0, &stcSettings);
+
+    /* connect playpump and playback */
+    NEXUS_Playback_GetSettings(playback, &playbackSettings);
+    playbackSettings.stcChannel = stcChannel;
+    playbackSettings.playpump = playpump;
+    playbackSettings.playpumpSettings.transportType = TRANSPORT_TYPE;
+    NEXUS_Playback_SetSettings(playback, &playbackSettings);
+
+    /* Open the audio and video pid channels */
+    NEXUS_Playback_GetDefaultPidChannelSettings(&playbackPidSettings);
+    playbackPidSettings.pidSettings.pidType = NEXUS_PidType_eVideo;
+    playbackPidSettings.pidTypeSettings.video.codec = VIDEO_CODEC; /* must be told codec for correct handling */
+    playbackPidSettings.pidTypeSettings.video.index = true;
+    playbackPidSettings.pidTypeSettings.video.decoder = vdecode;
+    videoPidChannel = NEXUS_Playback_OpenPidChannel(playback, VIDEO_PID, &playbackPidSettings);
+    NEXUS_Playback_GetDefaultPidChannelSettings(&playbackPidSettings);
+    playbackPidSettings.pidSettings.pidType = NEXUS_PidType_eAudio;
+    playbackPidSettings.pidTypeSettings.audio.primary = audioDecoder;
+    audioPidChannel = NEXUS_Playback_OpenPidChannel(playback, AUDIO_PID, &playbackPidSettings);
+    printf("audioPidChannel %p, videoPidChannel %p\n", (void*)audioPidChannel, (void*)videoPidChannel);
+
+#else
     /* Open the audio and video pid channels */
     videoPidChannel = NEXUS_PidChannel_Open(parserBand, VIDEO_PID, NULL);
     audioPidChannel = NEXUS_PidChannel_Open(parserBand, AUDIO_PID, NULL);
 
-    /* Open the StcChannel to do lipsync with the PCR */
-    NEXUS_StcChannel_GetDefaultSettings(0, &stcSettings);
     stcSettings.timebase = NEXUS_Timebase_e0;
     stcSettings.mode = NEXUS_StcChannelMode_ePcr; /* live */
     stcSettings.modeSettings.pcr.pidChannel = videoPidChannel; /* PCR happens to be on video pid */
     stcChannel = NEXUS_StcChannel_Open(0, &stcSettings);
+#endif
 
     /* Set up decoder Start structures now. We need to know the audio codec to properly set up
     the audio outputs. */
@@ -142,10 +230,6 @@ int main(void)
     audioProgram.pidChannel = audioPidChannel;
     audioProgram.stcChannel = stcChannel;
 
-    /* Bring up audio decoders and outputs */
-    NEXUS_AudioDecoder_GetDefaultOpenSettings(&audioOpenSettings);
-    audioDecoder = NEXUS_AudioDecoder_Open(0, &audioOpenSettings);
-    surround = NEXUS_3dSurround_Open(NULL);
 
     /* Send processed stereo output to DAC */
     NEXUS_3dSurround_AddInput(surround, NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
@@ -167,11 +251,6 @@ int main(void)
         NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
 #endif
 
-    /* Bring up video display and outputs */
-    NEXUS_Display_GetDefaultSettings(&displaySettings);
-    display = NEXUS_Display_Open(0, &displaySettings);
-    window = NEXUS_VideoWindow_Open(display, 0);
-
 #if NEXUS_NUM_COMPONENT_OUTPUTS
     NEXUS_Display_AddOutput(display, NEXUS_ComponentOutput_GetConnector(platformConfig.outputs.component[0]));
 #endif 
@@ -189,36 +268,91 @@ int main(void)
         if ( !hdmiStatus.videoFormatSupported[displaySettings.format] ) {
             displaySettings.format = hdmiStatus.preferredVideoFormat;
             NEXUS_Display_SetSettings(display, &displaySettings);
-		}
+        }
     }
 #endif
-
-    /* Bring up decoder and connect to display */
-    vdecode = NEXUS_VideoDecoder_Open(0, NULL); /* take default capabilities */
-    NEXUS_VideoWindow_AddInput(window, NEXUS_VideoDecoder_GetConnector(vdecode));
 
     /* Start Decoders */
     NEXUS_VideoDecoder_Start(vdecode, &videoProgram);
     NEXUS_AudioDecoder_Start(audioDecoder, &audioProgram);
 
+#if ENABLE_PLAYBACK
+    /* Start playback */
+    NEXUS_Playback_Start(playback, file, NULL);
+#endif
+
+    decHandles.vdecode = vdecode;
+    decHandles.audioDecoder = audioDecoder;
+    decHandles.stcChannel = stcChannel;
+    pthread_create(&statusThread, NULL, status_thread, &decHandles);
+
+    printf("Press ENTER to quit\n");
+    getchar();
+    quit = true;
+    pthread_join(statusThread, NULL);
+    /* Bring down system */
+    NEXUS_VideoDecoder_Stop(vdecode);
+    NEXUS_AudioDecoder_Stop(audioDecoder);
+
+#if NEXUS_NUM_AUDIO_DACS
+    NEXUS_AudioOutput_RemoveAllInputs(NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]));
+#endif
+#if NEXUS_NUM_SPDIF_OUTPUTS
+    NEXUS_AudioOutput_RemoveAllInputs(NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]));
+#endif
+#if NEXUS_NUM_HDMI_OUTPUTS
+    NEXUS_AudioOutput_RemoveAllInputs(NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]));
+#endif
+    NEXUS_VideoWindow_RemoveAllInputs(window);
+    NEXUS_3dSurround_RemoveAllInputs(surround);
+#if ENABLE_PLAYBACK
+    NEXUS_Playback_Stop(playback);
+    NEXUS_Playback_CloseAllPidChannels(playback);
+    NEXUS_FilePlay_Close(file);
+    NEXUS_Playback_Destroy(playback);
+    NEXUS_Playpump_Close(playpump);
+#else
+    NEXUS_PidChannel_CloseAll(parserBand);
+#endif
+    NEXUS_3dSurround_Close(surround);
+    NEXUS_VideoDecoder_Close(vdecode);
+    NEXUS_AudioDecoder_Close(audioDecoder);
+    NEXUS_VideoWindow_Close(window);
+    NEXUS_Display_Close(display);
+    NEXUS_StcChannel_Close(stcChannel);
+    NEXUS_Platform_Uninit();
+
+    return 0;
+}
+
+
+static void *status_thread(void *pParam)
+{
+
+    decoderHandles *decHandles;
+    decHandles = (decoderHandles *)pParam;
+
+
     /* Print status while decoding */
-    for (;;) {
+    while(!quit) {
         NEXUS_VideoDecoderStatus status;
         NEXUS_AudioDecoderStatus audioStatus;
         uint32_t stc;
 
-        NEXUS_VideoDecoder_GetStatus(vdecode, &status);
-        NEXUS_StcChannel_GetStc(videoProgram.stcChannel, &stc);
+        NEXUS_VideoDecoder_GetStatus(decHandles->vdecode, &status);
+        NEXUS_StcChannel_GetStc(decHandles->stcChannel, &stc);
         printf("decode %.4dx%.4d, pts %#x, stc %#x (diff %d) fifo=%d%%\n",
             status.source.width, status.source.height, status.pts, stc, status.ptsStcDifference, status.fifoSize?(status.fifoDepth*100)/status.fifoSize:0);
-        NEXUS_AudioDecoder_GetStatus(audioDecoder, &audioStatus);
+        NEXUS_AudioDecoder_GetStatus(decHandles->audioDecoder, &audioStatus);
         printf("audio             pts %#x, stc %#x (diff %d) fifo=%d%%\n",
             audioStatus.pts, stc, audioStatus.ptsStcDifference, audioStatus.fifoSize?(audioStatus.fifoDepth*100)/audioStatus.fifoSize:0);
         BKNI_Sleep(1000);
     }
 
-    return 0;
+
+    return NULL;
 }
+
 #else /* NEXUS_HAS_AUDIO */
 int main(void)
 {

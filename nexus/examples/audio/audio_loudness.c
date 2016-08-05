@@ -138,8 +138,8 @@ int main(int argc, char **argv)
     NEXUS_DolbyDigitalReencodeHandle ddre;
     NEXUS_DolbyDigitalReencodeSettings ddreSettings;
     NEXUS_AudioCapabilities caps;
-    NEXUS_AudioInput stereoConnector;
-    NEXUS_AudioInput multichannelConnector;
+    NEXUS_AudioInputHandle stereoConnector;
+    NEXUS_AudioInputHandle multichannelConnector;
 #if NEXUS_NUM_HDMI_OUTPUTS
     NEXUS_HdmiOutputStatus hdmiStatus;
     NEXUS_HdmiOutputSettings hdmiSettings;

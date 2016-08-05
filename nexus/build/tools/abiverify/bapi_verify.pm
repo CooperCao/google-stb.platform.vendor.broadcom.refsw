@@ -66,8 +66,7 @@ my %special_types = map {$_ => 1} qw (
 NEXUS_CallbackDesc
 NEXUS_P_MemoryUserAddr
 NEXUS_KeySlotTag
-NEXUS_AudioInput
-NEXUS_PlatformAnyObject
+NEXUS_AnyObject
 size_t
 );
 foreach (
@@ -76,26 +75,33 @@ foreach (
     $special_types{$_}=1;
 };
 
+sub filter_array {
+    my $field = shift;
+    $field =~ s/\[[^\]]+\]/[1]/g;
+    return $field;
+}
+
 sub verify_one_struct {
     my ($fout, $class_handles, $structs, $name, $path, $fields) = @_;
     my $field;
     for $field (@$fields) {
         my $type = $field->{TYPE};
+        my $field_name = filter_array($field->{NAME});
         if(exists $structs->{$type}) {
             print $fout, "    /* $field->{NAME} $type */\n";
             verify_one_struct ($class_handles, $structs, $name, $path . " $field->{NAME} .", $structs->{$type});
         }
-        print $fout "    VERIFY_FIELD($name,  $path $field->{NAME}, $type )\n";
+        print $fout "    VERIFY_FIELD($name,  $path $field_name, $type )\n";
         next if(exists $plain_types{$type});
         next if(exists $special_types{$type});
         next if(bapi_util::is_special_handle($type) || bapi_util::is_class_handle($type, $class_handles));
         if( (exists $field->{ATTR}{memory} && $field->{ATTR}{memory} eq 'cached') ||
              (exists $field->{ATTR}->{kind} && $field->{ATTR}->{kind} eq 'null_ptr')) {
-            print $fout "    VERIFY_POINTER($name, $path $field->{NAME}, $type)\n";
+            print $fout "    VERIFY_POINTER($name, $path $field_name, $type)\n";
         } elsif(bapi_util::is_handle($type)) {
-            print $fout "    VERIFY_FAKE_HANDLE($name, $path $field->{NAME}, $type)\n";
+            print $fout "    VERIFY_FAKE_HANDLE($name, $path $field_name, $type)\n";
         } else {
-            print $fout "    VERIFY_PLAIN_TYPE($name, $path $field->{NAME}, $type)\n";
+            print $fout "    VERIFY_PLAIN_TYPE($name, $path $field_name, $type)\n";
         }
     }
 }

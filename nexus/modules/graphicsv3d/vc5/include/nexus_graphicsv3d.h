@@ -219,6 +219,8 @@ typedef struct NEXUS_Graphicsv3dJobBase
    void                               *pCompletionData;
    uint32_t                            uiSyncFlags;
    bool                                bSecure;
+   uint64_t                            uiPagetablePhysAddr;
+   uint32_t                            uiMmuMaxVirtAddr;
 } NEXUS_Graphicsv3dJobBase;
 
 /**
@@ -303,6 +305,7 @@ typedef struct NEXUS_Graphicsv3dJobTFU
       uint32_t    uiChromaStride;
       uint32_t    uiAddress;
       uint32_t    uiChromaAddress;
+      uint32_t    uiUPlaneAddress;
       uint64_t    uiFlags;
    } sInput;
 
@@ -379,6 +382,9 @@ typedef struct NEXUS_Graphicsv3dCreateSettings
    NEXUS_CallbackDesc   sUsermode;           /* Callbacks for user jobs            */
    NEXUS_CallbackDesc   sFenceDone;          /* Callbacks for fences               */
    NEXUS_CallbackDesc   sCompletion;         /* Callbacks for completion callbacks */
+   int64_t              iUnsecureBinTranslation;
+   int64_t              iSecureBinTranslation;
+   uint64_t             uiPlatformToken;
 } NEXUS_Graphicsv3dCreateSettings;
 
 /**
@@ -533,6 +539,15 @@ NEXUS_Error NEXUS_Graphicsv3d_FenceMake(
 
 /**
 Summary:
+Create another reference to a fence object.
+**/
+NEXUS_Error NEXUS_Graphicsv3d_FenceKeep(
+   NEXUS_Graphicsv3dHandle  hGfx,                      /* [in] */
+   int                      iFence                     /* [in] */
+   );
+
+/**
+Summary:
 Set up a callback for fence wait.
 
 Description:
@@ -550,8 +565,10 @@ Summary:
 Remove a previously registered fence wait callback.
 **/
 NEXUS_Error NEXUS_Graphicsv3d_UnregisterFenceWait(
-   NEXUS_Graphicsv3dHandle   hGfx,                     /* [in] */
-   int                       iFence                    /* [in] */
+   NEXUS_Graphicsv3dHandle             hGfx,           /* [in]  */
+   int                                 iFence,         /* [in]  */
+   NEXUS_Graphicsv3dFenceEventHandle   hEvent,         /* [in]  */
+   bool                               *signalled       /* [out] attr{null_allowed=y} */
    );
 
 /**

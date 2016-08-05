@@ -396,4 +396,13 @@ INLINE SYS_FSM_StateId_t SYS_FSM_GetState(const SYS_FSM_Descriptor_t *const fsm)
     return fsm->currentState;
 }
 
+/*
+ * Repeat pragma GCC optimize because function definitions (including inlined) turn these pragrmas off automatically
+ * when compiled by G++ but not GCC.
+ */
+#if (defined(__arm__) || defined(__i386__)) && !defined(__clang__)
+# pragma GCC optimize "short-enums"     /* Implement short enums. */
+# pragma GCC diagnostic ignored "-Wattributes"
+#endif
+
 #endif /* _BB_SYS_FSM_H */

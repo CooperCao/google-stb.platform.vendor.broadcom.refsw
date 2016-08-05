@@ -73,7 +73,7 @@ BDBG_MODULE(nexus_sage_svp_test);
     val = BREG_Read32(g_pCoreHandles->reg, BCHP_MEMC_ARC_##memc##_ARC_##idx##_VIOLATION_INFO_CMD); \
     if(val) \
     { \
-       BDBG_ERR(("!!!!ARC[%d][%d] VIOLATION: Client %d @ 0x%08x (0x%x)!!!!\n", memc, idx, \
+       BDBG_ERR(("!!!!ARC[%d][%d] VIOLATION: Client %d @ 0x%08x (0x%x)!!!!", memc, idx, \
                  BCHP_GET_FIELD_DATA(val, MEMC_ARC_##memc##_ARC_##idx##_VIOLATION_INFO_CMD, CLIENTID), \
                  BREG_Read32(g_pCoreHandles->reg, BCHP_MEMC_ARC_##memc##_ARC_##idx##_VIOLATION_INFO_START_ADDR)<<3, \
                  BCHP_GET_FIELD_DATA(val, MEMC_ARC_##memc##_ARC_##idx##_VIOLATION_INFO_CMD, REQ_TYPE))); \
@@ -575,7 +575,7 @@ static NEXUS_Error svpTestInit(void)
     else
     {
         local_info.init=true;
-        BDBG_ERR(("Test code will NOT function if custom_arc is NOT defined!\n"));
+        BDBG_ERR(("Test code will NOT function if custom_arc is NOT defined!"));
         rc=BERR_TRACE(NEXUS_NOT_SUPPORTED);
         goto EXIT;
     }
@@ -646,7 +646,7 @@ static int setArch(void)
                 break;
 #endif
             default:
-                BDBG_ERR(("Unsupported MEMC\n"));
+                BDBG_ERR(("Unsupported MEMC"));
                 return -1;
         }
 

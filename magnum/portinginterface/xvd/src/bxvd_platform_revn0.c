@@ -1213,14 +1213,14 @@ void BXVD_P_DetermineNonGroupingStripeInfo(BCHP_DramType ddrType,
                   case 512:  /* 512 Mbits Device Tech*/
                   case 1024: /* 1024 Mbits Device Tech*/
                      *puiBankHeight = (uint32_t)BXVD_P_PFRI_Bank_Height_8n3;
-                     BDBG_MSG(("buswidth 32 BankHeight:: 8n3\n"));
+                     BDBG_MSG(("buswidth 32 BankHeight:: 8n3"));
                      break;
 
                   case 2048: /* 2048 Mbits Device Tech*/
                   case 4096: /* 4096 Mbits Device Tech*/
                   case 8192: /* 8192 Mbits Device Tech*/
                      *puiBankHeight = (uint32_t)BXVD_P_PFRI_Bank_Height_16n6;
-                     BDBG_MSG(("buswidth 32 BankHeight:: 16n6\n"));
+                     BDBG_MSG(("buswidth 32 BankHeight:: 16n6"));
                      break;
 
                   default:
@@ -1310,7 +1310,7 @@ void BXVD_P_DetermineNonGroupagePCacheSettings(BXVD_Handle hXvd,
             /* Dram bus width 32 */
             case 32:
                uiYGran = BXVD_P_PCache_YGran_e2Lines;
-               BDBG_MSG(("buswidth 32 yGran:e2Liines:\n"));
+               BDBG_MSG(("buswidth 32 yGran:e2Liines:"));
 
                break;
          }
@@ -1348,7 +1348,7 @@ void BXVD_P_DetermineNonGroupagePCacheSettings(BXVD_Handle hXvd,
 
    hXvd->uiDecode_SDStripeWidthRegVal = uiReg;
 
-   BDBG_MSG(("StipeWidthRegVal:0x%0x\n", uiReg));
+   BDBG_MSG(("StipeWidthRegVal:0x%0x", uiReg));
 
    /* Only 16 or 32 Bit bus is supported */
    if (uiMemBusWidth == 16)
@@ -1369,7 +1369,7 @@ void BXVD_P_DetermineNonGroupagePCacheSettings(BXVD_Handle hXvd,
    uiReg = uiDataWidth << hXvd->stPlatformInfo.stReg.uiPFRIInfo_DataBusWidthShift;
    uiReg |= (bankHeight << hXvd->stPlatformInfo.stReg.uiPFRIInfo_BankHeightShift);
 
-   BDBG_MSG(("PFRIDataRegVal:0x%0x\n", uiReg));
+   BDBG_MSG(("PFRIDataRegVal:0x%0x", uiReg));
    hXvd->uiDecode_PFRIDataRegVal = uiReg;
 
    uiPCacheVal = ( hXvd->uiAVD_PCacheRegVal &
@@ -1654,7 +1654,7 @@ void  BXVD_P_DetermineGroupagePCacheSettings(BXVD_Handle hXvd,
    uiReg = (stripeWidth << hXvd->stPlatformInfo.stReg.uiDecode_StripeWidthShift);
 
    hXvd->uiDecode_SDStripeWidthRegVal = uiReg;
-   BDBG_MSG(("StipeWidthRegVal:0x%0x\n", uiReg));
+   BDBG_MSG(("StipeWidthRegVal:0x%0x", uiReg));
 
    /* Only 16 or 32 Bit bus is supported */
    if (uiMemBusWidth == 16)
@@ -1960,7 +1960,7 @@ BERR_Code BXVD_P_ChipReset_RevN0(BXVD_Handle hXvd)
    }
 
 
-   BXVD_DBG_MSG(hXvd, ("Core reset pollcnt: %d\n", uiPollCnt));
+   BXVD_DBG_MSG(hXvd, ("Core reset pollcnt: %d", uiPollCnt));
 
    BXVD_Reg_Write32(hXvd,
                     hXvd->stPlatformInfo.stReg.uiSun_SWInitSet,
@@ -2115,7 +2115,7 @@ BERR_Code BXVD_P_ChipEnable_RevN0(BXVD_Handle hXvd)
    /* Initialize MBX to non-zero */
    BXVD_Reg_Write32(hXvd, hXvd->stPlatformInfo.stReg.uiDecode_OuterCPU2HostMailbox, 0xff);
    uiVal = BXVD_Reg_Read32(hXvd, hXvd->stPlatformInfo.stReg.uiDecode_OuterCPU2HostMailbox);
-   BDBG_MSG(("Initial CPU2HostMB: %0x\n", uiVal));
+   BDBG_MSG(("Initial CPU2HostMB: %0x", uiVal));
 #endif
 
    if (hXvd->stSettings.pAVDBootCallback)
@@ -2213,11 +2213,11 @@ BERR_Code BXVD_P_ChipEnable_RevN0(BXVD_Handle hXvd)
 
          BDBG_MSG(("ARC FW Boot Status = %d", uiFWBootStatus));
 
-         BDBG_MSG(("loopCount:%d, MBX:%d\n", loopCount, uiVal));
+         BDBG_MSG(("loopCount:%d, MBX:%d", loopCount, uiVal));
 
          BDBG_ERR(("ARC FW Boot Status = %d", uiFWBootStatus));
 
-         BDBG_ERR(("loopCount:%d Calling BKNI_Sleep(1000), MBX:%d\n", loopCount, uiVal));
+         BDBG_ERR(("loopCount:%d Calling BKNI_Sleep(1000), MBX:%d", loopCount, uiVal));
 #if 1
          {
             uint32_t ii;

@@ -54,8 +54,6 @@ typedef struct BVC5_P_UsermodeState
    BVC5_P_InternalJob   *psRunningJob;
 } BVC5_P_UsermodeState;
 
-#endif /* BVC5_USERMODE_H__ */
-
 void BVC5_P_IssueUsermodeJob(
    BVC5_Handle           hVC5,
    BVC5_ClientHandle     hClient,
@@ -65,3 +63,5 @@ void BVC5_P_IssueUsermodeJob(
 bool BVC5_P_UsermodeIsAvailable(
    BVC5_Handle hVC5
 );
+
+#endif /* BVC5_USERMODE_H__ */

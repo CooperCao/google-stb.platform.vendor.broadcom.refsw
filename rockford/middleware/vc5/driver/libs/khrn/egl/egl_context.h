@@ -15,13 +15,12 @@ FILE DESCRIPTION
 
 extern void egl_context_flush(EGL_CONTEXT_T *context);
 
-/* see flush_rendering in egl_context_base.h */
-extern v3d_scheduler_deps *egl_context_flush_rendering(
-      EGL_CONTEXT_T *context, EGL_SURFACE_T *surface);
+/* see copy_image in egl_context_base.h */
+extern bool egl_context_copy_image(EGL_CONTEXT_T *context,
+      KHRN_IMAGE_T *dst, KHRN_IMAGE_T *src);
 
-/* see copy_surface in egl_context_base.h */
-extern bool egl_context_copy_surface(EGL_CONTEXT_T *context,
-      EGL_SURFACE_T *surface, KHRN_IMAGE_T *dst);
+extern void egl_context_invalidate_draw(EGL_CONTEXT_T *context,
+   bool color, bool color_ms, bool other_aux);
 
 /*
  * Prepare context for rendering to the draw surface.
@@ -60,12 +59,5 @@ extern bool egl_context_try_delete(EGL_CONTEXT_T *context);
 
 /* Returns the version number of the client API that this context supports. */
 extern int egl_context_client_version(const EGL_CONTEXT_T *context);
-
-/*
- * Add a fence for context to wait for before doing any rendering to
- * surface's back buffer. If context is NULL, uses the current context.
- */
-extern void egl_context_add_fence(EGL_CONTEXT_T *context,
-      const EGL_SURFACE_T *surface, int fence);
 
 #endif /* EGL_CONTEXT_H */

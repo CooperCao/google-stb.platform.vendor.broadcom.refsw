@@ -42,13 +42,13 @@ TZ_TOOLCHAIN ?= /opt/toolchains/tzos/nonDSO/gcc-arm-tzos-musl-4_8-2016q1
 TZ_ARMGNU ?= $(TZ_TOOLCHAIN)/bin/arm-tzos-musl
 
 # platform and target
-PLATFORM ?= brcmstb
+TZ_PLATFORM ?= brcmstb
 
 # directories and files
 TZ_IMG := astra
 
 TZ_KERNEL_DIR := $(TZ_DIR)/kernel
-TZ_KERNEL_LIB := $(TZ_KERNEL_DIR)/bin/lib/libtzKernel.a
+TZ_KERNEL_LIB := $(TZ_KERNEL_DIR)/libkernel.a
 
 # use local init module
 SRC_DIRS := init
@@ -71,11 +71,29 @@ DEPS        += $(patsubst %.cpp,bin/%.d,$(SOURCES_CPP))
 USER_APPS := \
 	uappd
 
-ifeq ($(BUILT_IN_TAPPS),y)
+ifneq (,$(or $(findstring y,$(BUILT_IN_TAPPS)),\
+             $(findstring clean,$(MAKECMDGOALS))))
 USER_APPS += \
 	hello \
 	tzioc_tapp \
-	astra_tapp
+	astra_tapp \
+	cpuload_tapp
+else
+ifeq (y,$(BUILT_IN_HELLO))
+USER_APPS += hello
+endif
+
+ifeq (y,$(BUILT_IN_TZIOC_TAPP))
+USER_APPS += tzioc_tapp
+endif
+
+ifeq (y,$(BUILT_IN_ASTRA_TAPP))
+USER_APPS += astra_tapp
+endif
+
+ifeq (y,$(BUILT_IN_CPULOAD_TAPP))
+USER_APPS += cpuload_tapp
+endif
 endif
 
 # build flags
@@ -84,7 +102,7 @@ DEPENDFLAGS := -MD -MP
 INCLUDES    := -I. $(addprefix -I,$(INC_DIRS))
 INCLUDES    += -I$(TZ_KERNEL_DIR)/api
 INCLUDES    += -I$(TZ_KERNEL_DIR)/include
-INCLUDES    += -I$(TZ_KERNEL_DIR)/platform/$(PLATFORM)
+INCLUDES    += -I$(TZ_KERNEL_DIR)/platform/$(TZ_PLATFORM)
 INCLUDES    += -I$(TZ_KERNEL_DIR)/3rd_party/libfdt
 
 # funcationally and alphabetically ordered
@@ -162,17 +180,19 @@ kernel:
 	$(MAKE) -C $(TZ_KERNEL_DIR)
 
 checkplatform:
-	@echo Building for PLATFORM=$(PLATFORM)...
+	@echo Building for TZ_PLATFORM=$(TZ_PLATFORM)...
 
 checkdirs: $(BIN_DIRS)
 
 $(BIN_DIRS):
 	mkdir -p $@
 
-$(TZ_IMG): $(TZ_IMG).elf
+$(TZ_IMG): $(TZ_IMG).bin
+
+$(TZ_IMG).bin: $(TZ_IMG).elf
 	$(TZ_ARMGNU)-objcopy $(TZ_IMG).elf -O binary $(TZ_IMG).bin
 
-$(TZ_IMG).elf: $(OBJS) initramfs.o link_arm_tz.ld
+$(TZ_IMG).elf: $(OBJS) $(TZ_KERNEL_LIB) initramfs.o link_arm_tz.ld
 	$(TZ_ARMGNU)-g++ -nostartfiles $(OBJS) $(TZ_KERNEL_LIB) initramfs.o -Tlink_arm_tz.ld -o $@
 
 initramfs.o: $(USER_APPS)

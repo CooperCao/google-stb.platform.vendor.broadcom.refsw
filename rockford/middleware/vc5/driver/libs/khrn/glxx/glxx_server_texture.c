@@ -73,16 +73,13 @@ static bool is_target_3d(GLenum target)
    case GL_TEXTURE_2D_ARRAY:
    case GL_TEXTURE_3D:
       return true;
+#if V3D_HAS_TMU_WRAP_I
+   case GL_TEXTURE_CUBE_MAP_ARRAY:
+      return (KHRN_GLES31_DRIVER ? true : false);
+#endif
    default:
       return false;
    }
-}
-
-static bool glxx_format_type_internalformat_valid(GLenum format, GLenum type,
-                                                  GLenum internalformat)
-{
-   return gfx_lfmt_gl_format_type_internalformat_combination_valid(
-      khrn_get_lfmt_translate_exts(), format, type, internalformat);
 }
 
 GLXX_TEXTURE_T* glxx_server_state_get_texture(GLXX_SERVER_STATE_T *state,
@@ -159,6 +156,12 @@ static enum glxx_tex_target convert_sampler_to_tex_target(GLenum sampler_type)
       case GL_UNSIGNED_INT_SAMPLER_1D_ARRAY_BRCM:
          return GL_TEXTURE_1D_ARRAY_BRCM;
 
+      case GL_SAMPLER_CUBE_MAP_ARRAY:
+      case GL_SAMPLER_CUBE_MAP_ARRAY_SHADOW:
+      case GL_INT_SAMPLER_CUBE_MAP_ARRAY:
+      case GL_UNSIGNED_INT_SAMPLER_CUBE_MAP_ARRAY:
+         return GL_TEXTURE_CUBE_MAP_ARRAY;
+
       default:
          break;
    }
@@ -226,7 +229,7 @@ static bool gl20_server_iterate_textures(
       target = convert_sampler_to_tex_target(sampler_info[*i].type);
       texture = glxx_textures_get_texture(&state->bound_texture[j], target);
       sampler = state->bound_sampler[j];
-      used_in_binning = !!sampler_info[*i].in_vshader;
+      used_in_binning = !!sampler_info[*i].in_binning;
       is_32bit = sampler_info[*i].is_32bit;
    }
 
@@ -278,7 +281,6 @@ static bool copytex_fb_complete_check(GLXX_SERVER_STATE_T *state)
 /* returns true if this target is a valid target for gl*TexImage* functions */
 static bool is_supported_teximage_target(GLenum target)
 {
-   bool ok;
    switch(target)
    {
       case GL_TEXTURE_1D_BRCM:
@@ -292,13 +294,13 @@ static bool is_supported_teximage_target(GLenum target)
       case GL_TEXTURE_CUBE_MAP_NEGATIVE_Y:
       case GL_TEXTURE_CUBE_MAP_POSITIVE_Z:
       case GL_TEXTURE_CUBE_MAP_NEGATIVE_Z:
-         ok = true;
-         break;
+#if V3D_HAS_TMU_WRAP_I
+      case GL_TEXTURE_CUBE_MAP_ARRAY:
+#endif
+         return true;
       default:
-         ok = false;
+         return false;
    }
-
-   return ok;
 }
 
 /* format, type and internalformat can be 0 if the gl function doesn't supply
@@ -386,9 +388,16 @@ bool glxx_teximage_internal_checks(GLXX_SERVER_STATE_T *state,
          return false;
       }
 
-      if (tex_target == GL_TEXTURE_CUBE_MAP && (width != height))
+      if ((tex_target == GL_TEXTURE_CUBE_MAP || tex_target == GL_TEXTURE_CUBE_MAP_ARRAY)
+           && (width != height))
       {
          /* Cubemaps must be specified with equal width and height */
+         *error = GL_INVALID_VALUE;
+         return false;
+      }
+
+      if (target == GL_TEXTURE_CUBE_MAP_ARRAY && ((num_array_elems % 6) != 0) )
+      {
          *error = GL_INVALID_VALUE;
          return false;
       }
@@ -509,7 +518,7 @@ bool glxx_teximage_internal_checks(GLXX_SERVER_STATE_T *state,
       if ((format == GL_DEPTH_COMPONENT || format == GL_DEPTH_STENCIL ||
            format == GL_STENCIL_INDEX) &&
           (tex_target != GL_TEXTURE_2D && tex_target != GL_TEXTURE_2D_ARRAY &&
-           tex_target != GL_TEXTURE_CUBE_MAP))
+           tex_target != GL_TEXTURE_CUBE_MAP && tex_target != GL_TEXTURE_CUBE_MAP_ARRAY))
       {
          *error = GL_INVALID_OPERATION;
          return false;
@@ -584,20 +593,26 @@ void texImageX(GLenum target, GLint level, GLint
       internalformat, GLsizei width, GLsizei height, GLsizei depth, GLint
       border, GLenum format, GLenum type, const GLvoid* pixels, unsigned dim)
 {
-   GLXX_SERVER_STATE_T *state   = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state   = glxx_lock_server_state(OPENGL_ES_ANY);
    GLXX_TEXTURE_T      *texture = NULL;
    GLenum               error   = GL_NO_ERROR;
 
    if (!state)
       return;
 
-   if (!glxx_format_type_internalformat_valid(format, type, internalformat))
+   if (!gfx_lfmt_gl_format_type_internalformat_combination_valid(format, type, internalformat))
    {
-      if (!gfx_lfmt_gl_format_type_internalformat_valid_enums(
-            khrn_get_lfmt_translate_exts(), format, type, internalformat))
+      bool format_type_ok = false;
+      bool internalformat_ok = gfx_lfmt_gl_format_type_internalformat_valid_enums(
+         format, type, internalformat, &format_type_ok);
+
+      if (format_type_ok && internalformat_ok)
+         error = GL_INVALID_OPERATION;
+      else if (internalformat_ok)
          error = GL_INVALID_ENUM;
       else
-         error = GL_INVALID_OPERATION;
+         error = GL_INVALID_VALUE;
+
       goto end;
    }
 
@@ -626,7 +641,7 @@ end:
 
    if (error != GL_NO_ERROR)
       glxx_server_state_set_error(state, error);
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_API void GL_APIENTRY glTexImage2D(GLenum target, GLint level, GLint
@@ -696,8 +711,7 @@ static bool texstorage_internal_checks(GLXX_SERVER_STATE_T *state,
    compressed = gfx_gl_is_compressed_internalformat(
       khrn_get_lfmt_translate_exts(), internalformat);
    if (!compressed)
-      sized_intfmt = gfx_gl_is_sized_internalformat(
-         khrn_get_lfmt_translate_exts(), internalformat);
+      sized_intfmt = gfx_gl_is_sized_internalformat(internalformat);
 
    if (!compressed && !sized_intfmt)
    {
@@ -713,8 +727,7 @@ static bool texstorage_internal_checks(GLXX_SERVER_STATE_T *state,
    GLenum type = GL_NONE;
    if (sized_intfmt)
    {
-      gfx_gl_sizedinternalformat_to_format_type(khrn_get_lfmt_translate_exts(),
-            internalformat, &format, &type);
+      gfx_gl_sizedinternalformat_to_format_type(internalformat, &format, &type);
    }
    else
       format = internalformat;
@@ -746,7 +759,7 @@ static bool texstorage_internal_checks(GLXX_SERVER_STATE_T *state,
 static void texstorage(GLenum target, GLsizei levels, GLenum internalformat,
       GLsizei width, GLsizei height, GLsizei depth, unsigned dim)
 {
-   GLXX_SERVER_STATE_T *state = GL30_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
    GLXX_TEXTURE_T *texture;
    GLenum error = GL_NO_ERROR;
    bool ok;
@@ -769,7 +782,7 @@ static void texstorage(GLenum target, GLsizei levels, GLenum internalformat,
 end:
    if (error != GL_NO_ERROR)
       glxx_server_state_set_error(state, error);
-   GL30_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_API void GL_APIENTRY glTexStorage2D(GLenum target, GLsizei levels,
@@ -842,13 +855,15 @@ static bool texstorage_ms_internal_check(GLXX_SERVER_STATE_T *state, GLenum targ
    return true;
 }
 
+#if KHRN_GLES31_DRIVER
+
 GL_API void GL_APIENTRY glTexStorage2DMultisample(GLenum target, GLsizei samples,
       GLenum internalformat, GLsizei width, GLsizei height,
       GLboolean fixedsamplelocations)
 {
    PROFILE_FUNCTION_MT("GL");
 
-   GLXX_SERVER_STATE_T *state = GL31_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
    if (!state) return;
 
    GLenum error = GL_NO_ERROR;
@@ -876,8 +891,10 @@ GL_API void GL_APIENTRY glTexStorage2DMultisample(GLenum target, GLsizei samples
 end:
    if (error != GL_NO_ERROR)
       glxx_server_state_set_error(state, error);
-   GL31_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
+
+#endif
 
 void tex_storage_3d_multisample(GLXX_SERVER_STATE_T *state, GLenum target, GLsizei samples,
                                 GLenum internalformat, GLsizei width, GLsizei height,
@@ -908,20 +925,26 @@ void tex_storage_3d_multisample(GLXX_SERVER_STATE_T *state, GLenum target, GLsiz
    }
 }
 
+#if KHRN_GLES32_DRIVER
+
 GL_API void GL_APIENTRY glTexStorage3DMultisample(GLenum target, GLsizei samples,
       GLenum internalformat, GLsizei width, GLsizei height, GLsizei depth,
       GLboolean fixedsamplelocations)
 {
    PROFILE_FUNCTION_MT("GL");
 
-   GLXX_SERVER_STATE_T *state = GL32_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
    if (!state) return;
 
    tex_storage_3d_multisample(state, target, samples, internalformat,
                               width, height, depth, fixedsamplelocations);
 
-   GL32_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
+
+#endif
+
+#if KHRN_GLES31_DRIVER
 
 GL_API void GL_APIENTRY glTexStorage3DMultisampleOES(GLenum target, GLsizei samples,
       GLenum internalformat, GLsizei width, GLsizei height, GLsizei depth,
@@ -929,20 +952,22 @@ GL_API void GL_APIENTRY glTexStorage3DMultisampleOES(GLenum target, GLsizei samp
 {
    PROFILE_FUNCTION_MT("GL");
 
-   GLXX_SERVER_STATE_T *state = GL31_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
    if (!state) return;
 
    tex_storage_3d_multisample(state, target, samples, internalformat,
                               width, height, depth, fixedsamplelocations);
 
-   GL31_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
+
+#endif
 
 static void compressedTexImageX(GLenum target, GLint level,
       GLenum internalformat, GLsizei width, GLsizei height, GLsizei depth, GLint border,
       GLsizei imageSize, const GLvoid *pixels, unsigned dim)
 {
-   GLXX_SERVER_STATE_T *state   = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state   = glxx_lock_server_state(OPENGL_ES_ANY);
    GLXX_TEXTURE_T *texture = NULL;
    GLenum error   = GL_NO_ERROR;
    bool ok;
@@ -981,7 +1006,7 @@ static void compressedTexImageX(GLenum target, GLint level,
 end:
    if (error != GL_NO_ERROR)
       glxx_server_state_set_error(state, error);
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 
 }
 
@@ -1016,7 +1041,7 @@ static void  compressedTexSubImageX(GLenum target, GLint level, GLint xoffset,
       depth, GLenum format, GLsizei imageSize, const GLvoid* orig_pixels,
       unsigned dim)
 {
-   GLXX_SERVER_STATE_T  *state   = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T  *state   = glxx_lock_server_state(OPENGL_ES_ANY);
    GLXX_TEXTURE_T *texture = NULL;
    GLenum error    = GL_NO_ERROR;
    GLvoid *pixels  = (GLvoid *)orig_pixels;
@@ -1053,7 +1078,7 @@ end:
    if (pixels != orig_pixels)
       free(pixels);
 
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_API void GL_APIENTRY glCompressedTexSubImage2D(GLenum target, GLint level,
@@ -1228,18 +1253,16 @@ static bool choose_copy_format(GLenum internalformat,
    GFX_LFMT_T src_lfmt;
    bool is_sized;
 
-   if (!gfx_gl_is_texture_internalformat(khrn_get_lfmt_translate_exts(), internalformat))
+   if (!gfx_gl_is_texture_internalformat(internalformat))
       return false;
 
    src_lfmt = khrn_image_get_lfmt(src, 0);
 
-   is_sized = gfx_gl_is_sized_internalformat(
-      khrn_get_lfmt_translate_exts(), internalformat);
+   is_sized = gfx_gl_is_sized_internalformat(internalformat);
 
    if (is_sized)
    {
-      GFX_LFMT_T dst_api_fmt = gfx_api_fmt_from_sized_internalformat(
-         khrn_get_lfmt_translate_exts(), internalformat);
+      GFX_LFMT_T dst_api_fmt = gfx_api_fmt_from_sized_internalformat(internalformat);
       glxx_hw_fmts_from_api_fmt(&dst_num_planes, dst_fmts, dst_api_fmt);
    }
    else
@@ -1267,7 +1290,7 @@ GL_API void GL_APIENTRY glCopyTexImage2D(GLenum target, GLint level, GLenum
 {
    PROFILE_FUNCTION_MT("GL");
 
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
    GLXX_TEXTURE_T *texture = NULL;
    GLenum error = GL_NO_ERROR;
    struct glxx_teximage_sanity_checks checks;
@@ -1279,7 +1302,7 @@ GL_API void GL_APIENTRY glCopyTexImage2D(GLenum target, GLint level, GLenum
    if (!state)
       return;
 
-   if (!gfx_gl_is_texture_internalformat(khrn_get_lfmt_translate_exts(), internalformat))
+   if (!gfx_gl_is_texture_internalformat(internalformat))
    {
       error = GL_INVALID_ENUM;
       goto end;
@@ -1329,14 +1352,14 @@ end:
       glxx_server_state_set_error(state, error);
 
    KHRN_MEM_ASSIGN(src, NULL);
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 static void copytexSubImageX(GLenum target, GLint level, GLint xoffset, GLint
       yoffset, GLint zoffset, GLint x, GLint y, GLsizei width, GLsizei height,
       unsigned dim)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
    GLenum   error = GL_NO_ERROR;
    GLXX_TEXTURE_T *texture = NULL;
    KHRN_IMAGE_T *src = NULL;
@@ -1386,7 +1409,7 @@ end:
       glxx_server_state_set_error(state, error);
 
    KHRN_MEM_ASSIGN(src, NULL);
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_API void GL_APIENTRY glCopyTexSubImage2D(GLenum target, GLint level, GLint
@@ -1407,7 +1430,7 @@ GL_API void GL_APIENTRY glCopyTexSubImage3D(GLenum target, GLint level, GLint xo
 
 GL_API void GL_APIENTRY glGenTextures(GLsizei n, GLuint *textures)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE_UNCHANGED();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state_unchanged(OPENGL_ES_ANY);
    int32_t i = 0;
 
    if (!state)
@@ -1425,19 +1448,19 @@ GL_API void GL_APIENTRY glGenTextures(GLsizei n, GLuint *textures)
          state->shared->next_texture++;
       }
    }
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_API GLboolean GL_APIENTRY glIsTexture(GLuint texture)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE_UNCHANGED();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state_unchanged(OPENGL_ES_ANY);
    GLboolean result;
 
    if (!state) return GL_FALSE;
 
    result = glxx_shared_get_texture(state->shared, texture) != NULL;
 
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 
    return result;
 }
@@ -1467,25 +1490,19 @@ static bool is_min_filter(GLenum target, int i)
    return false;
 }
 
-static bool is_wrap(GLXX_SERVER_STATE_T *state, GLenum target, int i)
+static bool is_wrap(GLenum target, int i)
 {
    switch (i)
    {
    case GL_MIRRORED_REPEAT:
-      if (!IS_GL_11(state) && target != GL_TEXTURE_EXTERNAL_OES)
-         return true;
-      break;
    case GL_REPEAT:
       if (target != GL_TEXTURE_EXTERNAL_OES)
          return true;
       break;
    case GL_CLAMP_TO_EDGE:
+   case GL_CLAMP_TO_BORDER:
+   case GL_MIRROR_CLAMP_TO_EDGE_BRCM:
       return true;
-#if GL_BRCM_mirror_once_border
-   case GL_CLAMP_TO_BORDER_BRCM:
-   case GL_MIRROR_ONCE_BRCM:
-      return true;
-#endif
    }
    return false;
 }
@@ -1511,11 +1528,14 @@ bool glxx_is_float_texparam(GLenum pname)
 #if GL_EXT_texture_filter_anisotropic
    result |= (pname == GL_TEXTURE_MAX_ANISOTROPY_EXT);
 #endif
-#if GL_BRCM_mirror_once_border
-   result |= (pname == GL_TEXTURE_BORDER_COLOR_BRCM);
-#endif
    result |= (pname == GL_TEXTURE_MIN_LOD || pname == GL_TEXTURE_MAX_LOD);
    return result;
+}
+
+bool glxx_is_vector_texparam(GLenum pname)
+{
+   return (pname == GL_TEXTURE_BORDER_COLOR) ||
+          (pname == GL_TEXTURE_CROP_RECT_OES);
 }
 
 void glxx_texparameterf_sampler_internal(GLXX_SERVER_STATE_T *state,
@@ -1529,14 +1549,6 @@ void glxx_texparameterf_sampler_internal(GLXX_SERVER_STATE_T *state,
 
    switch (pname)
    {
-#if GL_BRCM_mirror_once_border
-   case GL_TEXTURE_BORDER_COLOR_BRCM:
-      sampler->border_color[0] = f[0];
-      sampler->border_color[1] = f[1];
-      sampler->border_color[2] = f[2];
-      sampler->border_color[3] = f[3];
-      break;
-#endif
 #if GL_EXT_texture_filter_anisotropic
    case GL_TEXTURE_MAX_ANISOTROPY_EXT:
       sampler->anisotropy = *f;
@@ -1564,9 +1576,6 @@ static void glxx_texparameterf_internal(GLXX_SERVER_STATE_T *state, GLenum targe
    {
       switch (pname)
       {
-#if GL_BRCM_mirror_once_border
-      case GL_TEXTURE_BORDER_COLOR_BRCM:
-#endif
 #if GL_EXT_texture_filter_anisotropic
       case GL_TEXTURE_MAX_ANISOTROPY_EXT:
 #endif
@@ -1578,7 +1587,7 @@ static void glxx_texparameterf_internal(GLXX_SERVER_STATE_T *state, GLenum targe
             glxx_texparameterf_sampler_internal(state, &texture->sampler, pname, f);
          break;
       default:
-         UNREACHABLE();
+         unreachable();
       }
    }
 }
@@ -1590,12 +1599,10 @@ static bool is_func(GLenum func)
            func == GL_GEQUAL || func == GL_NOTEQUAL);
 }
 
-#if defined(GL_BRCM_texture_mirror_swap)
 static bool is_boolean(GLenum value)
 {
    return value == GL_TRUE || value == GL_FALSE;
 }
-#endif
 
 // NB: Target may be 0 when called from sampler paths (i.e. glSamplerParameteri)
 void glxx_texparameter_sampler_internal(GLXX_SERVER_STATE_T *state,
@@ -1617,19 +1624,19 @@ void glxx_texparameter_sampler_internal(GLXX_SERVER_STATE_T *state,
          glxx_server_state_set_error(state, GL_INVALID_ENUM);
       break;
    case GL_TEXTURE_WRAP_S:
-      if (is_wrap(state, target, *i))
+      if (is_wrap(target, *i))
          sampler->wrap.s = *i;
       else
          glxx_server_state_set_error(state, GL_INVALID_ENUM);
       break;
    case GL_TEXTURE_WRAP_T:
-      if (is_wrap(state, target, *i))
+      if (is_wrap(target, *i))
          sampler->wrap.t = *i;
       else
          glxx_server_state_set_error(state, GL_INVALID_ENUM);
       break;
    case GL_TEXTURE_WRAP_R:
-      if (!IS_GL_11(state) && is_wrap(state, target, *i))
+      if (!IS_GL_11(state) && is_wrap(target, *i))
          sampler->wrap.r = *i;
       else
          glxx_server_state_set_error(state, GL_INVALID_ENUM);
@@ -1646,15 +1653,25 @@ void glxx_texparameter_sampler_internal(GLXX_SERVER_STATE_T *state,
       else
          glxx_server_state_set_error(state, GL_INVALID_ENUM);
       break;
-#if GL_BRCM_texture_unnormalised_coords
+#if V3D_VER_AT_LEAST(3,3,0,0)
    case GL_TEXTURE_UNNORMALISED_COORDS_BRCM:
-      if (!IS_GL_11(state) && (khrn_get_v3d_version() >= V3D_MAKE_VER(3,3,0,0)) &&
-         is_boolean(*i))
+      if (!IS_GL_11(state) && is_boolean(*i))
          sampler->unnormalised_coords = *i;
       else
          glxx_server_state_set_error(state, GL_INVALID_ENUM);
       break;
 #endif
+   case GL_TEXTURE_BORDER_COLOR:
+      if (!IS_GL_11(state))
+      {
+         sampler->border_color[0] = i[0];
+         sampler->border_color[1] = i[1];
+         sampler->border_color[2] = i[2];
+         sampler->border_color[3] = i[3];
+      }
+      else
+         glxx_server_state_set_error(state, GL_INVALID_ENUM);
+      break;
    default:
       glxx_server_state_set_error(state, GL_INVALID_ENUM);
       break;
@@ -1668,9 +1685,7 @@ static bool gl11_is_texparam(GLenum pname) {
    case GL_TEXTURE_MAG_FILTER:
    case GL_TEXTURE_WRAP_S:
    case GL_TEXTURE_WRAP_T:
-#if GL_OES_draw_texture
    case GL_TEXTURE_CROP_RECT_OES:
-#endif
    case GL_GENERATE_MIPMAP:
       return true;
    default:
@@ -1694,14 +1709,12 @@ static bool is_texparam(GLenum pname) {
    case GL_TEXTURE_SWIZZLE_A:
    case GL_TEXTURE_BASE_LEVEL:
    case GL_TEXTURE_MAX_LEVEL:
-#if GL_BRCM_texture_mirror_swap
+   case GL_TEXTURE_BORDER_COLOR:
    case GL_TEXTURE_FLIP_X:
    case GL_TEXTURE_FLIP_Y:
    case GL_TEXTURE_SWAP_ST:
-#endif // GL_BRCM_texture_mirror_swap
-#if GL_BRCM_texture_unnormalised_coords
    case GL_TEXTURE_UNNORMALISED_COORDS_BRCM:
-#endif
+   case GL_TEXTURE_PROTECTED_EXT:
       return true;
    case GL_DEPTH_STENCIL_TEXTURE_MODE:
       return KHRN_GLES31_DRIVER ? true : false;
@@ -1711,13 +1724,10 @@ static bool is_texparam(GLenum pname) {
    }
 }
 
-void glxx_texparameter_internal(GLXX_SERVER_STATE_T *state, GLenum target, GLenum pname, const GLint *i)
+void glxx_texparameter_internal(GLXX_SERVER_STATE_T *state, GLenum target, GLenum pname, const int *i)
 {
-   GLXX_TEXTURE_T *texture;
-
    // performs valid target check
-   texture = glxx_server_state_get_texture(state, target, false);
-
+   GLXX_TEXTURE_T *texture = glxx_server_state_get_texture(state, target, false);
    if (!texture)
       return;
 
@@ -1740,9 +1750,8 @@ void glxx_texparameter_internal(GLXX_SERVER_STATE_T *state, GLenum target, GLenu
    case GL_TEXTURE_WRAP_R:
    case GL_TEXTURE_COMPARE_MODE:
    case GL_TEXTURE_COMPARE_FUNC:
-#if GL_BRCM_texture_unnormalised_coords
+   case GL_TEXTURE_BORDER_COLOR:
    case GL_TEXTURE_UNNORMALISED_COORDS_BRCM:
-#endif
       if (glxx_tex_target_is_multisample(texture->target))
          glxx_server_state_set_error(state, GL_INVALID_ENUM);
       else
@@ -1813,160 +1822,146 @@ void glxx_texparameter_internal(GLXX_SERVER_STATE_T *state, GLenum target, GLenu
       else
          glxx_server_state_set_error(state, GL_INVALID_ENUM);
       break;
+   case GL_TEXTURE_PROTECTED_EXT:
+      if (is_boolean(*i))
+         texture->create_secure = *i;
+      else
+         glxx_server_state_set_error(state, GL_INVALID_VALUE); /* This is what the spec says, INVALID_ENUM might be more consistent */
+      break;
+
    default:
-      UNREACHABLE();
+      unreachable();
       break;
    }
 }
 
-GLint glxx_texparam_float_to_int(GLfloat param)
-{
-   /* When the type of internal state is integer or enum, boolean values of
-    * FALSE and TRUE are converted to 0 and 1, respectively. Floating-point
-    * values are rounded to the nearest integer */
-   GLint iparam;
-
-   if (param >= 0.0f)
-   {
-      GLfloat rounded = param + 0.5f;
-      iparam = (rounded < INT_MAX) ? (GLint)(rounded) : INT_MAX;
-   }
-   else
-   {
-      GLfloat rounded = param - 0.5f;
-      iparam = (rounded > -INT_MAX) ? (GLint)(rounded) : -INT_MAX;
-   }
-
-   return iparam;
-}
-
 GL_API void GL_APIENTRY glTexParameterf(GLenum target, GLenum pname, GLfloat param)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
    if (!state) return;
+
+   if (glxx_is_vector_texparam(pname)) {
+      glxx_server_state_set_error(state, GL_INVALID_ENUM);
+      goto end;
+   }
 
    if (glxx_is_float_texparam(pname))
    {
-      GLfloat fparams[4] = { param, 0, 0, 0 };
-      glxx_texparameterf_internal(state, target, pname, fparams);
+      glxx_texparameterf_internal(state, target, pname, &param);
    }
    else
    {
-      GLint iparams[4];
-      iparams[0] = glxx_texparam_float_to_int(param);
-
-      if (pname == GL_TEXTURE_CROP_RECT_OES)
-      {                                               /* If we need 4 params, fill in the rest. */
-         iparams[1] = iparams[2] = iparams[3] = 0;    /* TODO: Is this the right answer         */
-      }
-      glxx_texparameter_internal(state, target, pname, iparams);
+      int iparam = gfx_float_to_int32(param);
+      glxx_texparameter_internal(state, target, pname, &iparam);
    }
 
-   GLXX_UNLOCK_SERVER_STATE();
+end:
+   glxx_unlock_server_state();
 }
 
 GL_API void GL_APIENTRY glTexParameteri(GLenum target, GLenum pname, GLint param)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
+   if (!state) return;
 
+   if (glxx_is_vector_texparam(pname)) {
+      glxx_server_state_set_error(state, GL_INVALID_ENUM);
+      goto end;
+   }
+
+   if (glxx_is_float_texparam(pname))
+   {
+      float fparam = (float)param;
+      glxx_texparameterf_internal(state, target, pname, &fparam);
+   }
+   else
+   {
+      glxx_texparameter_internal(state, target, pname, &param);
+   }
+
+end:
+   glxx_unlock_server_state();
+}
+
+GL_API void GL_APIENTRY glTexParameterfv(GLenum target, GLenum pname, const GLfloat *params)
+{
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
    if (!state)
       return;
 
    if (glxx_is_float_texparam(pname))
    {
-      GLfloat fparams[4] = { (GLfloat)param, 0, 0, 0 };
-      glxx_texparameterf_internal(state, target, pname, fparams);
+      glxx_texparameterf_internal(state, target, pname, params);
    }
    else
    {
-      GLint iparams[4] = { param, 0, 0, 0 };
+      int iparams[4];
+      for (int i=0; i < (glxx_is_vector_texparam(pname) ? 4 : 1); i++) {
+         /* XXX: Border colour is weirdly either float or int */
+         if (pname == GL_TEXTURE_BORDER_COLOR)
+            iparams[i] = gfx_float_to_bits(params[i]);
+         else
+            iparams[i] = gfx_float_to_int32(params[i]);
+      }
       glxx_texparameter_internal(state, target, pname, iparams);
    }
 
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
-GL_API void GL_APIENTRY glTexParameterfv(GLenum target, GLenum pname, const GLfloat *params)
+void glxx_texparamter_iv_common(GLenum target, GLenum pname, const GLint *params)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
+   if (!state) return;
 
-   if (!state)
-      return;
-
-   if (params)
+   if (glxx_is_float_texparam(pname))
    {
-      if (glxx_is_float_texparam(pname))
-      {
-         glxx_texparameterf_internal(state, target, pname, params);
-      }
-      else
-      {
-         GLint iparams[4];
-         iparams[0] = (GLint)params[0];
-         if (pname == GL_TEXTURE_CROP_RECT_OES)
-         {
-            int i;
-            for (i = 1; i < 4; i++)
-               iparams[i] = (GLint)params[i];
-         }
-
-         glxx_texparameter_internal(state, target, pname, iparams);
-      }
+      float fparam = (float)params[0];
+      glxx_texparameterf_internal(state, target, pname, &fparam);
    }
-   GLXX_UNLOCK_SERVER_STATE();
+   else
+   {
+      glxx_texparameter_internal(state, target, pname, params);
+   }
+
+   glxx_unlock_server_state();
 }
 
 GL_API void GL_APIENTRY glTexParameteriv(GLenum target, GLenum pname, const GLint *params)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
-
-   if (!state)
-      return;
-
-   if (params)
-   {
-      if (glxx_is_float_texparam(pname))
-      {
-         GLfloat fparams[4] = { (GLfloat)params[0], 0, 0, 0 };
-
-#if GL_BRCM_mirror_once_border
-         if (pname == GL_TEXTURE_BORDER_COLOR_BRCM)
-         {
-            int i;
-            for (i = 1; i < 4; i++)
-               fparams[i] = (GLfloat)params[i];
-         }
-#endif
-         glxx_texparameterf_internal(state, target, pname, fparams);
-      }
-      else
-      {
-         glxx_texparameter_internal(state, target, pname, params);
-      }
-   }
-
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_texparamter_iv_common(target, pname, params);
 }
+
+#if KHRN_GLES32_DRIVER
+GL_APICALL void GL_APIENTRY glTexParameterIiv(GLenum target, GLenum pname, const GLint *params)
+{
+   glxx_texparamter_iv_common(target, pname, params);
+}
+
+GL_APICALL void GL_APIENTRY glTexParameterIuiv(GLenum target, GLenum pname, const GLuint *params)
+{
+   glxx_texparamter_iv_common(target, pname, (GLint *) params);
+}
+#endif
 
 static void texSubImageX(GLenum target, GLint level, GLint
       xoffset, GLint yoffset, GLint zoffset, GLsizei width, GLsizei height,
       GLsizei depth, GLenum format, GLenum type, const GLvoid* orig_pixels, unsigned dim)
 {
-   GLXX_SERVER_STATE_T *state   = GLXX_LOCK_SERVER_STATE();
-   GLXX_TEXTURE_T      *texture = NULL;
-   GLenum               error   = GL_NO_ERROR;
-   GLvoid               *pixels  = (GLvoid *)orig_pixels;
-   unsigned face;
-   struct glxx_teximage_sanity_checks checks;
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
    if (!state)
       return;
 
-   checks.dimensions = dim;
-   checks.compressed = false;
-   checks.respecify = false;
+   GLXX_TEXTURE_T *texture = NULL;
+   GLenum          error   = GL_NO_ERROR;
+   GLvoid         *pixels  = (GLvoid *)orig_pixels;
 
-   if (!gfx_gl_format_type_combination_valid(khrn_get_lfmt_translate_exts(), format, type)) {
-      if (!gfx_gl_format_type_valid_enums(khrn_get_lfmt_translate_exts(), format, type))
+   struct glxx_teximage_sanity_checks checks = { .dimensions = dim,
+                                                 .compressed = false,
+                                                 .respecify  = false };
+
+   if (!gfx_gl_format_type_combination_valid(format, type)) {
+      if (!gfx_gl_format_type_valid_enums(format, type))
          error = GL_INVALID_ENUM;
       else
          error = GL_INVALID_OPERATION;
@@ -1982,19 +1977,17 @@ static void texSubImageX(GLenum target, GLint level, GLint
             &texture, &error))
       goto end;
 
-   face = glxx_texture_get_face(target);
+   unsigned face = glxx_texture_get_face(target);
 
    // We must also check for valid combination with the existing internal format.
    // First check against the sized internal format. If that doesn't match, try the unsized.
    GLenum internal_fmt     = gfx_internalformat_from_api_fmt(texture->img[face][level]->api_fmt);
    GLenum unsized_internal = gfx_unsized_internalformat_from_api_fmt_maybe(texture->img[face][level]->api_fmt);
 
-   if (!gfx_lfmt_gl_format_type_internalformat_combination_valid(khrn_get_lfmt_translate_exts(),
-                                                                 format, type, internal_fmt))
+   if (!gfx_lfmt_gl_format_type_internalformat_combination_valid(format, type, internal_fmt))
    {
       if (unsized_internal == GL_NONE ||
-          !gfx_lfmt_gl_format_type_internalformat_combination_valid(khrn_get_lfmt_translate_exts(),
-                                                                    format, type, unsized_internal))
+          !gfx_lfmt_gl_format_type_internalformat_combination_valid(format, type, unsized_internal))
       {
          error = GL_INVALID_OPERATION;
          goto end;
@@ -2012,7 +2005,7 @@ end:
 
    if (pixels != orig_pixels)
       free(pixels);
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_API void GL_APIENTRY glTexSubImage2D(GLenum target, GLint level, GLint
@@ -2036,7 +2029,7 @@ GL_API void GL_APIENTRY glTexSubImage3D(GLenum target, GLint level, GLint
 
 GL_API void GL_APIENTRY glActiveTexture(GLenum texture)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE_UNCHANGED();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state_unchanged(OPENGL_ES_ANY);
    if (!state)
       return;
 
@@ -2050,12 +2043,12 @@ GL_API void GL_APIENTRY glActiveTexture(GLenum texture)
    else
       glxx_server_state_set_error(state, GL_INVALID_ENUM);
 
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_API void GL_APIENTRY glBindTexture(GLenum target, GLuint texture)
 {
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
    GLenum error = GL_NONE;
    GLXX_TEXTURE_T *texture_obj = NULL;
    int tex_unit;
@@ -2091,14 +2084,11 @@ end:
    if (error != GL_NONE)
       glxx_server_state_set_error(state, error);
 
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 GL_API void GL_APIENTRY glDeleteTextures(GLsizei n, const GLuint *textures)
 {
-   GLXX_SERVER_STATE_T *state;
-   int i, j;
-
-   state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
    if (!state)
       return;
 
@@ -2111,67 +2101,62 @@ GL_API void GL_APIENTRY glDeleteTextures(GLsizei n, const GLuint *textures)
    if (!textures)
       goto end;
 
-   for (i = 0; i < n; i++)
+   for (int i = 0; i < n; i++)
    {
-      if (textures[i])
+      if (!textures[i]) continue;
+
+      GLXX_TEXTURE_T *texture = glxx_shared_get_texture(state->shared, textures[i]);
+      if (texture == NULL)
+         continue;
+
+      GLXX_TEXTURE_T *default_tex = glxx_textures_get_texture(&state->default_textures,
+                                                              texture->target);
+
+      for (int j = 0; j < GLXX_CONFIG_MAX_COMBINED_TEXTURE_IMAGE_UNITS; j++)
       {
-         GLXX_TEXTURE_T *default_tex, *bound_tex;
-         GLXX_TEXTURE_T *texture;
+         GLXX_TEXTURE_T *bound_tex = glxx_textures_get_texture(&state->bound_texture[j],
+                                                               texture->target);
 
-         texture = glxx_shared_get_texture(state->shared, textures[i]);
-         if (texture == NULL)
-            continue;
-
-         default_tex = glxx_textures_get_texture(&state->default_textures,
-                  texture->target);
-
-         for (j = 0; j < GLXX_CONFIG_MAX_COMBINED_TEXTURE_IMAGE_UNITS; j++)
+         if (bound_tex == texture)
          {
-            bound_tex = glxx_textures_get_texture(&state->bound_texture[j],
-                  texture->target);
-
-            if (bound_tex == texture)
-            {
-               glxx_textures_set_texture(&state->bound_texture[j],
-                   default_tex);
-            }
+            glxx_textures_set_texture(&state->bound_texture[j],
+                default_tex);
          }
-
-         for (j = 0; j < GLXX_CONFIG_MAX_IMAGE_UNITS; j++)
-         {
-            glxx_image_unit *image_unit = &state->image_unit[j];
-            if (image_unit->texture == texture)
-               glxx_image_unit_deinit(image_unit);
-         }
-
-         glxx_fb_detach_texture(state->bound_draw_framebuffer, texture);
-         glxx_fb_detach_texture(state->bound_read_framebuffer, texture);
-
-         glxx_shared_delete_texture(state->shared, textures[i]);
       }
+
+      for (int j = 0; j < GLXX_CONFIG_MAX_IMAGE_UNITS; j++)
+      {
+         glxx_image_unit *image_unit = &state->image_unit[j];
+         if (image_unit->texture == texture)
+            glxx_image_unit_deinit(image_unit);
+      }
+
+      glxx_fb_detach_texture(state->bound_draw_framebuffer, texture);
+      glxx_fb_detach_texture(state->bound_read_framebuffer, texture);
+
+      glxx_shared_delete_texture(state->shared, textures[i]);
    }
 
 end:
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_API void GL_APIENTRY glGenerateMipmap(GLenum target)
 {
    PROFILE_FUNCTION_MT("GL");
 
-   GLXX_TEXTURE_T *texture;
-   GLXX_SERVER_STATE_T *state;
    GLenum error = GL_NO_ERROR;
 
-   state = GLXX_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
    if (!state)
       return;
 
-   texture = glxx_server_state_get_texture(state, target, false);
+   GLXX_TEXTURE_T *texture = glxx_server_state_get_texture(state, target, false);
    if (!texture)
       goto end;
 
-   if (texture->target == GL_TEXTURE_EXTERNAL_OES)
+   if (texture->target == GL_TEXTURE_EXTERNAL_OES ||
+       glxx_tex_target_is_multisample(texture->target))
    {
       error = GL_INVALID_ENUM;
       goto end;
@@ -2183,5 +2168,5 @@ end:
    if (error != GL_NO_ERROR)
       glxx_server_state_set_error(state, error);
 
-   GLXX_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }

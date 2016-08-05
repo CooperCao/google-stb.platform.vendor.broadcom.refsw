@@ -9,7 +9,9 @@ FILE DESCRIPTION
 Execute jobs in parallel threads
 =============================================================================*/
 
-#include "vcos.h"
+#include "vcos_thread.h"
+#include "vcos_event.h"
+#include "vcos_mutex.h"
 #include "v3d_parallel.h"
 #include "libs/util/gfx_util/gfx_util.h"
 #include "libs/util/snprintf.h"
@@ -53,7 +55,7 @@ static void destroy_thread_pool(void);
 static v3d_parallel_context   s_context;
 
 /* The worker thread */
-static void *worker_thread_main(void *arg)
+static void worker_thread_main(void *arg)
 {
    v3d_parallel_worker *worker = (v3d_parallel_worker *)arg;
 
@@ -84,8 +86,6 @@ static void *worker_thread_main(void *arg)
    }
 
    worker->status = V3D_PARALLEL_TERMINATED;
-
-   return NULL;
 }
 
 static uint32_t calc_num_threads(uint32_t maxThreads)
@@ -110,7 +110,6 @@ static bool create_thread_pool(void)
    for (uint32_t t = 0; t < s_context.numThreads; t++)
    {
       char                 name[16];
-      VCOS_THREAD_ATTR_T   attr;
       v3d_parallel_worker *worker = &s_context.workers[t];
 
       memset(worker, 0, sizeof(v3d_parallel_worker));
@@ -127,15 +126,12 @@ static bool create_thread_pool(void)
 
       snprintf(name, sizeof(name), "worker%d", t);
 
-      vcos_thread_attr_init(&attr);
-      vcos_thread_attr_setpriority(&attr, VCOS_THREAD_PRI_NORMAL);
-
       /* In VC4 we set the thread affinity here to try to spread out the threads
          For now, we will let the scheduler handle it.  If it proves inadequate, add
          affinity back.
        */
 
-      if (vcos_thread_create(&worker->thread, name, &attr, worker_thread_main, worker) != VCOS_SUCCESS)
+      if (vcos_thread_create(&worker->thread, name, worker_thread_main, worker) != VCOS_SUCCESS)
          goto error;
 
       worker->createdThread = true;
@@ -172,7 +168,7 @@ static void destroy_thread_pool(void)
       v3d_parallel_worker *worker = &s_context.workers[t];
 
       if (worker->createdThread)
-         vcos_thread_join(&worker->thread, NULL);
+         vcos_thread_join(&worker->thread);
    }
 
    for (uint32_t t = 0; t < s_context.numThreads; t++)

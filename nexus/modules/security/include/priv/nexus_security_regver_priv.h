@@ -44,6 +44,7 @@
 
 #include "nexus_types.h"
 #include "nexus_security_datatypes.h"
+#include "nexus_region_verification.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -121,8 +122,56 @@ typedef enum NEXUS_SecurityRegverRegionID
 } NEXUS_SecurityRegverRegionID;
 
 
+typedef enum {
+    NEXUS_SecurityCpuType_eHost          = 0,
+    NEXUS_SecurityCpuType_eRaaga         = 1,
+    NEXUS_SecurityCpuType_eVideoDecoder0 = 2,
+    NEXUS_SecurityCpuType_eRave          = 3,
+    NEXUS_SecurityCpuType_eVideoDecoder1 = 4,
+    NEXUS_SecurityCpuType_eVice          = 5,
+    NEXUS_SecurityCpuType_eSid           = 6,
+    NEXUS_SecurityCpuType_eScpu          = 7,
+    NEXUS_SecurityCpuType_eAvs           = 8,
+    NEXUS_SecurityCpuType_eMax
+}NEXUS_SecurityCpuType;
+
+typedef enum
+{
+    NEXUS_SecuritySignatureType_eKeys = 1,
+    NEXUS_SecuritySignatureType_eBootCode = 2,
+    NEXUS_SecuritySignatureType_eBootParams = 3,
+    NEXUS_SecuritySignatureType_eCode = 4,
+    NEXUS_SecuritySignatureType_eAssymUnlock = 5,
+    NEXUS_SecuritySignatureType_ePCIEWinSize = 6,
+    NEXUS_SecuritySignatureType_eMax
+}NEXUS_SecuritySignatureType;
+
+
 /*
- * the region configuration
+ * Data encapsulated by the signature.
+ */
+typedef struct {
+
+    NEXUS_SecurityCpuType cpuType;
+
+    uint32_t marketId;
+    uint32_t marketIdMask;
+
+    uint8_t  epoch;
+    uint8_t  epochMask;
+
+   #if NEXUS_ZEUS_VERSION >= NEXUS_ZEUS_VERSION_CALC(4,2)
+    uint8_t  svpFwReleaseVersion;
+    NEXUS_SecuritySignatureType signatureType;
+    uint8_t  signatureVersion;
+    uint8_t  epochSelect;
+   #endif
+
+}NEXUS_SecuritySignedAtrributes;
+
+
+/*
+ *
  */
 typedef struct NEXUS_SecurityRegionConfiguration
 {
@@ -130,15 +179,23 @@ typedef struct NEXUS_SecurityRegionConfiguration
         unsigned size;             /* Signature size. When greater than 0, the intenally maintained signature for
                                     * the region can be overridden. Not all regions have an internally maintained
                                     * signature, in which case, a signature must be provided */
-        void* p;                   /* Pointer to region signature.  */
+        uint8_t data[NEXUS_REGIONVERIFY_SIGNATURE_PLUS_HEADER_SIZE];              /* signature.  */
     }signature;
-    unsigned rsaKeyIndex;          /* The RSA key index */
+
+    bool signedAttributesValid;    /* if true, signedAttributes is valid. if false, signed attributes must be
+                                    * included as past of "signature". */
+    NEXUS_SecuritySignedAtrributes signedAttributes;
+
+    unsigned rsaKeyIndex;          /* The RSA key index used to authenticate the memory region. (default is 2) */
+    bool     useManagedRsaKey;     /* If true (default) and rsaKeyIndex is 2, the NEXUS managed RSA will be used. If false
+                                      (or rsaKeyIndex is not 2)  the client is responsible for loading the RSA key.  */
 
     bool enableInstructionChecker; /* Required for SAGE/BHSM_SUPPORT_HDDTA */
     bool enableBackgroundChecker;  /* Required for SAGE */
     unsigned scmVersion;           /* Required for BHSM_SUPPORT_HDDTA  */
     NEXUS_SecurityVirtualKeyladderID  keyLadderId;     /* Requried for SCPU FSBL region */
     NEXUS_SecurityKeySource           keyLadderLayer;  /* Requried for SCPU FSBL region*/
+    bool                              forceVerification; /* perform Verificaiton on region even if not required by OTP */
 
 } NEXUS_SecurityRegionConfiguration;
 
@@ -183,7 +240,7 @@ NEXUS_Error NEXUS_Security_RegionConfig_priv ( NEXUS_SecurityRegverRegionID     
     background checking that will result in a system reset if memory withing the region is modified.
 **/
 NEXUS_Error NEXUS_Security_RegionVerifyEnable_priv( NEXUS_SecurityRegverRegionID regionId,
-                                                    void* pRegionAddress,
+                                                    NEXUS_Addr regionAddress, /* physical address */
                                                     unsigned regionSize
                                                     );
 

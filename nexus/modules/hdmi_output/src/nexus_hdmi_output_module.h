@@ -186,9 +186,11 @@ typedef struct NEXUS_HdmiOutput
     NEXUS_EventCallbackHandle riCallback;
     NEXUS_EventCallbackHandle pjCallback;
     NEXUS_TimerHandle hdcpTimer;
+    NEXUS_TimerHandle hdcpKeepAliveTimer;
     NEXUS_HdmiOutputHdcpSettings hdcpSettings;
     NEXUS_HdmiOutputHdcpKsv *pRevokedKsvs;
     uint16_t numRevokedKsvs;
+    uint16_t revokedKsvsSize;
     BHDCPlib_State hdcp1xState;
     BHDCPlib_HdcpError hdcp1xError;
 #if NEXUS_HAS_SAGE && defined(NEXUS_HAS_HDCP_2X_SUPPORT)
@@ -196,6 +198,11 @@ typedef struct NEXUS_HdmiOutput
     NEXUS_EventCallbackHandle hdcp2xEncryptionEnableCallback;
     NEXUS_EventCallbackHandle hdcp2xReAuthRequestCallback;
     NEXUS_EventCallbackHandle hdcp2xAuthenticationStatusCallback;
+    struct {
+        uint8_t *buffer;
+        uint32_t bufferSize;
+        uint32_t length;
+    } hdcp2xKeys;
 #endif
 #endif
     bool resumeFromS3;
@@ -232,6 +239,13 @@ typedef struct NEXUS_HdmiOutputMemoryBlock {
     void *buf;
 } NEXUS_HdmiOutputMemoryBlock;
 
+#define NEXUS_HDMI_OUTPUT_SAGE_INDICATION_QUEUE_SIZE 5
+typedef struct NEXUS_HdmiOutputIndicationData
+{
+    BHDCPlib_SageIndicationData sageIndication;
+    BHDCPlib_Handle hHDCPlib;
+} NEXUS_HdmiOutputIndicationData;
+
 
 typedef struct NEXUS_HdmiOutput_SageData
 {
@@ -244,13 +258,9 @@ typedef struct NEXUS_HdmiOutput_SageData
     BKNI_EventHandle eventIndicationRecv;
     NEXUS_EventCallbackHandle eventIndicationRecvCallback;
     uint32_t async_id;
-    struct
-    {
-        BSAGElib_RpcRemoteHandle sageRpcHandle;
-        BHDCPlib_Handle hHDCPlib;
-        uint32_t indication_id;
-        uint32_t value;
-    } indicationData;
+    NEXUS_HdmiOutputIndicationData indicationData[NEXUS_HDMI_OUTPUT_SAGE_INDICATION_QUEUE_SIZE];
+    unsigned indicationReadPtr;
+    unsigned indicationWritePtr;
 } NEXUS_HdmiOutput_SageData;
 #endif
 
@@ -263,8 +273,6 @@ extern NEXUS_HdmiOutputMemoryBlock g_hdcpTABlock;
 #endif
 
 /* Internal Private Routines */
-NEXUS_Error NEXUS_HdmiOutput_P_Shutdown(void);
-
 NEXUS_HdmiOutputState NEXUS_HdmiOutput_P_GetState(NEXUS_HdmiOutputHandle output);
 
 NEXUS_Error NEXUS_HdmiOutput_P_InitHdcp(NEXUS_HdmiOutputHandle output);
@@ -274,6 +282,8 @@ void NEXUS_HdmiOutput_P_HdcpNotifyHotplug(NEXUS_HdmiOutputHandle output);
 void NEXUS_HdmiOutputModule_Print(void);
 
 void NEXUS_HdmiOutput_P_CheckHdcpVersion(NEXUS_HdmiOutputHandle output);
+
+void NEXUS_HdmiOutput_P_CloseHdcp(NEXUS_HdmiOutputHandle output);
 
 /* Proxy conversion */
 #define NEXUS_P_HDMI_OUTPUT_HDCP_KSV_SIZE(num) ((num)*sizeof(NEXUS_HdmiOutputHdcpKsv))

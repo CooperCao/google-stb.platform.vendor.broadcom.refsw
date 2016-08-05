@@ -55,6 +55,7 @@
 
 /************************* INCLUDES ****************************************************/
 #include "bbMailService.h"
+#include "bbMailAPI.h"
 
 /************************* DEFINITIONS *************************************************/
 #define MAILBOX_API_VERSION 1

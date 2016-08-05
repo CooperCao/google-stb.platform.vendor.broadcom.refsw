@@ -62,18 +62,27 @@ extern void *_system_link_base;
 int TzTask::execve(IFile *exeFile, IDirectory *exeDir, char **argv, char **envp) {
     if (!exeFile->isExecutable())
         return -ENOEXEC;
+
+    // Destroy the current elf image
+    if (image != nullptr) {
+        delete image;
+    }
+
     /*
      * Load the new image.
      */
-    ElfImage *execImage = new ElfImage(tid, exeFile);
-    if (execImage == nullptr){
+    image = new ElfImage(tid, exeFile);
+    if (image == nullptr){
         err_msg("Could not load elf image\n");
         return -ENOEXEC;
     }
-    if (execImage->status != ElfImage::Valid) {
-        err_msg("Could not load elf image. status %d\n", execImage->status);
+    if (image->status != ElfImage::Valid) {
+        err_msg("Could not load elf image. status %d\n", image->status);
         return -ENOEXEC;
     }
+
+    pageTable = &image->userPageTable;
+
     /*
      * Populate the user mode stack
      */
@@ -89,26 +98,25 @@ int TzTask::execve(IFile *exeFile, IDirectory *exeDir, char **argv, char **envp)
             numEnvs++;
     }
 
-    unsigned long imageStackTop = (unsigned long)execImage->stackBase();
-    TzMem::VirtAddr userStackVa = execImage->stackTopPageVA();
+    unsigned long imageStackTop = (unsigned long)image->stackBase();
+    TzMem::VirtAddr userStackVa = image->stackTopPageVA();
 
-    TaskStartInfo tsInfo(execImage, taskName, numArgs, argv, numEnvs, envp);
+    TaskStartInfo tsInfo(image, taskName, numArgs, argv, numEnvs, envp);
     if (!tsInfo.constructed())
         return -ENOMEM;
 
     int numBytesWritten = tsInfo.prepareUserStack(userStackVa);
-
     unsigned long userStackTop = imageStackTop - numBytesWritten;
 
-    execImage->unmapStackFromKernel();
+    image->unmapStackFromKernel();
 
     /*
      * Point user space to the new image. Reset the stack.
      */
-    savedRegs[SAVED_REG_LR] = (unsigned long)execImage->entry();
+    savedRegs[SAVED_REG_LR] = (unsigned long)image->entry();
     savedRegs[SAVED_REG_SP] = (unsigned long)stackKernel;
     savedRegs[SAVED_REG_SP_USR] = userStackTop;
-    savedRegs[SAVED_REG_LR_USR] = (unsigned long)execImage->entry();
+    savedRegs[SAVED_REG_LR_USR] = (unsigned long)image->entry();
 
     register unsigned long spsr = 0x80 | Mode_USR; // No IRQs. IRQs belong in normal world.
     if (savedRegs[SAVED_REG_LR] & 0x1) {
@@ -116,31 +124,6 @@ int TzTask::execve(IFile *exeFile, IDirectory *exeDir, char **argv, char **envp)
         spsr |= 0x20;
     }
     savedRegs[SAVED_REG_SPSR] = spsr;
-
-    /*
-     * Delete the current elf image and replace it with the new image
-     */
-    if (image != nullptr)
-        delete image;
-    image = execImage;
-    pageTable = &image->userPageTable;
-    //pageTable->dump();
-
-    /*
-     * Prepare TLS region
-     */
-    TzMem::PhysAddr tiPA = TzMem::allocPage(tid);
-    if (tiPA == nullptr) {
-        err_msg("system memory exhausted !\n");
-        return -ENOMEM;
-    }
-    threadInfo = pageTable->reserveAddrRange(userStackVa, PAGE_SIZE_4K_BYTES, PageTable::ScanDirection::ScanForward);
-    if (threadInfo == nullptr) {
-        err_msg("No virtual address space left in user page table\n");
-        return -ENOMEM;
-    }
-    pageTable->mapPage(threadInfo, tiPA, MAIR_MEMORY, MEMORY_ACCESS_RW_USER);
-    threadInfo =(uint8_t *)threadInfo + THREAD_INFO_OFFSET;
 
     // Close file descriptors marked for closeOnExec
     for (int i=0; i<MAX_FD; i++) {
@@ -156,13 +139,12 @@ int TzTask::execve(IFile *exeFile, IDirectory *exeDir, char **argv, char **envp)
     }
 
     // Reset the memory allocation trackers
-    brkStart = execImage->dataSegmentBrk();
+    brkStart = image->dataSegmentBrk();
     brkCurr = brkStart;
     brkMax = (uint8_t *)brkStart + BRK_MAX;
     mmapMaxVa = &_system_link_base;
 
     // Change the working directory
     currWorkDir = exeDir;
-
     return 0;
 }

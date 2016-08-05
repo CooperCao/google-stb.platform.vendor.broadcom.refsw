@@ -291,6 +291,7 @@ static void halUartMailboxReceiveData(HAL_UsartDescriptor_t *const usart)
                 crc = SYS_Crc16(crc, descr->rxBuffer.message, descr->rxBuffer.messageLength);
                 if (crc != descr->rxBuffer.crc)
                 {
+                    SYS_DbgLogId(HAL_UART_MAILBOX_RX__CRC_MISMATCH);
                     descr->rxBuffer.state = HAL_UART_MAILBOX_IDLE;
                     break;
                 }

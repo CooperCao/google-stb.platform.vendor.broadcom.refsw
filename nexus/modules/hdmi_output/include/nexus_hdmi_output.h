@@ -121,7 +121,8 @@ typedef struct NEXUS_HdmiOutputSettings
     bool preemphasisEnabled;    /* If true, preemphasis will be enabled.  This can be used with long cables */
     unsigned preFormatChangeAvMuteDelay;   /* Delay (in msec) between sending AVMute packet and changing display format */
     unsigned postFormatChangeAvMuteDelay;  /* Delay (in msec) between changing display format and sending AVUnmute packet */
-    NEXUS_VideoFormat outputFormat;        /* Optional. Defaults to NEXUS_VideoFormat_eUnknown, which means display format is used for the output format. Otherwise, this is the VEC format. For instance, VEC upscale will be performed. */
+    NEXUS_VideoFormat outputFormat;        /* Optional. Defaults to NEXUS_VideoFormat_eUnknown, which means display format is used for the output format.
+                                              Otherwise, this is the VEC format. For instance, VEC upscale will be performed. */
 
     NEXUS_CallbackDesc hotplugCallback;    /* Callback will be called when a hotplug event occurs */
     NEXUS_CallbackDesc cecCallback;        /* Callback will be called when a CEC message is sent or received. See NEXUS_HdmiOutputCecStatus. */
@@ -143,8 +144,7 @@ typedef struct NEXUS_HdmiOutputSettings
     NEXUS_SpdifOutputBurstType  audioBurstType; /* burst type when the HDMI compressed audio
                                                    transmission is inactive (decoder underflow, mute, etc) */
 
-    unsigned audioBurstPadding;      /* Choose to pad to the end of pause bursts with additional words.
-                                   Valid values are either 0 or 2.  Default is 0 */
+    unsigned audioBurstPadding;  /* Deprecated */
 
     bool mpaaDecimationEnabled; /* When MPAA decimation is enabled, a significant number of pixels in the output video
                                    signal are replaced with values interpolated from neighboring pixels.
@@ -152,7 +152,8 @@ typedef struct NEXUS_HdmiOutputSettings
 
     bool autoColorSpace; /* deprecated */
     NEXUS_ColorSpace colorSpace; /* if not NEXUS_ColorSpace_eAuto , then this value is used instead of the value reported by the HDMI receiver.
-                                    if NEXUS_ColorSpace_eAuto or autoColorSpace, a colorspace is chosen based on receiver and transmitter preferences and capabilities. */
+                                    if NEXUS_ColorSpace_eAuto or autoColorSpace, a colorspace is chosen based on receiver and transmitter
+                                    preferences and capabilities. */
     unsigned colorDepth; /* default is 8bit standard color depth. 10bit & 12bit deep color are supported with HDMI 1.3 platform only.
                             if 0, a value is chosen based on receiver and transmitter preferences and capabilities.*/
 
@@ -162,7 +163,7 @@ typedef struct NEXUS_HdmiOutputSettings
     bool overrideMatrixCoefficients; /* If true, use matrixCoefficients settings vs. default matrixCoefficents settings based on format */
     NEXUS_MatrixCoefficients matrixCoefficients; /* MatrixCoefficient to use when overrideMatrixCoefficients is set */
 
-    /* Spread Spectrum configuration */
+    /* Spread Spectrum configuration deprecated - HDMI does not support Spread Spectrum */
     struct
     {
         bool                     enable;  /* enable Spread Spectrum */
@@ -870,4 +871,3 @@ NEXUS_Error NEXUS_HdmiOutput_GetCrcData(
 #endif
 
 #endif /* NEXUS_HDMI_OUTPUT_H__ */
-

@@ -1,54 +1,40 @@
 /***************************************************************************
-*     (c)2004-2014 Broadcom Corporation
-*
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
-*  and may only be used, duplicated, modified or distributed pursuant to the terms and
-*  conditions of a separate, written license agreement executed between you and Broadcom
-*  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
-*  no license (express or implied), right to use, or waiver of any kind with respect to the
-*  Software, and Broadcom expressly reserves all rights in and to the Software and all
-*  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-*  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-*  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-*  Except as expressly set forth in the Authorized License,
-*
-*  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
-*  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
-*  and to use this information only in connection with your use of Broadcom integrated circuit products.
-*
-*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
-*  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
-*  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
-*  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
-*  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
-*  USE OR PERFORMANCE OF THE SOFTWARE.
-*
-*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
-*  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
-*  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
-*  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
-*  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
-*  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
-*  ANY LIMITED REMEDY.
-*
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* API Description:
-*   API name: Frontend 7366
-*    APIs to open, close, and setup initial settings for a BCM7366
-*    Dual-Channel Satellite Tuner/Demodulator Device.
-*
-* Revision History:
-*
-* $brcm_Log: $
-*
-***************************************************************************/
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ *  Except as expressly set forth in the Authorized License,
+ *
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+ ***************************************************************************/
 #include "nexus_frontend_module.h"
 #include "nexus_frontend_sat.h"
 #include "priv/nexus_transport_priv.h"
@@ -213,7 +199,7 @@ static void NEXUS_Frontend_P_7366_GpioIsrControl_isr(bool enable, void *pParam)
     NEXUS_GpioHandle gpioHandle = (NEXUS_GpioHandle)pParam;
 
 #if NEXUS_FRONTEND_DEBUG_IRQ
-    BDBG_MSG(("%s 7366 Gpio Interrupt %p", enable ? "Enable" : "Disable", gpioHandle));
+    BDBG_MSG(("%s 7366 Gpio Interrupt %p", enable ? "Enable" : "Disable", (void *)gpioHandle));
 #endif
     NEXUS_Gpio_SetInterruptEnabled_isr(gpioHandle, enable);
 }
@@ -223,7 +209,7 @@ static void NEXUS_Frontend_P_7366_IsrCallback(void *pParam)
     NEXUS_7366Device *pDevice = (NEXUS_7366Device *)pParam;
     BDBG_OBJECT_ASSERT(pDevice, NEXUS_7366Device);
 #if NEXUS_FRONTEND_DEBUG_IRQ
-    BDBG_MSG(("7366 ISR Callback (hab: %p)",pDevice->satDevice->habHandle));
+    BDBG_MSG(("7366 ISR Callback (hab: %p)",(void *)pDevice->satDevice->habHandle));
 #endif
     BHAB_ProcessInterruptEvent(pDevice->satDevice->habHandle);
 }
@@ -234,12 +220,12 @@ static void NEXUS_Frontend_P_7366_L1_isr(void *param1, int param2)
     BDBG_OBJECT_ASSERT(pDevice, NEXUS_7366Device);
     BSTD_UNUSED(param2);
 #if NEXUS_FRONTEND_DEBUG_IRQ
-    BDBG_MSG(("7366 L1 ISR (hab: %p)",pDevice->satDevice->habHandle));
+    BDBG_MSG(("7366 L1 ISR (hab: %p)",(void *)pDevice->satDevice->habHandle));
 #endif
 
     BHAB_HandleInterrupt_isr(pDevice->satDevice->habHandle);
 #if NEXUS_FRONTEND_DEBUG_IRQ
-    BDBG_MSG(("Done: 7366 L1 ISR (hab: %p)",pDevice->satDevice->habHandle));
+    BDBG_MSG(("Done: 7366 L1 ISR (hab: %p)",(void *)pDevice->satDevice->habHandle));
 #endif
 }
 
@@ -461,7 +447,7 @@ static NEXUS_Error NEXUS_FrontendDevice_P_Init7366(NEXUS_7366Device *pDevice)
     pDevice->satDevice->wfeHandle = wfeHandle;
     pDevice->satDevice->dsqHandle = dsqHandle;
 
-    BDBG_MSG(("hab: %p, sat: %p, wfe: %p, dsq: %p",habHandle,satHandle,wfeHandle,dsqHandle));
+    BDBG_MSG(("hab: %p, sat: %p, wfe: %p, dsq: %p",(void *)habHandle,(void *)satHandle,(void *)wfeHandle,(void *)dsqHandle));
 
 #if NEXUS_FRONTEND_7366_USE_DRAM
     if (!isExternal)
@@ -530,7 +516,7 @@ static NEXUS_Error NEXUS_FrontendDevice_P_Init7366(NEXUS_7366Device *pDevice)
     pDevice->numAdc = pDevice->wfeInfo.numChannels;
     pDevice->satDevice->numWfe = pDevice->numAdc;
 
-    BDBG_MSG(("pDevice->satDevice->wfeHandle: %p",pDevice->satDevice->wfeHandle));
+    BDBG_MSG(("pDevice->satDevice->wfeHandle: %p",(void *)pDevice->satDevice->wfeHandle));
 
     BDBG_WRN(("Initializing 7366 Frontend core..."));
     /* Initialize the acquisition processor */
@@ -769,7 +755,7 @@ static NEXUS_Error NEXUS_FrontendDevice_P_Init7366(NEXUS_7366Device *pDevice)
     pDevice->pGenericDeviceHandle->openPending = false;
 
     BDBG_MSG(("Returning from NEXUS_FrontendDevice_P_Init7366"));
-    BDBG_MSG(("pDevice->satDevice->wfeHandle: %p",pDevice->satDevice->wfeHandle));
+    BDBG_MSG(("pDevice->satDevice->wfeHandle: %p",(void *)pDevice->satDevice->wfeHandle));
 
     BKNI_Free(pInitSettings);
     return NEXUS_SUCCESS;
@@ -794,9 +780,8 @@ NEXUS_FrontendDeviceHandle NEXUS_FrontendDevice_Open7366(unsigned index, const N
 
         BDBG_MSG(("Opening new 7366 device"));
 
-        pFrontendDevice = BKNI_Malloc(sizeof(*pFrontendDevice));
+        pFrontendDevice = NEXUS_FrontendDevice_P_Create();
         if (NULL == pFrontendDevice) { BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY); goto err; }
-        BKNI_Memset(pFrontendDevice, 0, sizeof(*pFrontendDevice));
 
         pDevice = BKNI_Malloc(sizeof(*pDevice));
         if (NULL == pDevice) { BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY); goto err; }
@@ -840,7 +825,7 @@ static void NEXUS_Frontend_P_Uninit7366(NEXUS_7366Device *pDevice)
 
     BDBG_OBJECT_ASSERT(pDevice, NEXUS_7366Device);
 
-    BDBG_MSG(("Closing 7366 device %p handles", pDevice));
+    BDBG_MSG(("Closing 7366 device %p handles", (void *)pDevice));
 
 #if NEXUS_HAS_MXT
     if (pDevice->pGenericDeviceHandle) {
@@ -1170,20 +1155,20 @@ static NEXUS_Error NEXUS_Frontend_P_7366_Standby(void *handle, bool enabled, con
 
     BDBG_MSG(("NEXUS_Frontend_P_7366_Standby: standby %p(%d) %s", handle, pSatChannel->channel, enabled ? "enabled" : "disabled"));
 
-    BDBG_MSG(("Restoring handles on %p",pSatChannel));
+    BDBG_MSG(("Restoring handles on %p",(void *)pSatChannel));
     /* update/restore handles */
     pSatChannel->satChannel = p7366Device->satChannels[pSatChannel->channel];
 
     if (pSettings->mode == NEXUS_StandbyMode_eDeepSleep) {
-        BDBG_MSG(("Unregistering events on %p",pSatChannel));
+        BDBG_MSG(("Unregistering events on %p",(void *)pSatChannel));
         NEXUS_Frontend_P_Sat_UnregisterEvents(pSatChannel);
     } else if (pSettings->mode != NEXUS_StandbyMode_eDeepSleep && pSatChannel->frontendHandle->mode == NEXUS_StandbyMode_eDeepSleep) {
-        BDBG_MSG(("Registering events on %p",pSatChannel));
-        BDBG_MSG(("p7366Device->satDevice->wfeHandle: %p",p7366Device->satDevice->wfeHandle));
+        BDBG_MSG(("Registering events on %p",(void *)pSatChannel));
+        BDBG_MSG(("p7366Device->satDevice->wfeHandle: %p",(void *)p7366Device->satDevice->wfeHandle));
         NEXUS_Frontend_P_Sat_RegisterEvents(pSatChannel);
     }
 
-    BDBG_MSG(("Done with standby configuration on %p",pSatChannel));
+    BDBG_MSG(("Done with standby configuration on %p",(void *)pSatChannel));
     return NEXUS_SUCCESS;
 }
 

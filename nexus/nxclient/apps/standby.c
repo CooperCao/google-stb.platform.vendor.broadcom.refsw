@@ -50,6 +50,23 @@
 #include "binput.h"
 #include "namevalue.h"
 
+/* ALLOW_GPIO_TO_WAKEUP_FROM_STANDBY
+ * =================================
+ * nexus.client standby -timeout 0 -gui
+ * -- then you can use the IR remote to select a standby mode from the screen
+ * -- and use a button attached to the gpio pin to wakeup
+ */
+
+#define ALLOW_GPIO_TO_WAKEUP_FROM_STANDBY
+
+#ifdef ALLOW_GPIO_TO_WAKEUP_FROM_STANDBY
+#include "nexus_gpio.h"
+
+/* Selecting AON_GPIO_009 for wakup GPIO pin */
+#define WAKEUP_GPIO_TYPE NEXUS_GpioType_eAonStandard
+#define WAKEUP_GPIO_PIN  9
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -136,6 +153,18 @@ static void set_wake_event(struct appcontext *pContext)
         }
     }
 }
+
+#ifdef ALLOW_GPIO_TO_WAKEUP_FROM_STANDBY
+void gpio_interrupt(void *context, int param)
+{
+    struct appcontext *pContext = context;
+    BSTD_UNUSED(param);
+
+    set_wake_event(pContext);
+    pContext->mode = NEXUS_PlatformStandbyMode_eOn;
+    BKNI_SetEvent(pContext->event);
+}
+#endif
 
 static void *remote_key_monitor(void *context)
 {
@@ -310,6 +339,7 @@ static void print_wakeup(struct appcontext *pContext)
            standbyStatus.status.wakeupStatus.timeout));
 }
 
+
 #define DEFAULT_TIMEOUT 5
 
 static void set_power_state(struct appcontext *pContext)
@@ -349,6 +379,7 @@ static void set_power_state(struct appcontext *pContext)
         goto done;
     }
 
+    rc = NEXUS_TIMEOUT;
     if(pContext->mode == NEXUS_PlatformStandbyMode_eActive || !pContext->pm_ctx) {
         rc = BKNI_WaitForEvent(pContext->wakeupEvent, timeout*1000);
     } else if(pContext->mode == NEXUS_PlatformStandbyMode_ePassive) {
@@ -403,6 +434,11 @@ int main(int argc, const char **argv)
     int curarg = 1;
     struct bgui_settings gui_settings;
     bool gui=true, prompt=true, pmlib=true, exit=false;
+
+#ifdef ALLOW_GPIO_TO_WAKEUP_FROM_STANDBY
+    NEXUS_GpioHandle pin;
+    NEXUS_GpioSettings gpioSettings;
+#endif
 
     BKNI_Memset(pContext, 0, sizeof(struct appcontext));
     pContext->timeout = -1;
@@ -488,6 +524,15 @@ int main(int argc, const char **argv)
 
     NxClient_UnregisterAcknowledgeStandby(NxClient_RegisterAcknowledgeStandby());
 
+#ifdef ALLOW_GPIO_TO_WAKEUP_FROM_STANDBY
+    NEXUS_Gpio_GetDefaultSettings(NEXUS_GpioType_eAonStandard, &gpioSettings);
+    gpioSettings.mode = NEXUS_GpioMode_eInput;
+    gpioSettings.interruptMode = NEXUS_GpioInterrupt_eRisingEdge;
+    gpioSettings.interrupt.callback = gpio_interrupt;
+    gpioSettings.interrupt.context = pContext;
+    pin = NEXUS_Gpio_Open(WAKEUP_GPIO_TYPE, WAKEUP_GPIO_PIN, &gpioSettings);
+#endif
+
     set_power_state(pContext);
 
     if(exit) goto done;
@@ -548,6 +593,10 @@ int main(int argc, const char **argv)
         bgui_destroy(pContext->gui);
     }
 done:
+#ifdef ALLOW_GPIO_TO_WAKEUP_FROM_STANDBY
+    NEXUS_Gpio_Close(pin);
+#endif
+
     if(pContext->pm_ctx) {
         brcm_pm_close(pContext->pm_ctx);
     }

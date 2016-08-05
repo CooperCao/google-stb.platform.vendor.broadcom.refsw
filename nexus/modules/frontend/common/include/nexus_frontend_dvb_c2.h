@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2013 Broadcom Corporation
+*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,14 +34,6 @@
 *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
-*
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-* Revision History:  
-*
-* $brcm_Log: $
-* 
 ***************************************************************************/
 #ifndef NEXUS_FRONTEND_DVBC2_H__
 #define NEXUS_FRONTEND_DVBC2_H__
@@ -138,7 +130,8 @@ Summary:
 ****************************************************************************/
 typedef struct NEXUS_FrontendDvbc2L1part2PlpParams
 {
-    uint16_t                             plpStart;   /* This 14-bit field indicates the start position of the first complete XFECframe of the associated PLP within the current C2 Frame. */
+    uint16_t                             plpStart;   /* This 14-bit field indicates the start position of the first complete XFECframe
+                                                        of the associated PLP within the current C2 Frame. */
     NEXUS_FrontendDvbc2FecType           plpFecType; /* This 1-bit field indicates the FEC type used by the associated PLP. */
     NEXUS_FrontendDvbc2L1Part2Modulation plpMod;     /* This 3-bit field indicates the modulation used by the associated PLP. */
     NEXUS_FrontendDvbc2L1CodeRate        plpCod;     /* This 3-bit field indicates the code rate used by the associated PLP. */
@@ -151,7 +144,8 @@ Summary:
 ****************************************************************************/
 typedef struct NEXUS_FrontendDvbc2L1part2Reprocessing
 {
-    uint16_t    transportStreamId;  /* This is a 16-bit field which serves as a label for identification of this TS from any other multiplex within the delivery system */
+    uint16_t    transportStreamId;  /* This is a 16-bit field which serves as a label for identification of this TS from any other multiplex
+                                       within the delivery system */
     uint16_t    originalNetworkId;  /* This 16-bit field gives the label identifying the network_id of the originating delivery system */
 } NEXUS_FrontendDvbc2L1part2Reprocessing;
 
@@ -193,12 +187,15 @@ typedef struct NEXUS_FrontendDvbc2L1part2DslicePlp
 {
     uint8_t                                dsliceId;        /* This 8-bit field uniquely identifies a Data Slice within the C2 System. */
     uint8_t                                plpId;           /* This 8-bit field identifies a PLP within the C2 System. */
-    bool                                   plpBundled;      /* This 1-bit field indicates whether the associated PLP is bundled with other PLP(s) or not within the current C2 System.
-                                                                                                              If the associated PLP is bundled, this field shall be set to '1'. Otherwise this field shall be set to '0'. */
-    NEXUS_FrontendDvbc2PlpType             plpType;         /* This 2-bit field indicates the type of the associated PLP. PLP_TYPE shall be signalled according to table 23. */
+    bool                                   plpBundled;      /* This 1-bit field indicates whether the associated PLP is bundled with other
+                                                               PLP(s) or not within the current C2 System. If the associated PLP is bundled,
+                                                               this field shall be set to '1'. Otherwise this field shall be set to '0'. */
+    NEXUS_FrontendDvbc2PlpType             plpType;         /* This 2-bit field indicates the type of the associated PLP. PLP_TYPE shall be
+                                                               signalled according to table 23. */
     NEXUS_FrontendDvbc2PlpPayloadType      plpPayloadType;  /* This 5-bit field indicates the type of the payload data carried by the associated PLP. */
-    uint8_t                                plpGroupId;      /* This 8-bit field identifies with which PLP group within the C2 System the current PLP is associated. This can be used
-                                                                                                              by a receiver to link the Data PLP to its associated Common PLP, which will have the same PLP_GROUP_ID. */
+    uint8_t                                plpGroupId;      /* This 8-bit field identifies with which PLP group within the C2 System the current
+                                                               PLP is associated. This can be used by a receiver to link the Data PLP to its
+                                                               associated Common PLP, which will have the same PLP_GROUP_ID. */
     NEXUS_FrontendDvbc2L1part2PlpParams    plpParams;       /* L1 Part 2 PLP Parameters */
     bool                                   psiReprocessing; /* If this is set to true, then PSI/SI reprocessing is performed.*/
     NEXUS_FrontendDvbc2L1part2Reprocessing reprocessing;    /* L1 Part 2 Reprocessing, only valid if psiReprocessing = true. */
@@ -226,12 +223,15 @@ Summary:
 typedef struct NEXUS_FrontendDvbc2L1Part2Dslice
 {
     uint8_t                              dsliceId;          /* This 8-bit field uniquely identifies a Data Slice within the C2 System. */
-    uint16_t                             dsliceTunePos;     /* This field indicates the tuning position of the associated Data Slice relative to the startFrequency. Its bit
-                                                                                                             width shall be 13 bits or 14 bits according to the guardInterval value. */
-    uint16_t                             dsliceOffsetLeft;  /* This field indicates the start position of the associated Data Slice by means of the distance to the left from 
-                                                                                                              the tuning position and shall be two's complement integer of 8 bits or 9 bits according to the guardInterval value.*/
-    uint16_t                             dsliceOffsetRight; /* This field indicates the end position of the associated Data Slice by means of the distance to the right from the 
-                                                                                                              tuning position and shall be two's complement integer of 8 bits or 9 bits according to the guardInterval value. */
+    uint16_t                             dsliceTunePos;     /* This field indicates the tuning position of the associated Data Slice relative to
+                                                               the startFrequency. Its bit width shall be 13 bits or 14 bits according to the
+                                                               guardInterval value. */
+    uint16_t                             dsliceOffsetLeft;  /* This field indicates the start position of the associated Data Slice by means
+                                                               of the distance to the left from the tuning position and shall be two's complement
+                                                               integer of 8 bits or 9 bits according to the guardInterval value.*/
+    uint16_t                             dsliceOffsetRight; /* This field indicates the end position of the associated Data Slice by means of
+                                                               the distance to the right from the tuning position and shall be two's complement
+                                                               integer of 8 bits or 9 bits according to the guardInterval value. */
     NEXUS_FrontendDvbc2TimeInterleaving  timeInterLeaving;  /* This 2-bit field indicates the time interleaving depth within the associated Data Slice. */
     NEXUS_FrontendDvbc2DsliceType        dsliceType;        /* This 1-bit field indicates the type of the associated Data Slice. */
     NEXUS_FrontendDvbc2FecHeaderType     fecHeaderType;     /* This 1-bit field indicates the type of the FEC Frame header within the associated Data Slice. */
@@ -330,7 +330,8 @@ typedef struct NEXUS_FrontendDvbc2FecStatistics
     uint32_t       ldpcTotIter; /* This unsigned number represents the accumulated number of  iterations by the LDPC decoder */   
     uint32_t       ldpcTotFrm;  /* This unsigned number represents the accumulated number of  total frames processed by the LDPC decoder. */
     uint32_t       ldpcUncFrm;  /* This unsigned number represents the accumulated number of  uncorrectable frames processed by the LDPC decoder */
-    uint32_t       ldpcBER;     /* This unsigned number represents the LDPC BER as a fraction of 2^32.  The actual LDPC BER is therefore computed by dividing this integer value by 2^32 */
+    uint32_t       ldpcBER;     /* This unsigned number represents the LDPC BER as a fraction of 2^32.  The actual LDPC BER is therefore computed by
+                                   dividing this integer value by 2^32 */
     uint32_t       bchCorBit;   /* This unsigned number represents the accumulated number of  bits corrected by the BCH decoder */
     uint32_t       bchTotBlk;   /* This unsigned number represents the accumulated number of  total blocks processed by the BCH decoder */
     uint32_t       bchClnBlk;   /* This unsigned number represents the accumulated number of  clean blocks processed by the BCH decoder */
@@ -347,13 +348,16 @@ typedef struct NEXUS_FrontendDvbc2L1Part2Status
 {
     uint16_t                            networkId;                               /* This is a 16-bit field which uniquely identifies the current DVB-C2 network. */
     uint16_t                            c2SystemId;                              /* This 16-bit field uniquely identifies a C2 System within the DVB-C2 network. */
-    uint32_t                            startFrequency;                          /* This 24-bit field indicates the start frequency in Hz of the current C2 System by means of the distance from 0 Hz. */
+    uint32_t                            startFrequency;                          /* This 24-bit field indicates the start frequency in Hz of the current C2
+                                                                                    System by means of the distance from 0 Hz. */
     uint16_t                            c2Bandwidth;                             /* This 16-bit field indicates the bandwidth of the current C2 system. */
     NEXUS_FrontendOfdmGuardInterval     guardInterval;                           /* This field indicates the guard interval of the current C2 Frame. */
     uint16_t                            c2FrameLength;                           /* This 10-bit field gives the number of Data Symbols per C2 Frame */
-    uint8_t                             l1Part2ChangeCounter;                    /* This 8-bit field indicates the number of C2 Frames ahead where the configuration will change. */
+    uint8_t                             l1Part2ChangeCounter;                    /* This 8-bit field indicates the number of C2 Frames ahead where the configuration
+                                                                                    will change. */
     uint8_t                             numDslice;                               /* This 8-bit field indicates the number of Data Slices carried within the current C2 Frame. */
-    uint8_t                             numNotch;                                /* This 4-bit field indicates the number of Notch bands. If there is no Notch band within the current C2 Frame, this field shall be set to '0'. */
+    uint8_t                             numNotch;                                /* This 4-bit field indicates the number of Notch bands. If there is no Notch band
+                                                                                    within the current C2 Frame, this field shall be set to '0'. */
     NEXUS_FrontendDvbc2L1Part2Dslice    dslices[NEXUS_MAX_DVBC2_DSLICE_INFO];    /* Dslice Loop */
     NEXUS_FrontendDvbc2L1part2DslicePlp plps[NEXUS_MAX_DVBC2_PLP_INFO];          /* PLP Loop */
     NEXUS_FrontendDvbc2L1part2Notch     notches[NEXUS_MAX_DVBC2_L1NOTCH_C2_INFO];/* Notch Loop */

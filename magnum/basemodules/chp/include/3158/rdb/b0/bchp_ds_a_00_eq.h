@@ -44,17 +44,19 @@
  * This module was generated magically with RDB from a source description
  * file. You must edit the source file for changes to be made to this file.
  *
+ * The launch point for all information concerning RDB is found at:
+ *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Tue Feb 23 15:26:06 2016
- *                 Full Compile MD5 Checksum  4b84f30a4b3665aac5b824a1ed76e56c
+ * Date:           Generated on               Thu Jun 23 18:55:21 2016
+ *                 Full Compile MD5 Checksum  726d365438fe88693b6f0a492958face
  *                     (minus title and desc)
- *                 MD5 Checksum               4894bba0ec078aee10b5b5954262d56e
+ *                 MD5 Checksum               942083b46396c70655d90e546c008796
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     804
+ *                 RDB.pm                     1048
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
  *                 Script Source              /home/pntruong/sbin/combo_header.pl
  *                 DVTSWVER                   n/a
@@ -1128,15 +1130,25 @@
 /***************************************************************************
  *SLC_SOFT - Slicer Soft Decision Register
  ***************************************************************************/
-/* DS_A_00_EQ :: SLC_SOFT :: ISOFT [31:16] */
-#define BCHP_DS_A_00_EQ_SLC_SOFT_ISOFT_MASK                        0xffff0000
-#define BCHP_DS_A_00_EQ_SLC_SOFT_ISOFT_SHIFT                       16
+/* DS_A_00_EQ :: SLC_SOFT :: ISOFT [31:19] */
+#define BCHP_DS_A_00_EQ_SLC_SOFT_ISOFT_MASK                        0xfff80000
+#define BCHP_DS_A_00_EQ_SLC_SOFT_ISOFT_SHIFT                       19
 #define BCHP_DS_A_00_EQ_SLC_SOFT_ISOFT_DEFAULT                     0x00000000
 
-/* DS_A_00_EQ :: SLC_SOFT :: QSOFT [15:00] */
-#define BCHP_DS_A_00_EQ_SLC_SOFT_QSOFT_MASK                        0x0000ffff
-#define BCHP_DS_A_00_EQ_SLC_SOFT_QSOFT_SHIFT                       0
+/* DS_A_00_EQ :: SLC_SOFT :: ECO_SPARE_1 [18:16] */
+#define BCHP_DS_A_00_EQ_SLC_SOFT_ECO_SPARE_1_MASK                  0x00070000
+#define BCHP_DS_A_00_EQ_SLC_SOFT_ECO_SPARE_1_SHIFT                 16
+#define BCHP_DS_A_00_EQ_SLC_SOFT_ECO_SPARE_1_DEFAULT               0x00000000
+
+/* DS_A_00_EQ :: SLC_SOFT :: QSOFT [15:03] */
+#define BCHP_DS_A_00_EQ_SLC_SOFT_QSOFT_MASK                        0x0000fff8
+#define BCHP_DS_A_00_EQ_SLC_SOFT_QSOFT_SHIFT                       3
 #define BCHP_DS_A_00_EQ_SLC_SOFT_QSOFT_DEFAULT                     0x00000000
+
+/* DS_A_00_EQ :: SLC_SOFT :: ECO_SPARE_0 [02:00] */
+#define BCHP_DS_A_00_EQ_SLC_SOFT_ECO_SPARE_0_MASK                  0x00000007
+#define BCHP_DS_A_00_EQ_SLC_SOFT_ECO_SPARE_0_SHIFT                 0
+#define BCHP_DS_A_00_EQ_SLC_SOFT_ECO_SPARE_0_DEFAULT               0x00000000
 
 /***************************************************************************
  *SNR_CTL1 - Slicer SNR Control 1

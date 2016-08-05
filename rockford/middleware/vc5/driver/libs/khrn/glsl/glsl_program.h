@@ -11,51 +11,22 @@ FILE DESCRIPTION
 #ifndef GLSL_PROGRAM_H_INCLUDED
 #define GLSL_PROGRAM_H_INCLUDED
 
-#include "../glxx/gl_public_api.h"
-#include "../glxx/glxx_int_config.h"
+#include "GLES3/gl32.h"
 
 #include "glsl_ir_program.h"
-
-//
-// Uniforms.
-//
-
-// Note that uniform variables can appear in the source as:
-// - float/int/bool scalars/vectors/matrices
-// - samplers
-// - arrays of these
-// - structs of these
-//
-// Samplers are conceptually different to the other types and so they are handled separately (below).
-
-// base <= row < limit
-#define GL_MAXVERTEXUNIFORMVECTORS     GLXX_CONFIG_MAX_UNIFORM_VECTORS
-#define GL_MAXFRAGMENTUNIFORMVECTORS   GLXX_CONFIG_MAX_UNIFORM_VECTORS
-
-//
-// Attributes.
-//
-
-// Note that attribute variables can appear in the source as:
-// - float scalars/vectors/matrices
-// - arrays of these
-
-#define SLANG_MAX_NUM_ATTRIBUTES       64
-#define GL_MAXVERTEXATTRIBS            GLXX_CONFIG_MAX_VERTEX_ATTRIBS
-
 
 typedef struct {
    int    location;
    GLenum type;
    bool   is_32bit;
-   bool   in_vshader;
+   bool   in_binning;
 } GLSL_SAMPLER_T;
 
 typedef struct {
    int    location;
    GLenum type;
    bool   is_32bit;
-   bool   in_vshader;
+   bool   in_binning;
    GLenum internalformat;
 } GLSL_IMAGE_T;
 
@@ -71,6 +42,9 @@ typedef struct {
    int       atomic_idx;
    bool      column_major;
    bool      used_in_vs;
+   bool      used_in_tcs;
+   bool      used_in_tes;
+   bool      used_in_gs;
    bool      used_in_fs;
    bool      used_in_cs;
 } GLSL_BLOCK_MEMBER_T;
@@ -88,6 +62,9 @@ typedef struct {
 
    /* Things that are once per binding */
    bool used_in_vs;
+   bool used_in_tcs;
+   bool used_in_tes;
+   bool used_in_gs;
    bool used_in_fs;
    bool used_in_cs;
 } GLSL_BLOCK_T;
@@ -99,11 +76,15 @@ typedef struct {
    bool      is_array;
    unsigned  array_size;
    bool      used_in_vs;
+   bool      used_in_tcs;
+   bool      used_in_tes;
+   bool      used_in_gs;
    bool      used_in_fs;
    bool      used_in_cs;
    uint32_t  precision;    /* TODO: Maybe some other SSO stuff for ease of comparison */
    bool      flat;
    bool      centroid;
+   bool      is_per_patch;
 } GLSL_INOUT_T;
 
 typedef struct {
@@ -116,6 +97,9 @@ typedef struct {
    int      binding;
    unsigned size;
    bool     used_in_vs;
+   bool     used_in_tcs;
+   bool     used_in_tes;
+   bool     used_in_gs;
    bool     used_in_fs;
    bool     used_in_cs;
 } GLSL_ATOMIC_BUF_T;
@@ -124,18 +108,6 @@ typedef struct {
    int id;
    int binding;
 } GLSL_LAYOUT_BINDING_T;
-
-enum tess_mode {
-   TESS_ISOLINES,
-   TESS_TRIANGLES,
-   TESS_QUADS
-};
-
-enum tess_spacing {
-   TESS_SPACING_EQUAL,
-   TESS_SPACING_FRACT_EVEN,
-   TESS_SPACING_FRACT_ODD
-};
 
 typedef struct GLSL_PROGRAM_T_ {
    /* Outputs from compile_and_link */
@@ -171,13 +143,6 @@ typedef struct GLSL_PROGRAM_T_ {
 
    unsigned               wg_size[3];
    unsigned               shared_block_size;
-
-   unsigned               tess_vertices;
-
-   enum tess_mode         tess_mode;
-   enum tess_spacing      tess_spacing;
-   bool                   tess_point_mode;
-   bool                   tess_cw;
 } GLSL_PROGRAM_T;
 
 GLSL_PROGRAM_T *glsl_program_create();

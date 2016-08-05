@@ -48,7 +48,6 @@ endif
 
 NEXUS_TOP=$(URSR_TOP)/nexus
 BSEAV_TOP=$(URSR_TOP)/BSEAV
-B_REFSW_OBJ_ROOT = $(URSR_TOP)/obj.$(NEXUS_PLATFORM)
 
 # Redirect logs to
 LOG_REDIRECT_FILE ?= /dev/null
@@ -184,7 +183,9 @@ LDFLAGS += -L$(NEXUS_TOP)/../obj.$(NEXUS_PLATFORM)/BSEAV/lib/security/bcrypt/$(B
 LDFLAGS += -L$(COMMON_DRM_TOP)/lib/$(CMNDRM_DIR) -lcmndrm
 LDFLAGS += -L${B_REFSW_OBJ_ROOT}/BSEAV/lib/security/common_drm/$(CMNDRM_PRDY_LIBDIR) -lcmndrmprdy
 ifeq ($(SAGE_SUPPORT),y)
-LDFLAGS += -L$(COMMON_DRM_TOP)/lib/$(CMNDRM_DIR) -lcmndrm_tl -lplayreadypk_host
+LDFLAGS += -L$(COMMON_DRM_TOP)/lib/$(CMNDRM_DIR) -lcmndrm_tl
+LDFLAGS += -lplayready30pk
+LDFLAGS += -lplayreadypk_host
 else
 LDFLAGS += -lplayreadypk
 endif

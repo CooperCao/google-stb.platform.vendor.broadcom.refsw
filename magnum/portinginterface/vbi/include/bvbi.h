@@ -1603,30 +1603,15 @@ BERR_Code BVBI_Encode_SetVideoFormat(
 
 /*****************************************************************************
   Summary:
-    Set the video display pixel repetition used for encoding VBI.
+    This function is not needed for any chip supported by this version of
+    reference software. It does nothing.
 
   Description:
-    This function sets the video display pixel repetition to use with the
-    supplied BVBI_Encode_Handle.
-
-    This function is only needed in a fairly limited environment. If ALL
-    of the following conditions hold, then the user must call this function
-    to indicate how HDMI output is configured:
-     - The chipset does NOT have orthogonal VEC architecture.
-     - The VEC path relevant to the supplied BVBI_Encode_Handle also provides
-       HDMI output.
-     - The VEC path relevant to the supplied BVBI_Encode_Handle will be used
-       for 480P analog output (in addition to HDMI output).
-     - The VEC path relevant to the supplied BVBI_Encode_Handle will be used
-       to output CGMS-A or CGMS-B waveforms in the VBI.
-
-    This function has no effect on chipsets that have orthogonal VEC
-    architecture.
+    This function is not needed for any chip supported by this version of
+    reference software. It does nothing.
 
   Returns:
     BERR_SUCCESS              - The function call succeeded.
-    BERR_INVALID_PARAMETER    - One of the supplied parameters was invalid,
-                                possibly NULL.
  *****************************************************************************/
 BERR_Code BVBI_Encode_SetHdmiPixelRepetition(
     BVBI_Encode_Handle encodeHandle,    /*  [in] A valid BVBI_Encode_Handle
@@ -1681,15 +1666,13 @@ BERR_Code BVBI_Encode_GetVideoFormat(
 
 /*****************************************************************************
   Summary:
-    Get the video display HDMI pixel repetition value used for encoding VBI.
+    This function is no longer relevant for any chips supported by this
+    version of reference software. It returns a nonsense value.
 
   Description:
-    This function returns the video display HDMI pixel repetition value in
-    use with the supplied BVBI_Encode_Handle.
-
-    If the chipset has orthogonal VEC architecture, then this function will
-    always return BAVC_HDMI_PixelRepetition_eNone. This is because for such
-    chipsets, function # (see which) is a no-op.
+    This function is no longer relevant for any chips supported by this
+    version of reference software. It returns a nonsense value
+    BAVC_HDMI_PixelRepetition_eNone.
 
   Returns:
     BERR_SUCCESS              - The information was successfully retrieved.
@@ -1699,9 +1682,8 @@ BERR_Code BVBI_Encode_GetVideoFormat(
 BERR_Code BVBI_Encode_GetHdmiPixelRepetition(
     BVBI_Encode_Handle encodeHandle,    /*  [in] A valid BVBI_Encode_Handle
                                                  object                     */
-    BAVC_HDMI_PixelRepetition* pePixRep /* [out] The display HDMI pixel
-                                                 repetition value in use
-                                                 with the above object      */
+    BAVC_HDMI_PixelRepetition* pePixRep /* [out] Nonsense valoue. See
+                                                 function description.      */
 );
 
 

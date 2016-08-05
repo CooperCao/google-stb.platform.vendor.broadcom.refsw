@@ -1,5 +1,5 @@
 ############################################################
-#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+#  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 #  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
 #  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
-#
 ############################################################
 
 ifeq ($(NEXUS_TOP),)
@@ -71,20 +70,26 @@ COMMON_DRM_CFLAGS += $(B_OPENSSL_CFLAGS)
 
 #add common LDFLAGS
 COMMON_DRM_LDFLAGS := -lbcrypt -L$(B_REFSW_OBJ_ROOT)/BSEAV/lib/security/bcrypt/${BCRYPT_LIBDIR} \
-					-ldrmrootfs -L${B_REFSW_OBJ_ROOT}/BSEAV/lib/drmrootfs/${DRMROOTFS_LIBDIR} \
-					-lcmndrm -L$(NEXUS_TOP)/../BSEAV/lib/security/common_drm/lib/${CMNDRM_DIR} \
-					$(B_OPENSSL_LDFLAGS)
+		      -ldrmrootfs -L${B_REFSW_OBJ_ROOT}/BSEAV/lib/drmrootfs/${DRMROOTFS_LIBDIR} \
+		      $(B_OPENSSL_LDFLAGS)
 
 
-COMMON_DRM_BIN_DEPS_LIST = $(NEXUS_TOP)/../BSEAV/lib/security/common_drm/lib/$(CMNDRM_DIR)/libcmndrm.so \
-						$(NEXUS_TOP)/../BSEAV/lib/drmrootfs/$(DRMROOTFS_LIBDIR)/libdrmrootfs.so \
-						$(B_REFSW_OBJ_ROOT)/BSEAV/lib/security/bcrypt/$(BCRYPT_LIBDIR)/libbcrypt.so \
-						$(B_OPENSSL_LIB_INSTALL_DIR)/lib*.*
+COMMON_DRM_BIN_DEPS_LIST = ${B_REFSW_OBJ_ROOT}/BSEAV/lib/drmrootfs/${DRMROOTFS_LIBDIR}/libdrmrootfs.so \
+			   $(B_REFSW_OBJ_ROOT)/BSEAV/lib/security/bcrypt/$(BCRYPT_LIBDIR)/libbcrypt.so \
+			   $(B_OPENSSL_LIB_INSTALL_DIR)/lib*.*
+
+ifeq ($(filter ${B_REFSW_ARCH}, aarch64-linux), ${B_REFSW_ARCH})
+        COMMON_DRM_BIN_DEPS_LIST += $(NEXUS_TOP)/../BSEAV/lib/security/common_drm/lib/$(CMNDRM_DIR)/libcmndrm64.so
+	COMMON_DRM_LDFLAGS += -lcmndrm64 -L$(NEXUS_TOP)/../BSEAV/lib/security/common_drm/lib/${CMNDRM_DIR}
+else
+	COMMON_DRM_BIN_DEPS_LIST += $(NEXUS_TOP)/../BSEAV/lib/security/common_drm/lib/$(CMNDRM_DIR)/libcmndrm.so
+	COMMON_DRM_LDFLAGS += -lcmndrm -L$(NEXUS_TOP)/../BSEAV/lib/security/common_drm/lib/${CMNDRM_DIR}
+endif
 
 # add SAGE specific LDFLAGS and append SRAI to the list of bin file dependencies
 ifeq ($(SAGE_SUPPORT),y)
-COMMON_DRM_LDFLAGS +=	-lsrai -L$(NEXUS_TOP)/../BSEAV/lib/security/sage/srai/lib \
-					-lcmndrm_tl -L${B_REFSW_OBJ_ROOT}/BSEAV/lib/security/common_drm/lib/${CMNDRM_DIR}
+COMMON_DRM_LDFLAGS += -lsrai -L$(NEXUS_TOP)/../BSEAV/lib/security/sage/srai/lib \
+		      -lcmndrm_tl -L${B_REFSW_OBJ_ROOT}/BSEAV/lib/security/common_drm/lib/${CMNDRM_DIR}
 $(shell $(make -C $(NEXUS_TOP)/../BSEAV/lib/security/sage/srai re))
 COMMON_DRM_BIN_DEPS_LIST += ${B_REFSW_OBJ_ROOT}/BSEAV/lib/security/sage/srai/libsrai.so \
                             ${B_REFSW_OBJ_ROOT}/BSEAV/lib/security/common_drm/lib/${CMNDRM_DIR}/libcmndrm_tl.so

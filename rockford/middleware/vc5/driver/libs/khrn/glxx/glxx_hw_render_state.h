@@ -32,21 +32,18 @@ struct GLXX_QUERY_;
 
 typedef struct
 {
-   GLXX_HW_FRAMEBUFFER_T   dst_fb;
+   GLXX_HW_FRAMEBUFFER_T dst_fb;
 
    bool color;
-   /* if color = true, blit from from src_fb.color[color_read_buffer] to all
-    * dst_fb.color[b] for which color_draw_to_buf[b] = true;
-    * src_fb is the the HW_FRAMEBUFFER where this struct is used;
-    * if color = false, no blitting to color buffers is required;
+   /* if color = true, for all set bits b in color_draw_to_buf, blit from
+    * src_fb.color[color_read_buffer] to dst_fb.color[b].
+    * src_fb is the GLXX_HW_FRAMEBUFFER_T where this struct is used.
     */
    unsigned color_read_buffer;
-   bool  color_draw_to_buf[GLXX_MAX_RENDER_TARGETS];
+   uint32_t color_draw_to_buf;
 
    /* if depth = true, blit from src_fb.depth to dst_fb.depth */
-   bool                    depth;
-   /* if depth = true, blit from src_fb.depth to dst_fb.depth */
-   bool                    stencil;
+   bool depth;
 } GLXX_BLIT_T;
 
 // enable multicore binning if we potentially have more than 1 core
@@ -64,7 +61,11 @@ typedef struct
 typedef enum
 {
    // fixed sized states
-   GLXX_CL_STATE_BLEND_MODE,
+#if V3D_HAS_PER_RT_BLEND
+   GLXX_CL_STATE_BLEND_ENABLES,
+#else
+   GLXX_CL_STATE_BLEND_CFG,
+#endif
    GLXX_CL_STATE_BLEND_COLOR,
    GLXX_CL_STATE_COLOR_WRITE,
    GLXX_CL_STATE_CFG,
@@ -74,13 +75,15 @@ typedef enum
    GLXX_CL_STATE_STENCIL,
    GLXX_CL_STATE_SAMPLE_COVERAGE,
    GLXX_CL_STATE_OCCLUSION_QUERY,
-   GLXX_CL_STATE_VCM_CACHE_SIZE,
 
    GLXX_CL_STATE_NUM_FIXED_SIZE,
 
    // variable sized states
    GLXX_CL_STATE_FLAT_SHADING_FLAGS = GLXX_CL_STATE_NUM_FIXED_SIZE,
    GLXX_CL_STATE_CENTROID_FLAGS,
+#if V3D_HAS_PER_RT_BLEND
+   GLXX_CL_STATE_BLEND_CFG,
+#endif
 
    GLXX_CL_STATE_NUM
 } glxx_cl_state_t;
@@ -88,7 +91,11 @@ typedef enum
 static const uint8_t GLXX_CL_STATE_SIZE[GLXX_CL_STATE_NUM] =
 {
     // fixed sized states
-   [GLXX_CL_STATE_BLEND_MODE]       = V3D_CL_BLEND_CFG_SIZE,
+#if V3D_HAS_PER_RT_BLEND
+   [GLXX_CL_STATE_BLEND_ENABLES]    = V3D_CL_BLEND_ENABLES_SIZE,
+#else
+   [GLXX_CL_STATE_BLEND_CFG]        = V3D_CL_BLEND_CFG_SIZE,
+#endif
    [GLXX_CL_STATE_BLEND_COLOR]      = V3D_CL_BLEND_CCOLOR_SIZE,
    [GLXX_CL_STATE_COLOR_WRITE]      = V3D_CL_COLOR_WMASKS_SIZE,
    [GLXX_CL_STATE_CFG]              = V3D_CL_CFG_BITS_SIZE,
@@ -98,11 +105,13 @@ static const uint8_t GLXX_CL_STATE_SIZE[GLXX_CL_STATE_NUM] =
    [GLXX_CL_STATE_STENCIL]          = (V3D_CL_STENCIL_CFG_SIZE * 2),
    [GLXX_CL_STATE_SAMPLE_COVERAGE]  = V3D_CL_SAMPLE_COVERAGE_SIZE,
    [GLXX_CL_STATE_OCCLUSION_QUERY]  = V3D_CL_OCCLUSION_QUERY_COUNTER_ENABLE_SIZE,
-   [GLXX_CL_STATE_VCM_CACHE_SIZE]   = V3D_CL_VCM_CACHE_SIZE_SIZE,
 
    // variable sized states (these are maximums)
    [GLXX_CL_STATE_FLAT_SHADING_FLAGS]  = GLXX_NUM_SHADING_FLAG_WORDS * V3D_CL_VARY_FLAGS_SIZE,
-   [GLXX_CL_STATE_CENTROID_FLAGS]      = GLXX_NUM_SHADING_FLAG_WORDS * V3D_CL_VARY_FLAGS_SIZE
+   [GLXX_CL_STATE_CENTROID_FLAGS]      = GLXX_NUM_SHADING_FLAG_WORDS * V3D_CL_VARY_FLAGS_SIZE,
+#if V3D_HAS_PER_RT_BLEND
+   [GLXX_CL_STATE_BLEND_CFG]           = GLXX_MAX_RENDER_TARGETS * V3D_CL_BLEND_CFG_SIZE,
+#endif
 };
 
 // flag which states are optionally set
@@ -135,47 +144,6 @@ extern bool glxx_cl_record_validate(GLXX_CL_RECORD_T *record);
 //! Apply cl record to current clist.
 extern bool glxx_cl_record_apply(GLXX_CL_RECORD_T *record, KHRN_FMEM_T *fmem);
 
-/* If we have both a downsampled color buffer and a multisample color
-   * buffer, we generally load from the multisample buffer and store to both.
-   * This is because the rendering is done against the multisample buffer, but
-   * we keep the downsampled buffer up-to-date "at all times". See
-   * doc/multisample.md.
-   *
-   * This could be handled with just a single bufstate, except that we want to
-   * take advantage of a special case with eglSwapBuffers(). eglSwapBuffers()
-   * normally invalidates both buffers, but before doing so it puts the
-   * downsampled one on the display. So when we flush in eglSwapBuffers(), we
-   * normally only need to store to the downsampled buffer (both are
-   * invalidated, but we need the downsampled one for display).
-   *
-   * We deal with this by having two bufstates: one tracking the downsampled
-   * output and one tracking the multisample output. They should track each
-   * other exactly, except in the eglSwapBuffers() case, where the multisample
-   * bufstate will get invalidated before flushing, and so will report that we
-   * don't need to store to the multisample buffer when we do the flush.
-   *
-   * Note that we always load from the multisample buffer, never from the
-   * downsampled buffer. So when we flush the two bufstates, although the
-   * store flags apply to the corresponding buffers, both load flags actually
-   * mean load from the multisample buffer. TODO This is conceptually awkward.
-   *
-   * Of course, all of that only applies when there is both a downsampled
-   * color buffer *and* a multisample color buffer, which is only the case for
-   * multisample EGL window surfaces (see doc/multisample.md). When there is
-   * only one color buffer, only one bufstate should be active and everything
-   * should work as normal. */
-
-/* Even if we have a packed depth/stencil buffer, we have completely
-   * independent bufstates for depth and stencil. We can do this because the
-   * hardware is flexible enough to be able to load/store depth & stencil
-   * independently even if they are packed into the same physical buffer.
-   *
-   * TODO One slight nuisance with this at the moment is that we only have a
-   * single interlock for a packed depth/stencil buffer and that single
-   * interlock cannot express things like "depth is valid but stencil isn't",
-   * so we currently have to merge the depth & stencil invalid flags when we
-   * flush and update the interlock. */
-
 static_assrt(offsetof(glxx_render_state, fmem) == 0);
 
 typedef struct glxx_hw_render_state
@@ -194,9 +162,22 @@ typedef struct glxx_hw_render_state
    // Context that owns this render-state.
    GLXX_SERVER_STATE_T     *server_state;
 
-   glxx_bufstate_t         color_buffer_state   [GLXX_MAX_RENDER_TARGETS];
-   glxx_bufstate_t         ms_color_buffer_state[GLXX_MAX_RENDER_TARGETS];
+   /* If color_load_from_ms[i] then RT i will be loaded from
+    * installed_fb.color_ms[i]. Otherwise RT i will be loaded from
+    * installed_fb.color[i]. */
+   bool                    color_load_from_ms[GLXX_MAX_RENDER_TARGETS];
 
+   /* If color_discard_ms then we will only store to installed_fb.color[].
+    * Otherwise we will store to both installed_fb.color[] *and*
+    * installed_fb.color_ms[]. */
+   bool                    color_discard_ms;
+
+   glxx_bufstate_t         color_buffer_state[GLXX_MAX_RENDER_TARGETS];
+
+   /* Even if we have a packed depth/stencil buffer, we have completely
+    * independent bufstates for depth and stencil. We can do this because the
+    * hardware is flexible enough to be able to load/store depth & stencil
+    * independently even if they are packed into the same physical buffer. */
    glxx_bufstate_t         depth_buffer_state;
    glxx_bufstate_t         stencil_buffer_state;
 
@@ -241,9 +222,6 @@ typedef struct glxx_hw_render_state
    unsigned                tf_waited_count;   // Number of transform feedbacks waited for
 
    GLXX_EZ_STATE_T         ez;
-
-   uint8_t vcm_cache_size_bin;
-   uint8_t vcm_cache_size_render;
 
    uint64_t cl_record_threshold;   // bin-cycle count threshold to create a new entry
    uint64_t cl_record_remaining;   // bin-cycle count remaining before creating new record

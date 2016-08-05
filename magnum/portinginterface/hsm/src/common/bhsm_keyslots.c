@@ -53,9 +53,14 @@
 #include "bchp_scpu_globalram.h"
 #endif
 
+#if BHSM_SUPPORT_DEBUG_READ_OTP_TYPE
+#include "bhsm_otp_configuration.h"
+#endif
 
 
 BDBG_MODULE(BHSM);
+
+BDBG_OBJECT_ID_DECLARE( BHSM_P_Handle );
 
 #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,1)
  #define BHSM_BYPASS_KEYSLOT_TYPE     ( BCMD_XptSecKeySlot_eType0 )
@@ -553,7 +558,9 @@ BERR_Code BHSM_InitKeySlot( BHSM_Handle hHsm, BHSM_InitKeySlotIO_t *pInitKeySlot
 
     BKNI_Memset( &ksType, 0, sizeof(ksType) );
 
-    if( hHsm == NULL || ( hHsm->ulMagicNumber != BHSM_P_HANDLE_MAGIC_NUMBER ) ||  pInitKeySlot == NULL )
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
+
+    if( pInitKeySlot == NULL )
     {
         return BERR_TRACE( BHSM_STATUS_FAILED );
     }
@@ -737,10 +744,9 @@ BERR_Code BHSM_LocateCAKeySlotAssigned (
 
     BDBG_ENTER(BHSM_LocateCAKeySlotAssigned);
 
-    if( hHsm == NULL ||
-        hHsm->ulMagicNumber != BHSM_P_HANDLE_MAGIC_NUMBER ||
-        outp_ucKeySlotType == NULL  ||
-        pKeySlotNumber == NULL )
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
+
+    if(  outp_ucKeySlotType == NULL  || pKeySlotNumber == NULL )
     {
         return BERR_TRACE(BHSM_STATUS_FAILED);
     }
@@ -782,7 +788,9 @@ static BERR_Code ConfigPidKeyPointerTable (
 
     BDBG_ENTER( ConfigPidKeyPointerTable );
 
-    if( hHsm == NULL || hHsm->ulMagicNumber != BHSM_P_HANDLE_MAGIC_NUMBER || pPidChannelConf == NULL )
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
+
+    if( pPidChannelConf == NULL )
     {
         return BERR_TRACE(BHSM_STATUS_FAILED);
     }
@@ -916,7 +924,9 @@ BERR_Code BHSM_AllocateCAKeySlot ( /* Zeus 4 */
 
     BDBG_ENTER(BHSM_AllocateCAKeySlot);
 
-    if( hHsm == NULL || hHsm->ulMagicNumber != BHSM_P_HANDLE_MAGIC_NUMBER || pKeySlotConf == NULL )
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
+
+    if( pKeySlotConf == NULL )
     {
         return BERR_TRACE( BHSM_STATUS_FAILED );
     }
@@ -1059,7 +1069,9 @@ BERR_Code BHSM_FreeCAKeySlot ( /* Zeus 4 */
 
     BDBG_ENTER( BHSM_FreeCAKeySlot );
 
-    if( hHsm == NULL || hHsm->ulMagicNumber != BHSM_P_HANDLE_MAGIC_NUMBER || pKeySlotConf == NULL )
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
+
+    if( pKeySlotConf == NULL )
     {
         return BERR_TRACE(BHSM_STATUS_FAILED);
     }
@@ -1191,7 +1203,9 @@ BERR_Code BHSM_AllocateM2MKeySlot (   /*  Zeus 4 */
 
     BDBG_ENTER(BHSM_AllocateM2MKeySlot);
 
-    if( hHsm == NULL || hHsm->ulMagicNumber != BHSM_P_HANDLE_MAGIC_NUMBER || pM2mKeySlot == NULL )
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
+
+    if( pM2mKeySlot == NULL )
     {
         return BERR_TRACE(BHSM_STATUS_FAILED);
     }
@@ -1231,7 +1245,9 @@ BERR_Code BHSM_FreeM2MKeySlot ( /* Zeus 4 */
 
     BDBG_ENTER(BHSM_FreeM2MKeySlot);
 
-    if( hHsm == NULL || hHsm->ulMagicNumber != BHSM_P_HANDLE_MAGIC_NUMBER || pM2mKeySlot == NULL )
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
+
+    if( pM2mKeySlot == NULL )
     {
         return BERR_TRACE(BHSM_STATUS_FAILED);
     }
@@ -1282,7 +1298,9 @@ BERR_Code BHSM_AllocateCAKeySlot_v2 ( /* pre Zeus 4 */
 
     BDBG_ENTER(BHSM_AllocateCAKeySlot);
 
-    if( hHsm == NULL || hHsm->ulMagicNumber != BHSM_P_HANDLE_MAGIC_NUMBER || pKeySlotConf == NULL )
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
+
+    if( pKeySlotConf == NULL )
     {
         return BERR_TRACE( BHSM_STATUS_FAILED );
     }
@@ -1430,7 +1448,9 @@ BERR_Code BHSM_FreeCAKeySlot_v2 ( /* pre Zeus 4 */
 
     BDBG_ENTER( BHSM_FreeCAKeySlot );
 
-    if( hHsm == NULL || hHsm->ulMagicNumber != BHSM_P_HANDLE_MAGIC_NUMBER || pKeySlotConf == NULL )
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
+
+    if( pKeySlotConf == NULL )
     {
         return BERR_TRACE(BHSM_STATUS_FAILED);
     }
@@ -1619,7 +1639,9 @@ BERR_Code BHSM_AllocateM2MKeySlot (  /* Pre Zeus 4 */
 
     BDBG_ENTER( BHSM_AllocateM2MKeySlot );
 
-    if( hHsm == NULL || hHsm->ulMagicNumber != BHSM_P_HANDLE_MAGIC_NUMBER || pM2mKeySlot == NULL )
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
+
+    if( pM2mKeySlot == NULL )
     {
         return BERR_TRACE(BHSM_STATUS_FAILED);
     }
@@ -1670,7 +1692,9 @@ BERR_Code BHSM_FreeM2MKeySlot ( /* Pre Zeus 4 */
 
     BDBG_ENTER( BHSM_FreeM2MKeySlot );
 
-    if( hHsm == NULL || hHsm->ulMagicNumber != BHSM_P_HANDLE_MAGIC_NUMBER || pM2mKeySlot == NULL )
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
+
+    if( pM2mKeySlot == NULL )
     {
         return BERR_TRACE(BHSM_STATUS_FAILED);
     }
@@ -1812,7 +1836,9 @@ BERR_Code BHSM_SetKeySlotOwnership(
 
     BDBG_ENTER( BHSM_SetKeySlotOwnership );
 
-    if( hHsm == NULL || hHsm->ulMagicNumber != BHSM_P_HANDLE_MAGIC_NUMBER || pConfig == NULL )
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
+
+    if( pConfig == NULL )
     {
         return BERR_TRACE(BHSM_STATUS_FAILED);
     }
@@ -1883,7 +1909,9 @@ BERR_Code BHSM_GetKeySlotOwnership( BHSM_Handle               hHsm,
 
     BDBG_ENTER( BHSM_GetKeySlotOwnership );
 
-    if( hHsm == NULL || hHsm->ulMagicNumber != BHSM_P_HANDLE_MAGIC_NUMBER || pConfig == NULL )
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
+
+    if( pConfig == NULL )
     {
         return BERR_TRACE(BHSM_STATUS_FAILED);
     }
@@ -1900,10 +1928,7 @@ BERR_Code BHSM_GetKeySlotOwnership( BHSM_Handle               hHsm,
     BDBG_CASSERT( (int)BHSM_KeySlotOwner_eSHARED == (int)BCMD_HostSage_KeySlotAllocation_eSHARED);
     BDBG_CASSERT( (int)BHSM_KeySlotOwner_eSAGE   == (int)BCMD_HostSage_KeySlotAllocation_eSAGE  );
 
-    if( hHsm->ulMagicNumber != BHSM_P_HANDLE_MAGIC_NUMBER )
-    {
-        return BERR_TRACE( BHSM_STATUS_FAILED );
-    }
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
 
     if( isKeySlotTypeZzyzx( pConfig->keySlotType ) == true )
     {
@@ -1983,7 +2008,9 @@ BERR_Code BHSM_LoadRouteUserKey (
 
     BDBG_ENTER( BHSM_LoadRouteUserKey );
 
-    if( hHsm == NULL || hHsm->ulMagicNumber != BHSM_P_HANDLE_MAGIC_NUMBER || inoutp_loadRouteUserKeyIO == NULL )
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
+
+    if( inoutp_loadRouteUserKeyIO == NULL )
     {
         return BERR_TRACE(BHSM_STATUS_FAILED);
     }
@@ -2237,7 +2264,9 @@ BERR_Code BHSM_InvalidateKey (
 
     BDBG_ENTER( BHSM_InvalidateKey );
 
-    if( hHsm == NULL || hHsm->ulMagicNumber != BHSM_P_HANDLE_MAGIC_NUMBER || inoutp_invalidateKeyIO == NULL )
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
+
+    if( inoutp_invalidateKeyIO == NULL )
     {
         return BERR_TRACE(BHSM_STATUS_FAILED);
     }
@@ -2345,7 +2374,9 @@ BERR_Code BHSM_ConfigAlgorithm (
 
     BDBG_ENTER( BHSM_ConfigAlgorithm );
 
-    if( hHsm == NULL || hHsm->ulMagicNumber != BHSM_P_HANDLE_MAGIC_NUMBER || pConfig == NULL )
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
+
+    if( pConfig == NULL )
     {
         return BERR_TRACE(BHSM_STATUS_FAILED);
     }
@@ -2582,7 +2613,9 @@ BERR_Code BHSM_GetKeySlotConfigAlgorithm (
 
     BDBG_ENTER(BHSM_GetKeySlotConfigAlgorithm);
 
-    if( hHsm == NULL || hHsm->ulMagicNumber != BHSM_P_HANDLE_MAGIC_NUMBER || inoutp_KeySlotInfoIO == NULL )
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
+
+    if( inoutp_KeySlotInfoIO == NULL )
     {
         return BERR_TRACE(BHSM_STATUS_FAILED);
     }
@@ -2681,7 +2714,9 @@ BERR_Code BHSM_ConfigAlgorithm (
 
     BDBG_ENTER(BHSM_ConfigAlgorithm);
 
-    if( hHsm == NULL || hHsm->ulMagicNumber != BHSM_P_HANDLE_MAGIC_NUMBER || pConfigAlgorithm == NULL )
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
+
+    if( pConfigAlgorithm == NULL )
     {
         return BERR_TRACE(BHSM_STATUS_FAILED);
     }
@@ -2855,7 +2890,9 @@ BERR_Code BHSM_GetKeySlotConfigAlgorithm (
 
     BDBG_ENTER(BHSM_GetKeySlotConfigAlgorithm);
 
-    if( hHsm == NULL || hHsm->ulMagicNumber != BHSM_P_HANDLE_MAGIC_NUMBER || inoutp_KeySlotInfoIO == NULL )
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
+
+    if( inoutp_KeySlotInfoIO == NULL )
     {
         return BERR_TRACE(BHSM_STATUS_FAILED);
     }
@@ -2962,7 +2999,9 @@ BERR_Code BHSM_GetExternalKeyIdentifier(
 
     BDBG_ENTER( BHSM_GetExternalKeyIdentifier );
 
-    if( hHsm == NULL || hHsm->ulMagicNumber != BHSM_P_HANDLE_MAGIC_NUMBER || pKeyLocation == NULL || pExtKey == NULL )
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
+
+    if( pKeyLocation == NULL || pExtKey == NULL )
     {
         return BERR_TRACE(BHSM_STATUS_FAILED);
     }
@@ -3051,7 +3090,9 @@ BERR_Code BHSM_ConfigKeySlotIDData (
 
     BDBG_ENTER(BHSM_ConfigKeySlotIDData);
 
-    if( hHsm == NULL || hHsm->ulMagicNumber != BHSM_P_HANDLE_MAGIC_NUMBER || inoutp_configKeySlotIDDataIO == NULL )
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
+
+    if( inoutp_configKeySlotIDDataIO == NULL )
     {
         return BERR_TRACE(BHSM_STATUS_FAILED);
     }
@@ -3119,7 +3160,9 @@ BERR_Code BHSM_ConfigKeySlotGlobalCntrlWord (
 
     BDBG_ENTER(BHSM_ConfigKeySlotIDData);
 
-    if( hHsm == NULL || hHsm->ulMagicNumber != BHSM_P_HANDLE_MAGIC_NUMBER || inoutp_configKeySlotGlobalCntrlWord == NULL )
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
+
+    if( inoutp_configKeySlotGlobalCntrlWord == NULL )
     {
         return BERR_TRACE(BHSM_STATUS_FAILED);
     }
@@ -3159,7 +3202,9 @@ BERR_Code BHSM_ConfigMulti2 (
 
     BDBG_ENTER( BHSM_ConfigMulti2 );
 
-    if( hHsm == NULL || hHsm->ulMagicNumber != BHSM_P_HANDLE_MAGIC_NUMBER || pConfigMulti2 == NULL )
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
+
+    if( pConfigMulti2 == NULL )
     {
         return BERR_TRACE( BHSM_STATUS_FAILED );
     }
@@ -3218,7 +3263,9 @@ BERR_Code BHSM_ConfigPidChannelToDefaultKeySlot (
 
     BDBG_ENTER(BHSM_ConfigPidChannelToDefaultKeySlot);
 
-    if( hHsm == NULL || hHsm->ulMagicNumber != BHSM_P_HANDLE_MAGIC_NUMBER || pPidChannelConf == NULL )
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
+
+    if( pPidChannelConf == NULL )
     {
         return BERR_TRACE(BHSM_STATUS_FAILED);
     }
@@ -3258,11 +3305,7 @@ BERR_Code  BHSM_SetPidChannelBypassKeyslot(
 
     BDBG_ENTER( BHSM_SetPidChannelBypassKeyslot );
 
-
-    if( hHsm == NULL || hHsm->ulMagicNumber != BHSM_P_HANDLE_MAGIC_NUMBER )
-    {
-        return BERR_TRACE( BHSM_STATUS_FAILED );
-    }
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
 
     if( pidChannelIndex >= BCMD_TOTAL_PIDCHANNELS )
     {
@@ -3323,7 +3366,9 @@ BERR_Code  BHSM_GetPidChannelBypassKeyslot(
 
     BDBG_ENTER( BHSM_GetPidChannelBypassKeyslot );
 
-    if( hHsm == NULL || hHsm->ulMagicNumber != BHSM_P_HANDLE_MAGIC_NUMBER || pBypassKeyslot == NULL )
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
+
+    if( pBypassKeyslot == NULL )
     {
         return BERR_TRACE( BHSM_STATUS_FAILED );
     }
@@ -3358,10 +3403,7 @@ BERR_Code BHSM_InvalidateTransportKeySlots( BHSM_Handle hHsm, BHSM_ClientType_e 
 
     BSTD_UNUSED( ownerShip ) ;
 
-    if( hHsm == NULL || hHsm->ulMagicNumber != BHSM_P_HANDLE_MAGIC_NUMBER )
-    {
-        return BERR_TRACE(BHSM_STATUS_FAILED);
-    }
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
 
     BKNI_Memset( &invalidateKeyIO, 0, sizeof(invalidateKeyIO) );
 
@@ -3404,10 +3446,7 @@ static BERR_Code InitialisePidChannels ( BHSM_Handle hHsm )
 
     BDBG_ENTER ( InitialisePidChannels );
 
-    if ( hHsm == NULL || hHsm->ulMagicNumber != BHSM_P_HANDLE_MAGIC_NUMBER )
-    {
-        return BERR_TRACE ( BHSM_STATUS_FAILED );
-    }
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
 
     BKNI_Memset ( &pidChannelConf, 0, sizeof ( pidChannelConf ) );
     pidChannelConf.ucKeySlotType = BHSM_BYPASS_KEYSLOT_TYPE;
@@ -3589,7 +3628,9 @@ BERR_Code BHSM_QueryKeySlotsStatus ( BHSM_Handle hHsm, BHSM_KeySlotsStatus_t * p
 
     BDBG_ENTER ( BHSM_QueryKeySlotsStatus );
 
-    if ( hHsm == NULL || hHsm->ulMagicNumber != BHSM_P_HANDLE_MAGIC_NUMBER || pKeySlotsStatus == NULL )
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
+
+    if ( pKeySlotsStatus == NULL )
     {
         return BERR_TRACE ( BHSM_STATUS_FAILED );
     }
@@ -3708,10 +3749,7 @@ BERR_Code  loadBspVersion( BHSM_Handle hHsm )
 
     BDBG_ENTER( loadBspVersion );
 
-    if( ( hHsm == NULL ) || ( hHsm->ulMagicNumber != BHSM_P_HANDLE_MAGIC_NUMBER ) )
-    {
-        return  BERR_TRACE( BHSM_STATUS_INPUT_PARM_ERR );
-    }
+	/* hHsm is valid, as BHSM_P_Handle object is set after this function is called. */
 
     if( ( rc = BHSM_BspMsg_Create( hHsm, &hMsg ) ) != BERR_SUCCESS )
     {
@@ -3803,6 +3841,14 @@ BERR_Code  loadBspVersion( BHSM_Handle hHsm )
     {
         bytesLeft -= BKNI_Snprintf( &message[sizeof(message)-bytesLeft], bytesLeft, " BFW Epoch[%d]", hHsm->firmwareVersion.bfwEpoch.value );
     }
+
+    #if BHSM_SUPPORT_DEBUG_READ_OTP_TYPE
+    {
+        char otpType[3] = "--";
+        BHSM_DEBUG_GetChipsetOtpType( hHsm, &otpType[0], &otpType[1] );
+        bytesLeft -= BKNI_Snprintf( &message[sizeof(message)-bytesLeft], bytesLeft, " otpType[%s]", otpType );
+    }
+    #endif
 
     /* WARNING used so as to make information available to system integrators. */
     BDBG_WRN(( "%s", message ));

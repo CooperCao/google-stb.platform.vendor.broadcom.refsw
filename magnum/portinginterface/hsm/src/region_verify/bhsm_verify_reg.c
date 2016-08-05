@@ -205,7 +205,8 @@ BERR_Code BHSM_RegionVerification_Configure( BHSM_Handle hHsm, BHSM_RegionNumber
         case BHSM_RegionVerificationStatus_eAlreadyConfigured:
         {
             BDBG_WRN(("%s: Region [0x%02X] Already Configured.", __FUNCTION__, region ));
-            break; /* success */
+            rc = BHSM_STATUS_REGION_ALREADY_CONFIGURED;
+            break;
         }
        case BHSM_RegionVerificationStatus_eNotOtpEnabled:
         {

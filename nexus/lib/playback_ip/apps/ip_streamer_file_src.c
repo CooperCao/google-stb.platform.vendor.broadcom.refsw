@@ -400,7 +400,7 @@ openNexusFileSrcPidChannels(
     }
     NEXUS_Playback_GetDefaultPidChannelSettings(&playbackPidSettings);
     if (ipStreamerCfg->enableAllpass) {
-        NEXUS_Playpump_GetAllPassPidChannelIndex(playbackSettings.playpump, (unsigned *) &playbackPidSettings.pidSettings.pidSettings.pidChannelIndex );
+        NEXUS_Playpump_GetAllPassPidChannelIndex(playbackSettings.playpump, &playbackPidSettings.pidSettings.pidSettings.pidChannelIndex );
         ipStreamerCtx->videoPidChannel = NEXUS_Playback_OpenPidChannel(ipStreamerCtx->fileSrc->playbackHandle, 0x00, &playbackPidSettings);   /* PID is ignored in allPass mode */
         return 0;
     }

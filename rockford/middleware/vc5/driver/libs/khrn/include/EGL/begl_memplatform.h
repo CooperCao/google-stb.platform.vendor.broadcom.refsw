@@ -18,7 +18,12 @@ typedef enum
    BEGL_MemCacheLineSize,
    BEGL_MemLargestBlock,
    BEGL_MemFree,
-   BEGL_MemPrintHeapData
+   BEGL_MemPrintHeapData,
+   BEGL_MemPagetablePhysAddr,
+   BEGL_MemMmuMaxVirtAddr,
+   BEGL_MemMmuUnsecureBinTranslation,
+   BEGL_MemMmuSecureBinTranslation,
+   BEGL_MemPlatformToken,
 } BEGL_MemInfoType;
 
 /* These must match gmem usage flags */
@@ -45,6 +50,12 @@ typedef struct BEGL_MemoryInterface
    void           (*Unlock)(void *context, BEGL_MemHandle h);
    void           (*FlushCache)(void *context, BEGL_MemHandle h, void *pCached, size_t numBytes);
    uint64_t       (*GetInfo)(void *context, BEGL_MemInfoType type);
+
+   /*
+    * Optional entrypoint to create a wrapper handle to manage a MMU pagetable
+    * mapping for externally allocated physically contiguous memory ranges
+    */
+   BEGL_MemHandle (*WrapExternal)(void *context, uint64_t physaddr, size_t length, const char *desc);
 
    void           *context;
 } BEGL_MemoryInterface;

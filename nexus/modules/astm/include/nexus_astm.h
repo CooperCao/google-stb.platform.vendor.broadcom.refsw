@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2012 Broadcom Corporation
+ *  Copyright (C) 2007-2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,8 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  **************************************************************************/
 #ifndef NEXUS_ASTM_H__
 #define NEXUS_ASTM_H__
@@ -170,7 +162,7 @@ Settings for NEXUS_Astm
 typedef struct NEXUS_AstmPresenterConfig
 {
     unsigned minimumTimeBetweenEvents;/* minimum time that must elapse between receiving events, in ms. used with presentation processing frequency to determine size of 
-                                                                      event ring buffer. if events come more often than this time, the event buffer may overflow, and newer events   will be lost */
+                                         event ring buffer. if events come more often than this time, the event buffer may overflow, and newer events will be lost */
     unsigned passEventCountThreshold; /* how many pass events must be received before deeming this  presenter as "passing", in events */
     unsigned failEventCountThreshold; /* how many fail events must be received before deeming this presenter as "failing", in events */
     bool tsmThresholdAdjustment; /* if true, during certain types of failures ASTM will attempt to adjust the TSM threshold instead of entering non-TSM mode */
@@ -178,7 +170,8 @@ typedef struct NEXUS_AstmPresenterConfig
     unsigned tsmRecoveryAcquisitionPeriod; /* how often do we schedule attempts to adjust the PTS offset for TSM recovery in non-TSM mode, in ms */
     unsigned tsmRecoveryTrackingTimeout; /* once we see a TSM pass, how long do we count them and then compare to frames decoded, in ms */
     unsigned ptsStcDiffAdjustmentThreshold; /* if the abs(pts/stc diff) is below this, we don't adjust, only applies in non-TSM mode during tsm recovery acquisition */
-    unsigned maxAllowableFirstPtsStcDiff; /* if we exceed this, presentation rate control will be changed to output clock for the exceeding presenter; this behavior is disabled when set to zero */
+    unsigned maxAllowableFirstPtsStcDiff; /* if we exceed this, presentation rate control will be changed to output clock for the exceeding presenter; this behavior is
+                                             disabled when set to zero */
 } NEXUS_AstmPresenterConfig;
 
 /**
@@ -199,7 +192,7 @@ typedef struct NEXUS_AstmSettings
     NEXUS_AudioDecoderHandle audioDecoder[NEXUS_ASTM_AUDIO_DECODERS]; /* Both
         audio decoders must be for the same program. Two audio decoders are used
         for PCM and compressed pass-through configurations. */
-    void * stcMaster; /* points to video decoder handle or either audio decoder handle
+    NEXUS_AnyObject stcMaster; /* points to video decoder handle or either audio decoder handle
         for pts master mode or adaptive mode */
     unsigned int syncLimit; /* in a master mode, this is the limit on the difference
         between PTS and STC to which the master mode is applied in the decoder.
@@ -209,11 +202,12 @@ typedef struct NEXUS_AstmSettings
     struct
     {
         unsigned minimumTimeBetweenEvents;    /* minimum time that must elapse between receiving events, in ms. used with processing frequency to determine size of event 
-                                                                                            ring buffer. if events come more often than this time, the event buffer may overflow, and newer events will be lost */
+                                                 ring buffer. if events come more often than this time, the event buffer may overflow, and newer events will be lost */
         unsigned deviationThreshold;      /* threshold above which abs value of clock reference rate difference to STC will be considered deviant */
         unsigned deviantCountThreshold;   /* how many deviant clock coupling measurements must be received before deeming the clock reference bad and decoupling 
-                                                                               the timebases from the input */
-        unsigned idealCountThreshold;     /* how many ideal clock coupling measurements must be received before deeming the clock reference good and recoupling the timebases to the input */
+                                             the timebases from the input */
+        unsigned idealCountThreshold;     /* how many ideal clock coupling measurements must be received before deeming the clock reference good and recoupling the
+                                             timebases to the input */
         unsigned initialAcquisitionTime;  /* time just after calling start before processing clock reference event queue for the first time, in ms */
         unsigned processingFrequency;     /* after initial acquisition period,  how often clock reference event queue will be processed for deviants, in ms */
         unsigned idealProcessingFrequency; /* after detecting deviants, how often clock reference event queue will be processed for ideals, in ms */

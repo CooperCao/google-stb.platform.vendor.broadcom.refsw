@@ -617,6 +617,13 @@ static void NEXUS_DisplayCb_isr(void *pParam, int iParam, void *pCbData)
     if (pCallbackData->stMask.bPerVsync) {
         BTMR_ReadTimer_isr(pVideo->tmr, &display->lastVsyncTime);
     }
+
+#if((NEXUS_NUM_HDMI_OUTPUTS) && (BAVC_HDMI_CRC_READING_FIX))
+    if (display->hdmi.vsync_isr) {
+        /* general purpose per-vsync isr. one use is HDMI CRC capture. */
+        (display->hdmi.vsync_isr)(display->hdmi.pCbParam);
+    }
+#endif
 }
 
 unsigned NEXUS_Display_GetLastVsyncTime_isr(NEXUS_DisplayHandle display)
@@ -902,6 +909,12 @@ NEXUS_Display_Open(unsigned displayIndex,const NEXUS_DisplaySettings *pSettings)
 
     nexus_display_p_init_rdccapture();
 
+#if BVDC_BUF_LOG && NEXUS_BASE_OS_linuxuser
+    if (nexus_display_p_init_buflogcapture() != BERR_SUCCESS) {
+        goto err_alloc;
+    }
+#endif
+
     display = BKNI_Malloc(sizeof(*display));
     if(!display) {
         rc = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
@@ -1046,6 +1059,10 @@ NEXUS_Display_P_Finalizer(NEXUS_DisplayHandle display)
     }
 
     nexus_display_p_uninit_rdccapture();
+
+#if BVDC_BUF_LOG && NEXUS_BASE_OS_linuxuser
+    nexus_display_p_uninit_buflogcapture();
+#endif
 
     /* stop all callbacks from coming into display module */
     nexus_p_uninstall_display_cb(display);
@@ -1247,6 +1264,7 @@ NEXUS_Display_RemoveAllOutputs(NEXUS_DisplayHandle display)
     return;
 }
 
+#if NEXUS_DISPLAY_OPEN_REQUIRES_HDMI_OUTPUT
 NEXUS_Error NEXUS_DisplayModule_AddRequiredOutput_priv(NEXUS_VideoOutput output)
 {
     NEXUS_ASSERT_MODULE();
@@ -1271,6 +1289,7 @@ void NEXUS_DisplayModule_RemoveRequiredOutput_priv(NEXUS_VideoOutput output)
         BERR_TRACE(NEXUS_UNKNOWN);
     }
 }
+#endif
 
 static bool
 NEXUS_P_Display_RectEqual3d(const NEXUS_Rect *winRect, const NEXUS_Rect *dispRect, NEXUS_VideoOrientation orientation)

@@ -50,12 +50,24 @@
 *
 ****************************************************************************************/
 /************************* INCLUDES ****************************************************/
+#include "bbMailAPI.h"
+#include "bbMailService.h"
 #include "private/bbMailPrivateService.h"
 #include "private/bbMailPrivateAdapter.h"
 #include "private/bbMailPrivateClient.h"
 #include "private/bbMailPrivateServer.h"
 
 /************************* IMPLEMENTATION **********************************************/
+BITMAP_DECLARE(mailboxIndRoutingBitmap, FINAL_PUBLIC_FID);
+
+#define ROUTING_SET_TO_STACK(fId)    (BITMAP_SET(mailboxIndRoutingBitmap, fId))
+#define ROUTING_SET_TO_MAILBOX(fId)  (BITMAP_CLR(mailboxIndRoutingBitmap, fId))
+#define ROUTING_IS_TO_STACK(fId)     (BITMAP_ISSET(mailboxIndRoutingBitmap, fId))
+#define ROUTING_IS_TO_MAILBOX(fId)   (!BITMAP_ISSET(mailboxIndRoutingBitmap, fId))
+
+#define ROUTING_RESET()  (BITMAP_RESET(mailboxIndRoutingBitmap))
+
+
 static const MailServiceFunctionInfo_t mailboxMemoryFunctionTable[] =
 {
 #define FILL_REQ_PART__HAS_CB__NO_PARAMS(desc_name, parameters_name, param_payload)  \
@@ -161,9 +173,12 @@ void Mail_ServiceInit()
         {
             SYS_DbgAssertComplex(lastId != mailboxMemoryFunctionTable[i].id, MAILBOX_SERVICE__TABLE_CAN_NOT_KEEP_SEVERAL_DEFINITION_FOR_ONE_FID__PLEASE_CHECK_FUNCTION_LIST);
             SYS_DbgAssertComplex(lastId < mailboxMemoryFunctionTable[i].id, MAILBOX_SERVICE__FUNCTION_MUST_BE_DEFINED_IN_ASCENDING_ORDER__PLEASE_CHECK_FUNCTION_LIST);
+            lastId = mailboxMemoryFunctionTable[i].id;
         }
     }
 #endif
+
+    ROUTING_RESET();
 
     mailClientInit();
     mailServerInit();
@@ -196,6 +211,38 @@ WEAK void Mail_CallbackHandler(MailFID_t fId, const ConfirmCall_t callback, void
     callback(req, confirm);
 }
 
+
+bool Mail_RoutingChange(MailFID_t fId, MailRouteDirection_t routeDirection)
+{
+    if (fId >= FINAL_PUBLIC_FID)
+        return false;
+
+    switch(routeDirection)
+    {
+        case MAIL_ROUTE_TO_MAILBOX:
+            ROUTING_SET_TO_MAILBOX(fId);
+            break;
+        case MAIL_ROUTE_TO_STACK:
+            ROUTING_SET_TO_STACK(fId);
+            break;
+        default:
+            SYS_DbgAssertComplex(false, HALT_Mail_RoutingChange_IncorrectRouteDirection);
+            return false;
+    }
+
+    return true;
+}
+
+bool Mail_RoutingChangeList(MailFID_t const * const fIdList, uint16_t fIdAmount, MailRouteDirection_t routeDirection)
+{
+    for(uint16_t i=0; i<fIdAmount; ++i)
+    {
+        if (!Mail_RoutingChange(fIdList[i], routeDirection))
+            return false;
+    }
+    return true;
+}
+
 bool Mail_IsReadyToSerialize()
 {
     return (NULL != mailClientFindEmptyPendingTableEntry());
@@ -206,8 +253,30 @@ void Mail_Serialize(MailFID_t fId, void *req)
     mailClientSerialize(fId, (uint8_t *)req);
 }
 
-#define CREATE_FUNCTION(wrapper_name, arg_type, enum_name)  \
+
+#ifdef MAILBOX_UNIT_TEST
+# define CREATE_FUNCTION(wrapper_name, arg_type, enum_name)  \
     WEAK void wrapper_name(arg_type *_arg) {Mail_Serialize(enum_name, _arg);}
+#else /* MAILBOX_UNIT_TEST */
+
+# ifdef MAILBOX_STACK_SIDE
+#  define CREATE_FUNCTION(wrapper_name, arg_type, enum_name)  \
+    extern void wrapper_name##_internal(arg_type * _arg);   \
+    WEAK void wrapper_name(arg_type *_arg)                  \
+    {                                                       \
+        if (ROUTING_IS_TO_MAILBOX(enum_name))               \
+            Mail_Serialize(enum_name, _arg);                \
+        else                                                \
+            wrapper_name##_internal(_arg);                  \
+    }
+# endif /* MAILBOX_STACK_SIDE */
+
+# ifdef MAILBOX_HOST_SIDE
+#  define CREATE_FUNCTION(wrapper_name, arg_type, enum_name)  \
+    WEAK void wrapper_name(arg_type *_arg) {Mail_Serialize(enum_name, _arg);}
+# endif /* MAILBOX_HOST_SIDE */
+
+#endif /* MAILBOX_UNIT_TEST */
 
 #define MAILBOX_CALL__NO_CB(function_name, enum_name, desc_name, parameters_name)   CREATE_FUNCTION(function_name, parameters_name, enum_name)
 #define MAILBOX_CALL__HAS_CB(function_name, enum_name, desc_name, parameters_name)  CREATE_FUNCTION(function_name, desc_name, enum_name)

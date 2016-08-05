@@ -20,7 +20,6 @@ FILE DESCRIPTION
 #include "glsl_map.h"
 #include "glsl_symbols.h"
 #include "glsl_ast.h"
-#include "glsl_check.h"
 #include "glsl_errors.h"
 #include "glsl_primitive_types.auto.h"
 #include "glsl_stdlib.auto.h"
@@ -32,18 +31,9 @@ FILE DESCRIPTION
 
 #include "glsl_ast_print.h" /* For error message printing */
 
-/*
-   bool glsl_shallow_match_nonfunction_types(SymbolType* a, SymbolType* b)
-
-   Returns whether two types are identical. Only matches within a shader.
-
-   Relies on the fact that primitive and structure types are canonical and can
-   be compared with pointer equality.
-
-   flavours must be in {SYMBOL_PRIMITIVE_TYPE,SYMBOL_STRUCT_TYPE,SYMBOL_ARRAY_TYPE}
-*/
-
-bool glsl_shallow_match_nonfunction_types(const SymbolType* a, const SymbolType* b)
+/* Returns whether two types are identical. Relies on canonicalness of types, so
+   only works within a shader. */
+bool glsl_shallow_match_nonfunction_types(const SymbolType *a, const SymbolType *b)
 {
    /* Canonical match for PRIMITIVE or STRUCT types */
    if (a == b) return true;
@@ -59,6 +49,32 @@ bool glsl_shallow_match_nonfunction_types(const SymbolType* a, const SymbolType*
    }
 
    return false;
+}
+
+static bool glsl_layouts_equal(const LayoutQualifier *lq1, const LayoutQualifier *lq2)
+{
+   if(lq1 == lq2)
+      return true;
+
+   if(lq1->qualified != lq2->qualified)
+      return false;
+
+   if( (lq1->qualified & LOC_QUALED) && lq1->location!=lq2->location )
+      return false;
+
+   if( (lq1->qualified & UNIF_QUALED) && lq1->unif_bits!=lq2->unif_bits )
+      return false;
+
+   if( (lq1->qualified & BINDING_QUALED) && lq1->binding != lq2->binding )
+      return false;
+
+   if( (lq1->qualified & OFFSET_QUALED) && lq1->offset != lq2->offset  )
+      return false;
+
+   if( (lq1->qualified & FORMAT_QUALED) && lq1->format != lq2->format )
+      return false;
+
+   return true;
 }
 
 bool glsl_deep_match_nonfunction_types(const SymbolType *a, const SymbolType *b, bool check_prec)
@@ -131,7 +147,7 @@ bool glsl_deep_match_nonfunction_types(const SymbolType *a, const SymbolType *b,
          break;
 
       default:
-         UNREACHABLE();
+         unreachable();
          return false;
    }
 
@@ -155,7 +171,7 @@ static inline const_value const_value_from_const_value(PRIMITIVE_TYPE_FLAGS_T to
          case PRIM_FLOAT_TYPE:
             return (from_value ? CONST_FLOAT_ONE : CONST_FLOAT_ZERO);
          default:
-            UNREACHABLE();
+            unreachable();
             return 0;
       }
    }
@@ -171,7 +187,7 @@ static inline const_value const_value_from_const_value(PRIMITIVE_TYPE_FLAGS_T to
          case PRIM_FLOAT_TYPE:
             return const_float_from_int(from_value);
          default:
-            UNREACHABLE();
+            unreachable();
             return 0;
       }
    }
@@ -187,7 +203,7 @@ static inline const_value const_value_from_const_value(PRIMITIVE_TYPE_FLAGS_T to
          case PRIM_FLOAT_TYPE:
             return const_float_from_uint(from_value);
          default:
-            UNREACHABLE();
+            unreachable();
             return 0;
       }
    }
@@ -205,19 +221,18 @@ static inline const_value const_value_from_const_value(PRIMITIVE_TYPE_FLAGS_T to
          case PRIM_FLOAT_TYPE:
             return from_value;
          default:
-            UNREACHABLE();
+            unreachable();
             return 0;
       }
    }
 }
 
-bool glsl_conversion_valid(PrimitiveTypeIndex from, PrimitiveTypeIndex to) {
-   PRIMITIVE_TYPE_FLAGS_T from_flags, to_flags;
-   const PRIMITIVE_TYPE_FLAGS_T valid = PRIM_BOOL_TYPE | PRIM_INT_TYPE |
-                                        PRIM_UINT_TYPE | PRIM_FLOAT_TYPE;
+static const PRIMITIVE_TYPE_FLAGS_T conv_valid = PRIM_BOOL_TYPE | PRIM_INT_TYPE |
+                                                 PRIM_UINT_TYPE | PRIM_FLOAT_TYPE;
 
-   from_flags = primitiveTypeFlags[from] & valid;
-   to_flags = primitiveTypeFlags[to] & valid;
+bool glsl_conversion_valid(PrimitiveTypeIndex from, PrimitiveTypeIndex to) {
+   PRIMITIVE_TYPE_FLAGS_T from_flags = primitiveTypeFlags[from] & conv_valid;
+   PRIMITIVE_TYPE_FLAGS_T to_flags   = primitiveTypeFlags[to]   & conv_valid;
    return (from_flags && to_flags);
 }
 
@@ -225,13 +240,10 @@ const_value glsl_single_scalar_type_conversion(PrimitiveTypeIndex to_index,
                                                PrimitiveTypeIndex from_index,
                                                const_value from_val)
 {
-   const PRIMITIVE_TYPE_FLAGS_T valid = PRIM_BOOL_TYPE | PRIM_INT_TYPE |
-                                        PRIM_UINT_TYPE | PRIM_FLOAT_TYPE;
-
    assert(glsl_conversion_valid(from_index, to_index));
 
-   PRIMITIVE_TYPE_FLAGS_T from_flags = primitiveTypeFlags[from_index] & valid;
-   PRIMITIVE_TYPE_FLAGS_T to_flags   = primitiveTypeFlags[to_index]   & valid;
+   PRIMITIVE_TYPE_FLAGS_T from_flags = primitiveTypeFlags[from_index] & conv_valid;
+   PRIMITIVE_TYPE_FLAGS_T to_flags   = primitiveTypeFlags[to_index]   & conv_valid;
 
    return const_value_from_const_value(to_flags, from_flags, from_val);
 }
@@ -356,8 +368,7 @@ Symbol *glsl_resolve_overload_using_prototype(Symbol *head, SymbolType *prototyp
          }
       }
 
-      if (!params_match)
-         continue; // next prototype
+      if (!params_match) continue; // next prototype
 
       // Under the overloading rules we've found a match, and CANNOT consider any further overloads.
       // However, there are some further tests to pass.
@@ -366,7 +377,9 @@ Symbol *glsl_resolve_overload_using_prototype(Symbol *head, SymbolType *prototyp
       if (!glsl_shallow_match_nonfunction_types(existing_prototype->u.function_type.return_type,
                                                 prototype->u.function_type.return_type) )
       {
-         glsl_compile_error(ERROR_SEMANTIC, 42, g_LineNumber, NULL);
+         glsl_compile_error(ERROR_SEMANTIC, 6, g_LineNumber, "return type %s, expected %s",
+                                                             prototype->u.function_type.return_type->name,
+                                                             existing_prototype->u.function_type.return_type->name);
       }
 
       // Parameter qualifiers must be consistent between declaration and definition.
@@ -379,7 +392,7 @@ Symbol *glsl_resolve_overload_using_prototype(Symbol *head, SymbolType *prototyp
              (new_param->u.param_instance.storage_qual != existing_param->u.param_instance.storage_qual) ||
              (new_param->u.param_instance.mem_qual     != existing_param->u.param_instance.mem_qual)     )
          {
-            glsl_compile_error(ERROR_SEMANTIC, 43, g_LineNumber, NULL);
+            glsl_compile_error(ERROR_SEMANTIC, 6, g_LineNumber, "parameter %s mismatches", existing_param->name);
          }
       }
 
@@ -415,7 +428,7 @@ bool glsl_type_contains(SymbolType *t, PRIMITIVE_TYPE_FLAGS_T f) {
 
       case SYMBOL_FUNCTION_TYPE: // fall
       default:
-         UNREACHABLE();
+         unreachable();
          return false;
    }
 }
@@ -440,7 +453,7 @@ bool glsl_type_contains_array(SymbolType *t) {
          return false;
       case SYMBOL_FUNCTION_TYPE:
       default:
-         UNREACHABLE();
+         unreachable();
          return false;
    }
 }
@@ -481,7 +494,7 @@ PrimitiveTypeIndex glsl_get_scalar_value_type_index(const SymbolType *type, unsi
                                                  n % type->u.array_type.member_type->scalar_count);
 
       default:
-         UNREACHABLE();
+         unreachable();
          return PRIM_VOID;
    }
 }
@@ -489,7 +502,6 @@ PrimitiveTypeIndex glsl_get_scalar_value_type_index(const SymbolType *type, unsi
 void glsl_symbol_construct_type(Symbol *result, SymbolType *type) {
    result->flavour  = SYMBOL_TYPE;
    result->name     = type->name;
-   result->line_num = g_LineNumber;
    result->type     = type;
 }
 
@@ -497,9 +509,9 @@ void glsl_symbol_construct_interface_block(Symbol *result, const char *name, Sym
 {
    result->flavour              = SYMBOL_INTERFACE_BLOCK;
    result->name                 = name;
-   result->line_num             = g_LineNumber;
    result->type                 = ref_type;
    result->u.interface_block.sq = q->sq;
+   result->u.interface_block.tq = q->tq;
    result->u.interface_block.block_data_type = type;
    result->u.interface_block.layout_bind_specified = false;
 
@@ -514,7 +526,6 @@ void glsl_symbol_construct_var_instance(Symbol *result, const char *name, Symbol
    // Set common symbol parameters.
    result->flavour  = SYMBOL_VAR_INSTANCE;
    result->name     = name;
-   result->line_num = g_LineNumber;
    result->type     = type;
 
    result->u.var_instance.layout_loc_specified  = false;
@@ -553,10 +564,11 @@ void glsl_symbol_construct_var_instance(Symbol *result, const char *name, Symbol
    if (block_symbol) {
       result->u.var_instance.block_info_valid = true;
       result->u.var_instance.block_info.block_symbol = block_symbol;
+      result->u.var_instance.block_info.field_no = -1;
 
       SymbolType *block_type = block_symbol->u.interface_block.block_data_type;
       if (block_type->flavour == SYMBOL_ARRAY_TYPE) block_type = block_type->u.array_type.member_type;
-      assert(block_type->u.block_type.layout->flavour==MEMBER_BLOCK);
+      assert(block_type->u.block_type.layout->flavour==LAYOUT_STRUCT);
       if( type->flavour==SYMBOL_BLOCK_TYPE ||
           (type->flavour==SYMBOL_ARRAY_TYPE && type->u.array_type.member_type->flavour==SYMBOL_BLOCK_TYPE) )
       {
@@ -569,7 +581,8 @@ void glsl_symbol_construct_var_instance(Symbol *result, const char *name, Symbol
          // the member of an anonymous block
          for(unsigned i=0; i<block_type->u.block_type.member_count; i++) {
             if(!strcmp(block_type->u.block_type.member[i].name, name)) {
-               result->u.var_instance.block_info.layout = &block_type->u.block_type.layout->u.block_layout.member_layouts[i];
+               result->u.var_instance.block_info.field_no = i;
+               result->u.var_instance.block_info.layout   = &block_type->u.block_type.layout->u.struct_layout.member_layouts[i];
                break;
             }
          }
@@ -578,9 +591,9 @@ void glsl_symbol_construct_var_instance(Symbol *result, const char *name, Symbol
       //Fill in 'block_info' for uniform instance in default block:
       result->u.var_instance.block_info_valid = true;
       result->u.var_instance.block_info.block_symbol = NULL;
-      result->u.var_instance.block_info.layout = malloc_fast(sizeof(MEMBER_LAYOUT_T));
+      result->u.var_instance.block_info.layout = malloc_fast(sizeof(MemLayout));
 
-      calculate_non_block_layout(result->u.var_instance.block_info.layout, type);
+      glsl_mem_calculate_non_block_layout(result->u.var_instance.block_info.layout, type);
    }
 }
 
@@ -589,19 +602,12 @@ void glsl_symbol_construct_param_instance(Symbol *result, const char *name, Symb
    // Set common symbol parameters.
    result->flavour  = SYMBOL_PARAM_INSTANCE;
    result->name     = name;
-   result->line_num = g_LineNumber;
    result->type     = type;
 
    // Set param instance symbol parameters.
    result->u.param_instance.storage_qual = sq;
    result->u.param_instance.param_qual   = pq;
    result->u.param_instance.mem_qual     = mq;
-
-   if(pq == PARAM_QUAL_OUT || pq == PARAM_QUAL_INOUT) {
-      if (glsl_type_contains_opaque(type)) {
-         glsl_compile_error(ERROR_CUSTOM, 22, g_LineNumber, NULL);
-      }
-   }
 }
 
 void glsl_symbol_construct_function_instance(Symbol *result, const char *name, SymbolType *type,
@@ -609,7 +615,6 @@ void glsl_symbol_construct_function_instance(Symbol *result, const char *name, S
 {
    result->flavour  = SYMBOL_FUNCTION_INSTANCE;
    result->name     = name;
-   result->line_num = g_LineNumber;
    result->type     = type;
 
    result->u.function_instance.folding_function = folding_function;
@@ -628,7 +633,6 @@ Symbol *glsl_symbol_construct_temporary(SymbolType *type)
    Symbol *symbol = malloc_fast(sizeof(Symbol));
    symbol->flavour  = SYMBOL_TEMPORARY;
    symbol->name     = glsl_intern(name, true);
-   symbol->line_num = g_LineNumber;
    symbol->type     = type;
    return symbol;
 }

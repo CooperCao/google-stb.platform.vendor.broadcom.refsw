@@ -43,10 +43,6 @@ static KHRN_IMAGE_T *get_back_buffer(const EGL_SURFACE_T *surface);
 
 static void set_mipmap_level(EGL_PBUFFER_SURFACE_T *surface, int level)
 {
-   EGL_CONTEXT_T *context;
-   KHRN_IMAGE_T *image;
-   KHRN_RES_INTERLOCK_T *res_i;
-
    if (level < 0)
       level = 0;
    else if ((unsigned int)level >= surface->num_images)
@@ -54,16 +50,15 @@ static void set_mipmap_level(EGL_PBUFFER_SURFACE_T *surface, int level)
 
    if (egl_context_gl_lock())
    {
-      image = get_back_buffer(&surface->base);
-      res_i = khrn_image_get_res_interlock(image);
-      khrn_interlock_flush(&res_i->interlock);
+      KHRN_IMAGE_T *image = get_back_buffer(&surface->base);
+      khrn_interlock_flush(khrn_image_get_interlock(image));
 
       egl_context_gl_unlock();
    }
 
    surface->current_image = level;
 
-   context = surface->base.context;
+   EGL_CONTEXT_T *context = surface->base.context;
    if (context)
       egl_context_reattach(context);
 }
@@ -94,7 +89,7 @@ static void delete_fn(EGL_SURFACE_T *surface)
 
 static unsigned count_mipmaps(unsigned width, unsigned height)
 {
-   unsigned ret = MAX(_msb(width), _msb(height)) + 1;
+   unsigned ret = gfx_smax(gfx_msb(width), gfx_msb(height)) + 1;
    assert(ret < KHRN_MAX_MIP_LEVELS);
    return ret;
 }

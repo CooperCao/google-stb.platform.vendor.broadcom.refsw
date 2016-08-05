@@ -59,6 +59,8 @@
 
 BDBG_MODULE(BHSM);
 
+BDBG_OBJECT_ID_DECLARE( BHSM_P_Handle );
+
 static BERR_Code BHSM_P_UserHmacSha_impl ( BHSM_Handle hHsm, BHSM_UserHmacShaIO_t *pIo )
 {
     BHSM_BspMsg_h       hMsg = NULL;
@@ -76,7 +78,9 @@ static BERR_Code BHSM_P_UserHmacSha_impl ( BHSM_Handle hHsm, BHSM_UserHmacShaIO_
 
     BDBG_ENTER( BHSM_P_UserHmacSha_impl );
 
-    if( (hHsm == NULL) || (hHsm->ulMagicNumber != BHSM_P_HANDLE_MAGIC_NUMBER) || (pIo == NULL) )
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
+
+    if( pIo == NULL )
     {
         return BERR_TRACE( BHSM_STATUS_FAILED );
     }

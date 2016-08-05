@@ -54,6 +54,9 @@
 
 BDBG_MODULE(BHSM);
 
+BDBG_OBJECT_ID( BHSM_P_Handle );
+
+
 /*******************************************************************************
 *    Public Module Functions
 *******************************************************************************/
@@ -87,10 +90,7 @@ BERR_Code BHSM_GetCapabilities( BHSM_Handle hHsm, BHSM_Capabilities_t *pCaps )
 
     BDBG_ENTER( BHSM_GetCapabilities );
 
-    if( (hHsm == NULL) || (hHsm->ulMagicNumber != BHSM_P_HANDLE_MAGIC_NUMBER) )
-    {
-        return BERR_TRACE(BHSM_STATUS_INPUT_PARM_ERR);
-    }
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
 
     if( pCaps == NULL )
     {
@@ -277,6 +277,7 @@ BERR_Code BHSM_Open( BHSM_Handle            *hpHsm,
         goto BHSM_P_DONE_LABEL;
     }
 
+    BDBG_OBJECT_SET( hHsm, BHSM_P_Handle );
     *hpHsm = hHsm;
 
 BHSM_P_DONE_LABEL:
@@ -308,10 +309,7 @@ BERR_Code BHSM_Close( BHSM_Handle hHsm )
 
     BDBG_ENTER( BHSM_Close );
 
-    if( ( hHsm ==  NULL ) || ( hHsm->ulMagicNumber != BHSM_P_HANDLE_MAGIC_NUMBER ) )
-    {
-        return BERR_TRACE( BERR_INVALID_PARAMETER );
-    }
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
 
     BHSM_BspMsg_Uninit( hHsm );
 
@@ -345,6 +343,8 @@ BERR_Code BHSM_Close( BHSM_Handle hHsm )
         BERR_TRACE( errCode );  /* Failed to uninitialise Region verification. Continue */
     }
 
+    BDBG_OBJECT_DESTROY( hHsm, BHSM_P_Handle );
+
     BKNI_Free(  hHsm );
     hHsm = NULL;
 
@@ -369,11 +369,11 @@ BERR_Code BHSM_SubmitRawCommand (
     uint16_t            outputLength = 0;
 
     BSTD_UNUSED( interface );
+    BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
 
     if( ( rc = BHSM_BspMsg_Create( hHsm, &hMsg ) ) != BERR_SUCCESS )
     {
-        BERR_TRACE( rc );
-        goto BHSM_P_DONE_LABEL;
+        return BERR_TRACE( rc );
     }
 
     BHSM_BspMsg_GetDefaultHeader( &header );
@@ -423,10 +423,7 @@ BERR_Code BHSM_SubmitRawCommand (
 
 BHSM_P_DONE_LABEL:
 
-    if( hMsg )
-    {
-        (void)BHSM_BspMsg_Destroy( hMsg );
-    }
+    (void)BHSM_BspMsg_Destroy( hMsg );
 
     BDBG_LEAVE( BHSM_SubmitRawCommand );
     return rc;

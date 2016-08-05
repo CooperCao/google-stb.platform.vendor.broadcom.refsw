@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -35,6 +35,7 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *****************************************************************************/
+
 #include "bip_priv.h"
 #include "bip_media_info.h"
 
@@ -109,6 +110,19 @@ BIP_SETTINGS_ID(BIP_MediaInfoMakeNavForTsSettings);
 #define BIP_MEDIAINFO_TRK_VIDEO_XML_ATT_FRAMERATE         "framerate"
 #define BIP_MEDIAINFO_TRK_VIDEO_XML_ATT_COLORDEPTH        "colorDepth"
 
+#define BIP_MEDIAINFO_TRK_VIDEO_XML_ATT_CCSERVICE                       "captionService"
+#define BIP_MEDIAINFO_TRK_VIDEO_XML_ATT_CCSERVICE_NUMBEROFSERVICES      "numberOfServices"
+
+#define BIP_MEDIAINFO_TRK_VIDEO_XML_ATT_CCSERVICE_CC                    "cc"
+#define BIP_MEDIAINFO_TRK_VIDEO_XML_ATT_CCSERVICE_TYPE                  "type"
+
+#define BIP_MEDIAINFO_TRK_VIDEO_XML_ATT_CCSERVICE_LINE21FIELD           "line21Field"
+
+#define BIP_MEDIAINFO_TRK_VIDEO_XML_ATT_CCSERVICE_LANGUAGE              "language"
+#define BIP_MEDIAINFO_TRK_VIDEO_XML_ATT_CCSERVICE_SERVICENUMBER         "serviceNumber"
+#define BIP_MEDIAINFO_TRK_VIDEO_XML_ATT_CCSERVICE_EASYREADER            "easyReader"
+#define BIP_MEDIAINFO_TRK_VIDEO_XML_ATT_CCSERVICE_WIDEASPECTRATIO       "wideAspectRatio"
+
 #define BIP_MEDIAINFO_TRK_AUDIO_XML_ATT_CODEC             "codec"
 #define BIP_MEDIAINFO_TRK_AUDIO_XML_ATT_CHANNELCOUNT      "channelCount"
 #define BIP_MEDIAINFO_TRK_AUDIO_XML_ATT_SAMPLESIZE        "sampleSize"
@@ -143,7 +157,17 @@ BIP_SETTINGS_ID(BIP_MediaInfoMakeNavForTsSettings);
 #define BIP_MEDIAINFO_TRK_AUDIO_XML_ATT_ASVCFLAGS       "asvcflags"
 #define BIP_MEDIAINFO_TRK_AUDIO_XML_ATT_LANGUAGE2       "language2"
 
-
+#define BIP_MEDIAINFO_CAPTION_SERVICE_DESCRIPTORLIST_INSERT(listHeadAddress, listEntry)     \
+do                                                                                          \
+{                                                                                           \
+    BIP_MediaInfoCaptionServiceDescriptor **ppCurrentNode = NULL;                           \
+    ppCurrentNode = (listHeadAddress);                                                      \
+    while(*ppCurrentNode != NULL)                                                           \
+    {                                                                                       \
+        ppCurrentNode = &((*ppCurrentNode)->pNextServiceDescriptor);                        \
+    }                                                                                       \
+    *ppCurrentNode = listEntry;                                                             \
+}while (0)
 
 #define BIP_MEDIAINFO_TRACKLIST_INSERT(listHeadAddress, listEntry)          \
 do                                                                          \
@@ -561,12 +585,88 @@ static NEXUS_TransportType BIP_MediaInfo_ConvertBmediaMpegTypeToNexus(
     BIP_MEDIAINFO_CONVERT( g_mpegType );
 }
 
-static void populateMediaInfoTrack(
+static char *addLanguageInIso6392Format(
+    const char *pLanguageRecieved
+    )
+{
+    char *pLanguage = NULL;
+
+    /* Extract language , if it is in ISO639-1 then convert it to Iso639-2 format.*/
+    if(strlen(pLanguageRecieved) == 2)
+    {
+       const char *pCode6392 = NULL;
+       pCode6392 = BIP_MediaInfo_GetIso6392CodeFrom6391Code(pLanguageRecieved);
+
+       if(pCode6392 == NULL)
+       {
+           BDBG_WRN((BIP_MSG_PRE_FMT " Language code |%s| not supported. Check BIP_MediaInfoLanguageCode table." BIP_MSG_PRE_ARG, pLanguageRecieved));
+       }
+       else
+       {
+           pLanguage = B_Os_Calloc(1,BIP_MEDIA_INFO_LANGUAGE_FIELD_SIZE);
+           memcpy( pLanguage, pCode6392, (strlen(pCode6392)+1)); /* copy valid data to request buffer */
+       }
+    }
+    else /* Directly copy assuming it is ISO639-2 code.*/
+    {
+       pLanguage = B_Os_Calloc(1,BIP_MEDIA_INFO_LANGUAGE_FIELD_SIZE);
+       memcpy( pLanguage, pLanguageRecieved, (strlen(pLanguageRecieved)+1)); /* copy valid data to request buffer */
+    }
+    return (pLanguage);
+}
+
+static BIP_Status addCaptionServiceDescriptors(
+    BIP_MediaInfoVideoTrack     *pMediaInfoVideoTrack,
+    bmpeg2ts_psi_probe_track    *pTrackMpeg2TS
+    )
+{
+    unsigned i;
+    BIP_Status       rc = BIP_SUCCESS;
+    BDBG_MSG(("%s: Adding Caption Data ",__FUNCTION__));
+    pMediaInfoVideoTrack->captionService.numberOfServices = pTrackMpeg2TS->caption_service.number_of_services;
+    for(i=0; i < pTrackMpeg2TS->caption_service.number_of_services ; i++)
+    {
+
+        BIP_MediaInfoCaptionServiceDescriptor *pDescriptor = NULL;
+        /* Allocate memory for BIP_MediaInfoCaptionServiceDescriptor */
+        pDescriptor = B_Os_Calloc(1, sizeof(BIP_MediaInfoCaptionServiceDescriptor));
+        BIP_CHECK_GOTO(( pDescriptor!=NULL ), ( "Failed to allocate memory (%zu bytes) for BIP_MediaInfoCaptionServiceDescriptor", sizeof(BIP_MediaInfoCaptionServiceDescriptor) ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, rc );
+
+        if(pTrackMpeg2TS->caption_service.services[i].digital_cc)
+        {
+            pDescriptor->captionType = BIP_MediaInfoCaptionType_e708;
+
+            pDescriptor->descriptor.descriptor708.pLanguage = B_Os_Calloc(1,BIP_MEDIA_INFO_LANGUAGE_FIELD_SIZE);
+            BIP_CHECK_GOTO(( pDescriptor->descriptor.descriptor708.pLanguage!=NULL ), ( "Failed to allocate memory (%u bytes) for pDescriptor->descriptor.descriptor708.pLanguage", BIP_MEDIA_INFO_LANGUAGE_FIELD_SIZE ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, rc );
+            memcpy( pDescriptor->descriptor.descriptor708.pLanguage, pTrackMpeg2TS->caption_service.services[i].language, BIP_MEDIA_INFO_LANGUAGE_FIELD_SIZE);
+
+            pDescriptor->descriptor.descriptor708.captionServiceNumber = pTrackMpeg2TS->caption_service.services[i].cc.caption_service_number;
+            pDescriptor->descriptor.descriptor708.easyReader = pTrackMpeg2TS->caption_service.services[i].easy_reader;
+            pDescriptor->descriptor.descriptor708.wideAspectRatio = pTrackMpeg2TS->caption_service.services[i].wide_aspect_ratio;
+            BDBG_MSG(("%s:pLanguage=%s captionServiceNumber=%d =========>", __FUNCTION__, pTrackMpeg2TS->caption_service.services[i].language, pTrackMpeg2TS->caption_service.services[i].cc.caption_service_number));
+        }
+        else
+        {
+            pDescriptor->captionType = BIP_MediaInfoCaptionType_e608;
+            pDescriptor->descriptor.descriptor608.line21Field = pTrackMpeg2TS->caption_service.services[i].cc.line21_field;
+            BDBG_MSG(("%s:line21Field=%d =========>", __FUNCTION__, pTrackMpeg2TS->caption_service.services[i].cc.line21_field));
+        }
+
+        /* Now the descripror is created add to the descriptor list of VideoTrack.*/
+        BIP_MEDIAINFO_CAPTION_SERVICE_DESCRIPTORLIST_INSERT(&pMediaInfoVideoTrack->captionService.pFirstServiceDescriptor, pDescriptor);
+    }
+
+error:
+    return rc;
+}
+
+static BIP_Status populateMediaInfoTrack(
     BIP_MediaInfoTrack   *pMediaInfoTrack,
     const bmedia_probe_track  *pTrack,
     const bmedia_probe_stream *pStream
     )
 {
+    BIP_Status       rc = BIP_SUCCESS;
     pMediaInfoTrack->trackId = pTrack->number;
     pMediaInfoTrack->trackType = pTrack->type;
 
@@ -589,6 +689,19 @@ static void populateMediaInfoTrack(
 #endif
         }
         pMediaInfoTrack->info.video.colorDepth = bmedia_probe_get_video_color_depth(pTrack);
+
+        if(pStream->type == bstream_mpeg_type_ts)
+        {
+            if( (pTrack->probe_id == BMPEG2TS_PSI_PROBE_ID || pTrack->probe_id == BMPEG2TS192_PSI_PROBE_ID))
+            {
+                bmpeg2ts_psi_probe_track *pTrackMpeg2TS = (bmpeg2ts_psi_probe_track *)pTrack;
+                if(pTrackMpeg2TS->caption_service.number_of_services != 0)
+                {
+                    rc = addCaptionServiceDescriptors( &pMediaInfoTrack->info.video, pTrackMpeg2TS );
+                    BIP_CHECK_GOTO(( rc == BIP_SUCCESS ), ( "addCaptionServiceDescriptors failed" ), error, rc, rc );
+                }
+            }
+        }
     }
     else if(pTrack->type == bmedia_track_type_audio)
     {
@@ -600,10 +713,11 @@ static void populateMediaInfoTrack(
 
         if(pStream->type == bstream_mpeg_type_ts)
         {
-            if( (pStream->probe_id == BMPEG2TS_PSI_PROBE_ID || pStream->probe_id == BMPEG2TS192_PSI_PROBE_ID))
+            if( (pTrack->probe_id == BMPEG2TS_PSI_PROBE_ID || pTrack->probe_id == BMPEG2TS192_PSI_PROBE_ID))
             {
                 bmpeg2ts_psi_probe_track *pTrackMpeg2TS = (bmpeg2ts_psi_probe_track *)pTrack;
                 pMediaInfoTrack->info.audio.pLanguage = B_Os_Calloc(1,BIP_MEDIA_INFO_LANGUAGE_FIELD_SIZE);
+                BIP_CHECK_GOTO(( pMediaInfoTrack->info.audio.pLanguage!=NULL ), ( "Failed to allocate memory (%u bytes) for pMediaInfoTrack->info.audio.pLanguage", BIP_MEDIA_INFO_LANGUAGE_FIELD_SIZE ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, rc );
                 memcpy( pMediaInfoTrack->info.audio.pLanguage, pTrackMpeg2TS->language.code, BIP_MEDIA_INFO_LANGUAGE_FIELD_SIZE);
 
                 if(pTrackMpeg2TS->ac3_bsmod.valid)
@@ -617,7 +731,7 @@ static void populateMediaInfoTrack(
 
     if(pStream->type == bstream_mpeg_type_ts)
     {
-        if( (pStream->probe_id == BMPEG2TS_PSI_PROBE_ID || pStream->probe_id == BMPEG2TS192_PSI_PROBE_ID))
+        if( (pTrack->probe_id == BMPEG2TS_PSI_PROBE_ID || pTrack->probe_id == BMPEG2TS192_PSI_PROBE_ID))
         {
             bmpeg2ts_psi_probe_track *pTrackMpeg2TS = (bmpeg2ts_psi_probe_track *)pTrack;
             pMediaInfoTrack->parsedPayload = pTrackMpeg2TS->parsed_payload;
@@ -628,6 +742,9 @@ static void populateMediaInfoTrack(
             pMediaInfoTrack->parsedPayload = pTrackMpeg2TS->parsed_payload;
         }
     }
+
+error:
+    return rc;
 }
 
 /******************************************************************
@@ -981,6 +1098,47 @@ static BIP_Status addVideoTrackToXmlTree(
     BIP_XmlElem_AddAttrUnsigned(xmlElemChild, BIP_MEDIAINFO_TRK_VIDEO_XML_ATT_FRAMERATE, pVideoTrack->frameRate);
     BIP_XmlElem_AddAttrUnsigned(xmlElemChild, BIP_MEDIAINFO_TRK_VIDEO_XML_ATT_COLORDEPTH, pVideoTrack->colorDepth);
 
+    /*If prsent then add caption data */
+    if(pVideoTrack->captionService.numberOfServices != 0)
+    {
+        BIP_MediaInfoCaptionServiceDescriptor   *pDescriptor = NULL;
+        unsigned i;
+        BIP_XmlElement xmlElemSubChild = NULL;
+
+        xmlElemSubChild = BIP_XmlElem_Create(xmlElemChild, BIP_MEDIAINFO_TRK_VIDEO_XML_ATT_CCSERVICE);
+        BIP_CHECK_GOTO(( xmlElemSubChild !=NULL ), ("BIP_XmlElem_Create failed"), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, rc );
+
+        BIP_XmlElem_AddAttrUnsigned(xmlElemSubChild, BIP_MEDIAINFO_TRK_VIDEO_XML_ATT_CCSERVICE_NUMBEROFSERVICES, pVideoTrack->captionService.numberOfServices);
+
+        pDescriptor = pVideoTrack->captionService.pFirstServiceDescriptor;
+        for(i=0; (pDescriptor!=NULL) && (i<pVideoTrack->captionService.numberOfServices) ; i++)
+        {
+            BIP_XmlElement  xmlElemSub2SubChild = NULL;
+
+            if(pDescriptor->captionType == BIP_MediaInfoCaptionType_e608)
+            {
+                /* For 608 there will be only one numberOfServices */
+                xmlElemSub2SubChild = BIP_XmlElem_Create(xmlElemSubChild, BIP_MEDIAINFO_TRK_VIDEO_XML_ATT_CCSERVICE_CC);
+                BIP_CHECK_GOTO(( xmlElemSub2SubChild !=NULL ), ("BIP_XmlElem_Create failed"), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, rc );
+
+                BIP_XmlElem_AddAttr( xmlElemSub2SubChild, BIP_MEDIAINFO_TRK_VIDEO_XML_ATT_CCSERVICE_TYPE,BIP_ToStr_BIP_MediaInfoCaptionType(pDescriptor->captionType));
+                BIP_XmlElem_AddAttrUnsigned(xmlElemSub2SubChild, BIP_MEDIAINFO_TRK_VIDEO_XML_ATT_CCSERVICE_LINE21FIELD, pDescriptor->descriptor.descriptor608.line21Field);
+            }
+            else    /* 708 */
+            {
+                xmlElemSub2SubChild = BIP_XmlElem_Create(xmlElemSubChild, BIP_MEDIAINFO_TRK_VIDEO_XML_ATT_CCSERVICE_CC);
+                BIP_CHECK_GOTO(( xmlElemSub2SubChild !=NULL ), ("BIP_XmlElem_Create failed"), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, rc );
+
+                BIP_XmlElem_AddAttr( xmlElemSub2SubChild, BIP_MEDIAINFO_TRK_VIDEO_XML_ATT_CCSERVICE_TYPE,BIP_ToStr_BIP_MediaInfoCaptionType(pDescriptor->captionType));
+                BIP_XmlElem_AddAttr( xmlElemSub2SubChild, BIP_MEDIAINFO_TRK_VIDEO_XML_ATT_CCSERVICE_LANGUAGE,pDescriptor->descriptor.descriptor708.pLanguage);
+                BIP_XmlElem_AddAttrUnsigned(xmlElemSub2SubChild, BIP_MEDIAINFO_TRK_VIDEO_XML_ATT_CCSERVICE_SERVICENUMBER, pDescriptor->descriptor.descriptor708.captionServiceNumber);
+                BIP_XmlElem_AddAttrBool(xmlElemSub2SubChild, BIP_MEDIAINFO_TRK_VIDEO_XML_ATT_CCSERVICE_EASYREADER, pDescriptor->descriptor.descriptor708.easyReader);
+                BIP_XmlElem_AddAttrBool(xmlElemSub2SubChild, BIP_MEDIAINFO_TRK_VIDEO_XML_ATT_CCSERVICE_WIDEASPECTRATIO, pDescriptor->descriptor.descriptor708.wideAspectRatio);
+            }
+            pDescriptor = pDescriptor->pNextServiceDescriptor;
+        }
+    }
+
 error:
     return rc;
 }
@@ -1310,12 +1468,14 @@ error:
     return rc;
 }
 
-static void populateVideoTrackFromXmlTree(
+static BIP_Status populateVideoTrackFromXmlTree(
         BIP_MediaInfoTrack *pCurrentTrack,
         BIP_XmlElement  xmlElemParent
         )
 {
+    BIP_Status rc    = BIP_SUCCESS;
     BIP_XmlElement xmlElemCurrentChild = NULL;
+    BIP_XmlElement xmlElemSubChild = NULL;
 
     BDBG_ASSERT(pCurrentTrack);
     BDBG_ASSERT(xmlElemParent);
@@ -1336,11 +1496,99 @@ static void populateVideoTrackFromXmlTree(
         pCurrentTrack->info.video.bitrate = BIP_XmlElem_FindAttrValueUnsigned(xmlElemCurrentChild, BIP_MEDIAINFO_TRK_VIDEO_XML_ATT_BITRATE, 0 );
         pCurrentTrack->info.video.frameRate = BIP_XmlElem_FindAttrValueUnsigned(xmlElemCurrentChild, BIP_MEDIAINFO_TRK_VIDEO_XML_ATT_FRAMERATE, 0 );
         pCurrentTrack->info.video.colorDepth = BIP_XmlElem_FindAttrValueUnsigned(xmlElemCurrentChild, BIP_MEDIAINFO_TRK_VIDEO_XML_ATT_COLORDEPTH, 0 );
+
+        /* Now check if there is any caption information present.*/
+        xmlElemSubChild = BIP_XmlElem_FindNextChildSameTag(
+                                  xmlElemCurrentChild,
+                                  NULL,
+                                  BIP_MEDIAINFO_TRK_VIDEO_XML_ATT_CCSERVICE
+                                  );
+        if(xmlElemSubChild)
+        {
+            unsigned i;
+            BIP_XmlElement xmlElemSub2SubChild = NULL;
+
+            pCurrentTrack->info.video.captionService.numberOfServices = BIP_XmlElem_FindAttrValueUnsigned(xmlElemSubChild, BIP_MEDIAINFO_TRK_VIDEO_XML_ATT_CCSERVICE_NUMBEROFSERVICES, 0);
+
+            for(i=0; i < pCurrentTrack->info.video.captionService.numberOfServices ; i++)
+            {
+                BIP_MediaInfoCaptionServiceDescriptor *pDescriptor = NULL;
+
+                /* Allocate memory for BIP_MediaInfoCaptionServiceDescriptor */
+                pDescriptor = B_Os_Calloc(1, sizeof(BIP_MediaInfoCaptionServiceDescriptor));
+                BIP_CHECK_GOTO(( pDescriptor!=NULL ), ( "Failed to allocate memory (%zu bytes) for BIP_MediaInfoCaptionServiceDescriptor", sizeof(BIP_MediaInfoCaptionServiceDescriptor) ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, rc );
+
+                if(i==0)
+                {
+                    xmlElemSub2SubChild = BIP_XmlElem_FindNextChildSameTag(
+                                              xmlElemSubChild,
+                                              NULL,
+                                              BIP_MEDIAINFO_TRK_VIDEO_XML_ATT_CCSERVICE_CC
+                                              );
+                }
+                else
+                {
+                    xmlElemSub2SubChild = BIP_XmlElem_FindNextChildSameTag(
+                                              xmlElemSubChild,
+                                              xmlElemSub2SubChild,/* this should point to the current child.*/
+                                              BIP_MEDIAINFO_TRK_VIDEO_XML_ATT_CCSERVICE_CC
+                                              );
+                }
+
+                if(xmlElemSub2SubChild)
+                {
+                    pDescriptor->captionType = BIP_StrTo_BIP_MediaInfoCaptionType(BIP_XmlElem_FindAttrValue(xmlElemSub2SubChild, BIP_MEDIAINFO_TRK_VIDEO_XML_ATT_CCSERVICE_TYPE ));
+
+                    if(pDescriptor->captionType == BIP_MediaInfoCaptionType_e608)
+                    {
+                        pDescriptor->descriptor.descriptor608.line21Field = BIP_XmlElem_FindAttrValueUnsigned(
+                                                                                xmlElemSub2SubChild,
+                                                                                BIP_MEDIAINFO_TRK_VIDEO_XML_ATT_CCSERVICE_LINE21FIELD,
+                                                                                0);
+
+                        BDBG_MSG(("%s:CaptionType=608 line2Field=%d", __FUNCTION__, pDescriptor->descriptor.descriptor608.line21Field ));
+                    }
+                    else    /* 708 */
+                    {
+                        const char *temp = NULL;
+                        temp = BIP_XmlElem_FindAttrValue(xmlElemSub2SubChild, BIP_MEDIAINFO_TRK_VIDEO_XML_ATT_CCSERVICE_LANGUAGE );
+                        if(temp)
+                        {
+                            pDescriptor->descriptor.descriptor708.pLanguage = B_Os_Calloc(1,BIP_MEDIA_INFO_LANGUAGE_FIELD_SIZE);
+                            BIP_CHECK_GOTO(( pDescriptor->descriptor.descriptor708.pLanguage!=NULL ), ( "Failed to allocate memory (%u bytes) for pDescriptor->descriptor.descriptor708.pLanguage", BIP_MEDIA_INFO_LANGUAGE_FIELD_SIZE ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, rc );
+
+                            memcpy( pDescriptor->descriptor.descriptor708.pLanguage, temp, BIP_MEDIA_INFO_LANGUAGE_FIELD_SIZE); /* copy valid data to request buffer */
+                        }
+                        pDescriptor->descriptor.descriptor708.captionServiceNumber = BIP_XmlElem_FindAttrValueUnsigned(
+                                                                                        xmlElemSub2SubChild,
+                                                                                        BIP_MEDIAINFO_TRK_VIDEO_XML_ATT_CCSERVICE_SERVICENUMBER,
+                                                                                        0);
+                        pDescriptor->descriptor.descriptor708.easyReader = BIP_XmlElem_FindAttrValueBoolean(
+                                                                                xmlElemSub2SubChild,
+                                                                                BIP_MEDIAINFO_TRK_VIDEO_XML_ATT_CCSERVICE_EASYREADER,
+                                                                                false
+                                                                                );
+                        pDescriptor->descriptor.descriptor708.wideAspectRatio = BIP_XmlElem_FindAttrValueBoolean(
+                                                                                xmlElemSub2SubChild,
+                                                                                BIP_MEDIAINFO_TRK_VIDEO_XML_ATT_CCSERVICE_WIDEASPECTRATIO,
+                                                                                false
+                                                                                );
+
+                        BDBG_MSG(("%s:CaptionType=708 language=%s captionServiceNumber=%d", __FUNCTION__, pDescriptor->descriptor.descriptor708.pLanguage,  pDescriptor->descriptor.descriptor708.captionServiceNumber));
+                    }
+                }
+                 /* Now the descripror is created add to the descriptor list of VideoTrack.*/
+                BIP_MEDIAINFO_CAPTION_SERVICE_DESCRIPTORLIST_INSERT(&pCurrentTrack->info.video.captionService.pFirstServiceDescriptor, pDescriptor);
+            }
+        }
+
     }
     else
     {
         BDBG_WRN((BIP_MSG_PRE_FMT "XmlTree contains an empty Video track." BIP_MSG_PRE_ARG));
     }
+error:
+    return rc;
 }
 
 static void populateAudioTrackFromXmlTree(
@@ -2689,35 +2937,6 @@ error:
    return rc;
 }
 
-static char *addLanguageInIso6392Format(
-    const char *pLanguageRecieved
-    )
-{
-    char *pLanguage = NULL;
-
-    /* Extract language , if it is in ISO639-1 then convert it to Iso639-2 format.*/
-    if(strlen(pLanguageRecieved) == 2)
-    {
-       const char *pCode6392 = NULL;
-       pCode6392 = BIP_MediaInfo_GetIso6392CodeFrom6391Code(pLanguageRecieved);
-
-       if(pCode6392 == NULL)
-       {
-           BDBG_WRN((BIP_MSG_PRE_FMT " Language code |%s| not supported. Check BIP_MediaInfoLanguageCode table." BIP_MSG_PRE_ARG, pLanguageRecieved));
-       }
-       else
-       {
-           pLanguage = B_Os_Calloc(1,BIP_MEDIA_INFO_LANGUAGE_FIELD_SIZE);
-           memcpy( pLanguage, pCode6392, (strlen(pCode6392)+1)); /* copy valid data to request buffer */
-       }
-    }
-    else /* Directly copy assuming it is ISO639-2 code.*/
-    {
-       pLanguage = B_Os_Calloc(1,BIP_MEDIA_INFO_LANGUAGE_FIELD_SIZE);
-       memcpy( pLanguage, pLanguageRecieved, (strlen(pLanguageRecieved)+1)); /* copy valid data to request buffer */
-    }
-    return (pLanguage);
-}
 
 static BIP_Status createMediaInfoTrackForMainAudioFromPbipPsi(
     const B_PlaybackIpPsiInfo *pPsi,
@@ -3250,6 +3469,25 @@ static void destroyTracks(BIP_MediaInfoStream *pMediaInfoStream)
                 }
             }
         }
+        else if(pCurrentTrack->trackType == BIP_MediaInfoTrackType_eVideo)
+        {
+            BIP_MediaInfoCaptionServiceDescriptor *pDescriptor = NULL;
+            BIP_MediaInfoCaptionServiceDescriptor *pNextDescriptor = NULL;
+            pDescriptor = pCurrentTrack->info.video.captionService.pFirstServiceDescriptor;
+            while(pDescriptor != NULL)
+            {
+                if(pDescriptor->captionType == BIP_MediaInfoCaptionType_e708)
+                {
+                    if(pDescriptor->descriptor.descriptor708.pLanguage)
+                    {
+                        B_Os_Free(pDescriptor->descriptor.descriptor708.pLanguage);
+                    }
+                }
+                pNextDescriptor = pDescriptor->pNextServiceDescriptor;
+                B_Os_Free(pDescriptor);
+                pDescriptor = pNextDescriptor;
+            }
+        }
         pNextTrack =  pCurrentTrack->pNextTrackForStream;
         B_Os_Free(pCurrentTrack);
         pCurrentTrack = pNextTrack;
@@ -3535,12 +3773,34 @@ static void mediaInfoPrintFortack(BIP_MediaInfoTrack *pMediaInfoTrack)
     {
         if(pMediaInfoTrack->trackType == BIP_MediaInfoTrackType_eVideo)
         {
-            BDBG_WRN(("TrackType=Video TrackId=%d Codec=%s", pMediaInfoTrack->trackId, BIP_ToStr_NEXUS_VideoCodec(pMediaInfoTrack->info.video.codec)));
+            BDBG_WRN(("TrackType=Video TrackId=0x%x Codec=%s NumberOfCaptionServicesAsPerPsiEntry=%u", pMediaInfoTrack->trackId, BIP_ToStr_NEXUS_VideoCodec(pMediaInfoTrack->info.video.codec), pMediaInfoTrack->info.video.captionService.numberOfServices));
+            /* It can happen that caption data is available but there is no information for that in Psi headers.*/
+            if(pMediaInfoTrack->info.video.captionService.numberOfServices != 0)
+            {
+                unsigned i;
+                BIP_MediaInfoCaptionServiceDescriptor   *pDescriptor = NULL;
+                pDescriptor = pMediaInfoTrack->info.video.captionService.pFirstServiceDescriptor;
+                for (i=0; i<pMediaInfoTrack->info.video.captionService.numberOfServices; i++)
+                {
+                    if(pDescriptor != NULL)
+                    {
+                        if(pDescriptor->captionType == BIP_MediaInfoCaptionType_e608)
+                        {
+                            BDBG_WRN(("CaptionType=608 and line21Field = %d", pDescriptor->descriptor.descriptor608.line21Field));
+                        }
+                        else
+                        {
+                            BDBG_WRN(("CaptionType=708 CaptionServiceNumber=%d Language=%s", pDescriptor->descriptor.descriptor708.captionServiceNumber, pDescriptor->descriptor.descriptor708.pLanguage));
+                        }
+                    }
+                    pDescriptor = pDescriptor->pNextServiceDescriptor;
+                }
+            }
         }
         else if(pMediaInfoTrack->trackType == BIP_MediaInfoTrackType_eAudio)
         {
             if(pMediaInfoTrack->info.audio.pLanguage) {
-                BDBG_WRN(("TrackType=Audio TrackId=%d Codec=%s Language=%s BsmodValid=%s Bsmod=%d",
+                BDBG_WRN(("TrackType=Audio TrackId=0x%x Codec=%s Language=%s BsmodValid=%s Bsmod=%d",
                           pMediaInfoTrack->trackId,
                           BIP_ToStr_NEXUS_AudioCodec( pMediaInfoTrack->info.audio.codec),
                           pMediaInfoTrack->info.audio.pLanguage,
@@ -3561,15 +3821,15 @@ static void mediaInfoPrintFortack(BIP_MediaInfoTrack *pMediaInfoTrack)
         }
         else if(pMediaInfoTrack->trackType == BIP_MediaInfoTrackType_ePcr)
         {
-            BDBG_WRN(("TrackType=Pcr TrackId=%d", pMediaInfoTrack->trackId));
+            BDBG_WRN(("TrackType=Pcr TrackId=0x%x", pMediaInfoTrack->trackId));
         }
         else if(pMediaInfoTrack->trackType == BIP_MediaInfoTrackType_ePmt)
         {
-            BDBG_WRN(("TrackType=Pmt TrackId=%d", pMediaInfoTrack->trackId));
+            BDBG_WRN(("TrackType=Pmt TrackId=0x%x", pMediaInfoTrack->trackId));
         }
         else /* Other */
         {
-            BDBG_WRN(("TrackType=Other TrackId=%d", pMediaInfoTrack->trackId));
+            BDBG_WRN(("TrackType=Other TrackId=0x%x", pMediaInfoTrack->trackId));
         }
     }
 }

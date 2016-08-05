@@ -66,6 +66,7 @@ static MailPendingAPICall_t *mailClientFillPostponeParcel(const uint16_t fId, ui
 static void mailClientSendParcel(MailPendingAPICall_t *const postponedCall);
 static bool mailClientQueuePollCommon(bool isServiceQueue);
 static void mailClientAckTimerFired(SYS_TimeoutTaskServiceField_t *const timeoutService);
+static MailPendingAPICall_t *mailClientFindEmptyPendingTableEntryWithUid(uint8_t *uId);
 /************************* IMPLEMENTATION **********************************************/
 static MailClientDescriptor_t clientMemory;
 /************************************************************************************//**
@@ -177,6 +178,43 @@ MailPendingAPICall_t *mailClientFindEmptyPendingTableEntry(void)
     return NULL;
 }
 
+/************************************************************************************//**
+    \brief Find an empty entry in the postponed call table with unique uId.
+    \param[out] uid - non-conflicting uid
+
+    \return Pointer to the found entry.
+****************************************************************************************/
+static MailPendingAPICall_t *mailClientFindEmptyPendingTableEntryWithUid(uint8_t *uId)
+{
+    MailPendingAPICall_t *ret = NULL;
+    bool gotUId;
+
+    SYS_DbgAssert(NULL != uId, MAILCLIENT_FIND_EMPTY_PENDING_TABLE_ENTRY_NULL);
+
+    do {
+        *uId = clientMemory.uIdCounter++;
+        gotUId = true;
+
+        for (uint8_t i = 0; i < MAIL_CLIENT_MAX_AMOUNT_PENDING_CALLS; ++i)
+        {
+            if (INCORRECT_REQ_ID != clientMemory.pendingTable[i].fId)
+            {
+                if (clientMemory.pendingTable[i].uId == *uId)
+                {
+                    SYS_DbgLogId(MAILCLIENT_FIND_EMPTY_PENDING_TABLE_ENTRY_CONFLICT);
+                    gotUId = false;
+                }
+            }
+            else
+            {
+                ret = &clientMemory.pendingTable[i];
+            }
+        }
+    } while (!gotUId);
+
+    return ret;
+}
+
 int mailClientAvailablePendingTableEntry()
 {
     int available = 0;
@@ -218,14 +256,15 @@ static MailPendingAPICall_t *findAppropriatePendingTableEntry(const uint8_t uId)
 ****************************************************************************************/
 static MailPendingAPICall_t *mailClientFillPostponeParcel(const uint16_t fId, uint8_t *const req)
 {
-    MailPendingAPICall_t *const postponedCall = mailClientFindEmptyPendingTableEntry();
+    uint8_t uId;
+    MailPendingAPICall_t *const postponedCall = mailClientFindEmptyPendingTableEntryWithUid(&uId);
     const MailServiceFunctionInfo_t *const reqInfo = Mail_ServiceGetFunctionInfo(fId);
     if (postponedCall)
     {
         pthread_mutex_lock(&clientMemory.pendingTableMutex);
         postponedCall->originalReq = req;
         postponedCall->fId = fId;
-        postponedCall->uId = clientMemory.uIdCounter++;
+        postponedCall->uId = uId;
         postponedCall->callback = (MAIL_INVALID_OFFSET != reqInfo->reqCallbackOffset) ?
                                   *(ConfirmCall_t *)(req + reqInfo->reqCallbackOffset) :
                                   NULL;
@@ -437,7 +476,7 @@ void mailClientDataInd(MailFifoHeader_t *const fifoHeader, MailWrappedReqHeader_
             MailPendingAPICall_t *const postponedCall = GET_PARENT_BY_FIELD(MailPendingAPICall_t, params, confirm);
 #ifdef _DEBUG_COMPLEX_
             {
-                SYS_DbgAssertLog(MAIL_WAITING_FOR_ACK != postponedCall->state, MAILCLIENT_DATAIND_MAYBE_ACK_WAS_MISSED);
+                SYS_DbgAssertLog(MAIL_WAITING_FOR_ACK != postponedCall->state, MAILCLIENT_DATAIND__CONFIRM_OR_RESPONSE_RECEIVED_BEFORE_ACK);
                 const MailServiceFunctionInfo_t *const reqInfo = Mail_ServiceGetFunctionInfo(fifoHeader->msgId);
                 SYS_DbgAssertComplex(MAIL_INVALID_OFFSET != reqInfo->reqCallbackOffset,
                                      MAILCLIENT_DATAIND_COMMAND_DO_NOT_HAVE_RESPONSE_OR_CONFIRM);

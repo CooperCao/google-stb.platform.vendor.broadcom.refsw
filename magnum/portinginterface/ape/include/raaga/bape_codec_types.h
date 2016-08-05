@@ -117,8 +117,35 @@ typedef enum BAPE_DolbyStereoMode
 
 /***************************************************************************
 Summary:
+    This enum describes how the decoder will select the AC4 presentation
+***************************************************************************/
+typedef enum BAPE_Ac4PresentationSelectionMode
+{
+    BAPE_Ac4PresentationSelectionMode_ePresentationIndex,
+    BAPE_Ac4PresentationSelectionMode_eLanguageCode,
+    BAPE_Ac4PresentationSelectionMode_eAssociateType,
+    BAPE_Ac4PresentationSelectionMode_eMax
+} BAPE_Ac4PresentationSelectionMode;
+
+/***************************************************************************
+Summary:
+AC4 Associate type
+***************************************************************************/
+typedef enum BAPE_Ac4AssociateType
+{
+    BAPE_Ac4AssociateType_eNotSpecified,
+    BAPE_Ac4AssociateType_eVisuallyImpaired,
+    BAPE_Ac4AssociateType_eHearingImpaired,
+    BAPE_Ac4AssociateType_eCommentary,
+    BAPE_Ac4AssociateType_eMax
+} BAPE_Ac4AssociateType;
+
+/***************************************************************************
+Summary:
 AC4 Codec Settings
 ***************************************************************************/
+#define BAPE_AC4_LANGUAGE_NAME_LENGTH      6
+#define BAPE_AC4_NUM_LANGUAGES             2
 typedef struct BAPE_Ac4Settings
 {
     BAPE_DolbyDrcMode drcMode;      /* DRC (Dynamic Range Compression) Mode */
@@ -142,6 +169,21 @@ typedef struct BAPE_Ac4Settings
     int dialogEnhancerAmount;       /* Valid values are -12 to +12, in 1dB steps. Default value is 0 */
 
     unsigned certificationMode;     /* for internal use only */
+
+    BAPE_Ac4PresentationSelectionMode selectionMode;   /* Specifies how the AC4 decoder selects the default presentation -
+                                                          By default, personalization is off, and the program index will be used */
+
+    /* optional personalization parameters - These parameters allow the user to personalize
+       how the decoder will select the presentation. These parameters can only be changed while decoding is stopped.
+       On the fly changes will not be honored until the next stop/start sequence */
+    struct {
+        char selection[BAPE_AC4_LANGUAGE_NAME_LENGTH];   /* IETF BCP 47 language code. Codes that are longer than
+                                                            6 characters should be truncated. */
+    } languagePreference[BAPE_AC4_NUM_LANGUAGES];
+
+    BAPE_Ac4AssociateType preferredAssociateType;
+    bool enableAssociateMixing;     /* Enable mixing of associate program */
+
 } BAPE_Ac4Settings;
 
 /***************************************************************************
@@ -165,6 +207,7 @@ typedef enum BAPE_DolbyPulseDrcMode
 {
     BAPE_DolbyPulseDrcMode_eLine,
     BAPE_DolbyPulseDrcMode_eRf,
+    BAPE_DolbyPulseDrcMode_eOff, /* Not used in Dolby Pulse, forces to Line Mode */
     BAPE_DolbyPulseDrcMode_eMax
 } BAPE_DolbyPulseDrcMode;
 
@@ -200,7 +243,20 @@ typedef struct BAPE_AacSettings
 
     uint32_t downmixCoefScaleIndex;      /* Default = 0,  0 -> 0dB, 1 -> -0.5dB, 2 -> -1dB, ... , 23 -> -11.5dB, 24 -> -12dB; all values beyond 24 map to 50
                                             50 -> Decoder default settings (existing normalization) (Used in NON Dolby Pulse Only) */
+    bool ignoreEmbeddedPrl;              /* If enabled we will ignore the embedded Program Reference Level (Used in NON Dolby Pulse Only)*/
 } BAPE_AacSettings;
+
+/***************************************************************************
+Summary:
+MPEG Codec Settings
+***************************************************************************/
+typedef struct BAPE_MpegSettings
+{
+    int inputReferenceLevel;            /*  The input level to the decoder in dB. Valid values
+                                            are 0 to -31.
+                                            Defaults to -24 if Loundness mode ATSC is enabled and
+                                            -23 if Loudness mode EBU is enabled */
+} BAPE_MpegSettings;
 
 /***************************************************************************
 Summary:
@@ -842,5 +898,16 @@ typedef struct BAPE_CookStatus
     unsigned frameSize; /* Frame size in bytes */
     unsigned samplingFrequency; /* The sampling frequency value, 0 in case of error, otherwise sampling frequency as it's */
 } BAPE_CookStatus;
+
+/***************************************************************************
+Summary:
+ALS Codec Status
+***************************************************************************/
+typedef struct BAPE_AlsStatus
+{
+    unsigned samplingFrequency; /* Stream sample rate */
+    unsigned bitsPerSample; /* input sample bit width */
+    BAPE_ChannelMode channelMode;   /* Codec-independent ACMOD value */
+} BAPE_AlsStatus;
 
 #endif /* #ifndef BAPE_CODEC_TYPES_H_ */

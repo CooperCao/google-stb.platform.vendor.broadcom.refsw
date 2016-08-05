@@ -166,20 +166,19 @@ PageTable::PageTable(const PageTable& rhs, uint8_t aid, bool fork) {
             for (int k=0; k<L3_PAGE_NUM_ENTRIES; k++) {
                 uint64_t l3Entry = rhsL3Dir[k];
 
-                if (fork) {
-                    if ((GET_MEMORY_ACCESS_PERMS(rhsL3Dir[k]) == MEMORY_ACCESS_RW_USER) &&
-                            (GET_MEMORY_ACCESS_SW_BITS(rhsL3Dir[k]) != SharedMem)){
-                        CLEAR_MEMORY_ACCESS_PERMS(l3Entry);
-                        SET_MEMORY_ACCESS_PERMS(l3Entry, MEMORY_ACCESS_RO_USER);
+                if (fork &&
+                    GET_MEMORY_ACCESS_SW_BITS(rhsL3Dir[k]) != SharedMem &&
+                    GET_MEMORY_ACCESS_PERMS(rhsL3Dir[k]) == MEMORY_ACCESS_RW_USER) {
 
-                        CLEAR_MEMORY_ACCESS_SW_BITS(l3Entry);
-                        SET_MEMORY_ACCESS_SW_BITS(l3Entry, AllocOnWrite);
-                    }
+                    CLEAR_MEMORY_ACCESS_PERMS(l3Entry);
+                    SET_MEMORY_ACCESS_PERMS(l3Entry, MEMORY_ACCESS_RO_USER);
 
-                    if (GET_MEMORY_ACCESS_SW_BITS(rhsL3Dir[k]) == SharedMem) {
-                        CLEAR_MEMORY_ACCESS_SW_BITS(l3Entry);
-                        SET_MEMORY_ACCESS_SW_BITS(l3Entry, SharedMem);
-                    }
+                    CLEAR_MEMORY_ACCESS_SW_BITS(l3Entry);
+                    SET_MEMORY_ACCESS_SW_BITS(l3Entry, AllocOnWrite);
+                }
+                else {
+                    CLEAR_MEMORY_ACCESS_SW_BITS(l3Entry);
+                    SET_MEMORY_ACCESS_SW_BITS(l3Entry, SharedMem);
                 }
 
                 l3Dir[k] = l3Entry;
@@ -219,9 +218,11 @@ PageTable::~PageTable() {
                 if ((l3Entry & 0x3) != 0x3)
                     continue;
 
-                if (GET_MEMORY_ACCESS_SW_BITS(l3Entry) == WriteAlloced) {
-                    TzMem::PhysAddr cowPage = (void *)(l3Entry & L3_PHYS_ADDR_MASK);
-                    TzMem::freePage(cowPage);
+                // if (GET_MEMORY_ACCESS_SW_BITS(l3Entry) == WriteAlloced) {
+                if (GET_MEMORY_ACCESS_SW_BITS(l3Entry) != AllocOnWrite &&
+                    GET_MEMORY_ACCESS_SW_BITS(l3Entry) != SharedMem) {
+                    TzMem::PhysAddr paddr = (void *)(l3Entry & L3_PHYS_ADDR_MASK);
+                    TzMem::freePage(paddr);
                 }
             }
 
@@ -250,7 +251,6 @@ void PageTable::reserveRange(TzMem::VirtAddr vaddrFirstPage, TzMem::VirtAddr vad
     }
 
     while (vaddr < vaddrLastPage) {
-
         const int l1Idx = L1_PAGE_TABLE_SLOT(vaddr);
         uint64_t l1Entry = l1Dir[l1Idx];
         // printf("Mapping vaddr %p: l1Idx %d l1Entry 0x%x%x\n", vaddr, l1Idx, (unsigned int)(l1Entry >> 32), (unsigned int)(l1Entry & 0xffffffff));
@@ -306,7 +306,6 @@ void PageTable::reserveRange(TzMem::VirtAddr vaddrFirstPage, TzMem::VirtAddr vad
 
         vaddr = (TzMem::VirtAddr)((uint8_t *)vaddr + PAGE_SIZE_4K_BYTES);
     }
-
 }
 
 void PageTable::releaseAddrRange(TzMem::VirtAddr vaddrFirstPage, unsigned int rangeSize) {
@@ -690,15 +689,15 @@ TzMem::VirtAddr PageTable::reserveAddrRange(const TzMem::VirtAddr fromAddr, unsi
         // nextAddr points to the page beyond the last one
         reserveRange((uint8_t *)rangeStart,
                      (uint8_t *)nextAddr - 1);
+        return rangeStart;
     }
     else {
         // rangeStart points to the last page
         // nextAddr points to the page before the first one
         reserveRange((uint8_t *)nextAddr   + PAGE_SIZE_4K_BYTES,
-                     (uint8_t *)rangeStart + PAGE_SIZE_4K_BYTES -1);
+                     (uint8_t *)rangeStart + PAGE_SIZE_4K_BYTES - 1);
+        return (uint8_t *)nextAddr + PAGE_SIZE_4K_BYTES;
     }
-
-    return rangeStart;
 }
 
 void PageTable::unmapBootstrap(const void *devTree) {

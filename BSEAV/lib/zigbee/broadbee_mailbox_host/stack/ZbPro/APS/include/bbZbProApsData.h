@@ -74,6 +74,7 @@ typedef struct _ZBPRO_APS_TxOptions_t
     BitField8_t ack                     : 1;
     BitField8_t fragmentationPermitted  : 1;    /* not supported */
     BitField8_t extNonce                : 1;
+    BitField8_t updateExistingRoute     : 1; // NOTE: APS force NWK to update existing route if it possible
 } ZBPRO_APS_TxOptions_t;
 
 /**//**

@@ -61,7 +61,7 @@ void* v3d_imgconv_gmem_tgt_to_ptr(gmem_cpu_sync_list* sync_list,
 {
    offset += tgt->base.start_elem * tgt->base.array_pitch;
 
-   void *ptr = gmem_map(tgt->handle);
+   void *ptr = (char*)gmem_map(tgt->handle) + tgt->offset;
    if (ptr)
    {
       /* sync per plane range */
@@ -70,7 +70,7 @@ void* v3d_imgconv_gmem_tgt_to_ptr(gmem_cpu_sync_list* sync_list,
          gmem_cpu_sync_list_add_range(
             sync_list,
             tgt->handle,
-            offset + tgt->base.desc.planes[p].offset,
+            tgt->offset + offset + tgt->base.desc.planes[p].offset,
             tgt->base.plane_sizes[p],
             (write ? GMEM_SYNC_CPU_WRITE : GMEM_SYNC_CPU_READ) | GMEM_SYNC_RELAXED);
       }
@@ -97,13 +97,14 @@ static void init_base_tgt(struct v3d_imgconv_base_tgt *tgt,
 }
 
 void v3d_imgconv_init_gmem_tgt(struct v3d_imgconv_gmem_tgt *tgt,
-      gmem_handle_t handle, const v3d_scheduler_deps *deps,
-      const GFX_BUFFER_DESC_T *desc,
+      gmem_handle_t handle, size_t offset,
+      const v3d_scheduler_deps *deps, const GFX_BUFFER_DESC_T *desc,
       unsigned int x, unsigned int y, unsigned int z, unsigned int start_elem,
       unsigned int array_pitch)
 {
    init_base_tgt(&tgt->base, desc, x, y, z, start_elem, array_pitch);
    tgt->handle = handle;
+   tgt->offset = offset;
    tgt->deps = *deps;
 }
 
@@ -567,7 +568,7 @@ bool v3d_imgconv_copy_to_ptr(
       bool  conv_done = false;
       for (unsigned p = 0; !conv_done && p < MAX_PATHS; p++)
       {
-         if (conv_path_sync[p]->convert_sync == NULL)
+         if (conv_path_sync[p] == NULL || conv_path_sync[p]->convert_sync == NULL)
             continue;
          if (conv_path_sync[p]->claim(&dst->base, &src->base, width, height, depth, &sec_info))
          {
@@ -592,10 +593,8 @@ bool v3d_imgconv_copy_to_ptr(
             conv_done = true;
          }
       }
-      assert(conv_done);
    }
 
-   ok = true;
 end:
    return ok;
 }

@@ -199,8 +199,17 @@ void Mail_TestEngineMailboxAckReq(TE_MailboxAckDescr_t *const req)
     (void) req;
     SYS_DbgHalt(TEST_ENGINE_UNEXPECTED_ACK_REQUEST);
 }
-
 #endif /* _MAILBOX_WRAPPERS_TEST_ENGINE_ */
+
+/*************************************************************************************//**
+    \brief Halt Indication stub.
+    \param[in] indParams - indication parameters pointer.
+*****************************************************************************************/
+void Mail_TestEngineHaltInd(TE_AssertLogIdCommandIndParams_t *const indParams)
+{
+    (void)indParams;
+}
+
 /*************************************************************************************//**
     \brief Send greeting.
 *****************************************************************************************/
@@ -221,4 +230,44 @@ void Mail_TestEngineSendHello(void)
     mailResetBufferPool();
 #endif
 }
+
+#define CREATE_FUNCTION(wrapper_name, arg_type, enum_name)                      \
+    WEAK void wrapper_name##_internal(arg_type *_arg) {                         \
+        (void)_arg;                                                             \
+        SYS_DbgHalt(HALT_IndicationStub_NotImplemented);                        \
+    }
+
+#define MAILBOX_CALL__NO_CB(function_name, enum_name, desc_name, parameters_name)   CREATE_FUNCTION(function_name, parameters_name, enum_name)
+#define MAILBOX_CALL__HAS_CB(function_name, enum_name, desc_name, parameters_name)  CREATE_FUNCTION(function_name, desc_name, enum_name)
+
+#define MAKE_WRAPPER_FUNCTION(function_name, enum_name, desc_mod, desc_name, params_mod, parameters_name, param_payload, confirm_mod, confirm_name, confirm_payload) \
+    MAILBOX_CALL__##desc_mod(function_name, enum_name, desc_name, parameters_name)
+
+#ifdef MAILBOX_STACK_SIDE
+# define STACK_TO_HOST(...) MAKE_WRAPPER_FUNCTION(__VA_ARGS__)
+#endif /* MAILBOX_STACK_SIDE */
+
+#include "bbMailFunctionList.h"
+
+#undef MAKE_WRAPPER_FUNCTION
+#undef MAILBOX_CALL__HAS_CB
+#undef MAILBOX_CALL__NO_CB
+#undef CREATE_FUNCTION
+
+
+
+void TE_RoutingChangeReq(TE_RoutingChangeReqDescr_t *const reqDescr)
+{
+    SYS_DbgAssertComplex(NULL != reqDescr, HALT_TE_RoutingChangeReq_NullReqDescr);
+    SYS_DbgAssertComplex(NULL != reqDescr->callback, HALT_Mail_TestEngineChangeRoutingReq_NullCallback);
+
+    TE_RoutingChangeConfParams_t conf;
+    if (Mail_RoutingChange(reqDescr->params.fid, reqDescr->params.routeDirection))
+        conf.status = TE_ROUTING_SUCCESS;
+    else
+        conf.status = TE_ROUTING_FAILED;
+
+    reqDescr->callback(reqDescr, &conf);
+}
+
 #endif /* TEST_HARNESS */

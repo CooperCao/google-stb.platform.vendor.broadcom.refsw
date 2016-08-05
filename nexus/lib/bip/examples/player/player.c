@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -173,6 +173,11 @@ int main(int argc, char *argv[])
         /* Create a sync channel */
         NEXUS_SyncChannel_GetDefaultSettings(&syncChannelSettings);
         syncChannelSettings.enablePrecisionLipsync = true;
+        if (pAppCtx->enableLowLatencyMode)
+        {
+            syncChannelSettings.enablePrecisionLipsync = !pAppCtx->disablePrecisionLipsync;
+            BDBG_LOG(("LowLatencyMode: syncChannelSettings.enablePrecisionLipsync = %d", syncChannelSettings.enablePrecisionLipsync));
+        }
         syncChannel = NEXUS_SyncChannel_Create(&syncChannelSettings);
         BIP_CHECK_GOTO(( syncChannel ), ( "NEXUS_SyncChannel_Create Failed" ), error, BIP_ERR_NEXUS, bipStatus );
         BDBG_MSG (("Using Nexus STC channel for lipsync"));
@@ -269,6 +274,8 @@ int main(int argc, char *argv[])
             settings.pAdditionalHeaders = "getAvailableSeekRange.dlna.org:1\r\nPlaySpeed.dlna.org: speed=8\r\n";
 #endif
             if (pAppCtx->enableTimeshifting) settings.dataAvailabilityModel = BIP_PlayerDataAvailabilityModel_eLimitedRandomAccess;
+            settings.maxIpNetworkJitterInMs = pAppCtx->maxIpNetworkJitterInMs;
+            if (BIP_String_GetLength(pAppCtx->hInterfaceName)) settings.pNetworkInterfaceName = BIP_String_GetString(pAppCtx->hInterfaceName);
             bipStatus = BIP_Player_Connect( hPlayer, BIP_String_GetString(pAppCtx->hUrl), &settings );
             BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS ), ( "BIP_Player_Connect Failed to Connect to URL=%s", BIP_String_GetString(pAppCtx->hUrl) ), error, bipStatus, bipStatus );
         }
@@ -454,11 +461,12 @@ int main(int argc, char *argv[])
                 playerSettings.playbackSettings.beginningOfStreamAction = NEXUS_PlaybackLoopMode_ePlay;
             }
             playerSettings.playbackSettings.startPaused = pAppCtx->startPaused;
-
+            playerSettings.clockRecoveryMode = pAppCtx->clockRecoveryMode;
             if (pAppCtx->usePlaypump)
             {
                 pAppCtx->playerStreamInfo.usePlaypump = true;
             }
+            playerSettings.enableDynamicTrackSelection = !pAppCtx->disableDynamicTrackSelection;
             bipStatus = BIP_Player_Prepare(hPlayer, &prepareSettings, &playerSettings, NULL/*&probeSettings*/, &pAppCtx->playerStreamInfo, &prepareStatus);
             BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS ), ( "BIP_Player_Prepare Failed: URL=%s", BIP_String_GetString(pAppCtx->hUrl) ), error, bipStatus, bipStatus );
 
@@ -476,6 +484,20 @@ int main(int argc, char *argv[])
         /* Set up & start video decoder. */
 #if NXCLIENT_SUPPORT
         {
+            if (pAppCtx->enableLowLatencyMode)
+            {
+                BDBG_LOG(("WARNING: Not able to enable/disable precisionLipsync in nxclient mode (check nxserver code)"));
+            }
+            if (pAppCtx->stcSyncMode != -1 && pAppCtx->enableLowLatencyMode)
+            {
+                NEXUS_SimpleStcChannelSettings stcSettings;
+                NEXUS_SimpleStcChannel_GetSettings(hSimpleStcChannel, &stcSettings);
+                stcSettings.sync = pAppCtx->stcSyncMode;
+                BDBG_LOG(("LowLatencyMode: stcSettings.sync=%d",stcSettings.sync));
+                rc = NEXUS_SimpleStcChannel_SetSettings(hSimpleStcChannel, &stcSettings);
+                BIP_CHECK_GOTO(( rc == NEXUS_SUCCESS ), ( "NEXUS_SimpleStcChannel_SetSettings Failed" ), error, BIP_ERR_NEXUS, bipStatus );
+            }
+
             if (!pAppCtx->disableVideo && videoPidChannel)
             {
                 NEXUS_SimpleVideoDecoderStartSettings videoProgram;
@@ -504,6 +526,11 @@ int main(int argc, char *argv[])
                 NEXUS_SimpleAudioDecoder_GetDefaultStartSettings(&audioProgram);
                 audioProgram.primary.codec = audioCodec;
                 audioProgram.primary.pidChannel = audioPidChannel;
+                if (pAppCtx->enableLowLatencyMode)
+                {
+                    audioProgram.primary.latencyMode = pAppCtx->audioDecoderLatencyMode;
+                    BDBG_LOG(("NEXUS_AudioDecoderLatencyMode=%d", pAppCtx->audioDecoderLatencyMode));
+                }
                 rc = NEXUS_SimpleAudioDecoder_Start(hSimpleAudioDecoder, &audioProgram);
                 BIP_CHECK_GOTO(( rc == NEXUS_SUCCESS ), ( "NEXUS_SimpleAudioDecoder_Start Failed" ), error, BIP_ERR_NEXUS, bipStatus );
                 startSettings.simpleAudioStartSettings = audioProgram;
@@ -579,10 +606,27 @@ int main(int argc, char *argv[])
                 audioProgram.codec = audioCodec;
                 audioProgram.pidChannel = audioPidChannel;
                 audioProgram.stcChannel = stcChannel;
+                if (pAppCtx->enableLowLatencyMode)
+                {
+                    audioProgram.latencyMode = pAppCtx->audioDecoderLatencyMode;
+                    BDBG_LOG(("NEXUS_AudioDecoderLatencyMode=%d", pAppCtx->audioDecoderLatencyMode));
+                }
                 rc = NEXUS_AudioDecoder_Start(pcmDecoder, &audioProgram);
                 BIP_CHECK_GOTO(( rc == NEXUS_SUCCESS ), ( "NEXUS_AudioDecoder_Start Failed" ), error, BIP_ERR_NEXUS, bipStatus );
                 BDBG_MSG(("Audio Decoder is Started\n"));
                 startSettings.audioStartSettings = audioProgram;
+
+#if 0
+                if (pAppCtx->enableLowLatencyMode)
+                {
+                    /* TODO: need to stop and restart for TSM to get the low delay number from the audio decoder */
+                    BDBG_LOG(("Stopping and Re-starting audio decoder for low delay time to get passed to TSM \n"));
+                    NEXUS_AudioDecoder_Stop(pcmDecoder);
+                    rc = NEXUS_AudioDecoder_Start(pcmDecoder, &audioProgram);
+                    BIP_CHECK_GOTO(( rc == NEXUS_SUCCESS ), ( "NEXUS_AudioDecoder_Start Failed" ), error, BIP_ERR_NEXUS, bipStatus );
+                    BDBG_MSG(("Audio Decoder is Started\n"));
+                }
+#endif
             }
         }
 #endif /* NXCLIENT_SUPPORT */

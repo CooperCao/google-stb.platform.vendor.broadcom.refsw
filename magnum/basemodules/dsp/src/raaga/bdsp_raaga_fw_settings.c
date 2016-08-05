@@ -68,7 +68,8 @@ const  BDSP_P_Audio_FrameSyncTsmConfigParams   BDSP_sDefaultFrameSyncTsmSettings
             BDSP_Audio_ASFPTSType_eInterpolated,
                 BDSP_Audio_WMAIpType_eASF
             }},
-        0                                           /* eForceCompleteFirstFrame */
+        0,                                           /* eForceCompleteFirstFrame */
+		BDSP_Raaga_Audio_DatasyncType_eNone
     },
     {                                       /* sTsmConfigParams */
             90,                                 /* i32TSMSmoothThreshold */

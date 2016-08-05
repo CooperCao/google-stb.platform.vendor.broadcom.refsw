@@ -119,11 +119,18 @@ function HighlightCurrentPage(pageid)
     var obj;
     //alert("Highlight: prev " + PreviousPageId + "; current " + CurrentPageId );
     obj = document.getElementById(PreviousPageId);
-    if (obj) { obj.style.fontWeight = "bold"; obj.style.background = "white"; }
+    if (userAgent.indexOf("MSIE") >= 0 ) { // for ie9, ignore highlighting
+    } else {
+        if (obj) { obj.style.fontWeight = "bold"; obj.style.background = "white"; }
+    }
     obj = document.getElementById(CurrentPageId);
-    if (obj) { obj.style.fontWeight = "bold"; obj.style.background = "lightgray"; }
+    if (userAgent.indexOf("MSIE") >= 0 ) { // for ie9, ignore highlighting
+    } else {
+        if (obj) { obj.style.fontWeight = "bold"; obj.style.background = "lightgray"; }
+    }
     PreviousPageId = CurrentPageId;
 }
+
 function setField(fieldName, fieldValue)
 {
     //alert("setField: name " + fieldName + "; value " + fieldValue );
@@ -368,7 +375,8 @@ var response = request.responseText.split("|");
             var debugobj=document.getElementById("debugoutputbox");
 
             if (userAgent.indexOf("MSIE") >= 0 ) { // for ie9, must replace carriage returns with <br>
-                eol = "<br>";
+                //eol = "<br>";
+                if(debug) alert("MSIE detected; debugobj:" + debugobj );
             }
 
             //alert("setting debugdiv");
@@ -395,8 +403,9 @@ var response = request.responseText.split("|");
             for (var i = 0; i < oResponses.length; i++)
             {
                 var entry = rtrim(oResponses[i]);
-                if (entry.length>0 && entry.length < 20) {
-                    if(debug) alert("Response: got (" + entry + "); length " + entry.length );
+                if ( entry.length>0 )
+                {
+                    //if(debug=) alert("Response: got (" + entry + "); length " + oResponses[i+1].length );
                 }
                 if (entry == "HEAPS") {
                     //if (debugobj) {debugobj.innerHTML += entry + eol; }
@@ -468,9 +477,21 @@ var response = request.responseText.split("|");
                     BoxMode = oResponses[i+1];
                     i++;
                 } else if (entry == "BOXMODEHTML") {
-                    //if (debugobj) {debugobj.innerHTML += entry + eol; }
+                    if (debugobj) {debugobj.innerHTML += entry + eol; }
                     var objboxmode=document.getElementById("boxmode");
-                    if (objboxmode) { objboxmode.innerHTML = oResponses[i+1] }
+                    if(debug) alert("objboxmode:" + objboxmode + "; response (" + oResponses[i+1] + ")" );
+                    if (objboxmode) {
+                        // IE9 and families will not re-render the <option> object; must re-create the entire object to get it to re-render
+                        if (userAgent.indexOf("MSIE") >= 0 ) {
+                            var divboxmode = document.getElementById('divboxmode');
+                            if (divboxmode) {
+                                divboxmode.innerHTML = "<select id=boxmode onchange=\"MyClick(event);\" >" + oResponses[i+1] + "</select>";
+                            }
+                        } else {
+                            objboxmode.innerHTML = oResponses[i+1];
+                        }
+                    }
+
                     i++;
                 } else if (entry == "PLATFORM") {
                     //if (debugobj) {debugobj.innerHTML += entry + eol; }
@@ -495,12 +516,14 @@ var response = request.responseText.split("|");
                     alert("ERROR ... " + oResponses[i+1]);
                     i++;
                 } else {
-                    if (debugobj && entry.length >0 && entry.length < 200) { debugobj.innerHTML += entry + eol; }
+                    if (debugobj && entry.length >0 && entry.length < 200) {
+                        debugobj.innerHTML += entry + eol;
+                    }
                 }
-                if (entry.length >0 && entry.length < 20) {
-                    //alert("Response: done (" + entry + ")" );
+                if (entry.length >0 && entry.length < 20)
+                {
+                    //alert("Response: done for entry (" + entry + ")" );
                 }
-                //alert("Entry " + entry );
             }
 
         }

@@ -165,8 +165,6 @@ int main (void)
     NEXUS_KeySlotHandle videoKeyHandle = NULL;
     NEXUS_KeySlotHandle audioKeyHandle = NULL;
     NEXUS_SecurityKeySlotSettings keySlotSettings;
-    NEXUS_PidChannelStatus pidStatus;
-    unsigned int    videoPID, audioPID;
 
     NEXUS_Platform_GetDefaultSettings (&platformSettings);
     platformSettings.openFrontend = false;
@@ -309,17 +307,10 @@ int main (void)
     }
 
     /* Add video PID channel to keyslot */
-    NEXUS_PidChannel_GetStatus (videoPidChannel, &pidStatus);
-    videoPID = pidStatus.pidChannelIndex;
-    if (NEXUS_Security_AddPidChannelToKeySlot (videoKeyHandle, videoPID) != 0)
-    {
-        printf ("\nConfigPIDPointerTable failed \n");
-        return 1;
-    }
+    NEXUS_KeySlot_AddPidChannel ( videoKeyHandle, videoPidChannel );
 
-    NEXUS_PidChannel_GetStatus (audioPidChannel, &pidStatus);
-    audioPID = pidStatus.pidChannelIndex;
-    NEXUS_Security_AddPidChannelToKeySlot (audioKeyHandle, audioPID);
+    /* Add video PID channel to keyslot */
+    NEXUS_KeySlot_AddPidChannel ( audioKeyHandle, audioPidChannel );
 
     printf ("\nSecurity Config OK\n");
 

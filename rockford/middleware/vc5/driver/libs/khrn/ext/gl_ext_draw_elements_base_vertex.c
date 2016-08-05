@@ -15,7 +15,7 @@ GL_APICALL void GL_APIENTRY glDrawElementsBaseVertexEXT(
    const GLvoid *indices,
    GLint basevertex)
 {
-   GLXX_SERVER_STATE_T *state = GL30_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
    if (!state) {
       return;
    }
@@ -29,7 +29,7 @@ GL_APICALL void GL_APIENTRY glDrawElementsBaseVertexEXT(
       .basevertex = basevertex};
    glintDrawArraysOrElements(state, &draw);
 
-   GL30_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_APICALL void GL_APIENTRY glDrawRangeElementsBaseVertexEXT(
@@ -41,23 +41,30 @@ GL_APICALL void GL_APIENTRY glDrawRangeElementsBaseVertexEXT(
    const GLvoid *indices,
    GLint basevertex)
 {
-   GLXX_SERVER_STATE_T *state = GL30_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
    if (!state) {
       return;
    }
 
+   /* min/max_index do not include basevertex, but we expect them to */
+   unsigned min_index = start + basevertex;
+   unsigned max_index = end + basevertex;
+   /* Correct for common overflow cases */
+   if (basevertex > 0 && max_index < end) max_index = UINT_MAX;
+   if (basevertex < 0 && start < (unsigned)(-basevertex)) min_index = 0;
+
    GLXX_DRAW_RAW_T draw = {
       GLXX_DRAW_RAW_DEFAULTS,
       .mode = mode,
-      .min_index = start,
-      .max_index = end,
+      .min_index = min_index,
+      .max_index = max_index,
       .count = count,
       .index_type = index_type,
       .indices = indices,
       .basevertex = basevertex};
    glintDrawArraysOrElements(state, &draw);
 
-   GL30_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 GL_APICALL void GL_APIENTRY glDrawElementsInstancedBaseVertexEXT(
@@ -68,7 +75,7 @@ GL_APICALL void GL_APIENTRY glDrawElementsInstancedBaseVertexEXT(
    GLsizei instanceCount,
    GLint basevertex)
 {
-   GLXX_SERVER_STATE_T *state = GL30_LOCK_SERVER_STATE();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
    if (!state) {
       return;
    }
@@ -83,7 +90,7 @@ GL_APICALL void GL_APIENTRY glDrawElementsInstancedBaseVertexEXT(
       .basevertex = basevertex};
    glintDrawArraysOrElements(state, &draw);
 
-   GL30_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
 
 void GL_APIENTRY glMultiDrawElementsBaseVertexEXT(

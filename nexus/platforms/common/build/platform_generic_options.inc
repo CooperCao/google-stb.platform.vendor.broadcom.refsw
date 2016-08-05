@@ -85,7 +85,7 @@ BSID_MJPEG_SUPPORT := y
 endif
 
 ifeq ($(shell test -e ${BCHP_RDB_PATH}/bchp_scpu_top_ctrl.h && echo y),y)
-ifneq ($(findstring $(BCHP_CHIP),7435 7584 75845 74371),$(BCHP_CHIP))
+ifneq ($(findstring $(BCHP_CHIP),7435 7584 75845 74371 7260),$(BCHP_CHIP))
 SAGE_SUPPORT ?= y
 endif
 endif

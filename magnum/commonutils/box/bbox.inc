@@ -111,6 +111,11 @@ HAS_BOX_MODES = y
 endif
 endif
 
+ifeq ($(filter $(BCHP_CHIP),7260), $(BCHP_CHIP))
+ifeq ($(filter $(BCHP_VER),A0), $(BCHP_VER))
+HAS_BOX_MODES = y
+endif
+endif
 
 BCHP_VER_LOWER := $(shell echo $(BCHP_VER) | tr A-Z a-z)
 
@@ -119,27 +124,30 @@ MAGNUM_MODULES += BBOX
 
 # Module Includes
 BBOX_INCLUDES += \
-	$(MAGNUM)/commonutils/box/include \
-	$(MAGNUM)/commonutils/box/src
+        $(MAGNUM)/commonutils/box/include \
+        $(MAGNUM)/commonutils/box/src
 
 # Module Sources
 BBOX_SOURCES += \
-	$(MAGNUM)/commonutils/box/src/bbox.c
+        $(MAGNUM)/commonutils/box/src/bbox.c \
+        $(MAGNUM)/commonutils/box/src/common/bbox_priv_vdc_common.c
 
 ifeq (${HAS_BOX_MODES},y)
-include	$(MAGNUM)/commonutils/box/src/$(BCHP_CHIP)/bbox_$(BCHP_CHIP).inc
+include $(MAGNUM)/commonutils/box/src/$(BCHP_CHIP)/bbox_$(BCHP_CHIP).inc
 BBOX_DEFINES += BBOX_BOX_MODES_SUPPORTED=1
 else
+BBOX_INCLUDES += \
+        $(MAGNUM)/commonutils/box/src/legacy
 BBOX_SOURCES += \
-	$(MAGNUM)/commonutils/box/src/common/bbox_priv.c \
-	$(MAGNUM)/commonutils/box/src/common/bbox_priv_vce_nop.c \
-	$(MAGNUM)/commonutils/box/src/common/bbox_priv_xvd_nobox.c
+        $(MAGNUM)/commonutils/box/src/legacy/bbox_priv_vdc.c \
+        $(MAGNUM)/commonutils/box/src/common/bbox_priv_vce_nop.c \
+        $(MAGNUM)/commonutils/box/src/common/bbox_priv_xvd_nobox.c
 endif
 
 BBOX_SOURCES += \
-	$(MAGNUM)/commonutils/box/src/common/bbox_priv_vce_common.c \
-	$(MAGNUM)/commonutils/box/src/common/bbox_priv_audio_common.c \
-	$(MAGNUM)/commonutils/box/src/common/bbox_priv_xvd_common.c
+        $(MAGNUM)/commonutils/box/src/common/bbox_priv_vce_common.c \
+        $(MAGNUM)/commonutils/box/src/common/bbox_priv_audio_common.c \
+        $(MAGNUM)/commonutils/box/src/common/bbox_priv_xvd_common.c
 
 #
 # End of file

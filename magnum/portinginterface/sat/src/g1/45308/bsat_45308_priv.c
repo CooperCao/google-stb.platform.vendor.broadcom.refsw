@@ -1,7 +1,7 @@
 /******************************************************************************
-*    (c)2011-2013 Broadcom Corporation
+* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *
-* This program is the proprietary software of Broadcom Corporation and/or its licensors,
+* This program is the proprietary software of Broadcom and/or its licensors,
 * and may only be used, duplicated, modified or distributed pursuant to the terms and
 * conditions of a separate, written license agreement executed between you and Broadcom
 * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
 * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 * ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * Module Description:
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 *****************************************************************************/
 #include "bsat.h"
@@ -290,8 +282,21 @@ const uint32_t BSAT_g1_ChannelIntrID[BSAT_G1_MAX_CHANNELS][BSAT_g1_MaxIntID] =
 ******************************************************************************/
 BERR_Code BSAT_g1_P_GetTotalChannels(BSAT_Handle h, uint32_t *totalChannels)
 {
-   /* do this for now */
-   *totalChannels = 8;
+   uint32_t product_id, family_id, chip, n;
+   BSAT_g1_P_Handle *pDev = (BSAT_g1_P_Handle*)(h->pImpl);
+
+   product_id = BREG_Read32(pDev->hRegister, BCHP_TM_PRODUCT_ID);
+   family_id = BREG_Read32(pDev->hRegister, BCHP_TM_FAMILY_ID);
+   chip = (product_id >> 8) & 0xFFFFF;
+   n = chip & 0xFF;
+   if ((family_id & 0xFFFFFF00) == 0x04530200)
+      *totalChannels = 2;
+   else if (n == 0x16)
+      *totalChannels = 16;
+   else if (n == 0)
+      *totalChannels = 8;
+   else
+      *totalChannels = n;
    return BERR_SUCCESS;
 }
 

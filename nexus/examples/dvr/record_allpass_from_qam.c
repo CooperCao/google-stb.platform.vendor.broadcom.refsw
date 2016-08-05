@@ -148,7 +148,7 @@ printf("**********************************************\n");
     NEXUS_Frontend_TuneQam(frontend, &qamSettings);
 
     NEXUS_PidChannel_GetDefaultSettings(&pidCfg0) ;
-    NEXUS_ParserBand_GetAllPassPidChannelIndex(parserBand, (unsigned *) &pidCfg0.pidChannelIndex);
+    NEXUS_ParserBand_GetAllPassPidChannelIndex(parserBand, &pidCfg0.pidChannelIndex);
     /* The pid number is redundant here. */
     pidCh0 = NEXUS_PidChannel_Open(parserBand, 0x0, &pidCfg0);
 

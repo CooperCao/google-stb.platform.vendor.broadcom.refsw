@@ -1033,7 +1033,7 @@ See Also:
     NEXUS_FrontendDeviceOpenSettings,
     NEXUS_FrontendDevice_GetDefaultOpenSettings
 ***************************************************************************/
-NEXUS_FrontendDeviceHandle NEXUS_FrontendDevice_Open(
+NEXUS_FrontendDeviceHandle NEXUS_FrontendDevice_Open( /* attr{destructor=NEXUS_FrontendDevice_Close} */
     unsigned index,
     const NEXUS_FrontendDeviceOpenSettings *pSettings
     );

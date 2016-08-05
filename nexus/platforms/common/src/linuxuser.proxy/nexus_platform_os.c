@@ -78,9 +78,7 @@
 #if NEXUS_HAS_VIDEO_DECODER
 #include "bxvd_image.h"
 #endif
-#if BCHP_CHIP == 7408
-#include "bape_img.h"
-#elif defined BDSP_RAAGA_SUPPORT
+#if defined BDSP_RAAGA_SUPPORT
 #include "bdsp_raaga_img.h"
 #else
 #if NEXUS_HAS_AUDIO
@@ -602,7 +600,7 @@ static NEXUS_Error NEXUS_P_Init(void)
     NEXUS_Platform_P_DebugLog_Init(&state->debugLog, device_fd);
     rc = fcntl(state->proxy_fd, F_SETFD, FD_CLOEXEC);
     if (rc) BERR_TRACE(rc); /* keep going */
-    if(state->debugLog.logWriter) {
+    if(state->debugLog.logWriter || !strcmp(state->debugLog.fname, "disabled")) {
         const char *debug_log_size;
 
         PROXY_NEXUS_Log_Activate activate;
@@ -789,26 +787,20 @@ static NEXUS_Error NEXUS_Platform_P_InitImage(const NEXUS_PlatformImgInterface *
     }
     #endif
 #endif
-    #if BCHP_CHIP == 7408
-    rc = Nexus_Platform_P_Image_Interfaces_Register(&BAPE_IMG_Interface, BAPE_IMG_Context, NEXUS_CORE_IMG_ID_RAP);
-    if(rc != NEXUS_SUCCESS)
-    {
-        return BERR_TRACE(NEXUS_UNKNOWN);
-    }
-    #elif defined BDSP_RAAGA_SUPPORT
+    #if defined BDSP_RAAGA_SUPPORT
     rc = Nexus_Platform_P_Image_Interfaces_Register(&BDSP_IMG_Interface, BDSP_IMG_Context, NEXUS_CORE_IMG_ID_RAP);
     if(rc != NEXUS_SUCCESS)
     {
         return BERR_TRACE(NEXUS_UNKNOWN);
     }
     #else
-	#if NEXUS_HAS_AUDIO
+    #if NEXUS_HAS_AUDIO
     rc = Nexus_Platform_P_Image_Interfaces_Register(&BRAP_IMG_Interface, BRAP_IMG_Context, NEXUS_CORE_IMG_ID_RAP);
     if(rc != NEXUS_SUCCESS)
     {
         return BERR_TRACE(NEXUS_UNKNOWN);
     }
-	#endif
+    #endif
     #endif
 #if NEXUS_HAS_VIDEO_ENCODER && !NEXUS_NUM_DSP_VIDEO_ENCODERS
     rc = Nexus_Platform_P_Image_Interfaces_Register(&BVCE_IMAGE_Interface, BVCE_IMAGE_Context, NEXUS_CORE_IMG_ID_VCE);
@@ -820,17 +812,17 @@ static NEXUS_Error NEXUS_Platform_P_InitImage(const NEXUS_PlatformImgInterface *
 
 #if NEXUS_HAS_SAGE
     rc = Nexus_Platform_P_Image_Interfaces_Register(&SAGE_IMAGE_Interface, SAGE_IMAGE_Context, NEXUS_CORE_IMG_ID_SAGE);
-	if(rc != NEXUS_SUCCESS)
-	{
-		return BERR_TRACE(NEXUS_UNKNOWN);
-	}
+    if(rc != NEXUS_SUCCESS)
+    {
+        return BERR_TRACE(NEXUS_UNKNOWN);
+    }
 
 #if NEXUS_HAS_HDMI_OUTPUT
     rc = Nexus_Platform_P_Image_Interfaces_Register(&HDMI_OUTPUT_IMAGE_Interface, HDMI_OUTPUT_IMAGE_Context, NEXUS_CORE_IMG_ID_HDCP);
-	if(rc != NEXUS_SUCCESS)
-	{
-		return BERR_TRACE(NEXUS_UNKNOWN);
-	}
+    if(rc != NEXUS_SUCCESS)
+    {
+        return BERR_TRACE(NEXUS_UNKNOWN);
+    }
 
 #endif
 #endif
@@ -847,10 +839,10 @@ static NEXUS_Error NEXUS_Platform_P_InitImage(const NEXUS_PlatformImgInterface *
 
 #if NEXUS_HAS_SCM
     rc = Nexus_Platform_P_Image_Interfaces_Register(&SCM_IMAGE_Interface, SCM_IMAGE_Context, NEXUS_CORE_IMG_ID_SAGE);
-	if(rc != NEXUS_SUCCESS)
-	{
-		return BERR_TRACE(NEXUS_UNKNOWN);
-	}
+    if(rc != NEXUS_SUCCESS)
+    {
+        return BERR_TRACE(NEXUS_UNKNOWN);
+    }
 #endif
 
 #if NEXUS_HAS_FRONTEND

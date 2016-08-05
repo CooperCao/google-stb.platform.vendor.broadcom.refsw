@@ -5,8 +5,7 @@
 
 float sinh(float x)
 {
-   const float e = 2.718281828;
-   return 0.5*(pow(e, x)-pow(e, -x));
+   return 0.5*(exp(x)-exp(-x));
 }
 
 
@@ -30,8 +29,7 @@ vec4 sinh(vec4 x)
 
 float cosh(float x)
 {
-   const float e = 2.718281828;
-   return 0.5*(pow(e, x)+pow(e, -x));
+   return 0.5*(exp(x)+exp(-x));
 }
 
 

@@ -57,6 +57,297 @@ static EGLBoolean base_eglWaitNative(EGLint engine)
    FuncRet(EGL, EGLBoolean , eglWaitNative, (engine))
 #endif /* EGL_VERSION_1_0*/
 
+#if GL_VERSION_ES_CM_1_0
+static void base_glAlphaFunc(GLenum func, GLfloat ref)
+   Func(GL, glAlphaFunc, (func, ref))
+static void base_glClearColor(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha)
+   Func(GL, glClearColor, (red, green, blue, alpha))
+static void base_glClearDepthf(GLfloat d)
+   Func(GL, glClearDepthf, (d))
+static void base_glClipPlanef(GLenum p, const GLfloat *eqn)
+   Func(GL, glClipPlanef, (p, eqn))
+static void base_glColor4f(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha)
+   Func(GL, glColor4f, (red, green, blue, alpha))
+static void base_glDepthRangef(GLfloat n, GLfloat f)
+   Func(GL, glDepthRangef, (n, f))
+static void base_glFogf(GLenum pname, GLfloat param)
+   Func(GL, glFogf, (pname, param))
+static void base_glFogfv(GLenum pname, const GLfloat *params)
+   Func(GL, glFogfv, (pname, params))
+static void base_glFrustumf(GLfloat l, GLfloat r, GLfloat b, GLfloat t, GLfloat n, GLfloat f)
+   Func(GL, glFrustumf, (l, r, b, t, n, f))
+static void base_glGetClipPlanef(GLenum plane, GLfloat *equation)
+   Func(GL, glGetClipPlanef, (plane, equation))
+static void base_glGetFloatv(GLenum pname, GLfloat *data)
+   Func(GL, glGetFloatv, (pname, data))
+static void base_glGetLightfv(GLenum light, GLenum pname, GLfloat *params)
+   Func(GL, glGetLightfv, (light, pname, params))
+static void base_glGetMaterialfv(GLenum face, GLenum pname, GLfloat *params)
+   Func(GL, glGetMaterialfv, (face, pname, params))
+static void base_glGetTexEnvfv(GLenum target, GLenum pname, GLfloat *params)
+   Func(GL, glGetTexEnvfv, (target, pname, params))
+static void base_glGetTexParameterfv(GLenum target, GLenum pname, GLfloat *params)
+   Func(GL, glGetTexParameterfv, (target, pname, params))
+static void base_glLightModelf(GLenum pname, GLfloat param)
+   Func(GL, glLightModelf, (pname, param))
+static void base_glLightModelfv(GLenum pname, const GLfloat *params)
+   Func(GL, glLightModelfv, (pname, params))
+static void base_glLightf(GLenum light, GLenum pname, GLfloat param)
+   Func(GL, glLightf, (light, pname, param))
+static void base_glLightfv(GLenum light, GLenum pname, const GLfloat *params)
+   Func(GL, glLightfv, (light, pname, params))
+static void base_glLineWidth(GLfloat width)
+   Func(GL, glLineWidth, (width))
+static void base_glLoadMatrixf(const GLfloat *m)
+   Func(GL, glLoadMatrixf, (m))
+static void base_glMaterialf(GLenum face, GLenum pname, GLfloat param)
+   Func(GL, glMaterialf, (face, pname, param))
+static void base_glMaterialfv(GLenum face, GLenum pname, const GLfloat *params)
+   Func(GL, glMaterialfv, (face, pname, params))
+static void base_glMultMatrixf(const GLfloat *m)
+   Func(GL, glMultMatrixf, (m))
+static void base_glMultiTexCoord4f(GLenum target, GLfloat s, GLfloat t, GLfloat r, GLfloat q)
+   Func(GL, glMultiTexCoord4f, (target, s, t, r, q))
+static void base_glNormal3f(GLfloat nx, GLfloat ny, GLfloat nz)
+   Func(GL, glNormal3f, (nx, ny, nz))
+static void base_glOrthof(GLfloat l, GLfloat r, GLfloat b, GLfloat t, GLfloat n, GLfloat f)
+   Func(GL, glOrthof, (l, r, b, t, n, f))
+static void base_glPointParameterf(GLenum pname, GLfloat param)
+   Func(GL, glPointParameterf, (pname, param))
+static void base_glPointParameterfv(GLenum pname, const GLfloat *params)
+   Func(GL, glPointParameterfv, (pname, params))
+static void base_glPointSize(GLfloat size)
+   Func(GL, glPointSize, (size))
+static void base_glPolygonOffset(GLfloat factor, GLfloat units)
+   Func(GL, glPolygonOffset, (factor, units))
+static void base_glRotatef(GLfloat angle, GLfloat x, GLfloat y, GLfloat z)
+   Func(GL, glRotatef, (angle, x, y, z))
+static void base_glScalef(GLfloat x, GLfloat y, GLfloat z)
+   Func(GL, glScalef, (x, y, z))
+static void base_glTexEnvf(GLenum target, GLenum pname, GLfloat param)
+   Func(GL, glTexEnvf, (target, pname, param))
+static void base_glTexEnvfv(GLenum target, GLenum pname, const GLfloat *params)
+   Func(GL, glTexEnvfv, (target, pname, params))
+static void base_glTexParameterf(GLenum target, GLenum pname, GLfloat param)
+   Func(GL, glTexParameterf, (target, pname, param))
+static void base_glTexParameterfv(GLenum target, GLenum pname, const GLfloat *params)
+   Func(GL, glTexParameterfv, (target, pname, params))
+static void base_glTranslatef(GLfloat x, GLfloat y, GLfloat z)
+   Func(GL, glTranslatef, (x, y, z))
+static void base_glActiveTexture(GLenum texture)
+   Func(GL, glActiveTexture, (texture))
+static void base_glAlphaFuncx(GLenum func, GLfixed ref)
+   Func(GL, glAlphaFuncx, (func, ref))
+static void base_glBindBuffer(GLenum target, GLuint buffer)
+   Func(GL, glBindBuffer, (target, buffer))
+static void base_glBindTexture(GLenum target, GLuint texture)
+   Func(GL, glBindTexture, (target, texture))
+static void base_glBlendFunc(GLenum sfactor, GLenum dfactor)
+   Func(GL, glBlendFunc, (sfactor, dfactor))
+static void base_glBufferData(GLenum target, GLsizeiptr size, const void *data, GLenum usage)
+   Func(GL, glBufferData, (target, size, data, usage))
+static void base_glBufferSubData(GLenum target, GLintptr offset, GLsizeiptr size, const void *data)
+   Func(GL, glBufferSubData, (target, offset, size, data))
+static void base_glClear(GLbitfield mask)
+   Func(GL, glClear, (mask))
+static void base_glClearColorx(GLfixed red, GLfixed green, GLfixed blue, GLfixed alpha)
+   Func(GL, glClearColorx, (red, green, blue, alpha))
+static void base_glClearDepthx(GLfixed depth)
+   Func(GL, glClearDepthx, (depth))
+static void base_glClearStencil(GLint s)
+   Func(GL, glClearStencil, (s))
+static void base_glClientActiveTexture(GLenum texture)
+   Func(GL, glClientActiveTexture, (texture))
+static void base_glClipPlanex(GLenum plane, const GLfixed *equation)
+   Func(GL, glClipPlanex, (plane, equation))
+static void base_glColor4ub(GLubyte red, GLubyte green, GLubyte blue, GLubyte alpha)
+   Func(GL, glColor4ub, (red, green, blue, alpha))
+static void base_glColor4x(GLfixed red, GLfixed green, GLfixed blue, GLfixed alpha)
+   Func(GL, glColor4x, (red, green, blue, alpha))
+static void base_glColorMask(GLboolean red, GLboolean green, GLboolean blue, GLboolean alpha)
+   Func(GL, glColorMask, (red, green, blue, alpha))
+static void base_glColorPointer(GLint size, GLenum type, GLsizei stride, const void *pointer)
+   Func(GL, glColorPointer, (size, type, stride, pointer))
+static void base_glCompressedTexImage2D(GLenum target, GLint level, GLenum internalformat, GLsizei width, GLsizei height, GLint border, GLsizei imageSize, const void *data)
+   Func(GL, glCompressedTexImage2D, (target, level, internalformat, width, height, border, imageSize, data))
+static void base_glCompressedTexSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLsizei imageSize, const void *data)
+   Func(GL, glCompressedTexSubImage2D, (target, level, xoffset, yoffset, width, height, format, imageSize, data))
+static void base_glCopyTexImage2D(GLenum target, GLint level, GLenum internalformat, GLint x, GLint y, GLsizei width, GLsizei height, GLint border)
+   Func(GL, glCopyTexImage2D, (target, level, internalformat, x, y, width, height, border))
+static void base_glCopyTexSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint x, GLint y, GLsizei width, GLsizei height)
+   Func(GL, glCopyTexSubImage2D, (target, level, xoffset, yoffset, x, y, width, height))
+static void base_glCullFace(GLenum mode)
+   Func(GL, glCullFace, (mode))
+static void base_glDeleteBuffers(GLsizei n, const GLuint *buffers)
+   Func(GL, glDeleteBuffers, (n, buffers))
+static void base_glDeleteTextures(GLsizei n, const GLuint *textures)
+   Func(GL, glDeleteTextures, (n, textures))
+static void base_glDepthFunc(GLenum func)
+   Func(GL, glDepthFunc, (func))
+static void base_glDepthMask(GLboolean flag)
+   Func(GL, glDepthMask, (flag))
+static void base_glDepthRangex(GLfixed n, GLfixed f)
+   Func(GL, glDepthRangex, (n, f))
+static void base_glDisable(GLenum cap)
+   Func(GL, glDisable, (cap))
+static void base_glDisableClientState(GLenum array)
+   Func(GL, glDisableClientState, (array))
+static void base_glDrawArrays(GLenum mode, GLint first, GLsizei count)
+   Func(GL, glDrawArrays, (mode, first, count))
+static void base_glDrawElements(GLenum mode, GLsizei count, GLenum type, const void *indices)
+   Func(GL, glDrawElements, (mode, count, type, indices))
+static void base_glEnable(GLenum cap)
+   Func(GL, glEnable, (cap))
+static void base_glEnableClientState(GLenum array)
+   Func(GL, glEnableClientState, (array))
+static void base_glFinish(void)
+   Func(GL, glFinish, ())
+static void base_glFlush(void)
+   Func(GL, glFlush, ())
+static void base_glFogx(GLenum pname, GLfixed param)
+   Func(GL, glFogx, (pname, param))
+static void base_glFogxv(GLenum pname, const GLfixed *param)
+   Func(GL, glFogxv, (pname, param))
+static void base_glFrontFace(GLenum mode)
+   Func(GL, glFrontFace, (mode))
+static void base_glFrustumx(GLfixed l, GLfixed r, GLfixed b, GLfixed t, GLfixed n, GLfixed f)
+   Func(GL, glFrustumx, (l, r, b, t, n, f))
+static void base_glGetBooleanv(GLenum pname, GLboolean *data)
+   Func(GL, glGetBooleanv, (pname, data))
+static void base_glGetBufferParameteriv(GLenum target, GLenum pname, GLint *params)
+   Func(GL, glGetBufferParameteriv, (target, pname, params))
+static void base_glGetClipPlanex(GLenum plane, GLfixed *equation)
+   Func(GL, glGetClipPlanex, (plane, equation))
+static void base_glGenBuffers(GLsizei n, GLuint *buffers)
+   GenFunc(GL, glGenBuffers, (n, buffers))
+static void base_glGenTextures(GLsizei n, GLuint *textures)
+   GenFunc(GL, glGenTextures, (n, textures))
+static GLenum base_glGetError(void)
+   FuncRet(GL, GLenum , glGetError, ())
+static void base_glGetFixedv(GLenum pname, GLfixed *params)
+   Func(GL, glGetFixedv, (pname, params))
+static void base_glGetIntegerv(GLenum pname, GLint *data)
+   Func(GL, glGetIntegerv, (pname, data))
+static void base_glGetLightxv(GLenum light, GLenum pname, GLfixed *params)
+   Func(GL, glGetLightxv, (light, pname, params))
+static void base_glGetMaterialxv(GLenum face, GLenum pname, GLfixed *params)
+   Func(GL, glGetMaterialxv, (face, pname, params))
+static void base_glGetPointerv(GLenum pname, void **params)
+   Func(GL, glGetPointerv, (pname, params))
+static const GLubyte * base_glGetString(GLenum name)
+   FuncRet(GL, const GLubyte *, glGetString, (name))
+static void base_glGetTexEnviv(GLenum target, GLenum pname, GLint *params)
+   Func(GL, glGetTexEnviv, (target, pname, params))
+static void base_glGetTexEnvxv(GLenum target, GLenum pname, GLfixed *params)
+   Func(GL, glGetTexEnvxv, (target, pname, params))
+static void base_glGetTexParameteriv(GLenum target, GLenum pname, GLint *params)
+   Func(GL, glGetTexParameteriv, (target, pname, params))
+static void base_glGetTexParameterxv(GLenum target, GLenum pname, GLfixed *params)
+   Func(GL, glGetTexParameterxv, (target, pname, params))
+static void base_glHint(GLenum target, GLenum mode)
+   Func(GL, glHint, (target, mode))
+static GLboolean base_glIsBuffer(GLuint buffer)
+   FuncRet(GL, GLboolean , glIsBuffer, (buffer))
+static GLboolean base_glIsEnabled(GLenum cap)
+   FuncRet(GL, GLboolean , glIsEnabled, (cap))
+static GLboolean base_glIsTexture(GLuint texture)
+   FuncRet(GL, GLboolean , glIsTexture, (texture))
+static void base_glLightModelx(GLenum pname, GLfixed param)
+   Func(GL, glLightModelx, (pname, param))
+static void base_glLightModelxv(GLenum pname, const GLfixed *param)
+   Func(GL, glLightModelxv, (pname, param))
+static void base_glLightx(GLenum light, GLenum pname, GLfixed param)
+   Func(GL, glLightx, (light, pname, param))
+static void base_glLightxv(GLenum light, GLenum pname, const GLfixed *params)
+   Func(GL, glLightxv, (light, pname, params))
+static void base_glLineWidthx(GLfixed width)
+   Func(GL, glLineWidthx, (width))
+static void base_glLoadIdentity(void)
+   Func(GL, glLoadIdentity, ())
+static void base_glLoadMatrixx(const GLfixed *m)
+   Func(GL, glLoadMatrixx, (m))
+static void base_glLogicOp(GLenum opcode)
+   Func(GL, glLogicOp, (opcode))
+static void base_glMaterialx(GLenum face, GLenum pname, GLfixed param)
+   Func(GL, glMaterialx, (face, pname, param))
+static void base_glMaterialxv(GLenum face, GLenum pname, const GLfixed *param)
+   Func(GL, glMaterialxv, (face, pname, param))
+static void base_glMatrixMode(GLenum mode)
+   Func(GL, glMatrixMode, (mode))
+static void base_glMultMatrixx(const GLfixed *m)
+   Func(GL, glMultMatrixx, (m))
+static void base_glMultiTexCoord4x(GLenum texture, GLfixed s, GLfixed t, GLfixed r, GLfixed q)
+   Func(GL, glMultiTexCoord4x, (texture, s, t, r, q))
+static void base_glNormal3x(GLfixed nx, GLfixed ny, GLfixed nz)
+   Func(GL, glNormal3x, (nx, ny, nz))
+static void base_glNormalPointer(GLenum type, GLsizei stride, const void *pointer)
+   Func(GL, glNormalPointer, (type, stride, pointer))
+static void base_glOrthox(GLfixed l, GLfixed r, GLfixed b, GLfixed t, GLfixed n, GLfixed f)
+   Func(GL, glOrthox, (l, r, b, t, n, f))
+static void base_glPixelStorei(GLenum pname, GLint param)
+   Func(GL, glPixelStorei, (pname, param))
+static void base_glPointParameterx(GLenum pname, GLfixed param)
+   Func(GL, glPointParameterx, (pname, param))
+static void base_glPointParameterxv(GLenum pname, const GLfixed *params)
+   Func(GL, glPointParameterxv, (pname, params))
+static void base_glPointSizex(GLfixed size)
+   Func(GL, glPointSizex, (size))
+static void base_glPolygonOffsetx(GLfixed factor, GLfixed units)
+   Func(GL, glPolygonOffsetx, (factor, units))
+static void base_glPopMatrix(void)
+   Func(GL, glPopMatrix, ())
+static void base_glPushMatrix(void)
+   Func(GL, glPushMatrix, ())
+static void base_glReadPixels(GLint x, GLint y, GLsizei width, GLsizei height, GLenum format, GLenum type, void *pixels)
+   Func(GL, glReadPixels, (x, y, width, height, format, type, pixels))
+static void base_glRotatex(GLfixed angle, GLfixed x, GLfixed y, GLfixed z)
+   Func(GL, glRotatex, (angle, x, y, z))
+static void base_glSampleCoverage(GLfloat value, GLboolean invert)
+   Func(GL, glSampleCoverage, (value, invert))
+static void base_glSampleCoveragex(GLclampx value, GLboolean invert)
+   Func(GL, glSampleCoveragex, (value, invert))
+static void base_glScalex(GLfixed x, GLfixed y, GLfixed z)
+   Func(GL, glScalex, (x, y, z))
+static void base_glScissor(GLint x, GLint y, GLsizei width, GLsizei height)
+   Func(GL, glScissor, (x, y, width, height))
+static void base_glShadeModel(GLenum mode)
+   Func(GL, glShadeModel, (mode))
+static void base_glStencilFunc(GLenum func, GLint ref, GLuint mask)
+   Func(GL, glStencilFunc, (func, ref, mask))
+static void base_glStencilMask(GLuint mask)
+   Func(GL, glStencilMask, (mask))
+static void base_glStencilOp(GLenum fail, GLenum zfail, GLenum zpass)
+   Func(GL, glStencilOp, (fail, zfail, zpass))
+static void base_glTexCoordPointer(GLint size, GLenum type, GLsizei stride, const void *pointer)
+   Func(GL, glTexCoordPointer, (size, type, stride, pointer))
+static void base_glTexEnvi(GLenum target, GLenum pname, GLint param)
+   Func(GL, glTexEnvi, (target, pname, param))
+static void base_glTexEnvx(GLenum target, GLenum pname, GLfixed param)
+   Func(GL, glTexEnvx, (target, pname, param))
+static void base_glTexEnviv(GLenum target, GLenum pname, const GLint *params)
+   Func(GL, glTexEnviv, (target, pname, params))
+static void base_glTexEnvxv(GLenum target, GLenum pname, const GLfixed *params)
+   Func(GL, glTexEnvxv, (target, pname, params))
+static void base_glTexImage2D(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const void *pixels)
+   Func(GL, glTexImage2D, (target, level, internalformat, width, height, border, format, type, pixels))
+static void base_glTexParameteri(GLenum target, GLenum pname, GLint param)
+   Func(GL, glTexParameteri, (target, pname, param))
+static void base_glTexParameterx(GLenum target, GLenum pname, GLfixed param)
+   Func(GL, glTexParameterx, (target, pname, param))
+static void base_glTexParameteriv(GLenum target, GLenum pname, const GLint *params)
+   Func(GL, glTexParameteriv, (target, pname, params))
+static void base_glTexParameterxv(GLenum target, GLenum pname, const GLfixed *params)
+   Func(GL, glTexParameterxv, (target, pname, params))
+static void base_glTexSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLenum type, const void *pixels)
+   Func(GL, glTexSubImage2D, (target, level, xoffset, yoffset, width, height, format, type, pixels))
+static void base_glTranslatex(GLfixed x, GLfixed y, GLfixed z)
+   Func(GL, glTranslatex, (x, y, z))
+static void base_glVertexPointer(GLint size, GLenum type, GLsizei stride, const void *pointer)
+   Func(GL, glVertexPointer, (size, type, stride, pointer))
+static void base_glViewport(GLint x, GLint y, GLsizei width, GLsizei height)
+   Func(GL, glViewport, (x, y, width, height))
+#endif /* GL_VERSION_ES_CM_1_0*/
+
 #if EGL_VERSION_1_1
 static EGLBoolean base_eglBindTexImage(EGLDisplay dpy, EGLSurface surface, EGLint buffer)
    FuncRet(EGL, EGLBoolean , eglBindTexImage, (dpy, surface, buffer))
@@ -113,64 +404,30 @@ static EGLBoolean base_eglWaitSync(EGLDisplay dpy, EGLSync sync, EGLint flags)
 #endif /* EGL_VERSION_1_5*/
 
 #if GL_ES_VERSION_2_0
-static void base_glActiveTexture(GLenum texture)
-   Func(GL, glActiveTexture, (texture))
 static void base_glAttachShader(GLuint program, GLuint shader)
    Func(GL, glAttachShader, (program, shader))
 static void base_glBindAttribLocation(GLuint program, GLuint index, const GLchar *name)
    Func(GL, glBindAttribLocation, (program, index, name))
-static void base_glBindBuffer(GLenum target, GLuint buffer)
-   Func(GL, glBindBuffer, (target, buffer))
 static void base_glBindFramebuffer(GLenum target, GLuint framebuffer)
    Func(GL, glBindFramebuffer, (target, framebuffer))
 static void base_glBindRenderbuffer(GLenum target, GLuint renderbuffer)
    Func(GL, glBindRenderbuffer, (target, renderbuffer))
-static void base_glBindTexture(GLenum target, GLuint texture)
-   Func(GL, glBindTexture, (target, texture))
 static void base_glBlendColor(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha)
    Func(GL, glBlendColor, (red, green, blue, alpha))
 static void base_glBlendEquation(GLenum mode)
    Func(GL, glBlendEquation, (mode))
 static void base_glBlendEquationSeparate(GLenum modeRGB, GLenum modeAlpha)
    Func(GL, glBlendEquationSeparate, (modeRGB, modeAlpha))
-static void base_glBlendFunc(GLenum sfactor, GLenum dfactor)
-   Func(GL, glBlendFunc, (sfactor, dfactor))
 static void base_glBlendFuncSeparate(GLenum sfactorRGB, GLenum dfactorRGB, GLenum sfactorAlpha, GLenum dfactorAlpha)
    Func(GL, glBlendFuncSeparate, (sfactorRGB, dfactorRGB, sfactorAlpha, dfactorAlpha))
-static void base_glBufferData(GLenum target, GLsizeiptr size, const void *data, GLenum usage)
-   Func(GL, glBufferData, (target, size, data, usage))
-static void base_glBufferSubData(GLenum target, GLintptr offset, GLsizeiptr size, const void *data)
-   Func(GL, glBufferSubData, (target, offset, size, data))
 static GLenum base_glCheckFramebufferStatus(GLenum target)
    FuncRet(GL, GLenum , glCheckFramebufferStatus, (target))
-static void base_glClear(GLbitfield mask)
-   Func(GL, glClear, (mask))
-static void base_glClearColor(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha)
-   Func(GL, glClearColor, (red, green, blue, alpha))
-static void base_glClearDepthf(GLfloat d)
-   Func(GL, glClearDepthf, (d))
-static void base_glClearStencil(GLint s)
-   Func(GL, glClearStencil, (s))
-static void base_glColorMask(GLboolean red, GLboolean green, GLboolean blue, GLboolean alpha)
-   Func(GL, glColorMask, (red, green, blue, alpha))
 static void base_glCompileShader(GLuint shader)
    Func(GL, glCompileShader, (shader))
-static void base_glCompressedTexImage2D(GLenum target, GLint level, GLenum internalformat, GLsizei width, GLsizei height, GLint border, GLsizei imageSize, const void *data)
-   Func(GL, glCompressedTexImage2D, (target, level, internalformat, width, height, border, imageSize, data))
-static void base_glCompressedTexSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLsizei imageSize, const void *data)
-   Func(GL, glCompressedTexSubImage2D, (target, level, xoffset, yoffset, width, height, format, imageSize, data))
-static void base_glCopyTexImage2D(GLenum target, GLint level, GLenum internalformat, GLint x, GLint y, GLsizei width, GLsizei height, GLint border)
-   Func(GL, glCopyTexImage2D, (target, level, internalformat, x, y, width, height, border))
-static void base_glCopyTexSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint x, GLint y, GLsizei width, GLsizei height)
-   Func(GL, glCopyTexSubImage2D, (target, level, xoffset, yoffset, x, y, width, height))
 static GLuint base_glCreateProgram(void)
    FuncRet(GL, GLuint , glCreateProgram, ())
 static GLuint base_glCreateShader(GLenum type)
    FuncRet(GL, GLuint , glCreateShader, (type))
-static void base_glCullFace(GLenum mode)
-   Func(GL, glCullFace, (mode))
-static void base_glDeleteBuffers(GLsizei n, const GLuint *buffers)
-   Func(GL, glDeleteBuffers, (n, buffers))
 static void base_glDeleteFramebuffers(GLsizei n, const GLuint *framebuffers)
    Func(GL, glDeleteFramebuffers, (n, framebuffers))
 static void base_glDeleteProgram(GLuint program)
@@ -179,48 +436,22 @@ static void base_glDeleteRenderbuffers(GLsizei n, const GLuint *renderbuffers)
    Func(GL, glDeleteRenderbuffers, (n, renderbuffers))
 static void base_glDeleteShader(GLuint shader)
    Func(GL, glDeleteShader, (shader))
-static void base_glDeleteTextures(GLsizei n, const GLuint *textures)
-   Func(GL, glDeleteTextures, (n, textures))
-static void base_glDepthFunc(GLenum func)
-   Func(GL, glDepthFunc, (func))
-static void base_glDepthMask(GLboolean flag)
-   Func(GL, glDepthMask, (flag))
-static void base_glDepthRangef(GLfloat n, GLfloat f)
-   Func(GL, glDepthRangef, (n, f))
 static void base_glDetachShader(GLuint program, GLuint shader)
    Func(GL, glDetachShader, (program, shader))
-static void base_glDisable(GLenum cap)
-   Func(GL, glDisable, (cap))
 static void base_glDisableVertexAttribArray(GLuint index)
    Func(GL, glDisableVertexAttribArray, (index))
-static void base_glDrawArrays(GLenum mode, GLint first, GLsizei count)
-   Func(GL, glDrawArrays, (mode, first, count))
-static void base_glDrawElements(GLenum mode, GLsizei count, GLenum type, const void *indices)
-   Func(GL, glDrawElements, (mode, count, type, indices))
-static void base_glEnable(GLenum cap)
-   Func(GL, glEnable, (cap))
 static void base_glEnableVertexAttribArray(GLuint index)
    Func(GL, glEnableVertexAttribArray, (index))
-static void base_glFinish(void)
-   Func(GL, glFinish, ())
-static void base_glFlush(void)
-   Func(GL, glFlush, ())
 static void base_glFramebufferRenderbuffer(GLenum target, GLenum attachment, GLenum renderbuffertarget, GLuint renderbuffer)
    Func(GL, glFramebufferRenderbuffer, (target, attachment, renderbuffertarget, renderbuffer))
 static void base_glFramebufferTexture2D(GLenum target, GLenum attachment, GLenum textarget, GLuint texture, GLint level)
    Func(GL, glFramebufferTexture2D, (target, attachment, textarget, texture, level))
-static void base_glFrontFace(GLenum mode)
-   Func(GL, glFrontFace, (mode))
-static void base_glGenBuffers(GLsizei n, GLuint *buffers)
-   GenFunc(GL, glGenBuffers, (n, buffers))
 static void base_glGenerateMipmap(GLenum target)
    Func(GL, glGenerateMipmap, (target))
 static void base_glGenFramebuffers(GLsizei n, GLuint *framebuffers)
    GenFunc(GL, glGenFramebuffers, (n, framebuffers))
 static void base_glGenRenderbuffers(GLsizei n, GLuint *renderbuffers)
    GenFunc(GL, glGenRenderbuffers, (n, renderbuffers))
-static void base_glGenTextures(GLsizei n, GLuint *textures)
-   GenFunc(GL, glGenTextures, (n, textures))
 static void base_glGetActiveAttrib(GLuint program, GLuint index, GLsizei bufSize, GLsizei *length, GLint *size, GLenum *type, GLchar *name)
    Func(GL, glGetActiveAttrib, (program, index, bufSize, length, size, type, name))
 static void base_glGetActiveUniform(GLuint program, GLuint index, GLsizei bufSize, GLsizei *length, GLint *size, GLenum *type, GLchar *name)
@@ -229,18 +460,8 @@ static void base_glGetAttachedShaders(GLuint program, GLsizei maxCount, GLsizei 
    Func(GL, glGetAttachedShaders, (program, maxCount, count, shaders))
 static GLint base_glGetAttribLocation(GLuint program, const GLchar *name)
    FuncRet(GL, GLint , glGetAttribLocation, (program, name))
-static void base_glGetBooleanv(GLenum pname, GLboolean *data)
-   Func(GL, glGetBooleanv, (pname, data))
-static void base_glGetBufferParameteriv(GLenum target, GLenum pname, GLint *params)
-   Func(GL, glGetBufferParameteriv, (target, pname, params))
-static GLenum base_glGetError(void)
-   FuncRet(GL, GLenum , glGetError, ())
-static void base_glGetFloatv(GLenum pname, GLfloat *data)
-   Func(GL, glGetFloatv, (pname, data))
 static void base_glGetFramebufferAttachmentParameteriv(GLenum target, GLenum attachment, GLenum pname, GLint *params)
    Func(GL, glGetFramebufferAttachmentParameteriv, (target, attachment, pname, params))
-static void base_glGetIntegerv(GLenum pname, GLint *data)
-   Func(GL, glGetIntegerv, (pname, data))
 static void base_glGetProgramiv(GLuint program, GLenum pname, GLint *params)
    Func(GL, glGetProgramiv, (program, pname, params))
 static void base_glGetProgramInfoLog(GLuint program, GLsizei bufSize, GLsizei *length, GLchar *infoLog)
@@ -255,12 +476,6 @@ static void base_glGetShaderPrecisionFormat(GLenum shadertype, GLenum precisiont
    Func(GL, glGetShaderPrecisionFormat, (shadertype, precisiontype, range, precision))
 static void base_glGetShaderSource(GLuint shader, GLsizei bufSize, GLsizei *length, GLchar *source)
    Func(GL, glGetShaderSource, (shader, bufSize, length, source))
-static const GLubyte * base_glGetString(GLenum name)
-   FuncRet(GL, const GLubyte *, glGetString, (name))
-static void base_glGetTexParameterfv(GLenum target, GLenum pname, GLfloat *params)
-   Func(GL, glGetTexParameterfv, (target, pname, params))
-static void base_glGetTexParameteriv(GLenum target, GLenum pname, GLint *params)
-   Func(GL, glGetTexParameteriv, (target, pname, params))
 static void base_glGetUniformfv(GLuint program, GLint location, GLfloat *params)
    Func(GL, glGetUniformfv, (program, location, params))
 static void base_glGetUniformiv(GLuint program, GLint location, GLint *params)
@@ -273,12 +488,6 @@ static void base_glGetVertexAttribiv(GLuint index, GLenum pname, GLint *params)
    Func(GL, glGetVertexAttribiv, (index, pname, params))
 static void base_glGetVertexAttribPointerv(GLuint index, GLenum pname, void **pointer)
    Func(GL, glGetVertexAttribPointerv, (index, pname, pointer))
-static void base_glHint(GLenum target, GLenum mode)
-   Func(GL, glHint, (target, mode))
-static GLboolean base_glIsBuffer(GLuint buffer)
-   FuncRet(GL, GLboolean , glIsBuffer, (buffer))
-static GLboolean base_glIsEnabled(GLenum cap)
-   FuncRet(GL, GLboolean , glIsEnabled, (cap))
 static GLboolean base_glIsFramebuffer(GLuint framebuffer)
    FuncRet(GL, GLboolean , glIsFramebuffer, (framebuffer))
 static GLboolean base_glIsProgram(GLuint program)
@@ -287,54 +496,22 @@ static GLboolean base_glIsRenderbuffer(GLuint renderbuffer)
    FuncRet(GL, GLboolean , glIsRenderbuffer, (renderbuffer))
 static GLboolean base_glIsShader(GLuint shader)
    FuncRet(GL, GLboolean , glIsShader, (shader))
-static GLboolean base_glIsTexture(GLuint texture)
-   FuncRet(GL, GLboolean , glIsTexture, (texture))
-static void base_glLineWidth(GLfloat width)
-   Func(GL, glLineWidth, (width))
 static void base_glLinkProgram(GLuint program)
    Func(GL, glLinkProgram, (program))
-static void base_glPixelStorei(GLenum pname, GLint param)
-   Func(GL, glPixelStorei, (pname, param))
-static void base_glPolygonOffset(GLfloat factor, GLfloat units)
-   Func(GL, glPolygonOffset, (factor, units))
-static void base_glReadPixels(GLint x, GLint y, GLsizei width, GLsizei height, GLenum format, GLenum type, void *pixels)
-   Func(GL, glReadPixels, (x, y, width, height, format, type, pixels))
 static void base_glReleaseShaderCompiler(void)
    Func(GL, glReleaseShaderCompiler, ())
 static void base_glRenderbufferStorage(GLenum target, GLenum internalformat, GLsizei width, GLsizei height)
    Func(GL, glRenderbufferStorage, (target, internalformat, width, height))
-static void base_glSampleCoverage(GLfloat value, GLboolean invert)
-   Func(GL, glSampleCoverage, (value, invert))
-static void base_glScissor(GLint x, GLint y, GLsizei width, GLsizei height)
-   Func(GL, glScissor, (x, y, width, height))
 static void base_glShaderBinary(GLsizei count, const GLuint *shaders, GLenum binaryformat, const void *binary, GLsizei length)
    Func(GL, glShaderBinary, (count, shaders, binaryformat, binary, length))
 static void base_glShaderSource(GLuint shader, GLsizei count, const GLchar *const*string, const GLint *length)
    Func(GL, glShaderSource, (shader, count, string, length))
-static void base_glStencilFunc(GLenum func, GLint ref, GLuint mask)
-   Func(GL, glStencilFunc, (func, ref, mask))
 static void base_glStencilFuncSeparate(GLenum face, GLenum func, GLint ref, GLuint mask)
    Func(GL, glStencilFuncSeparate, (face, func, ref, mask))
-static void base_glStencilMask(GLuint mask)
-   Func(GL, glStencilMask, (mask))
 static void base_glStencilMaskSeparate(GLenum face, GLuint mask)
    Func(GL, glStencilMaskSeparate, (face, mask))
-static void base_glStencilOp(GLenum fail, GLenum zfail, GLenum zpass)
-   Func(GL, glStencilOp, (fail, zfail, zpass))
 static void base_glStencilOpSeparate(GLenum face, GLenum sfail, GLenum dpfail, GLenum dppass)
    Func(GL, glStencilOpSeparate, (face, sfail, dpfail, dppass))
-static void base_glTexImage2D(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const void *pixels)
-   Func(GL, glTexImage2D, (target, level, internalformat, width, height, border, format, type, pixels))
-static void base_glTexParameterf(GLenum target, GLenum pname, GLfloat param)
-   Func(GL, glTexParameterf, (target, pname, param))
-static void base_glTexParameterfv(GLenum target, GLenum pname, const GLfloat *params)
-   Func(GL, glTexParameterfv, (target, pname, params))
-static void base_glTexParameteri(GLenum target, GLenum pname, GLint param)
-   Func(GL, glTexParameteri, (target, pname, param))
-static void base_glTexParameteriv(GLenum target, GLenum pname, const GLint *params)
-   Func(GL, glTexParameteriv, (target, pname, params))
-static void base_glTexSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLenum type, const void *pixels)
-   Func(GL, glTexSubImage2D, (target, level, xoffset, yoffset, width, height, format, type, pixels))
 static void base_glUniform1f(GLint location, GLfloat v0)
    Func(GL, glUniform1f, (location, v0))
 static void base_glUniform1fv(GLint location, GLsizei count, const GLfloat *value)
@@ -395,8 +572,6 @@ static void base_glVertexAttrib4fv(GLuint index, const GLfloat *v)
    Func(GL, glVertexAttrib4fv, (index, v))
 static void base_glVertexAttribPointer(GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const void *pointer)
    Func(GL, glVertexAttribPointer, (index, size, type, normalized, stride, pointer))
-static void base_glViewport(GLint x, GLint y, GLsizei width, GLsizei height)
-   Func(GL, glViewport, (x, y, width, height))
 #endif /* GL_ES_VERSION_2_0*/
 
 #if GL_ES_VERSION_3_0
@@ -774,8 +949,6 @@ static void base_glObjectPtrLabel(const void *ptr, GLsizei length, const GLchar 
    Func(GL, glObjectPtrLabel, (ptr, length, label))
 static void base_glGetObjectPtrLabel(const void *ptr, GLsizei bufSize, GLsizei *length, GLchar *label)
    Func(GL, glGetObjectPtrLabel, (ptr, bufSize, length, label))
-static void base_glGetPointerv(GLenum pname, void **params)
-   Func(GL, glGetPointerv, (pname, params))
 static void base_glEnablei(GLenum target, GLuint index)
    Func(GL, glEnablei, (target, index))
 static void base_glDisablei(GLenum target, GLuint index)
@@ -840,189 +1013,16 @@ static void base_glTexStorage3DMultisample(GLenum target, GLsizei samples, GLenu
    Func(GL, glTexStorage3DMultisample, (target, samples, internalformat, width, height, depth, fixedsamplelocations))
 #endif /* GL_ES_VERSION_3_2*/
 
-#if GL_VERSION_ES_CM_1_0
-static void base_glAlphaFunc(GLenum func, GLfloat ref)
-   Func(GL, glAlphaFunc, (func, ref))
-static void base_glClipPlanef(GLenum p, const GLfloat *eqn)
-   Func(GL, glClipPlanef, (p, eqn))
-static void base_glColor4f(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha)
-   Func(GL, glColor4f, (red, green, blue, alpha))
-static void base_glFogf(GLenum pname, GLfloat param)
-   Func(GL, glFogf, (pname, param))
-static void base_glFogfv(GLenum pname, const GLfloat *params)
-   Func(GL, glFogfv, (pname, params))
-static void base_glFrustumf(GLfloat l, GLfloat r, GLfloat b, GLfloat t, GLfloat n, GLfloat f)
-   Func(GL, glFrustumf, (l, r, b, t, n, f))
-static void base_glGetClipPlanef(GLenum plane, GLfloat *equation)
-   Func(GL, glGetClipPlanef, (plane, equation))
-static void base_glGetLightfv(GLenum light, GLenum pname, GLfloat *params)
-   Func(GL, glGetLightfv, (light, pname, params))
-static void base_glGetMaterialfv(GLenum face, GLenum pname, GLfloat *params)
-   Func(GL, glGetMaterialfv, (face, pname, params))
-static void base_glGetTexEnvfv(GLenum target, GLenum pname, GLfloat *params)
-   Func(GL, glGetTexEnvfv, (target, pname, params))
-static void base_glLightModelf(GLenum pname, GLfloat param)
-   Func(GL, glLightModelf, (pname, param))
-static void base_glLightModelfv(GLenum pname, const GLfloat *params)
-   Func(GL, glLightModelfv, (pname, params))
-static void base_glLightf(GLenum light, GLenum pname, GLfloat param)
-   Func(GL, glLightf, (light, pname, param))
-static void base_glLightfv(GLenum light, GLenum pname, const GLfloat *params)
-   Func(GL, glLightfv, (light, pname, params))
-static void base_glLoadMatrixf(const GLfloat *m)
-   Func(GL, glLoadMatrixf, (m))
-static void base_glMaterialf(GLenum face, GLenum pname, GLfloat param)
-   Func(GL, glMaterialf, (face, pname, param))
-static void base_glMaterialfv(GLenum face, GLenum pname, const GLfloat *params)
-   Func(GL, glMaterialfv, (face, pname, params))
-static void base_glMultMatrixf(const GLfloat *m)
-   Func(GL, glMultMatrixf, (m))
-static void base_glMultiTexCoord4f(GLenum target, GLfloat s, GLfloat t, GLfloat r, GLfloat q)
-   Func(GL, glMultiTexCoord4f, (target, s, t, r, q))
-static void base_glNormal3f(GLfloat nx, GLfloat ny, GLfloat nz)
-   Func(GL, glNormal3f, (nx, ny, nz))
-static void base_glOrthof(GLfloat l, GLfloat r, GLfloat b, GLfloat t, GLfloat n, GLfloat f)
-   Func(GL, glOrthof, (l, r, b, t, n, f))
-static void base_glPointParameterf(GLenum pname, GLfloat param)
-   Func(GL, glPointParameterf, (pname, param))
-static void base_glPointParameterfv(GLenum pname, const GLfloat *params)
-   Func(GL, glPointParameterfv, (pname, params))
-static void base_glPointSize(GLfloat size)
-   Func(GL, glPointSize, (size))
-static void base_glRotatef(GLfloat angle, GLfloat x, GLfloat y, GLfloat z)
-   Func(GL, glRotatef, (angle, x, y, z))
-static void base_glScalef(GLfloat x, GLfloat y, GLfloat z)
-   Func(GL, glScalef, (x, y, z))
-static void base_glTexEnvf(GLenum target, GLenum pname, GLfloat param)
-   Func(GL, glTexEnvf, (target, pname, param))
-static void base_glTexEnvfv(GLenum target, GLenum pname, const GLfloat *params)
-   Func(GL, glTexEnvfv, (target, pname, params))
-static void base_glTranslatef(GLfloat x, GLfloat y, GLfloat z)
-   Func(GL, glTranslatef, (x, y, z))
-static void base_glAlphaFuncx(GLenum func, GLfixed ref)
-   Func(GL, glAlphaFuncx, (func, ref))
-static void base_glClearColorx(GLfixed red, GLfixed green, GLfixed blue, GLfixed alpha)
-   Func(GL, glClearColorx, (red, green, blue, alpha))
-static void base_glClearDepthx(GLfixed depth)
-   Func(GL, glClearDepthx, (depth))
-static void base_glClientActiveTexture(GLenum texture)
-   Func(GL, glClientActiveTexture, (texture))
-static void base_glClipPlanex(GLenum plane, const GLfixed *equation)
-   Func(GL, glClipPlanex, (plane, equation))
-static void base_glColor4ub(GLubyte red, GLubyte green, GLubyte blue, GLubyte alpha)
-   Func(GL, glColor4ub, (red, green, blue, alpha))
-static void base_glColor4x(GLfixed red, GLfixed green, GLfixed blue, GLfixed alpha)
-   Func(GL, glColor4x, (red, green, blue, alpha))
-static void base_glColorPointer(GLint size, GLenum type, GLsizei stride, const void *pointer)
-   Func(GL, glColorPointer, (size, type, stride, pointer))
-static void base_glDepthRangex(GLfixed n, GLfixed f)
-   Func(GL, glDepthRangex, (n, f))
-static void base_glDisableClientState(GLenum array)
-   Func(GL, glDisableClientState, (array))
-static void base_glEnableClientState(GLenum array)
-   Func(GL, glEnableClientState, (array))
-static void base_glFogx(GLenum pname, GLfixed param)
-   Func(GL, glFogx, (pname, param))
-static void base_glFogxv(GLenum pname, const GLfixed *param)
-   Func(GL, glFogxv, (pname, param))
-static void base_glFrustumx(GLfixed l, GLfixed r, GLfixed b, GLfixed t, GLfixed n, GLfixed f)
-   Func(GL, glFrustumx, (l, r, b, t, n, f))
-static void base_glGetClipPlanex(GLenum plane, GLfixed *equation)
-   Func(GL, glGetClipPlanex, (plane, equation))
-static void base_glGetFixedv(GLenum pname, GLfixed *params)
-   Func(GL, glGetFixedv, (pname, params))
-static void base_glGetLightxv(GLenum light, GLenum pname, GLfixed *params)
-   Func(GL, glGetLightxv, (light, pname, params))
-static void base_glGetMaterialxv(GLenum face, GLenum pname, GLfixed *params)
-   Func(GL, glGetMaterialxv, (face, pname, params))
-static void base_glGetTexEnviv(GLenum target, GLenum pname, GLint *params)
-   Func(GL, glGetTexEnviv, (target, pname, params))
-static void base_glGetTexEnvxv(GLenum target, GLenum pname, GLfixed *params)
-   Func(GL, glGetTexEnvxv, (target, pname, params))
-static void base_glGetTexParameterxv(GLenum target, GLenum pname, GLfixed *params)
-   Func(GL, glGetTexParameterxv, (target, pname, params))
-static void base_glLightModelx(GLenum pname, GLfixed param)
-   Func(GL, glLightModelx, (pname, param))
-static void base_glLightModelxv(GLenum pname, const GLfixed *param)
-   Func(GL, glLightModelxv, (pname, param))
-static void base_glLightx(GLenum light, GLenum pname, GLfixed param)
-   Func(GL, glLightx, (light, pname, param))
-static void base_glLightxv(GLenum light, GLenum pname, const GLfixed *params)
-   Func(GL, glLightxv, (light, pname, params))
-static void base_glLineWidthx(GLfixed width)
-   Func(GL, glLineWidthx, (width))
-static void base_glLoadIdentity(void)
-   Func(GL, glLoadIdentity, ())
-static void base_glLoadMatrixx(const GLfixed *m)
-   Func(GL, glLoadMatrixx, (m))
-static void base_glLogicOp(GLenum opcode)
-   Func(GL, glLogicOp, (opcode))
-static void base_glMaterialx(GLenum face, GLenum pname, GLfixed param)
-   Func(GL, glMaterialx, (face, pname, param))
-static void base_glMaterialxv(GLenum face, GLenum pname, const GLfixed *param)
-   Func(GL, glMaterialxv, (face, pname, param))
-static void base_glMatrixMode(GLenum mode)
-   Func(GL, glMatrixMode, (mode))
-static void base_glMultMatrixx(const GLfixed *m)
-   Func(GL, glMultMatrixx, (m))
-static void base_glMultiTexCoord4x(GLenum texture, GLfixed s, GLfixed t, GLfixed r, GLfixed q)
-   Func(GL, glMultiTexCoord4x, (texture, s, t, r, q))
-static void base_glNormal3x(GLfixed nx, GLfixed ny, GLfixed nz)
-   Func(GL, glNormal3x, (nx, ny, nz))
-static void base_glNormalPointer(GLenum type, GLsizei stride, const void *pointer)
-   Func(GL, glNormalPointer, (type, stride, pointer))
-static void base_glOrthox(GLfixed l, GLfixed r, GLfixed b, GLfixed t, GLfixed n, GLfixed f)
-   Func(GL, glOrthox, (l, r, b, t, n, f))
-static void base_glPointParameterx(GLenum pname, GLfixed param)
-   Func(GL, glPointParameterx, (pname, param))
-static void base_glPointParameterxv(GLenum pname, const GLfixed *params)
-   Func(GL, glPointParameterxv, (pname, params))
-static void base_glPointSizex(GLfixed size)
-   Func(GL, glPointSizex, (size))
-static void base_glPolygonOffsetx(GLfixed factor, GLfixed units)
-   Func(GL, glPolygonOffsetx, (factor, units))
-static void base_glPopMatrix(void)
-   Func(GL, glPopMatrix, ())
-static void base_glPushMatrix(void)
-   Func(GL, glPushMatrix, ())
-static void base_glRotatex(GLfixed angle, GLfixed x, GLfixed y, GLfixed z)
-   Func(GL, glRotatex, (angle, x, y, z))
-static void base_glSampleCoveragex(GLclampx value, GLboolean invert)
-   Func(GL, glSampleCoveragex, (value, invert))
-static void base_glScalex(GLfixed x, GLfixed y, GLfixed z)
-   Func(GL, glScalex, (x, y, z))
-static void base_glShadeModel(GLenum mode)
-   Func(GL, glShadeModel, (mode))
-static void base_glTexCoordPointer(GLint size, GLenum type, GLsizei stride, const void *pointer)
-   Func(GL, glTexCoordPointer, (size, type, stride, pointer))
-static void base_glTexEnvi(GLenum target, GLenum pname, GLint param)
-   Func(GL, glTexEnvi, (target, pname, param))
-static void base_glTexEnvx(GLenum target, GLenum pname, GLfixed param)
-   Func(GL, glTexEnvx, (target, pname, param))
-static void base_glTexEnviv(GLenum target, GLenum pname, const GLint *params)
-   Func(GL, glTexEnviv, (target, pname, params))
-static void base_glTexEnvxv(GLenum target, GLenum pname, const GLfixed *params)
-   Func(GL, glTexEnvxv, (target, pname, params))
-static void base_glTexParameterx(GLenum target, GLenum pname, GLfixed param)
-   Func(GL, glTexParameterx, (target, pname, param))
-static void base_glTexParameterxv(GLenum target, GLenum pname, const GLfixed *params)
-   Func(GL, glTexParameterxv, (target, pname, params))
-static void base_glTranslatex(GLfixed x, GLfixed y, GLfixed z)
-   Func(GL, glTranslatex, (x, y, z))
-static void base_glVertexPointer(GLint size, GLenum type, GLsizei stride, const void *pointer)
-   Func(GL, glVertexPointer, (size, type, stride, pointer))
-#endif /* GL_VERSION_ES_CM_1_0*/
-
 #if EGL_KHR_cl_event2
 static EGLSyncKHR base_eglCreateSync64KHR(EGLDisplay dpy, EGLenum type, const EGLAttribKHR *attrib_list)
    FuncRet(EGL, EGLSyncKHR , eglCreateSync64KHR, (dpy, type, attrib_list))
 #endif /* EGL_KHR_cl_event2*/
 
+#if EGL_KHR_client_get_all_proc_addresses
+#endif /* EGL_KHR_client_get_all_proc_addresses*/
+
 #if EGL_KHR_create_context
 #endif /* EGL_KHR_create_context*/
-
-#if EGL_KHR_create_context_no_error
-#endif /* EGL_KHR_create_context_no_error*/
 
 #if EGL_KHR_fence_sync
 static EGLSyncKHR base_eglCreateSyncKHR(EGLDisplay dpy, EGLenum type, const EGLint *attrib_list)
@@ -1059,9 +1059,6 @@ static EGLBoolean base_eglDestroyImageKHR(EGLDisplay dpy, EGLImageKHR image)
 
 #if EGL_KHR_image_base
 #endif /* EGL_KHR_image_base*/
-
-#if EGL_KHR_image_pixmap
-#endif /* EGL_KHR_image_pixmap*/
 
 #if EGL_KHR_platform_android
 #endif /* EGL_KHR_platform_android*/
@@ -1115,8 +1112,8 @@ static void base_glEGLImageTargetRenderbufferStorageOES(GLenum target, GLeglImag
 #if GL_OES_EGL_image_external
 #endif /* GL_OES_EGL_image_external*/
 
-#if GL_OES_EGL_image_external_essl3
-#endif /* GL_OES_EGL_image_external_essl3*/
+#if GL_OES_EGL_sync
+#endif /* GL_OES_EGL_sync*/
 
 #if GL_OES_compressed_ETC1_RGB8_texture
 #endif /* GL_OES_compressed_ETC1_RGB8_texture*/
@@ -1127,8 +1124,24 @@ static void base_glEGLImageTargetRenderbufferStorageOES(GLenum target, GLeglImag
 #if GL_OES_depth24
 #endif /* GL_OES_depth24*/
 
-#if GL_OES_depth32
-#endif /* GL_OES_depth32*/
+#if GL_OES_draw_buffers_indexed
+static void base_glEnableiOES(GLenum target, GLuint index)
+   Func(GL, glEnableiOES, (target, index))
+static void base_glDisableiOES(GLenum target, GLuint index)
+   Func(GL, glDisableiOES, (target, index))
+static void base_glBlendEquationiOES(GLuint buf, GLenum mode)
+   Func(GL, glBlendEquationiOES, (buf, mode))
+static void base_glBlendEquationSeparateiOES(GLuint buf, GLenum modeRGB, GLenum modeAlpha)
+   Func(GL, glBlendEquationSeparateiOES, (buf, modeRGB, modeAlpha))
+static void base_glBlendFunciOES(GLuint buf, GLenum src, GLenum dst)
+   Func(GL, glBlendFunciOES, (buf, src, dst))
+static void base_glBlendFuncSeparateiOES(GLuint buf, GLenum srcRGB, GLenum dstRGB, GLenum srcAlpha, GLenum dstAlpha)
+   Func(GL, glBlendFuncSeparateiOES, (buf, srcRGB, dstRGB, srcAlpha, dstAlpha))
+static void base_glColorMaskiOES(GLuint index, GLboolean r, GLboolean g, GLboolean b, GLboolean a)
+   Func(GL, glColorMaskiOES, (index, r, g, b, a))
+static GLboolean base_glIsEnablediOES(GLenum target, GLuint index)
+   FuncRet(GL, GLboolean , glIsEnablediOES, (target, index))
+#endif /* GL_OES_draw_buffers_indexed*/
 
 #if GL_OES_draw_texture
 static void base_glDrawTexsOES(GLshort x, GLshort y, GLshort z, GLshort width, GLshort height)
@@ -1182,6 +1195,17 @@ static void base_glGenerateMipmapOES(GLenum target)
    Func(GL, glGenerateMipmapOES, (target))
 #endif /* GL_OES_framebuffer_object*/
 
+#if GL_OES_geometry_point_size
+#endif /* GL_OES_geometry_point_size*/
+
+#if GL_OES_geometry_shader
+static void base_glFramebufferTextureOES(GLenum target, GLenum attachment, GLuint texture, GLint level)
+   Func(GL, glFramebufferTextureOES, (target, attachment, texture, level))
+#endif /* GL_OES_geometry_shader*/
+
+#if GL_OES_gpu_shader5
+#endif /* GL_OES_gpu_shader5*/
+
 #if GL_OES_mapbuffer
 static void * base_glMapBufferOES(GLenum target, GLenum access)
    FuncRet(GL, void *, glMapBufferOES, (target, access))
@@ -1190,17 +1214,6 @@ static GLboolean base_glUnmapBufferOES(GLenum target)
 static void base_glGetBufferPointervOES(GLenum target, GLenum pname, void **params)
    Func(GL, glGetBufferPointervOES, (target, pname, params))
 #endif /* GL_OES_mapbuffer*/
-
-#if GL_OES_matrix_palette
-static void base_glCurrentPaletteMatrixOES(GLuint matrixpaletteindex)
-   Func(GL, glCurrentPaletteMatrixOES, (matrixpaletteindex))
-static void base_glLoadPaletteFromModelViewMatrixOES(void)
-   Func(GL, glLoadPaletteFromModelViewMatrixOES, ())
-static void base_glMatrixIndexPointerOES(GLint size, GLenum type, GLsizei stride, const void *pointer)
-   Func(GL, glMatrixIndexPointerOES, (size, type, stride, pointer))
-static void base_glWeightPointerOES(GLint size, GLenum type, GLsizei stride, const void *pointer)
-   Func(GL, glWeightPointerOES, (size, type, stride, pointer))
-#endif /* GL_OES_matrix_palette*/
 
 #if GL_OES_packed_depth_stencil
 #endif /* GL_OES_packed_depth_stencil*/
@@ -1218,20 +1231,73 @@ static GLbitfield base_glQueryMatrixxOES(GLfixed *mantissa, GLint *exponent)
 #if GL_OES_rgb8_rgba8
 #endif /* GL_OES_rgb8_rgba8*/
 
+#if GL_OES_sample_variables
+#endif /* GL_OES_sample_variables*/
+
+#if GL_OES_shader_image_atomic
+#endif /* GL_OES_shader_image_atomic*/
+
+#if GL_OES_shader_io_blocks
+#endif /* GL_OES_shader_io_blocks*/
+
+#if GL_OES_shader_multisample_interpolation
+#endif /* GL_OES_shader_multisample_interpolation*/
+
 #if GL_OES_standard_derivatives
 #endif /* GL_OES_standard_derivatives*/
 
 #if GL_OES_stencil8
 #endif /* GL_OES_stencil8*/
 
+#if GL_OES_stencil_wrap
+#endif /* GL_OES_stencil_wrap*/
+
 #if GL_OES_surfaceless_context
 #endif /* GL_OES_surfaceless_context*/
+
+#if GL_OES_tessellation_point_size
+#endif /* GL_OES_tessellation_point_size*/
+
+#if GL_OES_tessellation_shader
+static void base_glPatchParameteriOES(GLenum pname, GLint value)
+   Func(GL, glPatchParameteriOES, (pname, value))
+#endif /* GL_OES_tessellation_shader*/
+
+#if GL_OES_texture_border_clamp
+static void base_glTexParameterIivOES(GLenum target, GLenum pname, const GLint *params)
+   Func(GL, glTexParameterIivOES, (target, pname, params))
+static void base_glTexParameterIuivOES(GLenum target, GLenum pname, const GLuint *params)
+   Func(GL, glTexParameterIuivOES, (target, pname, params))
+static void base_glGetTexParameterIivOES(GLenum target, GLenum pname, GLint *params)
+   Func(GL, glGetTexParameterIivOES, (target, pname, params))
+static void base_glGetTexParameterIuivOES(GLenum target, GLenum pname, GLuint *params)
+   Func(GL, glGetTexParameterIuivOES, (target, pname, params))
+static void base_glSamplerParameterIivOES(GLuint sampler, GLenum pname, const GLint *param)
+   Func(GL, glSamplerParameterIivOES, (sampler, pname, param))
+static void base_glSamplerParameterIuivOES(GLuint sampler, GLenum pname, const GLuint *param)
+   Func(GL, glSamplerParameterIuivOES, (sampler, pname, param))
+static void base_glGetSamplerParameterIivOES(GLuint sampler, GLenum pname, GLint *params)
+   Func(GL, glGetSamplerParameterIivOES, (sampler, pname, params))
+static void base_glGetSamplerParameterIuivOES(GLuint sampler, GLenum pname, GLuint *params)
+   Func(GL, glGetSamplerParameterIuivOES, (sampler, pname, params))
+#endif /* GL_OES_texture_border_clamp*/
+
+#if GL_OES_texture_cube_map_array
+#endif /* GL_OES_texture_cube_map_array*/
+
+#if GL_OES_texture_mirrored_repeat
+#endif /* GL_OES_texture_mirrored_repeat*/
 
 #if GL_OES_texture_npot
 #endif /* GL_OES_texture_npot*/
 
 #if GL_OES_texture_stencil8
 #endif /* GL_OES_texture_stencil8*/
+
+#if GL_OES_texture_storage_multisample_2d_array
+static void base_glTexStorage3DMultisampleOES(GLenum target, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height, GLsizei depth, GLboolean fixedsamplelocations)
+   Func(GL, glTexStorage3DMultisampleOES, (target, samples, internalformat, width, height, depth, fixedsamplelocations))
+#endif /* GL_OES_texture_storage_multisample_2d_array*/
 
 #if GL_OES_vertex_array_object
 static void base_glBindVertexArrayOES(GLuint array)
@@ -1322,24 +1388,14 @@ static EGLSurface base_eglCreatePlatformPixmapSurfaceEXT(EGLDisplay dpy, EGLConf
 #if EGL_EXT_platform_x11
 #endif /* EGL_EXT_platform_x11*/
 
-#if GL_BRCM_base_instance
-static void base_glDrawArraysInstancedBaseInstanceBRCM(GLenum mode, GLint first, GLsizei count, GLsizei instancecount, GLuint baseinstance)
-   Func(GL, glDrawArraysInstancedBaseInstanceBRCM, (mode, first, count, instancecount, baseinstance))
-static void base_glDrawElementsInstancedBaseInstanceBRCM(GLenum mode, GLsizei count, GLenum type, const void *indices, GLsizei instancecount, GLuint baseinstance)
-   Func(GL, glDrawElementsInstancedBaseInstanceBRCM, (mode, count, type, indices, instancecount, baseinstance))
-static void base_glDrawElementsInstancedBaseVertexBaseInstanceBRCM(GLenum mode, GLsizei count, GLenum type, const void *indices, GLsizei instancecount, GLint basevertex, GLuint baseinstance)
-   Func(GL, glDrawElementsInstancedBaseVertexBaseInstanceBRCM, (mode, count, type, indices, instancecount, basevertex, baseinstance))
-#endif /* GL_BRCM_base_instance*/
+#if EGL_EXT_protected_content
+#endif /* EGL_EXT_protected_content*/
+
+#if EGL_EXT_protected_surface
+#endif /* EGL_EXT_protected_surface*/
 
 #if GL_BRCM_mirror_once_border
 #endif /* GL_BRCM_mirror_once_border*/
-
-#if GL_BRCM_multi_draw_indirect
-static void base_glMultiDrawArraysIndirectBRCM(GLenum mode, const void *indirect, GLsizei drawcount, GLsizei stride)
-   Func(GL, glMultiDrawArraysIndirectBRCM, (mode, indirect, drawcount, stride))
-static void base_glMultiDrawElementsIndirectBRCM(GLenum mode, GLenum type, const void *indirect, GLsizei drawcount, GLsizei stride)
-   Func(GL, glMultiDrawElementsIndirectBRCM, (mode, type, indirect, drawcount, stride))
-#endif /* GL_BRCM_multi_draw_indirect*/
 
 #if GL_BRCM_polygon_mode
 static void base_glPolygonModeBRCM(GLenum mode)
@@ -1362,6 +1418,15 @@ static void base_glTexImage1DBRCM(GLenum target, GLint level, GLint internalform
 #if GL_BRCM_texture_norm16
 #endif /* GL_BRCM_texture_norm16*/
 
+#if GL_EXT_base_instance
+static void base_glDrawArraysInstancedBaseInstanceEXT(GLenum mode, GLint first, GLsizei count, GLsizei instancecount, GLuint baseinstance)
+   Func(GL, glDrawArraysInstancedBaseInstanceEXT, (mode, first, count, instancecount, baseinstance))
+static void base_glDrawElementsInstancedBaseInstanceEXT(GLenum mode, GLsizei count, GLenum type, const void *indices, GLsizei instancecount, GLuint baseinstance)
+   Func(GL, glDrawElementsInstancedBaseInstanceEXT, (mode, count, type, indices, instancecount, baseinstance))
+static void base_glDrawElementsInstancedBaseVertexBaseInstanceEXT(GLenum mode, GLsizei count, GLenum type, const void *indices, GLsizei instancecount, GLint basevertex, GLuint baseinstance)
+   Func(GL, glDrawElementsInstancedBaseVertexBaseInstanceEXT, (mode, count, type, indices, instancecount, basevertex, baseinstance))
+#endif /* GL_EXT_base_instance*/
+
 #if GL_EXT_color_buffer_float
 #endif /* GL_EXT_color_buffer_float*/
 
@@ -1379,6 +1444,25 @@ static void base_glDiscardFramebufferEXT(GLenum target, GLsizei numAttachments, 
    Func(GL, glDiscardFramebufferEXT, (target, numAttachments, attachments))
 #endif /* GL_EXT_discard_framebuffer*/
 
+#if GL_EXT_draw_buffers_indexed
+static void base_glEnableiEXT(GLenum target, GLuint index)
+   Func(GL, glEnableiEXT, (target, index))
+static void base_glDisableiEXT(GLenum target, GLuint index)
+   Func(GL, glDisableiEXT, (target, index))
+static void base_glBlendEquationiEXT(GLuint buf, GLenum mode)
+   Func(GL, glBlendEquationiEXT, (buf, mode))
+static void base_glBlendEquationSeparateiEXT(GLuint buf, GLenum modeRGB, GLenum modeAlpha)
+   Func(GL, glBlendEquationSeparateiEXT, (buf, modeRGB, modeAlpha))
+static void base_glBlendFunciEXT(GLuint buf, GLenum src, GLenum dst)
+   Func(GL, glBlendFunciEXT, (buf, src, dst))
+static void base_glBlendFuncSeparateiEXT(GLuint buf, GLenum srcRGB, GLenum dstRGB, GLenum srcAlpha, GLenum dstAlpha)
+   Func(GL, glBlendFuncSeparateiEXT, (buf, srcRGB, dstRGB, srcAlpha, dstAlpha))
+static void base_glColorMaskiEXT(GLuint index, GLboolean r, GLboolean g, GLboolean b, GLboolean a)
+   Func(GL, glColorMaskiEXT, (index, r, g, b, a))
+static GLboolean base_glIsEnablediEXT(GLenum target, GLuint index)
+   FuncRet(GL, GLboolean , glIsEnablediEXT, (target, index))
+#endif /* GL_EXT_draw_buffers_indexed*/
+
 #if GL_EXT_draw_elements_base_vertex
 static void base_glDrawElementsBaseVertexEXT(GLenum mode, GLsizei count, GLenum type, const void *indices, GLint basevertex)
    Func(GL, glDrawElementsBaseVertexEXT, (mode, count, type, indices, basevertex))
@@ -1390,12 +1474,38 @@ static void base_glMultiDrawElementsBaseVertexEXT(GLenum mode, const GLsizei *co
    Func(GL, glMultiDrawElementsBaseVertexEXT, (mode, count, type, indices, primcount, basevertex))
 #endif /* GL_EXT_draw_elements_base_vertex*/
 
+#if GL_EXT_geometry_point_size
+#endif /* GL_EXT_geometry_point_size*/
+
+#if GL_EXT_geometry_shader
+static void base_glFramebufferTextureEXT(GLenum target, GLenum attachment, GLuint texture, GLint level)
+   Func(GL, glFramebufferTextureEXT, (target, attachment, texture, level))
+#endif /* GL_EXT_geometry_shader*/
+
+#if GL_EXT_gpu_shader5
+#endif /* GL_EXT_gpu_shader5*/
+
+#if GL_EXT_multi_draw_indirect
+static void base_glMultiDrawArraysIndirectEXT(GLenum mode, const void *indirect, GLsizei drawcount, GLsizei stride)
+   Func(GL, glMultiDrawArraysIndirectEXT, (mode, indirect, drawcount, stride))
+static void base_glMultiDrawElementsIndirectEXT(GLenum mode, GLenum type, const void *indirect, GLsizei drawcount, GLsizei stride)
+   Func(GL, glMultiDrawElementsIndirectEXT, (mode, type, indirect, drawcount, stride))
+#endif /* GL_EXT_multi_draw_indirect*/
+
 #if GL_EXT_multisampled_render_to_texture
 static void base_glRenderbufferStorageMultisampleEXT(GLenum target, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height)
    Func(GL, glRenderbufferStorageMultisampleEXT, (target, samples, internalformat, width, height))
 static void base_glFramebufferTexture2DMultisampleEXT(GLenum target, GLenum attachment, GLenum textarget, GLuint texture, GLint level, GLsizei samples)
    Func(GL, glFramebufferTexture2DMultisampleEXT, (target, attachment, textarget, texture, level, samples))
 #endif /* GL_EXT_multisampled_render_to_texture*/
+
+#if GL_EXT_primitive_bounding_box
+static void base_glPrimitiveBoundingBoxEXT(GLfloat minX, GLfloat minY, GLfloat minZ, GLfloat minW, GLfloat maxX, GLfloat maxY, GLfloat maxZ, GLfloat maxW)
+   Func(GL, glPrimitiveBoundingBoxEXT, (minX, minY, minZ, minW, maxX, maxY, maxZ, maxW))
+#endif /* GL_EXT_primitive_bounding_box*/
+
+#if GL_EXT_protected_textures
+#endif /* GL_EXT_protected_textures*/
 
 #if GL_EXT_robustness
 static GLenum base_glGetGraphicsResetStatusEXT(void)
@@ -1408,8 +1518,44 @@ static void base_glGetnUniformivEXT(GLuint program, GLint location, GLsizei bufS
    Func(GL, glGetnUniformivEXT, (program, location, bufSize, params))
 #endif /* GL_EXT_robustness*/
 
+#if GL_EXT_shader_integer_mix
+#endif /* GL_EXT_shader_integer_mix*/
+
+#if GL_EXT_shader_io_blocks
+#endif /* GL_EXT_shader_io_blocks*/
+
 #if GL_EXT_shader_texture_lod
 #endif /* GL_EXT_shader_texture_lod*/
+
+#if GL_EXT_tessellation_point_size
+#endif /* GL_EXT_tessellation_point_size*/
+
+#if GL_EXT_tessellation_shader
+static void base_glPatchParameteriEXT(GLenum pname, GLint value)
+   Func(GL, glPatchParameteriEXT, (pname, value))
+#endif /* GL_EXT_tessellation_shader*/
+
+#if GL_EXT_texture_border_clamp
+static void base_glTexParameterIivEXT(GLenum target, GLenum pname, const GLint *params)
+   Func(GL, glTexParameterIivEXT, (target, pname, params))
+static void base_glTexParameterIuivEXT(GLenum target, GLenum pname, const GLuint *params)
+   Func(GL, glTexParameterIuivEXT, (target, pname, params))
+static void base_glGetTexParameterIivEXT(GLenum target, GLenum pname, GLint *params)
+   Func(GL, glGetTexParameterIivEXT, (target, pname, params))
+static void base_glGetTexParameterIuivEXT(GLenum target, GLenum pname, GLuint *params)
+   Func(GL, glGetTexParameterIuivEXT, (target, pname, params))
+static void base_glSamplerParameterIivEXT(GLuint sampler, GLenum pname, const GLint *param)
+   Func(GL, glSamplerParameterIivEXT, (sampler, pname, param))
+static void base_glSamplerParameterIuivEXT(GLuint sampler, GLenum pname, const GLuint *param)
+   Func(GL, glSamplerParameterIuivEXT, (sampler, pname, param))
+static void base_glGetSamplerParameterIivEXT(GLuint sampler, GLenum pname, GLint *params)
+   Func(GL, glGetSamplerParameterIivEXT, (sampler, pname, params))
+static void base_glGetSamplerParameterIuivEXT(GLuint sampler, GLenum pname, GLuint *params)
+   Func(GL, glGetSamplerParameterIuivEXT, (sampler, pname, params))
+#endif /* GL_EXT_texture_border_clamp*/
+
+#if GL_EXT_texture_cube_map_array
+#endif /* GL_EXT_texture_cube_map_array*/
 
 #if GL_EXT_texture_filter_anisotropic
 #endif /* GL_EXT_texture_filter_anisotropic*/

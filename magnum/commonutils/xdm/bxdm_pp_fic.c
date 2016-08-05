@@ -1,21 +1,41 @@
 /***************************************************************************
- *     Copyright (c) 2003-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * [File Description:]
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  ***************************************************************************/
 
@@ -28,6 +48,7 @@
 #include "bxdm_pp_qm.h"
 
 BDBG_MODULE(BXDM_PPFIC); /* Register software module with debug interface */
+BDBG_FILE_MODULE(BXDM_PPFIC);
 
 BERR_Code BXDM_PPFIC_P_CalculateIgnoreCadenceMatch_isr(
    BXDM_PictureProvider_Handle hXdmPP,
@@ -89,10 +110,10 @@ BERR_Code BXDM_PPFIC_P_CalculateIgnoreCadenceMatch_isr(
       )
    {
 #if 0
-      BXVD_DBG_MSG(hXdmPP,("%x:[%02x.%03x] VDC Cadence Matching Disabled",
+      BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_eFIC, "%x:[%02x.%03x] VDC Cadence Matching Disabled",
                                  hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                  BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
-                                 pstPicture->stPicParms.uiPPBIndex & 0xFFF));
+                                 pstPicture->stPicParms.uiPPBIndex & 0xFFF );
 #endif
       pstPicture->stPicParms.stDisplay.stDynamic.bIgnoreCadenceMatch = true;
    }
@@ -394,20 +415,20 @@ BERR_Code BXDM_PPFIC_P_CalculateFieldInversionCorrectionOffset_isr(
                                                      pLocalState,
                                                      pstPicture);
 
-                     BXVD_DBG_MSG(hXdmPP,("%x:[%02x.%03x] Polarity Override: 1st->2nd slot, selected element %d",
+                     BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_eFIC, "%x:[%02x.%03x] Polarity Override: 1st->2nd slot, selected element %d",
                                              hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                              BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                                              pstPicture->stPicParms.uiPPBIndex & 0xFFF,
-                                             pstPicture->stPicParms.stDisplay.stDynamic.uiSelectedElement));
+                                             pstPicture->stPicParms.stDisplay.stDynamic.uiSelectedElement );
                   }
                   else
                   {
                      /* else if the first element IS selected. */
 
-                     BXVD_DBG_MSG(hXdmPP,("%x:[%02x.%03x] Polarity Override: 1st->2nd slot, TSM eWait",
+                     BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_eFIC, "%x:[%02x.%03x] Polarity Override: 1st->2nd slot, TSM eWait",
                                              hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                              BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
-                                             pstPicture->stPicParms.uiPPBIndex & 0xFFF));
+                                             pstPicture->stPicParms.uiPPBIndex & 0xFFF );
 
                      pstPicture->stPicParms.stTSM.stDynamic.eTsmResult = BXDM_PictureProvider_TSMResult_eWait;
 
@@ -438,19 +459,19 @@ BERR_Code BXDM_PPFIC_P_CalculateFieldInversionCorrectionOffset_isr(
                       * TSM slot which should prevent field inversion
                       * on THIS vsync */
                      pstPicture->stPicParms.stDisplay.stDynamic.uiSelectedElement++;
-                     BXVD_DBG_MSG(hXdmPP,("%x:[%02x.%03x] Polarity Override: 2nd->1st slot, select (next) element %d",
+                     BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_eFIC, "%x:[%02x.%03x] Polarity Override: 2nd->1st slot, select (next) element %d",
                                              hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                              BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                                              pstPicture->stPicParms.uiPPBIndex & 0xFFF,
-                                             pstPicture->stPicParms.stDisplay.stDynamic.uiSelectedElement ));
+                                             pstPicture->stPicParms.stDisplay.stDynamic.uiSelectedElement );
                      BXDM_PPDBG_P_SelectionLog_isr( hXdmPP, BXDM_PPDBG_Selection_PolarityOverride_e2ndSlotNextElement );
                   }
                   else
                   {
-                     BXVD_DBG_MSG(hXdmPP,("%x:[%02x.%03x] Polarity Override: 2nd->1st slot (next ppb)",
+                     BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_eFIC, "%x:[%02x.%03x] Polarity Override: 2nd->1st slot (next ppb)",
                                              hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                              BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
-                                             pstPicture->stPicParms.uiPPBIndex & 0xFFF));
+                                             pstPicture->stPicParms.uiPPBIndex & 0xFFF );
                      BXDM_PPFIC_S_SelectPreviousElement_isr(hXdmPP,
                                                      pLocalState,
                                                      pstPicture);
@@ -483,9 +504,9 @@ BERR_Code BXDM_PPFIC_P_ResetFieldInversionCorrectionOffset_isr(
         && ( 0 != hXdmPP->stDMState.stDecode.stFieldInversionCorrectionPTSOffset.uiFractional )
       )
    {
-      BXVD_DBG_MSG(hXdmPP,("%x:[%02x.xxx] FIC Reset",
+      BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_eFIC, "%x:[%02x.xxx] FIC Reset",
                         hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
-                        BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ) ));
+                        BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ) );
       BXDM_PPDBG_P_SelectionLog_isr( hXdmPP, BXDM_PPDBG_Selection_PolarityOverride_eFICReset );
       hXdmPP->stDMState.stDecode.stFieldInversionCorrectionPTSOffset.uiWhole = 0;
       hXdmPP->stDMState.stDecode.stFieldInversionCorrectionPTSOffset.uiFractional = 0;

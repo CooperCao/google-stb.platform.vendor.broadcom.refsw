@@ -8,6 +8,8 @@ Module   :
 FILE DESCRIPTION
 =============================================================================*/
 
+#include <string.h>
+
 #include "glsl_globals.h"
 #include "glsl_dataflow_cse.h"
 #include "glsl_map.h"

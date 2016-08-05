@@ -548,7 +548,7 @@ BERR_Code BVDC_P_AllocITResources
         pstChan->ulIt = ulIt;
     }
 
-    BDBG_MSG(("\t ulIt = %d ItOffset=0x%08x RmOffset=0x%08x",
+    BDBG_MSG(("     ulIt = %d ItOffset=0x%08x RmOffset=0x%08x",
         pstChan->ulIt, pstChan->ulItRegOffset, pstChan->ulRmRegOffset));
     return BERR_SUCCESS;
 
@@ -579,7 +579,7 @@ BERR_Code BVDC_P_AllocAnalogChanResources
         }
         BVDC_P_Display_CalculateOffset_isr(pstChan, NULL, BVDC_P_ResourceType_eVf);
     }
-    BDBG_MSG(("\t ulVf = %d VfOffset=0x%08x CscOffset=0x%08x",
+    BDBG_MSG(("     ulVf = %d VfOffset=0x%08x CscOffset=0x%08x",
         pstChan->ulVf, pstChan->ulVfRegOffset, pstChan->ulCscRegOffset));
 
     pstChan->ulPrevSecam = pstChan->ulSecam;
@@ -635,10 +635,10 @@ BERR_Code BVDC_P_AllocAnalogChanResources
             }
         }
     }
-    BDBG_MSG(("\t ulSecam = %d SecamOffset=0x%08x", pstChan->ulSecam, pstChan->ulSecamRegOffset));
-    BDBG_MSG(("\t ulSecam_HD = %d", pstChan->ulSecam_HD));
-    BDBG_MSG(("\t ulPrevSecam = %d", pstChan->ulPrevSecam));
-    BDBG_MSG(("\t ulPrevSecam_HD = %d", pstChan->ulPrevSecam_HD));
+    BDBG_MSG(("     ulSecam = %d SecamOffset=0x%08x", pstChan->ulSecam, pstChan->ulSecamRegOffset));
+    BDBG_MSG(("     ulSecam_HD = %d", pstChan->ulSecam_HD));
+    BDBG_MSG(("     ulPrevSecam = %d", pstChan->ulPrevSecam));
+    BDBG_MSG(("     ulPrevSecam_HD = %d", pstChan->ulPrevSecam_HD));
 
     pstChan->ulPrevSdsrc = pstChan->ulSdsrc;
     pstChan->ulPrevHdsrc = pstChan->ulHdsrc;
@@ -660,8 +660,8 @@ BERR_Code BVDC_P_AllocAnalogChanResources
             }
             BVDC_P_Display_CalculateOffset_isr(pstChan, NULL, BVDC_P_ResourceType_eHdsrc);
         }
-        BDBG_MSG(("\t ulSdsrc = %d", pstChan->ulSdsrc));
-        BDBG_MSG(("\t ulHdsrc = %d HdsrcOffset=0x%08x",
+        BDBG_MSG(("     ulSdsrc = %d", pstChan->ulSdsrc));
+        BDBG_MSG(("     ulHdsrc = %d HdsrcOffset=0x%08x",
             pstChan->ulHdsrc, pstChan->ulHdsrcRegOffset));
     }
     else if (bHdRec)
@@ -685,9 +685,9 @@ BERR_Code BVDC_P_AllocAnalogChanResources
                     goto fail;
                 }
                 BVDC_P_Display_CalculateOffset_isr(pstChan, NULL, BVDC_P_ResourceType_eSdsrc);
-                BDBG_MSG(("\t ulSdsrc = %d SdsrcOffset=0x%08x SmOffset=0x%08x",
+                BDBG_MSG(("     ulSdsrc = %d SdsrcOffset=0x%08x SmOffset=0x%08x",
                     pstChan->ulSdsrc, pstChan->ulSdsrcRegOffset, pstChan->ulSmRegOffset));
-                BDBG_MSG(("\t ulHdsrc = %d", pstChan->ulHdsrc));
+                BDBG_MSG(("     ulHdsrc = %d", pstChan->ulHdsrc));
             }
             else
             {
@@ -698,15 +698,15 @@ BERR_Code BVDC_P_AllocAnalogChanResources
                     goto fail;
                 }
                 BVDC_P_Display_CalculateOffset_isr(pstChan, NULL, BVDC_P_ResourceType_eHdsrc);
-                BDBG_MSG(("\t ulSdsrc = %d", pstChan->ulSdsrc));
-                BDBG_MSG(("\t ulHdsrc = %d HdsrcOffset=0x%08x",
+                BDBG_MSG(("     ulSdsrc = %d", pstChan->ulSdsrc));
+                BDBG_MSG(("     ulHdsrc = %d HdsrcOffset=0x%08x",
                     pstChan->ulHdsrc, pstChan->ulHdsrcRegOffset));
             }
         }
         else
         {
-            BDBG_MSG(("\t ulSdsrc = %d", pstChan->ulSdsrc));
-            BDBG_MSG(("\t ulHdsrc = %d", pstChan->ulHdsrc));
+            BDBG_MSG(("     ulSdsrc = %d", pstChan->ulSdsrc));
+            BDBG_MSG(("     ulHdsrc = %d", pstChan->ulHdsrc));
         }
     }
     else
@@ -730,8 +730,8 @@ BERR_Code BVDC_P_AllocAnalogChanResources
                     goto fail;
                 }
                 BVDC_P_Display_CalculateOffset_isr(pstChan, NULL, BVDC_P_ResourceType_eHdsrc);
-                BDBG_MSG(("\t ulSdsrc = %d", pstChan->ulSdsrc));
-                BDBG_MSG(("\t ulHdsrc = %d HdsrcOffset=0x%08x",
+                BDBG_MSG(("     ulSdsrc = %d", pstChan->ulSdsrc));
+                BDBG_MSG(("     ulHdsrc = %d HdsrcOffset=0x%08x",
                     pstChan->ulHdsrc, pstChan->ulHdsrcRegOffset));
             }
             else
@@ -743,19 +743,19 @@ BERR_Code BVDC_P_AllocAnalogChanResources
                     goto fail;
                 }
                 BVDC_P_Display_CalculateOffset_isr(pstChan, NULL, BVDC_P_ResourceType_eSdsrc);
-                BDBG_MSG(("\t ulSdsrc = %d SdsrcOffset=0x%08x SmOffset=0x%08x",
+                BDBG_MSG(("     ulSdsrc = %d SdsrcOffset=0x%08x SmOffset=0x%08x",
                     pstChan->ulSdsrc, pstChan->ulSdsrcRegOffset, pstChan->ulSmRegOffset));
-                BDBG_MSG(("\t ulHdsrc = %d", pstChan->ulHdsrc));
+                BDBG_MSG(("     ulHdsrc = %d", pstChan->ulHdsrc));
             }
         }
         else
         {
-            BDBG_MSG(("\t ulSdsrc = %d", pstChan->ulSdsrc));
-            BDBG_MSG(("\t ulHdsrc = %d", pstChan->ulHdsrc));
+            BDBG_MSG(("     ulSdsrc = %d", pstChan->ulSdsrc));
+            BDBG_MSG(("     ulHdsrc = %d", pstChan->ulHdsrc));
         }
     }
-    BDBG_MSG(("\t ulPrevSdsrc = %d", pstChan->ulPrevSdsrc));
-    BDBG_MSG(("\t ulPrevHdsrc = %d", pstChan->ulPrevHdsrc));
+    BDBG_MSG(("     ulPrevSdsrc = %d", pstChan->ulPrevSdsrc));
+    BDBG_MSG(("     ulPrevHdsrc = %d", pstChan->ulPrevHdsrc));
 
     return BERR_SUCCESS;
 
@@ -1065,39 +1065,36 @@ static void BVDC_P_SetupAnalogChan_isr
 
 static BERR_Code BVDC_P_FreeDacResources_isr
     ( BVDC_P_Resource_Handle           hResource,
-      BVDC_Display_Handle              hDisplay,
       BVDC_P_DisplayAnlgChan          *pstChan )
 {
     BERR_Code err = BERR_SUCCESS;
 
     if(BVDC_P_HW_ID_INVALID != pstChan->ulDac_0)
     {
-        BDBG_MSG(("\t release Dac %d", pstChan->ulDac_0));
+        BDBG_MSG(("     release Dac %d", pstChan->ulDac_0));
         err = BVDC_P_Resource_ReleaseHwId_isr(hResource, BVDC_P_ResourceType_eDac, pstChan->ulDac_0);
         pstChan->ulDac_0 = BVDC_P_HW_ID_INVALID;
     }
     if(BVDC_P_HW_ID_INVALID != pstChan->ulDac_1)
     {
-        BDBG_MSG(("\t release Dac %d", pstChan->ulDac_1));
+        BDBG_MSG(("     release Dac %d", pstChan->ulDac_1));
         err = BVDC_P_Resource_ReleaseHwId_isr(hResource, BVDC_P_ResourceType_eDac, pstChan->ulDac_1);
         pstChan->ulDac_1 = BVDC_P_HW_ID_INVALID;
     }
     if(BVDC_P_HW_ID_INVALID != pstChan->ulDac_2)
     {
-        BDBG_MSG(("\t release Dac %d", pstChan->ulDac_2));
+        BDBG_MSG(("     release Dac %d", pstChan->ulDac_2));
         err = BVDC_P_Resource_ReleaseHwId_isr(hResource, BVDC_P_ResourceType_eDac, pstChan->ulDac_2);
         pstChan->ulDac_2 = BVDC_P_HW_ID_INVALID;
     }
 
 #ifdef BCHP_PWR_RESOURCE_VDC_DAC
-    if(hDisplay->ulDacPwrAcquire != 0)
+    if(pstChan->ulDacPwrAcquire != 0)
     {
-        hDisplay->ulDacPwrAcquire--;
-        hDisplay->ulDacPwrRelease = 1;
+        pstChan->ulDacPwrAcquire--;
+        pstChan->ulDacPwrRelease = 1;
         BDBG_MSG(("DAC disable: Release pending BCHP_PWR_RESOURCE_VDC_DAC"));
     }
-#else
-    BSTD_UNUSED(hDisplay);
 #endif
 
     return BERR_TRACE(err);
@@ -1105,7 +1102,6 @@ static BERR_Code BVDC_P_FreeDacResources_isr
 
 BERR_Code BVDC_P_AllocDacResources
     ( BVDC_P_Resource_Handle           hResource,
-      BVDC_Display_Handle              hDisplay,
       BVDC_P_DisplayAnlgChan          *pstChan,
       uint32_t                         ulDacMask )
 {
@@ -1117,7 +1113,7 @@ BERR_Code BVDC_P_AllocDacResources
         BDBG_ERR(("No DAC available"));
         goto fail;
     }
-    BDBG_MSG(("\t Dac_0 ID: %d", pstChan->ulDac_0));
+    BDBG_MSG(("     Dac_0 ID: %d", pstChan->ulDac_0));
 
     err = BVDC_P_Resource_AcquireHwId_isr(hResource, BVDC_P_ResourceType_eDac, 0, ulDacMask, &pstChan->ulDac_1, false);
     if (err)
@@ -1125,7 +1121,7 @@ BERR_Code BVDC_P_AllocDacResources
         BDBG_ERR(("No DAC available"));
         goto fail;
     }
-    BDBG_MSG(("\t Dac_1 ID: %d", pstChan->ulDac_1));
+    BDBG_MSG(("     Dac_1 ID: %d", pstChan->ulDac_1));
 
     err = BVDC_P_Resource_AcquireHwId_isr(hResource, BVDC_P_ResourceType_eDac, 0, ulDacMask, &pstChan->ulDac_2, false);
     if (err)
@@ -1133,13 +1129,21 @@ BERR_Code BVDC_P_AllocDacResources
         BDBG_ERR(("No DAC available"));
         goto fail;
     }
-    BDBG_MSG(("\t Dac_2 ID: %d", pstChan->ulDac_2));
+    BDBG_MSG(("     Dac_2 ID: %d", pstChan->ulDac_2));
+
+#ifdef BCHP_PWR_RESOURCE_VDC_DAC
+    if(pstChan->ulDacPwrAcquire == 0)
+    {
+        BDBG_MSG(("Chan%d: Acquire BCHP_PWR_RESOURCE_VDC_DAC", pstChan->ulId));
+        pstChan->ulDacPwrAcquire++;
+    }
+#endif
 
     return BERR_SUCCESS;
 
 fail:
 
-    BVDC_P_FreeDacResources_isr(hResource, hDisplay, pstChan);
+    BVDC_P_FreeDacResources_isr(hResource, pstChan);
     return BERR_TRACE(err);
 }
 
@@ -1291,14 +1295,14 @@ static void BVDC_P_Vec_Build_CSC_isr
         BCHP_FIELD_DATA(CSC_0_CSC_COEFF_C23_C22, COEFF_C3, pCscMatrix->stCscCoeffs.usCrOffset);
 
     BDBG_MODULE_MSG(BVDC_DISP_CSC, ("BVDC_P_Vec_Build_CSC_isr: "));
-    BDBG_MODULE_MSG(BVDC_DISP_CSC, ("\t min = 0x%x, max = 0x%x", pCscMatrix->ulMin, pCscMatrix->ulMax));
-    BDBG_MODULE_MSG(BVDC_DISP_CSC, ("\t 0x%08x 0x%08x 0x%08x 0x%08x",
+    BDBG_MODULE_MSG(BVDC_DISP_CSC, ("     min = 0x%x, max = 0x%x", pCscMatrix->ulMin, pCscMatrix->ulMax));
+    BDBG_MODULE_MSG(BVDC_DISP_CSC, ("     0x%08x 0x%08x 0x%08x 0x%08x",
         pCscMatrix->stCscCoeffs.usY0, pCscMatrix->stCscCoeffs.usY1,
         pCscMatrix->stCscCoeffs.usY2, pCscMatrix->stCscCoeffs.usYOffset));
-    BDBG_MODULE_MSG(BVDC_DISP_CSC, ("\t 0x%08x 0x%08x 0x%08x 0x%08x",
+    BDBG_MODULE_MSG(BVDC_DISP_CSC, ("     0x%08x 0x%08x 0x%08x 0x%08x",
         pCscMatrix->stCscCoeffs.usCb0, pCscMatrix->stCscCoeffs.usCb1,
         pCscMatrix->stCscCoeffs.usCb2, pCscMatrix->stCscCoeffs.usCbOffset));
-    BDBG_MODULE_MSG(BVDC_DISP_CSC, ("\t 0x%08x 0x%08x 0x%08x 0x%08x",
+    BDBG_MODULE_MSG(BVDC_DISP_CSC, ("     0x%08x 0x%08x 0x%08x 0x%08x",
         pCscMatrix->stCscCoeffs.usCr0, pCscMatrix->stCscCoeffs.usCr1,
         pCscMatrix->stCscCoeffs.usCr2, pCscMatrix->stCscCoeffs.usCrOffset));
 
@@ -1743,7 +1747,7 @@ static void BVDC_P_Vec_Build_VF_isr
             BVDC_P_DISP_IS_ANLG_CHAN_CO(pstChan, pCurInfo))
         {
             pstChan->apVfFilter[i] = pCurInfo->aaulUserVfFilterCo[i];
-            if (BVDC_P_GetVfFilterSumOfTapsBits (
+            if (BVDC_P_GetVfFilterSumOfTapsBits_isr (
                 pCurInfo, BVDC_DisplayOutput_eComponent, &ulSumOfTapsBits,
                 &bOverride) != BERR_SUCCESS)
             {
@@ -1755,7 +1759,7 @@ static void BVDC_P_Vec_Build_VF_isr
                  BVDC_P_DISP_IS_ANLG_CHAN_CVBS(pstChan, pCurInfo))
         {
             pstChan->apVfFilter[i] = pCurInfo->aaulUserVfFilterCvbs[i];
-            if (BVDC_P_GetVfFilterSumOfTapsBits (
+            if (BVDC_P_GetVfFilterSumOfTapsBits_isr (
                 pCurInfo, BVDC_DisplayOutput_eComposite, &ulSumOfTapsBits,
                 &bOverride) != BERR_SUCCESS)
             {
@@ -2026,7 +2030,7 @@ static void BVDC_P_Vec_Build_RM_isr
     if((lRateInfo.ulPixelClkRate    != stPrevRateInfo.ulPixelClkRate   ) ||
        (lRateInfo.ulVertRefreshRate != stPrevRateInfo.ulVertRefreshRate))
     {
-        BDBG_MSG(("\tVEC's RM PxlClk = %sMHz, RefRate = %d (1/%dth Hz), MultiRate=%d",
+        BDBG_MSG(("    VEC's RM PxlClk = %sMHz, RefRate = %d (1/%dth Hz), MultiRate=%d",
             BVDC_P_GetRmString_isr(pCurInfo, pCurInfo->pFmtInfo),
             pCurInfo->ulVertFreq, BFMT_FREQ_FACTOR, pCurInfo->bMultiRateAllow));
         hDisplay->bRateManagerUpdated = true;
@@ -2477,11 +2481,11 @@ BERR_Code BVDC_P_AllocDviChanResources_isr
             ulData = BREG_Read32(hRegister, BCHP_MPM_CPU_CTRL_STATUS);
             pstChan->bMhlMode = BCHP_GET_FIELD_DATA(ulData, MPM_CPU_CTRL_STATUS, STRAP_MHL_POWERUP)?true:false;
 #endif
-            BDBG_MSG(("\t MHL mode = %d", pstChan->bMhlMode));
+            BDBG_MSG(("     MHL mode = %d", pstChan->bMhlMode));
 #endif
 
             BVDC_P_Display_CalculateOffset_isr(NULL, pstChan, BVDC_P_ResourceType_eDvi);
-            BDBG_MSG(("\t ulDvi = %d DviOffset=0x%08x DvpOffset=0x%08x",
+            BDBG_MSG(("     ulDvi = %d DviOffset=0x%08x DvpOffset=0x%08x",
                 pstChan->ulDvi, pstChan->ulDviRegOffset, pstChan->ulDvpRegOffset));
         }
     }
@@ -2694,7 +2698,7 @@ static void BVDC_P_Vec_Build_Dscl_isr
     return;
 }
 
-static void BVDC_P_Vec_Build_Hdmi_isr
+static void BVDC_P_Vec_Build_DVI_RM_isr
     ( BVDC_Display_Handle              hDisplay,
       BVDC_P_DisplayDviChan           *pstChan,
       BVDC_P_ListInfo                 *pList,
@@ -2707,9 +2711,6 @@ static void BVDC_P_Vec_Build_Hdmi_isr
     BAVC_VdcDisplay_Info   lRateInfo;
     const uint32_t        *pRmTable;
     BVDC_P_DisplayInfo    *pCurInfo = &hDisplay->stCurInfo;
-#if (BVDC_P_SUPPORT_DVI_65NM)
-    uint32_t               ulNdivMod , ulIcpx , ulCn;
-#endif
     const BFMT_VideoInfo  *pFmtInfo;
     const char* pcRateString;
 
@@ -2741,7 +2742,7 @@ static void BVDC_P_Vec_Build_Hdmi_isr
     {
         uint32_t ulPhaseInc;
 
-        BDBG_MSG(("\tVEC's RMD PxlClk = %sMHz, RefRate = %d (1/%dth Hz), MultiRate=%d",
+        BDBG_MSG(("    VEC's RMD PxlClk = %sMHz, RefRate = %d (1/%dth Hz), MultiRate=%d",
             BVDC_P_GetRmString_isr(pCurInfo, pFmtInfo),
             pCurInfo->ulVertFreq, BFMT_FREQ_FACTOR, pCurInfo->bMultiRateAllow));
 
@@ -2839,65 +2840,11 @@ static void BVDC_P_Vec_Build_Hdmi_isr
         ulOffset     = pRmInfo->ulOffset;
         pcRateString = pRmInfo->pchRate;
     }
-    BDBG_MSG(("\tHdmi_%d's RM PxlClk = %sMhz", pstChan->ulDvi, pcRateString));
+    BDBG_MSG(("    Hdmi_%d's RM PxlClk = %sMhz", pstChan->ulDvi, pcRateString));
 
     if(bProgramFull)
     {
-#if (BVDC_P_SUPPORT_DVI_65NM)
-        /* HDMI_TX_PHY_HDMI_TX_PHY_PLL_CFG (RW) */
-        *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
-        *pList->pulCurrent++ = BRDC_REGISTER(BCHP_HDMI_TX_PHY_HDMI_TX_PHY_PLL_CFG + pstChan->ulDvpRegOffset);
-        *pList->pulCurrent++ =
-            BCHP_FIELD_DATA(HDMI_TX_PHY_HDMI_TX_PHY_PLL_CFG, PLL_RM_DIV, pRmInfo->ulRmDiv) |
-            BCHP_FIELD_DATA(HDMI_TX_PHY_HDMI_TX_PHY_PLL_CFG, PLL_VCO_RANGE, pRmInfo->ulVcoRange) |
-            BCHP_FIELD_DATA(HDMI_TX_PHY_HDMI_TX_PHY_PLL_CFG, PLL_PX_DIV, pRmInfo->ulPxDiv) |
-            BCHP_FIELD_DATA(HDMI_TX_PHY_HDMI_TX_PHY_PLL_CFG, PLL_FEEDBACK_PRE_DIVIDER, 1) |
-            BCHP_FIELD_DATA(HDMI_TX_PHY_HDMI_TX_PHY_PLL_CFG, PLL_INPUT_PRE_DIVIDER, pRmInfo->ulInputPreDiv);
-
-        if ((VIDEO_FORMAT_IS_ED(pFmtInfo->eVideoFmt)) &&
-            ((BAVC_HDMI_PixelRepetition_e1x == pCurInfo->stHdmiSettings.eHdmiPixelRepetition) ||
-             (BAVC_HDMI_PixelRepetition_e4x == pCurInfo->stHdmiSettings.eHdmiPixelRepetition)))
-        {
-            ulNdivMod = 2;
-            ulIcpx = 10;
-            ulCn = 0;
-        }
-        else
-        {
-            ulNdivMod = 2;
-            ulIcpx = 31;
-            ulCn = 1;
-        }
-
-        /* HDMI_TX_PHY_HDMI_TX_PHY_CTL_1 (RW) */
-        BVDC_P_RD_MOD_WR_RUL(pList->pulCurrent,
-            ~(BCHP_MASK(HDMI_TX_PHY_HDMI_TX_PHY_CTL_1, ICPX     ) |
-              BCHP_MASK(HDMI_TX_PHY_HDMI_TX_PHY_CTL_1, LF_ORDER ) |
-              BCHP_MASK(HDMI_TX_PHY_HDMI_TX_PHY_CTL_1, RZ       ) |
-              BCHP_MASK(HDMI_TX_PHY_HDMI_TX_PHY_CTL_1, CZ       ) |
-              BCHP_MASK(HDMI_TX_PHY_HDMI_TX_PHY_CTL_1, CP       ) |
-              BCHP_MASK(HDMI_TX_PHY_HDMI_TX_PHY_CTL_1, RN_0     ) |
-              BCHP_MASK(HDMI_TX_PHY_HDMI_TX_PHY_CTL_1, RN_2_1   ) |
-              BCHP_MASK(HDMI_TX_PHY_HDMI_TX_PHY_CTL_1, CN       )),
-            BCHP_FIELD_DATA(HDMI_TX_PHY_HDMI_TX_PHY_CTL_1, ICPX,     ulIcpx) |
-            BCHP_FIELD_DATA(HDMI_TX_PHY_HDMI_TX_PHY_CTL_1, LF_ORDER, 1     ) |
-            BCHP_FIELD_DATA(HDMI_TX_PHY_HDMI_TX_PHY_CTL_1, RZ,       1     ) |
-            BCHP_FIELD_DATA(HDMI_TX_PHY_HDMI_TX_PHY_CTL_1, CZ,       3     ) |
-            BCHP_FIELD_DATA(HDMI_TX_PHY_HDMI_TX_PHY_CTL_1, CP,       1     ) |
-            BCHP_FIELD_DATA(HDMI_TX_PHY_HDMI_TX_PHY_CTL_1, RN_0,     1     ) |
-            BCHP_FIELD_DATA(HDMI_TX_PHY_HDMI_TX_PHY_CTL_1, RN_2_1,   0     ) |
-            BCHP_FIELD_DATA(HDMI_TX_PHY_HDMI_TX_PHY_CTL_1, CN,       ulCn  ),
-            BCHP_HDMI_TX_PHY_HDMI_TX_PHY_CTL_1 + pstChan->ulDvpRegOffset);
-
-        /* HDMI_TX_PHY_HDMI_TX_PHY_CTL_2 (RW) */
-        BVDC_P_RD_MOD_WR_RUL(pList->pulCurrent,
-            ~(BCHP_MASK(HDMI_TX_PHY_HDMI_TX_PHY_CTL_2, KVCO_XS) |
-              BCHP_MASK(HDMI_TX_PHY_HDMI_TX_PHY_CTL_2, NDIV_MOD)),
-            BCHP_FIELD_DATA(HDMI_TX_PHY_HDMI_TX_PHY_CTL_2, KVCO_XS, pRmInfo->ulKVcoXs) |
-            BCHP_FIELD_DATA(HDMI_TX_PHY_HDMI_TX_PHY_CTL_2, NDIV_MOD, ulNdivMod),
-            BCHP_HDMI_TX_PHY_HDMI_TX_PHY_CTL_2 + pstChan->ulDvpRegOffset);
-
-#elif (BVDC_P_SUPPORT_DVI_40NM)
+#if (BVDC_P_SUPPORT_DVI_40NM)
         /* HDMI_TX_PHY_CK_DIV (RW) */
         *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
         *pList->pulCurrent++ = BRDC_REGISTER(BCHP_HDMI_TX_PHY_CK_DIV + pstChan->ulDvpRegOffset);
@@ -2973,14 +2920,7 @@ static void BVDC_P_Vec_Build_Hdmi_isr
     *pList->pulCurrent++ =
         BCHP_FIELD_DATA(HDMI_RM_OFFSET, OFFSET, ulOffset);
 
-#if (BVDC_P_SUPPORT_DVI_65NM)
-    *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
-    *pList->pulCurrent++ = BRDC_REGISTER(BCHP_HDMI_RM_FORMAT + pstChan->ulDvpRegOffset);
-    *pList->pulCurrent++ =
-        BCHP_FIELD_DATA(HDMI_RM_FORMAT, SHIFT, pRmInfo->ulShift) |
-        BCHP_FIELD_DATA(HDMI_RM_FORMAT, STABLE_COUNT, 8);
-
-#elif (BVDC_P_SUPPORT_DVI_40NM)
+#if (BVDC_P_SUPPORT_DVI_40NM)
     /* HDMI_RM_FORMAT (RW) */
     *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
     *pList->pulCurrent++ = BRDC_REGISTER(BCHP_HDMI_RM_FORMAT + pstChan->ulDvpRegOffset);
@@ -3154,6 +3094,7 @@ static void BVDC_P_Vec_Build_Hdmi_isr
 #endif
 
     hDisplay->bRateManagerUpdated = true;
+    BSTD_UNUSED(pcRateString);
     return;
 }
 
@@ -3345,7 +3286,7 @@ static void BVDC_P_Vec_Build_DVI_CSC_isr
     BDBG_MSG(("Display %d Hdmi %d using %s",
         hDisplay->eId, pstChan->ulDvi, stAVC_MatrixCoefficient_InfoTbl[hDisplay->stCurInfo.eHdmiOutput].pcAvcCsStr));
 #if BCHP_DVI_MISC_0_REG_START
-    bDviCscPassThrough = (hDisplay->hCompositor->bBypassDviCsc || hDisplay->stCurInfo.bBypassVideoProcess);
+    bDviCscPassThrough = (hDisplay->bCmpBypassDviCsc || hDisplay->stCurInfo.bBypassVideoProcess);
     if (bDviCscPassThrough)
     {
         BDBG_MODULE_MSG(BVDC_DVI_NLCSC, ("disp[%d] bypass DVI_CSC", hDisplay->eId));
@@ -3406,6 +3347,7 @@ static void BVDC_P_Vec_Build_DVI_CSC_isr
         ucCh2 = pCmpInfo->ucRed;
     }
 
+#if BVDC_P_CMP_NON_LINEAR_CSC_VER < 3 /* TODO: bring up 7271B0 */
     /* DVI_CSC_CSC_MODE (RW) */
     *pList->pulCurrent++ = BRDC_OP_IMMS_TO_REGS(BVDC_P_CSC_TABLE_SIZE);
     *pList->pulCurrent++ = BRDC_REGISTER(BCHP_DVI_CSC_0_CSC_MODE + pstChan->ulDviRegOffset);
@@ -3460,6 +3402,7 @@ static void BVDC_P_Vec_Build_DVI_CSC_isr
     *pList->pulCurrent++ = BRDC_OP_IMMS_TO_REGS(BVDC_P_DITHER_TABLE_SIZE);
     *pList->pulCurrent++ = BRDC_REGISTER(BCHP_DVI_CSC_0_DITHER_CONTROL + pstChan->ulDviRegOffset);
     BVDC_P_Vec_Build_Dither_isr(&hDisplay->stDviDither, pList);
+#endif
 
     return;
 }
@@ -3559,7 +3502,7 @@ static void BVDC_P_ProgramDviChan_isr
     {
         BVDC_P_Vec_Build_Dscl_isr(hDisplay, pList);
     }
-    BVDC_P_Vec_Build_Hdmi_isr(hDisplay, pstChan, pList, true);
+    BVDC_P_Vec_Build_DVI_RM_isr(hDisplay, pstChan, pList, true);
     BVDC_P_Vec_Build_DVI_DTG_isr(hDisplay, pstChan, bReloadMicrocode, pList);
     BVDC_P_Vec_Build_DVI_DVF_isr(hDisplay, pstChan, pList);
     BVDC_P_Vec_Build_DVI_CSC_isr(hDisplay, pstChan, pList);
@@ -3576,7 +3519,9 @@ static void BVDC_P_SetupDviChan_isr
 {
     BSTD_UNUSED(hDisplay);
     BVDC_P_VEC_SW_INIT(DVI_DTG_0,  pstChan->ulDtgSwInitOffset,  1);
+#ifdef BCHP_DVI_CSC_0_REG_START
     BVDC_P_VEC_SW_INIT(DVI_CSC_0,  pstChan->ulCscSwInitOffset,  1);
+#endif
     BVDC_P_VEC_SW_INIT(DVI_DVF_0,  pstChan->ulDvfSwInitOffset,  1);
     BVDC_P_VEC_SW_INIT(DVI_MISC_0, pstChan->ulMiscSwInitOffset, 1);
 #ifdef BCHP_DVI_FC_0_REG_START
@@ -3584,7 +3529,9 @@ static void BVDC_P_SetupDviChan_isr
 #endif
 
     BVDC_P_VEC_SW_INIT(DVI_DTG_0,  pstChan->ulDtgSwInitOffset,  0);
+#ifdef BCHP_DVI_CSC_0_REG_START
     BVDC_P_VEC_SW_INIT(DVI_CSC_0,  pstChan->ulCscSwInitOffset,  0);
+#endif
     BVDC_P_VEC_SW_INIT(DVI_DVF_0,  pstChan->ulDvfSwInitOffset,  0);
     BVDC_P_VEC_SW_INIT(DVI_MISC_0, pstChan->ulMiscSwInitOffset, 0);
 #ifdef BCHP_DVI_FC_0_REG_START
@@ -4418,7 +4365,7 @@ static void BVDC_P_Display_Apply_Chan_isr
                     pstChan->eState = BVDC_P_DisplayResource_eInactive;
                 }
                 pstChan->bTearDown = false;
-                BVDC_P_FreeDacResources_isr(hDisplay->hVdc->hResource, hDisplay, pstChan);
+                BVDC_P_FreeDacResources_isr(hDisplay->hVdc->hResource, pstChan);
                 if(pstChan->ulId == 0)
                 {
                     hDisplay->stCurInfo.stDirty.stBits.bChan0 = BVDC_P_CLEAN;
@@ -4663,6 +4610,7 @@ static void BVDC_P_Display_Copy_VideoFormat_isr
 {
     BVDC_P_DisplayInfo* pCurInfo = &hDisplay->stCurInfo;
     BVDC_P_DisplayInfo* pNewInfo = &hDisplay->stNewInfo;
+    int i;
 
 #if (BVDC_P_SUPPORT_STG)
     {
@@ -4731,6 +4679,11 @@ static void BVDC_P_Display_Copy_VideoFormat_isr
 #if (BVDC_P_SUPPORT_IT_VER >= 2)
     pCurInfo->ulTriggerModuloCnt = pNewInfo->ulTriggerModuloCnt;
 #endif
+
+    for (i = 0; i < BFMT_VideoFmt_eMaxCount; i++)
+    {
+        pCurInfo->aulHdmiDropLines[i] = pNewInfo->aulHdmiDropLines[i];
+    }
 }
 
 static void BVDC_P_Display_Apply_VideoFormat_isr
@@ -5196,7 +5149,7 @@ static void BVDC_P_Display_ProgramDac_isr
             break;
     }
 
-    BDBG_MSG(("\t DAC %d Src %d Chan %d, output %d, ulOffset = %d, power %s",
+    BDBG_MSG(("     DAC %d Src %d Chan %d, output %d, ulOffset = %d, power %s",
         ulDac, ulDacSrc, ulDacSel - ulDacSrc, eDacOutput, ulOffset,
         (eDacOutput == BVDC_DacOutput_eUnused)? "off" : "on"));
 
@@ -5911,6 +5864,14 @@ static BERR_Code BVDC_P_Display_Validate_SrcFrameRate_Setting
     return BERR_SUCCESS;
 }
 
+static void BVDC_P_Display_Copy_SrcFrameRate_Setting_isr
+    ( BVDC_Display_Handle              hDisplay )
+{
+    hDisplay->stCurInfo.eDropFrame = hDisplay->stNewInfo.eDropFrame;
+
+    return;
+}
+
 static void BVDC_P_Display_Apply_SrcFrameRate_Setting_isr
     ( BVDC_Display_Handle              hDisplay,
       BVDC_P_ListInfo                 *pList,
@@ -5920,10 +5881,10 @@ static void BVDC_P_Display_Apply_SrcFrameRate_Setting_isr
 
     if(hDisplay->stDviChan.bEnable || hDisplay->stCurInfo.bEnableHdmi)
     {
-        BVDC_P_Vec_Build_Hdmi_isr(hDisplay, &hDisplay->stDviChan, pList, false);
+        BVDC_P_Vec_Build_DVI_RM_isr(hDisplay, &hDisplay->stDviChan, pList, false);
     }
 
-    if(hDisplay->bAnlgEnable ||   /* if analog master */
+    if((hDisplay->bAnlgEnable && !hDisplay->stCurInfo.bHdmiRmd) ||   /* if analog master */
        (!hDisplay->bAnlgEnable &&  /* or anlog slave with DACs */
        (hDisplay->stAnlgChan_0.bEnable || hDisplay->stAnlgChan_1.bEnable)))
     {
@@ -5937,35 +5898,6 @@ static void BVDC_P_Display_Apply_SrcFrameRate_Setting_isr
     }
 #endif
     hDisplay->stCurInfo.stDirty.stBits.bSrcFrameRate = BVDC_P_CLEAN;
-
-    return;
-}
-
-
-/**************** Setting force frame drop event hanlders **************/
-static void BVDC_P_Display_Copy_FrameDrop_Setting_isr
-    ( BVDC_Display_Handle              hDisplay )
-{
-    hDisplay->stCurInfo.eDropFrame = hDisplay->stNewInfo.eDropFrame;
-
-    return;
-}
-
-static void BVDC_P_Display_Apply_FrameDrop_Setting_isr
-    ( BVDC_Display_Handle              hDisplay,
-      BVDC_P_ListInfo                 *pList,
-      BAVC_Polarity                    eFieldPolarity )
-{
-    BSTD_UNUSED(eFieldPolarity);
-
-    if(hDisplay->bAnlgEnable ||   /* if analog master */
-       (!hDisplay->bAnlgEnable &&  /* or anlog slave with DACs */
-       (hDisplay->stAnlgChan_0.bEnable || hDisplay->stAnlgChan_1.bEnable)))
-    {
-        BVDC_P_Vec_Build_RM_isr(hDisplay, &hDisplay->stAnlgChan_0, pList);
-    }
-
-    hDisplay->stCurInfo.stDirty.stBits.bDropFrame = BVDC_P_CLEAN;
 
     return;
 }
@@ -6000,7 +5932,7 @@ BERR_Code BVDC_P_AllocMpaaResources
         }
     }
 
-    BDBG_MSG(("\t Mpaa ulHwId = %d", pstChan->ulHwId));
+    BDBG_MSG(("     Mpaa ulHwId = %d", pstChan->ulHwId));
     return BERR_TRACE(err);
 }
 
@@ -7430,37 +7362,6 @@ static void BVDC_P_Display_Apply_Alignment_Setting_isr
 }
 
 
-/**************** HDMI line dropping event handlers **************/
-static void BVDC_P_Display_Copy_HdmiDropLines_Setting_isr
-    ( BVDC_Display_Handle              hDisplay )
-{
-    int i;
-
-    for (i = 0; i < BFMT_VideoFmt_eMaxCount; i++)
-    {
-        hDisplay->stCurInfo.aulHdmiDropLines[i] =
-            hDisplay->stNewInfo.aulHdmiDropLines[i];
-    }
-
-    return;
-}
-
-static void BVDC_P_Display_Apply_HdmiDropLines_Setting_isr
-    ( BVDC_Display_Handle              hDisplay,
-      BVDC_P_ListInfo                 *pList,
-      BAVC_Polarity                    eFieldPolarity )
-{
-    BSTD_UNUSED(pList);
-    BSTD_UNUSED(eFieldPolarity);
-
-    /* The new setting is achieved through a format switch.
-     */
-    hDisplay->stCurInfo.stDirty.stBits.bHdmiDroplines = BVDC_P_CLEAN;
-
-    return;
-}
-
-
 /**************** HDMI XvYcc event handlers **************/
 static void BVDC_P_Display_Copy_HdmiXvYcc_Setting_isr
     ( BVDC_Display_Handle              hDisplay )
@@ -7583,27 +7484,27 @@ static void BVDC_P_Display_Apply_Hdmi_Setting_isr
       BVDC_P_ListInfo                 *pList,
       BAVC_Polarity                    eFieldPolarity )
 {
-    if(hDisplay->stCurInfo.stHdmiSettings.stDirty.stBits.bHdmiRmChanged)
-    {
-        BVDC_P_Vec_Build_Hdmi_isr(hDisplay, &hDisplay->stDviChan, pList, true);
-        hDisplay->stCurInfo.stHdmiSettings.stDirty.stBits.bHdmiRmChanged = BVDC_P_CLEAN;
-    }
-    if(hDisplay->stCurInfo.stHdmiSettings.stDirty.stBits.bHdmiColorComponent)
-    {
-        /* Treat color component change as format change */
-        /* Already program DVI_FC in the whole DVI block programming */
-        hDisplay->stCurInfo.stHdmiSettings.stDirty.stBits.bHdmiColorComponent = BVDC_P_CLEAN;
-    }
-
+    BSTD_UNUSED(pList);
     BSTD_UNUSED(eFieldPolarity);
-    if(!BVDC_P_IS_DIRTY(&hDisplay->stCurInfo.stHdmiSettings.stDirty))
-    {
-        hDisplay->stCurInfo.stDirty.stBits.bHdmiSettings = BVDC_P_CLEAN;
-    }
+    hDisplay->stCurInfo.stDirty.stBits.bHdmiSettings = BVDC_P_CLEAN;
 
     return;
 }
 
+/**************** HDMI RM settings event handlers **************/
+static void BVDC_P_Display_Apply_Hdmi_RM_Setting_isr
+    ( BVDC_Display_Handle              hDisplay,
+      BVDC_P_ListInfo                 *pList,
+      BAVC_Polarity                    eFieldPolarity )
+{
+    BVDC_P_Vec_Build_DVI_RM_isr(hDisplay, &hDisplay->stDviChan, pList, true);
+    hDisplay->stCurInfo.stDirty.stBits.bHdmiRmSettings = BVDC_P_CLEAN;
+
+    BSTD_UNUSED(eFieldPolarity);
+    return;
+}
+
+/**************** 3D settings event handlers **************/
 static void BVDC_P_Display_Copy_3D_Setting_isr
     ( BVDC_Display_Handle              hDisplay )
 {
@@ -7631,6 +7532,7 @@ static void BVDC_P_Display_Apply_3D_Setting_isr
     hDisplay->stCurInfo.stDirty.stBits.b3DSetting = BVDC_P_CLEAN;
 }
 
+/**************** VF filter settings event handlers **************/
 static BERR_Code BVDC_P_Display_Validate_VfFilter_Setting_isr
     ( BVDC_Display_Handle              hDisplay )
 {
@@ -7645,7 +7547,7 @@ static BERR_Code BVDC_P_Display_Validate_VfFilter_Setting_isr
             eDisplayOutput = BVDC_DisplayOutput_eComponent;
         else
             eDisplayOutput = BVDC_DisplayOutput_eComposite;
-        if ((eErr = BVDC_P_GetVfFilterSumOfTapsBits (
+        if ((eErr = BVDC_P_GetVfFilterSumOfTapsBits_isr (
             pCurInfo, eDisplayOutput, NULL, NULL)) != BERR_SUCCESS)
         {
             goto fail;
@@ -7658,7 +7560,7 @@ static BERR_Code BVDC_P_Display_Validate_VfFilter_Setting_isr
             eDisplayOutput = BVDC_DisplayOutput_eComponent;
         else
             eDisplayOutput = BVDC_DisplayOutput_eComposite;
-        if ((eErr = BVDC_P_GetVfFilterSumOfTapsBits (
+        if ((eErr = BVDC_P_GetVfFilterSumOfTapsBits_isr (
             pCurInfo, eDisplayOutput, NULL, NULL)) != BERR_SUCCESS)
         {
             goto fail;
@@ -7717,6 +7619,7 @@ static void BVDC_P_Display_Apply_VfFilter_Setting_isr
 }
 
 
+/**************** Output mute settings event handlers **************/
 static void BVDC_P_Display_Copy_OutputMute_Setting_isr
     ( BVDC_Display_Handle              hDisplay )
 {
@@ -7764,6 +7667,7 @@ static void BVDC_P_Display_Apply_OutputMute_Setting_isr
 }
 
 
+/**************** Misc Ctrl settings event handlers **************/
 static void BVDC_P_Display_Copy_bMiscCtrl_isr
     ( BVDC_Display_Handle              hDisplay )
 {
@@ -7889,21 +7793,12 @@ const BVDC_Display_EventHandler BVDC_P_astDisplayEventHndlTbl[] =
          * go to current info directly
          */
         BVDC_P_Display_Validate_SrcFrameRate_Setting,
-        NULL,
+        BVDC_P_Display_Copy_SrcFrameRate_Setting_isr,
         BVDC_P_Display_Apply_SrcFrameRate_Setting_isr
     },
 
-    /* Frame drop event                                            - index 12 */
-    {
-        /* 59.94Hz vs. 60Hz and 29.97Hz vs 30Hz
-         */
-        NULL,
-        BVDC_P_Display_Copy_FrameDrop_Setting_isr,
-        BVDC_P_Display_Apply_FrameDrop_Setting_isr
-    },
-
 #if (BVDC_P_SUPPORT_RFM_OUTPUT != 0)
-    /* RFM configuration event                                     - index 13 */
+    /* RFM configuration event                                     - index 12 */
     {
         /* Enable/disable RFM ouput.
          */
@@ -7913,7 +7808,7 @@ const BVDC_Display_EventHandler BVDC_P_astDisplayEventHndlTbl[] =
     },
 #endif
 
-    /* Enable/disable HDMI event                                   - index 14 */
+    /* Enable/disable HDMI event                                   - index 13 */
     {
         /* Enable/disable HDMI ouput.
          */
@@ -7922,7 +7817,7 @@ const BVDC_Display_EventHandler BVDC_P_astDisplayEventHndlTbl[] =
         BVDC_P_Display_Apply_Hdmi_Config_isr
     },
 
-    /* HDMI output CSC matrix setting event                        - index 15 */
+    /* HDMI output CSC matrix setting event                        - index 14 */
     {
         /* Set new HDMI output CSC matrix.
          */
@@ -7932,7 +7827,7 @@ const BVDC_Display_EventHandler BVDC_P_astDisplayEventHndlTbl[] =
     },
 
 #if (BVDC_P_SUPPORT_ITU656_OUT != 0)
-    /* Enable/disable 656 event                                    - index 16 */
+    /* Enable/disable 656 event                                    - index 15 */
     {
         /* Enable/disable 656 ouput.
          */
@@ -7942,7 +7837,7 @@ const BVDC_Display_EventHandler BVDC_P_astDisplayEventHndlTbl[] =
     },
 #endif
 
-    /* Compenent MPAA setting event                                - index 17 */
+    /* Compenent MPAA setting event                                - index 16 */
     {
         /* Enable/disable MPAA.
          */
@@ -7951,7 +7846,7 @@ const BVDC_Display_EventHandler BVDC_P_astDisplayEventHndlTbl[] =
         BVDC_P_Display_Apply_CompMpaa_Setting_isr
     },
 
-    /* HDMI setting event                                          - index 18 */
+    /* HDMI setting event                                          - index 17 */
     {
         /* Enable/disable MPAA.
          */
@@ -7960,7 +7855,7 @@ const BVDC_Display_EventHandler BVDC_P_astDisplayEventHndlTbl[] =
         BVDC_P_Display_Apply_HdmiMpaa_Setting_isr
     },
 
-    /* Snapshot timestamp event                                    - index 19 */
+    /* Snapshot timestamp event                                    - index 18 */
     {
         /* Take a snapshot of temstamp.
          */
@@ -7969,7 +7864,7 @@ const BVDC_Display_EventHandler BVDC_P_astDisplayEventHndlTbl[] =
         BVDC_P_Display_Apply_TimeStamp_Setting_isr
     },
 
-    /* display alignment event                                     - index 20 */
+    /* display alignment event                                     - index 19 */
     {
         /* Turn on/off alignment.
          */
@@ -7978,15 +7873,7 @@ const BVDC_Display_EventHandler BVDC_P_astDisplayEventHndlTbl[] =
         BVDC_P_Display_Apply_Alignment_Setting_isr
     },
 
-    /* HDMI line-dropping event                                    - index 21 */
-    {
-        /* New HDMI line-dropping settings */
-        NULL,
-        BVDC_P_Display_Copy_HdmiDropLines_Setting_isr,
-        BVDC_P_Display_Apply_HdmiDropLines_Setting_isr
-    },
-
-    /* HDMI XvYcc event                                            - index 22 */
+    /* HDMI XvYcc event                                            - index 20 */
     {
         /* New HDMI XvYcc settings */
         NULL,
@@ -7994,7 +7881,7 @@ const BVDC_Display_EventHandler BVDC_P_astDisplayEventHndlTbl[] =
         BVDC_P_Display_Apply_HdmiXvYcc_Setting_isr
     },
 
-    /* HDMI sync-only event                                        - index 23 */
+    /* HDMI sync-only event                                        - index 21 */
     {
         /* Turn on/off HDMI sync-only feature */
         BVDC_P_Display_Validate_HdmiSyncOnly_Setting,
@@ -8002,7 +7889,7 @@ const BVDC_Display_EventHandler BVDC_P_astDisplayEventHndlTbl[] =
         BVDC_P_Display_Apply_HdmiSyncOnly_Setting_isr
     },
 
-    /* HDMI settings event                                         - index 24 */
+    /* HDMI settings event                                         - index 22 */
     {
         /* Changing Hdmi settings */
         BVDC_P_Display_Validate_Hdmi_Setting,
@@ -8010,7 +7897,15 @@ const BVDC_Display_EventHandler BVDC_P_astDisplayEventHndlTbl[] =
         BVDC_P_Display_Apply_Hdmi_Setting_isr
     },
 
-    /* display aspect ratio event                                  - index 25 */
+    /* HDMI RM       event                                         - index 23 */
+    {
+        /* Changing Hdmi RM settings */
+        NULL,
+        NULL,
+        BVDC_P_Display_Apply_Hdmi_RM_Setting_isr
+    },
+
+    /* display aspect ratio event                                  - index 24 */
     {
         /* asp ratio or aspR canvas clip settings */
         BVDC_P_Display_Validate_AspRatio_Setting,
@@ -8019,7 +7914,7 @@ const BVDC_Display_EventHandler BVDC_P_astDisplayEventHndlTbl[] =
     },
 
 #if (BVDC_P_SUPPORT_STG != 0)
-    /* Enable/disable Stg event                                    - index 26 */
+    /* Enable/disable Stg event                                    - index 25 */
     {
         /* Enable/disable Stg ouput.
          */
@@ -8029,32 +7924,31 @@ const BVDC_Display_EventHandler BVDC_P_astDisplayEventHndlTbl[] =
     },
 #endif
 
-    /* Place holder                                                - index 27 */
+    /* Vf filter                                                   - index 26 */
     {
         BVDC_P_Display_Validate_VfFilter_Setting_isr,
         BVDC_P_Display_Copy_VfFilter_Setting_isr,
         BVDC_P_Display_Apply_VfFilter_Setting_isr
     },
 
-    /* the following place holders are for coverity check only */
-
-    /* Enable/disable output mute event.                           - index 28 */
+    /* Enable/disable output mute event.                           - index 27 */
     {
         NULL,
         BVDC_P_Display_Copy_OutputMute_Setting_isr,
         BVDC_P_Display_Apply_OutputMute_Setting_isr
     },
 
-    /* Place holder                                                - index 29 */
+    /* Misc Ctrl                                                   - index 28 */
     {
         NULL,
         BVDC_P_Display_Copy_bMiscCtrl_isr,
         BVDC_P_Display_Apply_bMiscCtrl_isr
     },
 
+    /* the following place holders are for coverity check only */
     /* to silent coverity defects */
 #if (BVDC_P_SUPPORT_RFM_OUTPUT == 0)
-    /* Extra Place holder                                          - index 13 */
+    /* Extra Place holder                                          - index 12 */
     {
         /* Empty */
         NULL,
@@ -8064,7 +7958,7 @@ const BVDC_Display_EventHandler BVDC_P_astDisplayEventHndlTbl[] =
 #endif
 
 #if (BVDC_P_SUPPORT_ITU656_OUT == 0)
-    /* Extra Place holder                                          - index 16 */
+    /* Extra Place holder                                          - index 15 */
     {
         /* Empty */
         NULL,
@@ -8074,7 +7968,7 @@ const BVDC_Display_EventHandler BVDC_P_astDisplayEventHndlTbl[] =
 #endif
 
 #if (BVDC_P_SUPPORT_STG == 0)
-    /* Extra Place holder                                          - index 26 */
+    /* Extra Place holder                                          - index 25 */
     {
         /* Empty */
         NULL,
@@ -8082,6 +7976,23 @@ const BVDC_Display_EventHandler BVDC_P_astDisplayEventHndlTbl[] =
         NULL
     },
 #endif
+
+    /* Extra Place holder (Coverity)                               - index 29 */
+    {
+        /* Empty */
+        NULL,
+        NULL,
+        NULL
+    },
+
+    /* Extra Place holder (Coverity)                               - index 30 */
+    {
+        /* Empty */
+        NULL,
+        NULL,
+        NULL
+    },
+
     /* Extra Place holder (Coverity)                               - index 31 */
     {
         /* Empty */

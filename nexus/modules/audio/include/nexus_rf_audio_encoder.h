@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2012 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,15 +34,6 @@
 *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
-*
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* Revision History:
-*
-* $brcm_Log: $
-* 
 ***************************************************************************/
 
 #ifndef NEXUS_AUDIO_RF_ENCODER_H__
@@ -212,7 +203,7 @@ Description:
     NEXUS_AudioOutput_AddInput(NEXUS_AudioDac_GetConnector(dac), NEXUS_RfAudioEncoder_GetConnector(rfEncoder));
 
 ***************************************************************************/
-NEXUS_AudioInput NEXUS_RfAudioEncoder_GetConnector( 
+NEXUS_AudioInputHandle NEXUS_RfAudioEncoder_GetConnector(
     NEXUS_RfAudioEncoderHandle handle
     );
 
@@ -228,7 +219,7 @@ This is used to connect to the audio decoder as follows:
 ***************************************************************************/
 NEXUS_Error NEXUS_RfAudioEncoder_AddInput(
     NEXUS_RfAudioEncoderHandle handle,
-    NEXUS_AudioInput input
+    NEXUS_AudioInputHandle input
     );
 
 /***************************************************************************
@@ -237,7 +228,7 @@ Remove an input from this processing stage
 ***************************************************************************/
 NEXUS_Error NEXUS_RfAudioEncoder_RemoveInput(
     NEXUS_RfAudioEncoderHandle handle,
-    NEXUS_AudioInput input
+    NEXUS_AudioInputHandle input
     );
 
 /***************************************************************************

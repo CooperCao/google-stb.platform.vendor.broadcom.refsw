@@ -67,7 +67,6 @@ typedef struct CommonCrypto
     CommonCryptoSettings settings;
     BKNI_EventHandle dmaEvent;
 
-    CommonCryptoHeapInfo videoSecureHeapInfo; /* Retrieve the video secure heap information during initialization */
 }CommonCrypto;
 
 static NEXUS_Error CommonCrypto_LoadClearKey_priv(NEXUS_KeySlotHandle keySlot,
@@ -82,8 +81,6 @@ static NEXUS_Error CommonCrypto_LoadCipheredKey_priv(NEXUS_KeySlotHandle keySlot
                                                      const CommonCryptoKeyLadderSettings   *pKeyLadderInfo);
 
 
-static void CommonCrypto_P_InitializeVideoSecureHeapInfo(CommonCryptoHandle handle);
-static bool CommonCrypto_P_IsInVideoSecureHeap(CommonCryptoHandle handle, NEXUS_Addr offset, uint32_t size);
 static NEXUS_Error CommonCrypto_P_FlushCache(CommonCryptoHandle handle, const uint8_t *address, const uint32_t size);
 
 
@@ -205,8 +202,6 @@ CommonCryptoHandle CommonCrypto_Open(
 
     BKNI_Memcpy(&pCrypto->settings, pSettings, sizeof(*pSettings));
 
-    CommonCrypto_P_InitializeVideoSecureHeapInfo(pCrypto);
-
 handle_error:
     if(rc != NEXUS_SUCCESS)
     {
@@ -295,9 +290,6 @@ NEXUS_Error CommonCrypto_SetSettings(
 
     BKNI_Memcpy(&(handle->settings), pSettings, sizeof(CommonCryptoSettings));
 
-    /* Need to update the video secure heap information. */
-    CommonCrypto_P_InitializeVideoSecureHeapInfo(handle);
-
     return rc;
 }
 
@@ -334,14 +326,14 @@ NEXUS_Error CommonCrypto_DmaXfer(
     BDBG_ASSERT(pBlkSettings != NULL);
     BDBG_ASSERT(pJobSettings != NULL);
 
-    BDBG_MSG(("CommonCrypto_DmaXfer: Enter\n"));
+    BDBG_MSG(("CommonCrypto_DmaXfer: Enter"));
     BDBG_MSG(("%s - Entered function using keySlot '%p'  nBlocks = '%u'", __FUNCTION__, (void*)pJobSettings->keySlot, nBlocks));
 
     /* Since we handle the cache flush locally, we need a private copy of the block settings (we need to modify the settings). */
     pLocalBlkSettings = BKNI_Malloc(nBlocks * sizeof(NEXUS_DmaJobBlockSettings));
     if(pLocalBlkSettings == NULL)
     {
-        BDBG_ERR(("%s - Out of memory\n", __FUNCTION__));
+        BDBG_ERR(("%s - Out of memory", __FUNCTION__));
         rc = NEXUS_OUT_OF_SYSTEM_MEMORY;
         goto errorExit;
     }
@@ -357,7 +349,7 @@ NEXUS_Error CommonCrypto_DmaXfer(
 
     dmaJob = NEXUS_DmaJob_Create(handle->dmaHandle, &jobSettings);
     if(dmaJob == NULL){
-        BDBG_ERR(("%s - NEXUS_DmaJob_Create failed\n", __FUNCTION__));
+        BDBG_ERR(("%s - NEXUS_DmaJob_Create failed", __FUNCTION__));
         rc = BERR_TRACE(NEXUS_NOT_AVAILABLE);
         goto errorExit;
     }
@@ -367,7 +359,7 @@ NEXUS_Error CommonCrypto_DmaXfer(
         if(pLocalBlkSettings[ii].pSrcAddr == NULL ||
            pLocalBlkSettings[ii].pDestAddr == NULL)
         {
-            BDBG_ERR(("%s - pSrcAddr %p or pDestAddr %p is invalid\n", __FUNCTION__, pLocalBlkSettings[ii].pSrcAddr, pLocalBlkSettings[ii].pDestAddr));
+            BDBG_ERR(("%s - pSrcAddr %p or pDestAddr %p is invalid", __FUNCTION__, pLocalBlkSettings[ii].pSrcAddr, pLocalBlkSettings[ii].pDestAddr));
             rc = NEXUS_INVALID_PARAMETER;
             goto errorExit;
         }
@@ -380,7 +372,7 @@ NEXUS_Error CommonCrypto_DmaXfer(
             rc = CommonCrypto_P_FlushCache(handle, pLocalBlkSettings[ii].pSrcAddr, pLocalBlkSettings[ii].blockSize);
             if(rc != NEXUS_SUCCESS)
             {
-                BDBG_ERR(("%s - Failure to flush cache for source buffer.\n", __FUNCTION__));
+                BDBG_ERR(("%s - Failure to flush cache for source buffer.", __FUNCTION__));
                 goto errorExit;
             }
 
@@ -390,7 +382,7 @@ NEXUS_Error CommonCrypto_DmaXfer(
                 rc = CommonCrypto_P_FlushCache(handle, pLocalBlkSettings[ii].pDestAddr, pLocalBlkSettings[ii].blockSize);
                 if(rc != NEXUS_SUCCESS)
                 {
-                    BDBG_ERR(("%s - Failure to flush cache for destination buffer.\n", __FUNCTION__));
+                    BDBG_ERR(("%s - Failure to flush cache for destination buffer.", __FUNCTION__));
                     goto errorExit;
                 }
             }
@@ -407,12 +399,12 @@ NEXUS_Error CommonCrypto_DmaXfer(
         BKNI_WaitForEvent(handle->dmaEvent, BKNI_INFINITE);
         rc = NEXUS_DmaJob_GetStatus(dmaJob, &jobStatus);
         if (rc || (jobStatus.currentState != NEXUS_DmaJobState_eComplete)) {
-            BDBG_ERR(("%s - NEXUS_DmaJob_ProcessBlocks failed, rc = %d\n", __FUNCTION__, rc));
+            BDBG_ERR(("%s - NEXUS_DmaJob_ProcessBlocks failed, rc = %d", __FUNCTION__, rc));
             goto errorExit;
         }
     }
     else if (rc != NEXUS_SUCCESS) {
-        BDBG_ERR(("%s - NEXUS_DmaJob_ProcessBlocks failed, rc = %d\n", __FUNCTION__, rc));
+        BDBG_ERR(("%s - NEXUS_DmaJob_ProcessBlocks failed, rc = %d", __FUNCTION__, rc));
         goto errorExit;
     }
 
@@ -845,38 +837,6 @@ handle_error:
     return rc;
 }
 
-
-
-/* Retrieve the information for the video secure heap and save them into the Common Crypto context. */
-/* If the Common Crypto settings contain an invalid index for the video secure heap, search in all  */
-/* client heaps for a secure heap.                                                                  */
-static void CommonCrypto_P_InitializeVideoSecureHeapInfo(CommonCryptoHandle handle)
-{
-    BDBG_ASSERT(handle != NULL);
-    NEXUS_Memory_GetVideoSecureHeap(&handle->videoSecureHeapInfo.offset, &handle->videoSecureHeapInfo.size);
-    if (handle->videoSecureHeapInfo.size)
-    {
-        BDBG_MSG(("%s: Video secure heap information: offset: 0x%08x, size: %u.", __FUNCTION__, (unsigned)handle->videoSecureHeapInfo.offset, handle->videoSecureHeapInfo.size));
-    }
-    else
-    {
-        BDBG_MSG(("%s: Cannot find a secure heap in client heaps.", __FUNCTION__));
-    }
-
-    return;
-}
-
-
-/* Is the block within the video secure heap? */
-static bool CommonCrypto_P_IsInVideoSecureHeap(CommonCryptoHandle handle, NEXUS_Addr offset, uint32_t size)
-{
-    /* When there is no video secure heap, the heap offset and size will */
-    /* be zero. Therefore, this function will always return false.       */
-    return ((offset >= handle->videoSecureHeapInfo.offset) &&
-            ((offset + size) <= (handle->videoSecureHeapInfo.offset + handle->videoSecureHeapInfo.size)));
-}
-
-
 /* Flush cache for the specified block. The function will skip the flush for blocks located in the video secure heap */
 /* because the memory is not CPU accessible.                                                                         */
 static NEXUS_Error CommonCrypto_P_FlushCache(CommonCryptoHandle handle, const uint8_t *address, const uint32_t size)
@@ -888,7 +848,7 @@ static NEXUS_Error CommonCrypto_P_FlushCache(CommonCryptoHandle handle, const ui
     /* Verify parameters */
     if((handle == NULL) || (address == NULL) || (size == 0))
     {
-        BDBG_ERR(("%s - Invalid parameter.\n", __FUNCTION__));
+        BDBG_ERR(("%s - Invalid parameter.", __FUNCTION__));
         rc = NEXUS_INVALID_PARAMETER;
         goto errorExit;
     }
@@ -897,13 +857,13 @@ static NEXUS_Error CommonCrypto_P_FlushCache(CommonCryptoHandle handle, const ui
     offset = NEXUS_AddrToOffset(address);
     if(offset == 0)
     {
-        BDBG_ERR(("%s - Cannot retrieve offset from address %p.\n", __FUNCTION__, address));
+        BDBG_ERR(("%s - Cannot retrieve offset from address %p.", __FUNCTION__, address));
         rc = NEXUS_INVALID_PARAMETER;
         goto errorExit;
     }
 
     /* Offsets in the video secure heap are not CPU accessible. Therefore, they shall not be flushed. */
-    if(!CommonCrypto_P_IsInVideoSecureHeap(handle, offset, size))
+    if (NEXUS_GetAddrType(address) == NEXUS_AddrType_eCached)
     {
         NEXUS_FlushCache(address, size);
     }

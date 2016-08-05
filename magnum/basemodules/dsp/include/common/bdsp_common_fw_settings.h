@@ -83,6 +83,17 @@ typedef enum BDSP_Audio_DtsEndianType
     BDSP_Audio_DtsEndianType_eINVALID = 0x7FFFFFFF
 }BDSP_Audio_DtsEndianType;
 
+typedef enum BDSP_Raaga_Audio_DatasyncType
+{
+    BDSP_Raaga_Audio_DatasyncType_eNone = 0,                           /* Normal Algo Framesync */
+    BDSP_Raaga_Audio_DatasyncType_ePes,   /* Enable PES based framesync */
+    BDSP_Raaga_Audio_DatasyncType_eSpdif,     /* Enable SPDIF based framesync      */
+    BDSP_Raaga_Audio_DatasyncType_eMax,              /* Invalid/last Entry */
+    BDSP_Raaga_Audio_DatasyncType_eInvalid = 0x7FFFFFFF
+
+} BDSP_Raaga_Audio_DatasyncType;
+
+
 typedef enum BDSP_Audio_AudioInputSource
 {
     BDSP_Audio_AudioInputSource_eExtI2s0 = 0,     /* External I2S Capture port */
@@ -98,7 +109,8 @@ typedef enum BDSP_Audio_AudioInputSource
 
 typedef struct BDSP_AudioTaskDatasyncSettings
 {
-    BDSP_AF_P_EnableDisable         eEnablePESBasedFrameSync;    /* Default = Disabled */
+
+    BDSP_AF_P_EnableDisable eEnablePESBasedFrameSync;/*Kept for firmware use only*/
     BDSP_Audio_AudioInputSource     eAudioIpSourceType;           /* Capture port Type    */
 
     union
@@ -134,6 +146,9 @@ typedef struct BDSP_AudioTaskDatasyncSettings
                                                                          be disabled for normal operation, but may be required for some bit-exact
                                                                          certification testing that requires all data to be rendered even with TSM
                                                                          enabled. */
+
+    /*Added at the end to preserve the entity eEnablePESBasedFrameSync*/
+    BDSP_Raaga_Audio_DatasyncType   eFrameSyncType;
 
 } BDSP_AudioTaskDatasyncSettings ;
 

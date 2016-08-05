@@ -35,7 +35,7 @@ typedef struct
    GFX_LFMT_T  depth_stencil_api_fmt;
    GFX_LFMT_T  stencil_api_fmt;
    GFX_LFMT_T  mask_api_fmt;
-   int         min_v3d_ver;
+   bool        invalid;
 }
 EGL_CONFIG_T;
 

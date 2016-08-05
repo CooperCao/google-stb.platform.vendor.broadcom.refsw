@@ -214,7 +214,6 @@ int main(void)
         if (frameStatus.pictureCoding != NEXUS_PictureCoding_eI) BDBG_ERR(("unexpected picture coding %u", frameStatus.pictureCoding));
 
         /* destripe */
-        NEXUS_Surface_Flush(surface); /* flush CPU read before DMA write */
         NEXUS_Graphics2D_GetDefaultDestripeBlitSettings(&blitSettings);
         blitSettings.source.stripedSurface = NEXUS_StripedSurface_Create(&frameStatus.surfaceCreateSettings);
         blitSettings.output.surface = surface;
@@ -292,6 +291,7 @@ static int picdecoder_write_bmp(const char *pictureFilename, NEXUS_SurfaceHandle
 
     NEXUS_Surface_GetCreateSettings(surface, &createSettings);
     NEXUS_Surface_GetMemory(surface, &mem);
+    NEXUS_Surface_Flush(surface); /* flush CPU read after DMA write (avoids stale RAC) */
     /* TODO: expand support */
     if (createSettings.pixelFormat != NEXUS_PixelFormat_eA8_R8_G8_B8) {
         return BERR_TRACE(NEXUS_NOT_SUPPORTED);

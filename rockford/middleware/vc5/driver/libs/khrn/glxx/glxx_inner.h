@@ -26,8 +26,7 @@ extern void glxx_hw_render_state_rw(GLXX_SERVER_STATE_T *state, GLXX_HW_RENDER_S
 extern void glxx_hw_render_state_flush(GLXX_HW_RENDER_STATE_T *render_state);
 
 extern bool glxx_hw_start_frame_internal(GLXX_HW_RENDER_STATE_T *rs,
-      GLXX_HW_FRAMEBUFFER_T *fb);
-extern void glxx_hw_invalidate_internal(GLXX_HW_RENDER_STATE_T *rs, bool rt[GLXX_MAX_RENDER_TARGETS], bool color, bool multisample, bool depth, bool stencil);
+      const GLXX_HW_FRAMEBUFFER_T *fb);
 
 extern void glxx_hw_discard_frame(GLXX_HW_RENDER_STATE_T *rs);
 

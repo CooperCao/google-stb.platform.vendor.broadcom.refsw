@@ -116,8 +116,11 @@ bool khrn_render_state_set_iterate_cb(const khrn_render_state_set_t *set,
 /* For debugging */
 extern unsigned khrn_hw_render_state_allocated_order(const GLXX_HW_RENDER_STATE_T *hw_rs);
 
-/* For each hw/glxx renderstate, execute the callback function. */
-/* Early out if callback returned true. */
+/* For each hw/glxx renderstate, execute the callback function. If a callback
+ * returns true, it is considered and early exit and we stop iterating through
+ * the rest of the render states; Note: If iterating through all the glxx
+ * render states is needed, the callback function must return false in all
+ * cases*/
 typedef bool (*glxx_hw_rs_foreach_callback)(GLXX_HW_RENDER_STATE_T *hw_rs, void *data);
 extern void glxx_hw_render_state_foreach(glxx_hw_rs_foreach_callback callback, void *data);
 

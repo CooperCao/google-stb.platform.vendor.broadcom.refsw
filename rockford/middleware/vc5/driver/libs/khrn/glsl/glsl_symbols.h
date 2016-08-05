@@ -14,16 +14,12 @@ FILE DESCRIPTION
 #include <stdlib.h>
 #include <string.h>
 
-#include "../glxx/gl_public_api.h"
-
 #include "glsl_const_types.h"
 #include "glsl_dataflow.h"
-#include "glsl_basic_block.h"
 #include "glsl_intrinsic_types.h"
 #include "glsl_primitive_type_index.auto.h"
-#include "glsl_uniform_layout.h"
+#include "glsl_mem_layout.h"
 #include "glsl_precision.h"
-#include "glsl_map.h"
 #include "glsl_nast.h"
 
 // Defines the representation of symbols.
@@ -73,7 +69,7 @@ typedef struct
 
    LayoutQualifier *lq;
 
-   MEMBER_LAYOUT_T *layout;
+   MemLayout *layout;
 
    bool has_named_instance;
 } BlockType;
@@ -197,7 +193,6 @@ typedef void (*FoldingFunction)(void);
 struct _Symbol
 {
    const char *name;
-   int line_num;
    SymbolFlavour flavour;
 
    /*
@@ -242,9 +237,12 @@ struct _Symbol
             /* If this is a default-block uniform then block_symbol is NULL  *
              * otherwise it points to the entry in the interface block table */
             Symbol *block_symbol;
+            /* For members of anonymous blocks this identifies which block member *
+             * this symbol is an alias for. Otherwise -1                          */
+            int field_no;
 
             /* For default-block this points to a dummy */
-            MEMBER_LAYOUT_T *layout;
+            MemLayout *layout;
          } block_info;
       } var_instance;
 
@@ -274,6 +272,7 @@ struct _Symbol
 
       struct {
          StorageQualifier sq;
+         TypeQualifier    tq;
 
          SymbolType *block_data_type;
 

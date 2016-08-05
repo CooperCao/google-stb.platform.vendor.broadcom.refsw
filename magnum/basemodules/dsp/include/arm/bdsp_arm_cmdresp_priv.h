@@ -323,6 +323,8 @@ from host to any task on DSP */
 #define BDSP_ARM_AUDIO_OUTPUT_UNFREEZE_COMMAND_RESPONSE_ID       \
          ((uint32_t)((BDSP_ARM_AUDIO_OUTPUT_FREEZE_COMMAND_RESPONSE_ID ) + 1))        /** 0x30C **/
 
+#define BDSP_ARM_HBC_SET_WATCHDOG_RESPONSE_ID       \
+         ((uint32_t)((BDSP_ARM_AUDIO_OUTPUT_UNFREEZE_COMMAND_RESPONSE_ID ) + 1))        /** 0x30D **/
 /***************************************************************************
 Summary:
     Enum indicating Mask bit for Enabling/Disabling specific event for a task.
@@ -537,7 +539,10 @@ See Also:
 typedef struct BDSP_Arm_P_AckInfo
 {
     BDSP_Arm_P_AckType          eAckType;           /*  type of Ack from Arm */
-    uint32_t                    ui32TaskID;         /*  Task ID */
+	union {
+		uint32_t                    ui32TaskID;         /*  Task ID */
+		uint32_t                    ui32DeviceCmdResp;     /*  Device Resp */
+	}params;
 } BDSP_Arm_P_AckInfo;
 
 
@@ -553,5 +558,42 @@ typedef struct BDSP_Arm_P_AckInfo
 
 /* This define return the fixed size value for any Async Event */
 #define BDSP_ARM_ASYNC_RESPONSE_SIZE_IN_BYTES        SIZEOF(BDSP_Arm_P_AsynEventMsg)
+
+
+typedef enum BDSP_ArmDspMsg
+{
+    BDSP_ARM_DSP_MSG_INIT_PARAMS = 1,           /* ArmDsp intialization parameters */
+    BDSP_ARM_DSP_MSG_CLOSE_APP = 2,
+    BDSP_ARM_DSP_MSG_HBC_INFO = 3,
+    BDSP_ARM_DSP_MSG_LAST
+}BDSP_ArmDspMsg;
+
+typedef struct BDSP_ArmDspSystemInitParams
+{
+    uint32_t QueueHandleArryPhyAddr;
+    uint32_t ui32NumQueueHandle;
+    uint32_t cmdQueueHandlePhyAddr;
+    uint32_t genRspQueueHandlePhyAddr;
+}BDSP_ArmDspSystemInitParams;
+
+typedef struct BDSP_ArmDspSystemInitParamsResp
+{
+   uint32_t checksum;
+}BDSP_ArmDspSystemInitParamsResp;
+
+typedef struct BDSP_ArmDspHbcParams
+{
+	uint32_t *hbcValidDramAddr;
+	uint32_t *hbcDramAddr;
+}BDSP_ArmDspHbcParams;
+
+typedef struct BDSP_ArmDspSystemCmd
+{
+    BDSP_ArmDspMsg eArmSysMsg;
+    union{
+        BDSP_ArmDspSystemInitParams sInitParams;
+		BDSP_ArmDspHbcParams sHbcParams;
+    }uCommand;
+}BDSP_ArmDspSystemCmd;
 
 #endif /* BDSP_ARM_CMDRESP_PRIV_H__ */

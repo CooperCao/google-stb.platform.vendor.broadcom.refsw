@@ -57,7 +57,7 @@
 extern "C" void sortTest();
 
 void printArray(const int *array, size_t arraySize) {
-    for (int i=0; i<arraySize; i++)
+    for (int i=0; i<(int)arraySize; i++)
         std::cout << array[i] << " ";
     std::cout << std::endl;
 }
@@ -77,13 +77,13 @@ void printTimeDiff(const timespec *before, const timespec *after) {
 }
 
 void checkSortOrder(int *array, size_t arraySize) {
-    for (int i=0; i<arraySize-1; i+=2) {
+    for (int i=0; i<(int)arraySize-1; i+=2) {
         assert(array[i] <= array[i+1]);
     }
 }
 
 void insertionSort(int *array, size_t arraySize) {
-    for (int i=1; i<arraySize; i++) {
+    for (int i=1; i<(int)arraySize; i++) {
         int j=i-1;
         int key = array[i];
         while ((j >= 0) && (key < array[j])) {
@@ -96,10 +96,10 @@ void insertionSort(int *array, size_t arraySize) {
 
 void selectionSort(int *array, size_t arraySize) {
 
-    for (int i=0; i<arraySize-1; i++) {
+    for (int i=0; i<(int)arraySize-1; i++) {
         int minElement = std::numeric_limits<int>::max();
         int minIdx = -1;
-        for (int j=i+1; j<arraySize; j++) {
+        for (int j=i+1; j<(int)arraySize; j++) {
             if (array[j] < minElement) {
                 minElement = array[j];
                 minIdx = j;

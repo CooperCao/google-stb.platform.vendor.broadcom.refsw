@@ -72,4 +72,27 @@
  */
 #define ZBPRO_ZDO_CHANNEL_CHANGE_REPORTS_AMOUNT 3
 
+/**//**
+ * \brief   Threshold for nwkTxTotal attribute to activate ZDO Frequency Agility.
+ * \details
+ *  For the Frequency Agility to be activated, the value of nwkTxTotal must be greater
+ *  than this threshold.
+ * \par     Documentation
+ *  See ZigBee Document 053474r20, annex E.
+ */
+#define ZBPRO_ZDO_FREQUENCY_AGILITY_THRESHOLD_TX_TOTAL          20
+
+
+/**//**
+ * \brief   Threshold for Transmission Error Rate to trigger ZDO Frequency Agility, in
+ *  percentage points.
+ * \details
+ *  For the Frequency Agility to be triggered, the percentage of total transmission
+ *  failures over all the actual neighbors to the total number of unicast transactions
+ *  shall be greater than this threshold.
+ * \par     Documentation
+ *  See ZigBee Document 053474r20, annex E.
+ */
+#define ZBPRO_ZDO_FREQUENCY_AGILITY_THRESHOLD_TX_ERROR_RATE     25
+
 #endif /* _ZBPRO_ZDO_CONFIG_H */

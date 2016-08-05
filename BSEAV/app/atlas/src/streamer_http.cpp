@@ -83,8 +83,9 @@ CStreamerHttp::CStreamerHttp(
     _pAtlasId(NULL),
     _enableHls(false),
     _enableXcode(false),
+    _enableLuaXcode(false),
     _enableDtcpIp(false),
-    _xcodeProfile(NULL),
+    _xcodeProfile(),
     _pConfig(NULL)
 {
     BDBG_ASSERT(NULL != pCfg);
@@ -157,6 +158,31 @@ void CStreamerHttp::setProgram(const char * str)
               ));
 #endif /* if 0 */
 } /* setProgram */
+
+void CStreamerHttp::setTranscodeOption(const char * str)
+{
+    MString urlString = str;
+    MString xcodeDetect;
+    int i;
+
+/*    index = urlString.find('=', 0, true);*/
+
+   if ((i = urlString.findRev(".xcode")) != -1)
+   {
+       _enableLuaXcode = true;
+   }
+
+   if ((i = urlString.findRev(".720p")) != -1)
+   {
+       _xcodeProfile = "720p";
+   }
+   else if((i = urlString.findRev(".480p")) != -1)
+   {
+      _xcodeProfile = "480p";
+   }
+
+} /* setTranscodeOption */
+
 
 void CStreamerHttp::setStreamerInputType(const char * url)
 {
@@ -263,10 +289,12 @@ eRet CStreamerHttp::open(BIP_HttpRequestHandle hHttpRequest)
             }
 
             _mediaFileAbsoloutePath = mediaDirectoryPath.s() + requestedUrlPath;
-
+            _enableLuaXcode = false;
+            _xcodeProfile = "720p";
             if (mUrl.search())
             {
                 setProgram(mUrl.search());
+                setTranscodeOption(mUrl.search());
             }
             BDBG_MSG(("mUrl  mUrl.path() =|%s|+++++++++++++++++++++search:|%s|\n", mUrl.path(), mUrl.search()));
             BDBG_MSG((BIP_MSG_PRE_FMT " _mediaFileAbsoloutePath --------------------> %s" BIP_MSG_PRE_ARG, _mediaFileAbsoloutePath.s()));
@@ -292,8 +320,12 @@ eRet CStreamerHttp::open(BIP_HttpRequestHandle hHttpRequest)
         else
         if (_streamerInputType == eHttpStreamerInputType_Tuner)
         {
+            int     i;
+            int     j;
+            MString requestedUrlPath;
             CChannelMgr * pChannelMgr = NULL;
             CChannel *    pChannel    = NULL;
+
             pModel = _pServerHttp->getModel();
             BDBG_ASSERT(NULL != pModel);
             _pAtlasId = pModel->getId();
@@ -308,7 +340,37 @@ eRet CStreamerHttp::open(BIP_HttpRequestHandle hHttpRequest)
                 CHECK_ERROR_GOTO("Do tuner specific operation ------------------------------->", ret, error);
             }
 
-            pChannel = pChannelMgr->findChannel(_tuneChannelName.s());
+            requestedUrlPath        = MString(_tuneChannelName.s());
+            /* Setting the flags as per the client request suffixes and creating the requested URL path by removing the suffixes from the url */
+#if B_HAS_DTCP_IP
+            if ((i = requestedUrlPath.findRev(".dtcpIp")) != -1) /* If client is requesting with dtcp_ip support ON*/
+            {
+                _enableDtcpIp = true;
+                if ((j = requestedUrlPath.findRev(".xcode")) != -1) /* Taking care of (dtcp_ip + transcode) requested with .dtcpIp.xcode OR .xcode.dtcpIp suffixes */
+                {
+                    _enableXcode = true;
+                    requestedUrlPath.truncate((i < j) ? i : j);
+                }
+                else
+                {
+                    requestedUrlPath.truncate(i);
+                }
+            }
+#endif /* if B_HAS_DTCP_IP */
+            if ((i = requestedUrlPath.findRev(".m3u8")) != -1) /*If client is requesting with HLS support*/
+            {
+                _enableHls = true;
+                requestedUrlPath.truncate(i);
+            }
+            else
+            if ((j = requestedUrlPath.findRev(".xcode")) != -1) /*If client is requesting with transcode support*/
+            {
+                _enableXcode = true;
+                requestedUrlPath.truncate(j);
+            }
+
+            pChannel = pChannelMgr->findChannel(requestedUrlPath.s());
+
 
             if (NULL == pChannel)
             {
@@ -522,6 +584,9 @@ eRet CStreamerHttp::start(BIP_HttpRequestHandle hHttpRequest)
     BIP_Status             bipStatus      = BIP_SUCCESS;
     BIP_HttpResponseStatus responseStatus = BIP_HttpResponseStatus_e500_InternalServerError;
     int                    i;
+    CModel *               pModel         = NULL;
+
+    pModel        = _pServerHttp->getModel();
 
     /* Create HttpStreamer. */
     {
@@ -731,15 +796,15 @@ eRet CStreamerHttp::start(BIP_HttpRequestHandle hHttpRequest)
     {
 #if NEXUS_HAS_VIDEO_ENCODER
         BIP_TranscodeProfile transcodeProfile;
-        if (!_xcodeProfile) { _xcodeProfile = TRANSCODE_PROFILE_720p_AVC; }
-        if (_enableXcode)
+        if (_xcodeProfile.isEmpty()) { _xcodeProfile = "720p"; }
+        if (_enableXcode || _enableLuaXcode)
         {
-            if (MString(_xcodeProfile) == TRANSCODE_PROFILE_720p_AVC)
+            if (_xcodeProfile == "720p")
             {
                 BIP_Transcode_GetDefaultProfileFor_720p30_AVC_AAC_MPEG2_TS(&transcodeProfile);
             }
             else
-            if (MString(_xcodeProfile) == TRANSCODE_PROFILE_480p_AVC)
+            if (_xcodeProfile == "480p")
             {
                 BIP_Transcode_GetDefaultProfileFor_480p30_AVC_AAC_MPEG2_TS(&transcodeProfile);
             }

@@ -1,23 +1,40 @@
-/***************************************************************************
- *     Copyright (c) 2003-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
- *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
- ***************************************************************************/
+/******************************************************************************
+*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*
+*  This program is the proprietary software of Broadcom and/or its licensors,
+*  and may only be used, duplicated, modified or distributed pursuant to the terms and
+*  conditions of a separate, written license agreement executed between you and Broadcom
+*  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+*  no license (express or implied), right to use, or waiver of any kind with respect to the
+*  Software, and Broadcom expressly reserves all rights in and to the Software and all
+*  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+*  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+*  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+*
+*  Except as expressly set forth in the Authorized License,
+*
+*  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+*  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+*  and to use this information only in connection with your use of Broadcom integrated circuit products.
+*
+*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+*  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+*  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+*  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+*  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+*  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+*  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+*  USE OR PERFORMANCE OF THE SOFTWARE.
+*
+*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+*  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+*  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+*  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+*  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+*  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+*  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+*  ANY LIMITED REMEDY.
+******************************************************************************/
 
 #include "bmmd.h"
 #include "blst_squeue.h"
@@ -402,7 +419,7 @@ BERR_Code BMMD_Open(
         pMmd->baseRegOffset += (BCHP_SHARF_MEM_DMA1_FIRST_DESC-BCHP_SHARF_MEM_DMA0_FIRST_DESC);
     }
 #endif
-    BDBG_MSG_TRACE(("%#lx: baseRegOffset %#lx", pMmd, pMmd->baseRegOffset));
+    BDBG_MSG_TRACE(("%p: baseRegOffset %#x", (void*)pMmd, pMmd->baseRegOffset));
 
     BLST_S_INIT(&pMmd->ctxList);
     BLST_SQ_INIT(&pMmd->activeCtxList);
@@ -447,7 +464,7 @@ BERR_Code BMMD_Open(
     if (rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc); goto error; }
     *((uint32_t*)pMmd->qmdConstCached) = BMMD_P_COMPLETION_CODE;
     BMEM_FlushCache(pMmd->mem, pMmd->qmdConstCached, 4);
-    BDBG_MSG_TRACE(("%#lx: QMD source cached %#lx, offset %#lx", pMmd, pMmd->qmdConstCached, pMmd->qmdConstOffset));
+    BDBG_MSG_TRACE(("%p: QMD source cached %#x, offset %#x", (void*)pMmd, pMmd->qmdConstCached, pMmd->qmdConstOffset));
 
     *phMmd = pMmd;
     return BERR_SUCCESS;
@@ -602,7 +619,7 @@ BMMD_ContextHandle BMMD_Context_Create(
     if (rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc); goto err_mem_alloc; }
     rc = BMEM_ConvertAddressToOffset(hMmd->mem, ptr, &pCtx->firstDescOffset);
     if (rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc); goto err_mem_alloc; }
-    BDBG_MSG_TRACE(("%#lx create: firstDesc %#lx, offset %#lx, blocks %#x", pCtx, pCtx->firstDescCached, pCtx->firstDescOffset, pSettings->maxNumBlocks));
+    BDBG_MSG_TRACE(("%p create: firstDesc %#x, offset %#x, blocks %#x", (void*)pCtx, pCtx->firstDescCached, pCtx->firstDescOffset, pSettings->maxNumBlocks));
 
     /* initialize all (maxNumBlocks+1) descriptors */
     BKNI_Memset(pCtx->firstDescCached, 0, (1+pCtx->settings.maxNumBlocks)*BMMD_P_DESC_SIZE);
@@ -742,7 +759,7 @@ void BMMD_P_DumpActiveCtxStatus_isrsafe(BMMD_Handle mmd)
     bool complete;
     for (ctx=BLST_SQ_FIRST(&mmd->activeCtxList); ctx; ctx=BLST_SQ_NEXT(ctx, activeNode)) {
         complete = BMMD_Context_P_IsComplete_isr(ctx);
-        BKNI_Printf("%#lx %d\n", ctx->firstDescOffset, complete);
+        BKNI_Printf("%#x %d\n", ctx->firstDescOffset, complete);
     }
 }
 
@@ -754,7 +771,7 @@ BMMD_P_CheckAll_isr(BMMD_Handle mmd)
 
     while (NULL!=(ctx=BLST_SQ_FIRST(&mmd->activeCtxList))) {
         if (BMMD_Context_P_IsComplete_isr(ctx)) {
-            BDBG_MSG_TRACE(("%#lx notify from idle", ctx->firstDescOffset));
+            BDBG_MSG_TRACE(("%#x notify from idle", ctx->firstDescOffset));
             BMMD_Context_P_NotifyFirst_isr(mmd, ctx);
         }
         else {
@@ -764,7 +781,7 @@ BMMD_P_CheckAll_isr(BMMD_Handle mmd)
 #endif
 #endif
 
-            BDBG_MSG_TRACE(("%#lx restart", ctx->firstDescOffset));
+            BDBG_MSG_TRACE(("%#x restart", ctx->firstDescOffset));
 
             BREG_Write32(mmd->reg, mmd->baseRegOffset+BCHP_MEM_DMA_0_CTRL,
                 BCHP_FIELD_DATA(MEM_DMA_0_CTRL, RUN, false));
@@ -801,7 +818,7 @@ BMMD_P_UpdateStatus_isr(BMMD_Handle mmd, bool isr)
             BDBG_MSG_TRACE(("update: busy"));
             while (NULL!=(ctx = BLST_SQ_FIRST(&mmd->activeCtxList))) {
                 if (BMMD_Context_P_IsComplete_isr(ctx)) {
-                    BDBG_MSG_TRACE(("%#lx notify from busy", ctx->firstDescOffset));
+                    BDBG_MSG_TRACE(("%#x notify from busy", ctx->firstDescOffset));
                     BMMD_Context_P_NotifyFirst_isr(mmd, ctx);
                 }
                 else {
@@ -816,7 +833,7 @@ BMMD_P_UpdateStatus_isr(BMMD_Handle mmd, bool isr)
                         BKNI_Delay(1);
                         data = BREG_Read32(mmd->reg, mmd->baseRegOffset+BCHP_MEM_DMA_0_STATUS);
                         if (BCHP_GET_FIELD_DATA(data, MEM_DMA_0_STATUS, DMA_STATUS)==BCHP_MEM_DMA_0_STATUS_DMA_STATUS_Sleep) {
-                            BDBG_MSG(("%#lx UpdateStatus while busy->sleep", ctx->firstDescOffset));
+                            BDBG_MSG(("%#x UpdateStatus while busy->sleep", ctx->firstDescOffset));
                             BMMD_P_CheckAll_isr(mmd);
                         }
                     }
@@ -841,7 +858,7 @@ static void BMMD_P_CompleteCallback_isr(void *pParam1, int parm2)
     if (BLST_S_EMPTY(&mmd->ctxList)) { return; }
 
 #if 0
-    BDBG_MSG_TRACE(("CUR_DESC %#lx", BREG_Read32(mmd->reg, mmd->baseRegOffset+BCHP_MEM_DMA_0_CUR_DESC)));
+    BDBG_MSG_TRACE(("CUR_DESC %#x", BREG_Read32(mmd->reg, mmd->baseRegOffset+BCHP_MEM_DMA_0_CUR_DESC)));
 #endif
     BMMD_P_UpdateStatus_isr(mmd, true);
     return;
@@ -867,16 +884,16 @@ BMMD_Context_P_Start_isr(BMMD_Handle mmd, BMMD_ContextHandle ctx)
         BDBG_ASSERT(mmd->numSgCtx==0);
 #else
         if (status == BCHP_MEM_DMA_0_STATUS_DMA_STATUS_Busy) {
-            BDBG_WRN(("%#lx start while BUSY", ctx->firstDescOffset));
+            BDBG_WRN(("%#x start while BUSY", ctx->firstDescOffset));
             /* activeCtxList may need to be cleared, if we got here via (!lastCtx) */
         }
         if (mmd->numSgCtx) {
-            BDBG_WRN(("%#lx start with sg %u", ctx->firstDescOffset, mmd->numSgCtx));
+            BDBG_WRN(("%#x start with sg %u", ctx->firstDescOffset, mmd->numSgCtx));
             mmd->numSgCtx = 0;
         }
 #endif
 
-        BDBG_MSG_TRACE(("%#lx start  %u, QMD %#lx", ctx->firstDescOffset, status, qmdOffset));
+        BDBG_MSG_TRACE(("%#x start  %u, QMD %#x", ctx->firstDescOffset, status, qmdOffset));
         BREG_Write32(mmd->reg, mmd->baseRegOffset+BCHP_MEM_DMA_0_CTRL,
             BCHP_FIELD_DATA(MEM_DMA_0_CTRL, RUN, false));
         BREG_Write32(mmd->reg, mmd->baseRegOffset+BCHP_MEM_DMA_0_FIRST_DESC,
@@ -888,12 +905,12 @@ BMMD_Context_P_Start_isr(BMMD_Handle mmd, BMMD_ContextHandle ctx)
     }
     else {
 #if BMMD_P_AVOID_WAKE /* avoid using WAKE for all platforms */
-        BDBG_MSG_TRACE(("%#lx postpone, QMD %#lx", ctx->firstDescOffset, qmdOffset));
+        BDBG_MSG_TRACE(("%#x postpone, QMD %#x", ctx->firstDescOffset, qmdOffset));
 #else
         uint32_t data = lastCtx->dmaDesc_3;
 
         if (mmd->numSgCtx==0) { /* always true for 40nm platforms */
-            BDBG_MSG_TRACE(("%#lx link   %u, QMD %#lx", ctx->firstDescOffset, status, qmdOffset));
+            BDBG_MSG_TRACE(("%#x link   %u, QMD %#x", ctx->firstDescOffset, status, qmdOffset));
             /* update NEXT_DESC_ADDR, clear LAST in previous descriptor and hit WAKE, in that order */
             lastCtx->lastDescCached[3] = data | BCHP_FIELD_DATA(MEM_DMA_DESC_WORD3, NEXT_DESC_ADDR, ctx->firstDescOffset>>BCHP_MEM_DMA_DESC_WORD3_NEXT_DESC_ADDR_SHIFT);
             lastCtx->lastDescCached[2] &= ~(BCHP_FIELD_DATA(MEM_DMA_DESC_WORD2, LAST, 1));
@@ -902,7 +919,7 @@ BMMD_Context_P_Start_isr(BMMD_Handle mmd, BMMD_ContextHandle ctx)
                 BCHP_FIELD_DATA(MEM_DMA_0_WAKE_CTRL, WAKE, 1));
         }
         else {
-            BDBG_MSG_TRACE(("%#lx postpone, QMD %#lx", ctx->firstDescOffset, qmdOffset));
+            BDBG_MSG_TRACE(("%#x postpone, QMD %#x", ctx->firstDescOffset, qmdOffset));
         }
 #endif
         /* mmd->numSgCtx++ takes place in Enqueue() */
@@ -943,18 +960,18 @@ static BERR_Code BMMD_Context_P_PrepareBlocks(
             uint32_t end = context->firstDescOffset + BMMD_P_DESC_SIZE*(context->settings.maxNumBlocks+1); /* not inclusive. don't use lastDescOffset because a) it's not populated yet, b) it's dependent on how many descs you queue */
 
             if (pSettings->src >= beg && pSettings->src < end) {
-                BDBG_WRN(("%#lx: src %#lx reads from BMMD private descriptor memory location", ctx->firstDescOffset, pSettings->src));
+                BDBG_WRN(("%#x: src %#x reads from BMMD private descriptor memory location", ctx->firstDescOffset, pSettings->src));
                 /* it's a warning, but continue */
             }
 
             if (pSettings->dst >= beg && pSettings->dst < end) {
-                BDBG_ERR(("%#lx: dst %#lx writes to BMMD private descriptor memory location", ctx->firstDescOffset, pSettings->dst));
+                BDBG_ERR(("%#x: dst %#x writes to BMMD private descriptor memory location", ctx->firstDescOffset, pSettings->dst));
                 return BERR_TRACE(BERR_INVALID_PARAMETER);
             }
         }
         /* do a similar check for the QMD const location */
         if (pSettings->dst >= ctx->parent->qmdConstOffset && pSettings->dst < ctx->parent->qmdConstOffset+4) {
-            BDBG_ERR(("%#lx: dst %#lx writes to BMMD private const memory location", ctx->firstDescOffset, pSettings->dst));
+            BDBG_ERR(("%#x: dst %#x writes to BMMD private const memory location", ctx->firstDescOffset, pSettings->dst));
             return BERR_TRACE(BERR_INVALID_PARAMETER);
         }
 #endif
@@ -964,34 +981,34 @@ static BERR_Code BMMD_Context_P_PrepareBlocks(
             unsigned b_size = ctx->settings.memoryBounds.size;
 
             if (pSettings->src < b_offset || (pSettings->src+pSettings->size > b_offset+b_size)) {
-                BDBG_ERR(("%#lx: src violates memory bounds %#lx:%#x %#lx:%#x", ctx->firstDescOffset,
+                BDBG_ERR(("%#x: src violates memory bounds %#x:%#x %#x:%#x", ctx->firstDescOffset,
                     pSettings->src, pSettings->size, b_offset, b_size));
                 return BERR_INVALID_PARAMETER;
             }
 
             if (pSettings->dst < b_offset || (pSettings->dst+pSettings->size > b_offset+b_size)) {
-                BDBG_ERR(("%#lx: dst violates memory bounds %#lx:%#x %#lx:%#x", ctx->firstDescOffset,
+                BDBG_ERR(("%#x: dst violates memory bounds %#x:%#x %#x:%#x", ctx->firstDescOffset,
                     pSettings->dst, pSettings->size, b_offset, b_size));
                 return BERR_INVALID_PARAMETER;
             }
         }
         if (pSettings->sgScramStart) {
             if (sgStart) {
-                BDBG_ERR(("%#lx: unpaired sgScramStart flag", ctx->firstDescOffset, i));
+                BDBG_ERR(("%#x: unpaired sgScramStart flag", ctx->firstDescOffset));
                 return BERR_TRACE(BERR_INVALID_PARAMETER);
             }
             sgStart = true;
         }
         if (pSettings->sgScramEnd) {
             if (!sgStart) {
-                BDBG_ERR(("%#lx: unpaired sgScramEnd flag", ctx->firstDescOffset, i));
+                BDBG_ERR(("%#x: unpaired sgScramEnd flag", ctx->firstDescOffset));
                 return BERR_TRACE(BERR_INVALID_PARAMETER);
             }
             sgStart = false;
         }
 
         if (i==numBlocks-1 && sgStart) {
-            BDBG_ERR(("%#lx: unpaired sgScramStart flag", ctx->firstDescOffset, i));
+            BDBG_ERR(("%#x: unpaired sgScramStart flag", ctx->firstDescOffset));
             return BERR_TRACE(BERR_INVALID_PARAMETER);
         }
 
@@ -1164,7 +1181,7 @@ BERR_Code BMMD_Context_Enqueue(
             break;
         case BCHP_MEM_DMA_0_STATUS_DMA_STATUS_Sleep:
             if (BMMD_Context_P_IsComplete_isr(hCtx)) {
-                BDBG_MSG_TRACE(("%#lx slow/fast complete", hCtx->firstDescOffset));
+                BDBG_MSG_TRACE(("%#x slow/fast complete", hCtx->firstDescOffset));
                 hCtx->state = BMMD_Context_P_State_eIdle; /* don't even need to add into the list */
                 BKNI_LeaveCriticalSection();
                 goto completed;
@@ -1172,7 +1189,7 @@ BERR_Code BMMD_Context_Enqueue(
             /* keep going */
         default:
             /* add into the list and run normal completion sequence */
-            BDBG_MSG_TRACE(("%#lx fastcheck", hCtx->firstDescOffset));
+            BDBG_MSG_TRACE(("%#x fastcheck", hCtx->firstDescOffset));
 #if BMMD_DEBUG_MODE
 #if BMMD_P_DMA_REV_2A
             BDBG_ASSERT(0);
@@ -1228,7 +1245,7 @@ void BMMD_Context_P_Destroy(
     if (hCtx->parent->lastQueuedCtx == hCtx) { /* BMMD_Context_P_Start_isr() may try to use lastQueuedCtx, so clear it */
         hCtx->parent->lastQueuedCtx = NULL;
     }
-    BDBG_MSG_TRACE(("%#lx destroy", hCtx));
+    BDBG_MSG_TRACE(("%p destroy", (void*)hCtx));
     BLST_S_REMOVE(&(hCtx->parent->ctxList), hCtx, BMMD_Context, ctxNode);
     BMEM_FreeCached(hCtx->parent->mem, hCtx->firstDescCached);
 #ifdef BCHP_PWR_RESOURCE_DMA
@@ -1250,7 +1267,7 @@ void BMMD_Context_Destroy(
 #if BMMD_DEBUG_MODE
         BDBG_ASSERT(0); /* don't allow */
 #endif
-        BDBG_ERR(("BMMD_Context_Destroy: %#lx is busy, leaking context", (unsigned long)hCtx));
+        BDBG_ERR(("BMMD_Context_Destroy: %p is busy, leaking context", (void*)hCtx));
         /* when marked as destroyed, as long as the context's descriptor memory is alive,
            BMMD can figure out the completion status and remove it from activeCtxList, if needed */
         hCtx->state = BMMD_Context_P_State_eDestroyed;
@@ -1281,7 +1298,7 @@ void BMMD_Close(
 
     /* all pending operations are done. shutdown */
     while ((ctx = BLST_S_FIRST(&hMmd->ctxList))) {
-        BDBG_WRN(("BMMD_Close: stale context %#lx (%s)", (unsigned long)ctx, ctx->state==BMMD_Context_P_State_eIdle?"idle":"active"));
+        BDBG_WRN(("BMMD_Close: stale context %p (%s)", (void*)ctx, ctx->state==BMMD_Context_P_State_eIdle?"idle":"active"));
         BMMD_Context_P_Destroy(ctx);
     }
 

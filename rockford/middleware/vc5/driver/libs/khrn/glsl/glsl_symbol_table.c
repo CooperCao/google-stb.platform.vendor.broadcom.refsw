@@ -15,7 +15,6 @@ FILE DESCRIPTION
 #include <stdio.h>
 #include <string.h>
 
-#include "glsl_check.h"
 #include "glsl_map.h"
 #include "glsl_scoped_map.h"
 #include "glsl_symbols.h"
@@ -25,10 +24,10 @@ FILE DESCRIPTION
 #include "glsl_stdlib.auto.h"
 #include "glsl_const_types.h"
 #include "glsl_fastmem.h"
-#include "glsl_intern.h"
 #include "glsl_dataflow.h"
 #include "glsl_shader_interfaces.h"
 #include "glsl_extensions.h"
+#include "glsl_globals.h"     /* For GLSL_SHADER_VERSION */
 
 SymbolTable *glsl_symbol_table_new(void) {
    SymbolTable *table = malloc_fast(sizeof(SymbolTable));
@@ -39,10 +38,7 @@ SymbolTable *glsl_symbol_table_new(void) {
 
 SymbolTable *glsl_symbol_table_populate(SymbolTable *table, ShaderFlavour flavour, int version)
 {
-   int active_mask = glsl_check_get_version_mask(version) |
-                     glsl_check_get_shader_mask (flavour);
-
-   active_mask |= glsl_ext_get_symbol_mask();
+   uint64_t active_mask = glsl_stdlib_get_property_mask(flavour, version) | glsl_ext_get_symbol_mask();
 
    // Put types in the outmost scope. Must be called before other stdlib functions.
    glsl_stdlib_populate_symbol_table_with_types(table, active_mask);

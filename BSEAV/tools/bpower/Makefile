@@ -99,7 +99,7 @@ clean_boa:
 	$(MAKE) -C $(NEXUS_TOP)/../BSEAV/lib/boa clean
 
 bpower_tree:
-ifeq ($(findstring $(BCHP_CHIP),7429 7435 7425 7231 7346),$(BCHP_CHIP))
+ifeq ($(findstring $(BCHP_CHIP),7429 7435 7425 7231 7346 7584),$(BCHP_CHIP))
 	@echo [Skipping ... bpower_tree.txt]
 else
 	@echo [Creating ... bpower_tree.txt]
@@ -111,7 +111,7 @@ endif
 
 bpower_regs.h:
 	@echo [Creating ... bpower_regs.h]
-ifeq ($(findstring $(BCHP_CHIP),7429 7435 7425 7231 7346),$(BCHP_CHIP))
+ifeq ($(findstring $(BCHP_CHIP),7429 7435 7425 7231 7346 7584),$(BCHP_CHIP))
 	@echo "CLK_TREE_REG_INFO registerInfo[] = {{\"none\",\"none\",0,0,0,0 }};" > ${NEXUS_BIN_DIR}/bpower_regs.h
 else
 	@echo [Using awk to create register file]

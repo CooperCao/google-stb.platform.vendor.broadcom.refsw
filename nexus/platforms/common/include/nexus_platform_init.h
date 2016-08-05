@@ -223,6 +223,7 @@ typedef struct NEXUS_PlatformSettings
     NEXUS_PlatformHeapSettings heap[NEXUS_MAX_HEAPS];
 
     NEXUS_PlatformImgInterface imgInterface;
+    NEXUS_HdmiOutputOpenSettings hdmiOutputOpenSettings[NEXUS_MAX_HDMI_OUTPUTS];
 
     /* The reference platform exposes some module settings here for application configuration.
     Customer boards and applications may use this, or may implement their own custom platform code. */

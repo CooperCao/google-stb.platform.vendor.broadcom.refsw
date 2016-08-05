@@ -933,7 +933,7 @@ const uint32_t BDSP_IMG_karaoke_code_array1[] = {
 	0x07a07f07,
 	0x2b00fe07,
 	0x013fffff,
-	0xa72b09d7,
+	0xa72b0dd7,
 	0x000035c8,
 	0x2be47e07,
 	0x000000af,

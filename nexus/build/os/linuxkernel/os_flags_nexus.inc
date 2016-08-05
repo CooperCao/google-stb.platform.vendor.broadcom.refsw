@@ -1,7 +1,7 @@
 ############################################################
-#     (c)2003-2013 Broadcom Corporation
+#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 #
-#  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+#  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
 #  conditions of a separate, written license agreement executed between you and Broadcom
 #  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,33 +34,19 @@
 #  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
-#
-# $brcm_Workfile: $
-# $brcm_Revision: $
-# $brcm_Date: $
-#
-# Module Description:
-#   This file defines the nexus OS-specific flags for building in linuxkernel mode.
-#
-# Revision History:
-#
-# $brcm_Log: $
-#
 ############################################################
 
 
-#
-# Default to -Os by default
-#
+ifneq ($(filter ${B_REFSW_ARCH}, aarch64-linux arm-linux), ${B_REFSW_ARCH})
+# Set these flags for MIPS only. ARM uses Kbuild.
 B_REFSW_OPTIMIZER_LEVEL ?= s
 ifeq ($(B_REFSW_OPTIMIZER_LEVEL),0)
 $(error B_REFSW_OPTIMIZER_LEVEL=0 not supported for linuxkernel)
 endif
-
-ifeq ($(B_REFSW_DEBUG),y)
-NEXUS_CFLAGS += -g -O$(B_REFSW_OPTIMIZER_LEVEL)
-else
 NEXUS_CFLAGS += -O$(B_REFSW_OPTIMIZER_LEVEL)
+ifeq ($(B_REFSW_DEBUG),y)
+NEXUS_CFLAGS += -g
+endif
 endif
 
 NEXUS_OBJ_SUFFIX := o

@@ -120,6 +120,9 @@ static const struct dataflow_fold_info_s dataflow_info[DATAFLOW_FLAVOUR_COUNT] =
 
    { DATAFLOW_VEC4,                FOLDER_CANT_FOLD, },
    { DATAFLOW_TEXTURE,             FOLDER_CANT_FOLD, },
+#if V3D_HAS_TMU_TEX_WRITE
+   { DATAFLOW_TEXTURE_ADDR,        FOLDER_CANT_FOLD, },
+#endif
    { DATAFLOW_TEXTURE_SIZE,        FOLDER_CANT_FOLD, },
    { DATAFLOW_GET_VEC4_COMPONENT,  FOLDER_CANT_FOLD, },
    { DATAFLOW_FRAG_GET_COL,        FOLDER_CANT_FOLD, },
@@ -133,8 +136,14 @@ static const struct dataflow_fold_info_s dataflow_info[DATAFLOW_FLAVOUR_COUNT] =
    { DATAFLOW_GET_THREAD_INDEX,    FOLDER_CANT_FOLD, },
    { DATAFLOW_SHARED_PTR,          FOLDER_CANT_FOLD, },
    { DATAFLOW_IS_HELPER,           FOLDER_CANT_FOLD, },
+   { DATAFLOW_SAMPLE_POS_X,        FOLDER_CANT_FOLD, },
+   { DATAFLOW_SAMPLE_POS_Y,        FOLDER_CANT_FOLD, },
+   { DATAFLOW_SAMPLE_MASK,         FOLDER_CANT_FOLD, },
+   { DATAFLOW_SAMPLE_ID,           FOLDER_CANT_FOLD, },
+   { DATAFLOW_NUM_SAMPLES,         FOLDER_CANT_FOLD, },
    { DATAFLOW_GET_VERTEX_ID,       FOLDER_CANT_FOLD, },
    { DATAFLOW_GET_INSTANCE_ID,     FOLDER_CANT_FOLD, },
+   { DATAFLOW_GET_BASE_INSTANCE,   FOLDER_CANT_FOLD, },
    { DATAFLOW_GET_POINT_COORD_X,   FOLDER_CANT_FOLD, },
    { DATAFLOW_GET_POINT_COORD_Y,   FOLDER_CANT_FOLD, },
    { DATAFLOW_GET_LINE_COORD,      FOLDER_CANT_FOLD, },
@@ -184,7 +193,7 @@ static Dataflow *simplify_reinterp(Dataflow *dataflow)
 
 static Dataflow *simplify_texture(Dataflow *dataflow) {
    /* If using normal bias with a bias of 0 then drop it */
-   if ( !(dataflow->u.texture.bits & (DF_TEXBITS_BSLOD | DF_TEXBITS_FETCH | DF_TEXBITS_SAMPLER_FETCH)) &&
+   if ( !glsl_dataflow_tex_cfg_implies_bslod(dataflow->u.texture.bits) &&
         dataflow->d.texture.b          != NULL           &&
         dataflow->d.texture.b->flavour == DATAFLOW_CONST &&
         dataflow->d.texture.b->u.constant.value == 0 )

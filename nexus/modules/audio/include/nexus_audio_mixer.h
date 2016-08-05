@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -136,7 +136,7 @@ typedef struct NEXUS_AudioMixerSettings
                                    inputs from the DSP, all inputs must run on the same DSP as the mixer.
                                    This is not changeable on the fly. */
 
-    NEXUS_AudioInput master;    /* This field will determine what input is deemed to be the master for mixing
+    NEXUS_AudioInputHandle master;/* This field will determine what input is deemed to be the master for mixing
                                    purposes.  The master will determine the output timing, and if mixing multi-stream
                                    content such as audio descriptors it will determine the primary trach as opposed to
                                    the description track. */
@@ -145,6 +145,38 @@ typedef struct NEXUS_AudioMixerSettings
                                    be automatically selected based on the input sample rate.  This will
                                    override the sample rate of a master input if specified in
                                    NEXUS_AudioMixerSettings.master */
+
+    int32_t outputVolume[NEXUS_AudioChannel_eMax]; /* Output volume to be applied to downstream connections.
+                                                      This control is valid ONLY for mixers with intermediate=true.
+                                                      Valid values are NEXUS_AUDIO_VOLUME_LINEAR_MIN - NEXUS_AUDIO_VOLUME_LINEAR_MAX.
+                                                      Default value is NEXUS_AUDIO_VOLUME_LINEAR_NORMAL (no attenuation or boost) */
+    bool outputMuted;           /* Output mute control to be applied to downstream connections.
+                                   This control is valid ONLY for mixers with intermediate=true */
+
+    int32_t loopbackVolumeMatrix[NEXUS_AudioChannel_eMax][NEXUS_AudioChannel_eMax]; /* If this is a DSP mixer, and we have one
+                                           or more PcmPlayback/FMM (loopback) inputs, apply these mixing coefficients.
+                                           This can be used to mix across channel pairs, including subtraction.
+                                           Common use case would be to map stereo into multichannel in a variety
+                                           of different ways. For example, if content is mono, choose where that should
+                                           be routed into the multichannel domain.
+                                           Some example matrices:
+                                           1. L->L, R->R (default)
+                                              coeff[i][i] = NEXUS_AUDIO_VOLUME_LINEAR_NORMAL, zero all others
+                                           2. L->C
+                                              coeff[NEXUS_AudioChannel_eCenter][NEXUS_AudioChannel_eLeft] = NEXUS_AUDIO_VOLUME_LINEAR_NORMAL
+                                           3. (L/2+R/2)->C, L-3(L+R)/8, R-3(L+R)/8 (upmix L and R to center, subtract 3/8 from L and R)
+                                              coeff[NEXUS_AudioChannel_eLeft][NEXUS_AudioChannel_eLeft] = NEXUS_AUDIO_VOLUME_LINEAR_NORMAL - 3*NEXUS_AUDIO_VOLUME_LINEAR_NORMAL/8
+                                              coeff[NEXUS_AudioChannel_eLeft][NEXUS_AudioChannel_eRight] = -3*NEXUS_AUDIO_VOLUME_LINEAR_NORMAL/8
+                                              coeff[NEXUS_AudioChannel_eRight][NEXUS_AudioChannel_eLeft] = -3*NEXUS_AUDIO_VOLUME_LINEAR_NORMAL/8
+                                              coeff[NEXUS_AudioChannel_eRight][NEXUS_AudioChannel_eRight] = NEXUS_AUDIO_VOLUME_LINEAR_NORMAL - 3*NEXUS_AUDIO_VOLUME_LINEAR_NORMAL/8
+                                              coeff[NEXUS_AudioChannel_eCenter][NEXUS_AudioChannel_eLeft] = NEXUS_AUDIO_VOLUME_LINEAR_NORMAL/2
+                                              coeff[NEXUS_AudioChannel_eCenter][NEXUS_AudioChannel_eRight] = NEXUS_AUDIO_VOLUME_LINEAR_NORMAL/2
+                                              */
+
+    bool loopbackMixerEnabled;          /* When set to true[Default], for DspMixers, we will create a stereo loopback mixer when
+                                           required and aggregate any FMM source inputs into a single FMM path for the
+                                           DSP to consume. If false, no such mixer will be created and only ONE FMM source
+                                           will be allowed into the DspMixer. */
 
     NEXUS_AudioMixerDolbySettings dolby; /* Dolby Specific settings for Multi-Stream Mixing */
 
@@ -156,7 +188,6 @@ typedef struct NEXUS_AudioMixerSettings
     NEXUS_AudioMultichannelFormat fixedOutputFormat; /* Takes effect if fixedOutputFormatEnabled = true.
                                                         Currently only upmixing is supported, so the only valid values are
                                                         NEXUS_AudioMultichannelFormat_e5_1, NEXUS_AudioMultichannelFormat_e7_1 */
-
 } NEXUS_AudioMixerSettings;
 
 /***************************************************************************
@@ -235,7 +266,7 @@ Add an audio input to a mixer
 ***************************************************************************/
 NEXUS_Error NEXUS_AudioMixer_AddInput(
     NEXUS_AudioMixerHandle handle,
-    NEXUS_AudioInput input
+    NEXUS_AudioInputHandle input
     );
 
 /***************************************************************************
@@ -244,7 +275,7 @@ Remove an audio input from a mixer
 ***************************************************************************/
 NEXUS_Error NEXUS_AudioMixer_RemoveInput(
     NEXUS_AudioMixerHandle handle,
-    NEXUS_AudioInput input
+    NEXUS_AudioInputHandle input
     );
 
 /***************************************************************************
@@ -259,17 +290,9 @@ NEXUS_Error NEXUS_AudioMixer_RemoveAllInputs(
 Summary:
 Get the audio input connector for connection to outputs or post-processing
 ***************************************************************************/
-NEXUS_AudioInput NEXUS_AudioMixer_GetConnector(
+NEXUS_AudioInputHandle NEXUS_AudioMixer_GetConnector(
     NEXUS_AudioMixerHandle mixer
     );
-
-
-typedef struct NEXUS_AudioMixerInputNode
-{
-    NEXUS_AudioMixerInputSettings inputSettings;
-    NEXUS_AudioInput input;
-    BLST_Q_ENTRY(NEXUS_AudioMixerInputNode) inputNode;
-} NEXUS_AudioMixerInputNode;
 
 /***************************************************************************
 Summary:
@@ -277,7 +300,7 @@ Summary:
  ***************************************************************************/
 NEXUS_Error NEXUS_AudioMixer_GetInputSettings(
     NEXUS_AudioMixerHandle handle,
-    NEXUS_AudioInput input,
+    NEXUS_AudioInputHandle input,
     NEXUS_AudioMixerInputSettings *pSettings
     );
 
@@ -289,7 +312,7 @@ Summary:
  ***************************************************************************/
 NEXUS_Error NEXUS_AudioMixer_SetInputSettings(
     NEXUS_AudioMixerHandle handle,
-    NEXUS_AudioInput input,
+    NEXUS_AudioInputHandle input,
     const NEXUS_AudioMixerInputSettings *pSettings
     );
 

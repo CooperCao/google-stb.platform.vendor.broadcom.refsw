@@ -104,17 +104,17 @@ typedef struct NEXUS_SimpleAudioDecoderServerSettings
     
     struct {
         NEXUS_SpdifOutputHandle outputs[NEXUS_MAX_SIMPLE_DECODER_SPDIF_OUTPUTS];
-        NEXUS_AudioInput input[NEXUS_AudioCodec_eMax]; /* per codec, specify the final stage to be connected to spdif. 
+        NEXUS_AudioInputHandle input[NEXUS_AudioCodec_eMax]; /* per codec, specify the final stage to be connected to spdif.
             use NEXUS_AudioCodec_eUnknown to specify default configuration for playback-only. */
     } spdif;
     struct {
         NEXUS_HdmiOutputHandle outputs[NEXUS_MAX_SIMPLE_DECODER_HDMI_OUTPUTS];
-        NEXUS_AudioInput input[NEXUS_AudioCodec_eMax]; /* per codec, specify the final stage to be connected to hdmi. 
+        NEXUS_AudioInputHandle input[NEXUS_AudioCodec_eMax]; /* per codec, specify the final stage to be connected to hdmi.
             use NEXUS_AudioCodec_eUnknown to specify default configuration for playback-only. */
     } hdmi;
     struct {
         NEXUS_AudioCaptureHandle output;
-        NEXUS_AudioInput input[NEXUS_AudioCodec_eMax]; /* per codec, specify the final stage to be connected to audio capture. */
+        NEXUS_AudioInputHandle input[NEXUS_AudioCodec_eMax]; /* per codec, specify the final stage to be connected to audio capture. */
     } capture;
 } NEXUS_SimpleAudioDecoderServerSettings;
 

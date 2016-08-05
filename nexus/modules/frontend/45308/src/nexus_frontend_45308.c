@@ -610,6 +610,7 @@ static NEXUS_Error NEXUS_FrontendDevice_P_Init45308_PostInitAP(NEXUS_45308Device
         /* open MXT */
         BMXT_Settings mxtSettings;
         BERR_Code rc;
+        uint32_t val;
 
         BDBG_MSG(("NEXUS_FrontendDevice_Open45308: configuring MXT"));
 
@@ -631,6 +632,14 @@ static NEXUS_Error NEXUS_FrontendDevice_P_Init45308_PostInitAP(NEXUS_45308Device
         NEXUS_Module_Lock(g_NEXUS_frontendModuleSettings.transport);
         mxtSettings.MtsifRxCfg[0].Decrypt = NEXUS_TransportModule_P_IsMtsifEncrypted();
         NEXUS_Module_Unlock(g_NEXUS_frontendModuleSettings.transport);
+        if (!BHAB_ReadRegister(pDevice->satDevice->habHandle, 0x7020400, &val)) {
+            if (val >> 4) { /* treat any non-zero as B0. MXT only cares between A0 and B0 */
+                mxtSettings.chipRev = BMXT_ChipRev_eB0;
+            }
+            else {
+                mxtSettings.chipRev = BMXT_ChipRev_eA0;
+            }
+        }
 
         BDBG_MSG(("NEXUS_FrontendDevice_Open45308: BMXT_Open"));
         rc = BMXT_Open(&pDevice->pGenericDeviceHandle->mtsifConfig.mxt, g_pCoreHandles->chp, g_pCoreHandles->reg, &mxtSettings);
@@ -681,6 +690,9 @@ static NEXUS_Error NEXUS_FrontendDevice_P_Init45308_PostInitAP(NEXUS_45308Device
         case 2:
             clockAddr = 0x07028014;
             break;
+        /* This is here solely in case someone bumps the loop condition. */
+        /* coverity[dead_error_begin] */
+        /* coverity[dead_error_condition] */
         default:
             BDBG_ASSERT(false);
             BKNI_Fail();
@@ -692,12 +704,15 @@ static NEXUS_Error NEXUS_FrontendDevice_P_Init45308_PostInitAP(NEXUS_45308Device
             if (e) BERR_TRACE(e);
             val &= 0xFFFFFFFE;
             val |= 1;
-            BHAB_WriteRegister(pDevice->satDevice->habHandle, clockAddr, &val);
+            e = BHAB_WriteRegister(pDevice->satDevice->habHandle, clockAddr, &val);
+            if (e) BERR_TRACE(e);
         } else {
             e = BHAB_ReadRegister(pDevice->satDevice->habHandle, clockAddr, &val);
+            if (e) BERR_TRACE(e);
             if (!e && (val & 1)) {
                 val &= 0xFFFFFFFE;
-                BHAB_WriteRegister(pDevice->satDevice->habHandle, clockAddr, &val);
+                e = BHAB_WriteRegister(pDevice->satDevice->habHandle, clockAddr, &val);
+                if (e) BERR_TRACE(e);
             }
             if (pSettings->mtsif[i].clockRate != 0) {
                 unsigned clockRate = pSettings->mtsif[i].clockRate;
@@ -726,6 +741,7 @@ static NEXUS_Error NEXUS_FrontendDevice_P_Init45308_PostInitAP(NEXUS_45308Device
                  */
 
                 e = BHAB_ReadRegister(pDevice->satDevice->habHandle, clockAddr, &val);
+                if (e) BERR_TRACE(e);
                 switch (clockRate) {
                 case 81000000: /* 81 MHz. (hardware default) */
                     divider = 36; break;
@@ -765,7 +781,8 @@ static NEXUS_Error NEXUS_FrontendDevice_P_Init45308_PostInitAP(NEXUS_45308Device
                 }
                 val &= ~0x000001fe;
                 val |= (divider << 1);
-                BHAB_WriteRegister(pDevice->satDevice->habHandle, clockAddr, &val);
+                e = BHAB_WriteRegister(pDevice->satDevice->habHandle, clockAddr, &val);
+                if (e) BERR_TRACE(e);
             }
 
             if (pSettings->mtsif[i].driveStrength != 0) {
@@ -783,6 +800,9 @@ static NEXUS_Error NEXUS_FrontendDevice_P_Init45308_PostInitAP(NEXUS_45308Device
                 case 2:
                     driveAddr = 0x07020468;
                     break;
+                /* This is here solely in case someone bumps the loop condition. */
+                /* coverity[dead_error_begin] */
+                /* coverity[dead_error_condition] */
                 default:
                     BDBG_ASSERT(false);
                     BKNI_Fail();
@@ -790,6 +810,7 @@ static NEXUS_Error NEXUS_FrontendDevice_P_Init45308_PostInitAP(NEXUS_45308Device
                 }
 
                 e = BHAB_ReadRegister(pDevice->satDevice->habHandle, driveAddr, &val);
+                if (e) BERR_TRACE(e);
 
                 switch (driveStrength) {
                 case 2:
@@ -814,7 +835,8 @@ static NEXUS_Error NEXUS_FrontendDevice_P_Init45308_PostInitAP(NEXUS_45308Device
                 }
                 val &= 0xFFFFFFF8;
                 val |= str;
-                BHAB_WriteRegister(pDevice->satDevice->habHandle, driveAddr, &val);
+                e = BHAB_WriteRegister(pDevice->satDevice->habHandle, driveAddr, &val);
+                if (e) BERR_TRACE(e);
             }
         }
     }
@@ -913,9 +935,8 @@ NEXUS_FrontendDeviceHandle NEXUS_FrontendDevice_Open45308(unsigned index, const 
 
         BDBG_MSG(("Opening new 45308 device"));
 
-        pFrontendDevice = BKNI_Malloc(sizeof(*pFrontendDevice));
+        pFrontendDevice = NEXUS_FrontendDevice_P_Create();
         if (NULL == pFrontendDevice) { BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY); goto err; }
-        BKNI_Memset(pFrontendDevice, 0, sizeof(*pFrontendDevice));
 
         pDevice = BKNI_Malloc(sizeof(*pDevice));
         if (NULL == pDevice) { BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY); goto err; }
@@ -994,9 +1015,11 @@ static void NEXUS_Frontend_P_Uninit45308(NEXUS_45308Device *pDevice)
     pDevice->deviceOpenThread = NULL;
 
 #if NEXUS_HAS_MXT
-    if (pDevice->pGenericDeviceHandle->mtsifConfig.mxt) {
-        BMXT_Close(pDevice->pGenericDeviceHandle->mtsifConfig.mxt);
-        pDevice->pGenericDeviceHandle->mtsifConfig.mxt = NULL;
+    if (pDevice->pGenericDeviceHandle) {
+        if (pDevice->pGenericDeviceHandle->mtsifConfig.mxt) {
+            BMXT_Close(pDevice->pGenericDeviceHandle->mtsifConfig.mxt);
+            pDevice->pGenericDeviceHandle->mtsifConfig.mxt = NULL;
+        }
     }
 #endif
 

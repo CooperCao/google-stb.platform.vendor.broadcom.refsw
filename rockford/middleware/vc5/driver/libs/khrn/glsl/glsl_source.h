@@ -11,8 +11,6 @@ FILE DESCRIPTION
 #ifndef GLSL_SOURCE_H_INCLUDED
 #define GLSL_SOURCE_H_INCLUDED
 
-#include "../glxx/gl_public_api.h"
-
 typedef struct {
    /* Inputs to compile */
    const char * const *sourcev;

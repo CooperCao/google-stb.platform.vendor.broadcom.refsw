@@ -30,40 +30,45 @@ static GLXX_UNIFORM_MAP_T *format_uniform_map(uint32_t *uniform_map,
    return our_uniform_map;
 }
 
-static uint32_t get_output_size(uint32_t inputs, uint32_t outputs) {
-   uint32_t input_size  = (inputs  + 7) >> 3;
-   uint32_t output_size = (outputs + 7) >> 3;
-   assert(input_size <= 16);
-   assert(output_size >= 1 && output_size <= 16);
-
-   return MAX(input_size, output_size) & 0xff;
-}
-
 static void write_cv_shader_data(GLXX_LINK_RESULT_DATA_T  *data,
                                  int c_shader_varys,
                                  const BINARY_PROGRAM_T   *prog)
 {
-   const bool point_size_included = prog->has_point_size;
-
-   if(point_size_included) {
+   bool c_point_size = prog->vstages[SHADER_VERTEX][MODE_BIN   ]->u.vertex.has_point_size;
+   bool v_point_size = prog->vstages[SHADER_VERTEX][MODE_RENDER]->u.vertex.has_point_size;
+   assert((c_point_size && v_point_size) || (!c_point_size && !v_point_size));
+   bool point_size_included = c_point_size;
+   if(point_size_included)
       data->flags |= GLXX_SHADER_FLAGS_POINT_SIZE_SHADED_VERTEX_DATA;
+
+   for (unsigned m = 0; m != MODE_COUNT; ++m)
+   {
+      unsigned inputs = prog->vstages[SHADER_VERTEX][m]->u.vertex.reads_total;
+      unsigned outputs = point_size_included + (m == MODE_BIN ? 6 + c_shader_varys : 4 + data->num_varys);
+
+      // Use separate IO blocks for TNG.
+     #if GLXX_HAS_TNG
+      if (  prog->vstages[SHADER_TESS_EVALUATION][MODE_RENDER] == NULL
+         && prog->vstages[SHADER_GEOMETRY][MODE_RENDER] == NULL   )
+     #endif
+      {
+         outputs = gfx_umax(inputs, outputs);
+         inputs = 0;
+      }
+      data->vs_input_words[m] = inputs;
+      data->vs_output_words[m] = outputs;
+
+      if (inputs != 0)
+         data->flags |= GLXX_SHADER_FLAGS_VS_SEPARATE_I_O_VPM_BLOCKS << m;
+      if (prog->vstages[SHADER_VERTEX][m]->u.vertex.attribs.vertexid_used)
+         data->flags |= GLXX_SHADER_FLAGS_VS_READS_VERTEX_ID << m;
+      if (prog->vstages[SHADER_VERTEX][m]->u.vertex.attribs.instanceid_used)
+         data->flags |= GLXX_SHADER_FLAGS_VS_READS_INSTANCE_ID << m;
+#if V3D_HAS_BASEINSTANCE
+      if (prog->vstages[SHADER_VERTEX][m]->u.vertex.attribs.baseinstance_used)
+         data->flags |= GLXX_SHADER_FLAGS_VS_READS_BASE_INSTANCE << m;
+#endif
    }
-
-   data->vs_output_size = get_output_size(prog->vstages[SHADER_VERTEX][MODE_RENDER]->u.vertex.reads_total,
-                                          4 + point_size_included + data->num_varys);
-
-   if (prog->vstages[SHADER_VERTEX][MODE_RENDER]->u.vertex.attribs.vertexid_used)
-      data->flags |= GLXX_SHADER_FLAGS_VS_READS_VERTEX_ID;
-   if (prog->vstages[SHADER_VERTEX][MODE_RENDER]->u.vertex.attribs.instanceid_used)
-      data->flags |= GLXX_SHADER_FLAGS_VS_READS_INSTANCE_ID;
-
-   data->cs_output_size = get_output_size(prog->vstages[SHADER_VERTEX][MODE_BIN]->u.vertex.reads_total,
-                                          6 + point_size_included + c_shader_varys);
-
-   if (prog->vstages[SHADER_VERTEX][MODE_BIN]->u.vertex.attribs.vertexid_used)
-      data->flags |= GLXX_SHADER_FLAGS_CS_READS_VERTEX_ID;
-   if (prog->vstages[SHADER_VERTEX][MODE_BIN]->u.vertex.attribs.instanceid_used)
-      data->flags |= GLXX_SHADER_FLAGS_CS_READS_INSTANCE_ID;
 }
 
 static bool write_common_data(GLXX_SHADER_DATA_T    *data,
@@ -71,7 +76,8 @@ static bool write_common_data(GLXX_SHADER_DATA_T    *data,
 {
    data->res_i       = khrn_res_interlock_from_data(bin->code, bin->code_size,
                                                     V3D_MAX_QPU_INSTRS_READAHEAD,
-                                                    8, GMEM_USAGE_ALL, "Shader");
+                                                    8, GMEM_USAGE_CPU_WRITE | GMEM_USAGE_V3D_READ,
+                                                    "Shader");
    data->uniform_map = format_uniform_map(bin->unif, bin->unif_count);
    data->threading   = v3d_translate_threading(bin->n_threads);
 
@@ -83,15 +89,44 @@ static bool write_link_result_data(GLXX_LINK_RESULT_DATA_T  *data,
                                    const BINARY_PROGRAM_T   *prog,
                                    bool                      z_prepass)
 {
+   memset(data, 0, sizeof(*data));
+
    /* Convert all the common data to the format expected by the driver */
+   bool uses_control_flow[MODE_COUNT] = { false,  };
+   for (unsigned m = 0; m != MODE_COUNT; ++m)
    {
-      bool ok = true;
-      ok = ok && write_common_data(&data->f, prog->fshader);
-      ok = ok && (!prog->vstages[SHADER_VERTEX][MODE_BIN]    || write_common_data(&data->c, prog->vstages[SHADER_VERTEX][MODE_BIN]));
-      ok = ok && (!prog->vstages[SHADER_VERTEX][MODE_RENDER] || write_common_data(&data->v, prog->vstages[SHADER_VERTEX][MODE_RENDER]));
-      if (!ok)
-         return false;
+      // Map from vertex pipe stages to GLSL shader flavours.
+      const ShaderFlavour flavours[GLXX_SHADER_VPS_COUNT] =
+      {
+         SHADER_VERTEX,             // GLXX_SHADER_VPS_VS
+        #if GLXX_HAS_TNG
+         SHADER_GEOMETRY,           // GLXX_SHADER_VPS_GS
+         SHADER_TESS_CONTROL,       // GLXX_SHADER_VPS_TCS
+         SHADER_TESS_EVALUATION,    // GLXX_SHADER_VPS_TES
+        #endif
+      };
+
+      for (unsigned s = 0; s != GLXX_SHADER_VPS_COUNT; ++s)
+      {
+         BINARY_SHADER_T* bs = prog->vstages[flavours[s]][m];
+         if (bs != NULL)
+         {
+            if (!write_common_data(&data->vps[s][m], bs))
+               return false;
+            uses_control_flow[m] |= bs->uses_control_flow;
+         }
+      }
    }
+
+   if (!write_common_data(&data->fs, prog->fshader))
+      return false;
+   uses_control_flow[MODE_RENDER] |= prog->fshader->uses_control_flow;
+
+   // Bin-mode shaders runs during render-mode if z-prepass is enabled.
+   uses_control_flow[MODE_RENDER] |= (uses_control_flow[MODE_BIN] & z_prepass);
+
+   data->bin_uses_control_flow = uses_control_flow[MODE_BIN];
+   data->render_uses_control_flow = uses_control_flow[MODE_RENDER];
 
    assert(prog->vary_map.n <= GLXX_CONFIG_MAX_VARYING_SCALARS);
    data->num_varys = prog->vary_map.n;
@@ -112,7 +147,10 @@ static bool write_link_result_data(GLXX_LINK_RESULT_DATA_T  *data,
    if (prog->fshader->u.fragment.tlb_wait_first_thrsw)
       data->flags |= GLXX_SHADER_FLAGS_TLB_WAIT_FIRST_THRSW;
 
-   if (prog->vstages[SHADER_VERTEX][1])
+   if (ir->varyings_per_sample || prog->fshader->u.fragment.per_sample)
+      data->flags |= GLXX_SHADER_FLAGS_PER_SAMPLE;
+
+   if (prog->vstages[SHADER_VERTEX][MODE_RENDER])
    {
       /* Now do the same for the coordinate and vertex shaders */
       write_cv_shader_data(data, ir->tf_vary_map.n, prog);
@@ -129,26 +167,9 @@ static bool write_link_result_data(GLXX_LINK_RESULT_DATA_T  *data,
          }
       }
 
-      data->bin_uses_control_flow = prog->vstages[SHADER_VERTEX][MODE_BIN]->uses_control_flow;
-      data->render_uses_control_flow = prog->vstages[SHADER_VERTEX][MODE_RENDER]->uses_control_flow ||
-                                       prog->fshader->uses_control_flow;
-
-      if (z_prepass) data->render_uses_control_flow = data->render_uses_control_flow ||
-                                                      prog->vstages[SHADER_VERTEX][MODE_BIN]->uses_control_flow;
-
-      /* Data for bin load balancing */
+      /* Data for bin load balancing, todo T+G */
       data->num_bin_qpu_instructions = prog->vstages[SHADER_VERTEX][MODE_BIN]->code_size/8;
    }
-   else
-   {
-      data->attr_count = 0;
-      data->bin_uses_control_flow = false;
-      data->render_uses_control_flow = prog->fshader->uses_control_flow;
-      data->num_bin_qpu_instructions = 0;
-   }
-
-   memset(data->varying_centroid, 0, sizeof(data->varying_centroid));
-   memset(data->varying_flat,     0, sizeof(data->varying_flat));
 
    for (unsigned i = 0; i < data->num_varys; i++) {
       const VARYING_INFO_T *vary = &ir->varying[prog->vary_map.entries[i]];
@@ -159,6 +180,70 @@ static bool write_link_result_data(GLXX_LINK_RESULT_DATA_T  *data,
          data->varying_flat[i/24] |= 1 << (i % 24);
       }
    }
+
+   #if GLXX_HAS_TNG
+   {
+      if (prog->vstages[SHADER_TESS_CONTROL][MODE_RENDER] != NULL)
+      {
+         assert(prog->vstages[SHADER_TESS_CONTROL][MODE_BIN] != NULL);
+         assert(prog->vstages[SHADER_TESS_EVALUATION][MODE_RENDER] != NULL);
+         assert(prog->vstages[SHADER_TESS_EVALUATION][MODE_BIN] != NULL);
+
+         data->tcs_output_vertices_per_patch = ir->tess_vertices;
+
+         v3d_cl_tess_type_t tess_type;
+         switch (ir->tess_mode)
+         {
+         case TESS_ISOLINES:  tess_type = V3D_CL_TESS_TYPE_ISOLINES; break;
+         case TESS_TRIANGLES: tess_type = V3D_CL_TESS_TYPE_TRIANGLE; break;
+         case TESS_QUADS:     tess_type = V3D_CL_TESS_TYPE_QUAD;     break;
+         default: unreachable();
+         }
+
+         v3d_cl_tess_edge_spacing_t tess_spacing;
+         switch (ir->tess_spacing)
+         {
+         case TESS_SPACING_EQUAL:      tess_spacing = V3D_CL_TESS_EDGE_SPACING_EQUAL;           break;
+         case TESS_SPACING_FRACT_EVEN: tess_spacing = V3D_CL_TESS_EDGE_SPACING_FRACTIONAL_EVEN; break;
+         case TESS_SPACING_FRACT_ODD:  tess_spacing = V3D_CL_TESS_EDGE_SPACING_FRACTIONAL_ODD;  break;
+         default: unreachable();
+         }
+
+         data->tess_type = tess_type;
+         data->tess_edge_spacing = tess_spacing;
+         data->tess_point_mode = ir->tess_point_mode;
+         data->tess_clockwise = ir->tess_cw;
+
+         for (unsigned m = 0; m != MODE_COUNT; ++m)
+         {
+            // todo: actual value rather than maximum
+            data->tcs_output_words_per_patch[m] = GLXX_CONFIG_MAX_TESS_PATCH_COMPONENTS;
+            data->tcs_output_words[m] = GLXX_CONFIG_MAX_TESS_CONTROL_OUTPUT_COMPONENTS;
+            data->tes_output_words[m] = GLXX_CONFIG_MAX_TESS_EVALUATION_OUTPUT_COMPONENTS;
+         }
+      }
+
+      if (prog->vstages[SHADER_GEOMETRY][MODE_RENDER] != NULL)
+      {
+         assert(prog->vstages[SHADER_GEOMETRY][MODE_BIN] != NULL);
+         switch (ir->gs_out) {
+            case GS_OUT_POINTS:     data->geom_prim_type = V3D_CL_GEOM_PRIM_TYPE_POINTS;         break;
+            case GS_OUT_LINE_STRIP: data->geom_prim_type = V3D_CL_GEOM_PRIM_TYPE_LINE_STRIP;     break;
+            case GS_OUT_TRI_STRIP:  data->geom_prim_type = V3D_CL_GEOM_PRIM_TYPE_TRIANGLE_STRIP; break;
+            default: unreachable();
+         }
+
+         data->geom_invocations = ir->gs_n_invocations;
+
+         for (unsigned m = 0; m != MODE_COUNT; ++m)
+         {
+            // todo: actual value rather than maximum
+            data->gs_output_words[m] = GLXX_CONFIG_MAX_GEOMETRY_TOTAL_OUTPUT_COMPONENTS;
+         }
+      }
+   }
+   #endif
+
    return true;
 }
 
@@ -207,7 +292,12 @@ static void clear_shader(GLXX_SHADER_DATA_T *data)
 /* Clean up shaders previously emitted by glxx_hw_emit_shaders */
 void glxx_hw_cleanup_shaders(GLXX_LINK_RESULT_DATA_T *data)
 {
-   clear_shader(&data->c);
-   clear_shader(&data->v);
-   clear_shader(&data->f);
+   for (unsigned m = 0; m != MODE_COUNT; ++m)
+   {
+      for (unsigned s = 0; s != GLXX_SHADER_VPS_COUNT; ++s)
+      {
+         clear_shader(&data->vps[s][m]);
+      }
+   }
+   clear_shader(&data->fs);
 }

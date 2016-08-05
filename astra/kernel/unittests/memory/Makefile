@@ -38,20 +38,17 @@
 
 # build environment
 TZ_DIR ?= ../../..
-TZ_TOOLCHAIN ?= $(TZ_DIR)/gcc-arm-tzos-musl-4_8-2015q1
-TZ_USER_TOOLCHAIN ?= $(TZ_DIR)/gcc-arm-tzos-musl-4_8-2015q1
+TZ_TOOLCHAIN ?= /opt/toolchains/tzos/nonDSO/gcc-arm-tzos-musl-4_8-2016q1
+TZ_ARMGNU ?= $(TZ_TOOLCHAIN)/bin/arm-tzos-musl
 
-ARMGNU = $(TZ_TOOLCHAIN)/bin/arm-tzos-musl
-MUSLGNU = $(TZ_USER_TOOLCHAIN)/bin/arm-tzos-musl
+# platform and target
+TZ_PLATFORM ?= brcmstb
 
-TARGET ?= 7445
-TARGET_REV ?= d0
-PLATFORM ?= brcmstb
+# directories and files
+TZ_IMG := memory_tests
 
-
-TZ_LIB_DIR := $(TZ_DIR)/kernel/bin/lib
-TZ_LIB := libtzKernel.a
-
+TZ_KERNEL_DIR := $(TZ_DIR)/kernel
+TZ_KERNEL_LIB := $(TZ_KERNEL_DIR)/libkernel.a
 
 # use local init module
 SRC_DIRS := init
@@ -70,16 +67,14 @@ SOURCES_CPP := $(foreach sdir,$(SRC_DIRS),$(wildcard $(sdir)/*.cpp))
 OBJS        += $(patsubst %.cpp,bin/%.o,$(SOURCES_CPP))
 DEPS        += $(patsubst %.cpp,bin/%.d,$(SOURCES_CPP))
 
-LINKER_SCRIPT := link-arm-hypv-$(TARGET).ld
-
-TARGET_LOAD_ADDR = 0xC0000000
-
 # build flags
 DEPENDFLAGS := -MD -MP
 
 INCLUDES    := -I. $(addprefix -I,$(INC_DIRS))
-INCLUDES    += -I../../include -I ../../api -I ../../3rd_party/libfdt
-INCLUDES    += -I../../platform/$(PLATFORM)/include -I../../platform/$(PLATFORM)/include/$(TARGET)$(TARGET_REV)
+INCLUDES    += -I$(TZ_KERNEL_DIR)/api
+INCLUDES    += -I$(TZ_KERNEL_DIR)/include
+INCLUDES    += -I$(TZ_KERNEL_DIR)/platform/$(TZ_PLATFORM)
+INCLUDES    += -I$(TZ_KERNEL_DIR)/3rd_party/libfdt
 
 # funcationally and alphabetically ordered
 ARCHFLAGS   := -mcpu=cortex-a15
@@ -119,9 +114,6 @@ WARNFLAGS   += -Wno-sign-compare
 WARNFLAGS   += -Wno-unused-result
 WARNFLAGS   += -Werror
 
-CHIPFLAGS   := -DTARGET_SOC=$(TARGET)
-CHIPFLAGS   += -DTARGET_SOC_REV=0x$(TARGET_REV)
-
 OSFLAGS     := -D__TZOS__
 
 ASFLAGS     := $(INCLUDES) $(DEPENDFLAGS) $(ARCHFLAGS) $(OSFLAGS)
@@ -129,7 +121,7 @@ ASFLAGS     += -g -D__ASSEMBLY__
 
 CFLAGS      := $(INCLUDES) $(DEPENDFLAGS) $(ARCHFLAGS) $(OSFLAGS)
 CFLAGS      += $(BASEFLAGS) $(WARNFLAGS) $(CHIPFLAGS)
-CFLAGS      += -std=gnu99 -Wimplicit-function-declaration
+CFLAGS      += -std=gnu99
 
 CPPFLAGS    := $(INCLUDES) $(DEPENDFLAGS) $(ARCHFLAGS) $(OSFLAGS)
 CPPFLAGS    += $(BASEFLAGS) $(WARNFLAGS) $(CHIPFLAGS)
@@ -138,36 +130,47 @@ CPPFLAGS    += -std=c++11 -D__EXCEPTIONS=0 -fno-rtti -fno-exceptions
 vpath %.S   $(SRC_DIRS)
 vpath %.c   $(SRC_DIRS)
 vpath %.cpp $(SRC_DIRS)
+
 define make-goal
 $1/%.o: %.c
-	$(ARMGNU)-gcc $(CFLAGS) -c $$< -o $$@
+	$(TZ_ARMGNU)-gcc $(CFLAGS) -c $$< -o $$@
 $1/%.o: %.S
-	$(ARMGNU)-gcc $(ASFLAGS) -c $$< -o $$@
+	$(TZ_ARMGNU)-gcc $(ASFLAGS) -c $$< -o $$@
 $1/%.o: %.cpp
-	$(ARMGNU)-g++ $(CPPFLAGS) -c $$< -o $$@
+	$(TZ_ARMGNU)-g++ $(CPPFLAGS) -c $$< -o $$@
 endef
 
 # build rules
-all: checkdirs tz_mem_tests
+.PHONY: kernel checkplatform checkdirs $(TZ_IMG)
+
+all: kernel checkplatform checkdirs $(TZ_IMG)
 
 -include $(DEPS)
 
+kernel:
+	$(MAKE) -C $(TZ_KERNEL_DIR)
 
-tz_mem_tests.elf: $(OBJS) link_arm_tz.ld
-	$(ARMGNU)-ld -nostartfiles $(OBJS) $(TZ_LIB_DIR)/$(TZ_LIB) -Tlink_arm_tz.ld -o $@
-
-tz_mem_tests: tz_mem_tests.elf
-	$(ARMGNU)-objcopy tz_mem_tests.elf -O binary tz_mem_tests
-	cp tz_mem_tests /tftpboot
-
-clean:
-	$(RM) -r bin tz_mem_tests.elf tz_mem_tests
-
+checkplatform:
+	@echo Building for TZ_PLATFORM=$(TZ_PLATFORM)...
 
 checkdirs: $(BIN_DIRS)
 
 $(BIN_DIRS):
 	mkdir -p $@
-	echo $(BIN_DIRS)
+
+$(TZ_IMG): $(TZ_IMG).bin
+
+$(TZ_IMG).bin: $(TZ_IMG).elf
+	$(TZ_ARMGNU)-objcopy $(TZ_IMG).elf -O binary $(TZ_IMG).bin
+
+$(TZ_IMG).elf: $(OBJS) $(TZ_KERNEL_LIB) link_arm_tz.ld
+	$(TZ_ARMGNU)-g++ -nostartfiles $(OBJS) $(TZ_KERNEL_LIB) -Tlink_arm_tz.ld -o $@
+
+clean:
+	$(RM) -r bin
+	$(RM) $(TZ_IMG).bin $(TZ_IMG).elf
+
+distclean: clean
+	$(MAKE) -C $(TZ_KERNEL_DIR) clean
 
 $(foreach bdir,$(BIN_DIRS),$(eval $(call make-goal,$(bdir))))

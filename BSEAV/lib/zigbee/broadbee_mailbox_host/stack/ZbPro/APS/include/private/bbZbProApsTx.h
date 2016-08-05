@@ -127,6 +127,7 @@ typedef struct _ZbProApsTxBuffer_t
             BitField8_t             ackRequest      : 1;
             BitField8_t             keepApsCounter  : 1; /* to keep APS counter for ACK */
             BitField8_t             tunnel          : 1; /* to embed the command into a Tunnel command */
+            BitField8_t             updateExistingRoute : 1;
         };
     };
 } ZbProApsTxBuffer_t;

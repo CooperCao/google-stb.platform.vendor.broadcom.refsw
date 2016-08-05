@@ -76,7 +76,7 @@ struct v3d_debug_tlb_store
    const struct v3d_rcfg *rcfg;
 
    v3d_ldst_buf_t buf;
-   const struct v3d_ldst_params *ldst_params;
+   const struct v3d_tlb_ldst_params *ldst_params;
 
    uint32_t tile_x;
    uint32_t tile_y;

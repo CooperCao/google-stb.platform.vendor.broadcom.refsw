@@ -125,8 +125,11 @@ static inline bool glxx_buffer_write_now_would_flush(const GLXX_BUFFER_T *buffer
 extern bool glxx_buffer_copy_subdata(GLXX_BUFFER_T *src, GLXX_BUFFER_T *dst,
    size_t src_offset, size_t dst_offset, size_t size);
 
-/* call this only on an element_array buffer */
-extern int glxx_buffer_find_max(GLXX_BUFFER_T *buffer, unsigned count,
+/* Call this only on an element_array buffer.
+ * If out of memory, returns false. Otherwise, returns true and sets *max and
+ * *any. *any set to false iff all indices are restart indices, ie there are no
+ * real indices. */
+extern bool glxx_buffer_find_max(uint32_t *max, bool *any, GLXX_BUFFER_T *buffer, unsigned count,
       unsigned per_index_count, size_t indices_offset, bool primitive_restart);
 
 /* maps in user space "size" bytes of buffer, starting from offset */

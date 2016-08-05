@@ -11,6 +11,9 @@ FILE DESCRIPTION
 #ifndef GLSL_LAYOUT_H
 #define GLSL_LAYOUT_H
 
+#include <stdint.h>
+#include "glsl_common.h"      /* LayoutQualifier definition */
+
 typedef enum {
    LQ_FLAVOUR_PLAIN,
    LQ_FLAVOUR_INT,
@@ -53,7 +56,15 @@ typedef enum {
    LQ_CW,
    LQ_CCW,
    LQ_POINT_MODE,
-   LQ_VERTICES
+   LQ_VERTICES,
+   LQ_POINTS,
+   LQ_LINES,
+   LQ_LINES_ADJACENCY,
+   LQ_TRIANGLES_ADJACENCY,
+   LQ_INVOCATIONS,
+   LQ_LINE_STRIP,
+   LQ_TRIANGLE_STRIP,
+   LQ_MAX_VERTICES,
 } LQ;
 
 typedef struct {

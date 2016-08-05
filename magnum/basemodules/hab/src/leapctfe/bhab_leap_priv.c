@@ -688,9 +688,6 @@ BERR_Code BHAB_Leap_WriteMemory(BHAB_Handle handle, uint32_t addr, const uint8_t
                 case 3:
                     writebuf[1] = BCHP_CSR_RBUS_DATA3;
                     break;
-                default:
-                    writebuf[1] = BCHP_CSR_RBUS_DATA0;
-                  break;
             }
 
             for (k = 0; k < bytes_left; k++) {
@@ -1314,7 +1311,11 @@ BERR_Code BHAB_Leap_P_GetADSChannels(
     BHAB_CHK_RETCODE(BHAB_Leap_ReadRegister(handle, BCHP_TM_FAMILY_ID, &familyId));
     familyId = (familyId>>16);
     BHAB_CHK_RETCODE(BHAB_Leap_ReadRegister(handle, BCHP_TM_PRODUCT_ID, &chipId));
-    chipId = (chipId >> 8) & 0xFFFFF;
+    if ((chipId & 0xFF000000) == 0x31000000) {
+        chipId = (chipId >> 16);
+    } else {
+        chipId = (chipId >> 8) & 0xFFFFF;
+    }
     if (chipId == 0) {
         chipId = familyId;
         BDBG_MSG(("Using Family ID for Chip ID: %X\n", chipId));
@@ -1359,7 +1360,11 @@ BERR_Code BHAB_Leap_P_GetAOBChannels(
     BHAB_CHK_RETCODE(BHAB_Leap_ReadRegister(handle, BCHP_TM_FAMILY_ID, &familyId));
     familyId = (familyId>>16);
     BHAB_CHK_RETCODE(BHAB_Leap_ReadRegister(handle, BCHP_TM_PRODUCT_ID, &chipId));
-    chipId = (chipId >> 8) & 0xFFFFF;
+    if ((chipId & 0xFF000000) == 0x31000000) {
+        chipId = (chipId >> 16);
+    } else {
+        chipId = (chipId >> 8) & 0xFFFFF;
+    }
     if (chipId == 0) {
         chipId = familyId;
         BDBG_MSG(("Using Family ID for Chip ID: %X\n", chipId));
@@ -1382,7 +1387,7 @@ BERR_Code BHAB_Leap_P_GetAOBChannels(
             *totalAOBChannels = 1;
             break;
         default :
-            *totalAOBChannels = 16;
+            *totalAOBChannels = 1;
             break;
     }
 done:
@@ -1400,7 +1405,11 @@ BERR_Code BHAB_Leap_P_GetIfDacChannels(
     BHAB_CHK_RETCODE(BHAB_Leap_ReadRegister(handle, BCHP_TM_FAMILY_ID, &familyId));
     familyId = (familyId>>16);
     BHAB_CHK_RETCODE(BHAB_Leap_ReadRegister(handle, BCHP_TM_PRODUCT_ID, &chipId));
-    chipId = (chipId >> 8) & 0xFFFFF;
+    if ((chipId & 0xFF000000) == 0x31000000) {
+        chipId = (chipId >> 16);
+    } else {
+        chipId = (chipId >> 8) & 0xFFFFF;
+    }
     if (chipId == 0) {
         chipId = familyId;
         BDBG_MSG(("Using Family ID for Chip ID: %X\n", chipId));
@@ -1423,7 +1432,7 @@ BERR_Code BHAB_Leap_P_GetIfDacChannels(
             *totalIfDacChannels = 1;
             break;
         default :
-            *totalIfDacChannels = 16;
+            *totalIfDacChannels = 1;
             break;
     }
 done:
@@ -1556,20 +1565,17 @@ BERR_Code BHAB_Leap_P_RunAp(BHAB_Handle handle)
     BDBG_ASSERT(handle);
 
     BHAB_Leap_P_EnableHostInterrupt(handle, true);
-#if BHAB_STANDALONE_FRONTEND
+
 #ifdef BHAB_LEAP_UART_ENABLE
     buf = BHAB_HAB_UART_ENABLE;
-    BHAB_CHK_RETCODE(BHAB_Leap_WriteRegister(handle, BCHP_TM_SFT1, &buf));
+    BHAB_CHK_RETCODE(BHAB_Leap_WriteRegister(handle, BCHP_LEAP_CTRL_GP38, &buf));
 #else
     buf = 0;
-    BHAB_CHK_RETCODE(BHAB_Leap_WriteRegister(handle, BCHP_TM_SFT1, &buf));
+    BHAB_CHK_RETCODE(BHAB_Leap_WriteRegister(handle, BCHP_LEAP_CTRL_GP38, &buf));
 #endif
+#if BHAB_STANDALONE_FRONTEND
     /* unmask HOST L1 and L2 interrupt bits */
-#if BHAB_SOC_FRONTEND
-    buf = BCHP_LEAP_HOST_L1_INTR_W0_MASK_CLEAR_LEAP_INTR_MASK;
-#else
     buf = BCHP_LEAP_HOST_L1_INTR_W0_MASK_CLEAR_PERIPH_DEMOD_XPT_WAKEUP_INTR_MASK | BCHP_LEAP_HOST_L1_INTR_W0_MASK_CLEAR_LEAP_INTR_MASK;
-#endif
     BHAB_CHK_RETCODE(BHAB_Leap_WriteRegister(handle, BCHP_LEAP_HOST_L1_INTR_W0_MASK_CLEAR, &buf));
 
     buf = BCHP_LEAP_HOST_L2_STATUS0_SW_INTR_MASK;
@@ -1582,21 +1588,11 @@ BERR_Code BHAB_Leap_P_RunAp(BHAB_Handle handle)
     buf = 0;
     BHAB_CHK_RETCODE(BHAB_Leap_ReadRegister(handle, BCHP_LEAP_CTRL_CTRL, &buf));
 #else
-#if BHAB_SOC_FRONTEND
-#ifdef BHAB_LEAP_UART_ENABLE
-    buf = BHAB_HAB_UART_ENABLE;
-    BHAB_CHK_RETCODE(BHAB_Leap_WriteRegister(handle, BCHP_LEAP_CTRL_GP38, &buf));
-#else
-    buf = 0;
-    BHAB_CHK_RETCODE(BHAB_Leap_WriteRegister(handle, BCHP_LEAP_CTRL_GP38, &buf));
-#endif
-
-#if BHAB_SOC_FRONTEND
     buf = FW_LOAD_ADDR;
     BHAB_CHK_RETCODE(BHAB_Leap_WriteRegister(handle, BCHP_LEAP_CTRL_GP62, &buf));
     buf = FW_LOAD_ADDR_COMPLEMENT;
     BHAB_CHK_RETCODE(BHAB_Leap_WriteRegister(handle, BCHP_LEAP_CTRL_GP63, &buf));
-#endif
+
 #if BHAB_CHIP==75525
     buf=(pImpl->settings.physAddr & 0xFFF00000) | 0x1;
     BHAB_CHK_RETCODE(BHAB_Leap_WriteRegister(handle, BCHP_LEAP_CTRL_ADDR_TRANS, &buf));
@@ -1610,7 +1606,6 @@ BERR_Code BHAB_Leap_P_RunAp(BHAB_Handle handle)
 
     buf = BCHP_LEAP_HOST_L2_CPU_STATUS0_SW_INTR_MASK;
     BHAB_CHK_RETCODE(BHAB_Leap_WriteRegister(handle, BCHP_LEAP_HOST_L2_CPU_MASK_CLEAR0, &buf));
-#endif
     /* start running the AP */
     BHAB_CHK_RETCODE(BHAB_Leap_ReadRegister(handle, BCHP_LEAP_CTRL_CTRL, &buf));
     buf |= BCHP_LEAP_CTRL_CTRL_START_ARC_MASK;
@@ -1988,8 +1983,8 @@ no_hab_irq:
     BHAB_CHK_RETCODE(BHAB_Leap_ReadRegister(handle, BCHP_LEAP_HOST_L1_INTR_W0_STATUS, &buf));
     if (buf &  BCHP_LEAP_HOST_L1_INTR_W0_STATUS_PERIPH_DEMOD_XPT_WAKEUP_INTR_MASK) {
         buf = 0;
-        BHAB_Leap_WriteRegister(handle, DEMOD_XPT_WAKEUP_STATUS, &buf);
-        BHAB_Leap_WriteRegister(handle, DEMOD_XPT_WAKEUP_INTR_STATUS_REG, &buf);
+        BHAB_CHK_RETCODE(BHAB_Leap_WriteRegister(handle, DEMOD_XPT_WAKEUP_STATUS, &buf));
+        BHAB_CHK_RETCODE(BHAB_Leap_WriteRegister(handle, DEMOD_XPT_WAKEUP_INTR_STATUS_REG, &buf));
     }
 #endif
 done:

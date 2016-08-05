@@ -10,6 +10,7 @@ FILE DESCRIPTION
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "glsl_alloc_tracker.h"
 #include "glsl_file_utils.h"
@@ -27,11 +28,9 @@ struct glsl_alloc_tracker_s {
 };
 
 glsl_alloc_tracker_t *glsl_alloc_tracker_create() {
-   glsl_alloc_tracker_t *ret;
-   ret= malloc(sizeof(*ret));
-   if(!ret) {
-      return NULL;
-   }
+   glsl_alloc_tracker_t *ret = malloc(sizeof(glsl_alloc_tracker_t));
+   if(!ret) return NULL;
+
    ret->allocs = NULL;
    return ret;
 }
@@ -45,10 +44,9 @@ bool glsl_alloc_tracker_add(glsl_alloc_tracker_t *tracker, const char *file, int
          return true;
       }
    }
-   cur              = malloc(sizeof(*cur));
-   if(!cur) {
-      return false;
-   }
+   cur = malloc(sizeof(*cur));
+   if(!cur) return false;
+
    cur->file        = file;
    cur->line        = line;
    cur->total_bytes = bytes;

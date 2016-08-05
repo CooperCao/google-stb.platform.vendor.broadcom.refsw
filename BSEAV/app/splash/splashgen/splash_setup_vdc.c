@@ -419,7 +419,7 @@ BERR_Code  splash_vdc_setup(
 				pState->disp[hdmDspIdx].hHdm = hHdm;
 				eErr = ActivateHdmi(hVdc, hHdm, pState->disp[hdmDspIdx].hDisplay);
 				if (eErr != BERR_SUCCESS)
-				BDBG_ERR(("Error ActivateHDMI, HDMI is not connected, or TV is off?\n"));
+				BDBG_ERR(("Error ActivateHDMI, HDMI is not connected, or TV is off?"));
 				TestError( BVDC_ApplyChanges(hVdc), "ERROR:BVDC_ApplyChanges" );
 			}
 #endif
@@ -447,7 +447,7 @@ BERR_Code  splash_vdc_setup(
 				pState->disp[hdmDspIdx].hHdm = hHdm;
 				eErr = ActivateHdmi(hVdc, hHdm, pState->disp[hdmDspIdx].hDisplay);
 				if (eErr != BERR_SUCCESS)
-				BDBG_ERR(("Error ActivateHDMI, HDMI is not connected, or TV is off?\n"));
+				BDBG_ERR(("Error ActivateHDMI, HDMI is not connected, or TV is off?"));
 				TestError( BVDC_ApplyChanges(hVdc), "ERROR:BVDC_ApplyChanges" );
 			}
 #endif

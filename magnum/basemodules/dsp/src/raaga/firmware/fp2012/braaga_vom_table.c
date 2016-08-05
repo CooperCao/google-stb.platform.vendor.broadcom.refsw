@@ -278,7 +278,7 @@ const BDSP_VOM_Table BDSP_sVomTable =
 		/* BDSP_AF_P_AlgoId_eAC4Decode */
 		{
 			0x00000da1,
-			0x00000e77,
+			0x00000e7a,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eEndOfAudioDecodeAlgos */
@@ -535,14 +535,14 @@ const BDSP_VOM_Table BDSP_sVomTable =
 		},
 		/* BDSP_AF_P_AlgoId_eAC4FrameSync */
 		{
-			0x00000ecd,
-			0x00000ecf,
+			0x00000e9b,
+			0x00000e9d,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eALSFrameSync */
 		{
-			0x00000ed0,
-			0x00000ed4,
+			0x00000e9e,
+			0x00000ea2,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eEndOfAudioDecFsAlgos */
@@ -710,7 +710,7 @@ const BDSP_VOM_Table BDSP_sVomTable =
 		/* BDSP_VF_P_AlgoId_eXVP8Encode */
 		{
 			0x00000864,
-			0x0000087e,
+			0x00000884,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eEndOfEncodeAlgos */
@@ -764,7 +764,7 @@ const BDSP_VOM_Table BDSP_sVomTable =
 		/* BDSP_AF_P_AlgoId_ePassThru */
 		{
 			0x000001ea,
-			0x000001f8,
+			0x000001fa,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eMlpPassThru */

@@ -1,42 +1,39 @@
 /******************************************************************************
  * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
  * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
  *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
  * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  ******************************************************************************/
 #include "nexus_sync_channel_module.h"
 #include "priv/nexus_core.h"
@@ -284,7 +281,7 @@ static unsigned NEXUS_Synclib_P_ComputeInterDisplayAudioOffset_isr(NEXUS_SyncCha
         int displayDistance = NEXUS_SyncChannel_P_ComputeMaxDisplayDistance_isr(syncChannel);
         if (displayDistance > 0)
         {
-            BSYNClib_Convert_isr(((unsigned)displayDistance) / 1000, BSYNClib_Units_eMilliseconds,
+            BSYNClib_Convert_isrsafe(((unsigned)displayDistance) / 1000, BSYNClib_Units_eMilliseconds,
                 BSYNClib_Units_e45KhzTicks, &offset);
             offset /= 2;
         }
@@ -373,7 +370,7 @@ NEXUS_Synclib_P_SetVideoSourceDelay(void * pvParm1, int iParm2, unsigned int ind
         NEXUS_Module_Unlock(g_NEXUS_syncChannel.settings.modules.display);
 
         /* update status */
-        BSYNClib_ConvertSigned(syncSettings.delay, pDelay->eUnits,
+        BSYNClib_ConvertSigned_isrsafe(syncSettings.delay, pDelay->eUnits,
             BSYNClib_Units_eMilliseconds, &syncChannel->status.video.source.delay.applied);
     }
     else
@@ -409,7 +406,7 @@ NEXUS_Synclib_P_SetVideoSourceDelayNotification(void * pvParm1, int iParm2, unsi
         NEXUS_Module_Unlock(g_NEXUS_syncChannel.settings.modules.display);
 
         /* update status */
-        BSYNClib_ConvertSigned(syncSettings.delayCallbackThreshold, pThreshold->eUnits,
+        BSYNClib_ConvertSigned_isrsafe(syncSettings.delayCallbackThreshold, pThreshold->eUnits,
             BSYNClib_Units_eMilliseconds, &syncChannel->status.video.source.delay.notificationThreshold);
 
         /* if sync has enabled the callback, and the delay is valid, then grab the value */
@@ -645,7 +642,7 @@ NEXUS_Synclib_P_VideoInputDelayCallback_isr(void *context, int delay)
             NEXUS_Synclib_P_ComputePhaseOffsetAdjustment_isr(syncContext->syncChannel);
 
             /* status updates */
-            BSYNClib_ConvertSigned_isr(vsourceConfig.sDelay.sMeasured.uiValue, vsourceConfig.sDelay.sMeasured.eUnits,
+            BSYNClib_ConvertSigned_isrsafe(vsourceConfig.sDelay.sMeasured.uiValue, vsourceConfig.sDelay.sMeasured.eUnits,
                 BSYNClib_Units_eMilliseconds, &syncContext->syncChannel->status.video.source.delay.measured);
         }
         else
@@ -1030,7 +1027,7 @@ unlock:
         if (rc) {BERR_TRACE(rc);}
 
         /* update status */
-        BSYNClib_ConvertSigned(syncSettings.delay, BSYNClib_Units_e45KhzTicks,
+        BSYNClib_ConvertSigned_isrsafe(syncSettings.delay, BSYNClib_Units_e45KhzTicks,
             BSYNClib_Units_eMilliseconds, &syncChannel->status.video.source.delay.applied);
     }
     else
@@ -1368,7 +1365,7 @@ NEXUS_Synclib_P_VideoOutputDelayCallback_isr(void *context, int delay)
             }
 
             /* update status */
-            BSYNClib_ConvertSigned_isr(syncChannel->vsourcePhaseOffset, BSYNClib_Units_e45KhzTicks,
+            BSYNClib_ConvertSigned_isrsafe(syncChannel->vsourcePhaseOffset, BSYNClib_Units_e45KhzTicks,
                 BSYNClib_Units_eMilliseconds, &syncChannel->status.video.source.delay.phase);
             syncChannel->status.video.sinks[syncContext->index].delay.phase = status.phaseDelay / 1000;
             if (status.refreshRate)
@@ -1525,7 +1522,7 @@ NEXUS_Synclib_P_SetAudioSourceDelay(void * pvParm1, int iParm2, unsigned int ind
         NEXUS_Module_Unlock(g_NEXUS_syncChannel.settings.modules.audio);
 
         /* update status */
-        BSYNClib_ConvertSigned(syncSettings.delay, pDelay->eUnits,
+        BSYNClib_ConvertSigned_isrsafe(syncSettings.delay, pDelay->eUnits,
             BSYNClib_Units_eMilliseconds, &syncChannel->status.audio.sources[index].delay.applied);
     }
     else
@@ -1545,7 +1542,7 @@ static bool nexus_p_is_decoder_connected(NEXUS_AudioDecoderHandle audioDecoder)
     NEXUS_AudioDecoderConnectorType i;
     for (i=0;i<NEXUS_AudioDecoderConnectorType_eMax;i++) {
         bool connected;
-        NEXUS_AudioInput audioInput = NEXUS_AudioDecoder_GetConnector(audioDecoder, i);
+        NEXUS_AudioInputHandle audioInput = NEXUS_AudioDecoder_GetConnector(audioDecoder, i);
         if (audioInput) {
             NEXUS_AudioInput_HasConnectedOutputs(audioInput, &connected);
             if (connected) {
@@ -1669,7 +1666,7 @@ NEXUS_Synclib_P_AudioInputStartCallback_isr(void *context, int param)
         syncContext->syncChannel->status.audio.sources[syncContext->index].samplingRateReceived = asourceConfig.bSamplingRateReceived;
         syncContext->syncChannel->status.audio.sources[syncContext->index].started = asourceConfig.bStarted;
         syncContext->syncChannel->status.audio.sources[syncContext->index].digital = asourceConfig.bDigital;
-        BSYNClib_ConvertSigned_isr(asourceConfig.sDelay.sMeasured.uiValue, asourceConfig.sDelay.sMeasured.eUnits,
+        BSYNClib_ConvertSigned_isrsafe(asourceConfig.sDelay.sMeasured.uiValue, asourceConfig.sDelay.sMeasured.eUnits,
             BSYNClib_Units_eMilliseconds, &syncContext->syncChannel->status.audio.sources[syncContext->index].delay.measured);
         syncContext->syncChannel->status.audio.sources[syncContext->index].delay.applied = -1;
 
@@ -1819,7 +1816,7 @@ void NEXUS_SyncChannel_GetDefaultSettings(NEXUS_SyncChannelSettings *pSettings)
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
     BSYNClib_Channel_GetDefaultConfig(&chCfg);
     BSYNClib_Channel_GetDefaultVideoSourceConfig(&srcCfg);
-    BSYNClib_Convert(srcCfg.sJitterToleranceImprovementThreshold.uiValue,
+    BSYNClib_Convert_isrsafe(srcCfg.sJitterToleranceImprovementThreshold.uiValue,
         srcCfg.sJitterToleranceImprovementThreshold.eUnits,
         BSYNClib_Units_eMilliseconds,
         &pSettings->adjustmentThreshold);
@@ -2039,21 +2036,6 @@ NEXUS_Error NEXUS_Synclib_P_SetVideoSource(NEXUS_SyncChannelHandle syncChannel, 
     return 0;
 }
 
-NEXUS_Error NEXUS_Synclib_P_ConnectVideoSource(NEXUS_SyncChannelHandle syncChannel, const NEXUS_SyncChannelSettings *pSettings, unsigned int index)
-{
-    BSTD_UNUSED(syncChannel);
-    BSTD_UNUSED(pSettings);
-    BSTD_UNUSED(index);
-    return 0;
-}
-
-NEXUS_Error NEXUS_Synclib_P_DisconnectVideoSource(NEXUS_SyncChannelHandle syncChannel, unsigned int index)
-{
-    BSTD_UNUSED(syncChannel);
-    BSTD_UNUSED(index);
-    return 0;
-}
-
 NEXUS_Error NEXUS_Synclib_P_SetVideoSink(NEXUS_SyncChannelHandle syncChannel, const NEXUS_SyncChannelSettings *pSettings, unsigned int index)
 {
     BSYNClib_VideoSink_Config vsinkConfig;
@@ -2070,21 +2052,6 @@ NEXUS_Error NEXUS_Synclib_P_SetVideoSink(NEXUS_SyncChannelHandle syncChannel, co
     /* update status */
     syncChannel->status.video.sinks[index].synchronized = vsinkConfig.bSynchronize;
 
-    return 0;
-}
-
-NEXUS_Error NEXUS_Synclib_P_ConnectVideoSink(NEXUS_SyncChannelHandle syncChannel, const NEXUS_SyncChannelSettings *pSettings, unsigned int index)
-{
-    BSTD_UNUSED(syncChannel);
-    BSTD_UNUSED(pSettings);
-    BSTD_UNUSED(index);
-    return 0;
-}
-
-NEXUS_Error NEXUS_Synclib_P_DisconnectVideoSink(NEXUS_SyncChannelHandle syncChannel, unsigned int index)
-{
-    BSTD_UNUSED(syncChannel);
-    BSTD_UNUSED(index);
     return 0;
 }
 
@@ -2138,21 +2105,6 @@ NEXUS_Error NEXUS_Synclib_P_SetAudioSource(NEXUS_SyncChannelHandle syncChannel, 
     return rc;
 }
 
-NEXUS_Error NEXUS_Synclib_P_ConnectAudioSource(NEXUS_SyncChannelHandle syncChannel, const NEXUS_SyncChannelSettings *pSettings, unsigned int index)
-{
-    BSTD_UNUSED(syncChannel);
-    BSTD_UNUSED(pSettings);
-    BSTD_UNUSED(index);
-    return 0;
-}
-
-NEXUS_Error NEXUS_Synclib_P_DisconnectAudioSource(NEXUS_SyncChannelHandle syncChannel, unsigned int index)
-{
-    BSTD_UNUSED(syncChannel);
-    BSTD_UNUSED(index);
-    return 0;
-}
-
 NEXUS_Error NEXUS_Synclib_P_SetAudioSink(NEXUS_SyncChannelHandle syncChannel, const NEXUS_SyncChannelSettings *pSettings, unsigned int index)
 {
     BSYNClib_AudioSink_Config asinkConfig;
@@ -2184,20 +2136,6 @@ NEXUS_Error NEXUS_Synclib_P_SetAudioSink(NEXUS_SyncChannelHandle syncChannel, co
     return 0;
 }
 
-NEXUS_Error NEXUS_Synclib_P_ConnectAudioSink(NEXUS_SyncChannelHandle syncChannel, const NEXUS_SyncChannelSettings *pSettings, unsigned int index)
-{
-    BSTD_UNUSED(syncChannel);
-    BSTD_UNUSED(pSettings);
-    BSTD_UNUSED(index);
-    return 0;
-}
-
-NEXUS_Error NEXUS_Synclib_P_DisconnectAudioSink(NEXUS_SyncChannelHandle syncChannel, unsigned int index)
-{
-    BSTD_UNUSED(syncChannel);
-    BSTD_UNUSED(index);
-    return 0;
-}
 #define NEXUS_SYNC_CHANNEL_VIDEO_START_DELAY 150 /* ms */
 
 NEXUS_Error NEXUS_SyncChannel_P_ConnectVideoInput(NEXUS_SyncChannelHandle syncChannel, const NEXUS_SyncChannelSettings *pSettings)
@@ -2219,7 +2157,7 @@ NEXUS_Error NEXUS_SyncChannel_P_ConnectVideoInput(NEXUS_SyncChannelHandle syncCh
         /* set up callbacks */
         NEXUS_Module_Lock(g_NEXUS_syncChannel.settings.modules.display);
         NEXUS_VideoInput_GetSyncSettings_priv(pSettings->videoInput, &syncSettings);
-        BSYNClib_Convert(
+        BSYNClib_Convert_isrsafe(
             pSettings->adjustmentThreshold,
             BSYNClib_Units_eMilliseconds,
             BSYNClib_Units_e45KhzTicks,
@@ -2230,7 +2168,7 @@ NEXUS_Error NEXUS_SyncChannel_P_ConnectVideoInput(NEXUS_SyncChannelHandle syncCh
         syncSettings.connectionChangedCallback_isr = NEXUS_Synclib_P_VideoInputConnectionChangedCallback_isr;
         syncSettings.callbackContext = &syncChannel->vsourceContext;
         syncSettings.mute = pSettings->enableMuteControl;
-        BSYNClib_Convert(NEXUS_SYNC_CHANNEL_VIDEO_START_DELAY, BSYNClib_Units_eMilliseconds,
+        BSYNClib_Convert_isrsafe(NEXUS_SYNC_CHANNEL_VIDEO_START_DELAY, BSYNClib_Units_eMilliseconds,
             BSYNClib_Units_e45KhzTicks, &syncSettings.startDelay);
         syncSettings.delay = syncSettings.startDelay;
         rc = NEXUS_VideoInput_SetSyncSettings_priv(pSettings->videoInput, &syncSettings);

@@ -47,6 +47,7 @@
 
 BDBG_MODULE(bsat_g1_priv);
 
+/* extern bool bEnableDebugLog; */
 
 #if defined(BSAT_HAS_ACM) && defined(BCHP_AFEC_0_BCH_STREAM_ID0_STAT) && !defined(BSAT_EXCLUDE_AFEC)
 static const uint32_t afec_stream_stat_reg[8] = {
@@ -764,8 +765,11 @@ BERR_Code BSAT_g1_P_ResetChannel(BSAT_ChannelHandle h, bool bDisableDemod)
 #endif
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
    BERR_Code retCode;
+   uint32_t val;
 
    BDBG_ENTER(BSAT_g1_P_ResetChannel);
+
+/* bEnableDebugLog = false; */
 
    if (BSAT_g1_P_IsSdsOn(h) == false)
       return BSAT_ERR_POWERED_DOWN;
@@ -774,19 +778,23 @@ BERR_Code BSAT_g1_P_ResetChannel(BSAT_ChannelHandle h, bool bDisableDemod)
 
    BSAT_CHK_RETCODE(BSAT_g1_P_DisableChannelInterrupts(h));
 
-   BSAT_g1_P_IndicateNotLocked_isrsafe(h);
    hChn->configParam[BSAT_g1_CONFIG_ACQ_TIME] = 0;
    hChn->acqState = BSAT_AcqState_eIdle;
 
    if (bDisableDemod)
    {
-#ifdef BCHP_SDS_CG_0_PMCG_CTL_xpt_bclk_en_MASK
-      BSAT_g1_P_AndRegister_isrsafe(h, BCHP_SDS_CG_PMCG_CTL, ~BCHP_SDS_CG_0_PMCG_CTL_xpt_bclk_en_MASK);
-#endif
-
-      BSAT_g1_P_PowerDownOpll_isrsafe(h);
-
-      BSAT_CHK_RETCODE(BSAT_g1_P_HpEnable(h, false));
+      val = BSAT_g1_P_ReadRegister_isrsafe(h, BCHP_SDS_HP_HPCONTROL);
+      if (val & BCHP_SDS_HP_0_HPCONTROL_HPEN_MASK)
+      {
+         /* HP was enabled */
+         /* per Hiroshi: reset HP first, wait a while (say 5 msec), then reset FEC and OI.  5ms should be long enough to flush out the FEC to avoid partial XPT packets */
+         BSAT_CHK_RETCODE(BSAT_g1_P_HpEnable(h, false));
+         BKNI_Sleep(5);
+      }
+      else
+      {
+         BSAT_CHK_RETCODE(BSAT_g1_P_HpEnable(h, false));
+      }
 
 #ifndef BSAT_EXCLUDE_TFEC
       if (hChn->bHasTfec)
@@ -818,7 +826,16 @@ BERR_Code BSAT_g1_P_ResetChannel(BSAT_ChannelHandle h, bool bDisableDemod)
          }
       }
 #endif
+
+
+#if 0 /* keep SDS_CG_PMCG_CTL.xpt_bclk_en to its default value (=1) */
+      BSAT_g1_P_AndRegister_isrsafe(h, BCHP_SDS_CG_PMCG_CTL, ~BCHP_SDS_CG_0_PMCG_CTL_xpt_bclk_en_MASK);
+#endif
+
+      BSAT_g1_P_PowerDownOpll_isrsafe(h);
    }
+
+   BSAT_g1_P_IndicateNotLocked_isrsafe(h);
 
    done:
    BDBG_LEAVE(BSAT_g1_P_ResetChannel);
@@ -1303,7 +1320,7 @@ BERR_Code BSAT_g1_P_SetChannelConfig(BSAT_ChannelHandle h, uint32_t addr, uint32
 
    BDBG_ENTER(BSAT_g1_P_SetChannelConfig);
 
-   if (addr > BSAT_g1_CONFIG_MAX)
+   if (addr >= BSAT_g1_CONFIG_MAX)
       retCode = BERR_INVALID_PARAMETER;
    else
       hChn->configParam[addr] = val;
@@ -1323,7 +1340,7 @@ BERR_Code BSAT_g1_P_GetChannelConfig(BSAT_ChannelHandle h, uint32_t addr, uint32
 
    BDBG_ENTER(BSAT_g1_P_GetChannelConfig);
 
-   if (addr > BSAT_g1_CONFIG_MAX)
+   if (addr >= BSAT_g1_CONFIG_MAX)
       retCode = BERR_INVALID_PARAMETER;
    else
       *pVal = hChn->configParam[addr];
@@ -1565,10 +1582,32 @@ BERR_Code BSAT_g1_P_GetDvbs2AcqSettings(BSAT_ChannelHandle h, BSAT_Dvbs2AcqSetti
 BERR_Code BSAT_g1_P_SetDvbs2AcqSettings(BSAT_ChannelHandle h, BSAT_Dvbs2AcqSettings *pSettings)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
+#ifdef BSAT_HAS_ACM /* 45308-B0 or later */
+   bool bOn;
+#endif
 
    BDBG_ENTER(BSAT_g1_P_SetDvbs2AcqSettings);
 
    BKNI_Memcpy(&(hChn->dvbs2Settings), pSettings, sizeof(BSAT_Dvbs2AcqSettings));
+
+#ifdef BSAT_HAS_ACM /* 45308-B0 or later */
+   BKNI_EnterCriticalSection();
+   if (BSAT_IsChannelOn(h, &bOn) == BERR_SUCCESS)
+   {
+      if (bOn)
+      {
+         bOn = BSAT_g1_P_IsAfecOn_isrsafe(h);
+         if (bOn)
+         {
+            if (pSettings->ctl & BSAT_DVBS2_CTL_SEL_UPL)
+               BSAT_g1_P_OrRegister_isrsafe(h, BCHP_AFEC_BCH_BBHDR3, 1<<17);
+            else
+               BSAT_g1_P_AndRegister_isrsafe(h, BCHP_AFEC_BCH_BBHDR3, ~(1<<17));
+         }
+      }
+   }
+   BKNI_LeaveCriticalSection();
+#endif
 
    BDBG_LEAVE(BSAT_g1_P_SetDvbs2AcqSettings);
    return BERR_SUCCESS;

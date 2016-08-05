@@ -231,6 +231,7 @@
 #if NEXUS_HAS_SCM
 #include "nexus_scm_init.h"
 #endif
+#include "nexus_scm_id_string.h"
 
 #include "priv/nexus_core_standby_priv.h"
 
@@ -719,6 +720,11 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
         BKNI_Free(status);
     }
 
+    {
+        static const char nexus_scm_id_string[]="NEXUS_SCM_ID_STRING:" NEXUS_SCM_ID_STRING;
+        BDBG_LOG(("%s", nexus_scm_id_string));
+    }
+
     if(NEXUS_GetEnv("profile_init")) {
         NEXUS_Profile_Start();
     }
@@ -778,8 +784,8 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
                    NEXUS_DmaModule_Uninit, NEXUS_DmaModule_Standby_priv);
 #endif
 
-/* some chips init transport fully before starting security */
-#if (BCHP_CHIP==7408)
+/* some chips init transport fully before starting security (Only 7408, removed.)*/
+#if (0)
 #define NEXUS_TRANSPORT_BEFORE_SECURITY 1
 #endif
 
@@ -1752,7 +1758,11 @@ NEXUS_Error NEXUS_Platform_GetStatus( NEXUS_PlatformStatus *pStatus )
     NEXUS_Platform_P_AddBoardStatus(pStatus);
 
 #if NEXUS_HAS_DISPLAY
-    if (g_NEXUS_platformHandles.display) {
+    if (g_NEXUS_platformHandles.display
+#if NEXUS_POWER_MANAGEMENT
+            && g_standbyState.settings.mode == NEXUS_PlatformStandbyMode_eOn
+#endif
+            ) {
         int rc;
         NEXUS_Module_Lock(g_NEXUS_platformHandles.display);
         rc = NEXUS_DisplayModule_GetStatus_priv(&pStatus->displayModuleStatus);
@@ -1766,6 +1776,11 @@ NEXUS_Error NEXUS_Platform_GetStatus( NEXUS_PlatformStatus *pStatus )
     }
 
     return 0;
+}
+
+void NEXUS_Platform_UninitInterrupts(void)
+{
+    NEXUS_Platform_P_UninitInterrupts();
 }
 
 #if B_REFSW_FIRMWARE
@@ -1893,7 +1908,7 @@ void NEXUS_Platform_P_ReleaseObject(const NEXUS_InterfaceName *type, void *objec
 {
     const NEXUS_Platform_P_ModuleInfo *module_info;
     for (module_info = BLST_Q_FIRST(&g_NEXUS_platformHandles.handles); module_info; module_info = BLST_Q_NEXT(module_info, link)) {
-        NEXUS_BaseObject  *base_object = b_objdb_find_object_and_acquire(NULL, type->name, object);
+        NEXUS_BaseObject  *base_object = b_objdb_find_object_and_acquire(b_objdb_get_client(), type->name, object);
         if(base_object) {
             /* release it twice, first to compensate for acquire in b_objdb and then to release it */
 #if BDBG_DEBUG_BUILD

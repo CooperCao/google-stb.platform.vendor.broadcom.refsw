@@ -316,7 +316,7 @@ typedef enum BCMD_AVDType_e
     BCMD_AVDType_eVDEC2  = 5, /* Zeus4.1+ */
 
     BCMD_AVDType_eSVD    = 0,
-    BCMD_AVDType_eAVD    = 1, /* pre Zeus4.2 */
+    BCMD_AVDType_eAVD    = 1, /* Reserved for Zeus4.2+, pre Zeus4.2 */
 
     BCMD_AVDType_eVICE   = 2,
     BCMD_AVDType_eVICE1  = 3,

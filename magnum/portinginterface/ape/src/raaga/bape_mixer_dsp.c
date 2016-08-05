@@ -46,6 +46,7 @@
 #include "bdsp_raaga.h"
 
 BDBG_MODULE(bape_mixer_dsp);
+BDBG_FILE_MODULE(bape_mixer_lb);
 
 /* Mixer Interface */
 static const BAPE_MixerInterface  g_dspMixerInterface;
@@ -65,13 +66,14 @@ static void      BAPE_DspMixer_P_RemoveInputCallback(struct BAPE_PathNode *pNode
 static BERR_Code BAPE_DspMixer_P_SetSettings(BAPE_MixerHandle hMixer, const BAPE_MixerSettings *pSettings);
 static BERR_Code BAPE_DspMixer_P_RemoveAllInputs(BAPE_MixerHandle handle);
 static BERR_Code BAPE_DspMixer_P_CreateLoopBackMixer (BAPE_MixerHandle handle);
+static BERR_Code BAPE_DspMixer_P_CreateLoopBackPath (BAPE_MixerHandle handle);
 static BERR_Code BAPE_DspMixer_P_StartTask(BAPE_MixerHandle handle);
 static void BAPE_DspMixer_P_StopTask(BAPE_MixerHandle handle);
 static void BAPE_DspMixer_P_FreeConnectionResources(BAPE_MixerHandle handle, BAPE_PathConnection *pConnection);
 static BERR_Code BAPE_DspMixer_P_AllocateLoopbackInput(BAPE_MixerHandle handle, BAPE_PathConnection *pConnection);
 static void BAPE_DspMixer_P_SetSampleRate_isr(BAPE_MixerHandle mixer, unsigned sampleRate);
 static void BAPE_DspMixer_P_SetInputSRC_isr(BAPE_MixerHandle mixer, BAPE_Connector input, unsigned inputRate, unsigned outputRate);
-static BERR_Code BAPE_DspMixer_P_ApplyInputVolume(BAPE_MixerHandle mixer, unsigned index);
+static BERR_Code BAPE_DspMixer_P_ApplyInputVolume(BAPE_MixerHandle handle, unsigned index);
 static void BAPE_DspMixer_P_EncoderOverflow_isr(void *pParam1, int param2);
 static void BAPE_DspMixer_P_Destroy(BAPE_MixerHandle handle);
 static BAPE_MultichannelFormat BAPE_DspMixer_P_GetDdreMultichannelFormat(BAPE_MixerHandle handle);
@@ -112,7 +114,6 @@ Certification mode parameters for DAPv2 Mixer
 /* |1111 1xxx xxxx xxxx| */
 #define BAPE_DOLBY_DAP_CERT_EQAMOUNT                    (0xf8000000)
 #define BAPE_DOLBY_DAP_CERT_EQAMOUNT_SHIFT              (27)
-
 
 BERR_Code BAPE_DspMixer_P_Create(
     BAPE_Handle deviceHandle,
@@ -334,15 +335,35 @@ static BERR_Code BAPE_DspMixer_P_AddInput(
         return BERR_TRACE(BERR_NOT_SUPPORTED);
     }
 
-    if (handle->running && handle->startedExplicitly &&
-        input->format.source != BAPE_DataSource_eDspBuffer &&
-        handle->loopbackMixerGroup == NULL && handle->loopbackGroup == NULL)
+    if (handle->running && handle->startedExplicitly)
     {
-        errCode = BAPE_DspMixer_P_CreateLoopBackMixer(handle);
-        if (errCode)
+        if ( !handle->settings.loopbackMixerEnabled &&
+             handle->loopbackGroup != NULL &&
+             input->format.source != BAPE_DataSource_eDspBuffer)
         {
-            BDBG_ERR(("Unable to create loopback mixer"));
-            return BERR_TRACE(errCode);
+            BDBG_ERR(("DspMixer was started with loopbackMixerEnabled=false and loopback is already in use. Another FMM input cannot be supported."));
+            return BERR_TRACE(BERR_NOT_SUPPORTED);
+        }
+
+        if ( input->format.source != BAPE_DataSource_eDspBuffer &&
+             handle->loopbackGroup == NULL)
+        {
+            if ( handle->settings.loopbackMixerEnabled )
+            {
+                errCode = BAPE_DspMixer_P_CreateLoopBackMixer(handle);
+                if (errCode)
+                {
+                    BDBG_ERR(("Unable to create loopback mixer"));
+                    return BERR_TRACE(errCode);
+                }
+            }
+
+            errCode = BAPE_DspMixer_P_CreateLoopBackPath(handle);
+            if (errCode)
+            {
+                BDBG_ERR(("Unable to create loopback mixer"));
+                return BERR_TRACE(errCode);
+            }
         }
     }
 
@@ -507,18 +528,11 @@ static BERR_Code BAPE_DspMixer_P_CreateLoopBackMixer (BAPE_MixerHandle handle)
 {
 
     BAPE_MixerGroupCreateSettings mixerCreateSettings;
-    BAPE_LoopbackGroupCreateSettings loopbackCreateSettings;
-    BAPE_LoopbackGroupSettings loopbackSettings;
-    BAPE_DfifoGroupCreateSettings dfifoCreateSettings;
-    BAPE_DfifoGroupSettings dfifoSettings;
-    BAPE_FMT_Descriptor format;
     BERR_Code errCode;
 
     BDBG_ASSERT(NULL == handle->loopbackMixerGroup);
-    BDBG_ASSERT(NULL == handle->loopbackGroup);
-    BDBG_ASSERT(NULL == handle->loopbackDfifoGroup);
-    BDBG_ASSERT(NULL == handle->pLoopbackBuffers[0]);
 
+    BDBG_MSG(("Allocate DspMixer Loopback Mixer"));
     BAPE_MixerGroup_P_GetDefaultCreateSettings(&mixerCreateSettings);
     mixerCreateSettings.numChannelPairs = 1;
     errCode = BAPE_MixerGroup_P_Create(handle->deviceHandle, &mixerCreateSettings, &handle->loopbackMixerGroup);
@@ -527,6 +541,24 @@ static BERR_Code BAPE_DspMixer_P_CreateLoopBackMixer (BAPE_MixerHandle handle)
         errCode = BERR_TRACE(errCode);
         return errCode;
     }
+
+    return errCode;
+}
+
+static BERR_Code BAPE_DspMixer_P_CreateLoopBackPath (BAPE_MixerHandle handle)
+{
+    BAPE_LoopbackGroupCreateSettings loopbackCreateSettings;
+    BAPE_LoopbackGroupSettings loopbackSettings;
+    BAPE_DfifoGroupCreateSettings dfifoCreateSettings;
+    BAPE_DfifoGroupSettings dfifoSettings;
+    BAPE_FMT_Descriptor format;
+    BERR_Code errCode;
+
+    BDBG_ASSERT(NULL == handle->loopbackGroup);
+    BDBG_ASSERT(NULL == handle->loopbackDfifoGroup);
+    BDBG_ASSERT(NULL == handle->pLoopbackBuffers[0]);
+
+    BDBG_MSG(("Create DspMixer Loopback Path"));
 
     BAPE_LoopbackGroup_P_GetDefaultCreateSettings(&loopbackCreateSettings);
     loopbackCreateSettings.numChannelPairs = 1;
@@ -607,7 +639,12 @@ static BERR_Code BAPE_DspMixer_P_CreateLoopBackMixer (BAPE_MixerHandle handle)
     loopbackSettings.pllChannel = 0;
     loopbackSettings.mclkFreqToFsRatio = BAPE_BASE_PLL_TO_FS_RATIO;
 #endif
-    BAPE_MixerGroup_P_GetOutputFciIds(handle->loopbackMixerGroup, 0, &loopbackSettings.input);
+    if ( handle->loopbackMixerGroup )
+    {
+        BAPE_MixerGroup_P_GetOutputFciIds(handle->loopbackMixerGroup, 0, &loopbackSettings.input);
+    }
+    /* if we don't have a mixer, wait until we know the source fci id during start */
+
     BKNI_EnterCriticalSection();
     errCode = BAPE_LoopbackGroup_P_SetSettings_isr(handle->loopbackGroup, &loopbackSettings);
     BKNI_LeaveCriticalSection();
@@ -622,7 +659,7 @@ static BERR_Code BAPE_DspMixer_P_CreateLoopBackMixer (BAPE_MixerHandle handle)
 static BERR_Code BAPE_DspMixer_P_StartTask(BAPE_MixerHandle handle)
 {
     BERR_Code errCode;
-    bool fmmInputs=false;
+    unsigned fmmInputs = 0;
     unsigned input, output;
     BDSP_TaskStartSettings taskStartSettings;
     BAPE_PathConnection *pInputConnection;
@@ -641,14 +678,35 @@ static BERR_Code BAPE_DspMixer_P_StartTask(BAPE_MixerHandle handle)
     {
         if ( pInputConnection->pSource->format.source != BAPE_DataSource_eDspBuffer )
         {
-            fmmInputs = true;
-            break;
+            fmmInputs++;
         }
     }
 
-    if ( fmmInputs )
+    if ( fmmInputs > 0 )
     {
-        errCode = BAPE_DspMixer_P_CreateLoopBackMixer(handle);
+        bool createMixer = false;
+        if ( handle->settings.loopbackMixerEnabled )
+        {
+            createMixer = true;
+        }
+        else if ( fmmInputs > 1 )
+        {
+            BDBG_ERR(("loopback mixer has been explicitly disabled for this dsp mixer, but multiple fmm inputs to the mixer are found. This is not supported."));
+            errCode = BERR_TRACE(BERR_NOT_SUPPORTED);
+            goto err_acquire_resources;
+        }
+
+        if ( createMixer )
+        {
+            errCode = BAPE_DspMixer_P_CreateLoopBackMixer(handle);
+            if ( errCode )
+            {
+                errCode = BERR_TRACE(errCode);
+                goto err_acquire_resources;
+            }
+        }
+
+        errCode = BAPE_DspMixer_P_CreateLoopBackPath(handle);
         if ( errCode )
         {
             errCode = BERR_TRACE(errCode);
@@ -1106,19 +1164,41 @@ static BERR_Code BAPE_DspMixer_P_StartPathFromInput(struct BAPE_PathNode *pNode,
             (void)BERR_TRACE(errCode);
             goto err_dfifo_start;
         }
+
+        /* if we don't have a mixer group, link the upstream src directly to the loopback */
+        if ( !handle->loopbackMixerGroup )
+        {
+            BAPE_LoopbackGroupSettings loopbackSettings;
+
+            BKNI_EnterCriticalSection();
+            BAPE_LoopbackGroup_P_GetSettings_isr(handle->loopbackGroup, &loopbackSettings);
+            BKNI_LeaveCriticalSection();
+            BAPE_SrcGroup_P_GetOutputFciIds(pConnection->srcGroup, &loopbackSettings.input);
+            BKNI_EnterCriticalSection();
+            errCode = BAPE_LoopbackGroup_P_SetSettings_isr(handle->loopbackGroup, &loopbackSettings);
+            BKNI_LeaveCriticalSection();
+            if ( errCode )
+            {
+                errCode = BERR_TRACE(errCode);
+                return errCode;
+            }
+        }
         errCode = BAPE_LoopbackGroup_P_Start(handle->loopbackGroup);
         if ( errCode )
         {
             (void)BERR_TRACE(errCode);
             goto err_loopback_start;
         }
-        errCode = BAPE_MixerGroup_P_StartOutput(handle->loopbackMixerGroup, 0);
-        if ( errCode )
+        if ( handle->loopbackMixerGroup )
         {
-            (void)BERR_TRACE(errCode);
-            goto err_mixer_output;
+            errCode = BAPE_MixerGroup_P_StartOutput(handle->loopbackMixerGroup, 0);
+            if ( errCode )
+            {
+                (void)BERR_TRACE(errCode);
+                goto err_mixer_output;
+            }
         }
-        /* Refresh input scaling before adding to the DSP */
+        /* Refresh input scaling into the loopback mixer */
         errCode = BAPE_DspMixer_P_ApplyInputVolume(handle, inputIndex);
         if ( errCode )
         {
@@ -1138,21 +1218,59 @@ static BERR_Code BAPE_DspMixer_P_StartPathFromInput(struct BAPE_PathNode *pNode,
             errCode = BERR_TRACE(errCode);
             goto err_add_input;
         }
+        /* Refresh input scaling for the loopback mixer into dsp mixer */
+        errCode = BAPE_DspMixer_P_ApplyInputVolume(handle, inputIndex);
+        if ( errCode )
+        {
+            (void)BERR_TRACE(errCode);
+            goto err_input_vol;
+        }
+    }
+    else if ( !handle->loopbackMixerGroup ) /* need to stop and restart the loopback */
+    {
+        /* since we don't have a mixer group, link the upstream src directly to the loopback */
+        BAPE_LoopbackGroupSettings loopbackSettings;
+
+        BAPE_LoopbackGroup_P_Stop(handle->loopbackGroup);
+
+        BKNI_EnterCriticalSection();
+        BAPE_LoopbackGroup_P_GetSettings_isr(handle->loopbackGroup, &loopbackSettings);
+        BKNI_LeaveCriticalSection();
+
+        BAPE_SrcGroup_P_GetOutputFciIds(pConnection->srcGroup, &loopbackSettings.input);
+
+        BKNI_EnterCriticalSection();
+        errCode = BAPE_LoopbackGroup_P_SetSettings_isr(handle->loopbackGroup, &loopbackSettings);
+        BKNI_LeaveCriticalSection();
+        if ( errCode )
+        {
+            errCode = BERR_TRACE(errCode);
+            return errCode;
+        }
+        errCode = BAPE_LoopbackGroup_P_Start(handle->loopbackGroup);
+        if ( errCode )
+        {
+            (void)BERR_TRACE(errCode);
+            goto err_loopback_start;
+        }
     }
     handle->loopbackRunning++;
-    BAPE_MixerGroup_P_GetInputSettings(handle->loopbackMixerGroup, inputIndex, &mixerInputSettings);
-    BAPE_SrcGroup_P_GetOutputFciIds(pConnection->srcGroup, &mixerInputSettings.input);
-    errCode = BAPE_MixerGroup_P_SetInputSettings(handle->loopbackMixerGroup, inputIndex, &mixerInputSettings);
-    if ( errCode )
+    if ( handle->loopbackMixerGroup )
     {
-        (void)BERR_TRACE(errCode);
-        goto err_mixer_input;
-    }
-    errCode = BAPE_MixerGroup_P_StartInput(handle->loopbackMixerGroup, inputIndex);
-    if ( errCode )
-    {
-        (void)BERR_TRACE(errCode);
-        goto err_mixer_input;
+        BAPE_MixerGroup_P_GetInputSettings(handle->loopbackMixerGroup, inputIndex, &mixerInputSettings);
+        BAPE_SrcGroup_P_GetOutputFciIds(pConnection->srcGroup, &mixerInputSettings.input);
+        errCode = BAPE_MixerGroup_P_SetInputSettings(handle->loopbackMixerGroup, inputIndex, &mixerInputSettings);
+        if ( errCode )
+        {
+            (void)BERR_TRACE(errCode);
+            goto err_mixer_input;
+        }
+        errCode = BAPE_MixerGroup_P_StartInput(handle->loopbackMixerGroup, inputIndex);
+        if ( errCode )
+        {
+            (void)BERR_TRACE(errCode);
+            goto err_mixer_input;
+        }
     }
     errCode = BAPE_SrcGroup_P_Start(pConnection->srcGroup);
     if ( errCode )
@@ -1165,16 +1283,23 @@ static BERR_Code BAPE_DspMixer_P_StartPathFromInput(struct BAPE_PathNode *pNode,
     return BERR_SUCCESS;
 
 err_src_start:
-    BAPE_MixerGroup_P_StopInput(handle->loopbackMixerGroup, inputIndex);
+    if ( handle->loopbackMixerGroup )
+    {
+        BAPE_MixerGroup_P_StopInput(handle->loopbackMixerGroup, inputIndex);
+    }
 err_mixer_input:
     handle->loopbackRunning--;
     if ( 0 == handle->loopbackRunning )
     {
+err_input_vol:
         BDSP_Stage_RemoveInput(handle->hMixerStage, handle->loopbackDspInput);
         handle->loopbackDspInput = BAPE_DSPMIXER_INPUT_INVALID;
 err_add_input:
 err_input_scaling:
-        BAPE_MixerGroup_P_StopOutput(handle->loopbackMixerGroup, 0);
+        if ( handle->loopbackMixerGroup )
+        {
+            BAPE_MixerGroup_P_StopOutput(handle->loopbackMixerGroup, 0);
+        }
 err_mixer_output:
         BAPE_LoopbackGroup_P_Stop(handle->loopbackGroup);
 err_loopback_start:
@@ -1223,13 +1348,19 @@ static void BAPE_DspMixer_P_StopPathFromInput(struct BAPE_PathNode *pNode, struc
         {
             BAPE_SrcGroup_P_Stop(pConnection->srcGroup);
         }
-        BAPE_MixerGroup_P_StopInput(handle->loopbackMixerGroup, inputIndex);
+        if ( handle->loopbackMixerGroup )
+        {
+            BAPE_MixerGroup_P_StopInput(handle->loopbackMixerGroup, inputIndex);
+        }
 
         if ( handle->loopbackRunning == 0 )
         {
             BDSP_Stage_RemoveInput(handle->hMixerStage, handle->loopbackDspInput);
             handle->loopbackDspInput = BAPE_DSPMIXER_INPUT_INVALID;
-            BAPE_MixerGroup_P_StopOutput(handle->loopbackMixerGroup, 0);
+            if ( handle->loopbackMixerGroup )
+            {
+                BAPE_MixerGroup_P_StopOutput(handle->loopbackMixerGroup, 0);
+            }
             BAPE_LoopbackGroup_P_Stop(handle->loopbackGroup);
             BAPE_DfifoGroup_P_Stop(handle->loopbackDfifoGroup);
         }
@@ -1735,15 +1866,17 @@ static BERR_Code BAPE_DspMixer_P_GetInputVolume(
     return BERR_SUCCESS;
 }
 
+
 /*************************************************************************/
-static BERR_Code BAPE_DspMixer_P_ApplyInputVolume(BAPE_MixerHandle mixer, unsigned index)
+static BERR_Code BAPE_DspMixer_P_ApplyInputVolume(BAPE_MixerHandle handle, unsigned index)
 {
-    BAPE_Connector source = mixer->inputs[index];
+    BAPE_Connector source = handle->inputs[index];
     BERR_Code errCode;
-    unsigned i, taskInputIndex;
+    unsigned i, j, taskInputIndex;
     BAPE_PathConnection *pConnection;
     int32_t coeffs[BAPE_Channel_eMax][BAPE_Channel_eMax];
     uint32_t scaleValue[BAPE_Channel_eMax];
+    int32_t enableCustomMixing;
     BAPE_UnifiedFWMixerUserConfig userConfig;
 
     BDBG_OBJECT_ASSERT(source, BAPE_PathConnector);
@@ -1755,7 +1888,7 @@ static BERR_Code BAPE_DspMixer_P_ApplyInputVolume(BAPE_MixerHandle mixer, unsign
     }
 
     /* Find Connection */
-    pConnection = BAPE_Connector_P_GetConnectionToSink(mixer->inputs[index], &mixer->pathNode);
+    pConnection = BAPE_Connector_P_GetConnectionToSink(handle->inputs[index], &handle->pathNode);
     if ( NULL == pConnection )
     {
         return BERR_TRACE(BERR_INVALID_PARAMETER);
@@ -1765,14 +1898,14 @@ static BERR_Code BAPE_DspMixer_P_ApplyInputVolume(BAPE_MixerHandle mixer, unsign
     if ( pConnection->pSource->format.source != BAPE_DataSource_eDspBuffer )
     {
         /* FMM Input - Apply volume to mixer if allocated */
-        if ( mixer->loopbackMixerGroup )
+        if ( handle->loopbackMixerGroup )
         {
             BAPE_MixerGroupInputSettings inputSettings;
 
-            BAPE_MixerGroup_P_GetInputSettings(mixer->loopbackMixerGroup, index, &inputSettings);
+            BAPE_MixerGroup_P_GetInputSettings(handle->loopbackMixerGroup, index, &inputSettings);
             for ( i = 0; i < BAPE_ChannelPair_eMax; i++ )
             {
-                if ( mixer->inputVolume[index].muted )
+                if ( handle->inputVolume[index].muted )
                 {
                     inputSettings.coefficients[i][0][0] = 0;
                     inputSettings.coefficients[i][1][0] = 0;
@@ -1781,43 +1914,40 @@ static BERR_Code BAPE_DspMixer_P_ApplyInputVolume(BAPE_MixerHandle mixer, unsign
                 }
                 else
                 {
-                    inputSettings.coefficients[i][0][0] = mixer->inputVolume[index].coefficients[2*i][2*i];
-                    inputSettings.coefficients[i][1][0] = mixer->inputVolume[index].coefficients[(2*i)+1][2*i];
-                    inputSettings.coefficients[i][0][1] = mixer->inputVolume[index].coefficients[2*i][(2*i)+1];
-                    inputSettings.coefficients[i][1][1] = mixer->inputVolume[index].coefficients[(2*i)+1][(2*i)+1];
+                    inputSettings.coefficients[i][0][0] = handle->inputVolume[index].coefficients[2*i][2*i];
+                    inputSettings.coefficients[i][1][0] = handle->inputVolume[index].coefficients[(2*i)+1][2*i];
+                    inputSettings.coefficients[i][0][1] = handle->inputVolume[index].coefficients[2*i][(2*i)+1];
+                    inputSettings.coefficients[i][1][1] = handle->inputVolume[index].coefficients[(2*i)+1][(2*i)+1];
                 }
             }
-            errCode = BAPE_MixerGroup_P_SetInputSettings(mixer->loopbackMixerGroup, index, &inputSettings);
+            errCode = BAPE_MixerGroup_P_SetInputSettings(handle->loopbackMixerGroup, index, &inputSettings);
             if ( errCode )
             {
                 return BERR_TRACE(errCode);
             }
 
+            taskInputIndex = handle->loopbackDspInput;
             BKNI_Memcpy(&coeffs, &unityLoopbackCoefficients, sizeof(coeffs));
         }
         else
         {
-            /* We do not know what would fall into this case, its possible something would still need
-               to apply coefficents but if its not a dsp input or the loopback mixer we are not sure
-               how it would be handled. */
+            /* We could get into this if there is not a loopback mixer created. */
             return BERR_SUCCESS;
         }
     }
     else
     {
-        BKNI_Memcpy(&coeffs, &mixer->inputVolume[index].coefficients, sizeof(coeffs));
+        taskInputIndex = pConnection->dspInputIndex;
+        BKNI_Memcpy(&coeffs, &handle->inputVolume[index].coefficients, sizeof(coeffs));
     }
 
     /* DSP Input if we get to here */
 
     /* Input may not be running yet, check that. */
-    if ( pConnection->dspInputIndex == BAPE_DSPMIXER_INPUT_INVALID )
+    if ( taskInputIndex == BAPE_DSPMIXER_INPUT_INVALID )
     {
         return BERR_SUCCESS;
     }
-
-    /* Get task input index */
-    taskInputIndex = pConnection->dspInputIndex;
 
     if ( taskInputIndex >= BDSP_AF_P_MAX_IP_FORKS )
     {
@@ -1827,7 +1957,8 @@ static BERR_Code BAPE_DspMixer_P_ApplyInputVolume(BAPE_MixerHandle mixer, unsign
 
     for ( i = 0; i < BAPE_Channel_eMax; i++ )
     {
-        if ( mixer->inputVolume[index].muted || (i >= (2*BAPE_FMT_P_GetNumChannelPairs_isrsafe(&mixer->inputs[index]->format))) )
+        if ( handle->inputVolume[index].muted ||
+             ( pConnection->pSource->format.source == BAPE_DataSource_eDspBuffer && (i >= (2*BAPE_FMT_P_GetNumChannelPairs_isrsafe(&handle->inputs[index]->format)))) )
         {
             scaleValue[i] = 0;
         }
@@ -1836,7 +1967,7 @@ static BERR_Code BAPE_DspMixer_P_ApplyInputVolume(BAPE_MixerHandle mixer, unsign
             scaleValue[i] = coeffs[i][i];
             if ( scaleValue[i] > 0x7FFFFFF )
             {
-                BDBG_WRN(("Input coefficients out of range for input %s %s - saturating at 0x7FFFFFF", mixer->inputs[index]->pParent->pName, mixer->inputs[index]->pName));
+                BDBG_WRN(("Input coefficients out of range for input %s %s - saturating at 0x7FFFFFF", handle->inputs[index]->pParent->pName, handle->inputs[index]->pName));
                 scaleValue[i] = 0xFFFFFFFF;
             }
             else
@@ -1844,14 +1975,14 @@ static BERR_Code BAPE_DspMixer_P_ApplyInputVolume(BAPE_MixerHandle mixer, unsign
                 scaleValue[i] <<= 5;   /* Convert from 5.23 (HW) to 4.28 (DSP) */
             }
         }
-        BDBG_MSG(("Setting FW Mixing Coefs[%u][%u] to 0x%08x (mute=%u value=%#x)", taskInputIndex, i, scaleValue[i], mixer->inputVolume[index].muted, coeffs[i][i]));
+        BDBG_MSG(("Setting FW Mixing Coefs[%u][%u] to 0x%08x (mute=%u value=%#x)", taskInputIndex, i, scaleValue[i], handle->inputVolume[index].muted, coeffs[i][i]));
     }
 
     /* Apply settings to FW Mixer */
-    if ( BAPE_DspMixer_P_GetDolbyUsageVersion(mixer) == BAPE_DolbyMSVersion_eMS12 )
+    if ( BAPE_DspMixer_P_GetDolbyUsageVersion(handle) == BAPE_DolbyMSVersion_eMS12 )
     {
         /*BDSP_Stage_SetAlgorithm(mixer->hMixerStage, BDSP_Algorithm_eMixerDapv2);*/
-        errCode = BDSP_Stage_GetSettings(mixer->hMixerStage, &userConfig.userConfigDapv2, sizeof(userConfig.userConfigDapv2));
+        errCode = BDSP_Stage_GetSettings(handle->hMixerStage, &userConfig.userConfigDapv2, sizeof(userConfig.userConfigDapv2));
         if ( errCode )
         {
             return BERR_TRACE(errCode);
@@ -1862,8 +1993,8 @@ static BERR_Code BAPE_DspMixer_P_ApplyInputVolume(BAPE_MixerHandle mixer, unsign
             userConfig.userConfigDapv2.i32MixerVolumeControlGains[taskInputIndex][i] = scaleValue[i];
         }
 
-        BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, i32MixerUserBalance, mixer->settings.multiStreamBalance);
-        errCode = BDSP_Stage_SetSettings(mixer->hMixerStage, &userConfig.userConfigDapv2, sizeof(userConfig.userConfigDapv2));
+        BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, i32MixerUserBalance, handle->settings.multiStreamBalance);
+        errCode = BDSP_Stage_SetSettings(handle->hMixerStage, &userConfig.userConfigDapv2, sizeof(userConfig.userConfigDapv2));
         if ( errCode )
         {
             return BERR_TRACE(errCode);
@@ -1872,7 +2003,7 @@ static BERR_Code BAPE_DspMixer_P_ApplyInputVolume(BAPE_MixerHandle mixer, unsign
     else
     {
         /*BDSP_Stage_SetAlgorithm(mixer->hMixerStage, BDSP_Algorithm_eMixer);*/
-        errCode = BDSP_Stage_GetSettings(mixer->hMixerStage, &userConfig.userConfig, sizeof(userConfig.userConfig));
+        errCode = BDSP_Stage_GetSettings(handle->hMixerStage, &userConfig.userConfig, sizeof(userConfig.userConfig));
         if ( errCode )
         {
             return BERR_TRACE(errCode);
@@ -1880,11 +2011,39 @@ static BERR_Code BAPE_DspMixer_P_ApplyInputVolume(BAPE_MixerHandle mixer, unsign
 
         for ( i = 0; i < BAPE_Channel_eMax; i++ )
         {
-            userConfig.userConfig.MixingCoeffs[taskInputIndex][i] = scaleValue[i];
+            BAPE_DSP_P_SET_VARIABLE(userConfig.userConfig, MixingCoeffs[taskInputIndex][i], scaleValue[i]);
         }
 
-        BAPE_DSP_P_SET_VARIABLE(userConfig.userConfig, i32UserMixBalance, mixer->settings.multiStreamBalance);
-        errCode = BDSP_Stage_SetSettings(mixer->hMixerStage, &userConfig.userConfig, sizeof(userConfig.userConfig));
+        enableCustomMixing = false;
+        for ( i = 0; i < 6; i++ )
+        {
+            for ( j = 0; j < 6; j++ )
+            {
+                BAPE_DSP_P_SET_VARIABLE(userConfig.userConfig, i32CustomMixingCoefficients[i][j], handle->settings.loopbackVolumeMatrix[i][j]<<7);
+                if ( (i != j && handle->settings.loopbackVolumeMatrix[i][j] != 0) ||
+                     (i == j && handle->settings.loopbackVolumeMatrix[i][j] != BAPE_VOLUME_NORMAL) )
+                {
+                    enableCustomMixing = true;
+                }
+            }
+        }
+
+        #if BDBG_DEBUG_BUILD
+        BDBG_MODULE_MSG(bape_mixer_lb, ("Setting Loopback FW Mixing Coefs (enableCustomMixing=%u):", enableCustomMixing));
+        for ( i = 0; i < 6; i++ )
+        {
+            BDBG_MODULE_MSG(bape_mixer_lb, ("%08x %08x %08x %08x %08x %08x",
+                      userConfig.userConfig.i32CustomMixingCoefficients[i][0],
+                      userConfig.userConfig.i32CustomMixingCoefficients[i][1],
+                      userConfig.userConfig.i32CustomMixingCoefficients[i][2],
+                      userConfig.userConfig.i32CustomMixingCoefficients[i][3],
+                      userConfig.userConfig.i32CustomMixingCoefficients[i][4],
+                      userConfig.userConfig.i32CustomMixingCoefficients[i][5]));
+        }
+        #endif
+        BAPE_DSP_P_SET_VARIABLE(userConfig.userConfig, i32CustomEffectsAudioMixingEnable, enableCustomMixing);
+        BAPE_DSP_P_SET_VARIABLE(userConfig.userConfig, i32UserMixBalance, handle->settings.multiStreamBalance);
+        errCode = BDSP_Stage_SetSettings(handle->hMixerStage, &userConfig.userConfig, sizeof(userConfig.userConfig));
         if ( errCode )
         {
             return BERR_TRACE(errCode);
@@ -2019,6 +2178,9 @@ static BERR_Code BAPE_DspMixer_P_SetSettings(
     }
     else
     {
+        unsigned i, j;
+        int32_t enableCustomMixing;
+
         if (!hMixer->taskStarted)
         {
             errCode = BDSP_Stage_SetAlgorithm(hMixer->hMixerStage, BDSP_Algorithm_eMixer);
@@ -2034,6 +2196,34 @@ static BERR_Code BAPE_DspMixer_P_SetSettings(
         }
 
         /* Set Legacy Mixer Settings*/
+        enableCustomMixing = false;
+        for ( i = 0; i < 6; i++ )
+        {
+            for ( j = 0; j < 6; j++ )
+            {
+                BAPE_DSP_P_SET_VARIABLE(userConfig.userConfig, i32CustomMixingCoefficients[i][j], hMixer->settings.loopbackVolumeMatrix[i][j] << 7);
+                if ( (i != j && hMixer->settings.loopbackVolumeMatrix[i][j] != 0) ||
+                     (i == j && hMixer->settings.loopbackVolumeMatrix[i][j] != BAPE_VOLUME_NORMAL) )
+                {
+                    enableCustomMixing = true;
+                }
+            }
+        }
+
+        #if BDBG_DEBUG_BUILD
+        BDBG_MODULE_MSG(bape_mixer_lb, ("Setting Loopback FW Mixing Coefs (enableCustomMixing=%u):", enableCustomMixing));
+        for ( i = 0; i < 6; i++ )
+        {
+            BDBG_MODULE_MSG(bape_mixer_lb, ("%08x %08x %08x %08x %08x %08x",
+                      userConfig.userConfig.i32CustomMixingCoefficients[i][0],
+                      userConfig.userConfig.i32CustomMixingCoefficients[i][1],
+                      userConfig.userConfig.i32CustomMixingCoefficients[i][2],
+                      userConfig.userConfig.i32CustomMixingCoefficients[i][3],
+                      userConfig.userConfig.i32CustomMixingCoefficients[i][4],
+                      userConfig.userConfig.i32CustomMixingCoefficients[i][5]));
+        }
+        #endif
+        BAPE_DSP_P_SET_VARIABLE(userConfig.userConfig, i32CustomEffectsAudioMixingEnable, enableCustomMixing);
         BAPE_DSP_P_SET_VARIABLE(userConfig.userConfig, i32UserMixBalance, pSettings->multiStreamBalance);
         errCode = BDSP_Stage_SetSettings(hMixer->hMixerStage, &userConfig.userConfig, sizeof(userConfig.userConfig));
     }

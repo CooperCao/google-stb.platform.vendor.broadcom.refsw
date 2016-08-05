@@ -14,8 +14,14 @@ FILE DESCRIPTION
 #include "vcos.h"
 #include <EGL/eglplatform.h>
 #include <EGL/egl.h>
+
+/* Expose prototypes added by the platform-specific extensions */
+#define EGL_EGLEXT_PROTOTYPES
 #include <EGL/eglext.h>
 #include <EGL/eglext_brcm.h>
+#include <EGL/eglext_wayland.h>
+#undef EGL_EGLEXT_PROTOTYPES
+
 #include "../../egl_platform.h"
 #include "../../egl_thread.h"
 #include "../../../common/khrn_process.h"
@@ -107,6 +113,22 @@ static const char * get_display_extensions(void)
    BEGL_DisplayInterface *platform = &g_bcgPlatformData.displayInterface;
    return platform->GetDisplayExtensions ?
          platform->GetDisplayExtensions(platform->context) : NULL;
+}
+
+static __eglMustCastToProperFunctionPointerType get_proc_address(const char *procname)
+{
+#define RETURN_PROC_ADDRESS(api) \
+   if (strcmp(procname, #api) == 0) \
+      return (__eglMustCastToProperFunctionPointerType)api;
+
+   /* Add API added by platform-specific extensions here */
+   RETURN_PROC_ADDRESS(eglBindWaylandDisplayWL);
+   RETURN_PROC_ADDRESS(eglUnbindWaylandDisplayWL);
+   RETURN_PROC_ADDRESS(eglQueryWaylandBufferWL);
+
+   return NULL;
+
+#undef RETURN_PROC_ADDRESS
 }
 
 static EGLDisplay get_default_display(void)
@@ -247,6 +269,7 @@ static bool wait_native(EGLint engine)
    return true;
 }
 
+
 static EGL_PLATFORM_FNS_T fns =
 {
    init,
@@ -254,6 +277,7 @@ static EGL_PLATFORM_FNS_T fns =
    color_format,
    get_client_extensions,
    get_display_extensions,
+   get_proc_address,
    get_default_display,
    set_default_display,
    terminate,
@@ -263,7 +287,7 @@ static EGL_PLATFORM_FNS_T fns =
    config_match_attrib,
    wait_native,
    egl_image_native_buffer_abstract_new,
-   NULL
+   NULL     /* synckhr_new */
 };
 
 #ifdef ANDROID

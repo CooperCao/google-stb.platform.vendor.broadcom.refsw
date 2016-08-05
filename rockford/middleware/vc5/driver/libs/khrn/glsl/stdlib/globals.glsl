@@ -1,11 +1,11 @@
 // All versions
-const mediump int gl_MaxVertexAttribs             = GL_MAXVERTEXATTRIBS;
-const mediump int gl_MaxVertexUniformVectors      = GL_MAXVERTEXUNIFORMVECTORS;
-const mediump int gl_MaxVaryingVectors            = GL_MAXVARYINGVECTORS;
-const mediump int gl_MaxVertexTextureImageUnits   = GL_MAXVERTEXTEXTUREIMAGEUNITS;
-const mediump int gl_MaxCombinedTextureImageUnits = GL_MAXCOMBINEDTEXTUREIMAGEUNITS;
-const mediump int gl_MaxTextureImageUnits         = GL_MAXTEXTUREIMAGEUNITS;
-const mediump int gl_MaxFragmentUniformVectors    = GL_MAXFRAGMENTUNIFORMVECTORS;
+const mediump int gl_MaxVertexAttribs             = GLXX_CONFIG_MAX_VERTEX_ATTRIBS;
+const mediump int gl_MaxVertexUniformVectors      = GLXX_CONFIG_MAX_UNIFORM_VECTORS;
+const mediump int gl_MaxVaryingVectors            = GLXX_CONFIG_MAX_VARYING_VECTORS;
+const mediump int gl_MaxVertexTextureImageUnits   = GLXX_CONFIG_MAX_SHADER_TEXTURE_IMAGE_UNITS;
+const mediump int gl_MaxCombinedTextureImageUnits = GLXX_CONFIG_MAX_COMBINED_TEXTURE_IMAGE_UNITS;
+const mediump int gl_MaxTextureImageUnits         = GLXX_CONFIG_MAX_SHADER_TEXTURE_IMAGE_UNITS;
+const mediump int gl_MaxFragmentUniformVectors    = GLXX_CONFIG_MAX_UNIFORM_VECTORS;
 const mediump int gl_MaxDrawBuffers               = GLXX_MAX_RENDER_TARGETS;
 
 in mediump float __brcm_LineCoord = DATAFLOW_GET_LINE_COORD;
@@ -33,16 +33,18 @@ out mediump vec4  gl_FragColor;
 out mediump vec4  gl_FragData[gl_MaxDrawBuffers];
 
 // V300
-const mediump int gl_MaxVertexOutputVectors   = GL_MAXVERTEXOUTPUTVECTORS;
-const mediump int gl_MaxFragmentInputVectors  = GL_MAXFRAGMENTINPUTVECTORS;
-const mediump int gl_MinProgramTexelOffset    = GL_MINPROGRAMTEXELOFFSET;
-const mediump int gl_MaxProgramTexelOffset    = GL_MAXPROGRAMTEXELOFFSET;
+const mediump int gl_MaxVertexOutputVectors   = GLXX_CONFIG_MAX_VARYING_VECTORS;
+const mediump int gl_MaxFragmentInputVectors  = GLXX_CONFIG_MAX_VARYING_VECTORS;
+const mediump int gl_MinProgramTexelOffset    = GLXX_CONFIG_MIN_TEXEL_OFFSET;
+const mediump int gl_MaxProgramTexelOffset    = GLXX_CONFIG_MAX_TEXEL_OFFSET;
 
 in  highp int   gl_VertexID   = DATAFLOW_GET_VERTEX_ID;
 in  highp int   gl_InstanceID = DATAFLOW_GET_INSTANCE_ID;
 out highp float gl_PointSize;
 in  highp vec4  gl_FragCoord = vec4(DATAFLOW_FRAG_GET_X, DATAFLOW_FRAG_GET_Y, DATAFLOW_FRAG_GET_Z, DATAFLOW_FRAG_GET_W);
 out highp float gl_FragDepth;
+
+in highp int __brcm_base_instance = DATAFLOW_GET_BASE_INSTANCE;
 
 // V310
 const mediump int gl_MaxImageUnits            = GLXX_CONFIG_MAX_IMAGE_UNITS;
@@ -93,6 +95,8 @@ in highp int gl_InvocationID = DATAFLOW_GET_INVOCATION_ID;
 
 patch out highp float gl_TessLevelOuter[4];
 patch out highp float gl_TessLevelInner[2];
+patch out highp vec4  gl_BoundingBox[2];
+patch out highp vec4  gl_BoundingBoxEXT[2];
 
 
 // Tessellation Evaluation
@@ -102,21 +106,50 @@ patch in highp float gl_TessLevelOuter[4];
 patch in highp float gl_TessLevelInner[2];
 
 
-const mediump int gl_MaxTessControlInputComponents = 128;
-const mediump int gl_MaxTessControlOutputComponents = 128;
-const mediump int gl_MaxTessControlTextureImageUnits = 16;
-const mediump int gl_MaxTessControlUniformComponents = 1024;
-const mediump int gl_MaxTessControlTotalOutputComponents = 4096;
-const mediump int gl_MaxTessControlImageUniforms = 0;
-const mediump int gl_MaxTessEvaluationImageUniforms = 0;
-const mediump int gl_MaxTessControlAtomicCounters = 0;
-const mediump int gl_MaxTessEvaluationAtomicCounters = 0;
-const mediump int gl_MaxTessControlAtomicCounterBuffers = 0;
-const mediump int gl_MaxTessEvaluationAtomicCounterBuffers = 0;
-const mediump int gl_MaxTessEvaluationInputComponents = 128;
-const mediump int gl_MaxTessEvaluationOutputComponents = 128;
-const mediump int gl_MaxTessEvaluationTextureImageUnits = 16;
-const mediump int gl_MaxTessEvaluationUniformComponents = 1024;
-const mediump int gl_MaxTessPatchComponents = 120;
-const mediump int gl_MaxPatchVertices = 32;
-const mediump int gl_MaxTessGenLevel = 64;
+//Geometry
+
+in highp int gl_PrimitiveIDIn;
+
+out highp int gl_PrimitiveID;
+out highp int gl_Layer;
+
+
+// Fragment Shader
+in  highp   int  gl_Layer;
+in  lowp    int  gl_SampleID = DATAFLOW_SAMPLE_ID;
+in  mediump vec2 gl_SamplePosition = vec2(DATAFLOW_SAMPLE_POS_X, DATAFLOW_SAMPLE_POS_Y);
+// TODO: Worth updating the parser to put the real array size here?
+in  highp   int  gl_SampleMaskIn[1] = int[1](DATAFLOW_SAMPLE_MASK);
+out highp   int  gl_SampleMask[1];
+
+uniform lowp int gl_NumSamples = DATAFLOW_NUM_SAMPLES;
+
+
+const mediump int gl_MaxTessControlInputComponents         = GLXX_CONFIG_MAX_TESS_CONTROL_INPUT_COMPONENTS;
+const mediump int gl_MaxTessControlOutputComponents        = GLXX_CONFIG_MAX_TESS_CONTROL_OUTPUT_COMPONENTS;
+const mediump int gl_MaxTessControlTextureImageUnits       = GLXX_CONFIG_MAX_SHADER_TEXTURE_IMAGE_UNITS;
+const mediump int gl_MaxTessControlUniformComponents       = GLXX_CONFIG_MAX_UNIFORM_SCALARS;
+const mediump int gl_MaxTessControlTotalOutputComponents   = GLXX_CONFIG_MAX_TESS_CONTROL_TOTAL_OUTPUT_COMPONENTS;
+const mediump int gl_MaxTessControlImageUniforms           = GLXX_CONFIG_MAX_VERTEX_IMAGE_UNIFORMS;
+const mediump int gl_MaxTessEvaluationImageUniforms        = GLXX_CONFIG_MAX_VERTEX_IMAGE_UNIFORMS;
+const mediump int gl_MaxTessControlAtomicCounters          = GLXX_CONFIG_MAX_VERTEX_ATOMIC_COUNTERS;
+const mediump int gl_MaxTessEvaluationAtomicCounters       = GLXX_CONFIG_MAX_VERTEX_ATOMIC_COUNTERS;
+const mediump int gl_MaxTessControlAtomicCounterBuffers    = GLXX_CONFIG_MAX_VERTEX_ATOMIC_COUNTER_BUFFERS;
+const mediump int gl_MaxTessEvaluationAtomicCounterBuffers = GLXX_CONFIG_MAX_VERTEX_ATOMIC_COUNTER_BUFFERS;
+const mediump int gl_MaxTessEvaluationInputComponents      = GLXX_CONFIG_MAX_TESS_EVALUATION_INPUT_COMPONENTS;
+const mediump int gl_MaxTessEvaluationOutputComponents     = GLXX_CONFIG_MAX_TESS_EVALUATION_OUTPUT_COMPONENTS;
+const mediump int gl_MaxTessEvaluationTextureImageUnits    = GLXX_CONFIG_MAX_SHADER_TEXTURE_IMAGE_UNITS;
+const mediump int gl_MaxTessEvaluationUniformComponents    = GLXX_CONFIG_MAX_UNIFORM_SCALARS;
+const mediump int gl_MaxTessPatchComponents                = GLXX_CONFIG_MAX_TESS_PATCH_COMPONENTS;
+const mediump int gl_MaxPatchVertices                      = 32;
+const mediump int gl_MaxTessGenLevel                       = 64;
+const mediump int gl_MaxGeometryInputComponents            = GLXX_CONFIG_MAX_GEOMETRY_INPUT_COMPONENTS;
+const mediump int gl_MaxGeometryOutputComponents           = GLXX_CONFIG_MAX_GEOMETRY_OUTPUT_COMPONENTS;
+const mediump int gl_MaxGeometryImageUniforms              = GLXX_CONFIG_MAX_VERTEX_IMAGE_UNIFORMS;
+const mediump int gl_MaxGeometryTextureImageUnits          = GLXX_CONFIG_MAX_SHADER_TEXTURE_IMAGE_UNITS;
+const mediump int gl_MaxGeometryOutputVertices             = GLXX_CONFIG_MAX_GEOMETRY_OUTPUT_VERTICES;
+const mediump int gl_MaxGeometryTotalOutputComponents      = GLXX_CONFIG_MAX_GEOMETRY_TOTAL_OUTPUT_COMPONENTS;
+const mediump int gl_MaxGeometryUniformComponents          = GLXX_CONFIG_MAX_UNIFORM_SCALARS;
+const mediump int gl_MaxGeometryAtomicCounters             = GLXX_CONFIG_MAX_VERTEX_ATOMIC_COUNTERS;
+const mediump int gl_MaxGeometryAtomicCounterBuffers       = GLXX_CONFIG_MAX_VERTEX_ATOMIC_COUNTER_BUFFERS;
+const mediump int gl_MaxSamples                            = GLXX_CONFIG_MAX_SAMPLES;

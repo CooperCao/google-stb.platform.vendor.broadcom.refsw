@@ -47,6 +47,10 @@ struct CompiledShader_s {
    bool              tess_point_mode;
    bool              tess_cw;
 
+   enum gs_out_type  gs_out;
+   unsigned          gs_n_invocations;
+   unsigned          gs_max_vertices;
+
    bool             early_fragment_tests;
    unsigned         wg_size[3];
    unsigned         shared_block_size;

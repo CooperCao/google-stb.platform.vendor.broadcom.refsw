@@ -1556,8 +1556,9 @@ BERR_Code BHAB_45308_P_WriteBbsi(
 
    if (h->settings.isSpi)
    {
-      if (n < 16)
+      if (n < 14)
       {
+         /* perform a short spi write without malloc */
          spiBuf[0] = BHAB_SPI_WRITE_COMMAND;
          spiBuf[1] = addr;
          for (i = 0; i < n; i++)
@@ -1568,6 +1569,7 @@ BERR_Code BHAB_45308_P_WriteBbsi(
       else
       {
 #if 1
+         /* new spi write supports larger transactions */
          uint8_t *pBuf = (uint8_t *)BKNI_Malloc(n+2);
          if (pBuf == NULL)
          {

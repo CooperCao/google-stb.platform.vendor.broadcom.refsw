@@ -38,7 +38,6 @@
 *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
 *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
 ******************************************************************************/
-
 #include "nexus_security_module.h"
 #include "priv/nexus_security_priv.h"
 #include "priv/nexus_core.h"
@@ -88,30 +87,6 @@
 #define INVALID_RSA_KEY_INDEX                  (0xFFFFFFFF)
 
 /*
-    Data within a signature header.
-*/
-typedef struct {
-
-    BCMD_MemAuth_CpuType_e cpuType;
-
-    uint32_t marketId;
-    uint32_t marketIdMask;
-
-    uint8_t  epoch;
-    uint8_t  epochMask;
-
-   #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,2)
-    uint8_t  svpFwReleaseVersion;
-    BCMD_SignatureType_e signatureType;
-    uint8_t  signatureVersion;
-    uint8_t  epochSelect;
-   #endif
-
-}signatureHeaderData_t;
-
-
-
-/*
     Verification data and state for one region.
 */
 typedef struct {
@@ -119,11 +94,12 @@ typedef struct {
     NEXUS_SecurityRegverRegionID regionId;    /* The Id of this region. */
     bool verificationRequired;                /* OTP requires region to be verifed. */
     bool verified;                            /* Region has been verifed. */
-    bool configured;                          /* The region verification client has configured the region. */
 
-    char* pSignature;                         /* points to signature of region. Includes header at end. */
+    uint8_t* pSignature;                      /* points to signature of region. Includes header at end. */
+    NEXUS_SecuritySignedAtrributes signedAttributes; /* paramters that the signature is signed against */
 
     unsigned rsaKeyIndex;                     /* The RSA key index */
+    bool useManagedRsaKey;                    /* if true, use the RSA key managed by NEXUS. */
     bool enableInstructionChecker;            /* Required for SAGE/BHSM_SUPPORT_HDDTA */
     bool enableBackgroundChecker;             /* Required for SAGE */
     unsigned scmVersion;                      /* Required for BHSM_SUPPORT_HDDTA */
@@ -151,17 +127,7 @@ static regionVerificationModuleData_t gRegVerModuleData; /* module data instance
 
 BDBG_MODULE(nexus_security_verify_reg);
 
-#if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,1)
-    #define NEXUS_REGVER_SIGNATURE_HEADER_SIZE (20)
-#else
-    #define NEXUS_REGVER_SIGNATURE_HEADER_SIZE (16)
-#endif
-
-#define NEXUS_REGVER_SIGNATURE_SIZE (256)
-#define NEXUS_REGVER_SIGNATURE_PLUS_HEADER_SIZE (NEXUS_REGVER_SIGNATURE_SIZE+NEXUS_REGVER_SIGNATURE_HEADER_SIZE)
-
-
-static NEXUS_Error verifyRegion( NEXUS_SecurityRegverRegionID regionId, void *pRegionAddress, unsigned regionSize );
+static NEXUS_Error verifyRegion( NEXUS_SecurityRegverRegionID regionId, NEXUS_Addr regionAddress, unsigned regionSize );
 static NEXUS_Error calculateCpuType( BCMD_MemAuth_CpuType_e *pCpuType, NEXUS_SecurityRegverRegionID region );
 #define initialiseRegion(region,otpIndex) initialiseRegion_dbg(region,otpIndex,#region)
 static void initialiseRegion_dbg( NEXUS_SecurityRegverRegionID regionId,
@@ -170,11 +136,11 @@ static void initialiseRegion_dbg( NEXUS_SecurityRegverRegionID regionId,
 static regionData_t* getRegionData( NEXUS_SecurityRegverRegionID regionId );
 static NEXUS_Error disableRegion( NEXUS_SecurityRegverRegionID regionId );
 
-static void parseSignatureHeader( signatureHeaderData_t *pSigHeader, char* pSignature );
+static void parseSignatureHeader( NEXUS_SecuritySignedAtrributes *pSigHeader, const uint8_t* pSignature );
 
 
 #if NEXUS_REGION_VERIFICATION_DUMP_FIRMWARE || NEXUS_REGION_VERIFICATION_DUMP_FIRMWARE_RAW
-static void dumpFirmwareBinary( NEXUS_SecurityRegverRegionID regionId, void* pRegionAddress, unsigned regionSize );
+static void dumpFirmwareBinary( NEXUS_SecurityRegverRegionID regionId, NEXUS_Addr regionAddress, unsigned regionSize );
 #endif
 
 
@@ -199,21 +165,24 @@ static NEXUS_Error loadSignature( unsigned regionId,  const uint8_t *pSigData )
         return NEXUS_SUCCESS; /* nothing to do .. region not enabled.*/
     }
 
+    parseSignatureHeader( &pRegionData->signedAttributes, pSigData );
+
     ppSig = (void**)(&pRegionData->pSignature);
 
     NEXUS_Memory_GetDefaultAllocationSettings( &memSetting );
     memSetting.alignment = 32;
-    rc = NEXUS_Memory_Allocate( NEXUS_REGVER_SIGNATURE_PLUS_HEADER_SIZE, &memSetting, ppSig );
+    rc = NEXUS_Memory_Allocate( NEXUS_REGIONVERIFY_SIGNATURE_PLUS_HEADER_SIZE, &memSetting, ppSig );
     if( rc != NEXUS_SUCCESS )
     {
         return BERR_TRACE( NEXUS_OUT_OF_DEVICE_MEMORY );
     }
 
-    BKNI_Memcpy( *ppSig, pSigData, NEXUS_REGVER_SIGNATURE_PLUS_HEADER_SIZE );
+    BKNI_Memcpy( *ppSig, pSigData, NEXUS_REGIONVERIFY_SIGNATURE_PLUS_HEADER_SIZE );
 
     pRegionData->rsaKeyIndex = DEFAULT_RSA_KEY_INDEX; /* hardcoded signatures are signed with the default RSA KEY. */
+    pRegionData->useManagedRsaKey = true;
 
-    NEXUS_FlushCache( *ppSig, NEXUS_REGVER_SIGNATURE_PLUS_HEADER_SIZE );
+    NEXUS_FlushCache( *ppSig, NEXUS_REGIONVERIFY_SIGNATURE_PLUS_HEADER_SIZE );
 
     BDBG_LEAVE( loadSignature );
     return NEXUS_SUCCESS;
@@ -448,7 +417,7 @@ NEXUS_Error NEXUS_Security_RegionVerification_Init_priv( void )
         {
             pRegionData = getRegionData( x );
 
-            if( pRegionData && pRegionData->verificationSupported )
+            if( pRegionData )
             {
                 BDBG_MSG(("Region Status [0x%02X] [%02X] [%s] %s %s %s %s %s %s %s %s %s %s", x, regionSatus.regionStatus[x]
                                                            , pRegionData->description
@@ -479,10 +448,9 @@ NEXUS_Error NEXUS_Security_RegionVerification_Init_priv( void )
         {
             pRegionData = getRegionData( x );
 
-            if( pRegionData && pRegionData->verificationSupported )
+            if( pRegionData )
             {
                 pRegionData->verified = false;
-                pRegionData->configured = false;
             }
         }
         gRegVerModuleData.defaultRsaKeyLoaded = false; /*default rsa key needs to be reloaded. */
@@ -506,7 +474,7 @@ void NEXUS_Security_RegionVerification_UnInit_priv( void )
         pRegionData = getRegionData( regionId );
         if( pRegionData )
         {
-            if( pRegionData->verificationSupported && pRegionData->verified )
+            if( pRegionData->verified )
             {
                 disableRegion( regionId );
             }
@@ -543,6 +511,7 @@ void NEXUS_Security_RegionGetDefaultConfig_priv ( NEXUS_SecurityRegverRegionID r
 
     BKNI_Memset( pConfiguration, 0, sizeof( *pConfiguration ) );
     pConfiguration->rsaKeyIndex = DEFAULT_RSA_KEY_INDEX;
+    pConfiguration->useManagedRsaKey = true;
 
     /* By default, VKL is not used. When it is used, client will specify and configure it. */
     pConfiguration->keyLadderId = NEXUS_SecurityVirtualKeyladderID_eVKLDummy;
@@ -560,12 +529,21 @@ NEXUS_Error NEXUS_Security_RegionConfig_priv( NEXUS_SecurityRegverRegionID regio
     BDBG_ENTER( NEXUS_Security_RegionConfig_priv );
     NEXUS_ASSERT_MODULE();
 
-    if( pConfiguration == NULL ) { return BERR_TRACE(NEXUS_INVALID_PARAMETER); }
+    if( pConfiguration == NULL || pConfiguration->signature.size > NEXUS_REGIONVERIFY_SIGNATURE_PLUS_HEADER_SIZE) {
+        return BERR_TRACE(NEXUS_INVALID_PARAMETER);
+    }
 
-    pRegionData = getRegionData( regionId );
-    if( pRegionData == NULL ) {
-        BDBG_ERR(("[%s] Region [0x%02X] is NOT supported.", __FUNCTION__, regionId ));
-        return NEXUS_INVALID_PARAMETER;
+    if( regionId >= NEXUS_REGVER_MAX_REGIONS )
+    {
+        return BERR_TRACE( NEXUS_INVALID_PARAMETER );
+    }
+
+    pRegionData = &gRegVerModuleData.region[regionId];
+
+    if( pConfiguration->forceVerification )
+    {
+        pRegionData->verificationRequired = true;
+        pRegionData->verificationSupported = true;
     }
 
     if( pRegionData->verificationRequired == false ) {
@@ -573,22 +551,23 @@ NEXUS_Error NEXUS_Security_RegionConfig_priv( NEXUS_SecurityRegverRegionID regio
         return NEXUS_SUCCESS;
     }
 
-    if( pRegionData->configured )
-    {
-        /*BDBG_MSG(("REGION [0x%02X][%s] reconfiguring.", regionId, pRegionData->description ));*/
-        /* continue */
-    }
-
     pRegionData->rsaKeyIndex              = pConfiguration->rsaKeyIndex;
+    pRegionData->useManagedRsaKey         = pConfiguration->useManagedRsaKey;
     pRegionData->enableInstructionChecker = pConfiguration->enableInstructionChecker;
     pRegionData->enableBackgroundChecker  = pConfiguration->enableBackgroundChecker;
     pRegionData->scmVersion               = pConfiguration->scmVersion;
     pRegionData->keyLadderId              = pConfiguration->keyLadderId;
     pRegionData->keyLadderLayer           = pConfiguration->keyLadderLayer;
 
+    if( pConfiguration->signedAttributesValid )
+    {
+        pRegionData->signedAttributes = pConfiguration->signedAttributes;
+    }
+
     if( pConfiguration->signature.size > 0 )
     {
-        if( pConfiguration->signature.size > NEXUS_REGVER_SIGNATURE_PLUS_HEADER_SIZE )
+        if( (pConfiguration->signature.size > NEXUS_REGIONVERIFY_SIGNATURE_PLUS_HEADER_SIZE) ||
+            (pConfiguration->signature.size < NEXUS_REGIONVERIFY_SIGNATURE_SIZE) )
         {
             return BERR_TRACE( NEXUS_INVALID_PARAMETER );
         }
@@ -597,18 +576,22 @@ NEXUS_Error NEXUS_Security_RegionConfig_priv( NEXUS_SecurityRegverRegionID regio
         {
             NEXUS_Memory_GetDefaultAllocationSettings(&memSetting);
             memSetting.alignment = 32;
-            rc = NEXUS_Memory_Allocate( NEXUS_REGVER_SIGNATURE_PLUS_HEADER_SIZE, &memSetting, (void **)&pRegionData->pSignature );
+            rc = NEXUS_Memory_Allocate( NEXUS_REGIONVERIFY_SIGNATURE_PLUS_HEADER_SIZE, &memSetting, (void **)&pRegionData->pSignature );
             if( rc != NEXUS_SUCCESS )
             {
                 return BERR_TRACE( NEXUS_OUT_OF_DEVICE_MEMORY );
             }
         }
 
-        BKNI_Memcpy( pRegionData->pSignature, pConfiguration->signature.p, pConfiguration->signature.size );
+        BKNI_Memcpy( pRegionData->pSignature, pConfiguration->signature.data, pConfiguration->signature.size );
         NEXUS_FlushCache( (const void*)pRegionData->pSignature, pConfiguration->signature.size );
-    }
 
-    pRegionData->configured = true;
+        if( pConfiguration->signature.size == NEXUS_REGIONVERIFY_SIGNATURE_PLUS_HEADER_SIZE )
+        {
+            BDBG_MSG(("[%s] Load region paramters from signature REGION[%d]", __FUNCTION__, regionId ));
+            parseSignatureHeader( &pRegionData->signedAttributes, pConfiguration->signature.data );
+        }
+    }
 
     BDBG_LEAVE( NEXUS_Security_RegionConfig_priv );
     return NEXUS_SUCCESS;
@@ -619,9 +602,9 @@ NEXUS_Error NEXUS_Security_RegionConfig_priv( NEXUS_SecurityRegverRegionID regio
 Summary
     Verify the specifed region.
 */
-NEXUS_Error NEXUS_Security_RegionVerifyEnable_priv( NEXUS_SecurityRegverRegionID regionId, void*pRegionAddress, unsigned regionSize )
+NEXUS_Error NEXUS_Security_RegionVerifyEnable_priv( NEXUS_SecurityRegverRegionID regionId, NEXUS_Addr regionAddress, unsigned regionSize )
 {
-    BERR_Code rc;
+    BERR_Code rc = NEXUS_SUCCESS;
     BHSM_Handle hHsm;
     unsigned loopCount = 0;
     BHSM_RegionStatus_t regionStatus;
@@ -631,7 +614,7 @@ NEXUS_Error NEXUS_Security_RegionVerifyEnable_priv( NEXUS_SecurityRegverRegionID
     NEXUS_ASSERT_MODULE();
 
     #if NEXUS_REGION_VERIFICATION_DUMP_FIRMWARE || NEXUS_REGION_VERIFICATION_DUMP_FIRMWARE_RAW /*dump binaries */
-     dumpFirmwareBinary( regionId, pRegionAddress, regionSize );
+     dumpFirmwareBinary( regionId, regionAddress, regionSize );
     #endif
 
     NEXUS_Security_GetHsm_priv( &hHsm );
@@ -645,20 +628,19 @@ NEXUS_Error NEXUS_Security_RegionVerifyEnable_priv( NEXUS_SecurityRegverRegionID
         return BERR_TRACE( NEXUS_INVALID_PARAMETER ); /* Currently unsupported Region ID */
     }
 
-    BDBG_MSG(("REGION [0x%02X][%s] Verifying  p[%p]size[%d].", regionId, pRegionData->description, pRegionAddress, regionSize ));
-    BDBG_MSG(("REGION [0x%02X][%s] VKL#%d, Verifying  p[%p]size[%d].", regionId, pRegionData->description, pRegionData->keyLadderId, pRegionAddress, regionSize ));
-
     if( pRegionData->verificationRequired == false ) {
         BDBG_MSG(("[%s] Region [0x%02X][%s] Verification not required.", __FUNCTION__, regionId, pRegionData->description ));
         return NEXUS_SUCCESS;
     }
+
+    BDBG_MSG(("REGION [0x%02X][%s] Verifying size[%d].", regionId, pRegionData->description, regionSize ));
 
     if( pRegionData->verified == true ) {
         BDBG_WRN(("[%s] Region [0x%02X][%s] Already verified.", __FUNCTION__, regionId, pRegionData->description  ));
         return NEXUS_SUCCESS;
     }
 
-    rc = verifyRegion( regionId, pRegionAddress, regionSize );
+    rc = verifyRegion( regionId, regionAddress, regionSize );
     if ( rc != NEXUS_SUCCESS )
     {
         if( rc == NEXUS_SECURITY_REGION_NOT_OTP_ENABLED )
@@ -683,8 +665,8 @@ NEXUS_Error NEXUS_Security_RegionVerifyEnable_priv( NEXUS_SecurityRegverRegionID
         rc = BHSM_RegionVerification_Status( hHsm, regionId, &regionStatus );
         if ( rc != NEXUS_SUCCESS ) /* fail */
         {
-            BDBG_WRN(("[%s] Verification of region [0x%02x][%s] failed.", __FUNCTION__, regionId, pRegionData->description ));
-            break;
+            /* either communication the BSP has failed, or the region did not authenticate correctly. */
+            return  BERR_TRACE( NEXUS_UNKNOWN );
         }
 
         if( regionStatus.state == BHSM_RegionVerificationStatus_eVerified )  /* pass */
@@ -705,9 +687,10 @@ NEXUS_Error NEXUS_Security_RegionVerifyEnable_priv( NEXUS_SecurityRegverRegionID
 
     } while( loopCount-- );
 
+
     if( loopCount == 0 )
     {
-        return BERR_TRACE( NEXUS_UNKNOWN );  /* Timed out waiting for region verification to complete. */
+        return BERR_TRACE( NEXUS_TIMEOUT );  /* Timed out waiting for region verification to complete. */
     }
 
     pRegionData->verified = true;
@@ -764,6 +747,10 @@ void NEXUS_Security_RegionVerifyDisable_priv( NEXUS_SecurityRegverRegionID regio
 
 bool  NEXUS_Security_RegionVerification_IsRequired_priv( NEXUS_SecurityRegverRegionID regionId )
 {
+#if NEXUS_REGION_VERIFICATION_DUMP_FIRMWARE || NEXUS_REGION_VERIFICATION_DUMP_FIRMWARE_RAW
+    BSTD_UNUSED( regionId );
+    return true;
+#else
     regionData_t *pRegionData;
 
     BDBG_ENTER( NEXUS_Security_RegionVerification_IsRequired_priv );
@@ -778,10 +765,11 @@ bool  NEXUS_Security_RegionVerification_IsRequired_priv( NEXUS_SecurityRegverReg
     BDBG_LEAVE( NEXUS_Security_RegionVerification_IsRequired_priv );
 
     return pRegionData->verificationRequired;
+#endif
 }
 
 
-static NEXUS_Error verifyRegion( NEXUS_SecurityRegverRegionID regionId, void *pRegionAddress, unsigned regionSize )
+static NEXUS_Error verifyRegion( NEXUS_SecurityRegverRegionID regionId, NEXUS_Addr regionAddress, unsigned regionSize )
 {
     BHSM_Handle hHsm;
     BHSM_RegionConfiguration_t  regionConfiguration;
@@ -789,12 +777,11 @@ static NEXUS_Error verifyRegion( NEXUS_SecurityRegverRegionID regionId, void *pR
     regionData_t *pRegionData;
     NEXUS_Addr startAddress = 0;
     NEXUS_Addr endAddress = 0;
-    signatureHeaderData_t sigHeader;
 
     BDBG_ENTER( verifyRegion );
 
     NEXUS_Security_GetHsm_priv (&hHsm);
-    if ( !hHsm || !pRegionAddress )
+    if ( !hHsm )
     {
         return BERR_TRACE( NEXUS_INVALID_PARAMETER );
     }
@@ -810,20 +797,28 @@ static NEXUS_Error verifyRegion( NEXUS_SecurityRegverRegionID regionId, void *pR
         return BERR_TRACE( NEXUS_INVALID_PARAMETER ); /* Signature not defined; neither statically, nor via NEXUS_Security_RegionConfig_priv */
     }
 
-    if( gRegVerModuleData.defaultRsaKeyLoaded == false && pRegionData->rsaKeyIndex == DEFAULT_RSA_KEY_INDEX )
+    if( pRegionData->rsaKeyIndex == DEFAULT_RSA_KEY_INDEX )
     {
-        rc = loadDefaultRegionVerificationKey( );
-        if( rc != NEXUS_SUCCESS )
+        if( pRegionData->useManagedRsaKey )
         {
-            /* failed to load default key required to authenticate region verification signatures. */
-            return BERR_TRACE( NEXUS_SECURITY_FAILED_TO_LOAD_REGVER_KEY );
+            if( gRegVerModuleData.defaultRsaKeyLoaded == false )
+            {
+                rc = loadDefaultRegionVerificationKey( );
+                if( rc != NEXUS_SUCCESS )
+                {
+                    /* failed to load default key required to authenticate region verification signatures. */
+                    return BERR_TRACE( NEXUS_SECURITY_FAILED_TO_LOAD_REGVER_KEY );
+                }
+
+                gRegVerModuleData.defaultRsaKeyLoaded = true;
+            }
         }
-
-        gRegVerModuleData.defaultRsaKeyLoaded = true;
+        else
+        {
+            /* trigger a reload of the key next time (it's likely the client will have overwritten it. ) */
+            gRegVerModuleData.defaultRsaKeyLoaded = false;
+        }
     }
-
-    /* parse the configuration parameters that are associated with the signature. */
-    parseSignatureHeader( &sigHeader, pRegionData->pSignature );
 
     BKNI_Memset( &regionConfiguration, 0, sizeof(regionConfiguration));
 
@@ -836,15 +831,15 @@ static NEXUS_Error verifyRegion( NEXUS_SecurityRegverRegionID regionId, void *pR
     }
     else
     {
-        startAddress = NEXUS_AddrToOffset( pRegionAddress );
-        endAddress = NEXUS_AddrToOffset((void*)((char*)pRegionAddress + regionSize - 1));
+        startAddress = regionAddress;
+        endAddress = regionAddress + regionSize - 1;
         regionConfiguration.region.startAddress       = (uint32_t)(startAddress & 0xFFFFFFFF);
         regionConfiguration.region.startAddressMsb    = (uint32_t)((startAddress>>32) & 0xFF);
         regionConfiguration.region.endAddress         = (uint32_t)(endAddress & 0xFFFFFFFF);
         regionConfiguration.region.endAddressMsb      = (uint32_t)((endAddress>>32) & 0xFF);
     }
     startAddress = NEXUS_AddrToOffset( pRegionData->pSignature );
-    endAddress   = NEXUS_AddrToOffset((void*)((char*)pRegionData->pSignature + NEXUS_REGVER_SIGNATURE_SIZE - 1));
+    endAddress   = NEXUS_AddrToOffset((void*)((char*)pRegionData->pSignature + NEXUS_REGIONVERIFY_SIGNATURE_SIZE - 1));
     regionConfiguration.signature.startAddress    = (uint32_t)(startAddress & 0xFFFFFFFF);
     regionConfiguration.signature.startAddressMsb = (uint32_t)((startAddress>>32) & 0xFF);
     regionConfiguration.signature.endAddress      = (uint32_t)(endAddress & 0xFFFFFFFF);
@@ -859,18 +854,18 @@ static NEXUS_Error verifyRegion( NEXUS_SecurityRegverRegionID regionId, void *pR
         return BERR_TRACE( NEXUS_INVALID_PARAMETER ); /* Unsupported region. */
     }
 
-    regionConfiguration.unEpoch                  = sigHeader.epoch;
+    regionConfiguration.unEpoch                  = pRegionData->signedAttributes.epoch;
    #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,2)
-    regionConfiguration.svpFwReleaseVersion  = sigHeader.svpFwReleaseVersion;
-    regionConfiguration.ucEpochSel              = sigHeader.epochSelect;
-    regionConfiguration.ucSigVersion         = sigHeader.signatureVersion;
-    regionConfiguration.ucSigType            = sigHeader.signatureType;
+    regionConfiguration.svpFwReleaseVersion      = pRegionData->signedAttributes.svpFwReleaseVersion;
+    regionConfiguration.ucEpochSel               = pRegionData->signedAttributes.epochSelect;
+    regionConfiguration.ucSigVersion             = pRegionData->signedAttributes.signatureVersion;
+    regionConfiguration.ucSigType                = pRegionData->signedAttributes.signatureType;
    #endif
    #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(2,0)
     regionConfiguration.verifyFailAction         = BCMD_MemAuth_ResetOnVerifyFailure_eNoReset; /* Ignored for  most region IDs*/
-    regionConfiguration.unEpochMask              = sigHeader.epochMask;
-    regionConfiguration.unMarketID               = sigHeader.marketId;
-    regionConfiguration.unMarketIDMask           = sigHeader.marketIdMask;
+    regionConfiguration.unEpochMask              = pRegionData->signedAttributes.epochMask;
+    regionConfiguration.unMarketID               = pRegionData->signedAttributes.marketId;
+    regionConfiguration.unMarketIDMask           = pRegionData->signedAttributes.marketIdMask;
    #endif
    #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(3,0)
     if ( regionConfiguration.cpuType == BCMD_MemAuth_CpuType_eScpu )  /* Support for SCPU */
@@ -889,7 +884,7 @@ static NEXUS_Error verifyRegion( NEXUS_SecurityRegverRegionID regionId, void *pR
         BDBG_MSG(("[%s] Region [0x%02X] not OTP enabled.", __FUNCTION__, regionId));
         return NEXUS_SECURITY_REGION_NOT_OTP_ENABLED;
     }
-    if ( rc != BERR_SUCCESS )
+    if( (rc != BERR_SUCCESS) && (rc != BHSM_STATUS_REGION_ALREADY_CONFIGURED) )
     {
         return BERR_TRACE( NEXUS_NOT_SUPPORTED );
     }
@@ -1102,14 +1097,23 @@ static NEXUS_Error calculateCpuType( BCMD_MemAuth_CpuType_e *pCpuType, NEXUS_Sec
             break;
         }
         #endif
-        #if 0
-        case NEXUS_SecurityRegverRegionID_eHvdIla:
-        case NEXUS_SecurityRegverRegionID_eHvdOla:
-        case NEXUS_SecurityRegverRegionID_eVDEC0_OLA:
-        case NEXUS_SecurityRegverRegionID_eSvd0Bl:
-        case NEXUS_SecurityRegverRegionID_eRaaga0IntScm:
-        case NEXUS_SecurityRegverRegionID_eRaaga0IntAud:
+        case NEXUS_SecurityRegverRegionID_eHost00:
+        case NEXUS_SecurityRegverRegionID_eHost01:
+        case NEXUS_SecurityRegverRegionID_eHost02:
+        case NEXUS_SecurityRegverRegionID_eHost03:
+        case NEXUS_SecurityRegverRegionID_eHost04:
+        case NEXUS_SecurityRegverRegionID_eHost05:
+        case NEXUS_SecurityRegverRegionID_eHost06:
+        case NEXUS_SecurityRegverRegionID_eHost07:
+        {
+
+        #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,0)
+            *pCpuType = BCMD_MemAuth_CpuType_eHost;
+        #else
+            *pCpuType = BCMD_MemAuth_CpuType_eMips;
         #endif
+            break;
+        }
         default:
         {
             BDBG_ERR(("Region [0x%02X] not mapped to CPU type", region ));
@@ -1127,7 +1131,7 @@ Summary
     Function to dump the FIRMWARE binary to file.
 */
 #if NEXUS_REGION_VERIFICATION_DUMP_FIRMWARE || NEXUS_REGION_VERIFICATION_DUMP_FIRMWARE_RAW
-static void dumpFirmwareBinary( NEXUS_SecurityRegverRegionID regionId, void* pRegionAddress, unsigned regionSize )
+static void dumpFirmwareBinary( NEXUS_SecurityRegverRegionID regionId, NEXUS_Addr regionAddress, unsigned regionSize )
 {
     FILE *pFile = NULL;
     char fileName[256] = {0};
@@ -1137,8 +1141,15 @@ static void dumpFirmwareBinary( NEXUS_SecurityRegverRegionID regionId, void* pRe
     char buffer[4];
     unsigned i;
     regionData_t *pRegionData;
+    void *pRegion;
 
     BDBG_ENTER( dumpFirmwareBinary );
+
+    pRegion = NEXUS_OffsetToCachedAddr( regionAddress );
+    if( !pRegion )  {
+        BERR_TRACE( NEXUS_INVALID_PARAMETER );
+        return;
+    }
 
     pRegionData = getRegionData( regionId );
     if( pRegionData == NULL ) {
@@ -1167,13 +1178,13 @@ static void dumpFirmwareBinary( NEXUS_SecurityRegverRegionID regionId, void* pRe
                                                                              #endif
                                                                              );
 
-        BDBG_WRN(( "Dumping Firmware to %s %p size[%d]", fileName, pRegionAddress, regionSize ));
+        BDBG_WRN(( "Dumping Firmware to %s  size[%d]", fileName, regionSize ));
 
         pFile = fopen( fileName, "wb" );
 
         if( pFile == NULL )
         {
-            BDBG_ERR(( "Could not open file %s to dump firmware. Make sure to do chmod 777 -R <directory from which the app executable is being run>" ));
+            BDBG_ERR(( "Could not open file to dump firmware. Make sure to do chmod 777 -R <directory from which the app executable is being run>" ));
             return;
         }
 
@@ -1181,7 +1192,7 @@ static void dumpFirmwareBinary( NEXUS_SecurityRegverRegionID regionId, void* pRe
         {
             for ( i = 0; i < (regionSize/4); i++ )
             {
-                unsigned tmp = ((uint32_t*)pRegionAddress)[i];
+                unsigned tmp = ((uint32_t*)pRegion)[i];
                 buffer[0] = 0/*tmp >> 24*/;
                 buffer[1] = (tmp>>16) & 0x3F;
                 buffer[2] = (tmp>>8 ) & 0xFF;
@@ -1193,7 +1204,7 @@ static void dumpFirmwareBinary( NEXUS_SecurityRegverRegionID regionId, void* pRe
         {
             for ( i = 0; i < (regionSize/4); i++ )
             {
-                unsigned tmp = ((uint32_t*)pRegionAddress)[i];
+                unsigned tmp = ((uint32_t*)pRegion)[i];
                 buffer[0] = (tmp >> 24);
                 buffer[1] = (tmp >> 16) & 0xFF;
                 buffer[2] = (tmp >> 8 ) & 0xFF;
@@ -1248,7 +1259,7 @@ static void dumpFirmwareBinary( NEXUS_SecurityRegverRegionID regionId, void* pRe
 Summary
     Extract configuration paramters embedded in the augmented/extended signature.
 */
-static void parseSignatureHeader( signatureHeaderData_t *pSigHeader, char* pSignature )
+static void parseSignatureHeader( NEXUS_SecuritySignedAtrributes *pSigHeader, const uint8_t* pSignature )
 {
     uint8_t *pRaw;
 
@@ -1259,7 +1270,7 @@ static void parseSignatureHeader( signatureHeaderData_t *pSigHeader, char* pSign
 
     BKNI_Memset( pSigHeader, 0, sizeof(*pSigHeader) );
 
-    pRaw = (uint8_t*)(pSignature + NEXUS_REGVER_SIGNATURE_SIZE); /* header is just after the signature */
+    pRaw = (uint8_t*)(pSignature + NEXUS_REGIONVERIFY_SIGNATURE_SIZE); /* header is just after the signature */
 
 
     pSigHeader->cpuType  = pRaw[SIGNATURE_HEADER_OFFSET_CPU_TYPE];
@@ -1385,11 +1396,13 @@ static BERR_Code loadDefaultRegionVerificationKey( void )
 
     NEXUS_Memory_Free( pKey );
 
-    if ( rc )
+    if( rc )
     {
         BDBG_WRN(( "Failed to load Region Verification Key, key2" ));
         return BERR_TRACE( NEXUS_INVALID_PARAMETER );
     }
+
+    BDBG_MSG(( "Loaded region verification key2 RSA[%d]", (int)sndTierKey.eKeyIdentifier ));
 
     BDBG_LEAVE( loadDefaultRegionVerificationKey );
 

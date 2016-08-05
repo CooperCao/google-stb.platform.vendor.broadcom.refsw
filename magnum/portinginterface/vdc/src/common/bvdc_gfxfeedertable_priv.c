@@ -521,8 +521,7 @@ BERR_Code BVDC_P_GfxFeeder_DecideColorMatrix_isr
     BVDC_P_Window_GetCurrentOutEotf_isr( hGfxFeeder->hWindow, &eOutEotf );
 
     if ( (BVDC_P_MatrixCoeffs_eBt2020_NCL == eOutMatrixCoeffs) ||
-         (BVDC_P_MatrixCoeffs_eBt709 == eOutMatrixCoeffs) ||
-         (BVDC_P_MatrixCoeffs_eSmpte240M == eOutMatrixCoeffs) )
+         (BVDC_P_MatrixCoeffs_eBt709 == eOutMatrixCoeffs) )
     {
         *ppaulRGBToYCbCr = (bConstantBlend)?
             &s_RGBA_to_HdYCrCb_ConstBlend : &s_RGBA_to_HdYCrCb_AlphaBlend;

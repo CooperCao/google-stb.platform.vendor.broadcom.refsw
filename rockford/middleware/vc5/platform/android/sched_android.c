@@ -51,6 +51,7 @@ BEGL_SchedInterface *CreateAndroidSchedInterface(BEGL_MemoryInterface *memIface)
       iface->WaitFenceTimeout = WaitFenceTimeout;
       iface->CloseFence       = CloseFence;
       iface->MakeFence        = NULL;
+      iface->KeepFence        = NULL;
       iface->SignalFence      = NULL;
    }
    return iface;

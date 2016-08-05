@@ -424,9 +424,43 @@ BERR_Code BDSP_Arm_P_Alloc_DwnldFwExec(
     pDwnldMemInfo = &pDevice->memInfo.sDwnldMemInfo;
 
 
-    /*SR_TBD: Conditionally download fw here on watchdog recovery if required */
-    /* {
-        } */
+    if(pDevice->deviceWatchdogFlag == true)
+    {
+        /* This implementation is specific to watchdog recovery.
+             Traverse through all the tasks which were registered on ArmDsp
+             and release all the algorithms one by one. Unregister themselves from the Device*/
+        BDSP_ArmTask *pArmTask = NULL;
+        for(i=0;i<BDSP_ARM_MAX_FW_TASK_PER_DSP;i++)
+        {
+            if(pDevice->taskDetails.pArmTask[i]!=NULL)
+            {
+                pArmTask = (BDSP_ArmTask *)pDevice->taskDetails.pArmTask[i];
+                /* Traverse through all stages in the task and reset the running flag and task handle */
+                BDSP_ARM_STAGE_TRAVERSE_LOOP_BEGIN(pArmTask->startSettings.primaryStage->pStageHandle, pStageIterator)
+                BSTD_UNUSED(macroStId);
+                BSTD_UNUSED(macroBrId);
+                {
+                    BDSP_Arm_P_ReleaseAlgorithm(pDevice, pStageIterator->algorithm);
+                }
+                BDSP_ARM_STAGE_TRAVERSE_LOOP_END(pStageIterator)
+
+                pDevice->taskDetails.pArmTask[BDSP_ARM_GET_TASK_INDEX(pArmTask->taskId)]  = NULL;
+                /* coverity[double_lock: FALSE] */
+                BKNI_AcquireMutex(pDevice->taskDetails.taskIdMutex);
+                pDevice->taskDetails.taskId[BDSP_ARM_GET_TASK_INDEX(pArmTask->taskId)]   = true;
+                BKNI_ReleaseMutex(pDevice->taskDetails.taskIdMutex);
+                if( pArmTask->isStopped == true)
+                {
+                    /* This memclear is called to ensure that start Settings for all the task which were stopped before Arm Open in
+                         watchdog recovery are cleared */
+                    BKNI_Memset((void *)&pArmTask->startSettings, 0, sizeof(pArmTask->startSettings));
+                }
+            }
+        }
+    }
+
+    BDBG_MSG(("**************Allocated size %d, ptr = %p Preloaded = %d", pDwnldMemInfo->ui32AllocatedBinSize, pDwnldMemInfo->pImgBuf, pDwnldMemInfo->IsImagePreLoaded));
+
     /* Download Fw */
     if(pDwnldMemInfo->pImgBuf == NULL ){
             return BERR_TRACE(BERR_INVALID_PARAMETER);

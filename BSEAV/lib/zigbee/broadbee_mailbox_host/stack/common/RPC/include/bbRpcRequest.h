@@ -141,11 +141,11 @@ union _RpcRemoteRequest_t
     uint32_t           plain;               /*!< Plain data. */
 };
 
-#ifndef _UNIT_TEST_
+#if !defined(__arm__) && !defined(__i386__)
 /*
  * Validate that the size of the whole union is equal to the size of its plain field.
  */
-//SYS_DbgAssertStatic(sizeof(union _RpcRemoteRequest_t) == FIELD_SIZE(union _RpcRemoteRequest_t, plain));
+SYS_DbgAssertStatic(sizeof(union _RpcRemoteRequest_t) == FIELD_SIZE(union _RpcRemoteRequest_t, plain));
 #endif
 
 

@@ -81,7 +81,7 @@ extern NEXUS_HdmiInputModuleSettings g_NEXUS_hdmiInputModuleSettings;
 
 /* Hdcp 2.2 related Private APIs */
 static void NEXUS_HdmiInput_P_Hdcp2xAuthenticationStatusUpdate(void *pContext);
-static void NEXUS_HdmiInput_P_SageWatchdogIntHandler_isr(void);
+static void NEXUS_HdmiInput_P_SageTATerminatedCallback_isr(void);
 static void NEXUS_HdmiInput_P_SageWatchdogEventhandler(void *pContext);
 static void NEXUS_HdmiInput_P_SageIndicationEventHandler(void *pContext);
 static void NEXUS_HdmiInput_P_SageIndicationCallback_isr(
@@ -465,24 +465,89 @@ NEXUS_Error NEXUS_HdmiInput_HdcpLoadKsvFifo(
     /* warn of numDevices/ pDowstreamInfo inconsistency */
     if (numDevices != pDownstreamInfo->devices)
     {
-    	BDBG_WRN((" !!! ")) ;
-    	BDBG_WRN(("numDevices %d is not equal to pDownstreamInfo->devices %d",
-			numDevices, pDownstreamInfo->devices)) ;
-    	BDBG_WRN((" !!! ")) ;
+        BDBG_WRN((" !!! ")) ;
+        BDBG_WRN(("numDevices %d is not equal to pDownstreamInfo->devices %d",
+            numDevices, pDownstreamInfo->devices)) ;
+        BDBG_WRN((" !!! ")) ;
     }
 
 #if BHDR_CONFIG_HDCP_REPEATER
-		BHDR_HDCP_LoadRepeaterKsvFifo(hdmiInput->hdr,
-			(BHDR_HDCP_RepeaterDownStreamInfo *) pDownstreamInfo,
-			(uint8_t *) pDownstreamKsvs) ;
+#if NEXUS_HAS_SAGE && defined(NEXUS_HAS_HDCP_2X_RX_SUPPORT)
+    {
+        BHDR_HDCP_Status stHdcpStatus;
+
+        rc = BHDR_HDCP_GetStatus(hdmiInput->hdr, &stHdcpStatus) ;
+        if (rc != BERR_SUCCESS) {
+            rc = BERR_TRACE(rc);
+            goto done;
+        }
+
+        /* Authenticate with upstream using HDCP 2.x */
+        if (stHdcpStatus.eVersion == BHDR_HDCP_Version_e2x)
+        {
+            BHDCPlib_ReceiverIdListData hdcp2xReceiverIdListData;
+
+            hdcp2xReceiverIdListData.deviceCount = (uint8_t) pDownstreamInfo->devices;
+            hdcp2xReceiverIdListData.depth = (uint8_t) pDownstreamInfo->depth;
+            hdcp2xReceiverIdListData.maxDevsExceeded = (uint8_t) pDownstreamInfo->maxDevicesExceeded;
+            hdcp2xReceiverIdListData.maxCascadeExceeded = (uint8_t) pDownstreamInfo->maxDepthExceeded;
+            hdcp2xReceiverIdListData.hdcp2LegacyDeviceDownstream = 0;
+            hdcp2xReceiverIdListData.hdcp1DeviceDownstream = 1; /* yes */
+            hdcp2xReceiverIdListData.downstreamIsRepeater = (uint8_t) pDownstreamInfo->isRepeater;
+
+            if (pDownstreamInfo->devices >= BHDCPLIB_HDCP2X_MAX_DEVICE_COUNT)
+            {
+                /* ignore the rest of the list, if any */
+                BKNI_Memcpy(hdcp2xReceiverIdListData.rxIdList, &pDownstreamKsvs,
+                            BHDCPLIB_HDCP2X_MAX_DEVICE_COUNT * BHDCPLIB_HDCP2X_RECEIVERID_LENGTH);
+            }
+            else
+            {
+                /*****************
+                * If downstream device is repeater device, the ReceiverIdList should contain
+                * contain 1 additional entry, which is the ReceiverId of the repeater device.
+                * This additional entry is not accounted in the device count
+                *******************/
+                BKNI_Memcpy(hdcp2xReceiverIdListData.rxIdList, &pDownstreamKsvs,
+                    pDownstreamInfo->devices*BHDCPLIB_HDCP2X_RECEIVERID_LENGTH);
+
+                if (pDownstreamInfo->isRepeater) {
+                    BKNI_Memcpy(hdcp2xReceiverIdListData.rxIdList + pDownstreamInfo->devices*BHDCPLIB_HDCP2X_RECEIVERID_LENGTH,
+                        &pDownstreamInfo->repeaterKsv, BHDCPLIB_HDCP2X_RECEIVERID_LENGTH);
+                }
+            }
+
+            /* upload HDCP 2.x receiverId List */
+            rc = BHDCPlib_Hdcp2x_Rx_UploadReceiverIdList(hdmiInput->hdcpHandle, &hdcp2xReceiverIdListData);
+            if (rc != BERR_SUCCESS)
+            {
+                BDBG_ERR(("Error (%d) uploading ReceiverIdList", rc));
+                rc = BERR_TRACE(rc);
+            }
+
+            goto done;  /* skip the rest */
+        }
+        else {
+            /* fall through */
+        }
+    }
+#endif
+		/* upload HDCP 1.x KSV FIFO */
+        BHDR_HDCP_LoadRepeaterKsvFifo(hdmiInput->hdr,
+            (BHDR_HDCP_RepeaterDownStreamInfo *) pDownstreamInfo,
+            (uint8_t *) pDownstreamKsvs) ;
+		goto done;
 #else
-		BDBG_WRN(("HDCP Repeater Support is DISABLED!!!")) ;
-		BSTD_UNUSED(hdmiInput) ;
-		BSTD_UNUSED(pDownstreamInfo) ;
-		BSTD_UNUSED(pDownstreamKsvs) ;
+        BDBG_WRN(("HDCP Repeater Support is DISABLED!!!")) ;
+        BSTD_UNUSED(hdmiInput) ;
+        BSTD_UNUSED(pDownstreamInfo) ;
+        BSTD_UNUSED(pDownstreamKsvs) ;
+		goto done;
 #endif
 
-	return rc ;
+done:
+
+    return rc ;
 }
 
 
@@ -494,41 +559,100 @@ NEXUS_Error NEXUS_HdmiInput_LoadHdcp2xReceiverIdList_priv(
 )
 {
     NEXUS_Error errCode = NEXUS_SUCCESS ;
-	BHDCPlib_ReceiverIdListData hdcp2xReceiverIdListData;
+    BHDR_HDCP_Status stHdcpStatus;
     BDBG_OBJECT_ASSERT(hdmiInput, NEXUS_HdmiInput);
 
-	hdcp2xReceiverIdListData.deviceCount = (uint8_t) pData->deviceCount;
-	hdcp2xReceiverIdListData.depth = (uint8_t) pData->depth;
-	hdcp2xReceiverIdListData.maxDevsExceeded = (uint8_t) pData->maxDevsExceeded;
-	hdcp2xReceiverIdListData.maxCascadeExceeded = (uint8_t) pData->maxCascadeExceeded;
-	hdcp2xReceiverIdListData.hdcp2LegacyDeviceDownstream = (uint8_t) pData->hdcp2xLegacyDeviceDownstream;
-	hdcp2xReceiverIdListData.hdcp1DeviceDownstream = (uint8_t) pData->hdcp1DeviceDownstream;
-	hdcp2xReceiverIdListData.downstreamIsRepeater = (uint8_t) downstreamIsRepeater;
-
-	if (pData->deviceCount + hdcp2xReceiverIdListData.downstreamIsRepeater >= BHDCPLIB_HDCP2X_MAX_DEVICE_COUNT)
-	{
-		/* ignore the rest of the list, if any */
-		BKNI_Memcpy(hdcp2xReceiverIdListData.rxIdList, &pData->rxIdList,
-					BHDCPLIB_HDCP2X_MAX_DEVICE_COUNT * BHDCPLIB_HDCP2X_RECEIVERID_LENGTH);
-	}
-	else
-	{
-		/*****************
-		* If downstream device is repeater device, the ReceiverIdList will
-		* contain 1 additional entry, which is the ReceiverId of the repeater device.
-		* This additional entry is not accounted in the device count
-		*******************/
-		BKNI_Memcpy(hdcp2xReceiverIdListData.rxIdList, &pData->rxIdList,
-			(pData->deviceCount + hdcp2xReceiverIdListData.downstreamIsRepeater)*BHDCPLIB_HDCP2X_RECEIVERID_LENGTH);
-	}
-
-	/* upload receiverId List */
-    errCode = BHDCPlib_Hdcp2x_Rx_UploadReceiverIdList(hdmiInput->hdcpHandle, &hdcp2xReceiverIdListData);
-    if (errCode != BERR_SUCCESS)
-    {
-        BDBG_ERR(("Error (%d) uploading ReceiverIdList", errCode));
+    errCode = BHDR_HDCP_GetStatus(hdmiInput->hdr, &stHdcpStatus) ;
+    if (errCode != BERR_SUCCESS) {
         errCode = BERR_TRACE(errCode);
         goto done;
+    }
+
+    /* Authenticate with upstream using HDCP 2.x */
+    if (stHdcpStatus.eVersion == BHDR_HDCP_Version_e2x)
+    {
+        BHDCPlib_ReceiverIdListData hdcp2xReceiverIdListData;
+
+        hdcp2xReceiverIdListData.deviceCount = (uint8_t) pData->deviceCount;
+        hdcp2xReceiverIdListData.depth = (uint8_t) pData->depth;
+        hdcp2xReceiverIdListData.maxDevsExceeded = (uint8_t) pData->maxDevsExceeded;
+        hdcp2xReceiverIdListData.maxCascadeExceeded = (uint8_t) pData->maxCascadeExceeded;
+        hdcp2xReceiverIdListData.hdcp2LegacyDeviceDownstream = (uint8_t) pData->hdcp2xLegacyDeviceDownstream;
+        hdcp2xReceiverIdListData.hdcp1DeviceDownstream = (uint8_t) pData->hdcp1DeviceDownstream;
+        hdcp2xReceiverIdListData.downstreamIsRepeater = (uint8_t) downstreamIsRepeater;
+
+        if (pData->deviceCount + hdcp2xReceiverIdListData.downstreamIsRepeater >= BHDCPLIB_HDCP2X_MAX_DEVICE_COUNT)
+        {
+            /* ignore the rest of the list, if any */
+            BKNI_Memcpy(hdcp2xReceiverIdListData.rxIdList, &pData->rxIdList,
+                        BHDCPLIB_HDCP2X_MAX_DEVICE_COUNT * BHDCPLIB_HDCP2X_RECEIVERID_LENGTH);
+        }
+        else
+        {
+            /*****************
+            * If downstream device is repeater device, the ReceiverIdList will
+            * contain 1 additional entry, which is the ReceiverId of the repeater device.
+            * This additional entry is not accounted in the device count
+            *******************/
+            BKNI_Memcpy(hdcp2xReceiverIdListData.rxIdList, &pData->rxIdList,
+                (pData->deviceCount + hdcp2xReceiverIdListData.downstreamIsRepeater)*BHDCPLIB_HDCP2X_RECEIVERID_LENGTH);
+        }
+
+        /* upload receiverId List */
+        errCode = BHDCPlib_Hdcp2x_Rx_UploadReceiverIdList(hdmiInput->hdcpHandle, &hdcp2xReceiverIdListData);
+        if (errCode != BERR_SUCCESS)
+        {
+            BDBG_ERR(("Error (%d) uploading ReceiverIdList", errCode));
+            errCode = BERR_TRACE(errCode);
+            goto done;
+        }
+    }
+    else {
+        NEXUS_HdmiHdcpDownStreamInfo downStream  ;
+        NEXUS_HdmiHdcpKsv *pKsvs = NULL ;
+
+        /* populate downstream info */
+        downStream.devices = (uint8_t) pData->deviceCount;
+        downStream.depth = (uint8_t) pData->depth;
+        downStream.maxDevicesExceeded = (uint8_t) pData->maxDevsExceeded;
+        downStream.maxDepthExceeded = (uint8_t) pData->maxCascadeExceeded;
+        downStream.isRepeater = downstreamIsRepeater;
+
+        /* allocate space to hold ksvs for the downstream devices */
+        pKsvs = BKNI_Malloc((downStream.devices) * NEXUS_HDMI_HDCP_KSV_LENGTH) ;
+        if (pKsvs == NULL) {
+            BDBG_ERR(("Error allocating memory for KSV FIFO"));
+            errCode = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
+            goto done;
+        }
+
+        if (pData->deviceCount >= BHDCPLIB_HDCP2X_MAX_DEVICE_COUNT)
+        {
+            BKNI_Memset(downStream.repeaterKsv.data, 0, sizeof(NEXUS_HDMI_HDCP_KSV_LENGTH));
+            BKNI_Memcpy(pKsvs, &pData->rxIdList, BHDCPLIB_HDCP2X_MAX_DEVICE_COUNT * BHDCPLIB_HDCP2X_RECEIVERID_LENGTH);
+        }
+        else
+        {
+            /*****************
+            * If downstream device is repeater device, the ReceiverIdList will
+            * contain 1 additional entry, which is the ReceiverId of the repeater device.
+            * This additional entry is not accounted in the device count
+            *******************/
+            BKNI_Memcpy(downStream.repeaterKsv.data,
+                &pData->rxIdList[pData->deviceCount*BHDCPLIB_HDCP2X_RECEIVERID_LENGTH], NEXUS_HDMI_HDCP_KSV_LENGTH);
+            BKNI_Memcpy(pKsvs, &pData->rxIdList, pData->deviceCount * BHDCPLIB_HDCP2X_RECEIVERID_LENGTH);
+        }
+
+        errCode = NEXUS_HdmiInput_HdcpLoadKsvFifo(hdmiInput, &downStream, pKsvs, downStream.devices) ;
+        if (errCode != BERR_SUCCESS)
+        {
+            BDBG_ERR(("Error (%d) uploading KSV FIFO list", errCode));
+            errCode = BERR_TRACE(errCode);
+            if (pKsvs) BKNI_Free(pKsvs) ;
+            goto done;
+        }
+
+        if (pKsvs) BKNI_Free(pKsvs) ;
     }
 
 done:
@@ -611,6 +735,7 @@ NEXUS_Error NEXUS_HdmiInput_P_InitHdcp2x(NEXUS_HdmiInputHandle hdmiInput)
     NEXUS_Sage_GetSageLib_priv(&sagelibHandle);
     UNLOCK_SAGE();
 
+
     /*****
          Create event to handle watchdog from SAGE
         *****/
@@ -632,17 +757,9 @@ NEXUS_Error NEXUS_HdmiInput_P_InitHdcp2x(NEXUS_HdmiInputHandle hdmiInput)
         goto err_hdcp;
     }
 
-    /* register _isr handler */
-    g_NEXUS_hdmiInputSageData.sagelibManagementInterface.watchdog_isr =
-            NEXUS_HdmiInput_P_SageWatchdogIntHandler_isr;
-    errCode = BSAGElib_Management_Register(sagelibHandle,
-            &g_NEXUS_hdmiInputSageData.sagelibManagementInterface);
-    if (errCode != BERR_SUCCESS)
-    {
-        BDBG_ERR(("%s: Cannot register SAGE watchdog callback (%u)", __FUNCTION__, errCode));
-        errCode = BERR_TRACE(errCode);
-        goto err_hdcp;
-    }
+    NEXUS_Module_Lock(g_NEXUS_hdmiInputModuleSettings.modules.sage);
+    NEXUS_Sage_AddWatchdogEvent_priv(g_NEXUS_hdmiInputSageData.eventWatchdogRecv);
+    NEXUS_Module_Unlock(g_NEXUS_hdmiInputModuleSettings.modules.sage);
 
 
     /* Initialize all SAGE related handles/Data if not yet initialized */
@@ -680,10 +797,33 @@ NEXUS_Error NEXUS_HdmiInput_P_InitHdcp2x(NEXUS_HdmiInputHandle hdmiInput)
             goto err_hdcp;
         }
 
+        /*****
+             Create event to handle TATerminate Int from SAGE
+        *****/
+        errCode = BKNI_CreateEvent(&g_NEXUS_hdmiInputSageData.eventTATerminated);
+        if (errCode != BERR_SUCCESS) {
+            BDBG_ERR(( "Error creating sage eventTATerminated" ));
+            errCode = BERR_TRACE(errCode);
+            goto err_hdcp;
+        }
+
+        /* register event - piggy back to SAGE WatchdogEventHandler */
+        g_NEXUS_hdmiInputSageData.eventTATerminatedCallback =
+            NEXUS_RegisterEvent(g_NEXUS_hdmiInputSageData.eventTATerminated,
+                NEXUS_HdmiInput_P_SageWatchdogEventhandler, hdmiInput);
+        if (g_NEXUS_hdmiInputSageData.eventTATerminatedCallback== NULL)
+        {
+            BDBG_ERR(( "NEXUS_RegisterEvent(eventTATerminated) failed!" ));
+            errCode = BERR_TRACE(NEXUS_OS_ERROR);
+            goto err_hdcp;
+        }
+
+
         /* Open sagelib client */
         BSAGElib_GetDefaultClientSettings(sagelibHandle, &sagelibClientSettings);
         sagelibClientSettings.i_rpc.indicationRecv_isr = NEXUS_HdmiInput_P_SageIndicationCallback_isr;
         sagelibClientSettings.i_rpc.responseRecv_isr = NEXUS_HdmiInput_P_SageResponseCallback_isr;
+        sagelibClientSettings.i_rpc.taTerminate_isr = (BSAGElib_Rpc_TATerminateCallback) NEXUS_HdmiInput_P_SageTATerminatedCallback_isr;
         errCode = BSAGElib_OpenClient(sagelibHandle, &g_NEXUS_hdmiInputSageData.sagelibClientHandle,
                                     &sagelibClientSettings);
         if (errCode != BERR_SUCCESS)
@@ -732,15 +872,27 @@ NEXUS_Error NEXUS_HdmiInput_P_InitHdcp2x(NEXUS_HdmiInputHandle hdmiInput)
 
 
 err_hdcp:
-
     if (g_NEXUS_hdmiInputSageData.eventWatchdogRecvCallback) {
         NEXUS_UnregisterEvent(g_NEXUS_hdmiInputSageData.eventWatchdogRecvCallback);
         g_NEXUS_hdmiInputSageData.eventWatchdogRecvCallback = NULL;
     }
 
     if (g_NEXUS_hdmiInputSageData.eventWatchdogRecv) {
+        NEXUS_Module_Lock(g_NEXUS_hdmiInputModuleSettings.modules.sage);
+        NEXUS_Sage_RemoveWatchdogEvent_priv(g_NEXUS_hdmiInputSageData.eventWatchdogRecv);
+        NEXUS_Module_Unlock(g_NEXUS_hdmiInputModuleSettings.modules.sage);
         BKNI_DestroyEvent(g_NEXUS_hdmiInputSageData.eventWatchdogRecv);
         g_NEXUS_hdmiInputSageData.eventWatchdogRecv = NULL;
+    }
+
+    if (g_NEXUS_hdmiInputSageData.eventTATerminatedCallback) {
+        NEXUS_UnregisterEvent(g_NEXUS_hdmiInputSageData.eventTATerminatedCallback);
+        g_NEXUS_hdmiInputSageData.eventTATerminatedCallback = NULL;
+    }
+
+    if (g_NEXUS_hdmiInputSageData.eventTATerminated) {
+        BKNI_DestroyEvent(g_NEXUS_hdmiInputSageData.eventTATerminated);
+        g_NEXUS_hdmiInputSageData.eventTATerminated= NULL;
     }
 
     if (g_NEXUS_hdmiInputSageData.eventResponseRecv) {
@@ -783,10 +935,23 @@ void NEXUS_HdmiInput_P_UninitHdcp2x(NEXUS_HdmiInputHandle hdmiInput)
 		g_NEXUS_hdmiInputSageData.eventWatchdogRecvCallback = NULL;
 	}
 
-	if (g_NEXUS_hdmiInputSageData.eventWatchdogRecv) {
-		BKNI_DestroyEvent(g_NEXUS_hdmiInputSageData.eventWatchdogRecv);
-		g_NEXUS_hdmiInputSageData.eventWatchdogRecv = NULL;
-	}
+    if (g_NEXUS_hdmiInputSageData.eventWatchdogRecv) {
+        NEXUS_Module_Lock(g_NEXUS_hdmiInputModuleSettings.modules.sage);
+        NEXUS_Sage_RemoveWatchdogEvent_priv(g_NEXUS_hdmiInputSageData.eventWatchdogRecv);
+        NEXUS_Module_Unlock(g_NEXUS_hdmiInputModuleSettings.modules.sage);
+        BKNI_DestroyEvent(g_NEXUS_hdmiInputSageData.eventWatchdogRecv);
+        g_NEXUS_hdmiInputSageData.eventWatchdogRecv = NULL;
+    }
+
+    if (g_NEXUS_hdmiInputSageData.eventTATerminatedCallback) {
+        NEXUS_UnregisterEvent(g_NEXUS_hdmiInputSageData.eventTATerminatedCallback);
+        g_NEXUS_hdmiInputSageData.eventTATerminatedCallback = NULL;
+    }
+
+    if (g_NEXUS_hdmiInputSageData.eventTATerminated) {
+        BKNI_DestroyEvent(g_NEXUS_hdmiInputSageData.eventTATerminated);
+        g_NEXUS_hdmiInputSageData.eventTATerminated= NULL;
+    }
 
 	if (hdmiInput->hdcp2xAuthenticationStatusCallback != NULL) {
 		NEXUS_UnregisterEvent(hdmiInput->hdcp2xAuthenticationStatusCallback);
@@ -853,12 +1018,12 @@ done:
 }
 
 
-/* The ISR callback is registered in HSI and will be fire uppon watchdog interrupt */
-static void NEXUS_HdmiInput_P_SageWatchdogIntHandler_isr(void)
+/* The ISR callback is registered in HSI and will be fire uppon TA terminated interrupt */
+static void NEXUS_HdmiInput_P_SageTATerminatedCallback_isr(void)
 {
-    BDBG_MSG(("%s: SAGE watchdog interrupt", __FUNCTION__));
+    BDBG_WRN(("%s: SAGE TATerminate interrupt", __FUNCTION__));
 
-    BKNI_SetEvent_isr(g_NEXUS_hdmiInputSageData.eventWatchdogRecv);
+    BKNI_SetEvent_isr(g_NEXUS_hdmiInputSageData.eventTATerminated);
 }
 
 
@@ -869,13 +1034,13 @@ static void NEXUS_HdmiInput_P_SageWatchdogEventhandler(void *pContext)
     NEXUS_HdmiInputHandle hdmiInput = pContext;
     NEXUS_Error errCode = NEXUS_SUCCESS;
 
-    BDBG_WRN(("%s: SAGE Reset - Reopen/initialize HDCPlib and sage rpc handles", __FUNCTION__));
+    BDBG_ERR(("%s: SAGE Hdcp2.x Recovery Process - Reopen/initialize HDCPlib and sage rpc handles", __FUNCTION__));
 
     /* Reinitialized SAGE RPC handles (now invalid) */
     errCode = BHDCPlib_Hdcp2x_ProcessWatchDog(hdmiInput->hdcpHandle);
     if (errCode != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s: Error process watchdog in HDCPlib", __FUNCTION__));
+        BDBG_ERR(("%s: Error process recovery attempt in HDCPlib", __FUNCTION__));
         errCode = BERR_TRACE(errCode);
         goto done;
 
@@ -889,16 +1054,26 @@ done:
 static void NEXUS_HdmiInput_P_SageIndicationEventHandler(void *pContext)
 {
     NEXUS_HdmiInput_SageData *sageData = (NEXUS_HdmiInput_SageData *) pContext;
-    BHDCPlib_SageIndicationData stSageIndicationData;
+    NEXUS_HdmiInputIndicationData receivedIndication;
     BERR_Code rc = BERR_SUCCESS;
+    unsigned i=0;
 
-    stSageIndicationData.rpcRemoteHandle = sageData->indicationData.sageRpcHandle;
-    stSageIndicationData.indication_id = sageData->indicationData.indication_id;
-    stSageIndicationData.value = sageData->indicationData.value;
+    while (g_NEXUS_hdmiInputSageData.indicationReadPtr != g_NEXUS_hdmiInputSageData.indicationWritePtr)
+    {
+        i = g_NEXUS_hdmiInputSageData.indicationReadPtr;
+        receivedIndication = sageData->indicationData[i];
 
-    /* Now pass the callback information to HDCPlib */
-    rc = BHDCPlib_Hdcp2x_ReceiveSageIndication(
-                    sageData->indicationData.hHDCPlib, &stSageIndicationData);
+        BKNI_EnterCriticalSection();
+            if (++g_NEXUS_hdmiInputSageData.indicationReadPtr == NEXUS_HDMI_INPUT_SAGE_INDICATION_QUEUE_SIZE)
+            {
+                g_NEXUS_hdmiInputSageData.indicationReadPtr = 0;
+            }
+        BKNI_LeaveCriticalSection();
+
+        /* Now pass the callback information to HDCPlib */
+        rc = BHDCPlib_Hdcp2x_ReceiveSageIndication(receivedIndication.hHDCPlib, &receivedIndication.sageIndication);
+    }
+
     return;
 }
 
@@ -911,11 +1086,23 @@ static void NEXUS_HdmiInput_P_SageIndicationCallback_isr(
 )
 {
     /* Save information for later use */
-    g_NEXUS_hdmiInputSageData.indicationData.sageRpcHandle = sageRpcHandle;
-    g_NEXUS_hdmiInputSageData.indicationData.hHDCPlib =
-                                    (BHDCPlib_Handle) async_argument;
-    g_NEXUS_hdmiInputSageData.indicationData.indication_id = indication_id;
-    g_NEXUS_hdmiInputSageData.indicationData.value = value;
+    unsigned i = g_NEXUS_hdmiInputSageData.indicationWritePtr;
+
+    g_NEXUS_hdmiInputSageData.indicationData[i].sageIndication.rpcRemoteHandle = sageRpcHandle;
+    g_NEXUS_hdmiInputSageData.indicationData[i].sageIndication.indication_id = indication_id;
+    g_NEXUS_hdmiInputSageData.indicationData[i].sageIndication.value = value;
+    g_NEXUS_hdmiInputSageData.indicationData[i].hHDCPlib =
+                             (BHDCPlib_Handle) async_argument;
+
+    if (++g_NEXUS_hdmiInputSageData.indicationWritePtr == NEXUS_HDMI_INPUT_SAGE_INDICATION_QUEUE_SIZE)
+    {
+        g_NEXUS_hdmiInputSageData.indicationWritePtr = 0;
+    }
+
+    if (g_NEXUS_hdmiInputSageData.indicationWritePtr == g_NEXUS_hdmiInputSageData.indicationReadPtr)
+    {
+        BDBG_ERR(("Indication queue overflow - increase queue size"));
+    }
 
     BKNI_SetEvent_isr(g_NEXUS_hdmiInputSageData.eventIndicationRecv);
     return;

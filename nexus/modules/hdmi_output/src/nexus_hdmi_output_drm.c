@@ -205,8 +205,6 @@ static NEXUS_Error NEXUS_HdmiOutput_P_SetDrmInfoFrame(NEXUS_HdmiOutputHandle out
 
     if (BKNI_Memcmp(&output->drm.outputDrmInfoFrame, pDrmInfoFrame, sizeof(output->drm.outputDrmInfoFrame)))
     {
-        /* TODO: is formatChange necessary? */
-        output->formatChangeUpdate = true;
 #if !BDBG_NO_MSG
         BDBG_MSG(("NEXUS_HdmiOutput_P_SetDrmInfoFrame")) ;
         NEXUS_HdmiOutput_P_PrintDrmInfoFrameChanges(&output->drm.outputDrmInfoFrame, pDrmInfoFrame);
@@ -373,7 +371,7 @@ NEXUS_Error NEXUS_HdmiOutput_SetInputDrmInfoFrame_priv(NEXUS_HdmiOutputHandle ou
     NEXUS_Error rc = NEXUS_SUCCESS;
     bool changed = false;
 
-    if (BKNI_Memcmp(&output->drm.inputDrmInfoFrame, pDrmInfoFrame, sizeof(output->drm.inputDrmInfoFrame)))
+    if (!output->drm.inputDrmInfoFrameValid || BKNI_Memcmp(&output->drm.inputDrmInfoFrame, pDrmInfoFrame, sizeof(output->drm.inputDrmInfoFrame)))
     {
         BKNI_Memcpy(&output->drm.inputDrmInfoFrame, pDrmInfoFrame, sizeof(output->drm.inputDrmInfoFrame));
         output->drm.inputDrmInfoFrameValid = true;

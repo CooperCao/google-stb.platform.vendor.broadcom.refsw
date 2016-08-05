@@ -138,7 +138,7 @@ NWK_PRIVATE void zbProNwkFreeNeighbor(ZBPRO_NWK_Neighbor_t *const neighbor);
     \brief Update of time of a life of the neighbor.
     \param[in] neighbor - pointer to a neighbor.
 ****************************************************************************************/
-NWK_PRIVATE void zbProNwkSetLifeTimeOfNeighbor(ZBPRO_NWK_Neighbor_t *const neighbor);
+NWK_PRIVATE void zbProNwkNTUpdateLifeTime(ZBPRO_NWK_Neighbor_t *const neighbor);
 
 /************************************************************************************//**
     \brief Checking of that the given device is destination node for the
@@ -153,7 +153,7 @@ NWK_PRIVATE bool zbProNwkIsRouteDestination(const ZBPRO_NWK_NwkAddr_t shortAddr)
     \param[in] addr - short address of a neighbor.
     \param[in] linkQuality - the link quality indicator of a received packet.
 ****************************************************************************************/
-NWK_PRIVATE void zbProNwkUpdateLqiAndLifeTime(ZBPRO_NWK_Neighbor_t *const neighbor, const PHY_LQI_t linkQuality);
+NWK_PRIVATE void zbProNwkNTUpdateLqi(ZBPRO_NWK_Neighbor_t *const neighbor, const PHY_LQI_t linkQuality);
 
 /************************************************************************************//**
     \brief Updates extended address if the address was unknown.
@@ -301,6 +301,7 @@ NWK_PRIVATE ZBPRO_NWK_Neighbor_t *zbProNwkNtGetParentEntry(void);
 INLINE void zbProNwkNtMarkAsParent(ZBPRO_NWK_Neighbor_t *const neighbor)
 {
     neighbor->relationship = ZBPRO_NWK_RELATIONSHIP_PARENT;
+    ZBPRO_NWK_SET_LINK_COST_OUTGOING(neighbor->linkCost, ZBPRO_NWK_MIN_LINK_COST);
 }
 
 /************************************************************************************//**
@@ -375,9 +376,7 @@ void zbProNwkNTResetTransmissionFailures(void);
 
 /************************************************************************************//**
     \brief  Increment counter of transmission failures for the addressed neighbor.
-    \param[in]  neighbor    Pointer to neighbor record which transmission counter is to
-        be updated.
 ****************************************************************************************/
-void zbProNwkNTUpdateTransmissionFailures(ZBPRO_NWK_Neighbor_t *const  neighbor);
+void zbProNwkNTUpdateTransmissionFailures(const ZBPRO_NWK_NwkAddr_t shortAddr);
 
 #endif /* _ZBPRO_NWK_NEIGHBOR_TABLE_H */

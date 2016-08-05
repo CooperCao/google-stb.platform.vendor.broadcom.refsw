@@ -61,12 +61,6 @@
 
 BDBG_MODULE(BVBI);
 
-/* The hardware engineers are changing a typo. */
-#if (BCHP_CHIP == 7125)
-        #define BCHP_GSE_0_CONTROL_WAVE_MODE_TVG2X_CEA2020 \
-                BCHP_GSE_0_CONTROL_WAVE_MODE_TVGX2_CEA2020
-#endif
-
 /***************************************************************************
 * Forward declarations of static (private) functions
 ***************************************************************************/

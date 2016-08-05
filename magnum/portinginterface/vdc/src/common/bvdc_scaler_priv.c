@@ -51,7 +51,7 @@
 
 
 BDBG_MODULE(BVDC_SCL);
-BDBG_FILE_MODULE(scl_vstep);
+BDBG_FILE_MODULE(BVDC_SCL_VSTEP);
 BDBG_OBJECT_ID(BVDC_SCL);
 
 /* SW7420-560, SW7420-721: use smoothen vertical coefficient to improve weaving */
@@ -845,7 +845,7 @@ static BERR_Code BVDC_P_Scaler_CalVertInitPhase_isr
     uint32_t ulInitPhase = 0, ulBlkAvgSize = 0;
     uint32_t ulThreshold = 0;
 
-    BDBG_MODULE_MSG(scl_vstep, (" Scl[%d] in: %d out: %d blkavg %d ", hScaler->eId, ulVSclIn, ulVSclOut, *pulLargestBlkAvgSize));
+    BDBG_MODULE_MSG(BVDC_SCL_VSTEP, (" Scl[%d] in: %d out: %d blkavg %d ", hScaler->eId, ulVSclIn, ulVSclOut, *pulLargestBlkAvgSize));
 
     /* Compute Vertical FIR initial phase.
      * Do we want scaler to invert the field?  To invert field we will
@@ -870,7 +870,7 @@ static BERR_Code BVDC_P_Scaler_CalVertInitPhase_isr
     {
         ulBlkAvgSize++;
         ulFirVrtStep = BVDC_P_CAL_BLK_VRT_SRC_STEP(ulVSclIn, ulVSclOut, ulBlkAvgSize);
-        BDBG_MODULE_MSG(scl_vstep,("step %x blkavg %d max %x", ulFirVrtStep, hScaler->aulBlkAvgSize[eSrcPolarity][eDstPolarity], BVDC_P_SCL_V_RATIO_MAX));
+        BDBG_MODULE_MSG(BVDC_SCL_VSTEP,("step %x blkavg %d max %x", ulFirVrtStep, hScaler->aulBlkAvgSize[eSrcPolarity][eDstPolarity], BVDC_P_SCL_V_RATIO_MAX));
         ulFirVrtStep = BVDC_P_SCL_V_RATIO_TRUNC(ulFirVrtStep);
         ulFirVrtStep = BVDC_P_V_INIT_PHASE_RATIO_ADJ(ulFirVrtStep);
 
@@ -881,7 +881,7 @@ static BERR_Code BVDC_P_Scaler_CalVertInitPhase_isr
             ulInitPhase -= BVDC_P_V_INIT_PHASE_0_POINT_25;
         ulVertInitPhase = bSclVertPhaseIgnore? 0 : ulInitPhase ;
 
-        BDBG_MODULE_MSG(scl_vstep,("step %x blkavg %d ", ulFirVrtStep, ulBlkAvgSize));
+        BDBG_MODULE_MSG(BVDC_SCL_VSTEP,("step %x blkavg %d ", ulFirVrtStep, ulBlkAvgSize));
     }
 
     hScaler->aulBlkAvgSize[eSrcPolarity][eDstPolarity] = ulBlkAvgSize;
@@ -926,6 +926,7 @@ void BVDC_P_Scaler_SetInfo_isr
     uint32_t ulFirSrcVSize;            /* FIR Vertical input size for size matching to select coeff */
     uint32_t ulFirDstVSize;            /* FIR Vertical output size for size matching to select coeff */
     const BVDC_P_FirCoeffTbl *pHorzFirCoeff;
+    uint32_t ulVertStepRoundoff = 0;
     uint32_t ulNrmHrzStep;              /* Total horizontal src step per dest pixel, U12.20 */
     uint32_t ulNrmVrtSrcStep;
     uint32_t ulHrzStep = 0;             /* Total horizontal src step per dest pixel, HW reg format */
@@ -1288,7 +1289,9 @@ void BVDC_P_Scaler_SetInfo_isr
 #endif
             )? ulNrmVrtSrcStep : (ulNrmVrtSrcStep << 1); /* U12.20 */
 
-        ulFirVrtStep = ulVrtStep = ulNrmVrtSrcStep >>
+        /* round up to avoid accuracy loss */
+        ulVertStepRoundoff = (1 << (BVDC_P_NRM_SRC_STEP_F_BITS - BVDC_P_SCL_V_RATIO_F_BITS)) - 1;
+        ulFirVrtStep = ulVrtStep = (ulNrmVrtSrcStep + ulVertStepRoundoff) >>
             (BVDC_P_NRM_SRC_STEP_F_BITS - BVDC_P_SCL_V_RATIO_F_BITS);    /* U12.14 */
 
 #if (BVDC_P_SUPPORT_SCL_VER < BVDC_P_SUPPORT_SCL_VER_4)
@@ -1839,16 +1842,16 @@ void BVDC_P_Scaler_SetInfo_isr
     if(BVDC_P_RUL_UPDATE_THRESHOLD == hScaler->ulUpdateAll)
     {
         BDBG_MSG(("-------------------------"));
-        BDBG_MSG(("Scaler[%d]         : %dx%d to %dx%d", hScaler->eId,
+        BDBG_MSG(("Scaler[%d]chan[%d]         : %dx%d to %dx%d", hScaler->eId,pPicture->ulPictureIdx,
             pSclIn->ulWidth,  pSclIn->ulHeight,
             pSclOut->ulWidth, pSclOut->ulHeight));
         BDBG_MSG(("Scaler[%d]'clip    : %dx%d to %dx%d", hScaler->eId,
             pSclCut->ulWidth,  pSclCut->ulHeight,
             pSclOut->ulWidth, pSclOut->ulHeight));
         BDBG_MSG(("ulHrzStep         : %-8x", ulHrzStep));
-        BDBG_MSG(("ulVrtStep         : %-8x", ulVrtStep));
+        BDBG_MSG(("ulVrtStep         : %-8x", ulVrtStep<<BVDC_P_SCL_V_RATIO_F_BITS_EXT));
         BDBG_MSG(("ulFirHrzStep      : %-8x", ulFirHrzStep));
-        BDBG_MSG(("ulFirVrtStep      : %-8x", ulFirVrtStep));
+        BDBG_MSG(("ulFirVrtStep      : %-8x", ulFirVrtStep<<BVDC_P_SCL_V_RATIO_F_BITS_EXT));
 #if (BVDC_P_SUPPORT_SCL_VER < BVDC_P_SUPPORT_SCL_VER_4)
         BDBG_MSG(("Vertical Mode     : %s",
             (BVDC_P_SCL_COMPARE_FIELD_NAME(SCL_0_VERT_CONTROL, MODE, BYPASS)) ? "Bypass" :

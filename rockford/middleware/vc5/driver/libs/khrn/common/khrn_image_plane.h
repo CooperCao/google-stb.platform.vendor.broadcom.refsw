@@ -40,11 +40,6 @@ static inline uint32_t khrn_image_plane_equal(const KHRN_IMAGE_PLANE_T *lhs,
    return khrn_image_equal(lhs->image, rhs->image);
 }
 
-static inline GFX_BUFFER_DESC_PLANE_T const* khrn_image_plane_desc(const KHRN_IMAGE_PLANE_T *img_plane)
-{
-   return khrn_image_get_plane_desc(img_plane->image, img_plane->plane_idx);
-}
-
 static inline
 GFX_LFMT_T khrn_image_plane_lfmt(const KHRN_IMAGE_PLANE_T *img_plane)
 {
@@ -59,53 +54,31 @@ GFX_LFMT_T khrn_image_plane_lfmt_maybe(const KHRN_IMAGE_PLANE_T *img_plane)
       GFX_LFMT_NONE;
 }
 
-static inline
-void khrn_image_plane_assign(KHRN_IMAGE_PLANE_T *lhs, const KHRN_IMAGE_PLANE_T *rhs)
+static inline bool khrn_image_plane_invalidate(KHRN_IMAGE_PLANE_T *img_plane)
 {
-   if (rhs != NULL)
+   if (!img_plane->image)
+      return true;
+
+   // If the image contains other planes, we cannot invalidate
+   return (khrn_image_get_num_planes(img_plane->image) == 1) &&
+      khrn_image_invalidate(img_plane->image);
+}
+
+static inline void khrn_image_plane_invalidate_two(
+   KHRN_IMAGE_PLANE_T *a, KHRN_IMAGE_PLANE_T *b)
+{
+   if (a->image != b->image)
    {
-      KHRN_MEM_ASSIGN(lhs->image, rhs->image);
-      lhs->plane_idx = rhs->plane_idx;
+      khrn_image_plane_invalidate(a);
+      khrn_image_plane_invalidate(b);
    }
-   else
+   else if (a->image)
    {
-      KHRN_MEM_ASSIGN(lhs->image, NULL);
-      /* plane_idx undefined */
+      // If the image contains other planes, we cannot invalidate
+      unsigned num_planes = khrn_image_get_num_planes(a->image);
+      if ((num_planes == 1) || ((num_planes == 2) && ((a->plane_idx + b->plane_idx) == 1)))
+         khrn_image_invalidate(a->image);
    }
 }
 
-static inline
-void khrn_image_plane_translate_rcfg_color(const KHRN_IMAGE_PLANE_T *img_plane,
-      uint32_t frame_width, uint32_t frame_height,
-      GFX_BUFFER_RCFG_COLOR_TRANSLATION_T *t)
-{
-   khrn_image_translate_rcfg_color(img_plane->image, img_plane->plane_idx,
-         frame_width, frame_height, t);
-}
-
-static inline
-v3d_memory_format_t khrn_image_plane_translate_memory_format(
-      const KHRN_IMAGE_PLANE_T *img_plane)
-{
-   return khrn_image_translate_memory_format(img_plane->image,
-         img_plane->plane_idx);
-}
-
-static inline
-unsigned khrn_image_plane_maybe_uif_height_in_ub(
-      const KHRN_IMAGE_PLANE_T *img_plane)
-{
-   return khrn_image_maybe_uif_height_in_ub(img_plane->image,
-         img_plane->plane_idx);
-}
-static inline unsigned khrn_image_plane_uif_height_in_ub(
-   const KHRN_IMAGE_PLANE_T *img_plane)
-{
-   return khrn_image_uif_height_in_ub(img_plane->image,
-         img_plane->plane_idx);
-}
-
-/* see GMEM_SYNC_.* in v3d_mem_api.h for valid combinations of r/w flags */
-extern v3d_addr_t khrn_image_plane_lock(const KHRN_IMAGE_PLANE_T *img_plane,
-      KHRN_FMEM_T *fmem, uint32_t bin_rw_flags, uint32_t render_rw_flags);
 #endif

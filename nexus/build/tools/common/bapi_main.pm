@@ -105,7 +105,10 @@ sub main
     }
 
 
-    my @untrusted_api = bapi_untrusted_api::parse "nexus/build/tools/common/nexus_untrusted_api.txt";
+    my @untrusted_api;
+    if ($mode ne 'syncthunk') {
+        @untrusted_api = bapi_untrusted_api::parse "nexus/build/tools/common/nexus_untrusted_api.txt";
+    }
 
     # Process all files on the command line
     my $module = shift @ARGV;
@@ -221,7 +224,7 @@ sub main
     bapi_parse_c::expand_structs(\%structs,\%preload_structs);
     if($mode ne 'abiverify') {
         while (($name, $members) = each %structs) {
-            $structs{$name} = [grep {not ($_->{NAME} =~ /\[/)} @$members];
+            $structs{$name} = [grep { index($_->{NAME},'[') == -1 } @$members];
         }
     }
     bapi_parse_c::print_api @funcrefs  if 0;

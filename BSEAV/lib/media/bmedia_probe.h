@@ -171,13 +171,14 @@ Summary:
 */
 typedef struct bmedia_probe_track {
     BLST_SQ_ENTRY(bmedia_probe_track) link; /* this field is used to link tracks together */
-	bmedia_track_type type; /* type of track */
-	unsigned number; /* unique track ID */
-	unsigned program; /* program number that track belongs to */
-	union {
-		bmedia_probe_audio audio; /* information for audio track */
-		bmedia_probe_video video; /* information for video track */
-	} info;        
+    bmedia_track_type type; /* type of track */
+    unsigned number; /* unique track ID */
+    unsigned program; /* program number that track belongs to */
+    unsigned probe_id; /* unique id of the probe */
+    union {
+        bmedia_probe_audio audio; /* information for audio track */
+        bmedia_probe_video video; /* information for video track */
+    } info;
 } bmedia_probe_track;
 
 /*

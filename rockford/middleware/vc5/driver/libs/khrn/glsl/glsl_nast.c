@@ -81,7 +81,7 @@ const NStmt *glsl_nstmt_new_case(int line_num, Expr *expr)
    return stmt;
 }
 
-const NStmt *glsl_nstmt_new_iterator(int line_num, NStmtList *pre_cond_stmts, Expr *pre_cond_expr, NStmtList *body, NStmtList *post_cond_stmts, Expr *post_cond_expr, NStmtList *increment, Symbol *loop_index)
+const NStmt *glsl_nstmt_new_iterator(int line_num, NStmtList *pre_cond_stmts, Expr *pre_cond_expr, NStmtList *body, NStmtList *post_cond_stmts, Expr *post_cond_expr, NStmtList *increment)
 {
    NStmt *stmt = glsl_nstmt_new_common(NSTMT_ITERATOR, line_num);
    stmt->u.iterator.pre_cond_stmts  = pre_cond_stmts;
@@ -90,7 +90,6 @@ const NStmt *glsl_nstmt_new_iterator(int line_num, NStmtList *pre_cond_stmts, Ex
    stmt->u.iterator.post_cond_stmts = post_cond_stmts;
    stmt->u.iterator.post_cond_expr  = post_cond_expr;
    stmt->u.iterator.increment       = increment;
-   stmt->u.iterator.loop_index      = loop_index;
    return stmt;
 }
 

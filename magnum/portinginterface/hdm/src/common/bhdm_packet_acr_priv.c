@@ -1270,6 +1270,11 @@ BERR_Code BHDM_PACKET_ACR_P_LookupTmdsClock_isrsafe(
 	BAVC_HDMI_AviInfoFrame_Colorspace lookupColorSpace ;
 	uint8_t tableIndex ;  /* index into BHDM_SupportedClocks Table */
 
+#if BDBG_DEBUG_BUILD
+#else
+        BSTD_UNUSED (hHDMI);
+#endif
+
 	*eTmdsClock = BHDM_P_TmdsClock_eMax ;
 	lookupBitsPerPixel = stVideoSettings->eBitsPerPixel ;
 	lookupColorSpace = stVideoSettings->eColorSpace ;
@@ -1394,6 +1399,11 @@ BERR_Code BHDM_PACKET_ACR_P_LookupN_CTSValues_isrsafe(
 {
 	BERR_Code rc = BERR_SUCCESS ;
 	BHDM_P_AUDIO_CLK_VALUES *pAudioParameters ;
+
+#if BDBG_DEBUG_BUILD
+#else
+        BSTD_UNUSED (hHDMI);
+#endif
 
 #if BDBG_DEBUG_BUILD
 	static const char * const AudioSampleRateText[]	= {

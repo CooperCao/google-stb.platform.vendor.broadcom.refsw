@@ -133,7 +133,7 @@ boa:
 ### the awk command returns some type of error code to the Makefile; added echo at the end to signal to Makefile that awk command was successful
 $(BINDIR)/bmemperf_info.c :
 	@test -d "$(BINDIR)" || mkdir -p $(BINDIR)
-ifeq ($(findstring $(BCHP_CHIP),7429 7435 7425 7231 7346),$(BCHP_CHIP))
+ifeq ($(findstring $(BCHP_CHIP),7429 7435 7425 7231 7346 7584),$(BCHP_CHIP))
     ### memc_0_default_config.h files was extracted from 74xxb0_single_encode_RefSW_RTS.docx document which was found on 74xx Twiki page
 	@echo [Parsing for 40nm client info for chip ../$(BCHP_CHIP)/$(BCHP_VER_LOWER) and platform $(NEXUS_PLATFORM)];
 	@if [ -a ${NEXUS_TOP}/../${B_THIS_DIR}/../$(BCHP_CHIP)/$(BCHP_VER_LOWER)/memc_0_default_config.h  ] ; then \

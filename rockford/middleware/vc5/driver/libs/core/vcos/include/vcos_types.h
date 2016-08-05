@@ -55,17 +55,6 @@ VideoCore OS Abstraction Layer - basic types
 #include <stdexcept>
 #endif
 
-/** Entry function for a lowlevel thread.
-  *
-  * Returns void for consistency with Nucleus/ThreadX.
-  */
-typedef void (*VCOS_LLTHREAD_ENTRY_FN_T)(void *);
-
-/** Thread entry point. Returns a void* for consistency
-  * with pthreads.
-  */
-typedef void *(*VCOS_THREAD_ENTRY_FN_T)(void*);
-
 // inline is a keyword in C99 and C++, although MSVC supports a
 // good portion of C99, somehow the inline keyword missed the list
 #if defined(_MSC_VER) && !defined(inline) && !defined(__cplusplus)

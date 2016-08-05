@@ -199,6 +199,7 @@ struct NEXUS_SurfaceCompositorDisplay {
     struct NEXUS_SurfaceCompositorFramebuffer *composited;
     struct NEXUS_SurfaceCompositorFramebuffer *submitted;
     struct NEXUS_SurfaceCompositorFramebuffer *displaying;
+    struct NEXUS_SurfaceCompositorFramebuffer *lastComposited;
     struct {
         BLST_Q_HEAD(NEXUS_SurfaceCompositorFramebufferTunnelList, NEXUS_SurfaceCompositorFramebuffer) submitted, available;
     } tunnel;
@@ -510,5 +511,6 @@ unsigned nexus_surface_compositor_p_get_time(NEXUS_SurfaceCompositorHandle serve
 unsigned nexus_surface_compositor_p_get_time_diff(NEXUS_SurfaceCompositorHandle server, unsigned future, unsigned past);
 extern const NEXUS_BlendEquation NEXUS_SurfaceCompositor_P_ColorCopySource;
 extern const NEXUS_BlendEquation NEXUS_SurfaceCompositor_P_AlphaCopySource;
+NEXUS_Error NEXUS_SurfaceClient_P_CopySetSurface( NEXUS_SurfaceClientHandle client, NEXUS_SurfaceHandle surface );
 
 #endif /* NEXUS_SURFACECMP_IMPL_H__ */

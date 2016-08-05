@@ -77,7 +77,7 @@ extern "C" {
 #define BVDC_P_SUPPORT_DNR_VER_3              (3) /* 7420 */
 #define BVDC_P_SUPPORT_DNR_VER_4              (4) /* 3548A0 */
 #define BVDC_P_SUPPORT_DNR_VER_5              (5) /* 3548B0*/
-#define BVDC_P_SUPPORT_DNR_VER_6              (6) /* 7468, 7408 */
+#define BVDC_P_SUPPORT_DNR_VER_6              (6) /* 7408 */
 #define BVDC_P_SUPPORT_DNR_VER_7              (7) /* 7422, 7425 */
 #define BVDC_P_SUPPORT_DNR_VER_8              (8) /* 7445, 7439 10 bit 4k */
 

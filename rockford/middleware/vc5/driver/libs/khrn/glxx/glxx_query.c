@@ -42,7 +42,7 @@ void query_term(void *v, size_t size)
    free(query->debug_label);
    query->debug_label = NULL;
 
-   UNUSED(size);
+   vcos_unused(size);
 }
 
 GLXX_QUERY_T* glxx_query_create(unsigned name)
@@ -64,37 +64,29 @@ GLXX_QUERY_T* glxx_query_create(unsigned name)
 
 enum glxx_query_type glxx_query_target_to_type(enum glxx_query_target target)
 {
-   enum glxx_query_type type;
-
-   assert(target != GL_NONE);
-
    switch(target)
    {
       case GL_ANY_SAMPLES_PASSED:
       case GL_ANY_SAMPLES_PASSED_CONSERVATIVE:
-         type = GLXX_Q_OCCLUSION;
-         break;
+         return GLXX_Q_OCCLUSION;
       case GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN:
-         type = GLXX_Q_TRANSF_FEEDBACK;
-         break;
+         return GLXX_Q_TRANSF_FEEDBACK;
       default:
-         UNREACHABLE();
+         unreachable();
+         return GLXX_Q_COUNT;
    }
-   return type;
 }
 
 bool glxx_query_begin_new_instance(GLXX_QUERY_T *query, enum glxx_query_target target)
 {
-   if (query->target == GL_NONE)
-   {
-      /* this the first time glBeginQuery gets called on this object --> set
-      * target */
-      query->target = target;
-      query->type = glxx_query_target_to_type(query->target);
-      assert(query->instance == 0);
-   }
-   else if (query->target != target)
+   enum glxx_query_type type = glxx_query_target_to_type(target);
+   if (query->target != GL_NONE && query->type != type)
       return false;
+
+   assert(query->target != GL_NONE || query->instance == 0);
+
+   query->target = target;
+   query->type = type;
 
    vcos_mutex_lock(&queries_updates_lock);
 
@@ -108,12 +100,12 @@ bool glxx_query_begin_new_instance(GLXX_QUERY_T *query, enum glxx_query_target t
    return true;
 }
 
-v3d_addr_t query_counter_hw_addr(KHRN_FMEM_T *fmem, GLXX_QUERY_T *query)
+v3d_addr_t occlusion_query_counter_hw_addr(KHRN_FMEM_T *fmem, GLXX_QUERY_T *query)
 {
-   KHRN_QUERY_BLOCK_T *block;
+   KHRN_OCCLUSION_QUERY_BLOCK_T *block;
    unsigned index;
 
-   khrn_fmem_new_query_entry(fmem, &block, &index);
+   khrn_fmem_new_occlusion_query_entry(fmem, &block, &index);
    if (block == NULL)
       return 0;;
 
@@ -121,7 +113,7 @@ v3d_addr_t query_counter_hw_addr(KHRN_FMEM_T *fmem, GLXX_QUERY_T *query)
    *qv = 0;
 
    for (uint32_t core = 1; core != khrn_get_num_cores(); ++core)
-      qv[core * V3D_QUERY_COUNTER_SINGLE_CORE_CACHE_LINE_COUNTERS] = 0;
+      qv[core * V3D_OCCLUSION_QUERY_COUNTER_SINGLE_CORE_CACHE_LINE_COUNTERS] = 0;
 
    khrn_mem_acquire(query);
    block->query[index].obj = query;
@@ -149,7 +141,7 @@ static bool record_occlusion_query(GLXX_HW_RENDER_STATE_T *rs, GLXX_QUERY_T *que
 
    if (query != NULL)
    {
-      hw_addr = query_counter_hw_addr(&rs->fmem, query);
+      hw_addr = occlusion_query_counter_hw_addr(&rs->fmem, query);
       if (!hw_addr)
          return false;
    }
@@ -182,7 +174,7 @@ bool glxx_query_enable(GLXX_HW_RENDER_STATE_T *rs, GLXX_QUERY_T *query)
          res= true;
          break;
       default:
-         UNREACHABLE();
+         unreachable();
          res = false;
    }
    return res;
@@ -202,7 +194,7 @@ bool glxx_query_disable(GLXX_HW_RENDER_STATE_T *rs,
          res = true;
          break;
       default:
-         UNREACHABLE();
+         unreachable();
          res = false;
    }
    return res;
@@ -232,13 +224,13 @@ unsigned glxx_query_get_result(GLXX_QUERY_T *query)
 }
 
 
-void glxx_queries_update(KHRN_QUERY_BLOCK_T *query_list, bool valid_results)
+void glxx_occlusion_queries_update(KHRN_OCCLUSION_QUERY_BLOCK_T *occlusion_query_list, bool valid_results)
 {
-   KHRN_QUERY_BLOCK_T *b;
+   KHRN_OCCLUSION_QUERY_BLOCK_T *b;
    unsigned i;
    unsigned core;
 
-   b = query_list;
+   b = occlusion_query_list;
    vcos_mutex_lock(&queries_updates_lock);
    while (b)
    {
@@ -254,7 +246,7 @@ void glxx_queries_update(KHRN_QUERY_BLOCK_T *query_list, bool valid_results)
                query->result += b->query_values[i];
                /* add the query values from different cores */
                for (core = 1; core < khrn_get_num_cores(); core++)
-                  query->result += b->query_values[core * V3D_QUERY_COUNTER_SINGLE_CORE_CACHE_LINE_COUNTERS + i];
+                  query->result += b->query_values[core * V3D_OCCLUSION_QUERY_COUNTER_SINGLE_CORE_CACHE_LINE_COUNTERS + i];
             }
          }
       }

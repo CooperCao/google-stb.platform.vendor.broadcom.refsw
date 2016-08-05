@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -56,14 +56,21 @@ void BAPE_Mixer_GetDefaultSettings(
     BAPE_MixerSettings *pSettings   /* [out] */
     )
 {
+    unsigned i;
     BDBG_ASSERT(NULL != pSettings);
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
     pSettings->defaultSampleRate = 48000;
+    for ( i = 0; i < BAPE_Channel_eMax; i++ )
+    {
+        pSettings->loopbackVolumeMatrix[i][i] = BAPE_VOLUME_NORMAL;
+        pSettings->outputVolume.volume[i] = BAPE_VOLUME_NORMAL;
+    }
     #if BAPE_CHIP_MAX_NCOS > 0
     pSettings->outputNco = BAPE_Nco_e0;
     #else
     pSettings->outputNco = BAPE_Nco_eMax;       /* eMax => Don't use an NCO  */
     #endif
+    pSettings->loopbackMixerEnabled = true;
 }
 
 /*************************************************************************/
@@ -252,6 +259,12 @@ BERR_Code BAPE_Mixer_SetSettings(
     if ( hMixer->settings.type != pSettings->type )
     {
         BDBG_ERR(("Mixer type cannot be changed on the fly."));
+        return BERR_TRACE(BERR_NOT_SUPPORTED);
+    }
+
+    if ( hMixer->settings.loopbackMixerEnabled != pSettings->loopbackMixerEnabled )
+    {
+        BDBG_ERR(("Mixer loopback mixer mode cannot be changed on the fly."));
         return BERR_TRACE(BERR_NOT_SUPPORTED);
     }
 
@@ -634,14 +647,14 @@ static BERR_Code BAPE_Mixer_P_PrintOutputPortObjectInfo( BAPE_OutputPortObject  
             {
                 BAPE_I2sOutputHandle  i2sOutputHandle = pOutputPortObject->pHandle;
 
-                BDBG_MODULE_LOG(bape_diag,("%*sOutputPort: %s (%p) muted:%u Fs:%u enab:%u", level*4, "",
+                BDBG_MODULE_LOG(bape_diag,("%*sOutputPort: %s (%p) muted:%u Fs:%u enab:%u", level*2, "",
                                             pOutputPortObject->pName, (void *) pOutputPortObject,
                                             pOutputPortObject->volume.muted  ));
             }
             else
     #endif
     {
-        BDBG_LOG(("%*sOutputPort(%p): %s(%p)", level*4, "",
+        BDBG_LOG(("%*sOutputPort(%p): %s(%p)", level*2, "",
             (void *) pOutputPortObject, pOutputPortObject->pName, (void *)pOutputPortObject->pHandle ));
     }
 
@@ -694,7 +707,7 @@ BERR_Code BAPE_Mixer_P_PrintInputPortInfo( BAPE_PathNode *pPathNode, int level, 
     if (inputPort)
     {
         /* Print out a line to describe the input port.  */
-        BDBG_LOG(("%*sInputPort(%p): %s(%p) Format:%s Fs:%u", level*4, "",
+        BDBG_LOG(("%*sInputPort(%p): %s(%p) Format:%s Fs:%u", level*2, "",
                                     (void *) inputPort, inputPort->pName, (void *)inputPort->pHandle,
                                     BAPE_FMT_P_GetTypeName_isrsafe(&inputPort->format),
                                     inputPort->format.sampleRate
@@ -703,7 +716,7 @@ BERR_Code BAPE_Mixer_P_PrintInputPortInfo( BAPE_PathNode *pPathNode, int level, 
     else if (pContextMap)
     {
         /* For a RAVE context input, just print the context index.  */
-        BDBG_LOG(("%*sRAVE Context Index:%u", level*4, "",
+        BDBG_LOG(("%*sRAVE Context Index:%u", level*2, "",
                                     pContextMap->ContextIdx ));
     }
     return( errCode );
@@ -726,7 +739,7 @@ BERR_Code BAPE_Mixer_P_PrintNodeInfo( BAPE_PathNode *pPathNode, int level, int i
         {
             const BAPE_CodecAttributes  *pCodecAttributes = BAPE_P_GetCodecAttributes_isrsafe(decoderHandle->startSettings.codec);
 
-            BDBG_LOG(("%*sPathNode(%p): %s(%p) Type:%s Codec:%s DSP Index: %d", level*4, "",
+            BDBG_LOG(("%*sPathNode(%p): %s(%p) Type:%s Codec:%s DSP Index: %d", level*2, "",
                                         (void *) pPathNode, pPathNode->pName, (void *)pPathNode->pHandle,
                                         BAPE_PathNode_P_PathNodeTypeToText(pPathNode->type),
                                         pCodecAttributes->pName, decoderHandle->dspIndex ));
@@ -746,7 +759,7 @@ BERR_Code BAPE_Mixer_P_PrintNodeInfo( BAPE_PathNode *pPathNode, int level, int i
         {
             BKNI_Snprintf(mixerIndex, sizeof(mixerIndex), "DSP Index: %u",mixerSettings.dspIndex);
         }
-        BDBG_LOG(("%*sPathNode(%p): %s(%p) Type:%s %s(%u) Format:%s Fs:%u MclkSource:%s %s", level*4, "",
+        BDBG_LOG(("%*sPathNode(%p): %s(%p) Type:%s %s(%u) Format:%s Fs:%u MclkSource:%s %s", level*2, "",
                                     (void *) pPathNode, pPathNode->pName, (void *)pPathNode->pHandle,
                                     BAPE_PathNode_P_PathNodeTypeToText(pPathNode->type),
                                     mixerHandle->running ? "RUNNING" : "stopped",
@@ -783,7 +796,7 @@ BERR_Code BAPE_Mixer_P_PrintNodeInfo( BAPE_PathNode *pPathNode, int level, int i
                 break;
             }
         }
-        BDBG_LOG(("%*sPathNode(%p): %s(%p) Type:%s %s", level*4, "",
+        BDBG_LOG(("%*sPathNode(%p): %s(%p) Type:%s %s", level*2, "",
             (void *) pPathNode, pPathNode->pName, (void *)pPathNode->pHandle,
             BAPE_PathNode_P_PathNodeTypeToText(pPathNode->type), dspIndex ));
 

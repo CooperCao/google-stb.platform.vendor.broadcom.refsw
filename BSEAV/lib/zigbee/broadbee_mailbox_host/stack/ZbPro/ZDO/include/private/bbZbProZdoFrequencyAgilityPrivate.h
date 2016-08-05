@@ -56,8 +56,22 @@
 
 
 /************************* INCLUDES *****************************************************/
-#include "bbSysBasics.h"
+#include "bbZbProZdoConfig.h"
+#include "bbZbProZdoCommon.h"
+#include "bbZbProZdoSapTypesMgmtNwkUpdate.h"
+#include "bbZbProNwkSapTypesDiscovery.h"
+#include "bbZbProNwkSapTypesIb.h"
 
+typedef struct _ZbProZdoFAManagerDescr_t
+{
+    union {
+        ZBPRO_NWK_EDScanReqDescr_t              nwkEdScanReqDescr;
+        ZBPRO_ZDO_MgmtNwkUpdateUnsolRespDescr_t unsolRespDescr;
+    };
+    ZBPRO_NWK_NIB_TxTotal_t totalTransmissions;
+    ZBPRO_NWK_NIB_TxTotal_t transmissionFailures;
+    bool zbProZdoFADischarged;
+} ZbProZdoFAManagerDescr_t;
 
 /************************* PROTOTYPES ***************************************************/
 /**//**

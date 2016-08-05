@@ -238,6 +238,22 @@ bool v3d_platform_init(void)
 {
    gmem_init();
 
+   /*
+    * Setup the MMU parts of the scheduler interface context
+    * before we open it, if the interface exists.
+    */
+   if (s_context.sched_iface.SetMMUContext != NULL)
+   {
+      uint64_t phys = gmem_get_pagetable_physical_addr();
+      v3d_addr_t maxVirt = gmem_get_mmu_max_virtual_addr();
+      int64_t unsecureBinTrans = gmem_get_mmu_unsecure_bin_translation();
+      int64_t secureBinTrans = gmem_get_mmu_secure_bin_translation();
+      uint64_t platformToken = gmem_get_platform_token();
+
+      s_context.sched_iface.SetMMUContext(s_context.sched_iface.context, phys,
+           maxVirt, unsecureBinTrans, secureBinTrans, platformToken);
+   }
+
    demand(s_context.sched_iface.Open != NULL);
    s_context.session_id = s_context.sched_iface.Open(s_context.sched_iface.context);
    if (s_context.session_id == NULL)
@@ -260,6 +276,26 @@ void v3d_platform_shutdown(void)
    s_context.sched_iface.Close(s_context.sched_iface.context, s_context.session_id);
 
    gmem_destroy();
+}
+
+int v3d_platform_fence_create(void)
+{
+   int fence = -1;
+
+   demand(s_context.sched_iface.MakeFence != NULL);
+   s_context.sched_iface.MakeFence(s_context.sched_iface.context, &fence);
+
+   return fence;
+}
+
+void v3d_platform_fence_signal(int fence)
+{
+   if (fence < 0)
+      return;
+
+   demand(s_context.sched_iface.SignalFence != NULL);
+
+   s_context.sched_iface.SignalFence(s_context.sched_iface.context, fence);
 }
 
 void v3d_platform_fence_wait(int fence)

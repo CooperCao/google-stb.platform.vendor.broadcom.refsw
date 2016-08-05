@@ -1,7 +1,7 @@
 # This builds our texture functions
 
 import sys
-from generation_utils import print_disclaimer
+from generation_utils import *
 
 def make_type(base, count):
     if count == 1:
@@ -12,6 +12,8 @@ def make_type(base, count):
         return base + 'vec' + str(count)
 
 if __name__ == "__main__":
+    output_dir, include_dirs, input_files = parse_opts()
+
     v3functions   = []
     v32functions  = []
     tex_1d_functions     = []
@@ -21,7 +23,7 @@ if __name__ == "__main__":
     arg4offset    = []
     arg5offset    = []
 
-    with open("textures.auto.glsl", "w") as outf:
+    with open(os.path.join(output_dir,"textures.auto.glsl"), "w") as outf:
        print_disclaimer(outf, "//")
 
        for variant in ['','Bias','Fetch','Lod','Grad']:
@@ -169,7 +171,7 @@ if __name__ == "__main__":
                           else:
                              arg5offset.append(proto)
 
-    with open("textures.auto.props","w") as prpf:
+    with open(os.path.join(output_dir,"textures.auto.props"),"w") as prpf:
        print_disclaimer(prpf, "#")
        print >>prpf
        print >>prpf, "version3 version31 version32:"

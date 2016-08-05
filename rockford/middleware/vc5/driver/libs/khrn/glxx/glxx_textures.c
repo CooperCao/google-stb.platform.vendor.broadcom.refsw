@@ -24,6 +24,9 @@ bool glxx_textures_create(GLXX_TEXTURES_T *textures)
    textures->m_cube = glxx_texture_create(GL_TEXTURE_CUBE_MAP, 0);
    if (textures->m_cube == NULL)
       goto end;
+   textures->m_cube_array = glxx_texture_create(GL_TEXTURE_CUBE_MAP_ARRAY, 0);
+   if (textures->m_cube_array == NULL)
+      goto end;
    textures->m_3d = glxx_texture_create(GL_TEXTURE_3D, 0);
    if (textures->m_3d == NULL)
       goto end;
@@ -54,6 +57,7 @@ void glxx_textures_release(GLXX_TEXTURES_T *textures)
    KHRN_MEM_ASSIGN(textures->m_2d, NULL);
    KHRN_MEM_ASSIGN(textures->m_external, NULL);
    KHRN_MEM_ASSIGN(textures->m_cube, NULL);
+   KHRN_MEM_ASSIGN(textures->m_cube_array, NULL);
    KHRN_MEM_ASSIGN(textures->m_3d, NULL);
    KHRN_MEM_ASSIGN(textures->m_2darray, NULL);
    KHRN_MEM_ASSIGN(textures->m_1d, NULL);
@@ -67,6 +71,7 @@ void glxx_textures_assign(GLXX_TEXTURES_T *tex1, GLXX_TEXTURES_T *tex2)
    KHRN_MEM_ASSIGN(tex1->m_2d, tex2->m_2d);
    KHRN_MEM_ASSIGN(tex1->m_external, tex2->m_external);
    KHRN_MEM_ASSIGN(tex1->m_cube, tex2->m_cube);
+   KHRN_MEM_ASSIGN(tex1->m_cube_array, tex2->m_cube_array);
    KHRN_MEM_ASSIGN(tex1->m_3d, tex2->m_3d);
    KHRN_MEM_ASSIGN(tex1->m_2darray, tex2->m_2darray);
    KHRN_MEM_ASSIGN(tex1->m_1d, tex2->m_1d);
@@ -90,6 +95,9 @@ GLXX_TEXTURE_T* glxx_textures_get_texture(const GLXX_TEXTURES_T *textures,
       case GL_TEXTURE_CUBE_MAP:
          texture = textures->m_cube;
          break;
+      case GL_TEXTURE_CUBE_MAP_ARRAY:
+         texture = textures->m_cube_array;
+         break;
       case GL_TEXTURE_3D:
          texture = textures->m_3d;
          break;
@@ -109,7 +117,7 @@ GLXX_TEXTURE_T* glxx_textures_get_texture(const GLXX_TEXTURES_T *textures,
          texture = textures->m_2dmultisample_array;
          break;
      default:
-         UNREACHABLE();
+         unreachable();
    }
    return texture;
 }
@@ -126,6 +134,9 @@ void glxx_textures_set_texture(GLXX_TEXTURES_T *textures, GLXX_TEXTURE_T *textur
          break;
       case GL_TEXTURE_CUBE_MAP:
          KHRN_MEM_ASSIGN(textures->m_cube, texture);
+         break;
+      case GL_TEXTURE_CUBE_MAP_ARRAY:
+         KHRN_MEM_ASSIGN(textures->m_cube_array, texture);
          break;
       case GL_TEXTURE_3D:
          KHRN_MEM_ASSIGN(textures->m_3d, texture);
@@ -146,6 +157,6 @@ void glxx_textures_set_texture(GLXX_TEXTURES_T *textures, GLXX_TEXTURE_T *textur
          KHRN_MEM_ASSIGN(textures->m_2dmultisample_array, texture);
          break;
      default:
-         UNREACHABLE();
+         unreachable();
    }
 }

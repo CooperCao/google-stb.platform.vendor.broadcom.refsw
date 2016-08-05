@@ -1,43 +1,41 @@
-/***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+/******************************************************************************
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- *  Except as expressly set forth in the Authorized License,
+ * Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
- *
- * Module Description:
- *
- **************************************************************************/
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
+
 #include "nexus_transport_module.h"
 
 BDBG_MODULE(nexus_message);
@@ -47,6 +45,8 @@ BDBG_MODULE(nexus_message);
 #include "bxpt_interrupt.h"
 
 #define BDBG_MSG_TRACE(X) /* BDBG_MSG(X) */
+
+static NEXUS_Error NEXUS_Message_P_ReadComplete(NEXUS_MessageHandle msg, size_t amountConsumed);
 
 void NEXUS_Message_GetDefaultSettings(NEXUS_MessageSettings *pSettings)
 {
@@ -125,6 +125,7 @@ NEXUS_MessageHandle NEXUS_Message_Open(const NEXUS_MessageSettings *pSettings)
     NEXUS_Addr dummy;
     unsigned i;
     NEXUS_HeapHandle heap;
+    unsigned hwBufferSize;
 
     if (!pSettings) {
         NEXUS_Message_GetDefaultSettings(&settings);
@@ -139,8 +140,30 @@ NEXUS_MessageHandle NEXUS_Message_Open(const NEXUS_MessageSettings *pSettings)
 
     heap = NEXUS_P_DefaultHeap(NULL, NEXUS_DefaultHeapType_eFull);
 
-    if (pSettings->bufferSize) {
-        msg->mmaAllocatedBlock = NEXUS_MemoryBlock_Allocate(heap, pSettings->bufferSize, 1024, NULL);
+#define MAX_MSG_SIZE (512*1024)
+    if (pSettings->bufferSize > MAX_MSG_SIZE) {
+        void *temp;
+        /* we only support SW copy with GetBufferWithWrap, which does not support maxContiguousMessageSize anyway. */
+        if (pSettings->maxContiguousMessageSize) {
+            BERR_TRACE(NEXUS_INVALID_PARAMETER);
+            goto error;
+        }
+        /* allocate copy buffer and start copy timer */
+        msg->copy.size = pSettings->bufferSize;
+        rc = NEXUS_Memory_Allocate(msg->copy.size, NULL, &temp);
+        if (rc) {
+            BERR_TRACE(NEXUS_OUT_OF_DEVICE_MEMORY);
+            goto error;
+        }
+        msg->copy.buffer = temp;
+        hwBufferSize = MAX_MSG_SIZE;
+    }
+    else {
+        hwBufferSize = pSettings->bufferSize;
+    }
+
+    if (hwBufferSize) {
+        msg->mmaAllocatedBlock = NEXUS_MemoryBlock_Allocate(heap, hwBufferSize, 1024, NULL);
         if (!msg->mmaAllocatedBlock) {
             rc = BERR_TRACE(NEXUS_OUT_OF_DEVICE_MEMORY);
             goto error;
@@ -289,6 +312,10 @@ static void NEXUS_Message_P_Finalizer(NEXUS_MessageHandle msg)
         NEXUS_MemoryBlock_UnlockOffset(msg->mmaAllocatedBlock);
         NEXUS_MemoryBlock_Free(msg->mmaAllocatedBlock);
     }
+    if (msg->copy.buffer) {
+        NEXUS_Memory_Free(msg->copy.buffer);
+        msg->copy.buffer = NULL;
+    }
 
     NEXUS_OBJECT_DESTROY(NEXUS_Message, msg);
     BKNI_Free(msg);
@@ -337,6 +364,17 @@ void NEXUS_Message_GetDefaultFilter(NEXUS_MessageFilter *pFilter)
     BKNI_Memset(pFilter, 0, sizeof(*pFilter));
     BKNI_Memset(pFilter->mask, 0xFF, sizeof(pFilter->mask));
     BKNI_Memset(pFilter->exclusion, 0xFF, sizeof(pFilter->exclusion));
+}
+
+#define NEXUS_MESSAGE_P_COPY_BUFFER_TIMEOUT 250
+static void NEXUS_Message_P_CopyBuffer(void *context)
+{
+    size_t len0, len1;
+    const void *buf0, *buf1;
+    NEXUS_MessageHandle msg = context;
+    /* a non-destructive read will do the copy */
+    NEXUS_Message_GetBufferWithWrap(msg, &buf0, &len0, &buf1, &len1);
+    msg->copy.timer = NEXUS_ScheduleTimer(NEXUS_MESSAGE_P_COPY_BUFFER_TIMEOUT, NEXUS_Message_P_CopyBuffer, msg);
 }
 
 NEXUS_Error NEXUS_Message_Start(NEXUS_MessageHandle msg, const NEXUS_MessageStartSettings *pStartSettings)
@@ -409,7 +447,10 @@ NEXUS_Error NEXUS_Message_Start(NEXUS_MessageHandle msg, const NEXUS_MessageStar
         return BERR_TRACE(NEXUS_INVALID_PARAMETER);
     }
 
-    {
+    if (msg->copy.buffer) {
+        bufferSizeEnum = BXPT_MessageBufferSize_e512kB;
+    }
+    else {
         unsigned bSize, temp;
 
         /* calculate actual bufferSize as a log of 2 */
@@ -423,8 +464,8 @@ NEXUS_Error NEXUS_Message_Start(NEXUS_MessageHandle msg, const NEXUS_MessageStar
             bSize *= 2;
         }
         BDBG_ASSERT(bufferSizeEnum <= BXPT_MessageBufferSize_e512kB);
-        if (bSize < msg->settings.bufferSize) {
-            BDBG_WRN(("only %d out of %d bytes of message buffer will be used.", bSize, msg->settings.bufferSize));
+        if (bSize < msg->bufferSize) {
+            BDBG_WRN(("only %d out of %d bytes of message buffer will be used.", bSize, msg->bufferSize));
         }
     }
 
@@ -564,6 +605,15 @@ NEXUS_Error NEXUS_Message_Start(NEXUS_MessageHandle msg, const NEXUS_MessageStar
     msg->getBufferState.amountConsumed = 0;
     msg->lastGetBufferLength = 0;
 
+    if (msg->copy.buffer) {
+        msg->copy.rptr = msg->copy.wptr = 0;
+        msg->copy.timer = NEXUS_ScheduleTimer(NEXUS_MESSAGE_P_COPY_BUFFER_TIMEOUT, NEXUS_Message_P_CopyBuffer, msg);
+        if (!msg->copy.timer) {
+            BERR_TRACE(NEXUS_UNKNOWN);
+            /* continue, app can poll */
+        }
+    }
+
     msg->started = true;
     NEXUS_OBJECT_ACQUIRE(msg, NEXUS_PidChannel, pStartSettings->pidChannel);
     return 0;
@@ -585,6 +635,11 @@ void NEXUS_Message_Stop(NEXUS_MessageHandle msg)
 
     if (!msg->started) {
         return;
+    }
+
+    if (msg->copy.timer) {
+        NEXUS_CancelTimer(msg->copy.timer);
+        msg->copy.timer = NULL;
     }
 
 #if NEXUS_MESSAGE_USE_CHECK_TIMER
@@ -740,9 +795,14 @@ NEXUS_Error NEXUS_Message_UpdateFilter( NEXUS_MessageHandle msg, unsigned filter
     return 0;
 }
 
-
-#define ADD_XPT_MESSAGE_PAD(message_length) \
-    (((message_length) % 4) ? ((message_length) + 4 - ((message_length) % 4)) : (message_length))
+static unsigned nexus_message_p_pad(NEXUS_MessageHandle msg, const void *buffer, unsigned length)
+{
+    unsigned depth, pad;
+    if (!buffer || !length) return 0;
+    depth = ((uint8_t*)buffer - (uint8_t*)msg->buffer) + length;
+    pad = depth % 4;
+    return pad ? 4 - pad : 0;
+}
 
 NEXUS_Error NEXUS_Message_GetBuffer(NEXUS_MessageHandle msg, const void **buffer, size_t *length)
 {
@@ -752,6 +812,9 @@ NEXUS_Error NEXUS_Message_GetBuffer(NEXUS_MessageHandle msg, const void **buffer
 
     if (!msg->started) {
         return NEXUS_UNKNOWN; /* fail silently */
+    }
+    if (msg->copy.buffer) {
+        return BERR_TRACE(NEXUS_NOT_SUPPORTED);
     }
 
     if (msg->wrappedMessage.length) {
@@ -772,8 +835,9 @@ NEXUS_Error NEXUS_Message_GetBuffer(NEXUS_MessageHandle msg, const void **buffer
     /* read from the HW */
     rc = BXPT_CheckBuffer( pTransport->xpt, msg->MesgBufferNum, (uint8_t **)buffer, length, &msg->status.moreDataAvailable);
     if (rc) {return BERR_TRACE(rc);}
+
     /* HW is configured to pad up to 4 bytes. report that back to the user and require them to consume it. */
-    *length = ADD_XPT_MESSAGE_PAD(*length);
+    *length += nexus_message_p_pad(msg, *buffer, *length);
 
     if (!(*buffer)) {
         goto done;
@@ -794,7 +858,7 @@ NEXUS_Error NEXUS_Message_GetBuffer(NEXUS_MessageHandle msg, const void **buffer
         unsigned message_length;
         BDBG_ASSERT(*length >= 3);
         message_length = TS_PSI_GET_SECTION_LENGTH(*buffer) + 3;
-        message_length = ADD_XPT_MESSAGE_PAD(message_length);
+        message_length += nexus_message_p_pad(msg, *buffer, message_length);
         BDBG_WRN(("%p: message %d, in getbuffer %d", msg, message_length, *length));
     }
 #endif
@@ -817,7 +881,7 @@ NEXUS_Error NEXUS_Message_GetBuffer(NEXUS_MessageHandle msg, const void **buffer
         /* we could have multiple messages at the end of the buffer. we only need to memcpy the one message that wrapped.
         so, parse message lengths until we get to the wrapped message. */
         message_length = TS_PSI_GET_SECTION_LENGTH(*buffer) + 3;
-        message_length = ADD_XPT_MESSAGE_PAD(message_length);
+        message_length += nexus_message_p_pad(msg, *buffer, message_length);
 
         if (message_length <= *length) {
             /* if we have an unwrapped message preceding the wrapped message, change the length value to return only it for this call. this simplies our logic greatly.
@@ -845,7 +909,7 @@ NEXUS_Error NEXUS_Message_GetBuffer(NEXUS_MessageHandle msg, const void **buffer
         don't change msg->status.moreDataAvailable. */
         rc = BXPT_CheckBuffer( pTransport->xpt, msg->MesgBufferNum, &buffer2, &length2, &MoreDataAvailable);
         if (rc) {return BERR_TRACE(rc);}
-        length2 = ADD_XPT_MESSAGE_PAD(length2);
+        length2 += nexus_message_p_pad(msg, buffer2, length2);
 
         if (!skip) {
             if (length2 + *length < message_length) {
@@ -934,10 +998,10 @@ NEXUS_Error NEXUS_Message_GetBufferWithWrap( NEXUS_MessageHandle msg, const void
 
     /* HW is configured to pad up to 4 bytes. report that back to the user and require them to consume it. */
     if (*pLength2) {
-        *pLength2 = ADD_XPT_MESSAGE_PAD(*pLength2);
+        *pLength2 += nexus_message_p_pad(msg, *pBuffer2, *pLength2);
     }
     else {
-        *pLength = ADD_XPT_MESSAGE_PAD(*pLength);
+        *pLength += nexus_message_p_pad(msg, *pBuffer, *pLength);
     }
 
     if (*pBuffer) {
@@ -969,6 +1033,62 @@ NEXUS_Error NEXUS_Message_GetBufferWithWrap( NEXUS_MessageHandle msg, const void
     }
 #endif
 
+    if (msg->copy.buffer) {
+        /* copy to SW buffer, ReadComplete the HW buffer, then return pointers to SW buffer */
+        if (*pLength) {
+            while (1) {
+                const void *src;
+                unsigned avail = msg->copy.wptr > msg->copy.rptr ? (msg->copy.size - msg->copy.wptr) : (msg->copy.rptr - msg->copy.wptr - 1);
+                if (!avail) {
+                    /* no space */
+                    break;
+                }
+                else if (*pLength) {
+                    src = *pBuffer;
+                    if (avail > *pLength) avail = *pLength;
+                    *pLength -= avail;
+                    *pBuffer = (uint8_t*)*pBuffer + avail;
+                }
+                else if (*pLength2) {
+                    src = *pBuffer2;
+                    if (avail > *pLength2) avail = *pLength2;
+                    *pLength2 -= avail;
+                    *pBuffer2 = (uint8_t*)*pBuffer2 + avail;
+                }
+                else {
+                    /* no data */
+                    break;
+                }
+                /* Check for null value of src, per Coverity warning. See SWSTB-2221 */
+                if(src)
+                {
+                    BDBG_MSG(("%p copy write: %u at %u", (void*)msg, avail, msg->copy.wptr));
+                    BKNI_Memcpy(&msg->copy.buffer[msg->copy.wptr], src, avail);
+                    rc = NEXUS_Message_P_ReadComplete(msg, avail);
+                    if (rc) return BERR_TRACE(rc);
+                    msg->copy.wptr += avail;
+                    BDBG_ASSERT(msg->copy.wptr <= msg->copy.size);
+                    if (msg->copy.wptr == msg->copy.size) {
+                        msg->copy.wptr = 0;
+                    }
+                }
+            }
+        }
+        *pBuffer = &msg->copy.buffer[msg->copy.rptr];
+        if (msg->copy.wptr >= msg->copy.rptr) {
+            *pLength = msg->copy.wptr - msg->copy.rptr;
+            *pLength2 = 0;
+            *pBuffer2 = NULL;
+        }
+        else {
+            *pLength = msg->copy.size - msg->copy.rptr;
+            *pLength2 = msg->copy.wptr;
+            *pBuffer2 = msg->copy.buffer;
+        }
+        BDBG_MSG(("%p copy read: %u at %u, %u at 0", (void*)msg, (unsigned)*pLength, msg->copy.rptr, (unsigned)*pLength2));
+        msg->lastGetBufferLength = *pLength + *pLength2;
+    }
+
     if (msg->lastGetBufferLength) {
         BDBG_MSG(("GetBufferWithWrap %p: %p %u, %p %u", (void *)msg, *pBuffer, (unsigned)(*pLength), *pBuffer2, (unsigned)(*pLength2)));
     }
@@ -978,18 +1098,33 @@ NEXUS_Error NEXUS_Message_GetBufferWithWrap( NEXUS_MessageHandle msg, const void
 
 NEXUS_Error NEXUS_Message_ReadComplete(NEXUS_MessageHandle msg, size_t amountConsumed)
 {
+    if (amountConsumed > msg->lastGetBufferLength) {
+        /* you can never consume more than you were last given. a ReadComplete call must always be preceded by a GetBuffer call. */
+        BDBG_ERR(("NEXUS_Message_ReadComplete called with %u, but last NEXUS_Message_GetBuffer only returned %d", (unsigned)amountConsumed, msg->lastGetBufferLength));
+        return BERR_TRACE(NEXUS_INVALID_PARAMETER);
+    }
+
+    if (msg->copy.buffer) {
+        msg->copy.rptr += amountConsumed;
+        if (msg->copy.rptr >= msg->copy.size) {
+            msg->copy.rptr -= msg->copy.size;
+        }
+        BDBG_ASSERT(msg->copy.rptr <= msg->copy.size);
+        return NEXUS_SUCCESS;
+    }
+    else {
+        return NEXUS_Message_P_ReadComplete(msg, amountConsumed);
+    }
+}
+
+static NEXUS_Error NEXUS_Message_P_ReadComplete(NEXUS_MessageHandle msg, size_t amountConsumed)
+{
     BERR_Code rc;
 
     BDBG_OBJECT_ASSERT(msg, NEXUS_Message);
 
     if (msg->started == false) {
         return BERR_UNKNOWN;
-    }
-
-    if (amountConsumed > msg->lastGetBufferLength) {
-        /* you can never consume more than you were last given. a ReadComplete call must always be preceded by a GetBuffer call. */
-        BDBG_ERR(("NEXUS_Message_ReadComplete called with %u, but last NEXUS_Message_GetBuffer only returned %d", (unsigned)amountConsumed, msg->lastGetBufferLength));
-        return BERR_TRACE(NEXUS_INVALID_PARAMETER);
     }
 
     if (msg->wrappedMessage.length) {

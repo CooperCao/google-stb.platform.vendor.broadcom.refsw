@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2013 Broadcom Corporation
-*  
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -9,45 +9,37 @@
 *  Software, and Broadcom expressly reserves all rights in and to the Software and all
 *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
 *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-*  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.  
-*   
+*  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+*
 *  Except as expressly set forth in the Authorized License,
-*   
+*
 *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
 *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
 *  and to use this information only in connection with your use of Broadcom integrated circuit products.
-*   
-*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS" 
-*  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR 
-*  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO 
-*  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES 
-*  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE, 
-*  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION 
-*  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF 
+*
+*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+*  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+*  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+*  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+*  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+*  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+*  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
 *  USE OR PERFORMANCE OF THE SOFTWARE.
-*  
-*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS 
-*  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR 
-*  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR 
-*  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF 
-*  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT 
-*  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE 
-*  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF 
+*
+*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+*  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+*  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+*  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+*  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+*  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+*  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
-* 
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
 *
 * API Description:
 *   API name: AudioPlayback
 *    Specific APIs related to PCM audio playback.  This supports playback
 *    of data from memory.  It can be routed either to a mixer or directly
 *    to output devices.
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 #include "nexus_audio_module.h"
@@ -159,6 +151,7 @@ NEXUS_AudioPlaybackHandle NEXUS_AudioPlayback_Open(     /* attr{destructor=NEXUS
     /* Setup Connector */
     BKNI_Snprintf(pChannel->name, sizeof(pChannel->name), "PLAYBACK %u", index);
     NEXUS_AUDIO_INPUT_INIT(&pChannel->connector, NEXUS_AudioInputType_ePlayback, pChannel);
+    NEXUS_OBJECT_REGISTER(NEXUS_AudioInput, &pChannel->connector, Open);
     pChannel->connector.pName = pChannel->name;
     pChannel->connector.format = NEXUS_AudioInputFormat_ePcmStereo;
 
@@ -260,10 +253,17 @@ static void NEXUS_AudioPlayback_P_Finalizer(
     NEXUS_TaskCallback_Destroy(handle->appCallback);
     NEXUS_UnregisterEvent(handle->eventCallback);
     BKNI_DestroyEvent(handle->event);
+    NEXUS_OBJECT_DESTROY(NEXUS_AudioPlayback, handle);
     BKNI_Memset(handle, 0, sizeof(NEXUS_AudioPlayback));
 }
 
-NEXUS_OBJECT_CLASS_MAKE(NEXUS_AudioPlayback, NEXUS_AudioPlayback_Close);
+static void NEXUS_AudioPlayback_P_Release(NEXUS_AudioPlaybackHandle handle)
+{
+    NEXUS_OBJECT_UNREGISTER(NEXUS_AudioInput, &handle->connector, Close);
+    return;
+}
+
+NEXUS_OBJECT_CLASS_MAKE_WITH_RELEASE(NEXUS_AudioPlayback, NEXUS_AudioPlayback_Close);
 
 void NEXUS_AudioPlayback_Flush(
     NEXUS_AudioPlaybackHandle handle
@@ -407,7 +407,7 @@ void NEXUS_AudioPlayback_Stop(
 {
     BDBG_OBJECT_ASSERT(handle, NEXUS_AudioPlayback);
 
-    if ( handle->started )
+    if ( handle->started || handle->suspended )
     {
         BAPE_Playback_Stop(handle->channel);
         handle->started = false;
@@ -425,8 +425,9 @@ NEXUS_Error NEXUS_AudioPlayback_Suspend(
     BDBG_OBJECT_ASSERT(handle, NEXUS_AudioPlayback);
     if ( !handle->suspended && handle->started)
     {
-        NEXUS_AudioPlayback_Stop(handle);
+        BAPE_Playback_Suspend(handle->channel);
         handle->suspended = true;
+        handle->started = false;
         return BERR_SUCCESS;
     }
     BDBG_ERR(("Playback not started, so can't suspend it!"));
@@ -446,7 +447,6 @@ NEXUS_Error NEXUS_AudioPlayback_Resume(
 
     NEXUS_Error errCode;
     NEXUS_AudioOutputList outputList;
-    BAPE_PlaybackStartSettings startSettings;
     BAPE_MixerInputVolume vol;
     int attenuation = 0;
 
@@ -471,16 +471,8 @@ NEXUS_Error NEXUS_AudioPlayback_Resume(
         BDBG_ERR(("No outputs are connected to this playback channel.  Please connect outputs before starting."));
         return BERR_TRACE(BERR_NOT_SUPPORTED);
     }
-
-    BAPE_Playback_GetDefaultStartSettings(&startSettings);
-    startSettings.sampleRate = handle->startSettings.sampleRate;
-    startSettings.bitsPerSample = handle->startSettings.bitsPerSample;
-    startSettings.isStereo = handle->startSettings.stereo;
-    startSettings.isSigned = handle->startSettings.signedData;
-    startSettings.startThreshold = handle->startSettings.startThreshold;
-    startSettings.loopEnabled = handle->startSettings.loopAround;
-
     NEXUS_TaskCallback_Set(handle->appCallback, &handle->startSettings.dataCallback);
+    NEXUS_AudioPlayback_P_SetConnectorFormat(handle, &handle->startSettings);
 
     /* Connect to outputs */
     errCode = NEXUS_AudioInput_P_PrepareToStart(&handle->connector);
@@ -506,15 +498,13 @@ NEXUS_Error NEXUS_AudioPlayback_Resume(
     /* Save Settings */
     handle->started = true;
     handle->suspended = false;
-
     /* Start Playback */
-    errCode = BAPE_Playback_Start(handle->channel, &startSettings);
+    errCode = BAPE_Playback_Resume(handle->channel);
     if ( errCode )
     {
         handle->started = false;
         return BERR_TRACE(errCode);
     }
-
     return BERR_SUCCESS;
 
 
@@ -660,7 +650,7 @@ void NEXUS_AudioPlayback_GetStatus(
 Summary:
 Get an audio connector for use with downstream components.  
 **************************************************************************/
-NEXUS_AudioInput NEXUS_AudioPlayback_GetConnector( /* attr{shutdown=NEXUS_AudioInput_Shutdown} */
+NEXUS_AudioInputHandle NEXUS_AudioPlayback_GetConnector( /* attr{shutdown=NEXUS_AudioInput_Shutdown} */
     NEXUS_AudioPlaybackHandle handle
     )
 {

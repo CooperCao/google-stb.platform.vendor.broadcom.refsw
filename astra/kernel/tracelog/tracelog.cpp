@@ -111,9 +111,11 @@ void TraceLog::init(void) {
     tracelogBase = versionReg;
     commandReg = STB_REG_ADDR(STB_MEMC_TRACELOG_COMMAND);
 
+    uint32_t sentinelStart = STB_REG_ADDR(STB_MEMC_SENTINEL_RANGE_START);
     uint32_t sentinelEnd = STB_REG_ADDR(STB_MEMC_SENTINEL_RANGE_END);
-    sentinelBase = STB_REG_ADDR(STB_MEMC_SENTINEL_RANGE_START);
-    sentinelSize = (sentinelEnd - sentinelBase) / 4 + 1;
+
+    sentinelBase = sentinelStart;
+    sentinelSize = (sentinelEnd - sentinelStart) / 4 + 1;
 
     // Alloc trace buffer
     struct tzioc_client *pClient =
@@ -213,7 +215,7 @@ int TraceLog::peerDown(void) {
     return 0;
 }
 
-void TraceLog::flushTrace(void) {
+void TraceLog::inval(void) {
 
     if (!enabled)
         return;
@@ -228,7 +230,7 @@ void TraceLog::flushTrace(void) {
     }
 }
 
-void TraceLog::dumpTrace(void) {
+void TraceLog::dump(void) {
 
     if (!enabled)
         return;

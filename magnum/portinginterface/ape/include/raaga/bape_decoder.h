@@ -464,17 +464,16 @@ typedef struct BAPE_DecoderStatus
         BAPE_AmrStatus    amr;
         BAPE_DraStatus    dra;
         BAPE_CookStatus   cook;
+        BAPE_AlsStatus    als;
     } codecStatus;
 } BAPE_DecoderStatus;
 
-#define BAPE_AC4_PRESENTATION_LANGUAGE_NAME_LENGTH      64
-#define BAPE_AC4_PRESENTATION_NAME_LENGTH               255
+#define BAPE_AC4_PRESENTATION_LANGUAGE_NAME_LENGTH      8
+#define BAPE_AC4_PRESENTATION_NAME_LENGTH               36
 typedef struct BAPE_DecoderAc4PresentationInfo
 {
     unsigned id;                                                /* Identifier for this Presentation */
-    unsigned type;                                              /* Type field describes the components included in this Presentation -
-                                                                   0 - not specified, 1 - Main only, 2 - Associate only
-                                                                   3 - Main and Associate, 4 - Custom */
+    BAPE_Ac4AssociateType associateType;                        /* Describes what the associated program contains */
     char name[BAPE_AC4_PRESENTATION_NAME_LENGTH];               /* Name/Title of the Presentation */
     char language[BAPE_AC4_PRESENTATION_LANGUAGE_NAME_LENGTH];  /* Language of the Presentation */
 } BAPE_DecoderAc4PresentationInfo;
@@ -524,6 +523,8 @@ typedef struct BAPE_DecoderCodecSettings
         BAPE_Ac3Settings    ac3;
         BAPE_Ac3Settings    ac3Plus;
         BAPE_Ac4Settings    ac4;
+        BAPE_MpegSettings   mpeg;
+        BAPE_MpegSettings   mp3;
         BAPE_AacSettings    aac;       /* Applies to both ADTS/LOAS */
         BAPE_AacSettings    aacPlus;   /* Applies to both ADTS/LOAS */
         BAPE_WmaProSettings wmaPro;

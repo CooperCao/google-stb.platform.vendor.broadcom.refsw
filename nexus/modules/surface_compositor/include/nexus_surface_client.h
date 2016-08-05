@@ -172,8 +172,8 @@ Summary:
 update a surface that was set with NEXUS_SurfaceClient_SetSurface
 
 Description:
-Client is responsible for waiting for the recycled or displayed callback before calling UpdateSurface after a previous SetSurface or UpdateSurface.
-If it is called prematurely, the function will fail.
+Client is responsible for waiting for the recycled or displayed callback before calling UpdateSurface
+after a previous SetSurface or UpdateSurface. If it is called prematurely, the function will fail.
 **/
 NEXUS_Error NEXUS_SurfaceClient_UpdateSurface(
     NEXUS_SurfaceClientHandle handle,
@@ -197,7 +197,8 @@ NEXUS_Error NEXUS_SurfaceClient_PushSurface(
     NEXUS_SurfaceClientHandle handle,
     NEXUS_SurfaceHandle surface,
     const NEXUS_Rect *pUpdateRect, /* attr{null_allowed=y} NULL for whole surface */
-    bool infront /* in front is used to push surface in front of any other queued surfaces, if there are any other surfaces queued they would get immediately recycled */
+    bool infront /* in front is used to push surface in front of any other queued surfaces, if there are any other
+                    surfaces queued they would get immediately recycled */
     );
 
 /**
@@ -221,10 +222,11 @@ Remove all surfaces from the surface compositor immediately
 
 Description:
 This clears surfaces in all modes.
-This does not cause surfaces to be recycled. They are immediately available to the client, either to reuse or destroy.
+This does not cause surfaces to be recycled. They are immediately available to the client,
+either to reuse or destroy.
 
-NEXUS_SurfaceClient_Clear does not clear in-flight callbacks. So, a pending recycled callback or a surface that is in the recycle queue because of previous
-actions will still have to be recycled.
+NEXUS_SurfaceClient_Clear does not clear in-flight callbacks. So, a pending recycled callback
+or a surface that is in the recycle queue because of previous actions will still have to be recycled.
 **/
 void NEXUS_SurfaceClient_Clear(
     NEXUS_SurfaceClientHandle handle
@@ -246,7 +248,8 @@ Set client settings
 Description:
 See NEXUS_SurfaceClientSettings for which settings apply to the client
 
-Note that NEXUS_SurfaceClientSettings.composition only works for video clients. See NEXUS_SurfaceClientSettings for more details.
+Note that NEXUS_SurfaceClientSettings.composition only works for video clients.
+See NEXUS_SurfaceClientSettings for more details.
 **/
 NEXUS_Error NEXUS_SurfaceClient_SetSettings(
     NEXUS_SurfaceClientHandle handle,

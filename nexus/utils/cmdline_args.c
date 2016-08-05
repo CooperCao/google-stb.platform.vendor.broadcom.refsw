@@ -184,6 +184,7 @@ void print_usage(const char *app)
         "  -auto_bitrate - enable bitrate detection for playback\n"
         "  -fixed_bitrate X - provide fixed bitrate to playback (units bits per second)\n"
         "  -graphics    - add a graphics plane\n"
+        "  -gfx_bar     - add a graphics bar to test gfx sdr2hdr\n"
         );
     printf(
         "  -astm        - enable Astm (adaptive system time management). Used only for decode app\n"
@@ -540,6 +541,9 @@ int cmdline_parse(int argc, const char *argv[], struct util_opts_t *opts)
         }
         else if (!strcmp(argv[i], "-graphics")) {
             opts->graphics = true;
+        }
+        else if (!strcmp(argv[i], "-gfx_bar")) {
+            opts->gfx_bar = true;
         }
         else if (!strcmp(argv[i], "-avc51")) {
             opts->avc51= true;

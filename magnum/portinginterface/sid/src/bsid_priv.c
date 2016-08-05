@@ -590,39 +590,6 @@ BERR_Code BSID_P_ResetChannelMemory(BSID_ChannelHandle hSidCh)
     return BERR_TRACE(retCode);
 }
 
-
-
-void BSID_P_DestroyChannel(BSID_ChannelHandle hSidCh)
-{
-    BDBG_ASSERT(hSidCh);
-
-    /* destroy device channel queue */
-    BSID_P_DestroyChannelMemory(hSidCh);
-
-    BSID_SET_CH_STATE(hSidCh, Close);
-
-    /* destroy sync event */
-    if (NULL != hSidCh->hSyncEvent)
-    {
-       BKNI_DestroyEvent(hSidCh->hSyncEvent);
-       hSidCh->hSyncEvent = NULL;
-    }
-
-    /* destroy abort event */
-    if (NULL != hSidCh->hAbortedEvent)
-    {
-       BKNI_DestroyEvent(hSidCh->hAbortedEvent);
-       hSidCh->hAbortedEvent = NULL;
-    }
-
-    /* invalidate the device channel from the main device handle */
-    hSidCh->hSid->ahChannel[hSidCh->ui32_ChannelNum] = NULL;
-
-    /* free device channel handle */
-    BKNI_Free(hSidCh);
-    hSidCh = NULL;
-}
-
 /******************************************************************************
 * Function name: BSID_P_IsChannelQueueFull
 *

@@ -1,0 +1,2 @@
+void EmitVertex() { }
+void EndPrimitive() { }

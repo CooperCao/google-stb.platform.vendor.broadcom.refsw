@@ -58,7 +58,7 @@ BDBG_MODULE(nexus_hdmi_output);
 
 #if NEXUS_NUM_HDMI_OUTPUTS
 
-#define NEXUS_HDMI_OUTPUT_4K_PIXEL_CLOCK_RATE 296703	/* 4K p30/25 */
+#define NEXUS_HDMI_OUTPUT_4K_PIXEL_CLOCK_RATE 296703    /* 4K p30/25 */
 
 static NEXUS_HdmiOutput g_hdmiOutputs[NEXUS_NUM_HDMI_OUTPUTS];
 
@@ -99,19 +99,33 @@ static const char NEXUS_HdmiOutput_P_InvalidEdid[] = BDBG_STRING("***** Unable t
 void NEXUS_HdmiOutputModule_Print(void)
 {
 #if BDBG_DEBUG_BUILD
-    NEXUS_HdmiOutputStatus *hdmiOutputStatus ;
+    NEXUS_Error errCode ;
+    NEXUS_HdmiOutputStatus *hdmiOutputStatus = NULL ;
+    NEXUS_HdmiOutputHdcpStatus *hdmiOutputHdcpStatus = NULL ;
     int i;
 
     hdmiOutputStatus = BKNI_Malloc(sizeof(NEXUS_HdmiOutputStatus)) ;
     if (hdmiOutputStatus == NULL)
     {
         BERR_TRACE(NEXUS_OUT_OF_DEVICE_MEMORY) ;
-        return ;
+        goto done ;
+    }
+
+    hdmiOutputHdcpStatus = BKNI_Malloc(sizeof(NEXUS_HdmiOutputHdcpStatus)) ;
+    if (hdmiOutputHdcpStatus == NULL)
+    {
+        BERR_TRACE(NEXUS_OUT_OF_DEVICE_MEMORY) ;
+        goto done ;
     }
 
     for (i=0 ; i < NEXUS_NUM_HDMI_OUTPUTS; i++)
     {
-        NEXUS_HdmiOutput_GetStatus(&g_hdmiOutputs[i], hdmiOutputStatus) ;
+        errCode = NEXUS_HdmiOutput_GetStatus(&g_hdmiOutputs[i], hdmiOutputStatus) ;
+        if (errCode) {BERR_TRACE(errCode) ; return ; }
+
+        errCode = NEXUS_HdmiOutput_GetHdcpStatus(&g_hdmiOutputs[i], hdmiOutputHdcpStatus) ;
+        if (errCode) {BERR_TRACE(errCode) ; return ; }
+
         BDBG_LOG(("HDMI %d:%s%s%s",i,
             g_hdmiOutputs[i].opened ? "o" : "-",
             g_hdmiOutputs[i].videoConnected ? "v" : "-",
@@ -123,6 +137,7 @@ void NEXUS_HdmiOutputModule_Print(void)
             BDBG_LOG((" audio: t:%d o:%p md:%p p:%lu",g_hdmiOutputs[i].audioConnector.objectType,(void *)g_hdmiOutputs[i].audioConnector.pObjectHandle,(void *)g_hdmiOutputs[i].audioConnector.pMixerData,(unsigned long)g_hdmiOutputs[i].audioConnector.port));
         }
 
+        BDBG_LOG(("Attached device: %s", hdmiOutputStatus->monitorName)) ;
 
         /* hardware status */
         BDBG_LOG(("rxAttached: %c   rxPowered: %c",
@@ -140,7 +155,6 @@ void NEXUS_HdmiOutputModule_Print(void)
         BDBG_LOG(("Total HP Changes:        %d",
             g_hdmiOutputs[i].txHwStatus.hotplugCounter)) ;
 
-
         BDBG_LOG(("HDMI Settings:")) ;
 
         BDBG_LOG(("   ColorSpace: %s",
@@ -152,17 +166,51 @@ void NEXUS_HdmiOutputModule_Print(void)
             g_hdmiOutputs[i].settings.matrixCoefficients,
             g_hdmiOutputs[i].settings.overrideMatrixCoefficients ? "Yes" : "No")) ;
 
-        BDBG_LOG(("   Color Range:           %d  Override: %s",
-            g_hdmiOutputs[i].settings.colorRange,
+        BDBG_LOG(("   Color Range:           %s  Override: %s",
+            g_hdmiOutputs[i].settings.colorRange ? "Limited"
+                : (g_hdmiOutputs[i].settings.colorRange ==  NEXUS_ColorRange_eFull) ? "Full"
+                : "Unknown",
             g_hdmiOutputs[i].settings.overrideColorRange ? "Yes" : "No")) ;
 
         if (!g_hdmiOutputs[i].txHwStatus.hotplugInterruptEnabled)
         {
             BDBG_ERR(("EXCESSIVE HP INTRs were detected; HP interrupt has been DISABLED")) ;
         }
+
+        /* HDCP Status */
+        BDBG_LOG(("HDCP Status:")) ;
+        BDBG_LOG(("   Connected device: %s",
+            hdmiOutputHdcpStatus->isHdcpRepeater ? "Repeater" : "Receiver")) ;
+        BDBG_LOG(("   Supported Version: %s",
+            hdmiOutputHdcpStatus->hdcp2_2Features ? "2.2" : "1.x")) ;
+
+        if ((hdmiOutputHdcpStatus->hdcp2_2Features) && (hdmiOutputHdcpStatus->isHdcpRepeater))
+        {
+            BDBG_LOG(("   Downstream 1.x device(s): %s",
+                hdmiOutputHdcpStatus->hdcp2_2RxInfo.hdcp1_xDeviceDownstream ? "Yes" : "No")) ;
+        }
+
+        BDBG_LOG(("   Authenticated: %s",
+            hdmiOutputHdcpStatus->linkReadyForEncryption ? "Yes" : "No")) ;
+        BDBG_LOG(("   Transmitting Encrypted: %s",
+            hdmiOutputHdcpStatus->transmittingEncrypted ? "Yes" : "No")) ;
+
+        BDBG_LOG(("   Current State: %d",  hdmiOutputHdcpStatus->hdcpState)) ;
+        BDBG_LOG(("   Last Error: %d",  hdmiOutputHdcpStatus->hdcpError)) ;
+
         BDBG_LOG((" ")) ;
     }
-    BKNI_Free(hdmiOutputStatus) ;
+
+done:
+    if (hdmiOutputStatus)
+    {
+        BKNI_Free(hdmiOutputStatus) ;
+    }
+
+    if (hdmiOutputHdcpStatus)
+    {
+        BKNI_Free(hdmiOutputHdcpStatus) ;
+    }
 #endif
 }
 
@@ -303,14 +351,17 @@ err:
 
 void NEXUS_HdmiOutput_GetDefaultOpenSettings( NEXUS_HdmiOutputOpenSettings *pSettings )
 {
-    BHDM_Settings hdmDefaultSettings ;
+    NEXUS_HdmiOutput_GetDefaultOpenSettings_isrsafe(pSettings);
+}
 
+void NEXUS_HdmiOutput_GetDefaultOpenSettings_isrsafe( NEXUS_HdmiOutputOpenSettings *pSettings )
+{
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
-    BHDM_GetDefaultSettings(&hdmDefaultSettings) ;
 
-    pSettings->spd.deviceType = hdmDefaultSettings.eSpdSourceDevice ;
-    BKNI_Memcpy(pSettings->spd.vendorName, hdmDefaultSettings.SpdVendorName, BAVC_HDMI_SPD_IF_VENDOR_LEN) ;
-    BKNI_Memcpy(pSettings->spd.description, hdmDefaultSettings.SpdDescription, BAVC_HDMI_SPD_IF_DESC_LEN) ;
+    pSettings->hotplugChangeThreshold = 50; /* # of HP Intrs in 1s that will disable HPD interrupts */
+    pSettings->spd.deviceType = NEXUS_HdmiSpdSourceDeviceType_eDigitalStb;
+    BKNI_Snprintf((char*)pSettings->spd.vendorName, sizeof(pSettings->spd.vendorName), "Broadcom");
+    BKNI_Snprintf((char*)pSettings->spd.description, sizeof(pSettings->spd.description), "STB Refsw Design");
 
     pSettings->maxEdidRetries = 3;
     pSettings->powerPollingInterval = 500;
@@ -371,7 +422,7 @@ NEXUS_HdmiOutputHandle NEXUS_HdmiOutput_Open( unsigned index, const NEXUS_HdmiOu
     else {
         pOutput = BKNI_Malloc(sizeof(*pOutput));
     }
-	BKNI_Memset(pOutput, 0, sizeof(*pOutput));
+    BKNI_Memset(pOutput, 0, sizeof(*pOutput));
 
     NEXUS_OBJECT_INIT(NEXUS_HdmiOutput, pOutput);
 
@@ -517,8 +568,8 @@ NEXUS_HdmiOutputHandle NEXUS_HdmiOutput_Open( unsigned index, const NEXUS_HdmiOu
 
 
 #ifdef NEXUS_P_MHL_SUPPORT
-	errCode = NEXUS_HdmiOutput_P_OpenMhl(pOutput);
-	 if (errCode)
+    errCode = NEXUS_HdmiOutput_P_OpenMhl(pOutput);
+    if (errCode)
         goto err_event;
 #endif
 
@@ -691,6 +742,7 @@ static void NEXUS_HdmiOutput_P_Finalizer( NEXUS_HdmiOutputHandle hdmiOutput )
     NEXUS_UnregisterEvent(hdmiOutput->scrambleEventCallback);
     NEXUS_UnregisterEvent(hdmiOutput->avRateChangeEventCallback);
     NEXUS_HdmiOutput_P_UninitHdcp(hdmiOutput);
+    NEXUS_HdmiOutput_P_CloseHdcp(hdmiOutput);
 
     if (hdmiOutput->notifyHotplugEvent != NULL)
     {
@@ -698,7 +750,7 @@ static void NEXUS_HdmiOutput_P_Finalizer( NEXUS_HdmiOutputHandle hdmiOutput )
     }
 
 #ifdef NEXUS_P_MHL_SUPPORT
-	NEXUS_HdmiOutput_P_CloseMhl(hdmiOutput);
+    NEXUS_HdmiOutput_P_CloseMhl(hdmiOutput);
 #endif
 
     BHDM_Close(hdmiOutput->hdmHandle);
@@ -748,6 +800,9 @@ NEXUS_Error NEXUS_HdmiOutput_SetSettings( NEXUS_HdmiOutputHandle output, const N
 {
     NEXUS_Error errCode = NEXUS_SUCCESS ;
     bool audioChanged = false;
+    bool colorDepthChanged = false ;
+    bool colorSpaceChanged = false ;
+
     BHDM_Settings hdmSettings ;
 
     BDBG_OBJECT_ASSERT(output, NEXUS_HdmiOutput);
@@ -830,8 +885,19 @@ NEXUS_Error NEXUS_HdmiOutput_SetSettings( NEXUS_HdmiOutputHandle output, const N
         goto done ;
     }
 
-    if ((pSettings->colorDepth  != output->settings.colorDepth)
-    || (pSettings->colorSpace != output->settings.colorSpace)
+    colorDepthChanged = pSettings->colorDepth  != output->settings.colorDepth ;
+    colorSpaceChanged = pSettings->colorSpace != output->settings.colorSpace ;
+
+    /* if there are two rapid calls to SetSettings, the second must not clear a pending formatChangeUpdate */
+    if (colorDepthChanged || colorSpaceChanged)
+    {
+        output->formatChangeUpdate = true ;
+    }
+
+
+#if BDBG_DEBUG_BUILD
+    if (colorSpaceChanged
+    || colorDepthChanged
 
     || (pSettings->overrideMatrixCoefficients != output->settings.overrideMatrixCoefficients)
     || (pSettings->matrixCoefficients != output->settings.matrixCoefficients)
@@ -839,7 +905,6 @@ NEXUS_Error NEXUS_HdmiOutput_SetSettings( NEXUS_HdmiOutputHandle output, const N
     || (pSettings->overrideColorRange != output->settings.overrideColorRange)
     || (pSettings->colorRange != output->settings.colorRange))
     {
-#if BDBG_DEBUG_BUILD
         BDBG_MSG(("SetSettings")) ;
         BDBG_MSG(("   ColorSpace from %s to %s",
             NEXUS_HdmiOutput_P_ColorSpace_Text[output->settings.colorSpace],
@@ -861,11 +926,9 @@ NEXUS_Error NEXUS_HdmiOutput_SetSettings( NEXUS_HdmiOutputHandle output, const N
 
         BDBG_MSG(("   Color Range from %d to %d",
             output->settings.colorRange, pSettings->colorRange)) ;
-#endif
 
-        /* if there are two rapid calls to SetSettings, the second must not clear a pending formatChangeUpdate */
-        output->formatChangeUpdate = true;
     }
+#endif
 
     /* save previous copy of outputSettings */
     output->previousSettings = output->settings;
@@ -903,7 +966,7 @@ NEXUS_Error NEXUS_HdmiOutput_SetSettings( NEXUS_HdmiOutputHandle output, const N
     if ( output->rxState != NEXUS_HdmiOutputState_ePoweredOn )
     {
         BDBG_MSG(("Tx/Rx is not powered (%d)... new settings will be applied when powered",
-			output->rxState)) ;
+            output->rxState)) ;
         errCode = NEXUS_SUCCESS ;
         goto done ;
 
@@ -1049,16 +1112,16 @@ NEXUS_Error NEXUS_HdmiOutput_GetStatus( NEXUS_HdmiOutputHandle output, NEXUS_Hdm
         errCode = BHDM_EDID_GetSupported3DFormats(output->hdmHandle, supported3DFormats);
         if (!errCode )  /* save supported 3D formats if successfully retrieved from the EDID  */
         {
-	        /* add supported 3D formats */
-	        for (i=0; i < BFMT_VideoFmt_eMaxCount; i++)
-	        {
-	            if (supported3DFormats[i])
-	            {
-	                NEXUS_VideoFormat nexusFormat = NEXUS_P_VideoFormat_FromMagnum_isrsafe(i);
-	                if ( nexusFormat != NEXUS_VideoFormat_eUnknown)
-	                    pStatus->hdmi3DFormatsSupported[nexusFormat] = supported3DFormats[i];
-	            }
-	        }
+            /* add supported 3D formats */
+            for (i=0; i < BFMT_VideoFmt_eMaxCount; i++)
+            {
+                if (supported3DFormats[i])
+                {
+                    NEXUS_VideoFormat nexusFormat = NEXUS_P_VideoFormat_FromMagnum_isrsafe(i);
+                    if ( nexusFormat != NEXUS_VideoFormat_eUnknown)
+                        pStatus->hdmi3DFormatsSupported[nexusFormat] = supported3DFormats[i];
+                }
+            }
         }
 
 
@@ -1568,9 +1631,9 @@ void NEXUS_HdmiOutput_GetDefaultVideoSettings(
     NEXUS_HdmiOutputVideoSettings *pSettings
 )
 {
-	pSettings->videoFormat = NEXUS_VideoFormat_e720p ;
-	pSettings->colorDepth = 8 ;
-	pSettings->colorSpace = NEXUS_ColorSpace_eYCbCr444 ;
+    pSettings->videoFormat = NEXUS_VideoFormat_e720p ;
+    pSettings->colorDepth = 8 ;
+    pSettings->colorSpace = NEXUS_ColorSpace_eYCbCr444 ;
 }
 
 
@@ -1615,7 +1678,8 @@ get_next_detailed_timing_from_edid:
     nexusFormat = NEXUS_P_VideoFormat_FromMagnum_isrsafe(magnumFormat);
 
     /* If preferred format is VESA, check for HD format */
-    if ( BFMT_IS_VESA_MODE(magnumFormat) || NEXUS_VideoFormat_eUnknown == nexusFormat )
+    if (( BFMT_IS_VESA_MODE(magnumFormat) && (magnumFormat != BFMT_VideoFmt_eDVI_640x480p))
+    || NEXUS_VideoFormat_eUnknown == nexusFormat )
     {
         errCode = BHDM_EDID_GetVideoDescriptor(output->hdmHandle, detailTimingNum, &videoIdCode, &magnumFormat, &nativeFormat);
         if (errCode)
@@ -1711,7 +1775,7 @@ static void NEXUS_HdmiOutput_P_RxRemoved(void *pContext)
         /* Clear outdated receiverIdList  */
         NEXUS_Module_Lock(g_NEXUS_hdmiOutputModuleSettings.modules.hdmiInput);
         errCode = NEXUS_HdmiInput_LoadHdcp2xReceiverIdList_priv(output->hdmiInput,
-         &stReceiverIdListData, (bool) false);
+         &stReceiverIdListData, false);
         NEXUS_Module_Unlock(g_NEXUS_hdmiOutputModuleSettings.modules.hdmiInput);
         if (errCode != BERR_SUCCESS)
         {
@@ -1883,7 +1947,12 @@ static void NEXUS_HdmiOutput_P_HotplugTimerExpiration(void *pContext)
 #endif
     }
 
-    NEXUS_HdmiOutput_P_HdcpNotifyHotplug(output) ;
+    /* Only notify hdcplib of CONNECT event for HDCP 1.x to update
+    internal hdcplib state. For HDCP2.x, the state is updated through SAGE indications */
+    if (output->eHdcpVersion == BHDM_HDCP_Version_e1_1)
+    {
+        NEXUS_HdmiOutput_P_HdcpNotifyHotplug(output) ;
+    }
 
     /* notify application of hotplug status change */
     NEXUS_TaskCallback_Fire(output->hotplugCallback);
@@ -1954,27 +2023,33 @@ done:
 static void NEXUS_HdmiOutput_P_ScrambleCallback(void *pContext)
 {
     NEXUS_HdmiOutputHandle hdmiOutput = (NEXUS_HdmiOutputHandle) pContext ;
-    NEXUS_HdmiOutputStatus hdmiOutputStatus ;
+    NEXUS_HdmiOutputStatus *hdmiOutputStatus = NULL ;
     BHDM_SCDC_StatusControlData scdc ;
 
     BDBG_OBJECT_ASSERT(hdmiOutput, NEXUS_HdmiOutput);
 
     BKNI_Memset(&scdc, 0, sizeof(BHDM_SCDC_StatusControlData)) ;
 
-    NEXUS_HdmiOutput_GetStatus(hdmiOutput, &hdmiOutputStatus) ;
-
 #if BHDM_HAS_HDMI_20_SUPPORT
+    hdmiOutputStatus = BKNI_Malloc(sizeof(NEXUS_HdmiOutputStatus)) ;
+    if (hdmiOutputStatus == NULL)
+    {
+        BERR_TRACE(NEXUS_OUT_OF_DEVICE_MEMORY) ;
+        goto done ;
+    }
+    NEXUS_HdmiOutput_GetStatus(hdmiOutput, hdmiOutputStatus) ;
+
     BHDM_SCDC_ReadStatusControlData(hdmiOutput->hdmHandle, &scdc) ;
     hdmiOutput->rxHwStatus.descrambling = scdc.RxScramblerStatus ;
 
     /* Some early HDMI 2.0 TVs do not enable deScrambling after being configured to do so */
     /* sometimes the re-write of the Scramble bit will work and sometimes it does not */
     /* Hot Plug or switching inputs and back to HDMI port sometimes helps */
-    if (hdmiOutputStatus.txHardwareStatus.scrambling != hdmiOutputStatus.rxHardwareStatus.descrambling)
+    if (hdmiOutputStatus->txHardwareStatus.scrambling != hdmiOutputStatus->rxHardwareStatus.descrambling)
     {
         BDBG_ERR(("Mismatch in Scramble Status for STB/Tx= %s vs. %s/Rx= %s",
-            hdmiOutputStatus.txHardwareStatus.scrambling ? "Yes" : "No",
-            hdmiOutputStatus.monitorName, hdmiOutputStatus.rxHardwareStatus.descrambling ? "Yes" : "No")) ;
+            hdmiOutputStatus->txHardwareStatus.scrambling ? "Yes" : "No",
+            hdmiOutputStatus->monitorName, hdmiOutputStatus->rxHardwareStatus.descrambling ? "Yes" : "No")) ;
 
         /*************************/
         /* Possible No Display due to Rx */
@@ -1992,21 +2067,28 @@ static void NEXUS_HdmiOutput_P_ScrambleCallback(void *pContext)
 
 
         BDBG_WRN(("Attempting to reset HDMI scrambling configuration; retry scramble conifg %d of %d...",
-			hdmiOutput->retryScrambleCount, HDMI_MAX_SCRAMBLE_RETRY)) ;
+            hdmiOutput->retryScrambleCount, HDMI_MAX_SCRAMBLE_RETRY)) ;
         NEXUS_HdmiOutput_ResetScrambling(hdmiOutput) ;
 
-        return ;
+        goto done ;
 
     }
 
 notifyApp:
     BDBG_LOG(("HDMI Link Scramble Status: %s",
-        hdmiOutputStatus.txHardwareStatus.scrambling ? "***Scrambling***" : "Normal video")) ;
+        hdmiOutputStatus->txHardwareStatus.scrambling ? "***Scrambling***" : "Normal video")) ;
         hdmiOutput->retryScrambleCount = 0 ;
 
     /* notify application of HDMI Rx Status Change event */
     NEXUS_TaskCallback_Fire(hdmiOutput->rxStatusCallback);
 
+done:
+    if (hdmiOutputStatus)
+    {
+        BKNI_Free(hdmiOutputStatus) ;
+    }
+#else
+    BSTD_UNUSED(hdmiOutputStatus) ;
 #endif
 }
 
@@ -2019,7 +2101,7 @@ static void NEXUS_HdmiOutput_P_AvRateChangeCallback(void *pContext)
     BDBG_OBJECT_ASSERT(hdmiOutput, NEXUS_HdmiOutput);
 
     BHDM_GetHdmiSettings(hdmiOutput->hdmHandle, &hdmiSettings) ;
-	hdmiSettings.bForceEnableDisplay = true ;
+    hdmiSettings.bForceEnableDisplay = true ;
     BHDM_EnableDisplay(hdmiOutput->hdmHandle, &hdmiSettings) ;
 }
 
@@ -2167,7 +2249,7 @@ static void NEXUS_HdmiOutput_P_HotPlug_isr(void *context, int param, void *data)
     BKNI_SetEvent_isr(hdmiOutput->notifyHotplugEvent) ;
 
     BDBG_MSG(("HotPlug isr state: '%s'",
-		deviceAttached ? "RxSense Check" : "Disconnected")) ;
+        deviceAttached ? "RxSense Check" : "Disconnected")) ;
 }
 
 
@@ -2794,21 +2876,6 @@ NEXUS_Error NEXUS_HdmiOutput_SetAudioParams_priv(
     return NEXUS_SUCCESS;
 }
 
-NEXUS_Error NEXUS_HdmiOutput_P_Shutdown(void)
-{
-    int i;
-
-    for ( i = 0; i < NEXUS_NUM_HDMI_OUTPUTS; i++ )
-    {
-        if ( g_hdmiOutputs[i].opened )
-        {
-            BDBG_ERR(("Force closing HDMI output %p", (void *)&g_hdmiOutputs[i]));
-            NEXUS_HdmiOutput_Close(&g_hdmiOutputs[i]);
-        }
-    }
-    return NEXUS_SUCCESS;
-}
-
 NEXUS_Error NEXUS_HdmiOutput_SetAVMute(NEXUS_HdmiOutputHandle hdmiOutput, bool mute)
 {
     BERR_Code errCode;
@@ -3004,10 +3071,10 @@ NEXUS_Error NEXUS_HdmiOutput_SetDisplaySettings_priv(
 
     BDBG_MSG(("SetDisplaySettings ")) ;
     BDBG_MSG(("  Color> Space: %d  Range: %d Override (%s) Depth: %d Colorimetry: %d Override (%s)",
-		pstDisplaySettings->colorSpace,
-		pstDisplaySettings->colorRange, pstDisplaySettings->overrideColorRange ? "Yes" : "No",
-		pstDisplaySettings->colorDepth,
-		pstDisplaySettings->eColorimetry, pstDisplaySettings->overrideMatrixCoefficients ? "Yes" : "No")) ;
+        pstDisplaySettings->colorSpace,
+        pstDisplaySettings->colorRange, pstDisplaySettings->overrideColorRange ? "Yes" : "No",
+        pstDisplaySettings->colorDepth,
+        pstDisplaySettings->eColorimetry, pstDisplaySettings->overrideMatrixCoefficients ? "Yes" : "No")) ;
 
     handle->settings.colorSpace = pstDisplaySettings->colorSpace ;
 

@@ -19,6 +19,7 @@
 #include "../glsl/glsl_compiler.h"
 #include "glxx_server_program_interface.h"
 
+#include <ctype.h>
 #include <math.h> // For log10
 
 /*
@@ -30,17 +31,21 @@
 */
 static size_t strzncpy(char *dst, const char *src, size_t len)
 {
-   if (dst && len > 0) {
+   // strncpy zero pads to len, but dEQP expects that we don't overrun
+   // our src length, so clamp to that too.
+   len = vcos_min(len, strlen(src) + 1);
+   if (dst && len > 0)
+   {
       strncpy(dst, src, len);
-
       dst[len - 1] = '\0';
-
       return strlen(dst);
-   } else
+   }
+   else
       return -1;
 }
 
-static size_t strzncpy_with_array(char *dst, const char *src, size_t len, int arr_off) {
+static size_t strzncpy_with_array(char *dst, const char *src, size_t len, int arr_off)
+{
    if (dst == NULL || len <= 0) return -1;
 
    snprintf(dst, len, "%s[%d]", src, arr_off);
@@ -385,6 +390,8 @@ static bool is_program_interface(GLenum programInterface)
    }
 }
 
+#if KHRN_GLES31_DRIVER
+
 static int get_active_resources(GLSL_PROGRAM_T *p, GLenum programInterface)
 {
    switch (programInterface)
@@ -502,6 +509,8 @@ static GLenum get_max_name_length(GLSL_PROGRAM_T *p, GLenum programInterface, GL
    return GL_NO_ERROR;
 }
 
+#endif
+
 static int get_atomic_num_active_vars(GLSL_PROGRAM_T *p, unsigned index)
 {
    unsigned count = 0;
@@ -512,6 +521,8 @@ static int get_atomic_num_active_vars(GLSL_PROGRAM_T *p, unsigned index)
    }
    return count;
 }
+
+#if KHRN_GLES31_DRIVER
 
 static GLenum get_max_num_active_variables(GL20_PROGRAM_T *prog, GLenum programInterface, GLint *len)
 {
@@ -537,6 +548,8 @@ static GLenum get_max_num_active_variables(GL20_PROGRAM_T *prog, GLenum programI
 
    return GL_NO_ERROR;
 }
+
+#endif
 
 static GLuint get_program_resource_index(GL20_PROGRAM_T *prog, GLenum programInterface, const GLchar *name)
 {
@@ -640,7 +653,7 @@ static void get_program_resource_name(GLSL_PROGRAM_T *prog, GLenum programInterf
    case GL_UNIFORM:
       {
          GLSL_BLOCK_MEMBER_T *uniform = get_indexed_uniform(prog, index, NULL);
-         strncpy(name, uniform->name, bufSize);
+         strzncpy(name, uniform->name, bufSize);
       }
       break;
    case GL_UNIFORM_BLOCK:
@@ -666,23 +679,25 @@ static void get_program_resource_name(GLSL_PROGRAM_T *prog, GLenum programInterf
       }
       break;
    case GL_TRANSFORM_FEEDBACK_VARYING:
-      strncpy(name, prog->tf_capture[index].name, bufSize);
+      strzncpy(name, prog->tf_capture[index].name, bufSize);
       break;
    case GL_BUFFER_VARIABLE:
       {
          GLSL_BLOCK_MEMBER_T *buffer = get_indexed_buffer(prog, index, NULL);
-         strncpy(name, buffer->name, bufSize);
+         strzncpy(name, buffer->name, bufSize);
       }
       break;
    default:
       unreachable();
    }
 
-   if (bufSize > 0)
-      name[bufSize - 1] = '\0';
-
    if (length != NULL)
-      *length = strlen(name);
+   {
+      if (bufSize <= 0)
+         *length = 0;
+      else
+         *length = strlen(name);
+   }
 }
 
 static GLint get_program_resource_location(GLSL_PROGRAM_T *p, GLenum programInterface, const GLchar *name)
@@ -717,7 +732,12 @@ static GLenum valid_uniform_props[] =
    GL_REFERENCED_BY_VERTEX_SHADER,
    GL_REFERENCED_BY_FRAGMENT_SHADER,
    GL_REFERENCED_BY_COMPUTE_SHADER,
-   GL_TYPE
+   GL_TYPE,
+#if GLXX_HAS_TNG
+   GL_REFERENCED_BY_TESS_CONTROL_SHADER,
+   GL_REFERENCED_BY_TESS_EVALUATION_SHADER,
+   GL_REFERENCED_BY_GEOMETRY_SHADER,
+#endif
 };
 
 static GLenum valid_uniform_block_props[] =
@@ -729,7 +749,12 @@ static GLenum valid_uniform_block_props[] =
    GL_BUFFER_DATA_SIZE,
    GL_REFERENCED_BY_VERTEX_SHADER,
    GL_REFERENCED_BY_FRAGMENT_SHADER,
-   GL_REFERENCED_BY_COMPUTE_SHADER
+   GL_REFERENCED_BY_COMPUTE_SHADER,
+#if GLXX_HAS_TNG
+   GL_REFERENCED_BY_TESS_CONTROL_SHADER,
+   GL_REFERENCED_BY_TESS_EVALUATION_SHADER,
+   GL_REFERENCED_BY_GEOMETRY_SHADER,
+#endif
 };
 
 static GLenum valid_atomic_props[] =
@@ -740,7 +765,12 @@ static GLenum valid_atomic_props[] =
    GL_BUFFER_DATA_SIZE,
    GL_REFERENCED_BY_VERTEX_SHADER,
    GL_REFERENCED_BY_FRAGMENT_SHADER,
-   GL_REFERENCED_BY_COMPUTE_SHADER
+   GL_REFERENCED_BY_COMPUTE_SHADER,
+#if GLXX_HAS_TNG
+   GL_REFERENCED_BY_TESS_CONTROL_SHADER,
+   GL_REFERENCED_BY_TESS_EVALUATION_SHADER,
+   GL_REFERENCED_BY_GEOMETRY_SHADER,
+#endif
 };
 
 static GLenum valid_input_props[] =
@@ -751,7 +781,13 @@ static GLenum valid_input_props[] =
    GL_REFERENCED_BY_VERTEX_SHADER,
    GL_REFERENCED_BY_FRAGMENT_SHADER,
    GL_REFERENCED_BY_COMPUTE_SHADER,
-   GL_TYPE
+   GL_TYPE,
+#if GLXX_HAS_TNG
+   GL_IS_PER_PATCH,
+   GL_REFERENCED_BY_TESS_CONTROL_SHADER,
+   GL_REFERENCED_BY_TESS_EVALUATION_SHADER,
+   GL_REFERENCED_BY_GEOMETRY_SHADER,
+#endif
 };
 
 static GLenum valid_output_props[] =
@@ -762,7 +798,13 @@ static GLenum valid_output_props[] =
    GL_REFERENCED_BY_VERTEX_SHADER,
    GL_REFERENCED_BY_FRAGMENT_SHADER,
    GL_REFERENCED_BY_COMPUTE_SHADER,
-   GL_TYPE
+   GL_TYPE,
+#if GLXX_HAS_TNG
+   GL_IS_PER_PATCH,
+   GL_REFERENCED_BY_TESS_CONTROL_SHADER,
+   GL_REFERENCED_BY_TESS_EVALUATION_SHADER,
+   GL_REFERENCED_BY_GEOMETRY_SHADER,
+#endif
 };
 
 static GLenum valid_tfv_props[] =
@@ -786,7 +828,12 @@ static GLenum valid_buffer_var_props[] =
    GL_REFERENCED_BY_COMPUTE_SHADER,
    GL_TOP_LEVEL_ARRAY_SIZE,
    GL_TOP_LEVEL_ARRAY_STRIDE,
-   GL_TYPE
+   GL_TYPE,
+#if GLXX_HAS_TNG
+   GL_REFERENCED_BY_TESS_CONTROL_SHADER,
+   GL_REFERENCED_BY_TESS_EVALUATION_SHADER,
+   GL_REFERENCED_BY_GEOMETRY_SHADER,
+#endif
 };
 
 static GLenum valid_ssb_props[] =
@@ -798,7 +845,12 @@ static GLenum valid_ssb_props[] =
    GL_BUFFER_DATA_SIZE,
    GL_REFERENCED_BY_VERTEX_SHADER,
    GL_REFERENCED_BY_FRAGMENT_SHADER,
-   GL_REFERENCED_BY_COMPUTE_SHADER
+   GL_REFERENCED_BY_COMPUTE_SHADER,
+#if GLXX_HAS_TNG
+   GL_REFERENCED_BY_TESS_CONTROL_SHADER,
+   GL_REFERENCED_BY_TESS_EVALUATION_SHADER,
+   GL_REFERENCED_BY_GEOMETRY_SHADER,
+#endif
 };
 
 #define USE_ARRAY(a)\
@@ -832,6 +884,12 @@ static GLenum valid_props_combination(GLenum programInterface, GLenum prop)
    case GL_BUFFER_DATA_SIZE:
    case GL_TOP_LEVEL_ARRAY_SIZE:
    case GL_TOP_LEVEL_ARRAY_STRIDE:
+#if GLXX_HAS_TNG
+   case GL_IS_PER_PATCH:
+   case GL_REFERENCED_BY_TESS_CONTROL_SHADER:
+   case GL_REFERENCED_BY_TESS_EVALUATION_SHADER:
+   case GL_REFERENCED_BY_GEOMETRY_SHADER:
+#endif
       break;
    default:
       return GL_INVALID_ENUM;
@@ -919,6 +977,19 @@ static GLint get_uniform_resource_prop(GLSL_PROGRAM_T *prog, GLuint index,
    case GL_TYPE:
       params[0] = uniform->type;
       break;
+
+#if GLXX_HAS_TNG
+   case GL_REFERENCED_BY_TESS_CONTROL_SHADER:
+      params[0] = uniform->used_in_tcs;
+      break;
+   case GL_REFERENCED_BY_TESS_EVALUATION_SHADER:
+      params[0] = uniform->used_in_tes;
+      break;
+   case GL_REFERENCED_BY_GEOMETRY_SHADER:
+      params[0] = uniform->used_in_gs;
+      break;
+#endif
+
    default:
       unreachable();
    }
@@ -951,6 +1022,17 @@ static void get_block_resource_prop(const GLSL_BLOCK_T *block, GLenum prop, int 
    case GL_REFERENCED_BY_COMPUTE_SHADER:
       params[0] = block->used_in_cs ? 1 : 0;
       break;
+#if GLXX_HAS_TNG
+   case GL_REFERENCED_BY_TESS_CONTROL_SHADER:
+      params[0] = block->used_in_tcs;
+      break;
+   case GL_REFERENCED_BY_TESS_EVALUATION_SHADER:
+      params[0] = block->used_in_tes;
+      break;
+   case GL_REFERENCED_BY_GEOMETRY_SHADER:
+      params[0] = block->used_in_gs;
+      break;
+#endif
    default:
       unreachable();
    }
@@ -1011,6 +1093,12 @@ static int inout_var_resource_prop(GLSL_INOUT_T *v, GLenum prop) {
    case GL_REFERENCED_BY_FRAGMENT_SHADER: return v->used_in_fs;
    case GL_REFERENCED_BY_COMPUTE_SHADER:  return v->used_in_cs;
    case GL_TYPE:                          return v->type;
+#if GLXX_HAS_TNG
+   case GL_IS_PER_PATCH:                         return v->is_per_patch;
+   case GL_REFERENCED_BY_TESS_CONTROL_SHADER:    return v->used_in_tcs;
+   case GL_REFERENCED_BY_TESS_EVALUATION_SHADER: return v->used_in_tes;
+   case GL_REFERENCED_BY_GEOMETRY_SHADER:        return v->used_in_gs;
+#endif
    default:
       unreachable();
       return 0;
@@ -1073,6 +1161,17 @@ static GLint get_atomic_counter_buffer_resource_prop(GLSL_PROGRAM_T *p, GLuint i
    case GL_REFERENCED_BY_COMPUTE_SHADER:
       params[0] = buf->used_in_cs;
       return 1;
+#if GLXX_HAS_TNG
+   case GL_REFERENCED_BY_TESS_CONTROL_SHADER:
+      params[0] = buf->used_in_tcs;
+      return 1;
+   case GL_REFERENCED_BY_TESS_EVALUATION_SHADER:
+      params[0] = buf->used_in_tes;
+      return 1;
+   case GL_REFERENCED_BY_GEOMETRY_SHADER:
+      params[0] = buf->used_in_gs;
+      return 1;
+#endif
    default:
       unreachable();
       return 0;
@@ -1158,6 +1257,17 @@ static GLint get_buffer_variable_resource_prop(GLSL_PROGRAM_T *p, GLuint index,
    case GL_TYPE:
       params[0] = v->type;
       break;
+#if GLXX_HAS_TNG
+   case GL_REFERENCED_BY_TESS_CONTROL_SHADER:
+      params[0] = v->used_in_tcs;
+      break;
+   case GL_REFERENCED_BY_TESS_EVALUATION_SHADER:
+      params[0] = v->used_in_tes;
+      break;
+   case GL_REFERENCED_BY_GEOMETRY_SHADER:
+      params[0] = v->used_in_gs;
+      break;
+#endif
    default:
       unreachable();
    }
@@ -1244,12 +1354,14 @@ static unsigned get_program_resource_prop(GL20_PROGRAM_T *program, GLenum progra
    return added;
 }
 
+#if KHRN_GLES31_DRIVER
+
 GL_APICALL void GL_APIENTRY glGetProgramInterfaceiv(GLuint p, GLenum programInterface, GLenum pname, GLint *params)
 {
    GLXX_SERVER_STATE_T *state;
    GLenum error = GL_NO_ERROR;
 
-   state = GL31_LOCK_SERVER_STATE_UNCHANGED();
+   state = glxx_lock_server_state_unchanged(OPENGL_ES_3X);
    if (!state)
       return;
 
@@ -1295,8 +1407,10 @@ end:
    if (error != GL_NO_ERROR)
       glxx_server_state_set_error(state, error);
 
-   GL31_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
+
+#endif
 
 GLuint glxx_get_program_resource_index(GLXX_SERVER_STATE_T *state,
                                        GLuint p, GLenum programInterface, const GLchar *name)
@@ -1332,9 +1446,11 @@ end:
    return indx;
 }
 
+#if KHRN_GLES31_DRIVER
+
 GL_APICALL GLuint GL_APIENTRY glGetProgramResourceIndex(GLuint p, GLenum programInterface, const GLchar *name)
 {
-   GLXX_SERVER_STATE_T *state = GL31_LOCK_SERVER_STATE_UNCHANGED();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state_unchanged(OPENGL_ES_3X);
    GLuint              ret = GL_INVALID_INDEX;
 
    if (!state)
@@ -1342,10 +1458,12 @@ GL_APICALL GLuint GL_APIENTRY glGetProgramResourceIndex(GLuint p, GLenum program
 
    ret = glxx_get_program_resource_index(state, p, programInterface, name);
 
-   GL31_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 
    return ret;
 }
+
+#endif
 
 void glxx_get_program_resource_name(GLXX_SERVER_STATE_T *state,
                                     GLuint p, GLenum programInterface, GLuint index, GLsizei bufSize,
@@ -1388,17 +1506,21 @@ end:
       glxx_server_state_set_error(state, error);
 }
 
+#if KHRN_GLES31_DRIVER
+
 GL_APICALL void GL_APIENTRY glGetProgramResourceName(GLuint p, GLenum programInterface, GLuint index, GLsizei bufSize,
                                                      GLsizei *length, GLchar *name)
 {
-   GLXX_SERVER_STATE_T *state = GL31_LOCK_SERVER_STATE_UNCHANGED();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state_unchanged(OPENGL_ES_3X);
    if (!state)
       return;
 
    glxx_get_program_resource_name(state, p, programInterface, index, bufSize, length, name);
 
-   GL31_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
+
+#endif
 
 bool glxx_get_program_resourceiv(GLXX_SERVER_STATE_T *state,
                                  GLuint p, GLenum programInterface, GLuint index, GLsizei propCount,
@@ -1462,17 +1584,21 @@ end:
    return error == GL_NO_ERROR;
 }
 
+#if KHRN_GLES31_DRIVER
+
 GL_APICALL void GL_APIENTRY glGetProgramResourceiv(GLuint p, GLenum programInterface, GLuint index, GLsizei propCount,
                                                    const GLenum *props, GLsizei bufSize, GLsizei *length, GLint *params)
 {
-   GLXX_SERVER_STATE_T *state = GL31_LOCK_SERVER_STATE_UNCHANGED();
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state_unchanged(OPENGL_ES_3X);
    if (!state)
       return;
 
    glxx_get_program_resourceiv(state, p, programInterface, index, propCount, props, bufSize, length, params);
 
-   GL31_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 }
+
+#endif
 
 GLint glxx_get_program_resource_location(GLXX_SERVER_STATE_T *state,
                                          GLuint p, GLenum programInterface, const GLchar *name)
@@ -1513,18 +1639,22 @@ end:
    return location;
 }
 
+#if KHRN_GLES31_DRIVER
+
 GL_APICALL GLint GL_APIENTRY glGetProgramResourceLocation(GLuint p, GLenum programInterface, const GLchar *name)
 {
    GLXX_SERVER_STATE_T *state;
    GLint  location = -1;
 
-   state = GL31_LOCK_SERVER_STATE_UNCHANGED();
+   state = glxx_lock_server_state_unchanged(OPENGL_ES_3X);
    if (!state)
       return location;
 
    location = glxx_get_program_resource_location(state, p, programInterface, name);
 
-   GL31_UNLOCK_SERVER_STATE();
+   glxx_unlock_server_state();
 
    return location;
 }
+
+#endif

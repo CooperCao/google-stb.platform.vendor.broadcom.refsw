@@ -183,7 +183,7 @@ void BNAV_Indexer_GetDefaultSettings(BNAV_Indexer_Settings *settings)
 {
     memset(settings, 0, sizeof(*settings));
     settings->simulatedFrameRate = 0;
-    settings->sctVersion = BSCT_Version40bitOffset;
+    settings->sctVersion = BSCT_Version6wordEntry;
     settings->videoFormat = BNAV_Indexer_VideoFormat_MPEG2;
     settings->navVersion = BNAV_VersionLatest;
     settings->maxFrameSize = 5 * 1024 * 1024; /* We've seen 500K HD I frames. This is 10x larger. */
@@ -257,6 +257,10 @@ int BNAV_Indexer_Reset(BNAV_Indexer_Handle handle, const BNAV_Indexer_Settings *
         BDBG_ERR(("Unsupported BNAV_Version"));
         return -1;
     }
+    if (settings->sctVersion != BSCT_Version6wordEntry) {
+        BDBG_ERR(("only BSCT_Version6wordEntry supported"));
+        return -1;
+    }
 
     memset(handle, 0, sizeof(*handle));
     BNAV_Indexer_FeedSVC_Init(handle);
@@ -311,6 +315,36 @@ long BNAV_Indexer_Feed(BNAV_Indexer_Handle handle, void *p_bfr, long numEntries)
         return BNAV_Indexer_FeedMPEG2(handle, p_bfr, numEntries);
     default:
         BDBG_ERR(("not supported videoFormat: %u", handle->settings.videoFormat));
+        return -1;
+    }
+}
+
+/* Filter SCT by TF_ENTRY_TYPE (word0 31:24). Return non-zero if SCT can be ignored by indexer.
+RAI from 0x01 TPIT is consumed here, but the SCT is discarded for indexing.
+All 0x80 TS Packet SCT's should have been handled before this function. So only 0x00 SCT is processed.
+
+Other known packets which are discarded include 0x10 and 0x11 (record sct for 16 byte extraction),
+0x02 (seamless pause), 0x06 (scrambling control), 0x81 (transponder bonding), 0x82 (record btp),
+0x83 (tsio), 0x84 (general channel bonding). They should not occur under normal circumstances,
+so a BDBG_WRN is issued.
+*/
+static int bcmindexer_p_filter_sct(BNAV_Indexer_Handle handle, const BSCT_SixWord_Entry *p_curBfr)
+{
+    unsigned type = p_curBfr->word0>>24;
+    switch (type) {
+    case 0x01:
+        /* Check for TPIT Entry to extract RAI. discard all other TPIT entries. */
+        if ((p_curBfr->startCodeBytes & 0x20)>>5)
+        {
+            handle->random_access_indicator = true;
+        }
+        return -1;
+    case 0x00:
+        /* SCT */
+        return 0;
+    default:
+        /* discard all others */
+        BDBG_WRN(("discarding SCT %02x", type));
         return -1;
     }
 }
@@ -534,31 +568,13 @@ static int BNAV_Indexer_ProcessMPEG2SCT(BNAV_Indexer_Handle handle, const BSCT_E
 static long BNAV_Indexer_FeedMPEG2(BNAV_Indexer_Handle handle, void *p_bfr, long numEntries)
 {
     long i;
-    const BSCT_Entry *p_curBfr;
-    int inc;
-
-    switch (handle->settings.sctVersion) {
-    case BSCT_Version32bitOffset:
-        return BERR_TRACE(BERR_NOT_SUPPORTED);
-    case BSCT_Version40bitOffset:
-        /* convert 32 bit byte count to 40 bits for venom2 */
-        p_curBfr = p_bfr;
-        inc = sizeof(BSCT_Entry);
-        break;
-    case BSCT_Version6wordEntry:
-        /* Offsetting into BSCT_SixWordEntry gives the same
-        as BSCT_Entry. We don't care about the first two words. */
-        p_curBfr = CONVERT_TO_SCT4(p_bfr);
-        inc = sizeof(BSCT_SixWord_Entry);
-        break;
-    default:
-        return -1;
+    const BSCT_SixWord_Entry *p_cur6WordBfr = p_bfr;
+    for(i=0; i<numEntries; ++i, ++p_cur6WordBfr) {
+        if (bcmindexer_p_filter_sct(handle, p_cur6WordBfr)) {
+            continue;
+        }
+        (void)BNAV_Indexer_ProcessMPEG2SCT(handle, CONVERT_TO_SCT4(p_cur6WordBfr));
     }
-
-    for(i=0; i<numEntries; ++i, p_curBfr = (const BSCT_Entry*)((char*)p_curBfr + inc)) {
-        (void)BNAV_Indexer_ProcessMPEG2SCT(handle, p_curBfr);
-    }
-
     return i;
 }
 
@@ -566,10 +582,6 @@ static long BNAV_Indexer_FeedMPEG2(BNAV_Indexer_Handle handle, void *p_bfr, long
 long BNAV_Indexer_FeedReverse(BNAV_Indexer_Handle handle, const BSCT_Entry *p_bfr, long numEntries)
 {
     int i,j;
-
-    if (handle->settings.sctVersion == BSCT_Version32bitOffset) {
-        return BERR_TRACE(BERR_NOT_SUPPORTED);
-    }
 
     for(i=numEntries-1; i>=0; --i)
     {
@@ -1454,10 +1466,6 @@ BNAV_Indexer_FeedAVC(BNAV_Indexer_Handle handle, const void *p_bfr, long numEntr
     const BSCT_SixWord_Entry *p_curBfr;
     BNAV_AVC_Entry *avcEntry = &handle->avcEntry;
 
-    if (handle->settings.sctVersion != BSCT_Version6wordEntry) {
-        BDBG_ERR(("Must use 6 word SCT's for AVC content"));
-        return -1;
-    }
     /* no AVC hits */
     handle->isHits = 0;
 
@@ -1473,7 +1481,6 @@ BNAV_Indexer_FeedAVC(BNAV_Indexer_Handle handle, const void *p_bfr, long numEntr
         unsigned char payload[TOTAL_PAYLOAD];
         unsigned index = 0, bit = 7;
         BSCT_Entry *p_curSct4 = CONVERT_TO_SCT4(p_curBfr);
-        unsigned type = p_curBfr->word0>>24;
 
         BDBG_MSG(("SCT %08x %08x %08x %08x %08x %08x",
             ((uint32_t*)p_curBfr)[0],
@@ -1483,18 +1490,9 @@ BNAV_Indexer_FeedAVC(BNAV_Indexer_Handle handle, const void *p_bfr, long numEntr
             ((uint32_t*)p_curBfr)[4],
             ((uint32_t*)p_curBfr)[5]));
 
-        /* Check for "full packet" entry. See bcmindexerpriv.h for comment. */
-
-        /* Check for TPIT Entry to extract RAI. discard all other TPIT entries. */
-        if (type == 1)
-        {
-            if ((p_curBfr->startCodeBytes & 0x20)>>5)
-            {
-                handle->random_access_indicator = true;
-            }
+        if (bcmindexer_p_filter_sct(handle, p_curBfr)) {
             continue;
         }
-
 
         /* Grab the PTS */
         if (sc == 0xfe) {
@@ -1780,11 +1778,6 @@ BNAV_Indexer_FeedAVS(BNAV_Indexer_Handle handle, void *p_bfr, long numEntries)
     const BSCT_SixWord_Entry *p_cur6WordBfr=NULL;
     BNAV_Entry *navEntry = &handle->curEntry;
 
-    if (handle->settings.sctVersion != BSCT_Version6wordEntry)
-    {
-        BDBG_ERR(("Must use 6 word SCT's for AVC content"));
-        return -1;
-    }
     p_cur6WordBfr = (const BSCT_SixWord_Entry *)p_bfr;
 
     for (i=0; i<numEntries; i++,p_cur6WordBfr++)
@@ -1794,13 +1787,7 @@ BNAV_Indexer_FeedAVS(BNAV_Indexer_Handle handle, void *p_bfr, long numEntries)
 
         p_curBfr = CONVERT_TO_SCT4(p_cur6WordBfr);
 
-        /* Check for TPIT Entry to extract RAI. discard all other TPIT entries. */
-        if ((p_cur6WordBfr->word0>>24) == 1)
-        {
-            if ((p_curBfr->startCodeBytes & 0x20)>>5)
-            {
-                handle->random_access_indicator = true;
-            }
+        if (bcmindexer_p_filter_sct(handle, p_cur6WordBfr)) {
             continue;
         }
 
@@ -1934,10 +1921,6 @@ BNAV_Indexer_FeedHEVC(BNAV_Indexer_Handle handle, const void *p_bfr, long numEnt
     const BSCT_SixWord_Entry *p_curBfr;
     BNAV_AVC_Entry *avcEntry = &handle->avcEntry;
 
-    if (handle->settings.sctVersion != BSCT_Version6wordEntry) {
-        BDBG_ERR(("Must use 6 word SCT's for HEVC content"));
-        return -1;
-    }
     /* no HEVC hits */
     handle->isHits = 0;
 
@@ -1949,7 +1932,6 @@ BNAV_Indexer_FeedHEVC(BNAV_Indexer_Handle handle, const void *p_bfr, long numEnt
         uint32_t nal_header;
 #define TOTAL_PAYLOAD 8
         unsigned char payload[TOTAL_PAYLOAD];
-        unsigned type = p_curBfr->word0>>24;
         const BSCT_Entry *p_curSct4 = CONVERT_TO_SCT4(p_curBfr);
         uint64_t offset;
         bool forbidden_zero_bit;
@@ -1967,13 +1949,7 @@ BNAV_Indexer_FeedHEVC(BNAV_Indexer_Handle handle, const void *p_bfr, long numEnt
             ((uint32_t*)p_curBfr)[4],
             ((uint32_t*)p_curBfr)[5]));
 
-        /* Check for TPIT Entry to extract RAI. Discard all other TPIT entries. */
-        if (type == 1)
-        {
-            if ((p_curBfr->startCodeBytes & 0x20)>>5)
-            {
-                handle->random_access_indicator = true;
-            }
+        if (bcmindexer_p_filter_sct(handle, p_curBfr)) {
             continue;
         }
 

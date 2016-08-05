@@ -73,6 +73,12 @@ static bool v3d_build_tlb_conv_clist(V3D_RENDER_INFO_T *render_info, conv_data *
                                      unsigned num_dst_levels, bool skip_dst_level_0,
                                      v3d_addr_t src_base_addr, v3d_addr_t dst_base_addr)
 {
+#if V3D_HAS_NEW_TLB_CFG
+   /* This code is not currently used. So I'm not going to bother updating it
+    * for the new TLB config stuff. It should be trivial to do this if/when
+    * necessary. */
+   not_impl();
+#else
    assert(gfx_lfmt_is_rso(src_desc->planes[0].lfmt));
    assert(gfx_lfmt_is_uif(dst_desc->planes[0].lfmt));
    assert(gfx_lfmt_is_2d(dst_desc->planes[0].lfmt));
@@ -94,7 +100,7 @@ static bool v3d_build_tlb_conv_clist(V3D_RENDER_INFO_T *render_info, conv_data *
 
    r_size += V3D_CL_TILE_RENDERING_MODE_CFG_SIZE;                 // common
    r_size += V3D_CL_TILE_RENDERING_MODE_CFG_SIZE;                 // color rts
-   r_size += v3d_cl_rcfg_clear_colors_size(bpp, 15);              // clear data
+   r_size += v3d_cl_rcfg_clear_colors_size(bpp);                  // clear data
    r_size += V3D_CL_TILE_RENDERING_MODE_CFG_SIZE;                 // zs clear values
    r_size += numTiles * V3D_CL_LOAD_SIZE;                         // load
    r_size += numTiles * V3D_CL_TILE_COORDS_SIZE;                  // coords
@@ -151,7 +157,6 @@ static bool v3d_build_tlb_conv_clist(V3D_RENDER_INFO_T *render_info, conv_data *
                             clear_colors,
                             type,
                             bpp,
-                            15, // Pad
                             gfx_buffer_rso_padded_width(src_desc, 0),
                             gfx_buffer_uif_height_pad_in_ub(dst_desc, 0));
 
@@ -196,6 +201,7 @@ static bool v3d_build_tlb_conv_clist(V3D_RENDER_INFO_T *render_info, conv_data *
    render_info->render_ends[0]   = render_info->render_begins[0] + r_size;
 
    return true;
+#endif
 }
 
 conv_data* create_conv_data(void)
@@ -237,8 +243,8 @@ static bool convert_async(
    if (!completion_data)
       return false;
 
-   v3d_addr_t src_addr = gmem_lock(&completion_data->lock_list, src->handle);
-   v3d_addr_t dst_addr = gmem_lock(&completion_data->lock_list, dst->handle);
+   v3d_addr_t src_addr = gmem_lock(&completion_data->lock_list, src->handle) + src->offset;
+   v3d_addr_t dst_addr = gmem_lock(&completion_data->lock_list, dst->handle) + dst->offset;
 
    src_off += src->base.start_elem * src->base.array_pitch;
    dst_off += dst->base.start_elem * dst->base.array_pitch;
@@ -265,14 +271,14 @@ static bool convert_async(
 
    for  (unsigned p = 0; p < src->base.desc.num_planes; p++)
    {
-      size_t src_plane_off = src_off + src->base.desc.planes[p].offset;
+      size_t src_plane_off = src->offset + src_off + src->base.desc.planes[p].offset;
 
       // we sync the whole plane, though the address could be inside this plane
       gmem_v3d_sync_list_add_range(&completion_data->sync_list, src->handle,
             src_plane_off, src->base.plane_sizes[p], GMEM_SYNC_CORE_READ | GMEM_SYNC_RELAXED);
    }
 
-   size_t dst_plane_off = dst_off + dst->base.desc.planes[0].offset;
+   size_t dst_plane_off = dst->offset + dst_off + dst->base.desc.planes[0].offset;
    gmem_v3d_sync_list_add_range(&completion_data->sync_list, dst->handle,
       dst_plane_off, dst->base.plane_sizes[0], GMEM_SYNC_CORE_WRITE | GMEM_SYNC_RELAXED);
 

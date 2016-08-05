@@ -34,7 +34,7 @@ bool glsl_backflow_chain_contains(BackflowChain *chain, Backflow *backflow);
 typedef enum {
    // ALU
    BACKFLOW_ADD,
-   BACKFLOW_PACK_FLOAT16,
+   BACKFLOW_VFPACK,
    BACKFLOW_IADD,
    BACKFLOW_ISUB,
    BACKFLOW_SUB,
@@ -45,32 +45,65 @@ typedef enum {
    BACKFLOW_SHL,
    BACKFLOW_SHR,
    BACKFLOW_ASHR,
+   BACKFLOW_ROR,
    BACKFLOW_MIN,
    BACKFLOW_MAX,
-   BACKFLOW_BITWISE_AND,
-   BACKFLOW_BITWISE_OR,
-   BACKFLOW_BITWISE_XOR,
+   BACKFLOW_AND,
+   BACKFLOW_OR,
+   BACKFLOW_XOR,
 
-   BACKFLOW_BITWISE_NOT,
-   BACKFLOW_IARITH_NEGATE,
-   BACKFLOW_FRAG_SUBMIT_MSF,
+   BACKFLOW_NOT,
+   BACKFLOW_INEG,
+   BACKFLOW_SETMSF,
    BACKFLOW_TIDX,
+   BACKFLOW_EIDX,
+   BACKFLOW_FL,
+   BACKFLOW_FLN,
    BACKFLOW_FXCD,
    BACKFLOW_XCD,
    BACKFLOW_FYCD,
    BACKFLOW_YCD,
    BACKFLOW_MSF,
    BACKFLOW_REVF,
+#if V3D_HAS_TNG
    BACKFLOW_IID,
+#endif
+#if V3D_HAS_SRS
+   BACKFLOW_SAMPID,
+#endif
+#if V3D_HAS_TCS_BARRIER
+   BACKFLOW_PATCHID,
+#endif
    BACKFLOW_TMUWT,
-   BACKFLOW_VPM_SETUP,
-   BACKFLOW_ARITH_NEGATE,
+#if V3D_HAS_TCS_BARRIER
+   BACKFLOW_VPMWT,
+#endif
+
+#if V3D_HAS_LDVPM
+   BACKFLOW_LDVPMV_IN,
+# if V3D_HAS_TCS_BARRIER
+   BACKFLOW_LDVPMV_OUT,
+# endif
+   BACKFLOW_LDVPMD_IN,
+# if V3D_HAS_TCS_BARRIER
+   BACKFLOW_LDVPMD_OUT,
+# endif
+   BACKFLOW_LDVPMP,
+   BACKFLOW_LDVPMG_IN,
+   BACKFLOW_LDVPMG_OUT,
+   BACKFLOW_STVPMV,
+   BACKFLOW_STVPMD,
+   BACKFLOW_STVPMP,
+#else
+   BACKFLOW_VPMSETUP,
+#endif
+   BACKFLOW_NEG,
    BACKFLOW_FCMP,
 
    BACKFLOW_ROUND,
-   BACKFLOW_FTOI_NEAREST,
+   BACKFLOW_FTOIN,
    BACKFLOW_TRUNC,
-   BACKFLOW_FTOI_TRUNC,
+   BACKFLOW_FTOIZ,
    BACKFLOW_FLOOR,
    BACKFLOW_FTOUZ,
    BACKFLOW_CEIL,
@@ -85,52 +118,59 @@ typedef enum {
    BACKFLOW_UMUL,
    BACKFLOW_SMUL,
    BACKFLOW_MULTOP,
+   BACKFLOW_FMOV,
+   BACKFLOW_MOV,
    BACKFLOW_MUL,
 
-   BACKFLOW_MOV,
-
-   BACKFLOW_ABS,
-   BACKFLOW_FMOV,
-   BACKFLOW_UNPACK_16A_F,
-   BACKFLOW_UNPACK_16B_F,
-
-   BACKFLOW_UNIFORM,
-   BACKFLOW_TEX_GET,
-   BACKFLOW_FRAG_GET_TLB,
-   BACKFLOW_FRAG_GET_TLBU,
-   BACKFLOW_ATTRIBUTE,
-   BACKFLOW_WRTMUC,
-
-   BACKFLOW_VARYING,
-   BACKFLOW_VARYING_LINE_COORD,
-   BACKFLOW_VARYING_FLAT,
-
+   /* TODO: These are not real flavours. They are a hack for converting */
    BACKFLOW_IMUL32,
    BACKFLOW_THREADSWITCH,  /* Only appears after scheduler */
    BACKFLOW_DUMMY,         /* No op. Used to aggregate dependencies (e.g sbwait) */
-
-#if V3D_HAS_LDVPM
-   BACKFLOW_LDVPMV,
-   BACKFLOW_LDVPMD,
-   BACKFLOW_LDVPMP,
-   BACKFLOW_LDVPMG,
-   BACKFLOW_STVPM,
-#endif
 
    BACKFLOW_FLAVOUR_COUNT
 } BackflowFlavour;
 
 typedef enum
 {
-   ALU_M,
-   ALU_A, ALU_A_SWAP0, ALU_A_SWAP1,
+   ALU_M, ALU_A,
    ALU_MOV, ALU_FMOV,
    SIG,
    SPECIAL_THRSW,
    SPECIAL_IMUL32,
    SPECIAL_VARYING,
    SPECIAL_VOID,
-} ALU_TYPE_T;
+} SchedNodeType;
+
+typedef enum {
+   VARYING_DEFAULT    = 1,
+   VARYING_LINE_COORD = 2,
+   VARYING_FLAT       = 3
+} VaryingType;
+
+typedef enum {
+   SIGBIT_THRSW  = (1<<0),
+   SIGBIT_LDUNIF = (1<<1),
+   SIGBIT_LDTMU  = (1<<2),
+   SIGBIT_LDVARY = (1<<3),
+#if !V3D_HAS_LDVPM
+   SIGBIT_LDVPM  = (1<<4),
+#endif
+   SIGBIT_IMMED  = (1<<5),
+   SIGBIT_LDTLB  = (1<<6),
+   SIGBIT_LDTLBU = (1<<7),
+   SIGBIT_UCB    = (1<<8),
+   SIGBIT_ROTATE = (1<<9),
+#if V3D_HAS_NEW_TMU_CFG
+   SIGBIT_WRTMUC = (1<<10)
+#endif
+} SigFlavour;
+
+typedef enum {
+   UNPACK_ABS   = 0,
+   UNPACK_NONE  = 1,
+   UNPACK_F16_A = 2,
+   UNPACK_F16_B = 3
+} SchedNodeUnpack;
 
 struct tmu_dep_s {
    struct tmu_lookup_s *l;
@@ -140,9 +180,6 @@ struct tmu_dep_s {
 #define BACKFLOW_DEP_COUNT 4
 struct backflow_s {
    int pass;
-
-   /* This can be useful for debugging, but makes copying nodes harder */
-   BackflowChain data_dependents;
 
    uint32_t phase; /* not visited, stacked or complete */
    uint32_t age;
@@ -157,19 +194,30 @@ struct backflow_s {
    /* These should not be written by the backend because they won't be set
     * up again properly before the next try if threading fails.
     */
-   ALU_TYPE_T type;
-   uint32_t op;
-   uint32_t op1;
-   uint32_t op2;
-   uint32_t sigbits;
+   SchedNodeType type;
+   union {
+      struct {
+         BackflowFlavour op;
+         SchedNodeUnpack unpack[2];
+      } alu;
+
+      struct {
+         VaryingType type;
+         uint32_t    row;
+      } varying;
+
+      SigFlavour sigbits;
+   } u;
+
    uint32_t magic_write;
-   uint32_t varying;
    uint32_t cond_setf;
 
    uint32_t unif_type;
    uint32_t unif;
 
    struct backflow_s *dependencies[BACKFLOW_DEP_COUNT];
+   BackflowChain data_dependents;
+
    BackflowChain io_dependencies;
    bool any_io_dependents;
 };
@@ -190,6 +238,7 @@ typedef enum
 } GLSL_TRANSLATION_TYPE_T;
 
 typedef struct {
+   bool ms;
    bool sample_alpha_to_coverage;
    bool sample_mask;
    bool fez_safe_with_discard;
@@ -205,12 +254,13 @@ struct tlb_read_s {
    /* QPU does a chain of reads for each of 4 samples per RT */
    Backflow *first;
    Backflow *last;
+#if !V3D_HAS_SRS
    uint8_t samples_read;
+#endif
 };
 
 struct tmu_lookup_s {
-   /* Inputs (things that are filled in during translation) */
-   struct tmu_dep_s *tmu_deps;
+   bool is_modify; /* Is a write or atomic op? */
 
    uint32_t write_count;
    uint32_t read_count;
@@ -232,14 +282,18 @@ struct tmu_lookup_s {
 typedef struct
 {
    GLSL_TRANSLATION_TYPE_T type;
-   bool per_sample;
    struct backflow_s *node[4];
+#if !V3D_HAS_SRS
+   bool per_sample;
+#endif
 } GLSL_TRANSLATION_T;
 
+#if !V3D_HAS_SRS
 typedef struct _GLSL_TRANSLATION_LIST_T {
    GLSL_TRANSLATION_T *value;
    struct _GLSL_TRANSLATION_LIST_T *next;
 } GLSL_TRANSLATION_LIST_T;
+#endif
 
 /* TODO: This structure is kind of poorly thought out. It really needs to be
  * made less stage-specific and better defined.                               */
@@ -250,6 +304,7 @@ typedef struct {
 
    Backflow *vertexid;
    Backflow *instanceid;
+   Backflow *baseinstance;
 
    Backflow *point_x;
    Backflow *point_y;
@@ -315,17 +370,23 @@ typedef struct
    GLSL_TRANSLATION_T *translations;
    int translations_count;
 
+   bool ms;
+
+#if !V3D_HAS_SRS
    /* These translations need to be done multiple times during multisampling */
    GLSL_TRANSLATION_LIST_T *per_sample_clear_list;
    int sample_num;      /* Which sample we're currently translating */
+#endif
 
    bool *per_quad;
 
    /* TODO: How the backend handles this and the transition to per-sample is very unclear */
    struct tlb_read_s tlb_read[V3D_MAX_RENDER_TARGETS];
 
+#if !V3D_VER_AT_LEAST(3,3,0,0)
    glsl_gadgettype_t gadgettype[GLXX_CONFIG_MAX_COMBINED_TEXTURE_IMAGE_UNITS];
    glsl_gadgettype_t img_gadgettype[GLXX_CONFIG_MAX_IMAGE_UNITS];
+#endif
 
    const LinkMap *link_map;
 
@@ -333,13 +394,15 @@ typedef struct
    SchedBlock *block;
 } GLSL_TRANSLATE_CONTEXT_T;
 
-extern Backflow *create_node(BackflowFlavour flavour, uint32_t cond_setf, Backflow *flag,
+extern bool glsl_sched_node_requires_regfile(BackflowFlavour op);
+extern bool glsl_sched_node_admits_unpack(BackflowFlavour op);
+
+extern Backflow *create_sig(uint32_t sigbits);
+
+extern Backflow *create_node(BackflowFlavour flavour, SchedNodeUnpack unpack, uint32_t cond_setf, Backflow *flag,
                              Backflow *left, Backflow *right, Backflow *output);
 
 extern Backflow *glsl_backflow_fake_tmu(SchedBlock *b);
-
-extern GLSL_TRANSLATION_T *glsl_translate_to_backend(GLSL_TRANSLATE_CONTEXT_T *stuff,
-                                                     int df_idx);
 
 extern void fragment_shader_inputs(SchedShaderInputs *ins,
                                    uint32_t primitive_type,

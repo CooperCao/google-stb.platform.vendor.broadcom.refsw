@@ -51,7 +51,16 @@
 #include <sys/time.h>
 #include <sys/stat.h>
 #include <errno.h>
+#if 0
+### including signal.h when compiling with wlan0 causes many many compile conflicts
 #include <signal.h>
+#else
+#define SIGUSR1 10
+#define SIGUSR2 12
+#define SIGTERM 15
+void (*signal(int signo, void (*func )(int)))(int);
+int pthread_kill(pthread_t thread, int sig);
+#endif
 #include <assert.h>
 #include "bstd.h"
 #include "bmemperf_server.h"
@@ -60,6 +69,14 @@
 #include "bmemperf_utils.h"
 #include "nexus_platform.h"
 #include "bchp_common.h"
+#ifdef BWL_SUPPORT
+#include "bsysperf_wifi.h"
+static pthread_t            g_WifiScanThreadId = 0;
+static unsigned long int    g_WifiScanApCount = 0;
+static unsigned long int    g_wifiAmpduStartTime = 0;
+#endif
+static pthread_t            g_iperfThreadId[2] = {0, 0}; /* client and server */
+int                         g_sigusr[2] = {SIGUSR1, SIGUSR2};
 
 #define PRINTF2                      noprintf
 #define MAXHOSTNAME                  80
@@ -199,7 +216,7 @@ static int CloseAndExit(
     const char *reason
     )
 {
-    PRINTF( "%s: socket %d; reason (%s)\n", __FUNCTION__, socketFd, reason );
+    printf( "FAILURE: socket %d; reason (%s)\n", socketFd, reason );
     if (socketFd>0) {close( socketFd ); }
     exit( 0 );
 }
@@ -599,6 +616,196 @@ static void *bmemperf_perf_stat_thread(
     pthread_exit( 0 );
 }   /* bmemperf_perf_stat_thread */
 
+#ifdef BWL_SUPPORT
+/**
+ *  Function: This function is the standalone thread that will tell the wifi driver to scan for known access
+ *  points. The scanning process could take many seconds ... typically 5 to 10.
+ **/
+static void *Bsysperf_WifiScanThread(
+    void *data
+    )
+{
+    int rc = 0;
+    BSTD_UNUSED( data );
+
+    printf( "%s:%u: calling Bsysperf_WifiScanGetResults() \n", __FUNCTION__, __LINE__ );
+    rc = Bsysperf_WifiScanGetResults( WIFI_INTERFACE_NAME );
+
+    if ( rc == 0 )
+    {
+        g_WifiScanApCount = BWL_escanresults_count();
+    }
+
+    printf( "%s:%u: complete. g_WifiScanApCount %lu ... pthread_exit(0). \n", __FUNCTION__, __LINE__, g_WifiScanApCount );
+
+    g_WifiScanThreadId = 0;
+
+    pthread_exit( 0 );
+}   /* Bsysperf_WifiScanThread */
+
+/**
+ *  Function: This function will start a new thread that will scan for known wifi access points.
+ **/
+static pthread_t Bsysperf_WifiScanInit(
+    void
+    )
+{
+    pthread_t                tWifiScanThreadId = 0;
+    void                    *(*threadFunc)( void * );
+
+    threadFunc   = Bsysperf_WifiScanThread;
+
+    g_WifiScanApCount = 0;
+
+    if (pthread_create( &tWifiScanThreadId, NULL, threadFunc, (void*) &g_WifiScanApCount ))
+    {
+        printf( "%s: could not create thread for wifi scan; %s\n", __FUNCTION__, strerror( errno ));
+    }
+
+    return( tWifiScanThreadId );
+}   /* Bsysperf_WifiScanInit */
+
+/**
+ *  Function: This function will clear out any old AMPDU data and begin collecting new AMPDU data.
+ **/
+static pthread_t Bsysperf_WifiAmpduStart(
+    void
+    )
+{
+
+    if ( g_wifiAmpduStartTime )
+    {
+        /* create a report from the existig AMPDU data */
+        Bsysperf_WifiAmpdu_GetReport( WIFI_INTERFACE_NAME );
+
+        /*printf( "%s: AMPDU collecting in progress; clearing out old data \n", __FUNCTION__ );*/
+        Bsysperf_WifiAmpduClear( WIFI_INTERFACE_NAME );
+        g_wifiAmpduStartTime = 0;
+    }
+
+    g_wifiAmpduStartTime = getSecondsSinceEpoch();
+
+    return( 0 );
+}   /* Bsysperf_WifiAmpduStart */
+
+#endif /* BWL_SUPPORT */
+
+/**
+ *  Function: This function is the standalone thread that will cause the launching of the iperf tool.
+ **/
+static void *Bsysperf_iperf_thread(
+    void *data
+    )
+{
+    char               line[MAX_LINE_LENGTH];
+
+    if (data == NULL)
+    {
+        printf( "%s: arg1 cannot be NULL\n", __FUNCTION__ );
+        exit( EXIT_FAILURE );
+    }
+
+    sprintf( line, "%s", (const char *) data );
+    printf( "%s:%u: %lx ... issuing system(%s)\n", __FUNCTION__, __LINE__, pthread_self(), line );
+
+    system( line );
+
+    if (strstr(data, "iperf -c"))
+    {
+        g_iperfThreadId[0] = 0;
+    }
+    else
+    {
+        g_iperfThreadId[1] = 0;
+    }
+
+    printf( "%s:%u: %lx ... exiting \n", __FUNCTION__, __LINE__, pthread_self() );
+
+    pthread_exit( 0 );
+
+    return NULL;
+}                                                          /* Bsysperf_iperf_thread */
+
+/**
+ *  Function: This function is the signal handler for the iperf background thread. When the SIGUSR signal is
+ *  received, the thread will exit and stop running.
+ **/
+static void Bsysperf_iperf_sigusr(
+    int signum
+    )
+{
+    printf( "%s: %lx ... got signal %d; g_iperfThreadId %lx and %lx ... exiting \n", __FUNCTION__, pthread_self(), signum, g_iperfThreadId[0], g_iperfThreadId[1] );
+
+    if (signum == SIGUSR1)
+    {
+        g_iperfThreadId[0] = 0;
+    }
+    else
+    {
+        g_iperfThreadId[1] = 0;
+    }
+
+    pthread_exit( 0 );
+}
+
+/**
+ *  Function: This function will start a new thread that will run until the perf record operation is complete.
+ **/
+static int Bsysperf_iperf_start(
+    const char * cmd_options,
+    int          cmdSecondaryOption /* 0 is CLIENT ... 1 is SERVER */
+    )
+{
+    void  *(*threadFunc)( void * );
+
+    threadFunc   = Bsysperf_iperf_thread;
+
+    signal( g_sigusr[cmdSecondaryOption], Bsysperf_iperf_sigusr );
+
+    if (pthread_create( &g_iperfThreadId[cmdSecondaryOption], NULL, threadFunc, (void *)cmd_options ))
+    {
+        printf( "%s: could not create thread for iperf; %s\n", __FUNCTION__, strerror( errno ));
+    }
+    else
+    {
+        printf("%s:%u: %lx ... started Bsysperf_iperf_thread() ... g_iperfThreadId %lx \n", __FUNCTION__, __LINE__, pthread_self(), g_iperfThreadId[cmdSecondaryOption] );
+    }
+
+    return( 0 );
+}   /* Bsysperf_iperf_start */
+
+/**
+ *  Function: This function will stop any existing iperf thread that might be running.
+ **/
+static int Bsysperf_iperf_stop(
+    int cmdSecondaryOption
+    )
+{
+    int pid = 0;
+
+    if ( g_iperfThreadId[cmdSecondaryOption] )
+    {
+        printf( "%s:%u: %lx ... pthread_kill ( %lx ) \n", __FUNCTION__, __LINE__, pthread_self(), (long int) g_iperfThreadId[cmdSecondaryOption] );
+        pthread_kill( g_iperfThreadId[cmdSecondaryOption], g_sigusr[cmdSecondaryOption] );
+        /*PRINTF( "%s:%u: %lx ... pthread_kill ( %lx ) (%s) \n", __FUNCTION__, __LINE__, pthread_self(), (long int) g_iperfThreadId[cmdSecondaryOption], strerror(errno) );*/
+    }
+
+    if ( cmdSecondaryOption == 1 )
+    {
+        /* determine the pid of any other running iperf server ... in case iperf server was launched outside of bsysperf */
+        pid = getPidOf( "iperf -s" );
+        /* if one is found, kill it */
+        if (pid > 0)
+        {
+            char cmd[128];
+            sprintf( cmd, "kill -9 %d", (int) pid );
+            system( cmd );
+        }
+    }
+
+    return( 0 );
+}   /* Bsysperf_iperf_stop */
+
 static int bmemperf_sata_usb_array_update(
     bmemperf_device_data *lSataUsbDataNow,
     const char           *lDeviceName
@@ -668,7 +875,7 @@ static void *bmemperf_linux_top_thread(
         usleep( 1000 * 500 );                              /* 500 milliseconds */
     }
 
-    printf( "%s: pthread_exit()\n", __FUNCTION__ );
+    PRINTF( "%s: pthread_exit()\n", __FUNCTION__ );
     pthread_exit( 0 );
 }                                                          /* bmemperf_linux_top_thread */
 
@@ -839,7 +1046,7 @@ static void *bmemperf_sata_usb_thread(
             }
         }                                                  /* end for each device name */
 
-        free( contents );
+        Bsysperf_Free( contents );
 
         Bmemperf_Server_LockMutex( &gSataUsbMutex );
         /* for each I/O device */
@@ -1243,8 +1450,53 @@ static int Bmemperf_ReadRequest(
                     Bsysperf_perf_flame_iterate( BSYSPERF_PERF_FLAME_STOP );
                     Bsysperf_perf_flame_generate_svg();
                 }
+#ifdef BWL_SUPPORT
+                else if ( pRequest->cmdSecondary == BMEMPERF_CMD_WIFI_SCAN_START )
+                {
+                    printf("%s:%u: BMEMPERF_CMD_WIFI_SCAN_START recvd \n", __FUNCTION__, __LINE__  );
+                    if ( g_WifiScanThreadId == 0 )
+                    {
+                        /* start new wifi scan thread */
+                        g_WifiScanThreadId = Bsysperf_WifiScanInit();
+                    }
+                    else
+                    {
+                        printf("%s:%u: BMEMPERF_CMD_WIFI_SCAN_START ... thread is already running \n", __FUNCTION__, __LINE__  );
+                    }
+                }
+                else if ( pRequest->cmdSecondary == BMEMPERF_CMD_WIFI_AMPDU_START )
+                {
+                    printf("%s:%u: BMEMPERF_CMD_WIFI_AMPDU_START recvd \n", __FUNCTION__, __LINE__  );
+                    Bsysperf_WifiAmpduStart();
+                }
+#endif /* BWL_SUPPORT */
+
+                else if ( pRequest->cmdSecondary == BMEMPERF_CMD_IPERF_START )
+                {
+                    printf("%s:%u: BMEMPERF_CMD_IPERF_START recvd ... secondary %d \n", __FUNCTION__, __LINE__, (int) pRequest->cmdSecondaryOption );
+                    Bsysperf_iperf_start( pRequest->request.strCmdLine, pRequest->cmdSecondaryOption );
+                }
+
+                else if ( pRequest->cmdSecondary == BMEMPERF_CMD_IPERF_STOP )
+                {
+                    printf("%s:%u: BMEMPERF_CMD_IPERF_STOP recvd ... secondary %d \n", __FUNCTION__, __LINE__, (int) pRequest->cmdSecondaryOption );
+                    Bsysperf_iperf_stop( pRequest->cmdSecondaryOption );
+                }
+                /*if ( g_iperfThreadId[pRequest->cmdSecondaryOption] ) printf("%s:%u: g_iperfThreadId (%lx) \n", __FUNCTION__, __LINE__, (long int) g_iperfThreadId[pRequest->cmdSecondaryOption] );*/
 
                 pResponse->response.overallStats.contextSwitches = g_ContextSwitchesDelta;
+
+#ifdef BWL_SUPPORT
+                if ( pRequest->cmdSecondary == BMEMPERF_CMD_WIFI_SCAN_GET_RESULTS )
+                {
+                    printf("%s:%u: SCAN_GET_RESULTS recvd: ApCount %lu; ServerIdx %lu ... g_WifiScanApCount %lu \n", __FUNCTION__, __LINE__, g_WifiScanApCount, pRequest->cmdSecondaryOption, g_WifiScanApCount );
+                    if ( g_WifiScanApCount && pRequest->cmdSecondaryOption < g_WifiScanApCount )
+                    {
+                        /* the copy starting index can be 0 .. 8 .. 16 .. 24 .. 32 .. etc until all 40 APs have been sent back to the client ... sending 8 at a time */
+                        pResponse->response.overallStats.ulWifiScanApCount = BWL_escanresults_copy( pResponse->response.overallStats.bssInfo, pRequest->cmdSecondaryOption, wl_bss_info_t_max_num );
+                    }
+                }
+#endif /* BWL_SUPPORT */
 
                 PRINTF( "%s: sending cmd (%u); %u bytes\n", __FUNCTION__, pResponse->cmd, sizeof( *pResponse ));
                 if (send( psd, pResponse, sizeof( *pResponse ), 0 ) < 0)
@@ -1289,8 +1541,7 @@ static void reusePort(
 
     if (setsockopt( s, SOL_SOCKET, SO_REUSEADDR, (char *)&one, sizeof( one )) == -1)
     {
-        printf( "error in setsockopt,SO_REUSEPORT \n" );
-        exit( -1 );
+        printf( "error in setsockopt, SO_REUSEADDR(%d) (%s) \n", SO_REUSEADDR, strerror(errno) );
     }
 }
 
@@ -1342,7 +1593,7 @@ int main(
 
     Bmemperf_Server_InitMutex( &gSataUsbMutex );
 
-    printf( "%s: bmemperf_response size %ld\n", __FUNCTION__, (long int) sizeof( bmemperf_response ));
+    /*printf( "%s: bmemperf_response size %ld\n", __FUNCTION__, (long int) sizeof( bmemperf_response ));*/
     threadFunc = dataFetchThread;
     if (pthread_create( &dataGatheringThreadId, NULL, threadFunc, (void *)NULL ))
     {
@@ -1350,7 +1601,13 @@ int main(
     }
     else
     {
+        #if 0
+        printf( "%s: sizeof(bmemperf_overall_stats ) %d; sizeof(bmemperf_client_stats) %d; sizeof(bmemperf_cpu_irq) %d; sizeof(bmemperf_response) %d (0x%x); sizeof(ScanInfo_t) %d; \n",
+                __FUNCTION__, sizeof(bmemperf_overall_stats), sizeof(bmemperf_client_stats), sizeof(bmemperf_cpu_irq), sizeof(bmemperf_response), sizeof(bmemperf_response), sizeof(ScanInfo_t) );
+        #endif
+
         startServer();
+
         {
             unsigned int idx = 0;
             for (idx = 0; idx<5000; idx++) {

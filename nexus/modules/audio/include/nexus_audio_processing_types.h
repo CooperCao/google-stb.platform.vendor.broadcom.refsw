@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2014 Broadcom Corporation
+*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,7 +34,6 @@
 *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
-*
 ***************************************************************************/
 
 #ifndef NEXUS_AUDIO_PROCESSING_TYPES_H__
@@ -64,8 +63,8 @@ typedef struct NEXUS_AutoVolumeLevelSettings
     unsigned fixedBoost;            /* Amount of fixed boost (in dB) if level < LOWERBOUND */
     unsigned ref;                   /* Reference logarithmic gain value of 0 dBFs */
     unsigned alpha;                 /* Attenuation factor for Level Maximum */
-    unsigned beta;					/* Attenuation factor for Level Mean */
-    unsigned threshold;				/* Threshold for detecting active portion of signal . Input value should be multiplied by factor of 10 */
+    unsigned beta;                  /* Attenuation factor for Level Mean */
+    unsigned threshold;             /* Threshold for detecting active portion of signal . Input value should be multiplied by factor of 10 */
     unsigned dtfPercent;            /* Decay Time for DTF Percent delay (in seconds) */
     unsigned alpha2;                /* Attenuation factor for Level Minimum */
     unsigned fastGainRamp;          /* Fast Gain Ramp in milliseconds. Input value should be multiplied by factor of 10 */
@@ -185,9 +184,9 @@ typedef struct NEXUS_SrsHighPassFilterSettings
     union
     {
         NEXUS_SrsHighPassFilterCoefUserParam highPassFilterCoefUser[3];  /* Array size 3, representing supported sampling rates 32, 44.1 and 48kHz,
-                                                                                                                                     will be used if coefMode is NEXUS_SrsFilterCoefGenMode_eFilterUser */
+            will be used if coefMode is NEXUS_SrsFilterCoefGenMode_eFilterUser */
         NEXUS_SrsHighPassFilterCoefSpecParam highPassFilterCoefSpec;      /* Filter specification for generating filter coeffcients,
-                                                                                                                                      will be used if coefMode is NEXUS_SrsFilterCoefGenMode_eFilterSpec */
+            will be used if coefMode is NEXUS_SrsFilterCoefGenMode_eFilterSpec */
     } coefParam;
 } NEXUS_SrsHighPassFilterSettings;
 
@@ -324,7 +323,7 @@ typedef struct NEXUS_DolbyVolume258Settings
 
     /*Volume Modeler Settings*/
     bool volumeModelerEnabled;      /* If true, the volume modeler is enabled. */
-    int	digitalVolumeLevel;         /* Volume level gain applied by Dolby Volume.  Ranges from -1536 to 480 (-96..30 in steps of 0.0625 dB) */
+    int digitalVolumeLevel;         /* Volume level gain applied by Dolby Volume.  Ranges from -1536 to 480 (-96..30 in steps of 0.0625 dB) */
     int analogVolumeLevel;          /* Volume level gain applied after Dolby Volume.  Ranges from -1536 to 480 (-96..30 in steps of 0.0625 dB) */
 
     /*Volume Leveler Settings */
@@ -366,7 +365,7 @@ typedef struct NEXUS_AudioFadeSettings
     unsigned duration;          /* duration in milliseconds it will take to change
                                    to a new level. Valid values are 3 - 1000 */
     unsigned type;              /* specifies the type of fade -
-                                       0- Linear, 1-Quad, 2-cubic, 3-Quart. Default is 2 (cubic)*/
+                                   0- Linear (Default), 1-Cubic-In, 2-Cubic-Out. */
 } NEXUS_AudioFadeSettings;
 
 /***************************************************************************

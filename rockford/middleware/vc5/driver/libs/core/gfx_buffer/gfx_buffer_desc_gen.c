@@ -17,8 +17,10 @@ static void check_usage(gfx_buffer_usage_t usage)
    if (usage & GFX_BUFFER_USAGE_V3D_CUBEMAP)
       assert(usage & GFX_BUFFER_USAGE_V3D_TEXTURE);
 
+#if !V3D_HAS_NEW_TLB_CFG
    if (usage & GFX_BUFFER_USAGE_V3D_TLB_RAW)
-      assert(usage & (GFX_BUFFER_USAGE_V3D_RENDER_TARGET | GFX_BUFFER_USAGE_V3D_DEPTH_STENCIL));
+      assert(usage & GFX_BUFFER_USAGE_V3D_TLB);
+#endif
 }
 
 size_t gfx_buffer_sprint_usage(char *buf, size_t buf_size, size_t offset,
@@ -40,7 +42,9 @@ size_t gfx_buffer_sprint_usage(char *buf, size_t buf_size, size_t offset,
    HANDLE(V3D_CUBEMAP)
    HANDLE(V3D_RENDER_TARGET)
    HANDLE(V3D_DEPTH_STENCIL)
+#if !V3D_HAS_NEW_TLB_CFG
    HANDLE(V3D_TLB_RAW)
+#endif
    HANDLE(YFLIP_IF_POSSIBLE)
    #undef HANDLE
 
@@ -150,8 +154,10 @@ static void adjust_lfmt_and_padding(
       if (ml_cfg->uif.ub_noutile)
          swizzling = gfx_lfmt_to_uif_noutile_family(swizzling);
    }
+#if !V3D_HAS_NEW_TLB_CFG
    else if (usage & GFX_BUFFER_USAGE_V3D_TLB_RAW)
       swizzling = GFX_LFMT_SWIZZLING_UIF;
+#endif
    else if (usage & GFX_BUFFER_USAGE_V3D_TEXTURE)
    {
       switch (gfx_lfmt_get_dims(lfmt))
@@ -213,14 +219,14 @@ static void adjust_lfmt_and_padding(
          padded_height_in_ub = gfx_uround_up_p2(padded_height_in_ub, PC_IN_UB_ROWS);
       *padded_h_in_blocks = padded_height_in_ub * gfx_lfmt_ub_h_in_blocks_2d(bd, swizzling);
 
-      bool xor_ok =
+      bool xor_ok = !ml_cfg->uif.xor_dis &&
          /* Always ok if there is only one column -- XOR mode only affects odd
           * columns */
-         single_col ||
+         (single_col ||
          /* XOR mode should not be enabled unless padded height is a multiple
           * of the page cache size, as block addresses might otherwise end up
           * outside of the buffer */
-         ((padded_height_in_ub % PC_IN_UB_ROWS) == 0);
+         ((padded_height_in_ub % PC_IN_UB_ROWS) == 0));
       if (gfx_lfmt_is_uif_xor_family((GFX_LFMT_T)swizzling))
          assert(xor_ok);
       else if (!ml_cfg->uif.force && xor_ok && !single_col)
@@ -260,9 +266,12 @@ static void adjust_lfmt_and_padding(
    {
       assert(gfx_lfmt_yflip_consistent(*lfmt));
       if ((usage & (
-         GFX_BUFFER_USAGE_V3D_CUBEMAP | /* TMU does not support y-flip for cubemaps */
-         GFX_BUFFER_USAGE_V3D_DEPTH_STENCIL | /* TLB only supports y-flip for color buffers */
-         GFX_BUFFER_USAGE_V3D_TLB_RAW)) || /* Store/load general cannot be y-flipped */
+         GFX_BUFFER_USAGE_V3D_CUBEMAP /* TMU does not support y-flip for cubemaps */
+         | GFX_BUFFER_USAGE_V3D_DEPTH_STENCIL /* TLB only supports y-flip for color buffers */
+#if !V3D_HAS_NEW_TLB_CFG
+         | GFX_BUFFER_USAGE_V3D_TLB_RAW /* Store/load general cannot be y-flipped */
+#endif
+         )) ||
          ((height % bd->block_h) != 0) || !gfx_lfmt_can_yflip_base(gfx_lfmt_get_base(lfmt)))
       {
          assert(!gfx_lfmt_get_yflip(lfmt));
@@ -358,15 +367,21 @@ void gfx_buffer_desc_gen_with_ml0_cfg(
    uint32_t dims = gfx_lfmt_dims_from_enum(gfx_lfmt_get_dims(&plane_lfmts[0]));
    assert((dims >= 2) || (height == 1));
    assert((dims >= 3) || (depth == 1));
-   if (usage & (GFX_BUFFER_USAGE_V3D_CUBEMAP | GFX_BUFFER_USAGE_V3D_TLB_RAW))
+   if (usage & GFX_BUFFER_USAGE_V3D_CUBEMAP)
       assert(dims == 2);
+#if !V3D_HAS_NEW_TLB_CFG
+   if (usage & GFX_BUFFER_USAGE_V3D_TLB_RAW)
+      assert(dims == 2);
+#endif
    if (usage & GFX_BUFFER_USAGE_V3D_TLB)
       assert(dims >= 2);
 
    assert(num_mip_levels > 0);
    assert(num_mip_levels <= GFX_BUFFER_MAX_MIP_LEVELS);
+#if !V3D_HAS_NEW_TLB_CFG
    if (usage & GFX_BUFFER_USAGE_V3D_TLB_RAW)
       assert(num_mip_levels == 1);
+#endif
 
    assert(num_planes > 0);
    assert(num_planes <= GFX_BUFFER_MAX_PLANES);
@@ -376,12 +391,12 @@ void gfx_buffer_desc_gen_with_ml0_cfg(
    assert(GFX_UIF_NUM_BANKS > 0);
    assert(GFX_UIF_XOR_ADDR > 0);
 
-   struct gfx_buffer_ml_cfg default_ml_cfg;
-   gfx_buffer_default_ml_cfg(&default_ml_cfg);
-   if (!ml0_cfg)
-   {
-      ml0_cfg = &default_ml_cfg;
-   }
+   struct gfx_buffer_ml_cfg ml1p_cfg;
+   gfx_buffer_default_ml_cfg(&ml1p_cfg);
+   if (ml0_cfg)
+      ml1p_cfg.uif.xor_dis = ml0_cfg->uif.xor_dis;
+   else
+      ml0_cfg = &ml1p_cfg;
 
    uint32_t l1_width, l1_height, l1_depth;
    gfx_buffer_mip_dims(
@@ -440,7 +455,7 @@ void gfx_buffer_desc_gen_with_ml0_cfg(
    for (uint32_t mip_level = 0; mip_level != num_mip_levels; ++mip_level)
    {
       GFX_BUFFER_DESC_T *ml = &mls[mip_level];
-      const struct gfx_buffer_ml_cfg *ml_cfg = (mip_level == 0) ? ml0_cfg : &default_ml_cfg;
+      const struct gfx_buffer_ml_cfg *ml_cfg = (mip_level == 0) ? ml0_cfg : &ml1p_cfg;
 
       gfx_buffer_mip_dims(
          &ml->width, &ml->height, &ml->depth,
@@ -601,7 +616,7 @@ void gfx_buffer_get_tmu_uif_cfg(
          uif_cfg->force = true;
          uif_cfg->ub_xor = gfx_lfmt_is_uif_xor_family(p->lfmt);
          assert(!gfx_lfmt_is_noutile_family(p->lfmt));
-      uif_cfg->ub_pads[0] = padded_height_in_ub - height_in_ub;
+         uif_cfg->ub_pads[0] = padded_height_in_ub - height_in_ub;
       }
    }
 }

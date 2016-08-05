@@ -146,6 +146,14 @@ void NEXUS_AudioOutput_Destroy(
     NEXUS_AudioOutputHandle audioOutput
     );
 
+NEXUS_AudioInputHandle NEXUS_AudioInput_Create( /* attr{destructor=NEXUS_AudioInput_Destroy } */
+    void
+    );
+
+void NEXUS_AudioInput_Destroy(
+    NEXUS_AudioInputHandle audioInput
+    );
+
 /* returns bounds of CRR. returns 0 if it does not exist. */
 void NEXUS_Memory_GetVideoSecureHeap(
     NEXUS_Addr *pOffset,

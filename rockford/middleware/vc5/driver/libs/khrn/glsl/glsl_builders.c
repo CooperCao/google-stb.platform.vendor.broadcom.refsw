@@ -13,7 +13,6 @@ FILE DESCRIPTION
 
 #include "glsl_common.h"
 #include "glsl_builders.h"
-#include "glsl_check.h"
 #include "glsl_errors.h"
 #include "glsl_globals.h"
 #include "glsl_trace.h"
@@ -22,18 +21,21 @@ FILE DESCRIPTION
 #include "glsl_ast_print.h"
 #include "glsl_intern.h"
 #include "glsl_primitive_types.auto.h"
-#include "glsl_uniform_layout.h"
+#include "glsl_stdlib.auto.h"
+#include "glsl_mem_layout.h"
 #include "glsl_precision.h"
 #include "glsl_symbol_table.h"
 #include "glsl_stringbuilder.h"
 #include "glsl_quals.h"
+#include "glsl_extensions.h"
+
+#include "../glxx/glxx_int_config.h"
 
 #ifdef _MSC_VER
 #define snprintf _snprintf
 #endif
 
-void glsl_error_if_type_incomplete(SymbolType *type)
-{
+void glsl_error_if_type_incomplete(SymbolType *type) {
    while (type->flavour == SYMBOL_ARRAY_TYPE) {
       if(type->u.array_type.member_count==0)
          glsl_compile_error(ERROR_CUSTOM, 28, g_LineNumber, NULL);
@@ -41,8 +43,7 @@ void glsl_error_if_type_incomplete(SymbolType *type)
    }
 }
 
-void glsl_reinit_function_builder(FunctionBuilder *fb)
-{
+void glsl_reinit_function_builder(FunctionBuilder *fb) {
    fb->Params = glsl_symbol_table_new();
    fb->ParamCount = 0;
    fb->VoidCount = 0;
@@ -137,17 +138,14 @@ static void check_singleton_is_instantiable(const char *name, const SymbolType *
 /* build preliminary (perhaps incomplete) type */
 static SymbolType *make_array_type(SymbolType *member_type, Expr *size)
 {
-   if (member_type == &primitiveTypes[PRIM_VOID]) {
+   if (member_type == &primitiveTypes[PRIM_VOID])
       glsl_compile_error(ERROR_CUSTOM, 18, g_LineNumber, NULL);
-      return NULL;
-   }
 
    if (g_ShaderVersion < GLSL_SHADER_VERSION(3, 10, 1) &&
        member_type->flavour == SYMBOL_ARRAY_TYPE)
    {
       // members cannot be arrays: multi-dimensional array not allowed
       glsl_compile_error(ERROR_CUSTOM, 27, g_LineNumber, NULL);
-      return NULL;
    }
 
    SymbolType *type                = malloc_fast(sizeof(SymbolType));
@@ -194,7 +192,8 @@ static const char *extract_block_name(const SymbolType *type) {
 static bool storage_valid_for_block(StorageQualifier sq) {
    if (sq == STORAGE_UNIFORM) return g_ShaderVersion >= GLSL_SHADER_VERSION(3,  0, 1);
    if (sq == STORAGE_BUFFER)  return g_ShaderVersion >= GLSL_SHADER_VERSION(3, 10, 1);
-   if (sq == STORAGE_IN || sq == STORAGE_OUT) return g_ShaderVersion >= GLSL_SHADER_VERSION(3, 20, 1);
+   if (sq == STORAGE_IN || sq == STORAGE_OUT) return g_ShaderVersion >= GLSL_SHADER_VERSION(3, 20, 1) ||
+                                                     glsl_ext_status(GLSL_EXT_IO_BLOCKS) != GLSL_DISABLED;
    return false;
 }
 
@@ -210,6 +209,11 @@ Symbol *glsl_commit_block_type(SymbolTable *table, SymbolType *type, Qualifiers 
       glsl_compile_error(ERROR_CUSTOM, 4, g_LineNumber, "interface %s does not support blocks",
                                                         glsl_storage_qual_string(quals->sq));
 
+   if (quals->sq == STORAGE_IN  && g_ShaderFlavour == SHADER_VERTEX)
+      glsl_compile_error(ERROR_CUSTOM, 4, g_LineNumber, "vertex shaders do not support 'in' blocks");
+   if (quals->sq == STORAGE_OUT && g_ShaderFlavour == SHADER_FRAGMENT)
+      glsl_compile_error(ERROR_CUSTOM, 4, g_LineNumber, "fragment shaders do not support 'out' blocks");
+
    if (type->flavour == SYMBOL_ARRAY_TYPE &&
        type->u.array_type.member_type->flavour == SYMBOL_ARRAY_TYPE)
    {
@@ -224,53 +228,55 @@ Symbol *glsl_commit_block_type(SymbolTable *table, SymbolType *type, Qualifiers 
    check_singleton_is_instantiable(block_name, type);
    glsl_check_namespace_nonfunction(table, block_name);
 
-   if (quals->lq->qualified & LOC_QUALED)
-      glsl_compile_error(ERROR_CUSTOM, 15, g_LineNumber, "location qualifier may not be applied to blocks");
+   if (quals->lq) {
+      if (quals->lq->qualified & LOC_QUALED && !(quals->sq == STORAGE_IN || quals->sq == STORAGE_OUT))
+         glsl_compile_error(ERROR_CUSTOM, 15, g_LineNumber, "location qualifier may not be applied to %s blocks",
+                                                            glsl_storage_qual_string(quals->sq));
 
-   if (quals->lq->qualified & FORMAT_QUALED)
-      glsl_compile_error(ERROR_CUSTOM, 15, g_LineNumber, "format qualifiers may not be applied to blocks");
+      if (quals->lq->qualified & FORMAT_QUALED)
+         glsl_compile_error(ERROR_CUSTOM, 15, g_LineNumber, "format qualifiers may not be applied to blocks");
 
-   if (quals->lq->qualified & OFFSET_QUALED)
-      glsl_compile_error(ERROR_CUSTOM, 15, g_LineNumber, "offset qualifier may not be applied to blocks");
+      if (quals->lq->qualified & OFFSET_QUALED)
+         glsl_compile_error(ERROR_CUSTOM, 15, g_LineNumber, "offset qualifier may not be applied to blocks");
 
-   if (quals->lq->qualified & BINDING_QUALED) {
-      if (g_ShaderVersion < GLSL_SHADER_VERSION(3, 10, 1))
-         glsl_compile_error(ERROR_CUSTOM, 15, g_LineNumber, "binding qualifier not allowed in this language version");
+      if (quals->lq->qualified & BINDING_QUALED) {
+         if (g_ShaderVersion < GLSL_SHADER_VERSION(3, 10, 1))
+            glsl_compile_error(ERROR_CUSTOM, 15, g_LineNumber, "binding qualifier not allowed in this language version");
 
-      int binding = quals->lq->binding;
-      int member_count = (type->flavour == SYMBOL_ARRAY_TYPE) ? type->u.array_type.member_count : 1;
+         int binding = quals->lq->binding;
+         int member_count = (type->flavour == SYMBOL_ARRAY_TYPE) ? type->u.array_type.member_count : 1;
 
-      if (binding + member_count-1 > max_block_binding(quals->sq))
-         glsl_compile_error(ERROR_CUSTOM, 15, g_LineNumber, "binding %d greater than max %s block bindings (%d)",
-                                                            binding + member_count - 1,
-                                                            glsl_storage_qual_string(quals->sq),
-                                                            max_block_binding(quals->sq));
-   }
+         if (binding + member_count-1 > max_block_binding(quals->sq))
+            glsl_compile_error(ERROR_CUSTOM, 15, g_LineNumber, "binding %d greater than max %s block bindings (%d)",
+                                                               binding + member_count - 1,
+                                                               glsl_storage_qual_string(quals->sq),
+                                                               max_block_binding(quals->sq));
+      }
 
-   if (quals->sq == STORAGE_UNIFORM &&
-       quals->lq->qualified & UNIF_QUALED &&
-       quals->lq->unif_bits & LAYOUT_STD430)
-   {
-      glsl_compile_error(ERROR_CUSTOM, 15, g_LineNumber, "std430 may not be applied to uniform blocks");
+      if (quals->sq == STORAGE_UNIFORM &&
+          quals->lq->qualified & UNIF_QUALED &&
+          quals->lq->unif_bits & LAYOUT_STD430)
+      {
+         glsl_compile_error(ERROR_CUSTOM, 15, g_LineNumber, "std430 may not be applied to uniform blocks");
+      }
    }
 
    if(quals->invariant)
       glsl_compile_error(ERROR_SEMANTIC, 34, g_LineNumber, NULL);
-   if(quals->tq != TYPE_QUAL_NONE)
+   if(quals->tq != TYPE_QUAL_NONE && (quals->sq != STORAGE_IN && quals->sq != STORAGE_OUT))
       glsl_compile_error(ERROR_CUSTOM, 15, g_LineNumber, "'%s' invalid on block declaration", glsl_type_qual_string(quals->tq));
    if(quals->pq != PREC_NONE)
       glsl_compile_error(ERROR_CUSTOM, 15, g_LineNumber, "precision qualifier invalid on block declaration");
 
    if (!g_InGlobalScope)
-      glsl_compile_error(ERROR_SEMANTIC, 47, g_LineNumber, NULL);
+      glsl_compile_error(ERROR_SEMANTIC, 7, g_LineNumber, NULL);
 
    Symbol *symbol = malloc_fast(sizeof(Symbol));
    SymbolType *ref_type = &primitiveTypes[PRIM_UINT];
    if (type->flavour == SYMBOL_ARRAY_TYPE)
-      ref_type = make_array_type(ref_type, glsl_expr_construct_const_value(PRIM_UINT, type->u.array_type.member_count));
+      ref_type = make_array_type(ref_type, glsl_expr_construct_const_value(g_LineNumber, PRIM_UINT, type->u.array_type.member_count));
    glsl_symbol_construct_interface_block(symbol, block_name, ref_type, type, quals);
    glsl_symbol_table_insert(table, symbol);
-   glsl_shader_interfaces_update(g_ShaderInterfaces, symbol);
 
    return symbol;
 }
@@ -348,10 +354,13 @@ void glsl_commit_function_param(FunctionBuilder *fb, const char *name, SymbolTyp
    check_singleton_is_instantiable(name, type);
    glsl_check_namespace_nonfunction(fb->Params, name);
 
-   if( (q.sq == STORAGE_CONST) && (pq == PARAM_QUAL_INOUT || pq == PARAM_QUAL_OUT)) {
-      // const type qualifier cannot be used with out or inout parameter qualifier.
-      glsl_compile_error(ERROR_CUSTOM, 10, g_LineNumber, NULL);
-      return;
+   /* const qualifier and opaque types not allowed for 'out' params*/
+   if(pq == PARAM_QUAL_INOUT || pq == PARAM_QUAL_OUT) {
+      if(q.sq == STORAGE_CONST)
+         glsl_compile_error(ERROR_CUSTOM, 10, g_LineNumber, NULL);
+
+      if (glsl_type_contains_opaque(type))
+         glsl_compile_error(ERROR_CUSTOM, 22, g_LineNumber, NULL);
    }
 
    assert(q.sq == STORAGE_NONE || q.sq == STORAGE_CONST);
@@ -365,7 +374,13 @@ void glsl_commit_function_param(FunctionBuilder *fb, const char *name, SymbolTyp
    fb->ParamCount++;
 }
 
-Symbol *glsl_commit_singleton_function_declaration(SymbolTable *table, const char *name, SymbolType *type, bool definition)
+static bool is_function_overloadable(Symbol *func) {
+   /* You can overload everything in version 100 */
+   if(g_ShaderVersion == GLSL_SHADER_VERSION(1,0,1)) return true;
+   return !glsl_stdlib_is_stdlib_symbol(func);
+}
+
+Symbol *glsl_commit_singleton_function_declaration(SymbolTable *table, const char *name, SymbolType *type, bool definition, bool user_code)
 {
    Symbol *symbol = malloc_fast(sizeof(Symbol));
 
@@ -390,13 +405,11 @@ Symbol *glsl_commit_singleton_function_declaration(SymbolTable *table, const cha
    Symbol *overload = glsl_symbol_table_lookup(table, name);
    if (overload)
    {
-
-      if (overload->flavour != SYMBOL_FUNCTION_INSTANCE)
-      {
+      if (overload->flavour != SYMBOL_FUNCTION_INSTANCE) {
          glsl_compile_error(ERROR_SEMANTIC, 22, g_LineNumber, "%s already defined as a non-function", name);
          return NULL;
       }
-      if(!glsl_check_is_function_overloadable(overload)) {
+      if(user_code && !is_function_overloadable(overload)) {
          glsl_compile_error(ERROR_SEMANTIC, 31, g_LineNumber, NULL);
          return NULL;
       }
@@ -516,7 +529,7 @@ static void check_vo_fi_type_es2(const SymbolType *ty, const char *name)
    if (is_array(ty)) ty = ty->u.array_type.member_type;
 
    if (!is_float(ty))
-      glsl_compile_error(ERROR_SEMANTIC, 48, g_LineNumber, "\"%s\"", name);
+      glsl_compile_error(ERROR_SEMANTIC, 8, g_LineNumber, "\"%s\"", name);
 }
 
 /*
@@ -530,7 +543,7 @@ static void check_vo_fi_type(SymbolType *ty, int has_flat, const char *name)
 {
    if (is_array(ty)) {
       if (is_array(ty->u.array_type.member_type) || is_struct(ty->u.array_type.member_type))
-         glsl_compile_error(ERROR_SEMANTIC, 48, g_LineNumber, "\"%s\"", name);
+         glsl_compile_error(ERROR_SEMANTIC, 8, g_LineNumber, "\"%s\"", name);
 
       check_vo_fi_type(ty->u.array_type.member_type, has_flat, name);
    }
@@ -540,7 +553,7 @@ static void check_vo_fi_type(SymbolType *ty, int has_flat, const char *name)
    {
       /* Must have FLAT qualifier */
       if (!has_flat)
-         glsl_compile_error(ERROR_SEMANTIC, 48, g_LineNumber, "\"%s\" must be qualified flat", name);
+         glsl_compile_error(ERROR_SEMANTIC, 8, g_LineNumber, "\"%s\" must be qualified flat", name);
    }
    else if (is_struct(ty))
    {
@@ -548,13 +561,13 @@ static void check_vo_fi_type(SymbolType *ty, int has_flat, const char *name)
       {
          SymbolType *sty = ty->u.struct_type.member[i].type;
          if (is_array(sty) || is_struct(sty))
-            glsl_compile_error(ERROR_SEMANTIC, 48, g_LineNumber, "\"%s\"", name);
+            glsl_compile_error(ERROR_SEMANTIC, 8, g_LineNumber, "\"%s\"", name);
 
          check_vo_fi_type(sty, has_flat, ty->u.struct_type.member[i].name);
       }
    }
    else
-      glsl_compile_error(ERROR_SEMANTIC, 48, g_LineNumber, "\"%s\"", name);
+      glsl_compile_error(ERROR_SEMANTIC, 8, g_LineNumber, "\"%s\"", name);
 }
 
 static bool format_valid_for_image_type(FormatQualifier format, SymbolType *type) {
@@ -579,7 +592,7 @@ static bool format_valid_for_image_type(FormatQualifier format, SymbolType *type
       case FMT_R32UI:
          return (img_ret_base == PRIM_UINT);
    }
-   UNREACHABLE();
+   unreachable();
    return false;
 }
 
@@ -607,7 +620,7 @@ Symbol *glsl_commit_variable_instance(SymbolTable *table, const PrecisionTable *
       bool ints_allowed = (g_ShaderVersion >= GLSL_SHADER_VERSION(3,0,1));
       /* Supports floats but no arrays. Ints are OK from ES3 */
       if ( !is_float(type) && !(is_integer(type) && ints_allowed) )
-         glsl_compile_error(ERROR_SEMANTIC, 49, g_LineNumber, "\"%s\"", error_name);
+         glsl_compile_error(ERROR_SEMANTIC, 8, g_LineNumber, "\"%s\"", error_name);
    }
    else if (g_ShaderFlavour == SHADER_FRAGMENT && q.sq == STORAGE_OUT)
    {
@@ -617,7 +630,7 @@ Symbol *glsl_commit_variable_instance(SymbolTable *table, const PrecisionTable *
       if (is_array(base_type)) base_type = base_type->u.array_type.member_type;
 
       if ( !(is_integer(base_type) || is_float(base_type)) || is_matrix(base_type))
-         glsl_compile_error(ERROR_SEMANTIC, 50, g_LineNumber, "\"%s\"", error_name);
+         glsl_compile_error(ERROR_SEMANTIC, 8, g_LineNumber, "\"%s\"", error_name);
       if (q.tq == TYPE_QUAL_CENTROID)
          glsl_compile_error(ERROR_SEMANTIC, 15, g_LineNumber, "Use of centroid out in a fragment shader");
    }
@@ -709,8 +722,12 @@ Symbol *glsl_commit_variable_instance(SymbolTable *table, const PrecisionTable *
    if (glsl_type_contains(type, PRIM_IMAGE_TYPE) && (!q.lq || !(q.lq->qualified & FORMAT_QUALED)))
       glsl_compile_error(ERROR_CUSTOM, 15, g_LineNumber, "Image type declaration requires a format qualifier");
 
-   if (glsl_type_contains(type, PRIM_ATOMIC_TYPE) && (!q.lq || !(q.lq->qualified & BINDING_QUALED)))
-      glsl_compile_error(ERROR_CUSTOM, 15, g_LineNumber, "%s type requires binding qualifier", type->name);
+   if (glsl_type_contains(type, PRIM_ATOMIC_TYPE)) {
+      if (!q.lq || !(q.lq->qualified & BINDING_QUALED))
+         glsl_compile_error(ERROR_CUSTOM, 15, g_LineNumber, "%s type requires binding qualifier", type->name);
+      if (q.pq != PREC_HIGHP)
+         glsl_compile_error(ERROR_CUSTOM, 15, g_LineNumber, "%s type is only available for highp", type->name);
+   }
 
    if (q.mq != MEMORY_NONE && !is_arrays_of_image_type(type))
       glsl_compile_error(ERROR_CUSTOM, 15, g_LineNumber, "Memory qualifiers only valid for image or block declarations");
@@ -747,15 +764,15 @@ Symbol *glsl_commit_variable_instance(SymbolTable *table, const PrecisionTable *
    }
 
    if(g_InGlobalScope && initialiser && initialiser->compile_time_value == NULL)
-      glsl_compile_error(ERROR_SEMANTIC, 13, g_LineNumber, "Global variable initialisers must be constant expressions");
+      glsl_compile_error(ERROR_SEMANTIC, 2, g_LineNumber, "Global variable initialisers must be constant expressions");
 
    if (q.sq == STORAGE_IN     || q.sq == STORAGE_OUT || q.sq == STORAGE_UNIFORM ||
        q.sq == STORAGE_BUFFER || q.sq == STORAGE_SHARED                             )
    {
       if (initialiser)
-         glsl_compile_error(ERROR_SEMANTIC, 13, g_LineNumber, "Interface variables may not be initialised");
+         glsl_compile_error(ERROR_SEMANTIC, 2, g_LineNumber, "Interface variables may not be initialised");
       if (!g_InGlobalScope)
-         glsl_compile_error(ERROR_SEMANTIC, 47, g_LineNumber, NULL);
+         glsl_compile_error(ERROR_SEMANTIC, 7, g_LineNumber, NULL);
    }
 
    if (initialiser && !glsl_shallow_match_nonfunction_types(type, initialiser->type))
@@ -779,10 +796,10 @@ Symbol *glsl_commit_variable_instance(SymbolTable *table, const PrecisionTable *
    void *compile_time_value = NULL;
    if (q.sq == STORAGE_CONST) {
       if (!initialiser)
-         glsl_compile_error(ERROR_SEMANTIC, 13, g_LineNumber, "const variable '%s' requires an initialiser", name);
+         glsl_compile_error(ERROR_SEMANTIC, 2, g_LineNumber, "const variable '%s' requires an initialiser", name);
 
       if (!initialiser->compile_time_value)
-         glsl_compile_error(ERROR_SEMANTIC, 13, g_LineNumber, "const variable initialisers must be constant expressions");
+         glsl_compile_error(ERROR_SEMANTIC, 2, g_LineNumber, "const variable initialisers must be constant expressions");
 
       compile_time_value = initialiser->compile_time_value;
       TRACE_CONSTANT(fs_type->type, compile_time_value);
@@ -790,16 +807,16 @@ Symbol *glsl_commit_variable_instance(SymbolTable *table, const PrecisionTable *
 
    TRACE(("adding symbol <%s> as instance\n", name));
    Symbol *s = glsl_commit_var_instance(table, name, type, &q, compile_time_value);
-   glsl_shader_interfaces_update(g_ShaderInterfaces, s);
    return s;
 }
 
-static void validate_member_layout(LayoutQualifier *member_lq)
+static void validate_member_layout(LayoutQualifier *member_lq, StorageQualifier sq)
 {
    if (!member_lq) return;
 
-   if(member_lq->qualified & LOC_QUALED)
-      glsl_compile_error(ERROR_CUSTOM, 15, g_LineNumber, "location layout may not be applied to block members");
+   if(member_lq->qualified & LOC_QUALED && !(sq == STORAGE_IN || sq == STORAGE_OUT))
+      glsl_compile_error(ERROR_CUSTOM, 15, g_LineNumber, "location layout may not be applied to %s block members",
+                                                         glsl_storage_qual_string(sq));
 
    if(member_lq->qualified & BINDING_QUALED)
       glsl_compile_error(ERROR_CUSTOM, 15, g_LineNumber, "binding layout may not be applied to block members");
@@ -842,7 +859,7 @@ static void glsl_map_and_check_members(Map *struct_map, StorageQualifier valid_s
 
    if(block_lq) {
       LayoutQualifier *member_lq = q.lq;
-      validate_member_layout(member_lq);
+      validate_member_layout(member_lq, valid_sq);
       q.lq = glsl_create_mixed_lq(member_lq, block_lq);
    }
 
@@ -930,8 +947,8 @@ SymbolType *glsl_build_block_type(Qualifiers *quals, const char *name, Statement
       glsl_compile_error(ERROR_CUSTOM, 20, g_LineNumber, NULL);
 
    type->u.block_type.lq = quals->lq;
-   type->u.block_type.layout = malloc_fast(sizeof(MEMBER_LAYOUT_T));
-   calculate_block_layout(type->u.block_type.layout, type);
+   type->u.block_type.layout = malloc_fast(sizeof(MemLayout));
+   glsl_mem_calculate_block_layout(type->u.block_type.layout, type);
    type->u.block_type.has_named_instance = false;
 
    return type;
@@ -951,7 +968,7 @@ void glsl_commit_anonymous_block_members(SymbolTable *table, Symbol *symbol, Mem
       Qualifiers member_quals;
       member_quals.invariant = false;
       member_quals.sq        = symbol->u.interface_block.sq;
-      member_quals.tq        = TYPE_QUAL_NONE;
+      member_quals.tq        = symbol->u.interface_block.tq;
       member_quals.mq        = member->memq | mq;
       member_quals.lq        = member->layout;
 

@@ -1,43 +1,43 @@
-/***************************************************************************
+/******************************************************************************
  * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
- *
- * [File Description:]
- *
- ***************************************************************************/
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************/
 
 #ifndef BVCE_PRIV_H_
 #define BVCE_PRIV_H_
@@ -67,22 +67,19 @@ extern "C" {
 #endif
 
 /* Signatures */
-#define BVCE_P_SIGNATURE_OPENSETTINGS 0x86676901
-#define BVCE_P_SIGNATURE_OUTPUTOPENSETTINGS 0x86676902
-#define BVCE_P_SIGNATURE_ALLOCBUFFERSSETTINGS 0x86676903
-#define BVCE_P_SIGNATURE_CHANNELOPENSETTINGS 0x86676904
-#define BVCE_P_SIGNATURE_CHANNELENCODESETTINGS 0x86676905
-#define BVCE_P_SIGNATURE_STARTENCODESETTINGS 0x86676906
-#define BVCE_P_SIGNATURE_DEVICECALLBACKSETTINGS 0x86676907
-#define BVCE_P_SIGNATURE_CHANNELCALLBACKSETTINGS 0x86676908
-#define BVCE_P_SIGNATURE_CHANNELENCODESETTINGSONINPUTCHANGE 0x86676909
-#define BVCE_P_SIGNATURE_ENCODESETTINGS 0x8667690A
-#define BVCE_P_SIGNATURE_STOPENCODESETTINGS 0x8667690B
-#define BVCE_P_SIGNATURE_DUMPSTATESETTINGS 0x8667690C
-
-#define BVCE_P_SIGNATURE_DEVICEHANDLE 0x86676981
-#define BVCE_P_SIGNATURE_OUTPUTHANDLE 0x86676982
-#define BVCE_P_SIGNATURE_CHANNELHANDLE 0x86676984
+#define BVCE_P_SIGNATURE_BASE                               0x56434500 /* "VCE" in ASCII */
+#define BVCE_P_SIGNATURE_OPENSETTINGS                       (BVCE_P_SIGNATURE_BASE+1)
+#define BVCE_P_SIGNATURE_OUTPUTOPENSETTINGS                 (BVCE_P_SIGNATURE_BASE+2)
+#define BVCE_P_SIGNATURE_ALLOCBUFFERSSETTINGS               (BVCE_P_SIGNATURE_BASE+3)
+#define BVCE_P_SIGNATURE_CHANNELOPENSETTINGS                (BVCE_P_SIGNATURE_BASE+4)
+#define BVCE_P_SIGNATURE_CHANNELENCODESETTINGS              (BVCE_P_SIGNATURE_BASE+5)
+#define BVCE_P_SIGNATURE_STARTENCODESETTINGS                (BVCE_P_SIGNATURE_BASE+6)
+#define BVCE_P_SIGNATURE_DEVICECALLBACKSETTINGS             (BVCE_P_SIGNATURE_BASE+7)
+#define BVCE_P_SIGNATURE_CHANNELCALLBACKSETTINGS            (BVCE_P_SIGNATURE_BASE+8)
+#define BVCE_P_SIGNATURE_CHANNELENCODESETTINGSONINPUTCHANGE (BVCE_P_SIGNATURE_BASE+9)
+#define BVCE_P_SIGNATURE_ENCODESETTINGS                     (BVCE_P_SIGNATURE_BASE+10)
+#define BVCE_P_SIGNATURE_STOPENCODESETTINGS                 (BVCE_P_SIGNATURE_BASE+11)
+#define BVCE_P_SIGNATURE_DUMPSTATESETTINGS                  (BVCE_P_SIGNATURE_BASE+12)
 
 #define BVCE_P_DEFAULT_CDB_SIZE MIN_CDB_SIZE_IN_BYTES
 #define BVCE_P_DEFAULT_CDB_ALIGNMENT 256
@@ -403,7 +400,7 @@ typedef enum BVCE_Output_P_DataUnitDetectState
 
 typedef struct BVCE_P_Output_Context
 {
-      uint32_t uiSignature;
+      BDBG_OBJECT(BVCE_P_Output_Context)
 
       BVCE_Handle hVce;
       BVCE_P_Status eStatus;
@@ -546,7 +543,7 @@ typedef struct BVCE_P_Output_Context
 
 typedef struct BVCE_P_Channel_Context
 {
-      uint32_t uiSignature;
+      BDBG_OBJECT(BVCE_P_Channel_Context)
 
       BVCE_Handle hVce;
       BVCE_P_Status eStatus;
@@ -599,7 +596,7 @@ typedef struct BVCE_P_Channel_Context
 
 typedef struct BVCE_P_Context
 {
-      uint32_t uiSignature;
+      BDBG_OBJECT(BVCE_P_Context)
 
       BVCE_OpenSettings stOpenSettings;
 
@@ -709,6 +706,8 @@ typedef struct BVCE_DebugFifo_EntryMetadata
 #define BVCE_P_FUNCTION_TRACE_LENGTH 64
 #define BVCE_P_FUNCTION_TRACE_ENTER(_level, _hVce, _uiChannel) BVCE_P_FUNCTION_TRACE(_level, "Enter:", _hVce, _uiChannel);
 #define BVCE_P_FUNCTION_TRACE_LEAVE(_level, _hVce, _uiChannel) BVCE_P_FUNCTION_TRACE(_level, "Leave:", _hVce, _uiChannel);
+#define BVCE_P_FUNCTION_TRACE_ENTER_isr(_level, _hVce, _uiChannel) BVCE_P_FUNCTION_TRACE_isr(_level, "Enter:", _hVce, _uiChannel);
+#define BVCE_P_FUNCTION_TRACE_LEAVE_isr(_level, _hVce, _uiChannel) BVCE_P_FUNCTION_TRACE_isr(_level, "Leave:", _hVce, _uiChannel);
 #define BVCE_P_FUNCTION_TRACE(_level, _szPrefix, _hVce, _uiChannel) \
 if ( NULL != (_hVce)->stDebugFifo.hDebugFifo )\
 {\
@@ -725,6 +724,25 @@ if ( NULL != (_hVce)->stDebugFifo.hDebugFifo )\
       ( NULL != (_hVce)->hTimer ) ? BTMR_ReadTimer( (_hVce)->hTimer, &pstEntry->stMetadata.uiTimestamp ) : 0;\
       BKNI_Snprintf(pstEntry->data.szFunctionTrace, BVCE_P_FUNCTION_TRACE_LENGTH, "%s%s",_szPrefix,__FUNCTION__);\
       BDBG_Fifo_CommitBuffer( &stToken );\
+   }\
+}
+
+#define BVCE_P_FUNCTION_TRACE_isr(_level, _szPrefix, _hVce, _uiChannel) \
+if ( NULL != (_hVce)->stDebugFifo.hDebugFifo )\
+{\
+   BVCE_P_DebugFifo_Entry *pstEntry;\
+   BDBG_Fifo_Token stToken;\
+\
+   pstEntry = (BVCE_P_DebugFifo_Entry *) BDBG_Fifo_GetBuffer_isrsafe( (_hVce)->stDebugFifo.hDebugFifo, &stToken );\
+   if ( NULL != pstEntry )\
+   {\
+      pstEntry->stMetadata.eType = BVCE_DebugFifo_EntryType_eTrace##_level;\
+      pstEntry->stMetadata.uiInstance = ((BVCE_Handle)(_hVce))->stOpenSettings.uiInstance;\
+      pstEntry->stMetadata.uiChannel = _uiChannel;\
+      pstEntry->stMetadata.uiTimestamp = 0;\
+      ( NULL != (_hVce)->hTimer ) ? BTMR_ReadTimer_isr( (_hVce)->hTimer, &pstEntry->stMetadata.uiTimestamp ) : 0;\
+      BKNI_Snprintf(pstEntry->data.szFunctionTrace, BVCE_P_FUNCTION_TRACE_LENGTH, "%s%s",_szPrefix,__FUNCTION__);\
+      BDBG_Fifo_CommitBuffer_isrsafe( &stToken );\
    }\
 }
 
@@ -750,6 +768,10 @@ typedef struct BVCE_P_DebugFifo_Entry
       char szFunctionTrace[BVCE_P_FUNCTION_TRACE_LENGTH];
    } data;
 } BVCE_P_DebugFifo_Entry;
+
+extern const BAVC_FrameRateCode BVCE_P_FW2PI_FrameRateLUT[];
+extern const unsigned BAVC_FrameRateCodeNumEntries;
+extern const unsigned BAVC_FWMaxFrameRateCode;
 
 #ifdef __cplusplus
 }

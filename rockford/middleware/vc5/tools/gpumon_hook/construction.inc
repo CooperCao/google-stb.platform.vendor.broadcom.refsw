@@ -33,6 +33,153 @@ map_eglWaitGL = base_eglWaitGL;
 map_eglWaitNative = base_eglWaitNative;
 #endif /* EGL_VERSION_1_0*/
 
+#if GL_VERSION_ES_CM_1_0
+map_glAlphaFunc = base_glAlphaFunc;
+map_glClearColor = base_glClearColor;
+map_glClearDepthf = base_glClearDepthf;
+map_glClipPlanef = base_glClipPlanef;
+map_glColor4f = base_glColor4f;
+map_glDepthRangef = base_glDepthRangef;
+map_glFogf = base_glFogf;
+map_glFogfv = base_glFogfv;
+map_glFrustumf = base_glFrustumf;
+map_glGetClipPlanef = base_glGetClipPlanef;
+map_glGetFloatv = base_glGetFloatv;
+map_glGetLightfv = base_glGetLightfv;
+map_glGetMaterialfv = base_glGetMaterialfv;
+map_glGetTexEnvfv = base_glGetTexEnvfv;
+map_glGetTexParameterfv = base_glGetTexParameterfv;
+map_glLightModelf = base_glLightModelf;
+map_glLightModelfv = base_glLightModelfv;
+map_glLightf = base_glLightf;
+map_glLightfv = base_glLightfv;
+map_glLineWidth = base_glLineWidth;
+map_glLoadMatrixf = base_glLoadMatrixf;
+map_glMaterialf = base_glMaterialf;
+map_glMaterialfv = base_glMaterialfv;
+map_glMultMatrixf = base_glMultMatrixf;
+map_glMultiTexCoord4f = base_glMultiTexCoord4f;
+map_glNormal3f = base_glNormal3f;
+map_glOrthof = base_glOrthof;
+map_glPointParameterf = base_glPointParameterf;
+map_glPointParameterfv = base_glPointParameterfv;
+map_glPointSize = base_glPointSize;
+map_glPolygonOffset = base_glPolygonOffset;
+map_glRotatef = base_glRotatef;
+map_glScalef = base_glScalef;
+map_glTexEnvf = base_glTexEnvf;
+map_glTexEnvfv = base_glTexEnvfv;
+map_glTexParameterf = base_glTexParameterf;
+map_glTexParameterfv = base_glTexParameterfv;
+map_glTranslatef = base_glTranslatef;
+map_glActiveTexture = base_glActiveTexture;
+map_glAlphaFuncx = base_glAlphaFuncx;
+map_glBindBuffer = base_glBindBuffer;
+map_glBindTexture = base_glBindTexture;
+map_glBlendFunc = base_glBlendFunc;
+map_glBufferData = base_glBufferData;
+map_glBufferSubData = base_glBufferSubData;
+map_glClear = base_glClear;
+map_glClearColorx = base_glClearColorx;
+map_glClearDepthx = base_glClearDepthx;
+map_glClearStencil = base_glClearStencil;
+map_glClientActiveTexture = base_glClientActiveTexture;
+map_glClipPlanex = base_glClipPlanex;
+map_glColor4ub = base_glColor4ub;
+map_glColor4x = base_glColor4x;
+map_glColorMask = base_glColorMask;
+map_glColorPointer = base_glColorPointer;
+map_glCompressedTexImage2D = base_glCompressedTexImage2D;
+map_glCompressedTexSubImage2D = base_glCompressedTexSubImage2D;
+map_glCopyTexImage2D = base_glCopyTexImage2D;
+map_glCopyTexSubImage2D = base_glCopyTexSubImage2D;
+map_glCullFace = base_glCullFace;
+map_glDeleteBuffers = base_glDeleteBuffers;
+map_glDeleteTextures = base_glDeleteTextures;
+map_glDepthFunc = base_glDepthFunc;
+map_glDepthMask = base_glDepthMask;
+map_glDepthRangex = base_glDepthRangex;
+map_glDisable = base_glDisable;
+map_glDisableClientState = base_glDisableClientState;
+map_glDrawArrays = base_glDrawArrays;
+map_glDrawElements = base_glDrawElements;
+map_glEnable = base_glEnable;
+map_glEnableClientState = base_glEnableClientState;
+map_glFinish = base_glFinish;
+map_glFlush = base_glFlush;
+map_glFogx = base_glFogx;
+map_glFogxv = base_glFogxv;
+map_glFrontFace = base_glFrontFace;
+map_glFrustumx = base_glFrustumx;
+map_glGetBooleanv = base_glGetBooleanv;
+map_glGetBufferParameteriv = base_glGetBufferParameteriv;
+map_glGetClipPlanex = base_glGetClipPlanex;
+map_glGenBuffers = base_glGenBuffers;
+map_glGenTextures = base_glGenTextures;
+map_glGetError = base_glGetError;
+map_glGetFixedv = base_glGetFixedv;
+map_glGetIntegerv = base_glGetIntegerv;
+map_glGetLightxv = base_glGetLightxv;
+map_glGetMaterialxv = base_glGetMaterialxv;
+map_glGetPointerv = base_glGetPointerv;
+map_glGetString = base_glGetString;
+map_glGetTexEnviv = base_glGetTexEnviv;
+map_glGetTexEnvxv = base_glGetTexEnvxv;
+map_glGetTexParameteriv = base_glGetTexParameteriv;
+map_glGetTexParameterxv = base_glGetTexParameterxv;
+map_glHint = base_glHint;
+map_glIsBuffer = base_glIsBuffer;
+map_glIsEnabled = base_glIsEnabled;
+map_glIsTexture = base_glIsTexture;
+map_glLightModelx = base_glLightModelx;
+map_glLightModelxv = base_glLightModelxv;
+map_glLightx = base_glLightx;
+map_glLightxv = base_glLightxv;
+map_glLineWidthx = base_glLineWidthx;
+map_glLoadIdentity = base_glLoadIdentity;
+map_glLoadMatrixx = base_glLoadMatrixx;
+map_glLogicOp = base_glLogicOp;
+map_glMaterialx = base_glMaterialx;
+map_glMaterialxv = base_glMaterialxv;
+map_glMatrixMode = base_glMatrixMode;
+map_glMultMatrixx = base_glMultMatrixx;
+map_glMultiTexCoord4x = base_glMultiTexCoord4x;
+map_glNormal3x = base_glNormal3x;
+map_glNormalPointer = base_glNormalPointer;
+map_glOrthox = base_glOrthox;
+map_glPixelStorei = base_glPixelStorei;
+map_glPointParameterx = base_glPointParameterx;
+map_glPointParameterxv = base_glPointParameterxv;
+map_glPointSizex = base_glPointSizex;
+map_glPolygonOffsetx = base_glPolygonOffsetx;
+map_glPopMatrix = base_glPopMatrix;
+map_glPushMatrix = base_glPushMatrix;
+map_glReadPixels = base_glReadPixels;
+map_glRotatex = base_glRotatex;
+map_glSampleCoverage = base_glSampleCoverage;
+map_glSampleCoveragex = base_glSampleCoveragex;
+map_glScalex = base_glScalex;
+map_glScissor = base_glScissor;
+map_glShadeModel = base_glShadeModel;
+map_glStencilFunc = base_glStencilFunc;
+map_glStencilMask = base_glStencilMask;
+map_glStencilOp = base_glStencilOp;
+map_glTexCoordPointer = base_glTexCoordPointer;
+map_glTexEnvi = base_glTexEnvi;
+map_glTexEnvx = base_glTexEnvx;
+map_glTexEnviv = base_glTexEnviv;
+map_glTexEnvxv = base_glTexEnvxv;
+map_glTexImage2D = base_glTexImage2D;
+map_glTexParameteri = base_glTexParameteri;
+map_glTexParameterx = base_glTexParameterx;
+map_glTexParameteriv = base_glTexParameteriv;
+map_glTexParameterxv = base_glTexParameterxv;
+map_glTexSubImage2D = base_glTexSubImage2D;
+map_glTranslatex = base_glTranslatex;
+map_glVertexPointer = base_glVertexPointer;
+map_glViewport = base_glViewport;
+#endif /* GL_VERSION_ES_CM_1_0*/
+
 #if EGL_VERSION_1_1
 map_eglBindTexImage = base_eglBindTexImage;
 map_eglReleaseTexImage = base_eglReleaseTexImage;
@@ -69,70 +216,35 @@ map_eglWaitSync = base_eglWaitSync;
 #endif /* EGL_VERSION_1_5*/
 
 #if GL_ES_VERSION_2_0
-map_glActiveTexture = base_glActiveTexture;
 map_glAttachShader = base_glAttachShader;
 map_glBindAttribLocation = base_glBindAttribLocation;
-map_glBindBuffer = base_glBindBuffer;
 map_glBindFramebuffer = base_glBindFramebuffer;
 map_glBindRenderbuffer = base_glBindRenderbuffer;
-map_glBindTexture = base_glBindTexture;
 map_glBlendColor = base_glBlendColor;
 map_glBlendEquation = base_glBlendEquation;
 map_glBlendEquationSeparate = base_glBlendEquationSeparate;
-map_glBlendFunc = base_glBlendFunc;
 map_glBlendFuncSeparate = base_glBlendFuncSeparate;
-map_glBufferData = base_glBufferData;
-map_glBufferSubData = base_glBufferSubData;
 map_glCheckFramebufferStatus = base_glCheckFramebufferStatus;
-map_glClear = base_glClear;
-map_glClearColor = base_glClearColor;
-map_glClearDepthf = base_glClearDepthf;
-map_glClearStencil = base_glClearStencil;
-map_glColorMask = base_glColorMask;
 map_glCompileShader = base_glCompileShader;
-map_glCompressedTexImage2D = base_glCompressedTexImage2D;
-map_glCompressedTexSubImage2D = base_glCompressedTexSubImage2D;
-map_glCopyTexImage2D = base_glCopyTexImage2D;
-map_glCopyTexSubImage2D = base_glCopyTexSubImage2D;
 map_glCreateProgram = base_glCreateProgram;
 map_glCreateShader = base_glCreateShader;
-map_glCullFace = base_glCullFace;
-map_glDeleteBuffers = base_glDeleteBuffers;
 map_glDeleteFramebuffers = base_glDeleteFramebuffers;
 map_glDeleteProgram = base_glDeleteProgram;
 map_glDeleteRenderbuffers = base_glDeleteRenderbuffers;
 map_glDeleteShader = base_glDeleteShader;
-map_glDeleteTextures = base_glDeleteTextures;
-map_glDepthFunc = base_glDepthFunc;
-map_glDepthMask = base_glDepthMask;
-map_glDepthRangef = base_glDepthRangef;
 map_glDetachShader = base_glDetachShader;
-map_glDisable = base_glDisable;
 map_glDisableVertexAttribArray = base_glDisableVertexAttribArray;
-map_glDrawArrays = base_glDrawArrays;
-map_glDrawElements = base_glDrawElements;
-map_glEnable = base_glEnable;
 map_glEnableVertexAttribArray = base_glEnableVertexAttribArray;
-map_glFinish = base_glFinish;
-map_glFlush = base_glFlush;
 map_glFramebufferRenderbuffer = base_glFramebufferRenderbuffer;
 map_glFramebufferTexture2D = base_glFramebufferTexture2D;
-map_glFrontFace = base_glFrontFace;
-map_glGenBuffers = base_glGenBuffers;
 map_glGenerateMipmap = base_glGenerateMipmap;
 map_glGenFramebuffers = base_glGenFramebuffers;
 map_glGenRenderbuffers = base_glGenRenderbuffers;
-map_glGenTextures = base_glGenTextures;
 map_glGetActiveAttrib = base_glGetActiveAttrib;
 map_glGetActiveUniform = base_glGetActiveUniform;
 map_glGetAttachedShaders = base_glGetAttachedShaders;
 map_glGetAttribLocation = base_glGetAttribLocation;
-map_glGetBooleanv = base_glGetBooleanv;
-map_glGetBufferParameteriv = base_glGetBufferParameteriv;
-map_glGetError = base_glGetError;
-map_glGetFloatv = base_glGetFloatv;
 map_glGetFramebufferAttachmentParameteriv = base_glGetFramebufferAttachmentParameteriv;
-map_glGetIntegerv = base_glGetIntegerv;
 map_glGetProgramiv = base_glGetProgramiv;
 map_glGetProgramInfoLog = base_glGetProgramInfoLog;
 map_glGetRenderbufferParameteriv = base_glGetRenderbufferParameteriv;
@@ -140,46 +252,24 @@ map_glGetShaderiv = base_glGetShaderiv;
 map_glGetShaderInfoLog = base_glGetShaderInfoLog;
 map_glGetShaderPrecisionFormat = base_glGetShaderPrecisionFormat;
 map_glGetShaderSource = base_glGetShaderSource;
-map_glGetString = base_glGetString;
-map_glGetTexParameterfv = base_glGetTexParameterfv;
-map_glGetTexParameteriv = base_glGetTexParameteriv;
 map_glGetUniformfv = base_glGetUniformfv;
 map_glGetUniformiv = base_glGetUniformiv;
 map_glGetUniformLocation = base_glGetUniformLocation;
 map_glGetVertexAttribfv = base_glGetVertexAttribfv;
 map_glGetVertexAttribiv = base_glGetVertexAttribiv;
 map_glGetVertexAttribPointerv = base_glGetVertexAttribPointerv;
-map_glHint = base_glHint;
-map_glIsBuffer = base_glIsBuffer;
-map_glIsEnabled = base_glIsEnabled;
 map_glIsFramebuffer = base_glIsFramebuffer;
 map_glIsProgram = base_glIsProgram;
 map_glIsRenderbuffer = base_glIsRenderbuffer;
 map_glIsShader = base_glIsShader;
-map_glIsTexture = base_glIsTexture;
-map_glLineWidth = base_glLineWidth;
 map_glLinkProgram = base_glLinkProgram;
-map_glPixelStorei = base_glPixelStorei;
-map_glPolygonOffset = base_glPolygonOffset;
-map_glReadPixels = base_glReadPixels;
 map_glReleaseShaderCompiler = base_glReleaseShaderCompiler;
 map_glRenderbufferStorage = base_glRenderbufferStorage;
-map_glSampleCoverage = base_glSampleCoverage;
-map_glScissor = base_glScissor;
 map_glShaderBinary = base_glShaderBinary;
 map_glShaderSource = base_glShaderSource;
-map_glStencilFunc = base_glStencilFunc;
 map_glStencilFuncSeparate = base_glStencilFuncSeparate;
-map_glStencilMask = base_glStencilMask;
 map_glStencilMaskSeparate = base_glStencilMaskSeparate;
-map_glStencilOp = base_glStencilOp;
 map_glStencilOpSeparate = base_glStencilOpSeparate;
-map_glTexImage2D = base_glTexImage2D;
-map_glTexParameterf = base_glTexParameterf;
-map_glTexParameterfv = base_glTexParameterfv;
-map_glTexParameteri = base_glTexParameteri;
-map_glTexParameteriv = base_glTexParameteriv;
-map_glTexSubImage2D = base_glTexSubImage2D;
 map_glUniform1f = base_glUniform1f;
 map_glUniform1fv = base_glUniform1fv;
 map_glUniform1i = base_glUniform1i;
@@ -210,7 +300,6 @@ map_glVertexAttrib3fv = base_glVertexAttrib3fv;
 map_glVertexAttrib4f = base_glVertexAttrib4f;
 map_glVertexAttrib4fv = base_glVertexAttrib4fv;
 map_glVertexAttribPointer = base_glVertexAttribPointer;
-map_glViewport = base_glViewport;
 #endif /* GL_ES_VERSION_2_0*/
 
 #if GL_ES_VERSION_3_0
@@ -404,7 +493,6 @@ map_glObjectLabel = base_glObjectLabel;
 map_glGetObjectLabel = base_glGetObjectLabel;
 map_glObjectPtrLabel = base_glObjectPtrLabel;
 map_glGetObjectPtrLabel = base_glGetObjectPtrLabel;
-map_glGetPointerv = base_glGetPointerv;
 map_glEnablei = base_glEnablei;
 map_glDisablei = base_glDisablei;
 map_glBlendEquationi = base_glBlendEquationi;
@@ -438,103 +526,15 @@ map_glTexBufferRange = base_glTexBufferRange;
 map_glTexStorage3DMultisample = base_glTexStorage3DMultisample;
 #endif /* GL_ES_VERSION_3_2*/
 
-#if GL_VERSION_ES_CM_1_0
-map_glAlphaFunc = base_glAlphaFunc;
-map_glClipPlanef = base_glClipPlanef;
-map_glColor4f = base_glColor4f;
-map_glFogf = base_glFogf;
-map_glFogfv = base_glFogfv;
-map_glFrustumf = base_glFrustumf;
-map_glGetClipPlanef = base_glGetClipPlanef;
-map_glGetLightfv = base_glGetLightfv;
-map_glGetMaterialfv = base_glGetMaterialfv;
-map_glGetTexEnvfv = base_glGetTexEnvfv;
-map_glLightModelf = base_glLightModelf;
-map_glLightModelfv = base_glLightModelfv;
-map_glLightf = base_glLightf;
-map_glLightfv = base_glLightfv;
-map_glLoadMatrixf = base_glLoadMatrixf;
-map_glMaterialf = base_glMaterialf;
-map_glMaterialfv = base_glMaterialfv;
-map_glMultMatrixf = base_glMultMatrixf;
-map_glMultiTexCoord4f = base_glMultiTexCoord4f;
-map_glNormal3f = base_glNormal3f;
-map_glOrthof = base_glOrthof;
-map_glPointParameterf = base_glPointParameterf;
-map_glPointParameterfv = base_glPointParameterfv;
-map_glPointSize = base_glPointSize;
-map_glRotatef = base_glRotatef;
-map_glScalef = base_glScalef;
-map_glTexEnvf = base_glTexEnvf;
-map_glTexEnvfv = base_glTexEnvfv;
-map_glTranslatef = base_glTranslatef;
-map_glAlphaFuncx = base_glAlphaFuncx;
-map_glClearColorx = base_glClearColorx;
-map_glClearDepthx = base_glClearDepthx;
-map_glClientActiveTexture = base_glClientActiveTexture;
-map_glClipPlanex = base_glClipPlanex;
-map_glColor4ub = base_glColor4ub;
-map_glColor4x = base_glColor4x;
-map_glColorPointer = base_glColorPointer;
-map_glDepthRangex = base_glDepthRangex;
-map_glDisableClientState = base_glDisableClientState;
-map_glEnableClientState = base_glEnableClientState;
-map_glFogx = base_glFogx;
-map_glFogxv = base_glFogxv;
-map_glFrustumx = base_glFrustumx;
-map_glGetClipPlanex = base_glGetClipPlanex;
-map_glGetFixedv = base_glGetFixedv;
-map_glGetLightxv = base_glGetLightxv;
-map_glGetMaterialxv = base_glGetMaterialxv;
-map_glGetTexEnviv = base_glGetTexEnviv;
-map_glGetTexEnvxv = base_glGetTexEnvxv;
-map_glGetTexParameterxv = base_glGetTexParameterxv;
-map_glLightModelx = base_glLightModelx;
-map_glLightModelxv = base_glLightModelxv;
-map_glLightx = base_glLightx;
-map_glLightxv = base_glLightxv;
-map_glLineWidthx = base_glLineWidthx;
-map_glLoadIdentity = base_glLoadIdentity;
-map_glLoadMatrixx = base_glLoadMatrixx;
-map_glLogicOp = base_glLogicOp;
-map_glMaterialx = base_glMaterialx;
-map_glMaterialxv = base_glMaterialxv;
-map_glMatrixMode = base_glMatrixMode;
-map_glMultMatrixx = base_glMultMatrixx;
-map_glMultiTexCoord4x = base_glMultiTexCoord4x;
-map_glNormal3x = base_glNormal3x;
-map_glNormalPointer = base_glNormalPointer;
-map_glOrthox = base_glOrthox;
-map_glPointParameterx = base_glPointParameterx;
-map_glPointParameterxv = base_glPointParameterxv;
-map_glPointSizex = base_glPointSizex;
-map_glPolygonOffsetx = base_glPolygonOffsetx;
-map_glPopMatrix = base_glPopMatrix;
-map_glPushMatrix = base_glPushMatrix;
-map_glRotatex = base_glRotatex;
-map_glSampleCoveragex = base_glSampleCoveragex;
-map_glScalex = base_glScalex;
-map_glShadeModel = base_glShadeModel;
-map_glTexCoordPointer = base_glTexCoordPointer;
-map_glTexEnvi = base_glTexEnvi;
-map_glTexEnvx = base_glTexEnvx;
-map_glTexEnviv = base_glTexEnviv;
-map_glTexEnvxv = base_glTexEnvxv;
-map_glTexParameterx = base_glTexParameterx;
-map_glTexParameterxv = base_glTexParameterxv;
-map_glTranslatex = base_glTranslatex;
-map_glVertexPointer = base_glVertexPointer;
-#endif /* GL_VERSION_ES_CM_1_0*/
-
 #if EGL_KHR_cl_event2
 map_eglCreateSync64KHR = base_eglCreateSync64KHR;
 #endif /* EGL_KHR_cl_event2*/
 
+#if EGL_KHR_client_get_all_proc_addresses
+#endif /* EGL_KHR_client_get_all_proc_addresses*/
+
 #if EGL_KHR_create_context
 #endif /* EGL_KHR_create_context*/
-
-#if EGL_KHR_create_context_no_error
-#endif /* EGL_KHR_create_context_no_error*/
 
 #if EGL_KHR_fence_sync
 map_eglCreateSyncKHR = base_eglCreateSyncKHR;
@@ -565,9 +565,6 @@ map_eglDestroyImageKHR = base_eglDestroyImageKHR;
 
 #if EGL_KHR_image_base
 #endif /* EGL_KHR_image_base*/
-
-#if EGL_KHR_image_pixmap
-#endif /* EGL_KHR_image_pixmap*/
 
 #if EGL_KHR_platform_android
 #endif /* EGL_KHR_platform_android*/
@@ -607,8 +604,8 @@ map_glEGLImageTargetRenderbufferStorageOES = base_glEGLImageTargetRenderbufferSt
 #if GL_OES_EGL_image_external
 #endif /* GL_OES_EGL_image_external*/
 
-#if GL_OES_EGL_image_external_essl3
-#endif /* GL_OES_EGL_image_external_essl3*/
+#if GL_OES_EGL_sync
+#endif /* GL_OES_EGL_sync*/
 
 #if GL_OES_compressed_ETC1_RGB8_texture
 #endif /* GL_OES_compressed_ETC1_RGB8_texture*/
@@ -619,8 +616,16 @@ map_glEGLImageTargetRenderbufferStorageOES = base_glEGLImageTargetRenderbufferSt
 #if GL_OES_depth24
 #endif /* GL_OES_depth24*/
 
-#if GL_OES_depth32
-#endif /* GL_OES_depth32*/
+#if GL_OES_draw_buffers_indexed
+map_glEnableiOES = base_glEnableiOES;
+map_glDisableiOES = base_glDisableiOES;
+map_glBlendEquationiOES = base_glBlendEquationiOES;
+map_glBlendEquationSeparateiOES = base_glBlendEquationSeparateiOES;
+map_glBlendFunciOES = base_glBlendFunciOES;
+map_glBlendFuncSeparateiOES = base_glBlendFuncSeparateiOES;
+map_glColorMaskiOES = base_glColorMaskiOES;
+map_glIsEnablediOES = base_glIsEnablediOES;
+#endif /* GL_OES_draw_buffers_indexed*/
 
 #if GL_OES_draw_texture
 map_glDrawTexsOES = base_glDrawTexsOES;
@@ -651,18 +656,21 @@ map_glGetFramebufferAttachmentParameterivOES = base_glGetFramebufferAttachmentPa
 map_glGenerateMipmapOES = base_glGenerateMipmapOES;
 #endif /* GL_OES_framebuffer_object*/
 
+#if GL_OES_geometry_point_size
+#endif /* GL_OES_geometry_point_size*/
+
+#if GL_OES_geometry_shader
+map_glFramebufferTextureOES = base_glFramebufferTextureOES;
+#endif /* GL_OES_geometry_shader*/
+
+#if GL_OES_gpu_shader5
+#endif /* GL_OES_gpu_shader5*/
+
 #if GL_OES_mapbuffer
 map_glMapBufferOES = base_glMapBufferOES;
 map_glUnmapBufferOES = base_glUnmapBufferOES;
 map_glGetBufferPointervOES = base_glGetBufferPointervOES;
 #endif /* GL_OES_mapbuffer*/
-
-#if GL_OES_matrix_palette
-map_glCurrentPaletteMatrixOES = base_glCurrentPaletteMatrixOES;
-map_glLoadPaletteFromModelViewMatrixOES = base_glLoadPaletteFromModelViewMatrixOES;
-map_glMatrixIndexPointerOES = base_glMatrixIndexPointerOES;
-map_glWeightPointerOES = base_glWeightPointerOES;
-#endif /* GL_OES_matrix_palette*/
 
 #if GL_OES_packed_depth_stencil
 #endif /* GL_OES_packed_depth_stencil*/
@@ -678,20 +686,63 @@ map_glQueryMatrixxOES = base_glQueryMatrixxOES;
 #if GL_OES_rgb8_rgba8
 #endif /* GL_OES_rgb8_rgba8*/
 
+#if GL_OES_sample_variables
+#endif /* GL_OES_sample_variables*/
+
+#if GL_OES_shader_image_atomic
+#endif /* GL_OES_shader_image_atomic*/
+
+#if GL_OES_shader_io_blocks
+#endif /* GL_OES_shader_io_blocks*/
+
+#if GL_OES_shader_multisample_interpolation
+#endif /* GL_OES_shader_multisample_interpolation*/
+
 #if GL_OES_standard_derivatives
 #endif /* GL_OES_standard_derivatives*/
 
 #if GL_OES_stencil8
 #endif /* GL_OES_stencil8*/
 
+#if GL_OES_stencil_wrap
+#endif /* GL_OES_stencil_wrap*/
+
 #if GL_OES_surfaceless_context
 #endif /* GL_OES_surfaceless_context*/
+
+#if GL_OES_tessellation_point_size
+#endif /* GL_OES_tessellation_point_size*/
+
+#if GL_OES_tessellation_shader
+map_glPatchParameteriOES = base_glPatchParameteriOES;
+#endif /* GL_OES_tessellation_shader*/
+
+#if GL_OES_texture_border_clamp
+map_glTexParameterIivOES = base_glTexParameterIivOES;
+map_glTexParameterIuivOES = base_glTexParameterIuivOES;
+map_glGetTexParameterIivOES = base_glGetTexParameterIivOES;
+map_glGetTexParameterIuivOES = base_glGetTexParameterIuivOES;
+map_glSamplerParameterIivOES = base_glSamplerParameterIivOES;
+map_glSamplerParameterIuivOES = base_glSamplerParameterIuivOES;
+map_glGetSamplerParameterIivOES = base_glGetSamplerParameterIivOES;
+map_glGetSamplerParameterIuivOES = base_glGetSamplerParameterIuivOES;
+#endif /* GL_OES_texture_border_clamp*/
+
+#if GL_OES_texture_cube_map_array
+#endif /* GL_OES_texture_cube_map_array*/
+
+#if GL_OES_texture_mirrored_repeat
+#endif /* GL_OES_texture_mirrored_repeat*/
 
 #if GL_OES_texture_npot
 #endif /* GL_OES_texture_npot*/
 
 #if GL_OES_texture_stencil8
 #endif /* GL_OES_texture_stencil8*/
+
+#if GL_OES_texture_storage_multisample_2d_array
+map_glTexStorage3DMultisampleOES = base_glTexStorage3DMultisampleOES;
+#endif /* GL_OES_texture_storage_multisample_2d_array*/
 
 #if GL_OES_vertex_array_object
 map_glBindVertexArrayOES = base_glBindVertexArrayOES;
@@ -760,19 +811,14 @@ map_eglCreatePlatformPixmapSurfaceEXT = base_eglCreatePlatformPixmapSurfaceEXT;
 #if EGL_EXT_platform_x11
 #endif /* EGL_EXT_platform_x11*/
 
-#if GL_BRCM_base_instance
-map_glDrawArraysInstancedBaseInstanceBRCM = base_glDrawArraysInstancedBaseInstanceBRCM;
-map_glDrawElementsInstancedBaseInstanceBRCM = base_glDrawElementsInstancedBaseInstanceBRCM;
-map_glDrawElementsInstancedBaseVertexBaseInstanceBRCM = base_glDrawElementsInstancedBaseVertexBaseInstanceBRCM;
-#endif /* GL_BRCM_base_instance*/
+#if EGL_EXT_protected_content
+#endif /* EGL_EXT_protected_content*/
+
+#if EGL_EXT_protected_surface
+#endif /* EGL_EXT_protected_surface*/
 
 #if GL_BRCM_mirror_once_border
 #endif /* GL_BRCM_mirror_once_border*/
-
-#if GL_BRCM_multi_draw_indirect
-map_glMultiDrawArraysIndirectBRCM = base_glMultiDrawArraysIndirectBRCM;
-map_glMultiDrawElementsIndirectBRCM = base_glMultiDrawElementsIndirectBRCM;
-#endif /* GL_BRCM_multi_draw_indirect*/
 
 #if GL_BRCM_polygon_mode
 map_glPolygonModeBRCM = base_glPolygonModeBRCM;
@@ -792,6 +838,12 @@ map_glTexImage1DBRCM = base_glTexImage1DBRCM;
 #if GL_BRCM_texture_norm16
 #endif /* GL_BRCM_texture_norm16*/
 
+#if GL_EXT_base_instance
+map_glDrawArraysInstancedBaseInstanceEXT = base_glDrawArraysInstancedBaseInstanceEXT;
+map_glDrawElementsInstancedBaseInstanceEXT = base_glDrawElementsInstancedBaseInstanceEXT;
+map_glDrawElementsInstancedBaseVertexBaseInstanceEXT = base_glDrawElementsInstancedBaseVertexBaseInstanceEXT;
+#endif /* GL_EXT_base_instance*/
+
 #if GL_EXT_color_buffer_float
 #endif /* GL_EXT_color_buffer_float*/
 
@@ -805,6 +857,17 @@ map_glPopGroupMarkerEXT = base_glPopGroupMarkerEXT;
 map_glDiscardFramebufferEXT = base_glDiscardFramebufferEXT;
 #endif /* GL_EXT_discard_framebuffer*/
 
+#if GL_EXT_draw_buffers_indexed
+map_glEnableiEXT = base_glEnableiEXT;
+map_glDisableiEXT = base_glDisableiEXT;
+map_glBlendEquationiEXT = base_glBlendEquationiEXT;
+map_glBlendEquationSeparateiEXT = base_glBlendEquationSeparateiEXT;
+map_glBlendFunciEXT = base_glBlendFunciEXT;
+map_glBlendFuncSeparateiEXT = base_glBlendFuncSeparateiEXT;
+map_glColorMaskiEXT = base_glColorMaskiEXT;
+map_glIsEnablediEXT = base_glIsEnablediEXT;
+#endif /* GL_EXT_draw_buffers_indexed*/
+
 #if GL_EXT_draw_elements_base_vertex
 map_glDrawElementsBaseVertexEXT = base_glDrawElementsBaseVertexEXT;
 map_glDrawRangeElementsBaseVertexEXT = base_glDrawRangeElementsBaseVertexEXT;
@@ -812,10 +875,32 @@ map_glDrawElementsInstancedBaseVertexEXT = base_glDrawElementsInstancedBaseVerte
 map_glMultiDrawElementsBaseVertexEXT = base_glMultiDrawElementsBaseVertexEXT;
 #endif /* GL_EXT_draw_elements_base_vertex*/
 
+#if GL_EXT_geometry_point_size
+#endif /* GL_EXT_geometry_point_size*/
+
+#if GL_EXT_geometry_shader
+map_glFramebufferTextureEXT = base_glFramebufferTextureEXT;
+#endif /* GL_EXT_geometry_shader*/
+
+#if GL_EXT_gpu_shader5
+#endif /* GL_EXT_gpu_shader5*/
+
+#if GL_EXT_multi_draw_indirect
+map_glMultiDrawArraysIndirectEXT = base_glMultiDrawArraysIndirectEXT;
+map_glMultiDrawElementsIndirectEXT = base_glMultiDrawElementsIndirectEXT;
+#endif /* GL_EXT_multi_draw_indirect*/
+
 #if GL_EXT_multisampled_render_to_texture
 map_glRenderbufferStorageMultisampleEXT = base_glRenderbufferStorageMultisampleEXT;
 map_glFramebufferTexture2DMultisampleEXT = base_glFramebufferTexture2DMultisampleEXT;
 #endif /* GL_EXT_multisampled_render_to_texture*/
+
+#if GL_EXT_primitive_bounding_box
+map_glPrimitiveBoundingBoxEXT = base_glPrimitiveBoundingBoxEXT;
+#endif /* GL_EXT_primitive_bounding_box*/
+
+#if GL_EXT_protected_textures
+#endif /* GL_EXT_protected_textures*/
 
 #if GL_EXT_robustness
 map_glGetGraphicsResetStatusEXT = base_glGetGraphicsResetStatusEXT;
@@ -824,8 +909,35 @@ map_glGetnUniformfvEXT = base_glGetnUniformfvEXT;
 map_glGetnUniformivEXT = base_glGetnUniformivEXT;
 #endif /* GL_EXT_robustness*/
 
+#if GL_EXT_shader_integer_mix
+#endif /* GL_EXT_shader_integer_mix*/
+
+#if GL_EXT_shader_io_blocks
+#endif /* GL_EXT_shader_io_blocks*/
+
 #if GL_EXT_shader_texture_lod
 #endif /* GL_EXT_shader_texture_lod*/
+
+#if GL_EXT_tessellation_point_size
+#endif /* GL_EXT_tessellation_point_size*/
+
+#if GL_EXT_tessellation_shader
+map_glPatchParameteriEXT = base_glPatchParameteriEXT;
+#endif /* GL_EXT_tessellation_shader*/
+
+#if GL_EXT_texture_border_clamp
+map_glTexParameterIivEXT = base_glTexParameterIivEXT;
+map_glTexParameterIuivEXT = base_glTexParameterIuivEXT;
+map_glGetTexParameterIivEXT = base_glGetTexParameterIivEXT;
+map_glGetTexParameterIuivEXT = base_glGetTexParameterIuivEXT;
+map_glSamplerParameterIivEXT = base_glSamplerParameterIivEXT;
+map_glSamplerParameterIuivEXT = base_glSamplerParameterIuivEXT;
+map_glGetSamplerParameterIivEXT = base_glGetSamplerParameterIivEXT;
+map_glGetSamplerParameterIuivEXT = base_glGetSamplerParameterIuivEXT;
+#endif /* GL_EXT_texture_border_clamp*/
+
+#if GL_EXT_texture_cube_map_array
+#endif /* GL_EXT_texture_cube_map_array*/
 
 #if GL_EXT_texture_filter_anisotropic
 #endif /* GL_EXT_texture_filter_anisotropic*/

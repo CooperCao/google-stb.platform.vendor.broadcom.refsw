@@ -600,7 +600,7 @@ const BXPT_P_RegisterRange XPT_REG_SAVE_LIST[] =
     {0, 0, 0}
 };
 
-#elif ( BCHP_CHIP==7271 || BCHP_CHIP==7268 )
+#elif ( BCHP_CHIP==7271 || BCHP_CHIP==7268 || BCHP_CHIP==7260 )
 #define BXPT_HAS_S3_SAVE_RESTORE 1
 #include "pwr/bxpt_pwr_mgmt_common_include.h"
 

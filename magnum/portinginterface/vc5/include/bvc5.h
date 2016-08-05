@@ -208,6 +208,8 @@ typedef struct BVC5_JobBase
    void                   *pData;
    uint32_t                uiSyncFlags;
    bool                    bSecure;
+   uint64_t                uiPagetablePhysAddr;
+   uint32_t                uiMmuMaxVirtAddr;
 } BVC5_JobBase;
 
 typedef struct BVC5_JobNull
@@ -264,6 +266,7 @@ typedef struct BVC5_JobTFU
       uint32_t    uiChromaStride;
       uint32_t    uiAddress;
       uint32_t    uiChromaAddress;
+      uint32_t    uiUPlaneAddress;
       uint64_t    uiFlags;
    } sInput;
 
@@ -334,6 +337,8 @@ typedef struct BVC5_OpenParameters
    bool  bResetOnStall;      /* Reset & recover when a h/w stall is detected */
    bool  bMemDumpOnStall;    /* Dump heap when a stall is detected            */
    bool  bNoBurstSplitting;  /* Disable burst splitting in the wrapper? */
+   bool  bDoDRMClientTerm;   /* Signal client termination to DRM driver */
+   uint32_t uiDRMDevice;     /* DRM device to open if signalling client termination */
 } BVC5_OpenParameters;
 
 /**************************************************************************
@@ -437,7 +442,10 @@ See Also:
 BERR_Code BVC5_RegisterClient(
    BVC5_Handle  hVC5,
    void        *pContext,
-   uint32_t    *puiClientId
+   uint32_t    *puiClientId,
+   int64_t      iUnsecureBinTranslation,
+   int64_t      iSecureBinTranslation,
+   uint64_t     uiPlatformToken
 );
 
 /***************************************************************************
@@ -576,6 +584,7 @@ BERR_Code BVC5_UsermodeJob(
 BERR_Code BVC5_FenceRegisterWaitCallback(
    BVC5_Handle                 hVC5,                          /* [in]          */
    int                         iFence,                        /* [in]          */
+   uint32_t                    uiClientId,                    /* [in]          */
    void                      (*pfnCallback)(void *, void *),  /* [in]          */
    void                       *pContext,                      /* [in]          */
    void                       *pParam                         /* [in]          */
@@ -583,7 +592,12 @@ BERR_Code BVC5_FenceRegisterWaitCallback(
 
 BERR_Code BVC5_FenceUnregisterWaitCallback(
    BVC5_Handle                 hVC5,                          /* [in]          */
-   int                         iFence                         /* [in]          */
+   int                         iFence,                        /* [in]          */
+   uint32_t                    uiClientId,                    /* [in]          */
+   void                      (*pfnCallback)(void *, void *),  /* [in]          */
+   void                       *pContext,                      /* [in]          */
+   void                       *pParam,                        /* [in]          */
+   bool                       *bSignalled                     /* [out]         */
    );
 
 BERR_Code BVC5_Query(
@@ -607,6 +621,11 @@ BERR_Code BVC5_MakeFenceForAnyNonFinalizedJob(
    BVC5_Handle hVC5,       /* [in] */
    uint32_t    uiClientId, /* [in] */
    int        *piFence     /* [out] */
+   );
+
+BERR_Code BVC5_FenceKeep(
+   BVC5_Handle                 hVC5,                   /* [in]           */
+   int                         iFence                  /* [in]           */
    );
 
 BERR_Code BVC5_FenceSignal(

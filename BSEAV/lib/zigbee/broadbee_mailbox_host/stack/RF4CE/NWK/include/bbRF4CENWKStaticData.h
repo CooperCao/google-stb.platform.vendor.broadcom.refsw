@@ -169,8 +169,6 @@ typedef struct _RF4CE_NWK_StaticData_t
     SYS_TimeoutTask_t timeoutTaskData;
     /*!< The timeout measuring for Power Saving task */
     SYS_TimeoutTask_t powerSavingTask;
-    /*!< The timeout task for dereffed RX Enable task */
-    SYS_TimeoutTask_t rxEnableDeferredTask;
     /*!< Power Saving RX enable request */
     RF4CE_NWK_RXEnableReqDescr_t psRXEnableReq;
     /*!< General Purpose RX enable request */
@@ -270,8 +268,6 @@ typedef struct _RF4CE_NWK_StaticData_t
     SYS_QueueDescriptor_t startResetQueue;
     /*!< The NWK.RX-Enable requests queue */
     SYS_QueueDescriptor_t rxEnableQueue;
-    /*!< The NWK.RX-Enable deferred requests queue */
-    SYS_QueueDescriptor_t rxEnableDeferredQueue;
     /*!< The preserved space for incoming data packets */
     RF4CE_NWK_IncomingPacket_t incomingPackets[RF4CE_NWK_MAX_INCOMING_PACKETS];
     /*!< The only one existing outgoing packet */
@@ -375,10 +371,6 @@ extern const SYS_SchedulerTaskHandler_t rf4ceNWKTaskHandlers[];
         .nextElement = NULL \
     }, \
     .rxEnableQueue = \
-    { \
-        .nextElement = NULL \
-    }, \
-    .rxEnableDeferredQueue = \
     { \
         .nextElement = NULL \
     }, \

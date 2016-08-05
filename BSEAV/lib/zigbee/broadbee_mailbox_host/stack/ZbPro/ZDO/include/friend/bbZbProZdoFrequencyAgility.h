@@ -94,8 +94,8 @@
  * \par     Documentation
  *  See ZigBee Document 053474r20, annex E.
  */
-void zbProZdoFrequencyAgilityMacDataConfHandler(
-                const ZBPRO_NWK_NIB_TxTotal_t  nwkTxTotal);
+void zbProZdoFrequencyAgilityMacDataConfHandler(const ZBPRO_NWK_NIB_TxTotal_t nwkTxTotal,
+                                                const ZBPRO_NWK_NIB_TxTotal_t nwkTxFailures);
 
 
 #endif /* _BB_ZBPRO_ZDO_FREQUENCY_AGILITY_H */

@@ -103,7 +103,8 @@ through NEXUS_PlatformSettings as follows:
     platformSettings.securitySettings.xxx = xxx;
     NEXUS_Platform_Init(&platformSettings);
 
-The keyslot table can only be initialized once per power cycle of the chip, and on some chips the values of a previous initialization can be read back.  NEXUS_SecurityModule_GetCurrentSettings can read that information.
+The keyslot table can only be initialized once per power cycle of the chip, and on some chips the values of a previous initialization can be read back.
+NEXUS_SecurityModule_GetCurrentSettings can read that information.
 **/    
 NEXUS_ModuleHandle NEXUS_SecurityModule_Init(
     const NEXUS_SecurityModuleInternalSettings *pModuleSettings,

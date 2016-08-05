@@ -58,9 +58,7 @@ BDBG_MODULE(BSAGElib);
 #define SAGE_SUSPENDVAL_S3READY  0x534E8C53
 #define SAGE_SUSPENDVAL_S2READY  0x524E8C52
 
-/* maintain current system Power Management mode; starts in S0 */
-static BSAGElib_eStandbyMode _currentMode = BSAGElib_eStandbyModeOn;
-static uint32_t _suspendAddr = BSAGElib_GlobalSram_GetRegister(BSAGElib_GlobalSram_eSuspend);
+#define SAGE_SUSPENDADDR BSAGElib_GlobalSram_GetRegister(BSAGElib_GlobalSram_eSuspend)
 
 /* Local functions */
 static BERR_Code BSAGElib_P_Standby_S2(BSAGElib_ClientHandle hSAGElibClient, bool enter);
@@ -68,9 +66,10 @@ static BERR_Code BSAGElib_P_Standby_S3(BSAGElib_ClientHandle hSAGElibClient, boo
 
 /* Semi-private: reset variables on SAGE reset condition */
 void
-BSAGElib_P_Standby_Reset_isrsafe(void)
+BSAGElib_P_Standby_Reset_isrsafe(
+    BSAGElib_Handle hSAGElib)
 {
-    _currentMode = BSAGElib_eStandbyModeOn;
+    hSAGElib->currentMode = BSAGElib_eStandbyModeOn;
 }
 
 /* Handles S2 transitions (in and out) */
@@ -105,9 +104,9 @@ BSAGElib_P_Standby_S2(
             goto end;
         }
 
-        BDBG_MSG(("%s/enter: S2 'passive sleep' before write %x", __FUNCTION__, BREG_Read32(hSAGElib->core_handles.hReg, _suspendAddr)));
-        BREG_Write32(hSAGElib->core_handles.hReg, _suspendAddr, SAGE_SUSPENDVAL_SLEEP);
-        BDBG_MSG(("%s/enter: S2 'passive sleep' after write %x", __FUNCTION__, BREG_Read32(hSAGElib->core_handles.hReg, _suspendAddr)));
+        BDBG_MSG(("%s/enter: S2 'passive sleep' before write %x", __FUNCTION__, BREG_Read32(hSAGElib->core_handles.hReg, SAGE_SUSPENDADDR)));
+        BREG_Write32(hSAGElib->core_handles.hReg, SAGE_SUSPENDADDR, SAGE_SUSPENDVAL_SLEEP);
+        BDBG_MSG(("%s/enter: S2 'passive sleep' after write %x", __FUNCTION__, BREG_Read32(hSAGElib->core_handles.hReg, SAGE_SUSPENDADDR)));
 
         container->basicIn[1] = FrameworkModule_CommandId_eStandbyPassive;
 
@@ -127,16 +126,16 @@ BSAGElib_P_Standby_S2(
 
     }
     else {
-        suspendRegValue = BREG_Read32(hSAGElib->core_handles.hReg, _suspendAddr);
+        suspendRegValue = BREG_Read32(hSAGElib->core_handles.hReg, SAGE_SUSPENDADDR);
         BDBG_MSG(("%s/leave: S2 'passive sleep' %x", __FUNCTION__, suspendRegValue));
 
         if(suspendRegValue == SAGE_SUSPENDVAL_SLEEP){
             BDBG_MSG(("%s/leave: Command sent, waiting for SAGE to be ready for S2", __FUNCTION__));
-            while (BREG_Read32(hSAGElib->core_handles.hReg, _suspendAddr) != SAGE_SUSPENDVAL_S2READY) {
+            while (BREG_Read32(hSAGElib->core_handles.hReg, SAGE_SUSPENDADDR) != SAGE_SUSPENDVAL_S2READY) {
                 BKNI_Sleep(1);
             }
         }
-        BREG_Write32(hSAGElib->core_handles.hReg, _suspendAddr, SAGE_SUSPENDVAL_RESUME);
+        BREG_Write32(hSAGElib->core_handles.hReg, SAGE_SUSPENDADDR, SAGE_SUSPENDVAL_RESUME);
     }
 
 end:
@@ -201,7 +200,7 @@ BSAGElib_P_Standby_S3(
         allocatedKeyslot = true;
         BDBG_MSG(("%s/enter: Allocated M2M keyslot %d", __FUNCTION__, M2MKeySlotIO.keySlotNum));
 
-        BREG_Write32(hSAGElib->core_handles.hReg, _suspendAddr, SAGE_SUSPENDVAL_SLEEP);
+        BREG_Write32(hSAGElib->core_handles.hReg, SAGE_SUSPENDADDR, SAGE_SUSPENDVAL_SLEEP);
 
         /* Send the PM command to SAGE, associated the keyslot num and a memory block from CRR */
         container->basicIn[0] = M2MKeySlotIO.keySlotNum;
@@ -224,7 +223,7 @@ BSAGElib_P_Standby_S3(
 
         BDBG_MSG(("%s/enter: Command sent, waiting for SAGE to be ready for S3", __FUNCTION__));
 
-        while (BREG_Read32(hSAGElib->core_handles.hReg, _suspendAddr) != SAGE_SUSPENDVAL_S3READY) {
+        while (BREG_Read32(hSAGElib->core_handles.hReg, SAGE_SUSPENDADDR) != SAGE_SUSPENDVAL_S3READY) {
             BKNI_Sleep(1);
         }
 
@@ -238,7 +237,7 @@ BSAGElib_P_Standby_S3(
 
         BSAGElib_P_SageVklsInit(hSAGElib);
 
-        BREG_Write32(hSAGElib->core_handles.hReg, _suspendAddr, SAGE_SUSPENDVAL_RUN);
+        BREG_Write32(hSAGElib->core_handles.hReg, SAGE_SUSPENDADDR, SAGE_SUSPENDVAL_RUN);
         hSAGElib->resetPending = 1;
         if (hSAGElib->enablePinmux) {
             BSAGElib_P_Init_Serial(hSAGElib);
@@ -281,14 +280,16 @@ BSAGElib_Standby(
     BSAGElib_eStandbyMode mode)
 {
     BERR_Code rc = BERR_INVALID_PARAMETER;
+    BSAGElib_Handle hSAGElib = hSAGElibClient->hSAGElib;
 
     BDBG_ENTER(BSAGElib_Standby);
 
+    BDBG_OBJECT_ASSERT(hSAGElib, BSAGElib_P_Instance);
     BDBG_OBJECT_ASSERT(hSAGElibClient, BSAGElib_P_Client);
 
-    BDBG_MSG(("%s currentMode %d Mode %d",__FUNCTION__,_currentMode, mode));
+    BDBG_MSG(("%s currentMode %d Mode %d",__FUNCTION__,hSAGElib->currentMode, mode));
 
-    if((_currentMode != BSAGElib_eStandbyModeOn)&&(mode == BSAGElib_eStandbyModeOn))
+    if((hSAGElib->currentMode != BSAGElib_eStandbyModeOn)&&(mode == BSAGElib_eStandbyModeOn))
     {
         /*power up*/
         /*acquire SAGE power resources */
@@ -303,7 +304,7 @@ BSAGElib_Standby(
 #endif
     }
 
-    switch (_currentMode) {
+    switch (hSAGElib->currentMode) {
 
     case BSAGElib_eStandbyModeOn:
         /* currently in S0, not in standby
@@ -368,7 +369,7 @@ BSAGElib_Standby(
         goto end;
     }
 
-    if((_currentMode == BSAGElib_eStandbyModeOn)&&(mode != BSAGElib_eStandbyModeOn))
+    if((hSAGElib->currentMode == BSAGElib_eStandbyModeOn)&&(mode != BSAGElib_eStandbyModeOn))
     {
         /*power down*/
         /*release SAGE power resources */
@@ -388,11 +389,11 @@ BSAGElib_Standby(
 
 end:
     if (rc != BERR_SUCCESS) {
-        BDBG_ERR(("%s: cannot move from %u to %u", __FUNCTION__, _currentMode, mode));
+        BDBG_ERR(("%s: cannot move from %u to %u", __FUNCTION__, hSAGElib->currentMode, mode));
     }
     else {
-        BDBG_MSG(("%s: switched from %u to %u", __FUNCTION__, _currentMode, mode));
-        _currentMode = mode;
+        BDBG_MSG(("%s: switched from %u to %u", __FUNCTION__, hSAGElib->currentMode, mode));
+        hSAGElib->currentMode = mode;
     }
 
     BDBG_LEAVE(BSAGElib_Standby);

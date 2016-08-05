@@ -95,40 +95,15 @@ static void NEXUS_Platform_P_StopMonitor(void);
 #define NEXUS_MAX_I2C_CHANNELS 7
 #endif
 
-#ifndef NEXUS_HDMI_OUTPUT_I2C_CHANNEL
-#if   (BCHP_CHIP==7420) || \
-      (BCHP_CHIP==7125) || (BCHP_CHIP==7342)  || (BCHP_CHIP==7408)  || (BCHP_CHIP==7468) || \
-      (BCHP_CHIP==7231) || (BCHP_CHIP==7346)  || (BCHP_CHIP==7358)  || (BCHP_CHIP==7552) || \
-      (BCHP_CHIP==7344) || (BCHP_CHIP==7360)  || (BCHP_CHIP==7563)  || (BCHP_CHIP==7362) || \
-      (BCHP_CHIP==7228) || (BCHP_CHIP==75635) || (BCHP_CHIP==73625) || (BCHP_CHIP==73465)
-#define NEXUS_HDMI_OUTPUT_I2C_CHANNEL 0
-#elif (BCHP_CHIP==7340)
-#define NEXUS_HDMI_OUTPUT_I2C_CHANNEL 3
-#elif (BCHP_CHIP==7422)  || (BCHP_CHIP==7425)  || (BCHP_CHIP==7435)  || (BCHP_CHIP==7584)  || \
-      (BCHP_CHIP==7445)  || (BCHP_CHIP==7563)  || (BCHP_CHIP==7145)  || (BCHP_CHIP==7366)  || \
-      (BCHP_CHIP==7364)  || (BCHP_CHIP==7250)  || (BCHP_CHIP==75635) || (BCHP_CHIP==7586)  || \
-      (BCHP_CHIP==75845) || (BCHP_CHIP==75525) || (BCHP_CHIP==7268)  || (BCHP_CHIP==7271)  || \
-      (BCHP_CHIP==74371) || (BCHP_CHIP==7439 && (BCHP_VER >= BCHP_VER_B0))
-#define NEXUS_HDMI_OUTPUT_I2C_CHANNEL NEXUS_I2C_CHANNEL_HDMI_TX
-#elif BCHP_CHIP==7439 && (BCHP_VER == BCHP_VER_A0)
-#define NEXUS_HDMI_OUTPUT_I2C_CHANNEL NEXUS_I2C_CHANNEL_HDMI_TX
-#define NEXUS_HDMI_OUTPUT_I2C_CHANNEL_1 NEXUS_I2C_CHANNEL_HDMI_TX_1
-#elif (BCHP_CHIP==7429) || (BCHP_CHIP==74295)
-#define NEXUS_HDMI_OUTPUT_I2C_CHANNEL 2
-#else
-#error UNSUPPORTED CHIP
-#endif
+#ifndef NEXUS_I2C_CHANNEL_HDMI_TX
+/* define in nexus_platform_features.h */
+#define NEXUS_I2C_CHANNEL_HDMI_TX 0
 #endif
 
 #if BCHP_HDMI_TX_AUTO_I2C_REG_START && NEXUS_HAS_HDMI_OUTPUT
 #define AUTO_I2C_ENABLED 1
 #else
 #define AUTO_I2C_ENABLED 0
-#endif
-
-/* TODO: remove BCHP_CHIP list when able */
-#if ((BCHP_CHIP == 7563) || (BCHP_CHIP == 75635) || (BCHP_CHIP == 75525))
-#define DISPLAY_OPEN_REQUIRES_HDMI_OUTPUT 1
 #endif
 
 #if NEXUS_USE_7425_SV_BOARD || NEXUS_PLATFORM_7418SFF_H
@@ -240,11 +215,7 @@ NEXUS_Error NEXUS_Platform_P_Config(const NEXUS_PlatformSettings *pSettings)
 #endif
 
 
-#if BCHP_CHIP==7439 && (BCHP_VER == BCHP_VER_A0)
-            if (i==NEXUS_HDMI_OUTPUT_I2C_CHANNEL || i==NEXUS_HDMI_OUTPUT_I2C_CHANNEL_1)
-#else
-            if ( i == NEXUS_HDMI_OUTPUT_I2C_CHANNEL )
-#endif
+            if ( i == NEXUS_I2C_CHANNEL_HDMI_TX )
             {
                 const char *hdmi_i2c_software_mode = NEXUS_GetEnv("hdmi_i2c_software_mode");
                 #if NEXUS_HAS_HDMI_SOFTI2C_SUPPORT
@@ -264,16 +235,9 @@ NEXUS_Error NEXUS_Platform_P_Config(const NEXUS_PlatformSettings *pSettings)
             }
             else
             {
-#if BCHP_CHIP == 7125 || BCHP_CHIP == 7340 || \
-    BCHP_CHIP == 7342 || BCHP_CHIP == 7420 || BCHP_CHIP == 7468 || BCHP_CHIP == 7408
-                /* config 65nm frontend i2c to be slow */
-                i2cSettings.fourByteXferMode = false;
-                i2cSettings.clockRate = NEXUS_I2cClockRate_e100Khz;
-#else
-                /* default all other frontend i2c to be fast */
+                /* default all non-65nm frontend i2c to be fast */
                 i2cSettings.fourByteXferMode = true;
                 i2cSettings.clockRate = NEXUS_I2cClockRate_e400Khz;
-#endif
 #if NEXUS_PLATFORM_7241_T2SFF || NEXUS_PLATFORM_7241_DCSFBTSFF
                 i2cSettings.interruptMode = false;
 #endif
@@ -301,9 +265,10 @@ NEXUS_Error NEXUS_Platform_P_Config(const NEXUS_PlatformSettings *pSettings)
             BDBG_MSG(("i = %d, interruptMode = %d, autoI2c = %d, softI2c = %d, fourByteXferMode = %d, burstMode = %d",
                         i, i2cSettings.interruptMode, i2cSettings.autoI2c.enabled , i2cSettings.softI2c, i2cSettings.fourByteXferMode, i2cSettings.burstMode));
             pConfig->i2c[i] = NEXUS_I2c_Open(i, &i2cSettings);
-            BDBG_MSG(("pConfig->i2c[%d] = %p", i, (void *)pConfig->i2c[i]));
-            if(NULL == pConfig->i2c[i])
-                continue;
+            if (!pConfig->i2c[i]) {
+                /* NEXUS_I2c index is packed, so we can be done */
+                break;
+            }
         }
     }
 #endif
@@ -319,13 +284,7 @@ NEXUS_Error NEXUS_Platform_P_Config(const NEXUS_PlatformSettings *pSettings)
         }
 
         BDBG_MSG(("FPGA"));
-#if BCHP_CHIP == 7125
-        errCode = NEXUS_Fpga_Init(pConfig->i2c[2]);
-#elif BCHP_CHIP == 7468
-        errCode = NEXUS_Fpga_Init(pConfig->i2c[1]);
-#else
         errCode = NEXUS_Fpga_Init(pConfig->i2c[4]);
-#endif
         if ( errCode )
         {
             errCode = BERR_TRACE(errCode);
@@ -350,14 +309,6 @@ NEXUS_Error NEXUS_Platform_P_Config(const NEXUS_PlatformSettings *pSettings)
         NEXUS_InputBand_GetSettings(i, &inputBandSettings);
         orgSettings = inputBandSettings;
 
-#if (BCHP_CHIP == 7125)
-#if (NEXUS_PLATFORM == 97125) || (NEXUS_PLATFORM == 97025)
-        if (i == NEXUS_InputBand_e1)
-        {   /* Correct polarity for streamer */
-            inputBandSettings.clockActiveHigh= true;
-        }
-#endif
-#endif
 #if (NEXUS_PLATFORM == 97584) || (NEXUS_PLATFORM == 975845)
         if (i == NEXUS_InputBand_e9)
         {
@@ -386,51 +337,19 @@ NEXUS_Error NEXUS_Platform_P_Config(const NEXUS_PlatformSettings *pSettings)
             NEXUS_OBJECT_REGISTER(NEXUS_CompositeOutput, pConfig->outputs.composite[0], Create);
 
             NEXUS_CompositeOutput_GetSettings(pConfig->outputs.composite[0], &compositeCfg);
-    #if BCHP_CHIP == 7420
-            compositeCfg.dac = NEXUS_VideoDac_e4;
-    #elif BCHP_CHIP == 7422 || BCHP_CHIP == 7425 || BCHP_CHIP == 7435 || \
-          BCHP_CHIP == 7445 || BCHP_CHIP == 7145 || \
-          (BCHP_CHIP == 7250 && defined(NEXUS_USE_7250_SV)) || \
-          ((BCHP_CHIP == 7439) && (BCHP_VER >= BCHP_VER_B0))
+
+            #if ((BCHP_CHIP == 7422) || (BCHP_CHIP == 7425) ||          \
+                 (BCHP_CHIP == 7435) || (BCHP_CHIP == 7445) ||          \
+                 (BCHP_CHIP == 7250 && defined(NEXUS_USE_7250_SV)) ||   \
+                 (BCHP_CHIP == 7439) ||                                 \
+                 ((BCHP_CHIP == 7429 || BCHP_CHIP==74295) && (NEXUS_PLATFORM != 97241 || NEXUS_PLATFORM != 972415))) /* i.e. 7429[5] family execpt 7241[5] bond outs */
             compositeCfg.dac = NEXUS_VideoDac_e3;
-    #elif  BCHP_CHIP == 7468
-    #if (NEXUS_PLATFORM == 97208)
-            compositeCfg.dac = NEXUS_VideoDac_e3;
-    #else
-            compositeCfg.dac = NEXUS_VideoDac_e0;
-    #endif
-    #elif BCHP_CHIP == 7125 || BCHP_CHIP == 7408 || \
-          BCHP_CHIP == 7346 || BCHP_CHIP == 7344 || BCHP_CHIP == 7231 || \
-          BCHP_CHIP == 7358 || BCHP_CHIP == 7552 || BCHP_CHIP == 7360 || \
-          BCHP_CHIP == 7584 || BCHP_CHIP == 7563 || BCHP_CHIP == 7362 || \
-          BCHP_CHIP == 7228 || ((BCHP_CHIP == 7439) && (BCHP_VER == BCHP_VER_A0)) || \
-          BCHP_CHIP == 7366 || BCHP_CHIP == 7271 || BCHP_CHIP == 7268 || \
-          BCHP_CHIP == 7250 || BCHP_CHIP == 7364 || BCHP_CHIP == 74371 || BCHP_CHIP == 75635 || \
-          BCHP_CHIP == 7586 || BCHP_CHIP == 73625 || BCHP_CHIP == 75845 || BCHP_CHIP == 73465 || \
-          BCHP_CHIP == 75525
-            compositeCfg.dac = NEXUS_VideoDac_e0;
-    #elif BCHP_CHIP == 7429 || BCHP_CHIP==74295
-            #if NEXUS_PLATFORM == 97241 || NEXUS_PLATFORM == 972415
-            compositeCfg.dac = NEXUS_VideoDac_e0;
             #else
-            compositeCfg.dac = NEXUS_VideoDac_e3;
+            compositeCfg.dac = NEXUS_VideoDac_e0;
             #endif
-    #else
-            compositeCfg.dac = NEXUS_VideoDac_e2;
-    #endif
 
             errCode = NEXUS_CompositeOutput_SetSettings(pConfig->outputs.composite[0], &compositeCfg);
             if(errCode) {errCode = BERR_TRACE(BERR_NOT_SUPPORTED); goto error; }
-    #if NEXUS_NUM_COMPOSITE_OUTPUTS >= 2
-            pConfig->outputs.composite[1] = NEXUS_CompositeOutput_Open(1, NULL);
-            if(!pConfig->outputs.composite[1]) {errCode = BERR_TRACE(BERR_NOT_SUPPORTED); goto error; }
-            NEXUS_OBJECT_REGISTER(NEXUS_CompositeOutput, pConfig->outputs.composite[1], Create);
-
-            NEXUS_CompositeOutput_GetSettings(pConfig->outputs.composite[1], &compositeCfg);
-            compositeCfg.dac = NEXUS_VideoDac_e3;
-            errCode = NEXUS_CompositeOutput_SetSettings(pConfig->outputs.composite[1], &compositeCfg);
-            if(errCode) {errCode = BERR_TRACE(BERR_NOT_SUPPORTED); goto error; }
-    #endif
         }
 #endif
 
@@ -452,26 +371,11 @@ NEXUS_Error NEXUS_Platform_P_Config(const NEXUS_PlatformSettings *pSettings)
 
             NEXUS_ComponentOutput_GetSettings(pConfig->outputs.component[0], &componentCfg);
             componentCfg.type = NEXUS_ComponentOutputType_eYPrPb;
-    #if BCHP_CHIP == 7420 || BCHP_CHIP == 7422 || \
-        BCHP_CHIP == 7425 || BCHP_CHIP == 7435 || BCHP_CHIP == 7445 || \
-        BCHP_CHIP == 7145 || ((BCHP_CHIP == 7439) && (BCHP_VER >= BCHP_VER_B0))
+    #if BCHP_CHIP == 7422 || BCHP_CHIP == 7425 || BCHP_CHIP == 7435 || BCHP_CHIP == 7445 || \
+        ((BCHP_CHIP == 7439) && (BCHP_VER >= BCHP_VER_B0))
             componentCfg.dacs.YPrPb.dacY = NEXUS_VideoDac_e0;
             componentCfg.dacs.YPrPb.dacPr = NEXUS_VideoDac_e2;
             componentCfg.dacs.YPrPb.dacPb = NEXUS_VideoDac_e1;
-    #elif (BCHP_CHIP == 7468)  /* only on 97208. 97208 uses 7468 BCHP_CHIP*/
-            componentCfg.dacs.YPrPb.dacY = NEXUS_VideoDac_e1;
-            componentCfg.dacs.YPrPb.dacPr = NEXUS_VideoDac_e2;
-            componentCfg.dacs.YPrPb.dacPb = NEXUS_VideoDac_e0;
-    #elif BCHP_CHIP == 7125
-        #if (NEXUS_PLATFORM == 97019)
-            componentCfg.dacs.YPrPb.dacY = NEXUS_VideoDac_e5;
-            componentCfg.dacs.YPrPb.dacPr = NEXUS_VideoDac_e3;
-            componentCfg.dacs.YPrPb.dacPb = NEXUS_VideoDac_e4;
-        #else
-            componentCfg.dacs.YPrPb.dacY = NEXUS_VideoDac_e4;
-            componentCfg.dacs.YPrPb.dacPr = NEXUS_VideoDac_e5;
-            componentCfg.dacs.YPrPb.dacPb = NEXUS_VideoDac_e3;
-        #endif
     #elif BCHP_CHIP==7346 || BCHP_CHIP==7231 || BCHP_CHIP == 7584 || BCHP_CHIP == 75845 || BCHP_CHIP == 73465
             componentCfg.dacs.YPrPb.dacY = NEXUS_VideoDac_e2;
             componentCfg.dacs.YPrPb.dacPr = NEXUS_VideoDac_e3;
@@ -480,10 +384,6 @@ NEXUS_Error NEXUS_Platform_P_Config(const NEXUS_PlatformSettings *pSettings)
             componentCfg.dacs.YPrPb.dacY = NEXUS_VideoDac_e1;
             componentCfg.dacs.YPrPb.dacPr = NEXUS_VideoDac_e3;
             componentCfg.dacs.YPrPb.dacPb = NEXUS_VideoDac_e2;
-    #elif BCHP_CHIP == 7408
-            componentCfg.dacs.YPrPb.dacY = NEXUS_VideoDac_e1;
-            componentCfg.dacs.YPrPb.dacPr = NEXUS_VideoDac_e2;
-            componentCfg.dacs.YPrPb.dacPb = NEXUS_VideoDac_e3;
     #elif (BCHP_CHIP == 7358) || (BCHP_CHIP == 7552) || (BCHP_CHIP == 7360) || \
           (BCHP_CHIP == 7362) || (BCHP_CHIP == 7228) || (BCHP_CHIP == 73625)
             componentCfg.dacs.YPrPb.dacY = NEXUS_VideoDac_e2;
@@ -522,22 +422,8 @@ NEXUS_Error NEXUS_Platform_P_Config(const NEXUS_PlatformSettings *pSettings)
             NEXUS_OBJECT_REGISTER(NEXUS_SvideoOutput, pConfig->outputs.svideo[0], Create);
 
             NEXUS_SvideoOutput_GetSettings(pConfig->outputs.svideo[0], &svideoCfg);
-    #if BCHP_CHIP == 7420
-            svideoCfg.dacY = NEXUS_VideoDac_e6;
-            svideoCfg.dacC = NEXUS_VideoDac_e5;
-    #elif BCHP_CHIP == 7125
-            svideoCfg.dacY = NEXUS_VideoDac_e1;
-            svideoCfg.dacC = NEXUS_VideoDac_e2;
-    #elif BCHP_CHIP == 7342 || BCHP_CHIP==7340
             svideoCfg.dacY = NEXUS_VideoDac_e0;
             svideoCfg.dacC = NEXUS_VideoDac_e1;
-    #elif (BCHP_CHIP == 7468)  /*Svideo only on 7468 */
-            svideoCfg.dacY = NEXUS_VideoDac_e1;
-            svideoCfg.dacC = NEXUS_VideoDac_e2;
-    #else
-            svideoCfg.dacY = NEXUS_VideoDac_e0;
-            svideoCfg.dacC = NEXUS_VideoDac_e1;
-    #endif
             errCode = NEXUS_SvideoOutput_SetSettings(pConfig->outputs.svideo[0], &svideoCfg);
             if(errCode) {errCode = BERR_TRACE(BERR_NOT_SUPPORTED); goto error; }
         }
@@ -625,37 +511,20 @@ NEXUS_Error NEXUS_Platform_P_Config(const NEXUS_PlatformSettings *pSettings)
 #if NEXUS_HAS_HDMI_OUTPUT
         if ( pSettings->openI2c )
         {
-
+BDBG_CASSERT(NEXUS_NUM_HDMI_OUTPUTS <= NEXUS_MAX_HDMI_OUTPUTS);
             for(i=0 ; i < NEXUS_NUM_HDMI_OUTPUTS ; i++)
             {
-
-                NEXUS_HdmiOutputOpenSettings hdmiSettings ;
-                NEXUS_HdmiOutput_GetDefaultOpenSettings(&hdmiSettings);
-
-#if BCHP_CHIP==7439 && (BCHP_VER == BCHP_VER_A0)
-              if (i==1) {
-                 hdmiSettings.i2c = pConfig->i2c[NEXUS_HDMI_OUTPUT_I2C_CHANNEL_1];
-              } else
-#endif
-              hdmiSettings.i2c = pConfig->i2c[NEXUS_HDMI_OUTPUT_I2C_CHANNEL];
-              hdmiSettings.hotplugChangeThreshold = 50 ; /* # of HP Intrs in 1s that will disable HPD interrupts */
-                                                                            /* threshold of 0 disables excessive hotplugCheck */
-
-              /* SPD Infoframe settings */
-              hdmiSettings.spd.deviceType = NEXUS_HdmiSpdSourceDeviceType_eDigitalStb ;
-
-              BKNI_Snprintf((char *) &hdmiSettings.spd.vendorName, NEXUS_HDMI_SPD_VENDOR_NAME_MAX+1, "Broadcom") ;
-              BKNI_Snprintf((char *) &hdmiSettings.spd.description, NEXUS_HDMI_SPD_DESCRIPTION_MAX+1, "STB Refsw Design") ;
-
-              pConfig->outputs.hdmi[i] = NEXUS_HdmiOutput_Open(i, &hdmiSettings);
-              if ( NULL == pConfig->outputs.hdmi[i] )
-              {
-                 errCode = BERR_TRACE(BERR_NOT_SUPPORTED);
-                 goto error;
-              }
-              NEXUS_OBJECT_REGISTER(NEXUS_HdmiOutput, pConfig->outputs.hdmi[i], Create);
+                NEXUS_HdmiOutputOpenSettings openSettings = pSettings->hdmiOutputOpenSettings[i];
+                openSettings.i2c = pConfig->i2c[NEXUS_I2C_CHANNEL_HDMI_TX];
+                pConfig->outputs.hdmi[i] = NEXUS_HdmiOutput_Open(i, &openSettings);
+                if ( NULL == pConfig->outputs.hdmi[i] )
+                {
+                    errCode = BERR_TRACE(BERR_NOT_SUPPORTED);
+                    goto error;
+                }
+                NEXUS_OBJECT_REGISTER(NEXUS_HdmiOutput, pConfig->outputs.hdmi[i], Create);
             }
-#if DISPLAY_OPEN_REQUIRES_HDMI_OUTPUT
+#if NEXUS_DISPLAY_OPEN_REQUIRES_HDMI_OUTPUT
             if (pConfig->outputs.hdmi[0]) {
                 NEXUS_Module_Lock(g_NEXUS_platformHandles.display);
                 NEXUS_DisplayModule_AddRequiredOutput_priv(NEXUS_HdmiOutput_GetVideoConnector(pConfig->outputs.hdmi[0]));
@@ -879,7 +748,7 @@ void NEXUS_Platform_P_Shutdown(void)
     }
 #endif
 #if NEXUS_HAS_HDMI_OUTPUT
-#if DISPLAY_OPEN_REQUIRES_HDMI_OUTPUT
+#if NEXUS_DISPLAY_OPEN_REQUIRES_HDMI_OUTPUT
     if (pConfig->outputs.hdmi[0]) {
         NEXUS_Module_Lock(g_NEXUS_platformHandles.display);
         NEXUS_DisplayModule_RemoveRequiredOutput_priv(NEXUS_HdmiOutput_GetVideoConnector(pConfig->outputs.hdmi[0]));

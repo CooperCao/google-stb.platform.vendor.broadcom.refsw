@@ -403,10 +403,8 @@ NEXUS_VideoInput_P_Create_VdcSource(NEXUS_VideoInput source, NEXUS_VideoInput_P_
         rc = nexus_p_install_videoinput_cb(link);
         if (rc) {rc = BERR_TRACE(rc); goto err_install_videoinput_cb;}
 
-        if(pVideo->updateMode != NEXUS_DisplayUpdateMode_eAuto) {rc=BERR_TRACE(NEXUS_NOT_SUPPORTED);}
-        rc = BVDC_ApplyChanges(pVideo->vdc);
+        rc = NEXUS_Display_P_ApplyChanges();
         if (rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc); goto err_apply_changes;}
-
     }
 
     BDBG_MSG(("<NEXUS_VideoInput_P_Create_VdcSource %s %p:%d", link->copiedSourceVdc?"copied":"created", (void *)link->sourceVdc, data->sourceId));

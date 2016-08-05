@@ -279,7 +279,6 @@ nxserver_t nxserver_init(int argc, char **argv, bool blocking)
     NEXUS_Error rc;
     NEXUS_PlatformSettings platformSettings;
     NEXUS_MemoryConfigurationSettings memConfigSettings;
-    NEXUS_PlatformCapabilities platformCap;
     struct nxserver_settings settings;
     struct nxserver_cmdline_settings cmdline_settings;
 
@@ -297,24 +296,14 @@ nxserver_t nxserver_init(int argc, char **argv, bool blocking)
     nxserver_get_default_settings(&settings);
     NEXUS_Platform_GetDefaultSettings(&platformSettings);
     NEXUS_GetDefaultMemoryConfigurationSettings(&memConfigSettings);
-    NEXUS_GetPlatformCapabilities(&platformCap);
-
-    /* display[1] will always be either SD or transcode */
-    if (!platformCap.display[1].supported || platformCap.display[1].encoder) {
-        unsigned i;
-        for (i = 0 ; i < NXCLIENT_MAX_SESSIONS ; i++)
-            settings.session[i].output.sd = false;
-    }
-    /* display[0] will always be either HD, or system is headless */
-    if (!platformCap.display[0].supported || platformCap.display[0].encoder) {
-        unsigned i;
-        for (i = 0 ; i < NXCLIENT_MAX_SESSIONS ; i++)
-            settings.session[i].output.hd = false;
-    }
 
     /* optional: modify settings by cmdline options */
     rc = nxserver_parse_cmdline(argc, argv, &settings, &cmdline_settings);
     if (rc) return NULL;
+
+#if NXSERVER_CUSTOM_HOOK
+    nxserver_modify_settings(&settings);
+#endif
 
     rc = nxserver_modify_platform_settings(&settings, &cmdline_settings, &platformSettings, &memConfigSettings);
     if (rc) return NULL;
@@ -330,6 +319,10 @@ nxserver_t nxserver_init(int argc, char **argv, bool blocking)
     settings.memConfigSettings = memConfigSettings;
     g_app.server = nxserverlib_init(&settings);
     if (!g_app.server) return NULL;
+
+#if NXSERVER_CUSTOM_HOOK
+    nxserver_modify_server(g_app.server);
+#endif
 
     rc = nxserver_ipc_init(g_app.server, g_app.lock);
     if (rc) {BERR_TRACE(rc); return NULL;}

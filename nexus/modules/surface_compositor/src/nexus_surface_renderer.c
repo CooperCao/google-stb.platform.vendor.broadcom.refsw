@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2011-2014 Broadcom Corporation
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  **************************************************************************/
 #include "nexus_surface_compositor_module.h"
@@ -395,6 +387,7 @@ static void nexus_surface_compositor_compositing_completed(NEXUS_SurfaceComposit
         }
         framebuffer->scene.dirty = server->renderState.tunnel.rect;
         display->composited = framebuffer;
+        display->lastComposited = framebuffer;
         framebuffer->state = NEXUS_SurfaceCompositorFramebufferState_eComposited;
         if(server->renderState.tunnel.tunnelSource && server->renderState.tunnel.tunnelSource->state == NEXUS_SurfaceCompositorFramebufferState_eTunnelSubmitted) {
             nexus_surface_compositor_p_return_tunnel_framebuffer(display,server->renderState.tunnel.tunnelSource);
@@ -435,7 +428,8 @@ static void nexus_surface_compositor_p_blitter_complete(NEXUS_SurfaceCompositorH
         nexus_surface_compositor_p_update_dirty_clients_done(compositor);
         break;
     default:
-        BDBG_ASSERT(0);
+        /* can happen when recreating secure blitter */
+        break;
     }
     BDBG_MSG_TRACE(("%p:blitter_complete done %#x", (void *)compositor, compositor->state.blitter.active));
     BDBG_ASSERT(compositor->state.blitter.active==0);
@@ -734,6 +728,7 @@ void nexus_surface_compositor_p_render_framebuffer(NEXUS_SurfaceCompositorHandle
         server->renderState.step = taskFill;
     }
     if(server->renderState.step == taskFill) {
+        const struct NEXUS_SurfaceCompositorFramebuffer *dirtyFramebuffer = framebuffer;
         if(server->renderState.current==0) {
             /* verify whether there are any 'full screen' elements thus making fill step unnecessary */
             for(i=0;i<server->renderState.elements.count;i++) {
@@ -750,13 +745,17 @@ void nexus_surface_compositor_p_render_framebuffer(NEXUS_SurfaceCompositorHandle
 
         server->renderState.fillSettings.color = cmpDisplay->backgroundColor;
         if(server->bounceBufferMasterFramebuffer.buffer==NULL) {
+            dirtyFramebuffer = framebuffer;
             server->renderState.fillSettings.surface = framebuffer->surface;
         } else {
+            if(cmpDisplay->lastComposited) {
+                dirtyFramebuffer = cmpDisplay->lastComposited;
+            }
             server->renderState.fillSettings.surface = server->bounceBufferMasterFramebuffer.buffer;
         }
         if(!server->renderState.tunnel.active) { /* we don't support incremental fill of tunneled client */
-            if(framebuffer->scene.dirty.width && framebuffer->scene.dirty.height) {
-                server->renderState.fillSettings.rect = framebuffer->scene.dirty; 
+            if(dirtyFramebuffer->scene.dirty.width && dirtyFramebuffer->scene.dirty.height) {
+                server->renderState.fillSettings.rect = dirtyFramebuffer->scene.dirty;
                 BDBG_MSG_TRACE(("clear dirty:%#lx:%#lx [%u,%u %ux%u]", (unsigned long)server, (unsigned long)cmpDisplay, server->renderState.fillSettings.rect.x, server->renderState.fillSettings.rect.y, server->renderState.fillSettings.rect.width, server->renderState.fillSettings.rect.height));
                 rc = NEXUS_Graphics2D_Fill(server->gfx, &server->renderState.fillSettings);
                 /* TODO: if (rc == NEXUS_GRAPHICS2D_QUEUE_FULL) */
@@ -765,8 +764,8 @@ void nexus_surface_compositor_p_render_framebuffer(NEXUS_SurfaceCompositorHandle
             }
         }
 
-        for(;server->renderState.current<framebuffer->scene.elements.count;server->renderState.current++) {
-            data = framebuffer->scene.elements.data + server->renderState.current;
+        for(;server->renderState.current<dirtyFramebuffer->scene.elements.count;server->renderState.current++) {
+            data = dirtyFramebuffer->scene.elements.data + server->renderState.current;
             server->renderState.fillSettings.rect = data->outputRect;
             BDBG_MSG_TRACE(("clear prev:%#lx :%#lx:%#lx [%u,%u %ux%u]", (unsigned long)server, (unsigned long)cmpDisplay, (unsigned long)data->sourceSurface, server->renderState.fillSettings.rect.x, server->renderState.fillSettings.rect.y, server->renderState.fillSettings.rect.width, server->renderState.fillSettings.rect.height));
             rc = NEXUS_Graphics2D_Fill(server->gfx, &server->renderState.fillSettings);

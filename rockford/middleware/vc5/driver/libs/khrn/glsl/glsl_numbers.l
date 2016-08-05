@@ -23,6 +23,7 @@
 %option batch
 %option noyywrap nounistd nounput noinput
 %option bison-bridge
+%option reentrant
 
 DS       [0-9]+
 EXP      [eE][-+]?{DS}
@@ -39,19 +40,19 @@ INTSUFF  [uU]
 
 {FRAC}{EXP}?{FS}?|{DS}{EXP}{FS}? {
                           // Cast from double and then copy bits.
-                          *yylval = gfx_float_to_bits((float)atof(nntext));
+                          *yylval = gfx_float_to_bits((float)atof(yytext));
                           return NUM_FLOAT;
                        }
 
 {INTDEC}|{INTOCT}|{INTHEX} {
                               // Base of 0 does automatic dec/oct/hex recognition.
-                              *yylval = (uint32_t)strtoul(nntext, (char**)NULL, 0);
+                              *yylval = (uint32_t)strtoul(yytext, NULL, 0);
                               return NUM_INT;
                            }
 
 {INTDEC}{INTSUFF}|{INTOCT}{INTSUFF}|{INTHEX}{INTSUFF} {
                               // Base of 0 does automatic dec/oct/hex recognition.
-                              *yylval = (uint32_t)strtoul(strtok(nntext, "uU"), (char**)NULL, 0);
+                              *yylval = (uint32_t)strtoul(strtok(yytext, "uU"), NULL, 0);
                               return NUM_UINT;
                            }
 
@@ -62,17 +63,20 @@ INTSUFF  [uU]
 
 int numlex(const char *s, uint32_t *value)
 {
-   int t;
-   YY_BUFFER_STATE yy_buf = nn_scan_string(s);
+   yyscan_t lexer;
+   nnlex_init(&lexer);
 
-   t = nnlex(value);
+   YY_BUFFER_STATE yy_buf = nn_scan_string(s, lexer);
+
+   int t = nnlex(value, lexer);
    assert(t != END_OF_INPUT);    /* There must have been some token */
 
    /* If there's any remaining string then the number is invalid */
-   if(t != NUM_INVALID && nnlex(value) != END_OF_INPUT)
+   if(t != NUM_INVALID && nnlex(value, lexer) != END_OF_INPUT)
       t = NUM_INVALID;
 
-   nn_delete_buffer(yy_buf);
+   nn_delete_buffer(yy_buf, lexer);
+   nnlex_destroy(lexer);
 
    return t;
 }
