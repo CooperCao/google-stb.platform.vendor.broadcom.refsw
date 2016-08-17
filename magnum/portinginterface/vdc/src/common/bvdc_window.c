@@ -696,16 +696,6 @@ BERR_Code BVDC_Window_SetDstRect
 			hWindow->eId, ulWidth, ulHeight));
 	}
 
-	/* 4:2:2 BVB round down the pixel position and width to even number */
-	if((BVDC_P_WIN_IS_VIDEO_WINDOW(hWindow->eId) &&
-	   ((lLeft & 1) || (ulWidth & 1))))
-	{
-		BDBG_MSG(("left=%d, width=%u; to round down to even pixels:", lLeft, ulWidth));
-		lLeft   = BVDC_P_ALIGN_DN(lLeft, 2);
-		ulWidth = BVDC_P_ALIGN_DN(ulWidth, 2);
-		BDBG_MSG(("left=%d, width=%u now!", lLeft, ulWidth));
-	}
-
 	/* set new value */
 	hWindow->stNewInfo.stDstRect.lLeft    = lLeft;
 	hWindow->stNewInfo.stDstRect.lTop     = lTop;
@@ -780,13 +770,11 @@ BERR_Code BVDC_Window_SetScalerOutput
 	}
 
 	/* 4:2:2 BVB round down the pixel position and width to even number */
-	if((BVDC_P_WIN_IS_VIDEO_WINDOW(hWindow->eId) &&
-	   ((ulLeft & 1) || (ulWidth & 1))))
+	if(BVDC_P_WIN_IS_VIDEO_WINDOW(hWindow->eId) && (ulWidth & 1))
 	{
-		BDBG_MSG(("left=%d, width=%u; to round down to even pixels:", ulLeft, ulWidth));
-		ulLeft  = BVDC_P_ALIGN_DN(ulLeft, 2);
-		ulWidth = BVDC_P_ALIGN_DN(ulWidth, 2);
-		BDBG_MSG(("left=%d, width=%u now!", ulLeft, ulWidth));
+		BDBG_MSG(("width=%u; to round up to even pixels:", ulWidth));
+		ulWidth = BVDC_P_ALIGN_UP(ulWidth, 2);
+		BDBG_MSG((" width=%u now!", ulWidth));
 	}
 
 	if((ulWidth < BVDC_P_WIN_DST_OUTPUT_H_MIN) ||(ulHeight < BVDC_P_WIN_DST_OUTPUT_V_MIN))
