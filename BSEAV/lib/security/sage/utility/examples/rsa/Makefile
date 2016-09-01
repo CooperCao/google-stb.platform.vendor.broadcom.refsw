@@ -73,6 +73,10 @@ SRAI_TOP  ?= ${SAGE_PUBLIC_TOP}/srai
 include ${MAGNUM_TOP}/syslib/sagelib/bsagelib_public.inc
 include ${BSEAV_TOP}/lib/security/sage/utility/utility.inc
 
+ifeq ($(NXCLIENT_SUPPORT),y)
+include $(URSR_TOP)/nexus/nxclient/include/nxclient.inc
+endif
+
 APP = brcm_utility_rsa_tool
 
 # Add example sources
@@ -88,12 +92,20 @@ APP_INCLUDES  = ${BSAGELIB_INCLUDES} \
                 ${SAGE_PUBLIC_TOP}/include \
                 ${UTILITY_INCLUDES} \
                 ${SAGE_PUBLIC_TOP}/platforms/include
+
+ifeq ($(NXCLIENT_SUPPORT),y)
+APP_INCLUDE += ${NXCLIENT_INCLUDES}
+endif
+
 # include cross-compiler definitions
 include ${NEXUS_TOP}/platforms/${NEXUS_PLATFORM}/build/platform_app.inc
 
 #srai lib path first to get latest SRAI lib
 LDFLAGS += -L${B_REFSW_OBJ_ROOT}/BSEAV/lib/security/sage/srai -lsrai
 LDFLAGS += -L${NEXUS_BIN_DIR} -lnexus -lutility
+ifeq ($(NXCLIENT_SUPPORT),y)
+LDFLAGS += ${NXCLIENT_LDFLAGS}
+endif
 LDFLAGS +=  -lpthread -lm
 
 #debug symbols
@@ -101,6 +113,10 @@ CFLAGS += -g
 
 CFLAGS += $(addprefix -I,${APP_INCLUDES})
 CFLAGS += $(addprefix -I,${BSAGELIB_INCLUDES})
+CFLAGS += $(addprefix -D,${BSAGELIB_DEFINES})
+ifeq ($(NXCLIENT_SUPPORT),y)
+CFLAGS += $(NXCLIENT_CFLAGS)
+endif
 CFLAGS += -DPIC -fpic
 
 # This is the minimum needed to compile and link with Nexus
@@ -111,7 +127,7 @@ CFLAGS += -std=c99
 
 .PHONY: all clean uninstall install re
 
-all: ${APP}
+all: srai prep_utility prep_nexus ${APP}
 
 # Implicit rule for building local apps
 ${APP}: ${OBJS}
@@ -133,6 +149,19 @@ srai:
 prep_utility:
 	@echo [Building Utility lib ...]
 	make -C ${SAGE_PUBLIC_TOP}/utility re
+
+prep_nexus:
+ifeq ($(NXCLIENT_SUPPORT),y)
+	@if [ ! -e $(NEXUS_TOP)/../obj.$(NEXUS_PLATFORM)/nexus/bin/nxserver ]; then \
+		echo [ building nxclient .... ] && \
+		$(MAKE) -C $(NEXUS_TOP)/nxclient >/dev/null; \
+	fi
+else
+	@if [ ! -e $(NEXUS_TOP)/../obj.$(NEXUS_PLATFORM)/nexus/bin/libnexus.so ]; then \
+		echo [ building nexus .... ] && \
+		$(MAKE) -C $(NEXUS_TOP)/build >/dev/null; \
+	fi
+endif
 
 uninstall:
 	@echo [Uninstall... ${APP}]
