@@ -42,6 +42,7 @@
 
 #include <string.h>
 #include <errno.h>
+#include <sys/stat.h>
 
 #include "nexus_memory.h"
 #include "nexus_platform_client.h"
@@ -120,6 +121,9 @@ static DmaBlockInfo_t **gWvDmaBlockInfoList;
 #define MAX_SG_DMA_BLOCKS DRM_COMMON_TL_MAX_DMA_BLOCKS
 #define WV_OEMCRYPTO_FIRST_SUBSAMPLE 1
 #define WV_OEMCRYPTO_LAST_SUBSAMPLE 2
+
+#define NUM_CURRENT_TIME_RETRIES 15
+#define RETRY_TIMEOUT_MSEC 1000
 
 /* Enable S/G only for Android at this point, since we know for a fact that
  * it requires as much optimization as possible for Secure Video Playback */
@@ -261,6 +265,11 @@ DrmRC DRM_WVOemCrypto_Initialize(Drm_WVOemCryptoParamSettings_t *pWvOemCryptoPar
     DrmRC rc = Drm_Success;
     BSAGElib_InOutContainer *container = NULL;
     time_t current_time = 0;
+    char *pActiveUsageTableFilePath = NULL;
+    FILE * fptr = NULL;
+    struct stat fstats;
+    int fd;
+    int retry = 0;
 
     BDBG_ENTER(DRM_WVOemCrypto_Initialize);
 
@@ -283,6 +292,39 @@ DrmRC DRM_WVOemCrypto_Initialize(Drm_WVOemCryptoParamSettings_t *pWvOemCryptoPar
         goto ErrorExit;
     }
 
+    BKNI_Memset(&fstats, 0, sizeof(struct stat));
+
+    if(access(USAGE_TABLE_FILE_PATH, R_OK) == 0)
+    {
+        pActiveUsageTableFilePath = USAGE_TABLE_FILE_PATH;
+    }
+    else if(access(USAGE_TABLE_BACKUP_FILE_PATH, R_OK) == 0)
+    {
+        pActiveUsageTableFilePath = USAGE_TABLE_BACKUP_FILE_PATH;
+    }
+
+    if(pActiveUsageTableFilePath != NULL)
+    {
+        fptr = fopen(pActiveUsageTableFilePath, "rb");
+        if(fptr == NULL)
+        {
+            BDBG_ERR(("%s - Error opening usage table file (%s)", __FUNCTION__, pActiveUsageTableFilePath));
+            rc = Drm_Err;
+            *wvRc = SAGE_OEMCrypto_ERROR_INIT_FAILED ;
+            goto ErrorExit;
+        }
+
+        fd = fileno(fptr);
+
+        if (fstat(fd, &fstats) < 0)
+        {
+            BDBG_ERR(("%s - Error accessing usage table file (%s)", __FUNCTION__, pActiveUsageTableFilePath));
+            rc = Drm_Err;
+            *wvRc = SAGE_OEMCrypto_ERROR_INIT_FAILED ;
+            goto ErrorExit;
+        }
+    }
+
     container = SRAI_Container_Allocate();
     if(container == NULL)
     {
@@ -292,9 +334,27 @@ DrmRC DRM_WVOemCrypto_Initialize(Drm_WVOemCryptoParamSettings_t *pWvOemCryptoPar
         goto ErrorExit;
     }
 
+    /* System time sanity check */
     current_time = time(NULL);
+    BDBG_MSG(("%s - current EPOCH time = '%ld' ", __FUNCTION__, current_time));
+    BDBG_MSG(("%s - last modified time of usage table = '%ld' ", __FUNCTION__, fstats.st_mtime));
+    while (current_time < fstats.st_mtime)
+    {
+        retry++;
+        if (retry > NUM_CURRENT_TIME_RETRIES)
+        {
+            current_time = time(NULL);
+            BDBG_ERR(("%s - (setting)current EPOCH time = '%ld' ", __FUNCTION__, current_time));
+            break;
+        }
+
+        BKNI_Sleep(RETRY_TIMEOUT_MSEC);
+        current_time = time(NULL);
+        BDBG_ERR(("%s - (retry %d)current EPOCH time = '%ld' ", __FUNCTION__, retry, current_time));
+    }
+
     container->basicIn[0] = current_time;
-    BDBG_MSG(("%s - current EPOCH time ld = '%ld' ", __FUNCTION__, current_time));
+
     /*
      * For the Usage Table, either we're going to read it from the rootfs
      * OR expect it to be created on the SAGE side and returned.
@@ -376,6 +436,11 @@ DrmRC DRM_WVOemCrypto_Initialize(Drm_WVOemCryptoParamSettings_t *pWvOemCryptoPar
     }
 
 ErrorExit:
+
+    if(fptr != NULL){
+        fclose(fptr);
+        fptr = NULL;
+    }
 
     if(container != NULL)
     {
@@ -5367,7 +5432,7 @@ DRM_WvOemCrypto_P_ReadUsageTable(uint8_t *pUsageTableSharedMemory, uint32_t *pUs
         if(bOnlyUsageTableBackupExits == true){
             BDBG_ERR(("%s - Invalid state", __FUNCTION__));
         }
-        rc = Drm_Err;
+        rc = Drm_FileErr;
         goto ErrorExit;
     }
 
