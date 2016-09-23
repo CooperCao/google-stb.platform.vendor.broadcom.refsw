@@ -5446,7 +5446,8 @@ DRM_WvOemCrypto_P_ReadUsageTable(uint8_t *pUsageTableSharedMemory, uint32_t *pUs
         {
             BDBG_ERR(("%s - Error comparing SHA of '%s'", __FUNCTION__, pActiveUsageTableFilePath));
 
-            if(!bOnlyUsageTableBackupExists || pActiveUsageTableFilePath == USAGE_TABLE_BACKUP_FILE_PATH)
+            if(!bOnlyUsageTableBackupExists ||
+                !strncmp(pActiveUsageTableFilePath, USAGE_TABLE_BACKUP_FILE_PATH, strlen(USAGE_TABLE_BACKUP_FILE_PATH)))
             {
                 /* Usage tables corrupted, we need to wipe and recreate */
                 rc = Drm_FileErr;
