@@ -5353,89 +5353,128 @@ DRM_WvOemCrypto_P_ReadUsageTable(uint8_t *pUsageTableSharedMemory, uint32_t *pUs
     uint32_t filesize = 0;
     uint32_t read_size = 0;
     uint8_t *usage_table_buff = NULL;
-    bool bOnlyUsageTableBackupExits = false;
+    bool bOnlyUsageTableBackupExists = false;
     char *pActiveUsageTableFilePath = NULL;
     uint8_t digest[32] = {0x00};
+    bool integrity_valid = false;
 
     BDBG_ENTER(DRM_WvOemCrypto_P_ReadUsageTable);
 
     /* if module uses a bin file - read it and add it to the container */
-
     BDBG_MSG(("%s - Attempting to read Usage Table at filepath '%s'", __FUNCTION__, USAGE_TABLE_FILE_PATH));
+
+    /* Verify backup file accessible */
+    if(access(USAGE_TABLE_BACKUP_FILE_PATH, R_OK|W_OK) != 0)
+    {
+        BDBG_ERR(("%s - '%s' not detected or file is not read/writeable (errno = %s)", __FUNCTION__, USAGE_TABLE_BACKUP_FILE_PATH, strerror(errno)));
+        bOnlyUsageTableBackupExists = false;
+        /* Continue onwards as main usage table may still be accessible */
+    }
+    else
+    {
+        bOnlyUsageTableBackupExists = true;
+    }
+
     if(access(USAGE_TABLE_FILE_PATH, R_OK|W_OK) != 0)
     {
-        BDBG_ERR(("%s - '%s' not detected or file is not read/writeable (errno = %s), verifying backup...", __FUNCTION__, USAGE_TABLE_FILE_PATH, strerror(errno)));
-        if(access(USAGE_TABLE_BACKUP_FILE_PATH, R_OK|W_OK) != 0)
+        BDBG_ERR(("%s - '%s' not detected or file is not read/writeable (errno = %s)", __FUNCTION__, USAGE_TABLE_FILE_PATH, strerror(errno)));
+        if(!bOnlyUsageTableBackupExists)
         {
             BDBG_ERR(("%s - '%s' not detected or file is not read/writeable (errno = %s)", __FUNCTION__, USAGE_TABLE_BACKUP_FILE_PATH, strerror(errno)));
             rc = Drm_FileErr;
             goto ErrorExit;
         }
-        bOnlyUsageTableBackupExits = true;
-        pActiveUsageTableFilePath = USAGE_TABLE_BACKUP_FILE_PATH;
+        else
+        {
+            pActiveUsageTableFilePath = USAGE_TABLE_BACKUP_FILE_PATH;
+        }
     }
-    else{
+    else
+    {
         pActiveUsageTableFilePath = USAGE_TABLE_FILE_PATH;
     }
 
-    /*
-     * determine file size and read
-     * */
-    rc = DRM_Common_P_GetFileSize(pActiveUsageTableFilePath, &filesize);
-    if(rc != Drm_Success)
+    while(!integrity_valid)
     {
-        BDBG_ERR(("%s - Error determine file size of bin file", __FUNCTION__));
-        rc = Drm_Err;
-        goto ErrorExit;
-    }
-
-    DRM_Common_MemoryAllocate(&usage_table_buff, filesize);
-    if(usage_table_buff == NULL)
-    {
-        BDBG_ERR(("%s - Error allocating '%u' bytes", __FUNCTION__, filesize));
-        rc = Drm_MemErr;
-        goto ErrorExit;
-    }
-
-    fptr = fopen(pActiveUsageTableFilePath, "rb");
-    if(fptr == NULL)
-    {
-        BDBG_ERR(("%s - Error opening drm bin file (%s)", __FUNCTION__, pActiveUsageTableFilePath));
-        rc = Drm_Err;
-        goto ErrorExit;
-    }
-
-    read_size = fread(usage_table_buff, 1, filesize, fptr);
-    if(read_size != filesize)
-    {
-        BDBG_ERR(("%s - Error reading Usage Table file size (%u != %u)", __FUNCTION__, read_size, filesize));
-        rc = Drm_Err;
-        goto ErrorExit;
-    }
-
-    /*
-     * Verify integrity before sending to SAGE
-     * */
-    rc = DRM_Common_SwSha256(usage_table_buff, digest, filesize-SHA256_DIGEST_SIZE);
-    if(rc != Drm_Success)
-    {
-        BDBG_ERR(("%s - Error calculating SHA of '%s'", __FUNCTION__, pActiveUsageTableFilePath));
-        rc = Drm_Err;
-        goto ErrorExit;
-    }
-
-    if(BKNI_Memcmp(digest, &usage_table_buff[filesize-SHA256_DIGEST_SIZE], SHA256_DIGEST_SIZE) != 0)
-    {
-        BDBG_ERR(("%s - Error comparing SHA of '%s'", __FUNCTION__, pActiveUsageTableFilePath));
-
-        /* What if this is the backup?!  start from scratch (erase both)?! fail out?! */
-        if(bOnlyUsageTableBackupExits == true){
-            BDBG_ERR(("%s - Invalid state", __FUNCTION__));
+        /*
+         * determine file size and read
+         * */
+        rc = DRM_Common_P_GetFileSize(pActiveUsageTableFilePath, &filesize);
+        if(rc != Drm_Success)
+        {
+            BDBG_ERR(("%s - Error determine file size of bin file", __FUNCTION__));
+            rc = Drm_Err;
+            goto ErrorExit;
         }
-        rc = Drm_FileErr;
-        goto ErrorExit;
-    }
 
+        DRM_Common_MemoryAllocate(&usage_table_buff, filesize);
+        if(usage_table_buff == NULL)
+        {
+            BDBG_ERR(("%s - Error allocating '%u' bytes", __FUNCTION__, filesize));
+            rc = Drm_MemErr;
+            goto ErrorExit;
+        }
+
+        fptr = fopen(pActiveUsageTableFilePath, "rb");
+        if(fptr == NULL)
+        {
+            BDBG_ERR(("%s - Error opening drm bin file (%s)", __FUNCTION__, pActiveUsageTableFilePath));
+            rc = Drm_Err;
+            goto ErrorExit;
+        }
+
+        read_size = fread(usage_table_buff, 1, filesize, fptr);
+        if(read_size != filesize)
+        {
+            BDBG_ERR(("%s - Error reading Usage Table file size (%u != %u)", __FUNCTION__, read_size, filesize));
+            rc = Drm_Err;
+            goto ErrorExit;
+        }
+
+        /*
+         * Verify integrity before sending to SAGE
+         * */
+        rc = DRM_Common_SwSha256(usage_table_buff, digest, filesize-SHA256_DIGEST_SIZE);
+        if(rc != Drm_Success)
+        {
+            BDBG_ERR(("%s - Error calculating SHA of '%s'", __FUNCTION__, pActiveUsageTableFilePath));
+            rc = Drm_Err;
+            goto ErrorExit;
+        }
+
+        if(BKNI_Memcmp(digest, &usage_table_buff[filesize-SHA256_DIGEST_SIZE], SHA256_DIGEST_SIZE) != 0)
+        {
+            BDBG_ERR(("%s - Error comparing SHA of '%s'", __FUNCTION__, pActiveUsageTableFilePath));
+
+            if(!bOnlyUsageTableBackupExists || pActiveUsageTableFilePath == USAGE_TABLE_BACKUP_FILE_PATH)
+            {
+                /* Usage tables corrupted, we need to wipe and recreate */
+                rc = Drm_FileErr;
+                goto ErrorExit;
+            }
+            else
+            {
+                /* Time to call for backup */
+                if(usage_table_buff != NULL)
+                {
+                    DRM_Common_MemoryFree(usage_table_buff);
+                    usage_table_buff = NULL;
+                }
+                if(fptr != NULL)
+                {
+                    fclose(fptr);
+                    fptr = NULL;
+                }
+                filesize = 0;
+                BKNI_Memset(digest, 0x00, 32);
+                pActiveUsageTableFilePath = USAGE_TABLE_BACKUP_FILE_PATH;
+            }
+        }
+        else
+        {
+            integrity_valid = true;
+        }
+    }
 
     /*
      * see if MAX_USAGE_TABLE_SIZE will fit in detected file
@@ -5454,12 +5493,14 @@ DRM_WvOemCrypto_P_ReadUsageTable(uint8_t *pUsageTableSharedMemory, uint32_t *pUs
 ErrorExit:
 
 
-    if(usage_table_buff != NULL){
+    if(usage_table_buff != NULL)
+    {
         DRM_Common_MemoryFree(usage_table_buff);
         usage_table_buff = NULL;
     }
 
-    if(fptr != NULL){
+    if(fptr != NULL)
+    {
         fclose(fptr);
         fptr = NULL;
     }
